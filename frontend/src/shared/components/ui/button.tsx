@@ -47,19 +47,21 @@ export function Button({
   rightIcon,
   style,
 }: ButtonProps) {
-  const isInteractive = disabled || loading;
+  const isInactive = disabled || loading;
 
   return (
     <Pressable
       onPress={onPress}
-      disabled={isInteractive}
+      disabled={isInactive}
+      accessibilityRole="button"
+      accessibilityState={{ disabled: isInactive, busy: loading }}
       style={({ pressed }) => [
         styles.base,
         styles[size],
         fullWidth && styles.fullWidth,
         variantStyles[variant].container,
-        pressed && !isInteractive && variantStyles[variant].pressed,
-        isInteractive && variantStyles[variant].disabled,
+        pressed && !isInactive && variantStyles[variant].pressed,
+        isInactive && styles.disabled,
         style,
       ]}
     >
