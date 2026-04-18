@@ -12,6 +12,8 @@ import { Button } from '@/shared/components/ui/button';
 import { GetStartedHero } from '@/features/onboarding/components/get-started-hero';
 import { Text, View, StyleSheet } from 'react-native';
 
+import { StatusBar } from 'expo-status-bar';
+
 const COLORS = {
   primary: '#1689F5',
   primarySoft: '#3AA2FF',
@@ -77,7 +79,8 @@ export default function Index() {
   };
 
   return (
-    <SafeAreaView style={styles.screen}>
+    <SafeAreaView style={styles.screen} edges={['left', 'right', 'bottom']}>
+    <StatusBar style="light" />
       <LinearGradient
         colors={[COLORS.primary, COLORS.sky, COLORS.white]}
         start={{ x: 0, y: 0 }}

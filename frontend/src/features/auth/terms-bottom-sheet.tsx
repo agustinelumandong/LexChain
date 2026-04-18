@@ -2,6 +2,7 @@ import { Button } from '@/shared/components/ui/button';
 import { MaterialIcons } from '@expo/vector-icons';
 import React from 'react';
 import { Modal, NativeScrollEvent, NativeSyntheticEvent, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
 
 const COLORS = {
   backdrop: 'rgba(4, 18, 40, 0.42)',
@@ -48,11 +49,15 @@ export default function TermsBottomSheet({
 
   return (
     <Modal
-      visible={visible}
-      transparent
-      animationType="slide"
-      onRequestClose={onClose}
-    >
+        visible={visible}
+        transparent
+        animationType="slide"
+        onRequestClose={onClose}
+        statusBarTranslucent
+        navigationBarTranslucent
+        presentationStyle="overFullScreen"
+      >
+      <StatusBar style="light" translucent backgroundColor="transparent" />
 
       <View style={styles.overlay}>
         <Pressable style={styles.backdrop} onPress={onClose} />
