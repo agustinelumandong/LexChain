@@ -34,7 +34,7 @@ export default function SignInScreen() {
             placeholder="your@email.com"
             value={email}
             onChangeText={setEmail}
-            iconName="mail"
+            iconName="mail-outline"
           />
 
           <AuthInput
@@ -42,7 +42,7 @@ export default function SignInScreen() {
             placeholder="●●●●●●●●"
             value={password}
             onChangeText={setPassword}
-            iconName="lock"
+            iconName="lock-outline"
             secureTextEntry
           />
         </View>
@@ -62,7 +62,7 @@ export default function SignInScreen() {
             label="Sign in"
             fullWidth
             leftIconName="login"
-            onPress={() => router.push('/')}
+            onPress={() => router.push('/(tabs)')}
           />
 
           <Button
@@ -70,7 +70,7 @@ export default function SignInScreen() {
             variant="secondary"
             fullWidth
             leftIconName="person-add"
-            onPress={() => router.push('/')}
+            onPress={() => router.push('/(auth)/sign-up')}
           />
         </View>
       </View>
