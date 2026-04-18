@@ -3,7 +3,7 @@ import { AuthInput } from '@/features/auth/auth-input';
 import { AuthScreenShell } from '@/features/auth/auth-screen-shell';
 import { Button } from '@/shared/components/ui/button';
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { View, StyleSheet, Text, Pressable } from 'react-native';
 
 const COLORS = {
@@ -16,9 +16,32 @@ const COLORS = {
 
 export default function SignInScreen() {
   const router = useRouter();
+  const transitionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [isSwitchingScreen, setIsSwitchingScreen] = useState(false);
+
+  useEffect(() => {
+    return () => {
+      if (transitionTimeoutRef.current) {
+        clearTimeout(transitionTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const navigateToSignUp = () => {
+    if (isSwitchingScreen) {
+      return;
+    }
+
+    setIsSwitchingScreen(true);
+    router.replace('/(auth)/sign-up');
+
+    transitionTimeoutRef.current = setTimeout(() => {
+      setIsSwitchingScreen(false);
+    }, 420);
+  };
 
   return (
     <AuthScreenShell>
@@ -70,7 +93,8 @@ export default function SignInScreen() {
             variant="secondary"
             fullWidth
             leftIconName="person-add"
-            onPress={() => router.push('/(auth)/sign-up')}
+            disabled={isSwitchingScreen}
+            onPress={navigateToSignUp}
           />
         </View>
       </View>
