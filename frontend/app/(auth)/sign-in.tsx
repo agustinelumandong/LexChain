@@ -21,11 +21,7 @@ export default function SignInScreen() {
   const [password, setPassword] = useState('');
 
   return (
-    <AuthScreenShell
-      screenOptions={{
-        animation: 'slide_from_left',
-      }}
-    >
+    <AuthScreenShell>
       <View style={styles.container}>
         <AuthHeader
           eyebrow="WELCOME BACK"

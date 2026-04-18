@@ -1,4 +1,3 @@
-import { Stack } from 'expo-router';
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -9,13 +8,11 @@ const COLORS = {
 
 type AuthScreenShellProps = {
   children?: React.ReactNode;
-  screenOptions?: React.ComponentProps<typeof Stack.Screen>['options'];
 };
 
-export function AuthScreenShell({ children, screenOptions }: AuthScreenShellProps) {
+export function AuthScreenShell({ children }: AuthScreenShellProps) {
   return (
     <SafeAreaView style={styles.screen}>
-      <Stack.Screen options={{ headerShown: false, ...screenOptions }} />
       <View style={styles.content}>{children}</View>
     </SafeAreaView>
   );
