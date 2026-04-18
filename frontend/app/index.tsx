@@ -1,12 +1,11 @@
-import {
-  BottomSheetModal,
+import BottomSheet, {
   BottomSheetView,
   useBottomSheetSpringConfigs,
 } from '@gorhom/bottom-sheet';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useEffect, useRef } from 'react';
+import React, { useRef } from 'react';
 
 import { Button } from '@/shared/components/ui/button';
 import { GetStartedHero } from '@/features/onboarding/components/get-started-hero';
@@ -25,8 +24,7 @@ const SHEET_SNAP_POINTS = ['35%', '36%'];
 
 export default function Index() {
   const router = useRouter();
-  const bottomSheetModalRef = useRef<BottomSheetModal>(null);
-  const navigationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const bottomSheetRef = useRef<BottomSheet>(null);
   const animationConfigs = useBottomSheetSpringConfigs({
     damping: 68,
     overshootClamping: true,
@@ -34,35 +32,6 @@ export default function Index() {
     restSpeedThreshold: 0.08,
     stiffness: 380,
   });
-
-  useEffect(() => {
-    const sheet = bottomSheetModalRef.current;
-    const frame = requestAnimationFrame(() => {
-      sheet?.present();
-    });
-
-    return () => {
-      cancelAnimationFrame(frame);
-
-      if (navigationTimeoutRef.current) {
-        clearTimeout(navigationTimeoutRef.current);
-      }
-
-      sheet?.dismiss();
-    };
-  }, []);
-
-  const navigateFromLanding = (href: '/(auth)/sign-in' | '/(auth)/sign-up') => {
-    bottomSheetModalRef.current?.dismiss();
-
-    if (navigationTimeoutRef.current) {
-      clearTimeout(navigationTimeoutRef.current);
-    }
-
-    navigationTimeoutRef.current = setTimeout(() => {
-      router.push(href);
-    }, 180);
-  };
 
   return (
     <SafeAreaView style={styles.screen}>
@@ -73,10 +42,8 @@ export default function Index() {
         style={styles.surface}
       >
         <GetStartedHero />
-      </LinearGradient>
-
-      <BottomSheetModal
-        ref={bottomSheetModalRef}
+        <BottomSheet
+        ref={bottomSheetRef}
         index={0}
         snapPoints={SHEET_SNAP_POINTS}
         animateOnMount
@@ -88,6 +55,7 @@ export default function Index() {
         animationConfigs={animationConfigs}
         backgroundStyle={styles.content}
         handleIndicatorStyle={styles.handle}
+        detached={false}
       >
         <BottomSheetView style={styles.sheetBody}>
           <View style={styles.copyBlock}>
@@ -104,7 +72,7 @@ export default function Index() {
             <Button
               label="Get started"
               fullWidth
-              onPress={() => navigateFromLanding('/(auth)/sign-up')}
+              onPress={() => router.push('/(auth)/sign-up')}
               rightIconName="arrow-forward"
             />
 
@@ -112,11 +80,12 @@ export default function Index() {
               label="I already have an account"
               variant="ghost"
               fullWidth
-              onPress={() => navigateFromLanding('/(auth)/sign-in')}
+              onPress={() => router.push('/(auth)/sign-in')}
             />
           </View>
         </BottomSheetView>
-      </BottomSheetModal>
+      </BottomSheet>
+      </LinearGradient>
     </SafeAreaView>
   );
 }
