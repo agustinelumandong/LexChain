@@ -8,6 +8,7 @@ import {
   View,
   ViewStyle
 } from 'react-native';
+import { MaterialIcons } from '@expo/vector-icons';
 
 type ButtonVariant = 'primary' | 'secondary' | 'ghost';
 type ButtonSize = 'sm' | 'md' | 'lg';
@@ -20,8 +21,8 @@ type ButtonProps = {
   disabled?: boolean;
   loading?: boolean;
   fullWidth?: boolean;
-  leftIcon?: React.ReactNode;
-  rightIcon?: React.ReactNode;
+  leftIconName?: React.ComponentProps<typeof MaterialIcons>['name'];
+  rightIconName?: React.ComponentProps<typeof MaterialIcons>['name'];
   style?: StyleProp<ViewStyle>;
 };
 
@@ -29,7 +30,6 @@ const COLORS = {
   primary: '#1689F5',
   primaryPressed: '#0E73D8',
   navy: '#133B73',
-  textMuted: '#6F8FB5',
   white: '#FFFFFF',
   surfaceSoft: '#EAF4FF',
   borderSoft: '#D7EBFF',
@@ -43,8 +43,8 @@ export function Button({
   disabled = false,
   loading = false,
   fullWidth = false,
-  leftIcon,
-  rightIcon,
+  leftIconName,
+  rightIconName,
   style,
 }: ButtonProps) {
   const isInactive = disabled || loading;
@@ -68,15 +68,25 @@ export function Button({
       {loading ? (
           <ActivityIndicator
             size="small"
-            color={variant === 'primary' ? COLORS.white : COLORS.navy}
+            color={variantIconColor[variant]}
            />
         ) : (
           <View style={styles.content}>
-            {leftIcon ? <View style={styles.icon}>{leftIcon}</View> : null}
+            {leftIconName ?
+              <MaterialIcons
+                name={leftIconName}
+                size={iconSizeStyles[size]}
+                color={variantIconColor[variant]}
+              /> :null}
             <Text style={[styles.label, labelStyles[variant], labelSizeStyles[size]]}>
               {label}
             </Text>
-            {rightIcon ? <View style={styles.icon}>{rightIcon}</View> : null}
+            {rightIconName ?
+              <MaterialIcons
+                name={rightIconName}
+                size={iconSizeStyles[size]}
+                color={variantIconColor[variant]}
+              /> : null}
           </View>
         )}
     </Pressable>
@@ -117,10 +127,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 12,
   },
-  icon: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   label: {
     fontFamily: 'Inter',
     fontWeight: '700',
@@ -131,7 +137,7 @@ const styles = StyleSheet.create({
 const buttonVariantStyles = StyleSheet.create({
   primaryContainer: {
     backgroundColor: COLORS.primary,
-    shadowColor: '#1689F5',
+    shadowColor: COLORS.primary,
     shadowOpacity: 0.14,
     shadowRadius: 15,
     shadowOffset: { width: 0, height: 10 },
@@ -144,7 +150,7 @@ const buttonVariantStyles = StyleSheet.create({
     backgroundColor: COLORS.surfaceSoft,
   },
   secondaryPressed: {
-    backgroundColor: '#D7EBFF',
+    backgroundColor: COLORS.borderSoft,
   },
   ghostContainer: {
     backgroundColor: 'transparent',
@@ -176,12 +182,12 @@ const labelSizeStyles = StyleSheet.create({
     lineHeight: 18,
   },
   lg: {
-    fontSize: 14,
-    lineHeight: 18,
+    fontSize: 16,
+    lineHeight: 22,
   },
 });
 
-const variantStylesMap = {
+const variantStyles = {
   primary: {
     container: buttonVariantStyles.primaryContainer,
     pressed: buttonVariantStyles.primaryPressed,
@@ -194,11 +200,16 @@ const variantStylesMap = {
     container: buttonVariantStyles.ghostContainer,
     pressed: buttonVariantStyles.ghostPressed,
   },
+} satisfies Record<ButtonVariant, { container: StyleProp<ViewStyle>; pressed: StyleProp<ViewStyle> }>;
+
+const variantIconColor: Record<ButtonVariant, string> = {
+  primary: COLORS.white,
+  secondary: COLORS.navy,
+  ghost: COLORS.navy,
 };
 
-const variantStylesTyped = variantStylesMap satisfies Record<
-  ButtonVariant,
-  { container: StyleProp<ViewStyle>; pressed: StyleProp<ViewStyle> }
->;
-
-const variantStyles = variantStylesTyped;
+const iconSizeStyles: Record<ButtonSize, number> = {
+  sm: 12,
+  md: 14,
+  lg: 16,
+};
