@@ -23,7 +23,11 @@ export default function SignUpScreen() {
   const [confirmPassword, setConfirmPassword] = useState('');
 
   return (
-    <AuthScreenShell>
+    <AuthScreenShell
+      screenOptions={{
+        animation: 'slide_from_right',
+      }}
+    >
       <View style={styles.container}>
         <AuthHeader
           eyebrow="GET STARTED"

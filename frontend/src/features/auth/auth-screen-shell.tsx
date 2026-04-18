@@ -9,13 +9,14 @@ const COLORS = {
 
 type AuthScreenShellProps = {
   children?: React.ReactNode;
+  screenOptions?: React.ComponentProps<typeof Stack.Screen>['options'];
 };
 
-export function AuthScreenShell({ children }: AuthScreenShellProps) {
+export function AuthScreenShell({ children, screenOptions }: AuthScreenShellProps) {
   return (
     <SafeAreaView style={styles.screen}>
-      <Stack.Screen options={{ headerShown: false }} />
-       <View style={styles.content}>{children}</View>
+      <Stack.Screen options={{ headerShown: false, ...screenOptions }} />
+      <View style={styles.content}>{children}</View>
     </SafeAreaView>
   );
 }

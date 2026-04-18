@@ -1,7 +1,12 @@
-import React from 'react';
+import {
+  BottomSheetModal,
+  BottomSheetView,
+  useBottomSheetSpringConfigs,
+} from '@gorhom/bottom-sheet';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
+import React, { useEffect, useRef } from 'react';
 
 import { Button } from '@/shared/components/ui/button';
 import { GetStartedHero } from '@/features/onboarding/components/get-started-hero';
@@ -16,48 +21,102 @@ const COLORS = {
   white: '#FFFFFF',
 };
 
+const SHEET_SNAP_POINTS = ['35%', '36%'];
+
 export default function Index() {
   const router = useRouter();
+  const bottomSheetModalRef = useRef<BottomSheetModal>(null);
+  const navigationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const animationConfigs = useBottomSheetSpringConfigs({
+    damping: 68,
+    overshootClamping: true,
+    restDisplacementThreshold: 0.08,
+    restSpeedThreshold: 0.08,
+    stiffness: 380,
+  });
+
+  useEffect(() => {
+    const sheet = bottomSheetModalRef.current;
+    const frame = requestAnimationFrame(() => {
+      sheet?.present();
+    });
+
+    return () => {
+      cancelAnimationFrame(frame);
+
+      if (navigationTimeoutRef.current) {
+        clearTimeout(navigationTimeoutRef.current);
+      }
+
+      sheet?.dismiss();
+    };
+  }, []);
+
+  const navigateFromLanding = (href: '/(auth)/sign-in' | '/(auth)/sign-up') => {
+    bottomSheetModalRef.current?.dismiss();
+
+    if (navigationTimeoutRef.current) {
+      clearTimeout(navigationTimeoutRef.current);
+    }
+
+    navigationTimeoutRef.current = setTimeout(() => {
+      router.push(href);
+    }, 180);
+  };
 
   return (
     <SafeAreaView style={styles.screen}>
       <LinearGradient
-        colors={[COLORS.primary,  COLORS.sky, COLORS.white]}
+        colors={[COLORS.primary, COLORS.sky, COLORS.white]}
         start={{ x: 0, y: 0 }}
         end={{ x: 0, y: 1 }}
-        locations={[0.0, 0.75, 0.75]}
         style={styles.surface}
       >
-          <GetStartedHero />
-          <View style={styles.content}>
-            <View style={styles.handle} />
-            <View style={styles.copyBlock}>
-              <Text style={styles.title}>
-                Keep legal files secure, accessible anywhere.
-              </Text>
-
-              <Text style={styles.body}>
-                Upload, summarize, and manage access in one calm workflow.
-              </Text>
-            </View>
-
-            <View style={styles.actions}>
-              <Button
-                label="Get started"
-                fullWidth
-                onPress={() => router.push('/(auth)/sign-up')}
-                rightIconName="arrow-forward"
-              />
-
-              <Button
-                label="I already have an account"
-                variant="ghost"
-                fullWidth
-                onPress={() => router.push('/(auth)/sign-in')}
-              />
-            </View>
-          </View>
+        <GetStartedHero />
       </LinearGradient>
+
+      <BottomSheetModal
+        ref={bottomSheetModalRef}
+        index={0}
+        snapPoints={SHEET_SNAP_POINTS}
+        animateOnMount
+        enableDynamicSizing={false}
+        enableDismissOnClose={false}
+        enableOverDrag
+        enablePanDownToClose={false}
+        overDragResistanceFactor={8}
+        animationConfigs={animationConfigs}
+        backgroundStyle={styles.content}
+        handleIndicatorStyle={styles.handle}
+      >
+        <BottomSheetView style={styles.sheetBody}>
+          <View style={styles.copyBlock}>
+            <Text style={styles.title}>
+              Keep legal files secure, accessible anywhere.
+            </Text>
+
+            <Text style={styles.body}>
+              Upload, summarize, and manage access in one calm workflow.
+            </Text>
+          </View>
+
+          <View style={styles.actions}>
+            <Button
+              label="Get started"
+              fullWidth
+              onPress={() => navigateFromLanding('/(auth)/sign-up')}
+              rightIconName="arrow-forward"
+            />
+
+            <Button
+              label="I already have an account"
+              variant="ghost"
+              fullWidth
+              onPress={() => navigateFromLanding('/(auth)/sign-in')}
+            />
+          </View>
+        </BottomSheetView>
+      </BottomSheetModal>
     </SafeAreaView>
   );
 }
@@ -72,38 +131,21 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   content: {
-    backgroundColor: COLORS.white,
-    marginTop: 'auto',
-    paddingHorizontal: 20,
-    paddingTop: 14,
-    paddingBottom: 28,
     borderTopRightRadius: 32,
     borderTopLeftRadius: 32,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.20)',
+    borderColor: 'rgba(255,255,255,0.24)',
+    backgroundColor: COLORS.white,
     shadowColor: '#08264D',
     shadowOpacity: 0.38,
     shadowRadius: 30,
     shadowOffset: { width: 0, height: -14 },
-    // elevation: 12,
+  },
+  sheetBody: {
+    paddingHorizontal: 20,
+    paddingTop: 6,
+    paddingBottom: 28,
     gap: 20,
-  },
-  glassHighlight: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 96,
-    backgroundColor: 'rgba(255,255,255,0.10)',
-  },
-  glassGlow: {
-    position: 'absolute',
-    top: -18,
-    left: 24,
-    right: 24,
-    height: 48,
-    borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.18)',
   },
   handle: {
     alignSelf: 'center',
