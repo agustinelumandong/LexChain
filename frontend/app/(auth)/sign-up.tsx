@@ -3,8 +3,9 @@ import { AuthInput } from "@/features/auth/auth-input";
 import { AuthScreenShell } from "@/features/auth/auth-screen-shell";
 import { Button } from "@/shared/components/ui/button";
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { View, StyleSheet, Pressable, Text } from "react-native";
+import TermsBottomSheet from "@/features/auth/terms-bottom-sheet";
 
 const COLORS = {
   primary: '#1689F5',
@@ -15,12 +16,40 @@ const COLORS = {
 
 export default function SignUpScreen() {
   const router = useRouter();
+  const transitionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [isSwitchingScreen, setIsSwitchingScreen] = useState(false);
+
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [hasReachedTermsEnd, setHasReachedTermsEnd] = useState(false);
+  const [isTermsSheetVisible, setIsTermsSheetVisible] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    return () => {
+      if (transitionTimeoutRef.current) {
+        clearTimeout(transitionTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const navigateToSignIn = () => {
+    if (isSwitchingScreen) {
+      return;
+    }
+
+    setIsSwitchingScreen(true);
+    router.replace('/(auth)/sign-in');
+
+    transitionTimeoutRef.current = setTimeout(() => {
+      setIsSwitchingScreen(false);
+    }, 420);
+  };
 
   return (
     <AuthScreenShell>
@@ -80,8 +109,16 @@ export default function SignUpScreen() {
             />
         </View>
 
-        <Pressable onPress={() => { }} style={styles.chip}>
-          <Text style={styles.chipText}>I agree to the Terms of Service</Text>
+        <Pressable style={styles.termsPreview} onPress={() => setIsTermsSheetVisible(true)}>
+          <View style={styles.termsPreviewText}>
+            <Text style={styles.termsPreviewTitle}>Terms of Service</Text>
+            <Text style={styles.termsPreviewBody}>
+              Review and accept terms before creating your account.
+            </Text>
+          </View>
+          <Text style={styles.termsPreviewAction}>
+            {acceptedTerms ? 'Accepted' : 'Open'}
+          </Text>
         </Pressable>
 
         <View style={styles.actions}>
@@ -89,18 +126,38 @@ export default function SignUpScreen() {
             label="Sign up"
             fullWidth
             leftIconName="person-add"
-            onPress={() => router.push('/(tabs)')}
+            onPress={() => setIsTermsSheetVisible(true)}
           />
 
           <Button
-            label="Already have an account? Sign in"
+            label="Already have an account."
             variant="secondary"
             fullWidth
             leftIconName="login"
-            onPress={() => router.push('/(auth)/sign-in')}
+            disabled={isSwitchingScreen}
+            onPress={navigateToSignIn}
           />
         </View>
       </View>
+
+      <TermsBottomSheet
+        visible={isTermsSheetVisible}
+        acceptedTerms={acceptedTerms}
+        hasReachedEnd={hasReachedTermsEnd}
+        isSubmitting={isSubmitting}
+        onClose={() => setIsTermsSheetVisible(false)}
+        onToggleAcceptedTerms={() => setAcceptedTerms((prev) => !prev)}
+        onReachedEnd={() => setHasReachedTermsEnd(true)}
+        onConfirm={() => {
+          setIsSubmitting(true);
+
+          setTimeout(() => {
+            setIsSubmitting(false);
+            setIsTermsSheetVisible(false);
+            router.replace('/(tabs)');
+          }, 500);
+        }}
+      />
     </AuthScreenShell>
   );
 };
@@ -136,5 +193,40 @@ const styles = StyleSheet.create({
   },
   actions: {
     gap: 12,
+  },
+  termsPreview: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderRadius: 18,
+    backgroundColor: COLORS.surfaceSoft,
+  },
+  termsPreviewText: {
+    flex: 1,
+    gap: 4,
+  },
+  termsPreviewTitle: {
+    color: COLORS.navy,
+    fontSize: 14,
+    lineHeight: 18,
+    fontWeight: '700',
+    fontFamily: 'Inter',
+  },
+  termsPreviewBody: {
+    color: COLORS.primary,
+    fontSize: 12,
+    lineHeight: 16,
+    fontWeight: '500',
+    fontFamily: 'Inter',
+  },
+  termsPreviewAction: {
+    color: COLORS.primary,
+    fontSize: 13,
+    lineHeight: 16,
+    fontWeight: '700',
+    fontFamily: 'Inter',
   },
 });
