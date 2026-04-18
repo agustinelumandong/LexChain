@@ -2,10 +2,11 @@ import BottomSheet, {
   BottomSheetView,
   useBottomSheetSpringConfigs,
 } from '@gorhom/bottom-sheet';
+import { useIsFocused } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 
 import { Button } from '@/shared/components/ui/button';
 import { GetStartedHero } from '@/features/onboarding/components/get-started-hero';
@@ -24,7 +25,10 @@ const SHEET_SNAP_POINTS = ['35%', '36%'];
 
 export default function Index() {
   const router = useRouter();
+  const isFocused = useIsFocused();
   const bottomSheetRef = useRef<BottomSheet>(null);
+  const navigationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const focusTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const animationConfigs = useBottomSheetSpringConfigs({
     damping: 68,
     overshootClamping: true,
@@ -32,6 +36,45 @@ export default function Index() {
     restSpeedThreshold: 0.08,
     stiffness: 380,
   });
+
+  useEffect(() => {
+    if (focusTimeoutRef.current) {
+      clearTimeout(focusTimeoutRef.current);
+    }
+
+    if (isFocused) {
+      focusTimeoutRef.current = setTimeout(() => {
+        bottomSheetRef.current?.snapToIndex(0);
+      }, 40);
+      return;
+    }
+
+    bottomSheetRef.current?.close();
+  }, [isFocused]);
+
+  useEffect(() => {
+    return () => {
+      if (navigationTimeoutRef.current) {
+        clearTimeout(navigationTimeoutRef.current);
+      }
+
+      if (focusTimeoutRef.current) {
+        clearTimeout(focusTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const navigateFromLanding = (href: '/(auth)/sign-in' | '/(auth)/sign-up') => {
+    bottomSheetRef.current?.close();
+
+    if (navigationTimeoutRef.current) {
+      clearTimeout(navigationTimeoutRef.current);
+    }
+
+    navigationTimeoutRef.current = setTimeout(() => {
+      router.push(href);
+    }, 220);
+  };
 
   return (
     <SafeAreaView style={styles.screen}>
@@ -72,7 +115,7 @@ export default function Index() {
             <Button
               label="Get started"
               fullWidth
-              onPress={() => router.push('/(auth)/sign-up')}
+              onPress={() => navigateFromLanding('/(auth)/sign-up')}
               rightIconName="arrow-forward"
             />
 
@@ -80,7 +123,7 @@ export default function Index() {
               label="I already have an account"
               variant="ghost"
               fullWidth
-              onPress={() => router.push('/(auth)/sign-in')}
+              onPress={() => navigateFromLanding('/(auth)/sign-in')}
             />
           </View>
         </BottomSheetView>
