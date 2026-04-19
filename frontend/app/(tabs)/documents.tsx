@@ -1,0 +1,789 @@
+import React, { useState } from 'react';
+import { useRouter } from 'expo-router';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
+import {
+  DocumentPreviewBottomSheet,
+  type DocumentPreviewData,
+} from '@/features/document/components/document-preview-bottom-sheet';
+import {
+  ManageWhitelistBottomSheet,
+  type ManageWhitelistData,
+} from '@/features/document/components/manage-whitelist-bottom-sheet';
+import {
+  VerifyDocumentBottomSheet,
+  type VerifyDocumentData,
+} from '@/features/document/components/verify-document-bottom-sheet';
+import { DocumentsFilterControls } from '@/features/documents/documents-filter-controls';
+import { DocumentsFilterSheet } from '@/features/documents/documents-filter-sheet';
+import { DocumentsHeader } from '@/features/documents/documents-header';
+import { DocumentResultCard } from '@/features/documents/document-result-card';
+import { DocumentsSortSheet } from '@/features/documents/documents-sort-sheet';
+import { SearchInputWithResults } from '@/shared/components/ui/search-input-with-results';
+import { useCloseSheetOnBack } from '@/shared/hooks/use-close-sheet-on-back';
+import { BottomNav } from '@/shared/components/ui/bottom-nav';
+
+const COLORS = {
+  bg: '#F3F8FF',
+  navy: '#133B73',
+  textMuted: '#6F8FB5',
+  surface: '#FFFFFF',
+};
+
+type DocumentSortKey = 'newest' | 'oldest' | 'title-az';
+type DocumentTypeKey = 'all' | 'deed-of-sale' | 'lease-contract';
+type DocumentStatusKey = 'all' | 'verified' | 'review-needed';
+
+const DOCUMENTS: {
+  id: string;
+  title: string;
+  parties: string;
+  date: string;
+  documentType: DocumentTypeKey;
+  status: DocumentStatusKey;
+  preview: DocumentPreviewData;
+  verify: VerifyDocumentData;
+  whitelist: ManageWhitelistData;
+}[] = [
+  {
+    id: '1002',
+    title: 'Deed of Sale #1002',
+    parties: 'Santos & Dela Cruz',
+    date: '2026-06-10',
+    documentType: 'deed-of-sale',
+    status: 'verified',
+    preview: {
+      id: '1002',
+      title: 'Deed of Sale #1002',
+      summaryRows: [
+        { label: 'Reference', value: 'REF-2026-1002' },
+        { label: 'Parties', value: 'Santos • Dela Cruz' },
+        { label: 'Files uploaded', value: '3 files' },
+      ],
+      summary:
+        'Land sale file with attachments, extracted clauses, and context for legal review.',
+      sections: [
+        {
+          title: 'Core fields',
+          rows: [
+            { label: 'Document type', value: 'Deed of Sale' },
+            { label: 'Effective date', value: '2026-06-10' },
+          ],
+        },
+        {
+          title: 'Clauses',
+          body: 'Payment, transfer, warranty.',
+        },
+        {
+          title: 'Obligations',
+          rows: [
+            { label: 'Seller', value: 'Transfer title' },
+            { label: 'Buyer', value: 'Release payment' },
+          ],
+        },
+        {
+          title: 'Attachments',
+          rows: [{ label: 'Files', value: 'SaleDeed.pdf + 2' }],
+        },
+        {
+          title: 'Risk flags',
+          rows: [{ label: 'Missing fields', value: 'None' }],
+        },
+      ],
+      confidenceLabel: 'Confidence',
+      confidenceValue: 'Verified',
+      whitelist: {
+        allowedCountLabel: '3 allowed wallets/users',
+        helperText:
+          'Whitelist rules apply to this document only. Manage allowed access before sharing.',
+      },
+    },
+    verify: {
+      id: '1002',
+      title: 'Deed of Sale #1002',
+      summaryRows: [
+        { label: 'Reference', value: 'REF-2026-1002' },
+        { label: 'Parties', value: 'Santos • Dela Cruz' },
+        { label: 'Date', value: '2026-06-10' },
+        { label: 'Topical agenda', value: 'Ownership transfer' },
+      ],
+      summary:
+        'Verification compares extracted record and uploaded file hash against anchored reference.',
+      steps: [
+        { label: 'Uploaded Docs Verifying', status: 'done' },
+        { label: 'Docs Scanning', status: 'verifying' },
+        { label: 'Generating Summary', status: 'pending' },
+        { label: 'Anchor Pending', status: 'pending' },
+      ],
+      offChainHash: '0xA13...9F2',
+      onChainHash: '0xA13...9F2',
+      integrityStatus: 'Match',
+    },
+    whitelist: {
+      grants: [
+        { id: 'cruz', name: 'Atty. Cruz', email: 'cruz@lexchain.app', accessLabel: 'Verify access', actionLabel: 'Verify' },
+        { id: 'juan-d', name: 'Juan D.', email: 'juan.d@lexchain.app', accessLabel: 'View access', actionLabel: 'View' },
+      ],
+      searchResults: [
+        { id: 'juan-dela-cruz', name: 'Juan Dela Cruz', email: 'juan@lexchain.app' },
+        { id: 'juan-santos', name: 'Juan Santos', email: 'owner@lexchain.app' },
+      ],
+    },
+  },
+  {
+    id: '44',
+    title: 'Lease Contract #44',
+    parties: 'Rivera Holdings & LCN Realty',
+    date: '2026-05-22',
+    documentType: 'lease-contract',
+    status: 'review-needed',
+    preview: {
+      id: '44',
+      title: 'Lease Contract #44',
+      summaryRows: [
+        { label: 'Reference', value: 'LEASE-2026-44' },
+        { label: 'Parties', value: 'Rivera Holdings • LCN Realty' },
+        { label: 'Files uploaded', value: '2 files' },
+      ],
+      summary:
+        'Commercial lease packet with schedule details, obligations, and supporting attachments.',
+      sections: [
+        {
+          title: 'Core fields',
+          rows: [
+            { label: 'Document type', value: 'Lease Contract' },
+            { label: 'Effective date', value: '2026-05-22' },
+          ],
+        },
+        {
+          title: 'Clauses',
+          body: 'Occupancy, renewal, maintenance.',
+        },
+        {
+          title: 'Obligations',
+          rows: [
+            { label: 'Lessor', value: 'Maintain premises' },
+            { label: 'Lessee', value: 'Monthly rental payment' },
+          ],
+        },
+        {
+          title: 'Attachments',
+          rows: [{ label: 'Files', value: 'Lease.pdf + 1' }],
+        },
+        {
+          title: 'Risk flags',
+          rows: [{ label: 'Missing fields', value: 'Review stamp' }],
+        },
+      ],
+      confidenceLabel: 'Confidence',
+      confidenceValue: 'Review needed',
+      whitelist: {
+        allowedCountLabel: '1 wallet pending review',
+        helperText:
+          'Whitelist rules apply to this document only. Update access before release.',
+      },
+    },
+    verify: {
+      id: '44',
+      title: 'Lease Contract #44',
+      summaryRows: [
+        { label: 'Reference', value: 'LEASE-2026-44' },
+        { label: 'Parties', value: 'Rivera Holdings • LCN Realty' },
+        { label: 'Date', value: '2026-05-22' },
+        { label: 'Topical agenda', value: 'Lease and occupancy' },
+      ],
+      summary:
+        'Verification found a mismatch between the extracted record and the latest uploaded support file.',
+      steps: [
+        { label: 'Uploaded Docs Verifying', status: 'done' },
+        { label: 'Docs Scanning', status: 'done' },
+        { label: 'Generating Summary', status: 'done' },
+        { label: 'Anchor Pending', status: 'verifying' },
+      ],
+      offChainHash: '0xC77...1B4',
+      onChainHash: '0xE91...8D0',
+      integrityStatus: 'Review',
+    },
+    whitelist: {
+      grants: [
+        { id: 'rivera-counsel', name: 'Atty. Rivera', email: 'rivera@lexchain.app', accessLabel: 'Verify access', actionLabel: 'Verify' },
+        { id: 'lcn-owner', name: 'LCN Owner', email: 'owner@lcn.app', accessLabel: 'View access', actionLabel: 'View' },
+      ],
+      searchResults: [
+        { id: 'marco-rivera', name: 'Marco Rivera', email: 'marco@lexchain.app' },
+        { id: 'lcn-admin', name: 'LCN Admin', email: 'admin@lexchain.app' },
+      ],
+    },
+  },
+];
+
+const DOCUMENT_TYPE_OPTIONS = [
+  { label: 'All types', value: 'all' },
+  { label: 'Deed of Sale', value: 'deed-of-sale' },
+  { label: 'Lease Contract', value: 'lease-contract' },
+] as const;
+
+const DOCUMENT_STATUS_OPTIONS = [
+  { label: 'All statuses', value: 'all' },
+  { label: 'Verified', value: 'verified' },
+  { label: 'Review needed', value: 'review-needed' },
+] as const;
+
+const DOCUMENT_SORT_OPTIONS = [
+  {
+    label: 'Newest first',
+    value: 'newest',
+    helperText: 'Most recent document dates at the top',
+  },
+  {
+    label: 'Oldest first',
+    value: 'oldest',
+    helperText: 'Earlier document dates at the top',
+  },
+  {
+    label: 'Title A-Z',
+    value: 'title-az',
+    helperText: 'Alphabetical by document title',
+  },
+] as const;
+
+export default function DocumentsScreen() {
+  const router = useRouter();
+  const [documents, setDocuments] = useState(DOCUMENTS);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [documentTypeFilter, setDocumentTypeFilter] = useState<DocumentTypeKey>('all');
+  const [documentStatusFilter, setDocumentStatusFilter] = useState<DocumentStatusKey>('all');
+  const [documentDateFilter, setDocumentDateFilter] = useState<Date | null>(null);
+  const [sortKey, setSortKey] = useState<DocumentSortKey>('newest');
+  const [selectedDocumentId, setSelectedDocumentId] = useState<string | null>(null);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [isVerifyOpen, setIsVerifyOpen] = useState(false);
+  const [isWhitelistOpen, setIsWhitelistOpen] = useState(false);
+  const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false);
+  const [isSortSheetOpen, setIsSortSheetOpen] = useState(false);
+  const [whitelistSearchQuery, setWhitelistSearchQuery] = useState('');
+  const selectedDocument = documents.find((document) => document.id === selectedDocumentId) ?? null;
+  const normalizedSearchQuery = searchQuery.trim().toLowerCase();
+  const extractContentText = (document: (typeof DOCUMENTS)[number]) =>
+    [
+      document.preview.summary,
+      ...document.preview.sections.flatMap((section) => {
+        if ('body' in section && section.body) {
+          return [section.title, section.body];
+        }
+
+        return [
+          section.title,
+          ...((section.rows ?? []).flatMap((row) => [row.label, row.value])),
+        ];
+      }),
+    ]
+      .join(' ')
+      .toLowerCase();
+
+  const matchesStructuredFilters = (document: (typeof DOCUMENTS)[number]) => {
+    if (documentTypeFilter !== 'all' && document.documentType !== documentTypeFilter) {
+      return false;
+    }
+
+    if (documentStatusFilter !== 'all' && document.status !== documentStatusFilter) {
+      return false;
+    }
+
+    if (documentDateFilter) {
+      const documentDate = new Date(`${document.date}T00:00:00`);
+
+      if (
+        documentDate.getFullYear() !== documentDateFilter.getFullYear() ||
+        documentDate.getMonth() !== documentDateFilter.getMonth() ||
+        documentDate.getDate() !== documentDateFilter.getDate()
+      ) {
+        return false;
+      }
+    }
+
+    return true;
+  };
+
+  const formatSelectedDate = (value: Date | null) => {
+    if (!value) {
+      return null;
+    }
+
+    return value.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    });
+  };
+
+  const matchesSearch = (document: (typeof DOCUMENTS)[number]) => {
+    if (normalizedSearchQuery.length === 0) {
+      return true;
+    }
+
+    return [
+      document.title,
+      document.parties,
+      document.date,
+      document.preview.summary,
+      extractContentText(document),
+    ].some((field) => field.toLowerCase().includes(normalizedSearchQuery));
+  };
+
+  const sortDocuments = (items: typeof documents) => {
+    if (sortKey === 'newest') {
+      return [...items].sort((left, right) => right.date.localeCompare(left.date));
+    }
+
+    if (sortKey === 'oldest') {
+      return [...items].sort((left, right) => left.date.localeCompare(right.date));
+    }
+
+    if (sortKey === 'title-az') {
+      return [...items].sort((left, right) => left.title.localeCompare(right.title));
+    }
+
+    return items;
+  };
+
+  const filteredDocuments = sortDocuments(
+    documents.filter((document) => matchesStructuredFilters(document) && matchesSearch(document)),
+  );
+  const isAnySheetOpen =
+    isPreviewOpen || isVerifyOpen || isWhitelistOpen || isFilterSheetOpen || isSortSheetOpen;
+
+  useCloseSheetOnBack(isAnySheetOpen, () => {
+    setIsPreviewOpen(false);
+    setIsVerifyOpen(false);
+    setIsWhitelistOpen(false);
+    setIsFilterSheetOpen(false);
+    setIsSortSheetOpen(false);
+    setWhitelistSearchQuery('');
+  });
+
+  const openPreview = (documentId: string) => {
+    const nextDocument = documents.find((document) => document.id === documentId) ?? null;
+
+    if (!nextDocument) {
+      return;
+    }
+
+    setSelectedDocumentId(nextDocument.id);
+    setIsVerifyOpen(false);
+    setIsPreviewOpen(true);
+  };
+
+  const openVerify = (documentId: string) => {
+    const nextDocument = documents.find((document) => document.id === documentId) ?? null;
+
+    if (!nextDocument) {
+      return;
+    }
+
+    setSelectedDocumentId(nextDocument.id);
+    setIsPreviewOpen(false);
+    setIsVerifyOpen(true);
+  };
+
+  const handleVerifyFromPreview = () => {
+    setIsPreviewOpen(false);
+
+    setTimeout(() => {
+      setIsVerifyOpen(true);
+    }, 180);
+  };
+
+  const openWhitelist = () => {
+    setIsPreviewOpen(false);
+
+    setTimeout(() => {
+      setIsWhitelistOpen(true);
+    }, 180);
+  };
+
+  const updateDocumentWhitelist = (
+    documentId: string,
+    updater: (document: (typeof documents)[number]) => (typeof documents)[number],
+  ) => {
+    setDocuments((currentDocuments) =>
+      currentDocuments.map((document) =>
+        document.id === documentId ? updater(document) : document,
+      ),
+    );
+  };
+
+  const updateWhitelistCountLabel = (count: number) =>
+    `${count} allowed wallet${count === 1 ? '' : 's'}/users`;
+
+  const handleAddWhitelistResult = (resultId: string) => {
+    if (!selectedDocument) {
+      return;
+    }
+
+    updateDocumentWhitelist(selectedDocument.id, (document) => {
+      const result = document.whitelist.searchResults.find((entry) => entry.id === resultId);
+
+      if (!result) {
+        return document;
+      }
+
+      const nextGrants = [
+        {
+          id: result.id,
+          name: result.name,
+          email: result.email,
+          accessLabel: 'View access',
+          actionLabel: 'View',
+        },
+        ...document.whitelist.grants,
+      ];
+
+      const nextSearchResults = document.whitelist.searchResults.filter(
+        (entry) => entry.id !== resultId,
+      );
+
+      return {
+        ...document,
+        preview: {
+          ...document.preview,
+          whitelist: {
+            ...document.preview.whitelist,
+            allowedCountLabel: updateWhitelistCountLabel(nextGrants.length),
+          },
+        },
+        whitelist: {
+          ...document.whitelist,
+          grants: nextGrants,
+          searchResults: nextSearchResults,
+        },
+      };
+    });
+
+    setWhitelistSearchQuery('');
+  };
+
+  const handleRevokeGrant = (grantId: string) => {
+    if (!selectedDocument) {
+      return;
+    }
+
+    updateDocumentWhitelist(selectedDocument.id, (document) => {
+      const grant = document.whitelist.grants.find((entry) => entry.id === grantId);
+
+      if (!grant) {
+        return document;
+      }
+
+      const nextGrants = document.whitelist.grants.filter((entry) => entry.id !== grantId);
+      const nextSearchResults =
+        grant.email && !document.whitelist.searchResults.some((entry) => entry.id === grant.id)
+          ? [
+              {
+                id: grant.id,
+                name: grant.name,
+                email: grant.email,
+              },
+              ...document.whitelist.searchResults,
+            ]
+          : document.whitelist.searchResults;
+
+      return {
+        ...document,
+        preview: {
+          ...document.preview,
+          whitelist: {
+            ...document.preview.whitelist,
+            allowedCountLabel: updateWhitelistCountLabel(nextGrants.length),
+          },
+        },
+        whitelist: {
+          ...document.whitelist,
+          grants: nextGrants,
+          searchResults: nextSearchResults,
+        },
+      };
+    });
+  };
+
+  const activeFilterSummary = [
+    documentTypeFilter !== 'all'
+      ? `Type: ${
+          DOCUMENT_TYPE_OPTIONS.find((option) => option.value === documentTypeFilter)?.label ?? ''
+        }`
+      : null,
+    documentStatusFilter !== 'all'
+      ? `Status: ${
+          DOCUMENT_STATUS_OPTIONS.find((option) => option.value === documentStatusFilter)?.label ??
+          ''
+        }`
+      : null,
+    documentDateFilter
+      ? `Date: ${formatSelectedDate(documentDateFilter) ?? ''}`
+      : null,
+  ].filter(Boolean) as string[];
+
+  const sortLabel =
+    DOCUMENT_SORT_OPTIONS.find((option) => option.value === sortKey)?.label ?? 'Newest first';
+
+  return (
+    <SafeAreaView style={styles.screen}>
+      <View style={styles.surface}>
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          <DocumentsHeader />
+
+          <View style={styles.searchWrap}>
+            <SearchInputWithResults
+              label="Search documents"
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              placeholder="Title, party, date, or keyword"
+              showDropdown={false}
+              results={filteredDocuments}
+              emptyText="No document found"
+              keyExtractor={(document) => document.id}
+              renderItem={(document) => (
+                <DocumentSearchResultRow
+                  title={document.title}
+                  parties={document.parties}
+                  date={document.date}
+                  onPress={() => openPreview(document.id)}
+                />
+              )}
+            />
+          </View>
+
+          <DocumentsFilterControls
+            activeSummary={activeFilterSummary}
+            sortLabel={sortLabel}
+            onPressFilter={() => setIsFilterSheetOpen(true)}
+            onPressSort={() => setIsSortSheetOpen(true)}
+          />
+
+          {filteredDocuments.length > 0 ? (
+            filteredDocuments.map((document) => (
+              <DocumentResultCard
+                key={document.id}
+                title={document.title}
+                parties={document.parties}
+                date={document.date}
+                onPressCard={() => openPreview(document.id)}
+                onPressOpen={() => openPreview(document.id)}
+              />
+            ))
+          ) : (
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyTitle}>No documents found</Text>
+              <Text style={styles.emptyBody}>
+                Try another title, party name, or date.
+              </Text>
+            </View>
+          )}
+        </ScrollView>
+
+        <View style={styles.navWrap}>
+          <BottomNav
+            activeTab="documents"
+            onPressHome={() => router.push('/(tabs)')}
+            onPressDocuments={() => {}}
+            onPressProfile={() => router.push('/(tabs)/profile')}
+            onPressUpload={() => router.push('/upload')}
+          />
+        </View>
+      </View>
+
+      <DocumentPreviewBottomSheet
+        visible={isPreviewOpen}
+        document={selectedDocument?.preview ?? null}
+        onClose={() => setIsPreviewOpen(false)}
+        onVerify={handleVerifyFromPreview}
+        onManageWhitelist={openWhitelist}
+        onAddWhitelist={openWhitelist}
+      />
+
+      <VerifyDocumentBottomSheet
+        visible={isVerifyOpen}
+        document={selectedDocument?.verify ?? null}
+        onClose={() => setIsVerifyOpen(false)}
+        onBackToDetails={() => {
+          setIsVerifyOpen(false);
+
+          setTimeout(() => {
+            setIsPreviewOpen(true);
+          }, 180);
+        }}
+      />
+
+      <ManageWhitelistBottomSheet
+        visible={isWhitelistOpen}
+        data={selectedDocument?.whitelist ?? null}
+        searchQuery={whitelistSearchQuery}
+        onChangeSearchQuery={setWhitelistSearchQuery}
+        onClose={() => {
+          setIsWhitelistOpen(false);
+          setWhitelistSearchQuery('');
+        }}
+        onPressGrantAction={(grantId) => {
+          if (!selectedDocument) {
+            return;
+          }
+
+          const selectedGrant = selectedDocument.whitelist.grants.find(
+            (grant) => grant.id === grantId,
+          );
+
+          setIsWhitelistOpen(false);
+
+          setTimeout(() => {
+            if (selectedGrant?.actionLabel === 'Verify') {
+              openVerify(selectedDocument.id);
+              return;
+            }
+
+            openPreview(selectedDocument.id);
+          }, 180);
+        }}
+        onPressRevoke={handleRevokeGrant}
+        onPressAddResult={handleAddWhitelistResult}
+      />
+
+      <DocumentsFilterSheet
+        visible={isFilterSheetOpen}
+        typeOptions={[...DOCUMENT_TYPE_OPTIONS]}
+        statusOptions={[...DOCUMENT_STATUS_OPTIONS]}
+        selectedType={documentTypeFilter}
+        selectedStatus={documentStatusFilter}
+        selectedDate={documentDateFilter}
+        onClose={() => setIsFilterSheetOpen(false)}
+        onChangeType={(value) => setDocumentTypeFilter(value as DocumentTypeKey)}
+        onChangeStatus={(value) => setDocumentStatusFilter(value as DocumentStatusKey)}
+        onChangeDate={setDocumentDateFilter}
+        onClear={() => {
+          setDocumentTypeFilter('all');
+          setDocumentStatusFilter('all');
+          setDocumentDateFilter(null);
+        }}
+      />
+
+      <DocumentsSortSheet
+        visible={isSortSheetOpen}
+        options={[...DOCUMENT_SORT_OPTIONS]}
+        selectedSort={sortKey}
+        onClose={() => setIsSortSheetOpen(false)}
+        onSelectSort={(value) => setSortKey(value as DocumentSortKey)}
+      />
+    </SafeAreaView>
+  );
+}
+
+type DocumentSearchResultRowProps = {
+  title: string;
+  parties: string;
+  date: string;
+  onPress: () => void;
+};
+
+function DocumentSearchResultRow({
+  title,
+  parties,
+  date,
+  onPress,
+}: DocumentSearchResultRowProps) {
+  return (
+    <Pressable style={styles.resultRow} onPress={onPress}>
+      <View style={styles.resultCopy}>
+        <Text style={styles.resultTitle}>{title}</Text>
+        <Text style={styles.resultMeta}>{parties}</Text>
+      </View>
+      <Text style={styles.resultDate}>{date}</Text>
+    </Pressable>
+  );
+}
+
+const styles = StyleSheet.create({
+  screen: {
+    flex: 1,
+    backgroundColor: COLORS.bg,
+  },
+  surface: {
+    flex: 1,
+    backgroundColor: COLORS.bg,
+  },
+  scrollContent: {
+    paddingHorizontal: 18,
+    paddingTop: 12,
+    paddingBottom: 24,
+    gap: 20,
+  },
+  searchWrap: {
+    zIndex: 20,
+  },
+  resultRow: {
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: '#D7EBFF',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  resultCopy: {
+    flex: 1,
+    gap: 4,
+  },
+  resultTitle: {
+    color: COLORS.navy,
+    fontFamily: 'Inter',
+    fontSize: 14,
+    lineHeight: 18,
+    fontWeight: '800',
+  },
+  resultMeta: {
+    color: COLORS.textMuted,
+    fontFamily: 'Inter',
+    fontSize: 12,
+    lineHeight: 16,
+    fontWeight: '500',
+  },
+  resultDate: {
+    color: COLORS.textMuted,
+    fontFamily: 'Inter',
+    fontSize: 12,
+    lineHeight: 16,
+    fontWeight: '700',
+  },
+  emptyState: {
+    height: '50%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+    borderRadius: 24,
+    padding: 20,
+    backgroundColor: 'none',
+  },
+  emptyTitle: {
+    color: COLORS.navy,
+    fontFamily: 'Inter',
+    fontSize: 16,
+    lineHeight: 20,
+    fontWeight: '800',
+  },
+  emptyBody: {
+    color: COLORS.textMuted,
+    fontFamily: 'Inter',
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '500',
+  },
+  navWrap: {
+    width: '100%',
+    paddingHorizontal: 18,
+    paddingBottom: 24,
+  },
+});
