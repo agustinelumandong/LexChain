@@ -2,7 +2,7 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { Image } from 'expo-image';
 import { MaterialIcons } from '@expo/vector-icons';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import type { PickedUploadFile } from '@/features/upload/upload-file';
@@ -24,6 +24,7 @@ const COLORS = {
 export default function CaptureReviewScreen() {
   const router = useRouter();
   const [capturedFiles, setCapturedFiles] = useState<PickedUploadFile[]>([]);
+  const [previewFile, setPreviewFile] = useState<PickedUploadFile | null>(null);
 
   useFocusEffect(
     React.useCallback(() => {
@@ -62,24 +63,32 @@ export default function CaptureReviewScreen() {
           </Text>
 
           {capturedFiles.length > 0 ? (
-            capturedFiles.map((file, index) => (
-              <View key={file.id} style={styles.card}>
-                <Image source={{ uri: file.uri }} style={styles.preview} contentFit="cover" />
-
-                <View style={styles.cardFooter}>
-                  <View style={styles.cardCopy}>
-                    <Text style={styles.cardTitle}>Page {index + 1}</Text>
-                    <Text style={styles.cardMeta}>
-                      {[file.sourceLabel.toUpperCase(), file.sizeLabel].filter(Boolean).join(' • ')}
-                    </Text>
-                  </View>
-
-                  <Pressable style={styles.removeButton} onPress={() => handleRemove(file.id)}>
-                    <Text style={styles.removeButtonLabel}>X</Text>
+            <View style={styles.grid}>
+              {capturedFiles.map((file, index) => (
+                <View key={file.id} style={styles.gridCard}>
+                  <Pressable onPress={() => setPreviewFile(file)}>
+                    <Image
+                      source={{ uri: file.uri }}
+                      style={styles.gridPreview}
+                      contentFit="cover"
+                    />
                   </Pressable>
+
+                  <View style={styles.gridFooter}>
+                    <View style={styles.gridCopy}>
+                      <Text style={styles.cardTitle}>Page {index + 1}</Text>
+                      <Text style={styles.cardMeta} numberOfLines={1}>
+                        {[file.sourceLabel.toUpperCase(), file.sizeLabel].filter(Boolean).join(' • ')}
+                      </Text>
+                    </View>
+
+                    <Pressable style={styles.removeButton} onPress={() => handleRemove(file.id)}>
+                      <Text style={styles.removeButtonLabel}>X</Text>
+                    </Pressable>
+                  </View>
                 </View>
-              </View>
-            ))
+              ))}
+            </View>
           ) : (
             <View style={styles.emptyState}>
               <Text style={styles.emptyTitle}>No captured pages yet</Text>
@@ -97,6 +106,31 @@ export default function CaptureReviewScreen() {
           />
         </View>
       </View>
+
+      <Modal
+        visible={previewFile !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setPreviewFile(null)}
+      >
+        <View style={styles.previewModal}>
+          <Pressable style={styles.previewBackdrop} onPress={() => setPreviewFile(null)} />
+
+          <View style={styles.previewShell}>
+            <Pressable style={styles.previewClose} onPress={() => setPreviewFile(null)}>
+              <Text style={styles.removeButtonLabel}>X</Text>
+            </Pressable>
+
+            {previewFile ? (
+              <Image
+                source={{ uri: previewFile.uri }}
+                style={styles.previewModalImage}
+                contentFit="contain"
+              />
+            ) : null}
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -161,37 +195,43 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     fontFamily: 'Inter',
   },
-  card: {
+  grid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  gridCard: {
+    width: '48%',
     borderRadius: 24,
     overflow: 'hidden',
     backgroundColor: COLORS.surface,
   },
-  preview: {
+  gridPreview: {
     width: '100%',
-    aspectRatio: 0.72,
+    aspectRatio: 0.82,
   },
-  cardFooter: {
-    padding: 14,
+  gridFooter: {
+    padding: 12,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: 12,
+    gap: 10,
   },
-  cardCopy: {
+  gridCopy: {
     flex: 1,
     gap: 4,
   },
   cardTitle: {
     color: COLORS.white,
-    fontSize: 15,
+    fontSize: 14,
     lineHeight: 18,
     fontWeight: '800',
     fontFamily: 'Inter',
   },
   cardMeta: {
     color: COLORS.textMuted,
-    fontSize: 12,
-    lineHeight: 16,
+    fontSize: 11,
+    lineHeight: 15,
     fontWeight: '500',
     fontFamily: 'Inter',
   },
@@ -233,5 +273,38 @@ const styles = StyleSheet.create({
   footer: {
     paddingHorizontal: 18,
     paddingBottom: 24,
+  },
+  previewModal: {
+    flex: 1,
+    backgroundColor: 'rgba(4, 18, 40, 0.92)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  previewBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  previewShell: {
+    width: '88%',
+    height: '78%',
+    borderRadius: 28,
+    overflow: 'hidden',
+    backgroundColor: COLORS.surface,
+    padding: 16,
+  },
+  previewClose: {
+    position: 'absolute',
+    top: 14,
+    right: 14,
+    zIndex: 2,
+    width: 32,
+    height: 32,
+    borderRadius: 999,
+    backgroundColor: COLORS.surfaceSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  previewModalImage: {
+    width: '100%',
+    height: '100%',
   },
 });
