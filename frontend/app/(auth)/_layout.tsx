@@ -87,6 +87,12 @@ export default function AuthLayout() {
         }}
       />
       <AuthStack.Screen
+        name="forgot-password"
+        options={{
+          cardStyleInterpolator: forSlideFadeFromRight,
+        }}
+      />
+      <AuthStack.Screen
         name="sign-up"
         options={{
           cardStyleInterpolator: forSlideFadeFromRight,
