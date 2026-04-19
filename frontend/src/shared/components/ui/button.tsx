@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 
-type ButtonVariant = 'primary' | 'secondary' | 'ghost';
+type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'light';
 type ButtonSize = 'sm' | 'md' | 'lg';
 
 type ButtonProps = {
@@ -33,8 +33,27 @@ const COLORS = {
   white: '#FFFFFF',
   surfaceSoft: '#EAF4FF',
   borderSoft: '#D7EBFF',
+  lightSurface: 'rgba(255,255,255,0.14)',
+  lightSurfacePressed: 'rgba(255,255,255,0.22)',
+  lightBorder: 'rgba(255,255,255,0.24)',
+  lightTextMuted: 'rgba(255,255,255,0.72)',
+  disabledBg: '#DCE9F8',
+  disabledText: '#7F9EC2',
 };
 
+type ButtonVariantConfig = {
+  container: StyleProp<ViewStyle>;
+  pressed: StyleProp<ViewStyle>;
+  disabledContainer?: StyleProp<ViewStyle>;
+};
+
+/**
+ * Usage patterns:
+ * - `primary`: main CTA on light surfaces
+ * - `secondary`: secondary CTA on light surfaces
+ * - `ghost`: low-emphasis action on light surfaces
+ * - `light`: CTA on dark, gradient, or glass surfaces
+ */
 export function Button({
   label,
   onPress,
@@ -61,6 +80,7 @@ export function Button({
         fullWidth && styles.fullWidth,
         variantStyles[variant].container,
         pressed && !isInactive && variantStyles[variant].pressed,
+        isInactive && variantStyles[variant].disabledContainer,
         isInactive && styles.disabled,
         style,
       ]}
@@ -68,7 +88,7 @@ export function Button({
       {loading ? (
           <ActivityIndicator
             size="small"
-            color={variantIconColor[variant]}
+            color={isInactive ? disabledIconColor[variant] : variantIconColor[variant]}
            />
         ) : (
           <View style={styles.content}>
@@ -76,16 +96,23 @@ export function Button({
               <MaterialIcons
                 name={leftIconName}
                 size={iconSizeStyles[size]}
-                color={variantIconColor[variant]}
+                color={isInactive ? disabledIconColor[variant] : variantIconColor[variant]}
               /> :null}
-            <Text style={[styles.label, labelStyles[variant], labelSizeStyles[size]]}>
+            <Text
+              style={[
+                styles.label,
+                labelStyles[variant],
+                labelSizeStyles[size],
+                isInactive && disabledLabelStyles[variant],
+              ]}
+            >
               {label}
             </Text>
             {rightIconName ?
               <MaterialIcons
                 name={rightIconName}
                 size={iconSizeStyles[size]}
-                color={variantIconColor[variant]}
+                color={isInactive ? disabledIconColor[variant] : variantIconColor[variant]}
               /> : null}
           </View>
         )}
@@ -120,6 +147,21 @@ const styles = StyleSheet.create({
   },
   disabled: {
     opacity: 0.5,
+  },
+  disabledPrimary: {
+    backgroundColor: COLORS.disabledBg,
+    shadowOpacity: 0,
+    elevation: 0,
+  },
+  disabledSecondary: {
+    backgroundColor: '#F1F7FF',
+  },
+  disabledGhost: {
+    backgroundColor: 'transparent',
+  },
+  disabledLight: {
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderColor: 'rgba(255,255,255,0.12)',
   },
   content: {
     flexDirection: 'row',
@@ -158,6 +200,14 @@ const buttonVariantStyles = StyleSheet.create({
   ghostPressed: {
     backgroundColor: 'rgba(22, 137, 245, 0.08)',
   },
+  lightContainer: {
+    backgroundColor: COLORS.lightSurface,
+    borderWidth: 1,
+    borderColor: COLORS.lightBorder,
+  },
+  lightPressed: {
+    backgroundColor: COLORS.lightSurfacePressed,
+  },
 });
 
 const labelStyles = StyleSheet.create({
@@ -169,6 +219,24 @@ const labelStyles = StyleSheet.create({
   },
   ghost: {
     color: COLORS.navy,
+  },
+  light: {
+    color: COLORS.white,
+  },
+});
+
+const disabledLabelStyles = StyleSheet.create({
+  primary: {
+    color: COLORS.disabledText,
+  },
+  secondary: {
+    color: COLORS.disabledText,
+  },
+  ghost: {
+    color: COLORS.disabledText,
+  },
+  light: {
+    color: COLORS.lightTextMuted,
   },
 });
 
@@ -191,21 +259,37 @@ const variantStyles = {
   primary: {
     container: buttonVariantStyles.primaryContainer,
     pressed: buttonVariantStyles.primaryPressed,
+    disabledContainer: styles.disabledPrimary,
   },
   secondary: {
     container: buttonVariantStyles.secondaryContainer,
     pressed: buttonVariantStyles.secondaryPressed,
+    disabledContainer: styles.disabledSecondary,
   },
   ghost: {
     container: buttonVariantStyles.ghostContainer,
     pressed: buttonVariantStyles.ghostPressed,
+    disabledContainer: styles.disabledGhost,
   },
-} satisfies Record<ButtonVariant, { container: StyleProp<ViewStyle>; pressed: StyleProp<ViewStyle> }>;
+  light: {
+    container: buttonVariantStyles.lightContainer,
+    pressed: buttonVariantStyles.lightPressed,
+    disabledContainer: styles.disabledLight,
+  },
+} satisfies Record<ButtonVariant, ButtonVariantConfig>;
 
 const variantIconColor: Record<ButtonVariant, string> = {
   primary: COLORS.white,
   secondary: COLORS.navy,
   ghost: COLORS.navy,
+  light: COLORS.white,
+};
+
+const disabledIconColor: Record<ButtonVariant, string> = {
+  primary: COLORS.disabledText,
+  secondary: COLORS.disabledText,
+  ghost: COLORS.disabledText,
+  light: COLORS.lightTextMuted,
 };
 
 const iconSizeStyles: Record<ButtonSize, number> = {
