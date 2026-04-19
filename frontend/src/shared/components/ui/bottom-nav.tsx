@@ -1,0 +1,157 @@
+import { MaterialIcons } from '@expo/vector-icons';
+import React from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+
+const COLORS = {
+  primary: '#1689F5',
+  navy: '#133B73',
+  textMuted: '#6F8FB5',
+  surface: '#FFFFFF',
+  surfaceSoft: '#EAF4FF',
+};
+
+type NavTab = 'home' | 'documents' | 'profile';
+
+type BottomNavProps = {
+  activeTab: NavTab;
+  onPressHome: () => void;
+  onPressDocuments: () => void;
+  onPressProfile: () => void;
+  onPressUpload: () => void;
+};
+
+type NavItemProps = {
+  active?: boolean;
+  iconName: React.ComponentProps<typeof MaterialIcons>['name'];
+  label?: string;
+  onPress: () => void;
+};
+
+function NavItem({ active = false, iconName, label, onPress }: NavItemProps) {
+  return (
+    <Pressable
+      onPress={onPress}
+      style={[styles.navItem, active && styles.navItemActive]}
+      accessibilityRole="button"
+    >
+      <MaterialIcons
+        name={iconName}
+        size={18}
+        color={active ? COLORS.primary : COLORS.textMuted}
+      />
+      {label ? (
+        <Text
+          style={[
+            styles.navLabel,
+            active && styles.navLabelActive,
+          ]}
+        >
+          {label}
+        </Text>
+      ): null}
+    </Pressable>
+  );
+}
+
+export function BottomNav({
+  activeTab,
+  onPressHome,
+  onPressDocuments,
+  onPressProfile,
+  onPressUpload,
+}: BottomNavProps) {
+  return (
+    <View style={styles.wrap}>
+      <View style={styles.navBar}>
+        <NavItem
+          active={activeTab === 'home'}
+          iconName="home-filled"
+          label={activeTab === 'home' ? 'Home' : undefined}
+          onPress={onPressHome}
+        />
+
+        <NavItem
+          active={activeTab === 'documents'}
+          iconName="description"
+          label={activeTab === 'documents' ? 'Documents' : undefined}
+          onPress={onPressDocuments}
+        />
+
+        <NavItem
+          active={activeTab === 'profile'}
+          iconName="person"
+          label={activeTab === 'profile' ? 'Profile' : undefined}
+          onPress={onPressProfile}
+        />
+      </View>
+
+      <Pressable
+        onPress={onPressUpload}
+        style={styles.fab}
+        accessibilityRole="button"
+      >
+        <MaterialIcons name="upload" size={22} color={COLORS.surface} />
+      </Pressable>
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  wrap: {
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+  },
+  navBar: {
+    flex: 1,
+    minHeight: 62,
+    borderRadius: 30,
+    backgroundColor: COLORS.surface,
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 3,
+    gap: 4,
+    shadowColor: '#1689F5',
+    shadowOpacity: 0.08,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 6,
+  },
+  navItem: {
+    flex: 1,
+    minHeight: 56,
+    borderRadius: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'column',
+    gap: 3,
+  },
+  navItemActive: {
+    backgroundColor: COLORS.surfaceSoft,
+  },
+  navLabel: {
+    fontFamily: 'Inter',
+    fontSize: 10,
+    lineHeight: 12,
+    fontWeight: '700',
+    color: COLORS.textMuted,
+  },
+  navLabelActive: {
+    color: COLORS.primary,
+  },
+  fab: {
+    width: 62,
+    height: 62,
+    flexShrink: 0,
+    borderRadius: 24,
+    backgroundColor: COLORS.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#1689F5',
+    shadowOpacity: 0.16,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 12 },
+    elevation: 8,
+  },
+});
