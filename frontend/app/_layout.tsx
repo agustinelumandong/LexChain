@@ -15,21 +15,27 @@ export const unstable_settings = {
 };
 
 export default function RootLayout() {
-        NavigationBar.setStyle('auto'); // or 'light'
   useEffect(() => {
-      if (Platform.OS === 'android') {
-      }
-    }, []);
+    if (Platform.OS === 'android') {
+      NavigationBar.setStyle('auto');
+    }
+  }, []);
+
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <BottomSheetModalProvider>
-        <StatusBar style="auto" />
+          <StatusBar style="auto" />
           <ThemeProvider value={DefaultTheme}>
             <Stack>
               <Stack.Screen name="index" options={{ headerShown: false }} />
               <Stack.Screen name="(auth)" options={{ headerShown: false }} />
               <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+              <Stack.Screen name="upload" options={{ headerShown: false }} />
+              <Stack.Screen name="camera-capture" options={{ headerShown: false }} />
+              <Stack.Screen name="capture-review" options={{ headerShown: false }} />
+              <Stack.Screen name="processing" options={{ headerShown: false }} />
+
               <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
             </Stack>
           </ThemeProvider>
