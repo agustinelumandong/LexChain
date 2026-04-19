@@ -1,0 +1,335 @@
+import React, { useState } from 'react';
+import { useRouter } from 'expo-router';
+import * as DocumentPicker from 'expo-document-picker';
+import { useFocusEffect } from '@react-navigation/native';
+import { MaterialIcons } from '@expo/vector-icons';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
+import { AccessWhitelistCard } from '@/features/document/components/access-whitelist-card';
+import {
+  ManageWhitelistBottomSheet,
+  type ManageWhitelistData,
+} from '@/features/document/components/manage-whitelist-bottom-sheet';
+import { useCloseSheetOnBack } from '@/shared/hooks/use-close-sheet-on-back';
+import { Button } from '@/shared/components/ui/button';
+import type { PickedUploadFile } from '@/features/upload/upload-file';
+import { consumePendingCapturedFiles } from '@/features/upload/upload-session';
+import { UploadDropzoneCard } from '@/features/upload/upload-dropzone-card';
+import { UploadHeader } from '@/features/upload/upload-header';
+import { UploadReferenceField } from '@/features/upload/upload-reference-field';
+import { UploadTopBar } from '@/features/upload/upload-top-bar';
+import { SelectDropdownField } from '@/shared/components/ui/select-dropdown-field';
+
+const COLORS = {
+  bg: '#F3F8FF',
+  primary: '#1689F5',
+  white: '#FFFFFF',
+};
+
+const DOCUMENT_TYPE_OPTIONS = [
+  'Deed of Sale',
+  'Lease Contract',
+  'Affidavit',
+  'Memorandum',
+  'Special Power of Attorney',
+];
+
+const INITIAL_WHITELIST: ManageWhitelistData = {
+  grants: [
+    {
+      id: 'cruz',
+      name: 'Atty. Cruz',
+      email: 'cruz@lexchain.app',
+      accessLabel: 'Verify access',
+      actionLabel: 'Verify',
+    },
+    {
+      id: 'juan-d',
+      name: 'Juan D.',
+      email: 'juan.d@lexchain.app',
+      accessLabel: 'View access',
+      actionLabel: 'View',
+    },
+  ],
+  searchResults: [
+    { id: 'juan-dela-cruz', name: 'Juan Dela Cruz', email: 'juan@lexchain.app' },
+    { id: 'juan-santos', name: 'Juan Santos', email: 'owner@lexchain.app' },
+  ],
+};
+
+export default function UploadScreen() {
+  const router = useRouter();
+  const [selectedDocumentType, setSelectedDocumentType] = useState('Deed of Sale');
+  const [referenceNumber, setReferenceNumber] = useState('');
+  const [isTypeDropdownOpen, setIsTypeDropdownOpen] = useState(false);
+  const [isWhitelistOpen, setIsWhitelistOpen] = useState(false);
+  const [whitelistSearchQuery, setWhitelistSearchQuery] = useState('');
+  const [whitelistData, setWhitelistData] = useState(INITIAL_WHITELIST);
+  const [pickedFiles, setPickedFiles] = useState<PickedUploadFile[]>([]);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      const pendingCapturedFiles = consumePendingCapturedFiles();
+
+      if (pendingCapturedFiles.length > 0) {
+        setPickedFiles((currentFiles) => [...currentFiles, ...pendingCapturedFiles]);
+      }
+    }, []),
+  );
+
+  useCloseSheetOnBack(isWhitelistOpen, () => {
+    setIsWhitelistOpen(false);
+    setWhitelistSearchQuery('');
+  });
+
+  const updateWhitelistCountLabel = (count: number) =>
+    `${count} allowed wallet${count === 1 ? '' : 's'}/users`;
+
+  const openWhitelist = () => {
+    setIsWhitelistOpen(true);
+  };
+
+  const handleAddWhitelistResult = (resultId: string) => {
+    setWhitelistData((current) => {
+      const result = current.searchResults.find((entry) => entry.id === resultId);
+
+      if (!result) {
+        return current;
+      }
+
+      return {
+        ...current,
+        grants: [
+          {
+            id: result.id,
+            name: result.name,
+            email: result.email,
+            accessLabel: 'View access',
+            actionLabel: 'View',
+          },
+          ...current.grants,
+        ],
+        searchResults: current.searchResults.filter((entry) => entry.id !== resultId),
+      };
+    });
+
+    setWhitelistSearchQuery('');
+  };
+
+  const handleRevokeGrant = (grantId: string) => {
+    setWhitelistData((current) => {
+      const grant = current.grants.find((entry) => entry.id === grantId);
+
+      if (!grant) {
+        return current;
+      }
+
+      return {
+        ...current,
+        grants: current.grants.filter((entry) => entry.id !== grantId),
+        searchResults:
+          grant.email && !current.searchResults.some((entry) => entry.id === grant.id)
+            ? [
+                {
+                  id: grant.id,
+                  name: grant.name,
+                  email: grant.email,
+                },
+                ...current.searchResults,
+              ]
+            : current.searchResults,
+      };
+    });
+  };
+
+  const formatFileSize = (fileSize?: number | null) => {
+    if (!fileSize || Number.isNaN(fileSize)) {
+      return undefined;
+    }
+
+    if (fileSize >= 1024 * 1024) {
+      return `${(fileSize / (1024 * 1024)).toFixed(1)} MB`;
+    }
+
+    return `${Math.max(1, Math.round(fileSize / 1024))} KB`;
+  };
+
+  const handleChooseFile = async () => {
+    const result = await DocumentPicker.getDocumentAsync({
+      copyToCacheDirectory: true,
+      multiple: true,
+      type: ['application/pdf', 'image/*'],
+    });
+
+    if (result.canceled) {
+      return;
+    }
+
+    if (!result.assets?.length) {
+      return;
+    }
+
+    setPickedFiles((currentFiles) => [
+      ...currentFiles,
+      ...result.assets.map((asset, index) => ({
+        id: `${asset.uri}-${Date.now()}-${index}`,
+        name: asset.name,
+        sizeLabel: formatFileSize(asset.size),
+        uri: asset.uri,
+        mimeType: asset.mimeType,
+        sourceLabel: 'file' as const,
+      })),
+    ]);
+  };
+
+  const handleOpenCameraCapture = () => {
+    router.push('/camera-capture');
+  };
+
+  const handleContinueToProcessing = () => {
+    if (pickedFiles.length === 0) {
+      return;
+    }
+
+    router.push('/processing');
+  };
+
+  const handleRemoveFile = (fileId: string) => {
+    setPickedFiles((currentFiles) => currentFiles.filter((file) => file.id !== fileId));
+  };
+
+  return (
+    <SafeAreaView style={styles.screen}>
+      <View style={styles.surface}>
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          <UploadTopBar
+            onPressBack={() => router.back()}
+            onPressCamera={handleOpenCameraCapture}
+          />
+
+          <UploadHeader />
+
+          <SelectDropdownField
+            label="Document Type"
+            value={selectedDocumentType}
+            options={DOCUMENT_TYPE_OPTIONS}
+            isOpen={isTypeDropdownOpen}
+            onPress={() => setIsTypeDropdownOpen((currentValue) => !currentValue)}
+            onOutsidePress={() => setIsTypeDropdownOpen(false)}
+            onSelect={(value) => {
+              setSelectedDocumentType(value);
+              setIsTypeDropdownOpen(false);
+            }}
+          />
+
+          <UploadReferenceField
+            value={referenceNumber}
+            onChangeText={setReferenceNumber}
+          />
+
+          <AccessWhitelistCard
+            allowedCountLabel={updateWhitelistCountLabel(whitelistData.grants.length)}
+            helperText="Set document access before upload so authorized users can verify it later."
+            onPressManage={openWhitelist}
+            onPressAdd={openWhitelist}
+          />
+
+          <UploadDropzoneCard
+            mode={pickedFiles.length > 0 ? 'selected' : 'empty'}
+            files={pickedFiles}
+            onChooseFile={handleChooseFile}
+            onRemoveFile={handleRemoveFile}
+          />
+        </ScrollView>
+
+        <View style={styles.footer}>
+          <View style={styles.footerActions}>
+            <View style={styles.uploadButtonWrap}>
+              <Button
+                label="Upload document"
+                fullWidth
+                rightIconName="arrow-forward"
+                disabled={pickedFiles.length === 0}
+                onPress={handleContinueToProcessing}
+              />
+            </View>
+
+            <Pressable
+              accessibilityRole="button"
+              onPress={handleOpenCameraCapture}
+              style={styles.cameraFab}
+            >
+              <MaterialIcons name="photo-camera" size={24} color={COLORS.white} />
+            </Pressable>
+          </View>
+        </View>
+      </View>
+
+      <ManageWhitelistBottomSheet
+        visible={isWhitelistOpen}
+        data={whitelistData}
+        searchQuery={whitelistSearchQuery}
+        onChangeSearchQuery={setWhitelistSearchQuery}
+        onClose={() => {
+          setIsWhitelistOpen(false);
+          setWhitelistSearchQuery('');
+        }}
+        onPressGrantAction={() => {}}
+        onPressRevoke={handleRevokeGrant}
+        onPressAddResult={handleAddWhitelistResult}
+      />
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  screen: {
+    flex: 1,
+    backgroundColor: COLORS.bg,
+  },
+  surface: {
+    flex: 1,
+    backgroundColor: COLORS.bg,
+  },
+  scrollContent: {
+    paddingHorizontal: 18,
+    paddingTop: 12,
+    paddingBottom: 148,
+    gap: 20,
+  },
+  footer: {
+    position: 'absolute',
+    left: 18,
+    right: 18,
+    bottom: 24,
+    alignItems: 'center',
+  },
+  footerActions: {
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 14,
+  },
+  uploadButtonWrap: {
+    flex: 1,
+    maxWidth: 252,
+  },
+  cameraFab: {
+    width: 62,
+    height: 62,
+    borderRadius: 24,
+    backgroundColor: COLORS.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#1689F5',
+    shadowOpacity: 0.16,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 12 },
+    elevation: 8,
+  },
+});
