@@ -71,6 +71,7 @@ coverage/
 .opencode/
 .sispyhus/
 .sisyphus/
+skills-lock.json
 
 # Other common ignores
 *.swp
@@ -78,3 +79,7 @@ coverage/
 .idea/
 .DS_Store
 Thumbs.db
+
+*.pen
+
+docs/
