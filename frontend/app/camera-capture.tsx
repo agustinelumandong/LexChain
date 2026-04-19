@@ -1,6 +1,7 @@
 import { CameraView, type CameraType, useCameraPermissions } from 'expo-camera';
 import { Image } from 'expo-image';
 import { useFocusEffect, useRouter } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import React, { useRef, useState } from 'react';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
@@ -149,7 +150,9 @@ export default function CameraCaptureScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.screen}>
+    <SafeAreaView style={styles.screen} edges={['left', 'right', 'bottom']}>
+      <StatusBar style="light" translucent backgroundColor="transparent" />
+
       <View style={styles.surface}>
         {capturedPhoto ? (
           <Image source={{ uri: capturedPhoto.uri }} style={styles.cameraPreview} contentFit="cover" />
@@ -183,21 +186,8 @@ export default function CameraCaptureScreen() {
         ) : null}
 
         <View style={styles.bottomPanel}>
-          {capturedQueue.length > 0 ? (
-            <View style={styles.queueBadge}>
-              <Text style={styles.queueBadgeText}>
-                {capturedQueue.length} page{capturedQueue.length > 1 ? 's' : ''} ready
-              </Text>
-            </View>
-          ) : null}
-
           {capturedPhoto ? (
             <>
-              <Text style={styles.panelTitle}>Photo ready</Text>
-              <Text style={styles.panelBody}>
-                Retake if edges are cut off, add another page, or finish with this capture.
-              </Text>
-
               <View style={styles.panelActions}>
                 <Button
                   label="Retake"
@@ -219,39 +209,39 @@ export default function CameraCaptureScreen() {
               </View>
             </>
           ) : (
-            <>
-              <Text style={styles.panelTitle}>Ready to scan</Text>
-              <Text style={styles.panelBody}>
-                Capture page by page. Each accepted shot is added to your upload queue.
-              </Text>
-
-              <View style={styles.captureControls}>
-                <Pressable
-                  style={styles.galleryStub}
-                  onPress={() => {
-                    if (capturedQueue.length > 0) {
-                      router.push('/capture-review');
-                    }
-                  }}
-                >
-                  <MaterialIcons name="collections" size={20} color={COLORS.white} />
-                </Pressable>
-
-                <Pressable style={styles.captureButton} onPress={handleTakePhoto}>
-                  <View style={styles.captureButtonInner} />
-                </Pressable>
-
+            <View style={styles.captureControls}>
+              <Pressable
+                style={styles.galleryStub}
+                onPress={() => {
+                  if (capturedQueue.length > 0) {
+                    router.push('/capture-review');
+                  }
+                }}
+              >
+                <MaterialIcons name="collections" size={20} color={COLORS.white} />
                 {capturedQueue.length > 0 ? (
-                  <Pressable style={styles.flashStub} onPress={handleFinishCapture}>
-                    <MaterialIcons name="check" size={20} color={COLORS.white} />
-                  </Pressable>
-                ) : (
-                  <Pressable style={styles.flashStub}>
-                    <MaterialIcons name="flash-off" size={20} color={COLORS.white} />
-                  </Pressable>
-                )}
-              </View>
-            </>
+                  <View style={styles.queueBubble}>
+                    <Text style={styles.queueBubbleText}>
+                      {capturedQueue.length > 99 ? '99+' : capturedQueue.length}
+                    </Text>
+                  </View>
+                ) : null}
+              </Pressable>
+
+              <Pressable style={styles.captureButton} onPress={handleTakePhoto}>
+                <View style={styles.captureButtonInner} />
+              </Pressable>
+
+              {capturedQueue.length > 0 ? (
+                <Pressable style={styles.flashStub} onPress={handleFinishCapture}>
+                  <MaterialIcons name="check" size={20} color={COLORS.white} />
+                </Pressable>
+              ) : (
+                <Pressable style={styles.flashStub}>
+                  <MaterialIcons name="flash-off" size={20} color={COLORS.white} />
+                </Pressable>
+              )}
+            </View>
           )}
         </View>
       </View>
@@ -308,7 +298,7 @@ const styles = StyleSheet.create({
   },
   topBar: {
     position: 'absolute',
-    top: 14,
+    top: 52,
     left: 18,
     right: 18,
     flexDirection: 'row',
@@ -345,7 +335,7 @@ const styles = StyleSheet.create({
   },
   frameWrap: {
     position: 'absolute',
-    top: '10%',
+    top: '16%',
     left: 24,
     right: 24,
     alignItems: 'center',
@@ -368,50 +358,18 @@ const styles = StyleSheet.create({
   },
   bottomPanel: {
     position: 'absolute',
-    left: 18,
-    right: 18,
-    bottom: 24,
-    borderRadius: 28,
-    padding: 18,
-    backgroundColor: COLORS.overlay,
+    left: 42,
+    right: 42,
+    bottom: 42,
     gap: 14,
-  },
-  panelTitle: {
-    color: COLORS.white,
-    fontSize: 18,
-    lineHeight: 22,
-    fontWeight: '800',
-    fontFamily: 'Inter',
-  },
-  panelBody: {
-    color: COLORS.textMuted,
-    fontSize: 13,
-    lineHeight: 18,
-    fontWeight: '500',
-    fontFamily: 'Inter',
   },
   panelActions: {
     gap: 10,
-  },
-  queueBadge: {
-    alignSelf: 'flex-start',
-    borderRadius: 999,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    backgroundColor: COLORS.primarySoft,
-  },
-  queueBadgeText: {
-    color: COLORS.white,
-    fontSize: 11,
-    lineHeight: 14,
-    fontWeight: '800',
-    fontFamily: 'Inter',
   },
   captureControls: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: 'none',
   },
   galleryStub: {
     width: 48,
@@ -420,6 +378,25 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primarySoft,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  queueBubble: {
+    position: 'absolute',
+    top: -6,
+    right: -8,
+    minWidth: 18,
+    height: 18,
+    borderRadius: 999,
+    paddingHorizontal: 4,
+    backgroundColor: COLORS.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  queueBubbleText: {
+    color: COLORS.white,
+    fontSize: 10,
+    lineHeight: 10,
+    fontWeight: '800',
+    fontFamily: 'Inter',
   },
   flashStub: {
     width: 48,
