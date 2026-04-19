@@ -1,5 +1,12 @@
-import React from 'react';
-import { View, StyleSheet, Text, TextInput } from 'react-native';
+import React, { useRef, useState } from 'react';
+import {
+  View,
+  StyleSheet,
+  Text,
+  TextInput,
+  Pressable,
+  TextInputProps,
+} from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 
 const COLORS = {
@@ -8,6 +15,9 @@ const COLORS = {
   navy: '#133B73',
   textMuted: '#6F8FB5',
   borderSoft: '#D7EBFF',
+  focusSoft: '#F4FAFF',
+  danger: '#D94B66',
+  dangerSoft: '#FFECEF',
 };
 
 type AuthInputProps = {
@@ -19,6 +29,10 @@ type AuthInputProps = {
   iconSize?: number;
   iconColor?: string;
   secureTextEntry?: boolean;
+  keyboardType?: TextInputProps['keyboardType'];
+  autoCapitalize?: TextInputProps['autoCapitalize'];
+  autoCorrect?: boolean;
+  error?: string;
 };
 
 export function AuthInput({
@@ -30,26 +44,82 @@ export function AuthInput({
   iconSize = 18,
   iconColor = COLORS.textMuted,
   secureTextEntry = false,
+  keyboardType,
+  autoCapitalize = 'none',
+  autoCorrect = false,
+  error,
 }: AuthInputProps) {
+  const wrapperRef = useRef<View>(null);
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false);
+  const hasError = Boolean(error);
+  const isSecureEnabled = secureTextEntry && !isPasswordVisible;
+
+  const handleFocus = () => {
+    if (hasError) {
+      return;
+    }
+
+    wrapperRef.current?.setNativeProps({
+      style: styles.inputWrapFocused,
+    });
+  };
+
+  const handleBlur = () => {
+    wrapperRef.current?.setNativeProps({
+      style: hasError ? styles.inputWrapError : styles.inputWrapDefault,
+    });
+  };
+
   return (
     <View style={styles.group}>
       <Text style={styles.label}>{label}</Text>
 
-      <View style={styles.inputWrap}>
-        <MaterialIcons name={iconName} size={iconSize} color={iconColor} />
+      <View
+        ref={wrapperRef}
+        style={[
+          styles.inputWrap,
+          styles.inputWrapDefault,
+          hasError && styles.inputWrapError,
+        ]}
+      >
+        <MaterialIcons
+          name={iconName}
+          size={iconSize}
+          color={hasError ? COLORS.danger : iconColor}
+        />
         <TextInput
           value={value}
           onChangeText={onChangeText}
           placeholder={placeholder}
           placeholderTextColor={COLORS.textMuted}
-          secureTextEntry={secureTextEntry}
+          secureTextEntry={isSecureEnabled}
+          keyboardType={keyboardType}
+          autoCapitalize={autoCapitalize}
+          autoCorrect={autoCorrect}
+          onFocus={handleFocus}
+          onBlur={handleBlur}
           style={styles.input}
         />
+        {secureTextEntry ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={isPasswordVisible ? 'Hide password' : 'Show password'}
+            hitSlop={8}
+            onPress={() => setIsPasswordVisible((prev) => !prev)}
+          >
+            <MaterialIcons
+              name={isPasswordVisible ? 'visibility-off' : 'visibility'}
+              size={20}
+              color={hasError ? COLORS.danger : COLORS.textMuted}
+            />
+          </Pressable>
+        ) : null}
       </View>
-  </View>
+
+      {hasError ? <Text style={styles.errorText}>{error}</Text> : null}
+    </View>
   );
 }
-
 
 const styles = StyleSheet.create({
   group: {
@@ -66,12 +136,22 @@ const styles = StyleSheet.create({
     minHeight: 50,
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: COLORS.borderSoft,
-    backgroundColor: COLORS.white,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
     paddingHorizontal: 16,
+  },
+  inputWrapDefault: {
+    borderColor: COLORS.borderSoft,
+    backgroundColor: COLORS.white,
+  },
+  inputWrapFocused: {
+    borderColor: COLORS.primary,
+    backgroundColor: COLORS.focusSoft,
+  },
+  inputWrapError: {
+    borderColor: COLORS.danger,
+    backgroundColor: COLORS.dangerSoft,
   },
   input: {
     flex: 1,
@@ -80,5 +160,13 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     fontWeight: '500',
     fontFamily: 'Inter',
+  },
+  errorText: {
+    color: COLORS.danger,
+    fontSize: 12,
+    lineHeight: 16,
+    fontWeight: '600',
+    fontFamily: 'Inter',
+    paddingHorizontal: 4,
   },
 });
