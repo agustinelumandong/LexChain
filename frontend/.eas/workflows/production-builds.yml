@@ -2,7 +2,7 @@ name: Create Production Builds
 
 # Trigger this workflow manually or on specific events
 on:
-  workflow_dispatch:      # Allows manual trigger from GitHub or Expo dashboard
+  workflow_dispatch: {}     # Allows manual trigger from GitHub or Expo dashboard
   push:
     branches:
       - main
