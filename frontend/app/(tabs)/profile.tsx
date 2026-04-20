@@ -1,10 +1,14 @@
-import React from 'react';
+import React, { useMemo, useState } from 'react';
 import { useRouter } from 'expo-router';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ProfileHeader } from '@/features/profile/profile-header';
 import { ProfileMetricsCard } from '@/features/profile/profile-metrics-card';
+import {
+  SettingsInfoModal,
+  type SettingsInfoModalData,
+} from '@/features/profile/settings-info-modal';
 import { ProfileSummaryCard } from '@/features/profile/profile-summary-card';
 import { SettingsListCard } from '@/features/profile/settings-list-card';
 import { BottomNav } from '@/shared/components/ui/bottom-nav';
@@ -15,8 +19,64 @@ const COLORS = {
   surface: '#FFFFFF',
 };
 
+const SETTINGS_DETAILS: Record<string, SettingsInfoModalData> = {
+  account: {
+    title: 'Account details',
+    description: 'Profile details help identify who uploaded, verified, and shared each document.',
+    bullets: [
+      'Update your display name and legal contact information.',
+      'Keep your organization details accurate for repository records.',
+      'Use this area later for profile editing once account persistence is connected.',
+    ],
+  },
+  notifications: {
+    title: 'Notifications',
+    description: 'Notification preferences control when LexChain alerts you about important document activity.',
+    bullets: [
+      'Get alerts when uploads finish processing.',
+      'Get review reminders when a document needs attention.',
+      'Add fine-grained email and in-app toggles later with backend support.',
+    ],
+  },
+  security: {
+    title: 'Security',
+    description: 'Security settings will hold the controls that protect your account and trusted sessions.',
+    bullets: [
+      'Change password and review sign-in protection.',
+      'Manage trusted devices and active sessions.',
+      'Add stronger account recovery and verification options later.',
+    ],
+  },
+  privacy: {
+    title: 'Privacy policy',
+    description: 'Privacy guidance explains how account and document data is handled inside LexChain.',
+    bullets: [
+      'Review how uploaded files and summaries are processed.',
+      'Understand how whitelist access affects visibility.',
+      'Link this modal to a full legal policy page when policy copy is finalized.',
+    ],
+  },
+  support: {
+    title: 'Help and support',
+    description: 'Support options will help users recover access and troubleshoot verification issues.',
+    bullets: [
+      'Use support for upload, access, or verification issues.',
+      'Add help center links and support contact actions later.',
+      'This is the place for FAQs, troubleshooting, and escalation info.',
+    ],
+  },
+};
+
 export default function ProfileScreen() {
   const router = useRouter();
+  const [selectedSettingsKey, setSelectedSettingsKey] = useState<keyof typeof SETTINGS_DETAILS | null>(
+    null,
+  );
+
+  const selectedSettingsData = useMemo(
+    () => (selectedSettingsKey ? SETTINGS_DETAILS[selectedSettingsKey] : null),
+    [selectedSettingsKey],
+  );
 
   return (
     <SafeAreaView style={styles.screen}>
@@ -50,19 +110,19 @@ export default function ProfileScreen() {
                 label: 'Account details',
                 description: 'Update your profile and legal contact info.',
                 iconName: 'person-outline',
-                onPress: () => {},
+                onPress: () => setSelectedSettingsKey('account'),
               },
               {
                 label: 'Notifications',
                 description: 'Control alerts for uploads and verifications.',
                 iconName: 'notifications-none',
-                onPress: () => {},
+                onPress: () => setSelectedSettingsKey('notifications'),
               },
               {
                 label: 'Security',
                 description: 'Manage password, trusted devices, and sessions.',
                 iconName: 'shield',
-                onPress: () => {},
+                onPress: () => setSelectedSettingsKey('security'),
               },
             ]}
           />
@@ -74,13 +134,13 @@ export default function ProfileScreen() {
                 label: 'Privacy policy',
                 description: 'Review how document and account data is handled.',
                 iconName: 'policy',
-                onPress: () => {},
+                onPress: () => setSelectedSettingsKey('privacy'),
               },
               {
                 label: 'Help and support',
                 description: 'Contact support for access or verification issues.',
                 iconName: 'help-outline',
-                onPress: () => {},
+                onPress: () => setSelectedSettingsKey('support'),
               },
             ]}
           />
@@ -106,6 +166,12 @@ export default function ProfileScreen() {
           />
         </View>
       </View>
+
+      <SettingsInfoModal
+        visible={selectedSettingsData !== null}
+        data={selectedSettingsData}
+        onClose={() => setSelectedSettingsKey(null)}
+      />
     </SafeAreaView>
   );
 }
