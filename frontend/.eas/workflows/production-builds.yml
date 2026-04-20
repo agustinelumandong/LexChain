@@ -1,0 +1,41 @@
+name: Create Production Builds
+
+# Trigger this workflow manually or on specific events
+on:
+  workflow_dispatch:      # Allows manual trigger from GitHub or Expo dashboard
+  push:
+    branches:
+      - main
+      - release/*
+      - dev
+  # pull_request:         # Uncomment if you want builds on PRs (use preview profile instead)
+
+jobs:
+  build_android:
+    type: build
+    params:
+      platform: android
+      profile: production     # Uses the "production" profile from your eas.json
+      # message: "Production Android build from CI"   # Optional custom message
+
+  build_ios:
+    type: build
+    params:
+      platform: ios
+      profile: production       # Uses the "production" profile from your eas.json
+      # message: "Production iOS build from CI"
+
+  # Optional: Submit to stores automatically after successful builds
+  # submit_android:
+  #   type: submit
+  #   needs: build_android
+  #   params:
+  #     platform: android
+  #     profile: production
+
+  # submit_ios:
+  #   type: submit
+  #   needs: build_ios
+  #   params:
+  #     platform: ios
+  #     profile: production
