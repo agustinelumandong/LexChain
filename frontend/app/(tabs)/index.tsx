@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useRouter } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 
+import { MOCK_DOCUMENTS } from '@/features/documents/mock-documents';
 import { BottomNav } from '@/shared/components/ui/bottom-nav';
 
 const COLORS = {
@@ -31,6 +32,7 @@ type DocumentRowProps = {
   subtitle: string;
   badgeLabel: string;
   badgeTone: 'match' | 'review';
+  onPress?: () => void;
 };
 
 function KpiCard({ label, value, meta, tone = 'positive' }: KpiCardProps) {
@@ -56,9 +58,10 @@ function DocumentRow({
   subtitle,
   badgeLabel,
   badgeTone,
+  onPress,
 }: DocumentRowProps) {
   return (
-    <View style={docStyles.row}>
+    <Pressable style={docStyles.row} onPress={onPress}>
       <View style={docStyles.copy}>
         <Text style={docStyles.title}>{title}</Text>
         <Text style={docStyles.subtitle}>{subtitle}</Text>
@@ -79,12 +82,36 @@ function DocumentRow({
           {badgeLabel}
         </Text>
       </View>
-    </View>
+    </Pressable>
   );
 }
 
 export default function HomeScreen() {
   const router = useRouter();
+  const dashboardStats = useMemo(() => {
+    const documentsCount = MOCK_DOCUMENTS.length;
+    const activeGrantsCount = MOCK_DOCUMENTS.reduce(
+      (total, document) => total + document.whitelist.grants.length,
+      0,
+    );
+    const reviewNeededCount = MOCK_DOCUMENTS.filter(
+      (document) => document.status === 'review-needed',
+    ).length;
+    const verifiedCount = MOCK_DOCUMENTS.filter(
+      (document) => document.status === 'verified',
+    ).length;
+    const recentDocuments = [...MOCK_DOCUMENTS]
+      .sort((left, right) => right.date.localeCompare(left.date))
+      .slice(0, 3);
+
+    return {
+      documentsCount,
+      activeGrantsCount,
+      reviewNeededCount,
+      verifiedCount,
+      recentDocuments,
+    };
+  }, []);
 
   return (
     <SafeAreaView style={styles.screen}>
@@ -102,15 +129,15 @@ export default function HomeScreen() {
           <View style={styles.kpiRow}>
             <KpiCard
               label="Documents"
-              value="124"
-              meta="+8 this week"
-              tone="positive"
+              value={`${dashboardStats.documentsCount}`}
+              meta={`${dashboardStats.verifiedCount} verified`}
+              tone={dashboardStats.verifiedCount > 0 ? 'positive' : 'warning'}
             />
             <KpiCard
               label="Active grants"
-              value="53"
-              meta="2 need review"
-              tone="positive"
+              value={`${dashboardStats.activeGrantsCount}`}
+              meta={`${dashboardStats.reviewNeededCount} need review`}
+              tone={dashboardStats.reviewNeededCount > 0 ? 'warning' : 'positive'}
             />
           </View>
 
@@ -124,18 +151,25 @@ export default function HomeScreen() {
 
           <View style={styles.recentGroup}>
             <Text style={styles.recentTitle}>Recent documents</Text>
-            <DocumentRow
-              title="Deed of Sale #1002"
-              subtitle="Summary ready"
-              badgeLabel="MATCH"
-              badgeTone="match"
-            />
-            <DocumentRow
-              title="MOA-2026-08"
-              subtitle="Integrity warning"
-              badgeLabel="REVIEW"
-              badgeTone="review"
-            />
+            {dashboardStats.recentDocuments.length > 0 ? (
+              dashboardStats.recentDocuments.map((document) => (
+                <DocumentRow
+                  key={document.id}
+                  title={document.title}
+                  subtitle={document.status === 'verified' ? 'Summary ready' : 'Integrity warning'}
+                  badgeLabel={document.status === 'verified' ? 'MATCH' : 'REVIEW'}
+                  badgeTone={document.status === 'verified' ? 'match' : 'review'}
+                  onPress={() => router.push('/(tabs)/documents')}
+                />
+              ))
+            ) : (
+              <View style={styles.emptyRecentState}>
+                <Text style={styles.emptyRecentTitle}>No documents yet</Text>
+                <Text style={styles.emptyRecentBody}>
+                  Upload your first document to start building your repository.
+                </Text>
+              </View>
+            )}
           </View>
         </ScrollView>
 
@@ -239,6 +273,29 @@ const styles = StyleSheet.create({
     width: '100%',
     paddingHorizontal: 18,
     paddingBottom: 24,
+  },
+  emptyRecentState: {
+    borderRadius: 20,
+    paddingVertical: 18,
+    paddingHorizontal: 16,
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.surfaceSoft,
+    gap: 6,
+  },
+  emptyRecentTitle: {
+    color: COLORS.navy,
+    fontSize: 14,
+    lineHeight: 17,
+    fontWeight: '800',
+    fontFamily: 'Inter',
+  },
+  emptyRecentBody: {
+    color: COLORS.textMuted,
+    fontSize: 12,
+    lineHeight: 17,
+    fontWeight: '500',
+    fontFamily: 'Inter',
   },
 });
 
