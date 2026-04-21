@@ -191,34 +191,34 @@ export function ManageWhitelistBottomSheet({
         <View style={styles.grantsBlock}>
           <Text style={styles.grantsTitle}>Current grants</Text>
 
-          {isLoading ? (
+          {isLoading && data.grants.length === 0 ? (
             <View style={styles.stateCard}>
               <Text style={styles.stateTitle}>Loading access list...</Text>
-               <Text style={styles.stateBody}>
+              <Text style={styles.stateBody}>
                 Syncing whitelist entries for this document.
-               </Text>
+              </Text>
             </View>
           ) : data.grants.length === 0 ? (
             <View style={styles.stateCard}>
-                <Text style={styles.stateTitle}>No access granted yet</Text>
-                <Text style={styles.stateBody}>
-                  Search for a wallet or user above to add the first whitelist entry.
-                </Text>
-              </View>
-            ) : (
-                <View style={styles.grantsList}>
-                  {data.grants.map((grant) => (
-                    <WhitelistGrantRow
-                      key={grant.id}
-                      name={grant.name}
-                      accessLabel={grant.accessLabel}
-                      actionLabel={grant.actionLabel}
-                      onPressAction={() => onPressGrantAction?.(grant.id)}
-                      onPressRevoke={() => onPressRevoke?.(grant.id)}
-                    />
-                  ))}
-                </View>
-            )}
+              <Text style={styles.stateTitle}>No access granted yet</Text>
+              <Text style={styles.stateBody}>
+                Search for a wallet or user above to add the first whitelist entry.
+              </Text>
+            </View>
+          ) : (
+            <View style={styles.grantsList}>
+              {data.grants.map((grant) => (
+                <WhitelistGrantRow
+                  key={grant.id}
+                  name={grant.name}
+                  accessLabel={grant.accessLabel}
+                  actionLabel={grant.actionLabel}
+                  onPressAction={() => onPressGrantAction?.(grant.id)}
+                  onPressRevoke={() => onPressRevoke?.(grant.id)}
+                />
+              ))}
+            </View>
+          )}
         </View>
       </BottomSheetScrollView>
     </BottomSheetModal>

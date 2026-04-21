@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -25,6 +25,11 @@ import {
   type DocumentTypeKey,
 } from '@/features/documents/mock-documents';
 import { SearchInputWithResults } from '@/shared/components/ui/search-input-with-results';
+import {
+  applyWhitelistToDocument,
+  hydrateDocumentsWithPersistedWhitelists,
+  persistDocumentWhitelist,
+} from '@/features/document/services/whitelist-storage';
 import { useCloseSheetOnBack } from '@/shared/hooks/use-close-sheet-on-back';
 import { BottomNav } from '@/shared/components/ui/bottom-nav';
 
@@ -77,6 +82,7 @@ export default function DocumentsScreen() {
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [isVerifyOpen, setIsVerifyOpen] = useState(false);
   const [isWhitelistOpen, setIsWhitelistOpen] = useState(false);
+  const [isWhitelistLoading, setIsWhitelistLoading] = useState(false);
   const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false);
   const [isSortSheetOpen, setIsSortSheetOpen] = useState(false);
   const [whitelistSearchQuery, setWhitelistSearchQuery] = useState('');
@@ -171,6 +177,34 @@ export default function DocumentsScreen() {
   const isAnySheetOpen =
     isPreviewOpen || isVerifyOpen || isWhitelistOpen || isFilterSheetOpen || isSortSheetOpen;
 
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadPersistedWhitelists = async () => {
+      setIsWhitelistLoading(true);
+
+      try {
+        const hydratedDocuments = await hydrateDocumentsWithPersistedWhitelists(MOCK_DOCUMENTS);
+
+        if (isMounted) {
+          setDocuments(hydratedDocuments);
+        }
+      } catch (error) {
+        console.error('Failed to hydrate persisted document whitelists.', error);
+      } finally {
+        if (isMounted) {
+          setIsWhitelistLoading(false);
+        }
+      }
+    };
+
+    loadPersistedWhitelists();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   useCloseSheetOnBack(isAnySheetOpen, () => {
     setIsPreviewOpen(false);
     setIsVerifyOpen(false);
@@ -231,22 +265,16 @@ export default function DocumentsScreen() {
     );
   };
 
-  const updateWhitelistCountLabel = (count: number) =>
-    `${count} allowed wallet${count === 1 ? '' : 's'}/users`;
+  const handleAddWhitelistResult = async (resultId: string) => {
+    if (!selectedDocument) return;
 
-  const handleAddWhitelistResult = (resultId: string) => {
-    if (!selectedDocument) {
-      return;
-    }
+    const result = selectedDocument.whitelist.searchResults.find((entry) => entry.id === resultId);
 
-    updateDocumentWhitelist(selectedDocument.id, (document) => {
-      const result = document.whitelist.searchResults.find((entry) => entry.id === resultId);
+    if (!result) return;
 
-      if (!result) {
-        return document;
-      }
-
-      const nextGrants = [
+    const nextWhitelist = {
+      ...selectedDocument.whitelist,
+      grants: [
         {
           id: result.id,
           name: result.name,
@@ -254,74 +282,76 @@ export default function DocumentsScreen() {
           accessLabel: 'View access',
           actionLabel: 'View',
         },
-        ...document.whitelist.grants,
-      ];
-
-      const nextSearchResults = document.whitelist.searchResults.filter(
+        ...selectedDocument.whitelist.grants,
+      ],
+      searchResults: selectedDocument.whitelist.searchResults.filter(
         (entry) => entry.id !== resultId,
-      );
+      ),
+    };
 
-      return {
-        ...document,
-        preview: {
-          ...document.preview,
-          whitelist: {
-            ...document.preview.whitelist,
-            allowedCountLabel: updateWhitelistCountLabel(nextGrants.length),
-          },
-        },
-        whitelist: {
-          ...document.whitelist,
-          grants: nextGrants,
-          searchResults: nextSearchResults,
-        },
-      };
-    });
+    updateDocumentWhitelist(selectedDocument.id, (document) =>
+      applyWhitelistToDocument(document, nextWhitelist),
+    );
 
     setWhitelistSearchQuery('');
+    setIsWhitelistLoading(true);
+
+    try {
+      await persistDocumentWhitelist(selectedDocument.id, {
+        grants: nextWhitelist.grants,
+        searchResults: nextWhitelist.searchResults,
+      });
+    } catch (error) {
+      console.error('Failed to persist added whitelist entry.', error);
+    } finally {
+      setIsWhitelistLoading(false);
+    }
   };
 
-  const handleRevokeGrant = (grantId: string) => {
+  const handleRevokeGrant = async (grantId: string) => {
     if (!selectedDocument) {
       return;
     }
 
-    updateDocumentWhitelist(selectedDocument.id, (document) => {
-      const grant = document.whitelist.grants.find((entry) => entry.id === grantId);
+    const grant = selectedDocument.whitelist.grants.find((entry) => entry.id === grantId);
 
-      if (!grant) {
-        return document;
-      }
+    if (!grant) {
+      return;
+    }
 
-      const nextGrants = document.whitelist.grants.filter((entry) => entry.id !== grantId);
-      const nextSearchResults =
-        grant.email && !document.whitelist.searchResults.some((entry) => entry.id === grant.id)
+    const nextWhitelist = {
+      ...selectedDocument.whitelist,
+      grants: selectedDocument.whitelist.grants.filter((entry) => entry.id !== grantId),
+      searchResults:
+        grant.email &&
+        !selectedDocument.whitelist.searchResults.some((entry) => entry.id === grant.id)
           ? [
               {
                 id: grant.id,
                 name: grant.name,
                 email: grant.email,
               },
-              ...document.whitelist.searchResults,
+              ...selectedDocument.whitelist.searchResults,
             ]
-          : document.whitelist.searchResults;
+          : selectedDocument.whitelist.searchResults,
+    };
 
-      return {
-        ...document,
-        preview: {
-          ...document.preview,
-          whitelist: {
-            ...document.preview.whitelist,
-            allowedCountLabel: updateWhitelistCountLabel(nextGrants.length),
-          },
-        },
-        whitelist: {
-          ...document.whitelist,
-          grants: nextGrants,
-          searchResults: nextSearchResults,
-        },
-      };
-    });
+    updateDocumentWhitelist(selectedDocument.id, (document) =>
+      applyWhitelistToDocument(document, nextWhitelist),
+    );
+
+    setIsWhitelistLoading(true);
+
+    try {
+      await persistDocumentWhitelist(selectedDocument.id, {
+        grants: nextWhitelist.grants,
+        searchResults: nextWhitelist.searchResults,
+      });
+    } catch (error) {
+      console.error('Failed to persist revoked whitelist entry.', error);
+    } finally {
+      setIsWhitelistLoading(false);
+    }
   };
 
   const activeFilterSummary = [
@@ -439,6 +469,7 @@ export default function DocumentsScreen() {
         visible={isWhitelistOpen}
         data={selectedDocument?.whitelist ?? null}
         searchQuery={whitelistSearchQuery}
+        isLoading={isWhitelistLoading}
         onChangeSearchQuery={setWhitelistSearchQuery}
         onClose={() => {
           setIsWhitelistOpen(false);
