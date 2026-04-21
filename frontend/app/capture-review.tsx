@@ -276,7 +276,7 @@ const styles = StyleSheet.create({
   },
   previewModal: {
     flex: 1,
-    backgroundColor: 'rgba(4, 18, 40, 0.92)',
+    backgroundColor: 'transparent',
     justifyContent: 'center',
     alignItems: 'center',
   },
