@@ -48,6 +48,7 @@ type ManageWhitelistBottomSheetProps = {
   visible: boolean;
   data: ManageWhitelistData | null;
   searchQuery: string;
+  isLoading?: boolean;
   onChangeSearchQuery: (value: string) => void;
   onClose: () => void;
   onPressGrantAction?: (grantId: string) => void;
@@ -59,6 +60,7 @@ export function ManageWhitelistBottomSheet({
   visible,
   data,
   searchQuery,
+  isLoading = false,
   onChangeSearchQuery,
   onClose,
   onPressGrantAction,
@@ -189,18 +191,34 @@ export function ManageWhitelistBottomSheet({
         <View style={styles.grantsBlock}>
           <Text style={styles.grantsTitle}>Current grants</Text>
 
-          <View style={styles.grantsList}>
-            {data.grants.map((grant) => (
-              <WhitelistGrantRow
-                key={grant.id}
-                name={grant.name}
-                accessLabel={grant.accessLabel}
-                actionLabel={grant.actionLabel}
-                onPressAction={() => onPressGrantAction?.(grant.id)}
-                onPressRevoke={() => onPressRevoke?.(grant.id)}
-              />
-            ))}
-          </View>
+          {isLoading ? (
+            <View style={styles.stateCard}>
+              <Text style={styles.stateTitle}>Loading access list...</Text>
+               <Text style={styles.stateBody}>
+                Syncing whitelist entries for this document.
+               </Text>
+            </View>
+          ) : data.grants.length === 0 ? (
+            <View style={styles.stateCard}>
+                <Text style={styles.stateTitle}>No access granted yet</Text>
+                <Text style={styles.stateBody}>
+                  Search for a wallet or user above to add the first whitelist entry.
+                </Text>
+              </View>
+            ) : (
+                <View style={styles.grantsList}>
+                  {data.grants.map((grant) => (
+                    <WhitelistGrantRow
+                      key={grant.id}
+                      name={grant.name}
+                      accessLabel={grant.accessLabel}
+                      actionLabel={grant.actionLabel}
+                      onPressAction={() => onPressGrantAction?.(grant.id)}
+                      onPressRevoke={() => onPressRevoke?.(grant.id)}
+                    />
+                  ))}
+                </View>
+            )}
         </View>
       </BottomSheetScrollView>
     </BottomSheetModal>
@@ -294,5 +312,28 @@ const styles = StyleSheet.create({
   },
   grantsList: {
     gap: 10,
+  },
+    stateCard: {
+    borderRadius: 20,
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.borderSoft,
+    paddingVertical: 18,
+    paddingHorizontal: 16,
+    gap: 6,
+  },
+  stateTitle: {
+    color: COLORS.navy,
+    fontFamily: 'Inter',
+    fontSize: 14,
+    lineHeight: 18,
+    fontWeight: '800',
+  },
+  stateBody: {
+    color: COLORS.textMuted,
+    fontFamily: 'Inter',
+    fontSize: 12,
+    lineHeight: 17,
+    fontWeight: '500',
   },
 });
