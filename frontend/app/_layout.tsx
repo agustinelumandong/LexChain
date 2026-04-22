@@ -9,6 +9,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as NavigationBar from 'expo-navigation-bar';
 import { useEffect } from 'react';
 import { Platform } from 'react-native';
+import { Toaster } from 'sonner-native';
 
 export const unstable_settings = {
   anchor: '(tabs)',
@@ -35,11 +36,19 @@ export default function RootLayout() {
               <Stack.Screen name="camera-capture" options={{ headerShown: false }} />
               <Stack.Screen name="capture-review" options={{ headerShown: false }} />
               <Stack.Screen name="processing" options={{ headerShown: false }} />
-
               <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
             </Stack>
           </ThemeProvider>
         </BottomSheetModalProvider>
+        <Toaster
+          position="bottom-center"
+          theme="light"
+          toastOptions={{
+            style: {
+              backgroundColor: '#fff',
+             },
+          }}
+         />
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );
