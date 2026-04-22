@@ -32,6 +32,7 @@ import {
 } from '@/features/document/services/whitelist-storage';
 import { useCloseSheetOnBack } from '@/shared/hooks/use-close-sheet-on-back';
 import { BottomNav } from '@/shared/components/ui/bottom-nav';
+import { toast } from 'sonner-native';
 
 const COLORS = {
   bg: '#F3F8FF',
@@ -191,6 +192,7 @@ export default function DocumentsScreen() {
         }
       } catch (error) {
         console.error('Failed to hydrate persisted document whitelists.', error);
+        toast.error('Failed to load saved whitelist access');
       } finally {
         if (isMounted) {
           setIsWhitelistLoading(false);
@@ -301,8 +303,11 @@ export default function DocumentsScreen() {
         grants: nextWhitelist.grants,
         searchResults: nextWhitelist.searchResults,
       });
+
+      toast.success('Access granted');
     } catch (error) {
       console.error('Failed to persist added whitelist entry.', error);
+      toast.error('Failed to save granted access');
     } finally {
       setIsWhitelistLoading(false);
     }
@@ -347,8 +352,11 @@ export default function DocumentsScreen() {
         grants: nextWhitelist.grants,
         searchResults: nextWhitelist.searchResults,
       });
+
+      toast.success('Access revoked');
     } catch (error) {
       console.error('Failed to persist revoked whitelist entry.', error);
+      toast.error('Failed to revoke access');
     } finally {
       setIsWhitelistLoading(false);
     }
