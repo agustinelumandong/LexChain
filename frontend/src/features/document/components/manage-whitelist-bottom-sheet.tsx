@@ -20,6 +20,7 @@ const COLORS = {
   navy: '#133B73',
   textMuted: '#6F8FB5',
   borderSoft: '#D7EBFF',
+  surfaceSoft: '#F3F8FF',
 };
 
 export type WhitelistGrant = {
@@ -200,10 +201,17 @@ export function ManageWhitelistBottomSheet({
             </View>
           ) : data.grants.length === 0 ? (
             <View style={styles.stateCard}>
+              <View style={styles.emptyStateCard}>
+                <MaterialIcons name="shield" size={24} color={COLORS.primary} />
+              </View>
               <Text style={styles.stateTitle}>No access granted yet</Text>
               <Text style={styles.stateBody}>
                 Search for a wallet or user above to add the first whitelist entry.
               </Text>
+              <View style={styles.emptyStateHint}>
+                <MaterialIcons name="person-add-alt-1" size={14} color={COLORS.primary} />
+                <Text style={styles.emptyStateHintText}>Search above to grant first access</Text>
+              </View>
             </View>
           ) : (
             <View style={styles.grantsList}>
@@ -335,5 +343,60 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 17,
     fontWeight: '500',
+  },
+  emptyStateCard: {
+    borderRadius: 24,
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.borderSoft,
+    paddingVertical: 24,
+    paddingHorizontal: 18,
+    alignItems: 'center',
+    gap: 12,
+  },
+
+  emptyStateIconWrap: {
+    width: 56,
+    height: 56,
+    borderRadius: 999,
+    backgroundColor: COLORS.surfaceSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  emptyStateTitle: {
+    color: COLORS.navy,
+    fontFamily: 'Inter',
+    fontSize: 15,
+    lineHeight: 19,
+    fontWeight: '800',
+    textAlign: 'center',
+  },
+
+  emptyStateBody: {
+    color: COLORS.textMuted,
+    fontFamily: 'Inter',
+    fontSize: 13,
+    lineHeight: 19,
+    fontWeight: '500',
+    textAlign: 'center',
+  },
+
+  emptyStateHint: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    borderRadius: 999,
+    backgroundColor: COLORS.surfaceSoft,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+  },
+
+  emptyStateHintText: {
+    color: COLORS.primary,
+    fontFamily: 'Inter',
+    fontSize: 12,
+    lineHeight: 14,
+    fontWeight: '700',
   },
 });
