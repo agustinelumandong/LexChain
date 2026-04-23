@@ -68,11 +68,11 @@ export default function VerifyDocumentScreen() {
 
         <View style={styles.footer}>
           <Button
-            label="Back to details"
+            label="Back to documents"
             variant="secondary"
             fullWidth
             leftIconName="arrow-back"
-            onPress={() => router.push(`/document/${id ?? '1002'}`)}
+            onPress={() => router.push('/(tabs)/documents')}
           />
         </View>
       </View>
