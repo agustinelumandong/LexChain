@@ -113,8 +113,8 @@ export default function ProcessingScreen() {
               source="Deed of Sale #1002"
               confidence="High"
               summary="Summary: Ownership transfer language, signatories, and key dates were identified from the uploaded document."
-              onPressReviewSummary={() => router.push('/verify/1002')}
-              onPressOpenDoc={() => router.push('/document/1002')}
+              onPressReviewSummary={() => router.push('/(tabs)/documents')}
+              onPressOpenDoc={() => router.push('/(tabs)/documents')}
             />
           ) : (
             <View style={styles.pendingSummaryCard}>
@@ -128,7 +128,7 @@ export default function ProcessingScreen() {
 
         <View style={styles.footer}>
           <Button
-            label={isComplete ? 'Go back to document' : 'Back to documents'}
+            label="Back to documents"
             fullWidth
             leftIconName="arrow-back"
             onPress={() => router.push('/(tabs)/documents')}

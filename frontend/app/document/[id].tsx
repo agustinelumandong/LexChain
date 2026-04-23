@@ -90,10 +90,10 @@ export default function DocumentDetailsScreen() {
 
         <View style={styles.footer}>
           <Button
-            label="Verify this document"
+            label="Back to documents"
             fullWidth
-            rightIconName="verified-user"
-            onPress={() => router.push(`/verify/${id ?? '1002'}`)}
+            leftIconName="arrow-back"
+            onPress={() => router.push('/(tabs)/documents')}
           />
         </View>
       </View>
