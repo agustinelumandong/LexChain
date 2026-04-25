@@ -399,7 +399,7 @@ export default function DocumentsScreen() {
               placeholder="Title, party, date, or keyword"
               showDropdown={false}
               results={filteredDocuments}
-              emptyText="No document found"
+              emptyText="No documents matched your search"
               keyExtractor={(document) => document.id}
               renderItem={(document) => (
                 <DocumentSearchResultRow
