@@ -338,15 +338,15 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.bg,
   },
   scrollContent: {
-    paddingHorizontal: 18,
+    paddingHorizontal: 16,
     paddingTop: 12,
     paddingBottom: 148,
     gap: 20,
   },
   footer: {
     position: 'absolute',
-    left: 18,
-    right: 18,
+    left: 16,
+    right: 16,
     bottom: 24,
     alignItems: 'center',
   },
