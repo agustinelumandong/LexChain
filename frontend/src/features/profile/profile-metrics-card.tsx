@@ -37,7 +37,7 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: COLORS.surface,
     borderRadius: 24,
-    paddingVertical: 18,
+    paddingVertical: 16,
     paddingHorizontal: 12,
     flexDirection: 'row',
     alignItems: 'stretch',
@@ -56,7 +56,7 @@ const styles = StyleSheet.create({
   value: {
     color: COLORS.navy,
     fontSize: 18,
-    lineHeight: 22,
+    lineHeight: 24,
     fontWeight: '800',
     fontFamily: 'Inter',
   },
