@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'expo-router';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { toast } from 'sonner-native';
 
 import { AiSummaryDraftCard } from '@/features/upload/ai-summary-draft-card';
 import { Button } from '@/shared/components/ui/button';
@@ -81,8 +82,8 @@ export default function ProcessingScreen() {
             title={isComplete ? 'Processing complete' : 'Processing'}
             description={
               isComplete
-                ? 'Summary and checks are ready for review.'
-                : 'Summary and checks are running now.'
+                ? 'Your document summary is ready and the file can now be found in Documents.'
+                : 'LexChain is scanning the upload, drafting the summary, and preparing integrity checks.'
             }
           />
 
@@ -93,13 +94,20 @@ export default function ProcessingScreen() {
               </Text>
               <Text style={styles.progressBody}>
                 {isComplete
-                  ? 'All steps finished. You can review the summary or go back to your documents.'
-                  : `${progressPercent}% complete. LexChain is scanning, summarizing, and preparing integrity checks.`}
+                  ? 'All steps finished. Review the draft summary below or head back to Documents.'
+                  : `${progressPercent}% complete. We are extracting document data, generating the summary, and preparing integrity checks.`}
               </Text>
             </View>
 
             <View style={styles.progressTrack}>
               <View style={[styles.progressFill, { width: `${progressPercent}%` }]} />
+            </View>
+
+            <View style={styles.progressMetaRow}>
+              <Text style={styles.progressMetaLabel}>
+                {isComplete ? 'Status: Ready for review' : 'Status: Processing in progress'}
+              </Text>
+              <Text style={styles.progressMetaValue}>{progressPercent}%</Text>
             </View>
           </View>
 
@@ -113,8 +121,13 @@ export default function ProcessingScreen() {
               source="Deed of Sale #1002"
               confidence="High"
               summary="Summary: Ownership transfer language, signatories, and key dates were identified from the uploaded document."
-              onPressReviewSummary={() => router.push('/(tabs)/documents')}
-              onPressOpenDoc={() => router.push('/(tabs)/documents')}
+              primaryActionLabel="Go to Documents"
+              secondaryActionLabel="Upload Another"
+              onPressReviewSummary={() => {
+                toast.success('Opening documents');
+                router.push('/(tabs)/documents');
+              }}
+              onPressOpenDoc={() => router.push('/upload')}
             />
           ) : (
             <View style={styles.pendingSummaryCard}>
@@ -128,7 +141,7 @@ export default function ProcessingScreen() {
 
         <View style={styles.footer}>
           <Button
-            label="Back to documents"
+            label={isComplete ? 'Back to documents' : 'Cancel and go back'}
             fullWidth
             leftIconName="arrow-back"
             onPress={() => router.push('/(tabs)/documents')}
@@ -187,6 +200,27 @@ const styles = StyleSheet.create({
     height: '100%',
     borderRadius: 999,
     backgroundColor: COLORS.primary,
+  },
+  progressMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  progressMetaLabel: {
+    flex: 1,
+    color: COLORS.textMuted,
+    fontFamily: 'Inter',
+    fontSize: 12,
+    lineHeight: 16,
+    fontWeight: '600',
+  },
+  progressMetaValue: {
+    color: COLORS.primary,
+    fontFamily: 'Inter',
+    fontSize: 12,
+    lineHeight: 16,
+    fontWeight: '800',
   },
   pendingSummaryCard: {
     backgroundColor: COLORS.surface,
