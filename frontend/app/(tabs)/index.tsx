@@ -123,7 +123,9 @@ export default function HomeScreen() {
           <View style={styles.headerBlock}>
             <Text style={styles.eyebrow}>USER DASHBOARD</Text>
             <Text style={styles.title}>Dashboard</Text>
-            <Text style={styles.description}>Your documents and access.</Text>
+            <Text style={styles.description}>
+              Track your documents, access grants, and review activity.
+            </Text>
           </View>
 
           <View style={styles.kpiRow}>
@@ -145,7 +147,7 @@ export default function HomeScreen() {
             <Text style={styles.sectionLabel}>Search</Text>
             <Pressable style={styles.searchBar} onPress={() => router.push('/(tabs)/documents')}>
               <MaterialIcons name="search" size={18} color={COLORS.textMuted} />
-              <Text style={styles.searchPlaceholder}>Search by keyword, date, and etc.</Text>
+              <Text style={styles.searchPlaceholder}>Search by title, party, or date</Text>
             </Pressable>
           </View>
 
@@ -254,6 +256,7 @@ const styles = StyleSheet.create({
   },
   searchPlaceholder: {
     color: COLORS.textMuted,
+    flex: 1,
     fontSize: 13,
     lineHeight: 18,
     fontWeight: '500',
@@ -344,6 +347,7 @@ const kpiStyles = StyleSheet.create({
   },
   meta: {
     color: COLORS.primary,
+    flex: 1,
     fontSize: 12,
     lineHeight: 14,
     fontWeight: '700',
@@ -367,6 +371,7 @@ const docStyles = StyleSheet.create({
   copy: {
     flex: 1,
     gap: 4,
+    minWidth: 0,
   },
   title: {
     color: COLORS.navy,
