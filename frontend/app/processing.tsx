@@ -118,7 +118,7 @@ export default function ProcessingScreen() {
             <AiSummaryDraftCard
               source="Deed of Sale #1002"
               confidence="High"
-              summary="Summary: Ownership transfer language, signatories, and key dates were identified from the uploaded document."
+              summary="Ownership transfer language, signatories, and key dates were identified from the uploaded document."
               primaryActionLabel="Go to Documents"
               secondaryActionLabel="Upload Another"
               onPressReviewSummary={() => router.replace('/(tabs)/documents')}

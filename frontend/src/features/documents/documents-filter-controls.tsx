@@ -34,7 +34,15 @@ function ControlButton({ iconName, label, detail, onPress }: ControlButtonProps)
       </View>
 
       <View style={styles.controlButtonRight}>
-        {detail ? <Text style={styles.controlButtonDetail}>{detail}</Text> : null}
+        {detail ? (
+          <Text
+            style={styles.controlButtonDetail}
+            numberOfLines={1}
+            ellipsizeMode="tail"
+          >
+            {detail}
+          </Text>
+        ) : null}
         <MaterialIcons name="chevron-right" size={18} color={COLORS.textMuted} />
       </View>
     </Pressable>
@@ -100,14 +108,18 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   controlButtonLeft: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+    minWidth: 0,
   },
   controlButtonRight: {
+    maxWidth: '48%',
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
+    minWidth: 0,
   },
   controlButtonLabel: {
     color: COLORS.navy,
@@ -118,10 +130,12 @@ const styles = StyleSheet.create({
   },
   controlButtonDetail: {
     color: COLORS.textMuted,
+    flexShrink: 1,
     fontSize: 12,
     lineHeight: 14,
     fontWeight: '600',
     fontFamily: 'Inter',
+    textAlign: 'right',
   },
   summaryRow: {
     flexDirection: 'row',

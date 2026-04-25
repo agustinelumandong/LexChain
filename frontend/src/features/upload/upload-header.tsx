@@ -16,7 +16,7 @@ type UploadHeaderProps = {
 export function UploadHeader({
   eyebrow = 'UPLOAD DOCUMENT',
   title = 'Upload document',
-  description = 'Add a file or use camera.',
+  description = 'Add a file or capture pages with the camera.',
 }: UploadHeaderProps) {
   return (
     <View style={styles.wrap}>
