@@ -29,7 +29,7 @@ export function DocumentsHeader({
 
 const styles = StyleSheet.create({
   wrap: {
-    gap: 12,
+    gap: 8,
   },
   eyebrow: {
     color: COLORS.primary,
@@ -42,14 +42,14 @@ const styles = StyleSheet.create({
   title: {
     color: COLORS.navy,
     fontSize: 24,
-    lineHeight: 26,
+    lineHeight: 30,
     fontWeight: '800',
     fontFamily: 'Inter',
   },
   description: {
     color: COLORS.textMuted,
     fontSize: 13,
-    lineHeight: 18,
+    lineHeight: 19,
     fontWeight: '500',
     fontFamily: 'Inter',
   },
