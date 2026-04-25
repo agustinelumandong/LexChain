@@ -6,6 +6,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import { View, StyleSheet, Text, Pressable } from 'react-native';
+import { toast } from 'sonner-native';
 
 const COLORS = {
   primary: '#1689F5',
@@ -75,9 +76,11 @@ export default function SignInScreen() {
 
   const handleSignIn = () => {
     if (!validateSignIn()) {
+      toast.warning('Check your email and password');
       return;
     }
 
+    toast.success('Signed in successfully');
     router.push('/(tabs)');
   };
 
