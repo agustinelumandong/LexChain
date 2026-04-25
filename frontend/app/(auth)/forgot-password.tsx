@@ -5,6 +5,7 @@ import { Button } from '@/shared/components/ui/button';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { toast } from 'sonner-native';
 
 const COLORS = {
   primary: '#1689F5',
@@ -64,11 +65,13 @@ export default function ForgotPasswordScreen() {
 
     if (!trimmedEmail) {
       setEmailError('Email address is required.');
+      toast.warning('Enter your account email first');
       return;
     }
 
     if (!/\S+@\S+\.\S+/.test(trimmedEmail)) {
       setEmailError('Enter a valid email address.');
+      toast.warning('Enter a valid email address');
       return;
     }
 
@@ -78,6 +81,7 @@ export default function ForgotPasswordScreen() {
     transitionTimeoutRef.current = setTimeout(() => {
       setIsSubmitting(false);
       setHasSentReset(true);
+      toast.success('Reset link sent');
     }, 500);
   };
 

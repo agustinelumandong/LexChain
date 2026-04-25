@@ -6,6 +6,7 @@ import { useCloseSheetOnBack } from "@/shared/hooks/use-close-sheet-on-back";
 import { useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import { View, StyleSheet, Text } from "react-native";
+import { toast } from 'sonner-native';
 import TermsBottomSheet from "@/features/auth/terms-bottom-sheet";
 
 const COLORS = {
@@ -159,6 +160,7 @@ export default function SignUpScreen() {
 
   const handleOpenTerms = () => {
     if (!validateSignUp()) {
+      toast.warning('Complete all required sign up fields');
       return;
     }
 
@@ -335,7 +337,13 @@ export default function SignUpScreen() {
         onReachedEnd={() => setHasReachedTermsEnd(true)}
         onConfirm={() => {
           if (!validateSignUp()) {
+            toast.warning('Review your sign up details before continuing');
             setIsTermsSheetVisible(false);
+            return;
+          }
+
+          if (!acceptedTerms) {
+            toast.warning('Accept the terms to create your account');
             return;
           }
 
@@ -344,6 +352,7 @@ export default function SignUpScreen() {
           setTimeout(() => {
             setIsSubmitting(false);
             setIsTermsSheetVisible(false);
+            toast.success('Account created successfully');
             router.replace('/(tabs)');
           }, 500);
         }}
