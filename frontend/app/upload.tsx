@@ -5,6 +5,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { toast } from 'sonner-native';
 
 import { AccessWhitelistCard } from '@/features/document/components/access-whitelist-card';
 import {
@@ -74,6 +75,11 @@ export default function UploadScreen() {
 
       if (pendingCapturedFiles.length > 0) {
         setPickedFiles((currentFiles) => [...currentFiles, ...pendingCapturedFiles]);
+        toast.success(
+          pendingCapturedFiles.length === 1
+            ? 'Captured page added'
+            : `${pendingCapturedFiles.length} captured pages added`,
+        );
       }
     }, []),
   );
@@ -91,12 +97,16 @@ export default function UploadScreen() {
   };
 
   const handleAddWhitelistResult = (resultId: string) => {
+    let addedName: string | undefined;
+
     setWhitelistData((current) => {
       const result = current.searchResults.find((entry) => entry.id === resultId);
 
       if (!result) {
         return current;
       }
+
+      addedName = result.name;
 
       return {
         ...current,
@@ -115,15 +125,23 @@ export default function UploadScreen() {
     });
 
     setWhitelistSearchQuery('');
+
+    if (addedName) {
+      toast.success(`${addedName} added to upload access`);
+    }
   };
 
   const handleRevokeGrant = (grantId: string) => {
+    let revokedName: string | undefined;
+
     setWhitelistData((current) => {
       const grant = current.grants.find((entry) => entry.id === grantId);
 
       if (!grant) {
         return current;
       }
+
+      revokedName = grant.name;
 
       return {
         ...current,
@@ -141,6 +159,10 @@ export default function UploadScreen() {
             : current.searchResults,
       };
     });
+
+    if (revokedName) {
+      toast.success(`${revokedName} removed from upload access`);
+    }
   };
 
   const formatFileSize = (fileSize?: number | null) => {
@@ -156,31 +178,43 @@ export default function UploadScreen() {
   };
 
   const handleChooseFile = async () => {
-    const result = await DocumentPicker.getDocumentAsync({
-      copyToCacheDirectory: true,
-      multiple: true,
-      type: ['application/pdf', 'image/*'],
-    });
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        copyToCacheDirectory: true,
+        multiple: true,
+        type: ['application/pdf', 'image/*'],
+      });
 
-    if (result.canceled) {
-      return;
+      if (result.canceled) {
+        return;
+      }
+
+      if (!result.assets?.length) {
+        toast.warning('No files were selected');
+        return;
+      }
+
+      setPickedFiles((currentFiles) => [
+        ...currentFiles,
+        ...result.assets.map((asset, index) => ({
+          id: `${asset.uri}-${Date.now()}-${index}`,
+          name: asset.name,
+          sizeLabel: formatFileSize(asset.size),
+          uri: asset.uri,
+          mimeType: asset.mimeType,
+          sourceLabel: 'file' as const,
+        })),
+      ]);
+
+      toast.success(
+        result.assets.length === 1
+          ? 'File added to upload'
+          : `${result.assets.length} files added to upload`,
+      );
+    } catch (error) {
+      console.error('Failed to choose upload file', error);
+      toast.error('Failed to choose file');
     }
-
-    if (!result.assets?.length) {
-      return;
-    }
-
-    setPickedFiles((currentFiles) => [
-      ...currentFiles,
-      ...result.assets.map((asset, index) => ({
-        id: `${asset.uri}-${Date.now()}-${index}`,
-        name: asset.name,
-        sizeLabel: formatFileSize(asset.size),
-        uri: asset.uri,
-        mimeType: asset.mimeType,
-        sourceLabel: 'file' as const,
-      })),
-    ]);
   };
 
   const handleOpenCameraCapture = () => {
@@ -189,14 +223,22 @@ export default function UploadScreen() {
 
   const handleContinueToProcessing = () => {
     if (pickedFiles.length === 0) {
+      toast.warning('Add a file or captured page first');
       return;
     }
 
+    toast.success('Upload started');
     router.push('/processing');
   };
 
   const handleRemoveFile = (fileId: string) => {
+    const removedFile = pickedFiles.find((file) => file.id === fileId);
+
     setPickedFiles((currentFiles) => currentFiles.filter((file) => file.id !== fileId));
+
+    if (removedFile) {
+      toast.success(`${removedFile.name} removed`);
+    }
   };
 
   return (
