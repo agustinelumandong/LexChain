@@ -2,8 +2,6 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'expo-router';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { toast } from 'sonner-native';
-
 import { AiSummaryDraftCard } from '@/features/upload/ai-summary-draft-card';
 import { Button } from '@/shared/components/ui/button';
 import { DocumentScreenHeader } from '@/features/document/components/document-screen-header';
@@ -123,11 +121,8 @@ export default function ProcessingScreen() {
               summary="Summary: Ownership transfer language, signatories, and key dates were identified from the uploaded document."
               primaryActionLabel="Go to Documents"
               secondaryActionLabel="Upload Another"
-              onPressReviewSummary={() => {
-                toast.success('Opening documents');
-                router.push('/(tabs)/documents');
-              }}
-              onPressOpenDoc={() => router.push('/upload')}
+              onPressReviewSummary={() => router.replace('/(tabs)/documents')}
+              onPressOpenDoc={() => router.replace('/upload')}
             />
           ) : (
             <View style={styles.pendingSummaryCard}>
@@ -144,7 +139,7 @@ export default function ProcessingScreen() {
             label={isComplete ? 'Back to documents' : 'Cancel and go back'}
             fullWidth
             leftIconName="arrow-back"
-            onPress={() => router.push('/(tabs)/documents')}
+            onPress={() => router.replace('/(tabs)/documents')}
           />
         </View>
       </View>
