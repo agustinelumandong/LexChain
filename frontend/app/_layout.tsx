@@ -41,7 +41,7 @@ export default function RootLayout() {
           </ThemeProvider>
         </BottomSheetModalProvider>
         <Toaster
-          position="bottom-center"
+          position="top-center"
           theme="light"
           toastOptions={{
             style: {
