@@ -13,6 +13,8 @@ type AiSummaryDraftCardProps = {
   source: string;
   confidence: string;
   summary: string;
+  primaryActionLabel?: string;
+  secondaryActionLabel?: string;
   onPressReviewSummary?: () => void;
   onPressOpenDoc?: () => void;
 };
@@ -21,6 +23,8 @@ export function AiSummaryDraftCard({
   source,
   confidence,
   summary,
+  primaryActionLabel = 'Review Summary',
+  secondaryActionLabel = 'Open Doc',
   onPressReviewSummary,
   onPressOpenDoc,
 }: AiSummaryDraftCardProps) {
@@ -37,7 +41,7 @@ export function AiSummaryDraftCard({
       <View style={styles.actions}>
         <View style={styles.actionSlot}>
           <Button
-            label="Review Summary"
+            label={primaryActionLabel}
             size="md"
             fullWidth
             onPress={onPressReviewSummary}
@@ -46,7 +50,7 @@ export function AiSummaryDraftCard({
 
         <View style={styles.actionSlot}>
           <Button
-            label="Open Doc"
+            label={secondaryActionLabel}
             variant="secondary"
             size="md"
             fullWidth
