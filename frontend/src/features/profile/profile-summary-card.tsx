@@ -60,8 +60,8 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: COLORS.surface,
     borderRadius: 24,
-    padding: 18,
-    gap: 14,
+    padding: 16,
+    gap: 12,
     shadowColor: '#133B73',
     shadowOpacity: 0.06,
     shadowRadius: 16,
@@ -71,7 +71,7 @@ const styles = StyleSheet.create({
   topRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 14,
+    gap: 12,
   },
   avatar: {
     width: 60,
@@ -95,7 +95,7 @@ const styles = StyleSheet.create({
   name: {
     color: COLORS.navy,
     fontSize: 18,
-    lineHeight: 22,
+    lineHeight: 24,
     fontWeight: '800',
     fontFamily: 'Inter',
   },
