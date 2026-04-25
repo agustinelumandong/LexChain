@@ -80,11 +80,11 @@ export function DocumentsFilterControls({
 
 const styles = StyleSheet.create({
   wrap: {
-    gap: 10,
+    gap: 8,
   },
   controlsRow: {
     flexDirection: 'row',
-    gap: 10,
+    gap: 8,
   },
   controlButton: {
     flex: 1,
@@ -93,7 +93,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.borderSoft,
     backgroundColor: COLORS.surface,
-    paddingHorizontal: 14,
+    paddingHorizontal: 16,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -112,7 +112,7 @@ const styles = StyleSheet.create({
   controlButtonLabel: {
     color: COLORS.navy,
     fontSize: 13,
-    lineHeight: 16,
+    lineHeight: 18,
     fontWeight: '700',
     fontFamily: 'Inter',
   },
@@ -131,7 +131,7 @@ const styles = StyleSheet.create({
   summaryChip: {
     borderRadius: 999,
     backgroundColor: COLORS.surfaceSoft,
-    paddingVertical: 7,
+    paddingVertical: 8,
     paddingHorizontal: 12,
   },
   summaryChipText: {

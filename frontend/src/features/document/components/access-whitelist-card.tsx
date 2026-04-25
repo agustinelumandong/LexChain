@@ -61,8 +61,8 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: COLORS.surfaceSoft,
     borderRadius: 24,
-    padding: 18,
-    gap: 16,
+    padding: 16,
+    gap: 14,
     borderWidth: 1,
     borderColor: COLORS.borderSoft,
   },
@@ -73,7 +73,7 @@ const styles = StyleSheet.create({
     color: COLORS.navy,
     fontFamily: 'Inter',
     fontSize: 15,
-    lineHeight: 18,
+    lineHeight: 20,
     fontWeight: '800',
   },
   count: {
