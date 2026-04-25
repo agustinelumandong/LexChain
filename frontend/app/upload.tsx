@@ -17,8 +17,6 @@ import { Button } from '@/shared/components/ui/button';
 import type { PickedUploadFile } from '@/features/upload/upload-file';
 import { consumePendingCapturedFiles } from '@/features/upload/upload-session';
 import { UploadDropzoneCard } from '@/features/upload/upload-dropzone-card';
-import { UploadHeader } from '@/features/upload/upload-header';
-import { UploadReferenceField } from '@/features/upload/upload-reference-field';
 import { UploadTopBar } from '@/features/upload/upload-top-bar';
 import { SelectDropdownField } from '@/shared/components/ui/select-dropdown-field';
 
@@ -62,7 +60,6 @@ const INITIAL_WHITELIST: ManageWhitelistData = {
 export default function UploadScreen() {
   const router = useRouter();
   const [selectedDocumentType, setSelectedDocumentType] = useState('Deed of Sale');
-  const [referenceNumber, setReferenceNumber] = useState('');
   const [isTypeDropdownOpen, setIsTypeDropdownOpen] = useState(false);
   const [isWhitelistOpen, setIsWhitelistOpen] = useState(false);
   const [whitelistSearchQuery, setWhitelistSearchQuery] = useState('');
@@ -253,8 +250,6 @@ export default function UploadScreen() {
             onPressCamera={handleOpenCameraCapture}
           />
 
-          <UploadHeader />
-
           <SelectDropdownField
             label="Document Type"
             value={selectedDocumentType}
@@ -268,9 +263,11 @@ export default function UploadScreen() {
             }}
           />
 
-          <UploadReferenceField
-            value={referenceNumber}
-            onChangeText={setReferenceNumber}
+          <UploadDropzoneCard
+            mode={pickedFiles.length > 0 ? 'selected' : 'empty'}
+            files={pickedFiles}
+            onChooseFile={handleChooseFile}
+            onRemoveFile={handleRemoveFile}
           />
 
           <AccessWhitelistCard
@@ -278,13 +275,6 @@ export default function UploadScreen() {
             helperText="Set document access before upload so authorized users can verify it later."
             onPressManage={openWhitelist}
             onPressAdd={openWhitelist}
-          />
-
-          <UploadDropzoneCard
-            mode={pickedFiles.length > 0 ? 'selected' : 'empty'}
-            files={pickedFiles}
-            onChooseFile={handleChooseFile}
-            onRemoveFile={handleRemoveFile}
           />
         </ScrollView>
 
