@@ -197,7 +197,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.bg,
   },
   scrollContent: {
-    paddingHorizontal: 18,
+    paddingHorizontal: 16,
     paddingTop: 12,
     paddingBottom: 24,
     gap: 20,
@@ -271,7 +271,7 @@ const styles = StyleSheet.create({
   },
   navWrap: {
     width: '100%',
-    paddingHorizontal: 18,
+    paddingHorizontal: 16,
     paddingBottom: 24,
   },
   emptyRecentState: {
