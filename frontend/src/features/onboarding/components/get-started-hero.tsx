@@ -1,36 +1,120 @@
-import React from 'react';
-import { Text, View, StyleSheet } from 'react-native';
+import { Image } from 'expo-image';
+import React, { useEffect, useState } from 'react';
+import { Animated, Easing, StyleSheet, View } from 'react-native';
 
-const COLORS = {
-  surface: '#F3F8FF',
-  white: '#FFFFFF',
-};
+const heroIllustration = require('../../../../assets/images/lexchain-getstarted.svg');
 
 export function GetStartedHero() {
+  const [pulseA] = useState(() => new Animated.Value(0));
+  const [pulseB] = useState(() => new Animated.Value(0));
+  const [pulseC] = useState(() => new Animated.Value(0));
+  const [shieldPulse] = useState(() => new Animated.Value(0));
+
+  useEffect(() => {
+    const makePulse = (value: Animated.Value, delay: number) =>
+      Animated.loop(
+        Animated.sequence([
+          Animated.delay(delay),
+          Animated.timing(value, {
+            toValue: 1,
+            duration: 1700,
+            easing: Easing.out(Easing.cubic),
+            useNativeDriver: true,
+          }),
+          Animated.timing(value, {
+            toValue: 0,
+            duration: 0,
+            useNativeDriver: true,
+          }),
+        ]),
+      );
+
+    const animationA = makePulse(pulseA, 0);
+    const animationB = makePulse(pulseB, 520);
+    const animationC = makePulse(pulseC, 1040);
+    const shieldAnimation = makePulse(shieldPulse, 260);
+
+    animationA.start();
+    animationB.start();
+    animationC.start();
+    shieldAnimation.start();
+
+    return () => {
+      animationA.stop();
+      animationB.stop();
+      animationC.stop();
+      shieldAnimation.stop();
+    };
+  }, [pulseA, pulseB, pulseC, shieldPulse]);
+
+  const pulseStyleA = makePulseStyle(pulseA);
+  const pulseStyleB = makePulseStyle(pulseB);
+  const pulseStyleC = makePulseStyle(pulseC);
+  const shieldPulseStyle = makeShieldPulseStyle(shieldPulse);
+
   return (
     <View style={styles.hero}>
       <View style={styles.glowOrb} />
       <View style={styles.glowOrbSecondary} />
 
-      <View style={styles.placeholderWrap}>
-        <View style={styles.placeholder}>
-          <Text style={styles.placeholderLabel}>Image goes here</Text>
-          <Text style={styles.placeholderHint}>
-            Replace this box with onboarding artwork or product mockup.
-          </Text>
-        </View>
+      <View style={styles.illustrationFrame}>
+        <Image
+          source={heroIllustration}
+          style={styles.illustration}
+          contentFit="contain"
+          accessibilityLabel="LexChain secure legal document and blockchain illustration"
+        />
+
+        <Animated.View style={[styles.nativePulse, styles.pulseTopLeft, pulseStyleA]} />
+        <Animated.View style={[styles.nativePulse, styles.pulseTopRight, pulseStyleB]} />
+        <Animated.View style={[styles.nativePulse, styles.pulseBottomRight, pulseStyleC]} />
+        <Animated.View style={[styles.shieldPulse, shieldPulseStyle]} />
       </View>
     </View>
   );
 }
 
+function makePulseStyle(progress: Animated.Value) {
+  return {
+    opacity: progress.interpolate({
+      inputRange: [0, 0.2, 1],
+      outputRange: [0, 0.5, 0],
+    }),
+    transform: [
+      {
+        scale: progress.interpolate({
+          inputRange: [0, 1],
+          outputRange: [0.55, 1.85],
+        }),
+      },
+    ],
+  };
+}
+
+function makeShieldPulseStyle(progress: Animated.Value) {
+  return {
+    opacity: progress.interpolate({
+      inputRange: [0, 0.18, 1],
+      outputRange: [0, 0.32, 0],
+    }),
+    transform: [
+      {
+        scale: progress.interpolate({
+          inputRange: [0, 1],
+          outputRange: [0.74, 1.28],
+        }),
+      },
+    ],
+  };
+}
+
 const styles = StyleSheet.create({
   hero: {
-    height: 320,
+    height: '50%',
     overflow: 'hidden',
     position: 'relative',
     alignItems: 'center',
-    justifyContent: 'flex-end',
+    justifyContent: 'center',
     backgroundColor: 'transparent',
   },
   glowOrb: {
@@ -51,38 +135,46 @@ const styles = StyleSheet.create({
     bottom: 32,
     left: -40,
   },
-  placeholderWrap: {
+  illustrationFrame: {
+    width: 430,
+    height: 380,
+    marginTop: 120,
+    position: 'relative',
+  },
+  illustration: {
     width: '100%',
-    paddingHorizontal: 18,
-    paddingTop: 44,
-    paddingBottom: 6,
+    height: '100%',
   },
-  placeholder: {
-    height: 250,
-    borderRadius: 28,
-    borderWidth: 1.5,
-    borderStyle: 'dashed',
-    borderColor: 'rgba(255,255,255,0.7)',
-    backgroundColor: 'rgba(255,255,255,0.12)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 24,
+  nativePulse: {
+    position: 'absolute',
+    width: 36,
+    height: 36,
+    borderRadius: 999,
+    borderWidth: 3,
+    borderColor: 'rgba(255,255,255,0.9)',
+    backgroundColor: 'rgba(22,137,245,0.16)',
   },
-  placeholderLabel: {
-    color: COLORS.white,
-    fontSize: 22,
-    lineHeight: 26,
-    fontWeight: '800',
-    fontFamily: 'Inter',
-    textAlign: 'center',
-    marginBottom: 8,
+  pulseTopLeft: {
+    left: 74,
+    top: 101,
   },
-  placeholderHint: {
-    color: COLORS.surface,
-    fontSize: 14,
-    lineHeight: 20,
-    fontWeight: '500',
-    fontFamily: 'Inter',
-    textAlign: 'center',
+  pulseTopRight: {
+    right: 66,
+    top: 80,
+  },
+  pulseBottomRight: {
+    right: 92,
+    bottom: 78,
+  },
+  shieldPulse: {
+    position: 'absolute',
+    width: 106,
+    height: 118,
+    borderRadius: 48,
+    right: 72,
+    top: 126,
+    borderWidth: 4,
+    borderColor: 'rgba(255,255,255,0.86)',
+    backgroundColor: 'rgba(22,137,245,0.22)',
   },
 });
