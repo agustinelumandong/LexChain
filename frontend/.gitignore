@@ -67,11 +67,11 @@ coverage/
 .zed/
 
 # AI Coding Agents & Tools (local configs)
-.agents/
+# .agents/
 .opencode/
 .sispyhus/
 .sisyphus/
-skills-lock.json
+# skills-lock.json
 
 # Other common ignores
 *.swp
@@ -80,6 +80,6 @@ skills-lock.json
 .DS_Store
 Thumbs.db
 
-*.pen
+# *.pen
 
-docs/
+# docs/
