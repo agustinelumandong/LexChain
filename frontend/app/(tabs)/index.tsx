@@ -1,106 +1,21 @@
-import React, { useMemo } from 'react';
+import React from 'react';
 import { useRouter } from 'expo-router';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 
-import { MOCK_DOCUMENTS } from '@/mocks';
+import {
+  DashboardKpiCard,
+  DashboardRecentList,
+  useDashboard,
+} from '@/features/dashboard';
 import { BottomNav } from '@/ui';
 
-import { COLORS, docStyles, kpiStyles, styles } from './index.styles';
-
-type KpiCardProps = {
-  label: string;
-  value: string;
-  meta: string;
-  tone?: 'positive' | 'warning';
-};
-
-type DocumentRowProps = {
-  title: string;
-  subtitle: string;
-  badgeLabel: string;
-  badgeTone: 'match' | 'review';
-  onPress?: () => void;
-};
-
-function KpiCard({ label, value, meta, tone = 'positive' }: KpiCardProps) {
-  return (
-    <View style={kpiStyles.card}>
-      <Text style={kpiStyles.label}>{label}</Text>
-      <Text style={kpiStyles.value}>{value}</Text>
-      <View style={kpiStyles.metaRow}>
-        <View
-          style={[
-            kpiStyles.metaDot,
-            tone === 'warning' ? kpiStyles.metaDotWarning : kpiStyles.metaDotPositive,
-          ]}
-        />
-        <Text style={kpiStyles.meta}>{meta}</Text>
-      </View>
-    </View>
-  );
-}
-
-function DocumentRow({
-  title,
-  subtitle,
-  badgeLabel,
-  badgeTone,
-  onPress,
-}: DocumentRowProps) {
-  return (
-    <Pressable style={docStyles.row} onPress={onPress}>
-      <View style={docStyles.copy}>
-        <Text style={docStyles.title}>{title}</Text>
-        <Text style={docStyles.subtitle}>{subtitle}</Text>
-      </View>
-
-      <View
-        style={[
-          docStyles.badge,
-          badgeTone === 'match' ? docStyles.badgeMatch : docStyles.badgeReview,
-        ]}
-      >
-        <Text
-          style={[
-            docStyles.badgeLabel,
-            badgeTone === 'match' ? docStyles.badgeLabelMatch : docStyles.badgeLabelReview,
-          ]}
-        >
-          {badgeLabel}
-        </Text>
-      </View>
-    </Pressable>
-  );
-}
+import { COLORS, styles } from './index.styles';
 
 export default function HomeScreen() {
   const router = useRouter();
-  const dashboardStats = useMemo(() => {
-    const documentsCount = MOCK_DOCUMENTS.length;
-    const activeGrantsCount = MOCK_DOCUMENTS.reduce(
-      (total, document) => total + document.whitelist.grants.length,
-      0,
-    );
-    const reviewNeededCount = MOCK_DOCUMENTS.filter(
-      (document) => document.status === 'review-needed',
-    ).length;
-    const verifiedCount = MOCK_DOCUMENTS.filter(
-      (document) => document.status === 'verified',
-    ).length;
-    const recentDocuments = [...MOCK_DOCUMENTS]
-      .sort((left, right) => right.date.localeCompare(left.date))
-      .slice(0, 3);
-
-    return {
-      documentsCount,
-      activeGrantsCount,
-      reviewNeededCount,
-      verifiedCount,
-      recentDocuments,
-    };
-  }, []);
+  const dashboardStats = useDashboard();
 
   return (
     <SafeAreaView style={styles.screen}>
@@ -118,13 +33,13 @@ export default function HomeScreen() {
           </View>
 
           <View style={styles.kpiRow}>
-            <KpiCard
+            <DashboardKpiCard
               label="Documents"
               value={`${dashboardStats.documentsCount}`}
               meta={`${dashboardStats.verifiedCount} verified`}
               tone={dashboardStats.verifiedCount > 0 ? 'positive' : 'warning'}
             />
-            <KpiCard
+            <DashboardKpiCard
               label="Active grants"
               value={`${dashboardStats.activeGrantsCount}`}
               meta={`${dashboardStats.reviewNeededCount} need review`}
@@ -140,28 +55,10 @@ export default function HomeScreen() {
             </Pressable>
           </View>
 
-          <View style={styles.recentGroup}>
-            <Text style={styles.recentTitle}>Recent documents</Text>
-            {dashboardStats.recentDocuments.length > 0 ? (
-              dashboardStats.recentDocuments.map((document) => (
-                <DocumentRow
-                  key={document.id}
-                  title={document.title}
-                  subtitle={document.status === 'verified' ? 'Summary ready' : 'Integrity warning'}
-                  badgeLabel={document.status === 'verified' ? 'MATCH' : 'REVIEW'}
-                  badgeTone={document.status === 'verified' ? 'match' : 'review'}
-                  onPress={() => router.push('/(tabs)/documents')}
-                />
-              ))
-            ) : (
-              <View style={styles.emptyRecentState}>
-                <Text style={styles.emptyRecentTitle}>No documents yet</Text>
-                <Text style={styles.emptyRecentBody}>
-                  Upload your first document to start building your repository.
-                </Text>
-              </View>
-            )}
-          </View>
+          <DashboardRecentList
+            documents={dashboardStats.recentDocuments}
+            onPressDocument={() => router.push('/(tabs)/documents')}
+          />
         </ScrollView>
 
         <View style={styles.navWrap}>
