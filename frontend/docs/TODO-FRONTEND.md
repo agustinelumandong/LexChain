@@ -300,10 +300,10 @@ Phase 1 mirror checklist from `TOBE_SOON.md`:
 - [x] 1.4 Centralized Constants
   - [x] Move storage keys into `src/constants/storage-keys.ts`
   - [x] Update whitelist storage to use `@/constants`
-- [/] 1.5 Theme Cleanup
+- [x] 1.5 Theme Cleanup
   - [x] Export shared fonts and colors from `src/shared/theme/theme.ts`
   - [x] Replace repeated `fontFamily: 'Inter'` with shared `fonts.regular`
-  - [ ] Replace duplicated color constants over time
+  - [x] Replace duplicated shared color constants with `APP_COLORS`
 - [ ] 1.6 Move Mock Data
   - [ ] Move document mocks into `src/mocks/data/documents.ts`
   - [ ] Add `src/mocks/index.ts`

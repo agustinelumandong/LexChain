@@ -1,14 +1,14 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { fonts } from '@/theme';
+import { APP_COLORS, fonts } from '@/theme';
 const COLORS = {
-  primary: '#1689F5',
-  navy: '#133B73',
-  textMuted: '#6F8FB5',
-  surface: '#FFFFFF',
-  borderSoft: '#D7EBFF',
-  success: '#1689F5',
+  primary: APP_COLORS.primary,
+  navy: APP_COLORS.navy,
+  textMuted: APP_COLORS.textMuted,
+  surface: APP_COLORS.white,
+  borderSoft: APP_COLORS.borderSoft,
+  success: APP_COLORS.primary,
 };
 
 type StepStatus = 'done' | 'verifying' | 'pending';
@@ -76,7 +76,7 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     padding: 18,
     gap: 16,
-    shadowColor: '#133B73',
+    shadowColor: APP_COLORS.navy,
     shadowOpacity: 0.06,
     shadowRadius: 16,
     shadowOffset: { width: 0, height: 4 },

@@ -5,15 +5,15 @@ import { MaterialIcons } from '@expo/vector-icons';
 import type { PickedUploadFile } from '@/types';
 import { Button } from '@/ui';
 
-import { fonts } from '@/theme';
+import { APP_COLORS, fonts } from '@/theme';
 const COLORS = {
-  primary: '#1689F5',
-  navy: '#133B73',
-  textMuted: '#6F8FB5',
-  borderSoft: '#D7EBFF',
-  surface: '#FFFFFF',
+  primary: APP_COLORS.primary,
+  navy: APP_COLORS.navy,
+  textMuted: APP_COLORS.textMuted,
+  borderSoft: APP_COLORS.borderSoft,
+  surface: APP_COLORS.white,
   surfaceSecondary: '#F7FBFF',
-  surfaceSoft: '#EAF4FF',
+  surfaceSoft: APP_COLORS.surfaceSoft,
 };
 
 type UploadDropzoneCardProps = {
@@ -115,7 +115,7 @@ const styles = StyleSheet.create({
     borderRadius: 28,
     padding: 18,
     gap: 14,
-    shadowColor: '#133B73',
+    shadowColor: APP_COLORS.navy,
     shadowOpacity: 0.06,
     shadowRadius: 16,
     shadowOffset: { width: 0, height: 4 },

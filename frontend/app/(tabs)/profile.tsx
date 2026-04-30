@@ -15,9 +15,10 @@ import {
 } from '@/features/profile';
 import { BottomNav, Button } from '@/ui';
 
+import { APP_COLORS } from '@/theme';
 const COLORS = {
-  bg: '#F3F8FF',
-  surface: '#FFFFFF',
+  bg: APP_COLORS.bg,
+  surface: APP_COLORS.white,
 };
 
 const SETTINGS_DETAILS: Record<string, SettingsInfoModalData> = {

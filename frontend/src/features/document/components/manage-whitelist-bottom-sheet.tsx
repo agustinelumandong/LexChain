@@ -13,16 +13,16 @@ import type { ManageWhitelistData } from '@/types';
 import { WhitelistGrantRow } from './whitelist-grant-row';
 import { WhitelistSearchResultRow } from './whitelist-search-result-row';
 
-import { fonts } from '@/theme';
+import { APP_COLORS, fonts } from '@/theme';
 const COLORS = {
   backdrop: 'rgba(4, 18, 40, 0.42)',
-  sheet: '#F3F8FF',
-  surface: '#FFFFFF',
-  primary: '#1689F5',
-  navy: '#133B73',
-  textMuted: '#6F8FB5',
-  borderSoft: '#D7EBFF',
-  surfaceSoft: '#F3F8FF',
+  sheet: APP_COLORS.bg,
+  surface: APP_COLORS.white,
+  primary: APP_COLORS.primary,
+  navy: APP_COLORS.navy,
+  textMuted: APP_COLORS.textMuted,
+  borderSoft: APP_COLORS.borderSoft,
+  surfaceSoft: APP_COLORS.bg,
 };
 
 type ManageWhitelistBottomSheetProps = {

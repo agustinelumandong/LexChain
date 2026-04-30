@@ -1,11 +1,11 @@
 import React from 'react';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 
-import { fonts } from '@/theme';
+import { APP_COLORS, fonts } from '@/theme';
 const COLORS = {
-  navy: '#133B73',
-  borderSoft: '#D7EBFF',
-  surface: '#FFFFFF',
+  navy: APP_COLORS.navy,
+  borderSoft: APP_COLORS.borderSoft,
+  surface: APP_COLORS.white,
   placeholder: '#A9BED8',
 };
 

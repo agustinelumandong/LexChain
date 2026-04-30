@@ -9,15 +9,15 @@ import {
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 
-import { fonts } from '@/theme';
+import { APP_COLORS, fonts } from '@/theme';
 const COLORS = {
-  primary: '#1689F5',
-  white: '#FFFFFF',
-  navy: '#133B73',
-  textMuted: '#6F8FB5',
-  borderSoft: '#D7EBFF',
+  primary: APP_COLORS.primary,
+  white: APP_COLORS.white,
+  navy: APP_COLORS.navy,
+  textMuted: APP_COLORS.textMuted,
+  borderSoft: APP_COLORS.borderSoft,
   focusSoft: '#F4FAFF',
-  danger: '#D94B66',
+  danger: APP_COLORS.danger,
   dangerSoft: '#FFECEF',
 };
 

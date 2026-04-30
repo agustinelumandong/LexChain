@@ -14,12 +14,12 @@ import {
 } from '@/features/upload';
 import { Button } from '@/ui';
 
-import { fonts } from '@/theme';
+import { APP_COLORS, fonts } from '@/theme';
 const COLORS = {
   bg: '#041228',
   overlay: 'rgba(4, 18, 40, 0.68)',
-  white: '#FFFFFF',
-  primary: '#1689F5',
+  white: APP_COLORS.white,
+  primary: APP_COLORS.primary,
   primarySoft: 'rgba(22, 137, 245, 0.16)',
   textMuted: '#B8CCE8',
   frame: 'rgba(255,255,255,0.18)',

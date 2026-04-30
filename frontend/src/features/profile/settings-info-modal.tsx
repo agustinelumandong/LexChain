@@ -5,15 +5,15 @@ import { MaterialIcons } from '@expo/vector-icons';
 
 import { Button } from '@/ui';
 
-import { fonts } from '@/theme';
+import { APP_COLORS, fonts } from '@/theme';
 const COLORS = {
   overlay: 'rgba(4, 18, 40, 0.48)',
-  surface: '#FFFFFF',
+  surface: APP_COLORS.white,
   surfaceSoft: '#F7FBFF',
-  borderSoft: '#D7EBFF',
-  primary: '#1689F5',
-  navy: '#133B73',
-  textMuted: '#6F8FB5',
+  borderSoft: APP_COLORS.borderSoft,
+  primary: APP_COLORS.primary,
+  navy: APP_COLORS.navy,
+  textMuted: APP_COLORS.textMuted,
 };
 
 export type SettingsInfoModalData = {
@@ -90,7 +90,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.surface,
     padding: 20,
     gap: 16,
-    shadowColor: '#133B73',
+    shadowColor: APP_COLORS.navy,
     shadowOpacity: 0.12,
     shadowRadius: 24,
     shadowOffset: { width: 0, height: 10 },

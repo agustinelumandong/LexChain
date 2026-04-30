@@ -12,8 +12,9 @@ import {
   VerificationStatusCard,
 } from '@/features/document';
 
+import { APP_COLORS } from '@/theme';
 const COLORS = {
-  bg: '#F3F8FF',
+  bg: APP_COLORS.bg,
 };
 
 export default function VerifyDocumentScreen() {

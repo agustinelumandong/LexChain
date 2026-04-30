@@ -15,10 +15,11 @@ import { DocumentTopBar } from './document-top-bar';
 import { IntegrityCheckCard } from './integrity-check-card';
 import { VerificationStatusCard } from './verification-status-card';
 
+import { APP_COLORS } from '@/theme';
 const COLORS = {
   backdrop: 'rgba(4, 18, 40, 0.42)',
-  sheet: '#F3F8FF',
-  borderSoft: '#D7EBFF',
+  sheet: APP_COLORS.bg,
+  borderSoft: APP_COLORS.borderSoft,
 };
 
 type VerifyDocumentBottomSheetProps = {
