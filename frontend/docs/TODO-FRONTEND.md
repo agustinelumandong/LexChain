@@ -385,12 +385,12 @@ Project recommendation summary:
   - If Inter font files are added later, only load the used weights above
 
 ### 9.3 Lists and Rendering
-- [REC: later] Review long-list candidates for `FlashList`
-  - likely candidates:
-    - documents list
-    - whitelist grants
-    - whitelist search results
-- [REC: adopt first] Keep `ScrollView` for short static screens only
+- [x] Review long-list candidates for virtualized rendering
+  - [x] Documents list now uses `FlatList`
+  - [-] Whitelist grants and whitelist search results deferred until backend scale needs virtualization
+- [x] Keep `ScrollView` for short static screens only
+  - Static/shell screens can stay on `ScrollView`
+  - Documents search results use a virtualized list because the list can grow
 
 ### 9.4 State Management
 - [REC: later] Decide whether whitelist/document/profile state should stay local or move to Zustand

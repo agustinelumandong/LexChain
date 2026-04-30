@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'expo-router';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { FlatList, Pressable, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import {
@@ -372,63 +372,67 @@ export default function DocumentsScreen() {
   const sortLabel =
     DOCUMENT_SORT_OPTIONS.find((option) => option.value === sortKey)?.label ?? 'Newest first';
 
+  const renderDocumentResult = ({ item: document }: { item: MockDocument }) => (
+    <DocumentResultCard
+      title={document.title}
+      parties={document.parties}
+      date={document.date}
+      onPressCard={() => openPreview(document.id)}
+      onPressOpen={() => openPreview(document.id)}
+    />
+  );
+
   return (
     <SafeAreaView style={styles.screen}>
       <View style={styles.surface}>
-        <ScrollView
+        <FlatList
+          data={filteredDocuments}
+          keyExtractor={(document) => document.id}
+          renderItem={renderDocumentResult}
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
-        >
-          <DocumentsHeader />
+          ListHeaderComponent={
+            <>
+              <DocumentsHeader />
 
-          <View style={styles.searchWrap}>
-            <SearchInputWithResults
-              label="Search documents"
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              placeholder="Title, party, date, or keyword"
-              showDropdown={false}
-              results={filteredDocuments}
-              emptyText="No documents matched your search"
-              keyExtractor={(document) => document.id}
-              renderItem={(document) => (
-                <DocumentSearchResultRow
-                  title={document.title}
-                  parties={document.parties}
-                  date={document.date}
-                  onPress={() => openPreview(document.id)}
+              <View style={styles.searchWrap}>
+                <SearchInputWithResults
+                  label="Search documents"
+                  value={searchQuery}
+                  onChangeText={setSearchQuery}
+                  placeholder="Title, party, date, or keyword"
+                  showDropdown={false}
+                  results={filteredDocuments}
+                  emptyText="No documents matched your search"
+                  keyExtractor={(document) => document.id}
+                  renderItem={(document) => (
+                    <DocumentSearchResultRow
+                      title={document.title}
+                      parties={document.parties}
+                      date={document.date}
+                      onPress={() => openPreview(document.id)}
+                    />
+                  )}
                 />
-              )}
-            />
-          </View>
+              </View>
 
-          <DocumentsFilterControls
-            activeSummary={activeFilterSummary}
-            sortLabel={sortLabel}
-            onPressFilter={() => setIsFilterSheetOpen(true)}
-            onPressSort={() => setIsSortSheetOpen(true)}
-          />
-
-          {filteredDocuments.length > 0 ? (
-            filteredDocuments.map((document) => (
-              <DocumentResultCard
-                key={document.id}
-                title={document.title}
-                parties={document.parties}
-                date={document.date}
-                onPressCard={() => openPreview(document.id)}
-                onPressOpen={() => openPreview(document.id)}
+              <DocumentsFilterControls
+                activeSummary={activeFilterSummary}
+                sortLabel={sortLabel}
+                onPressFilter={() => setIsFilterSheetOpen(true)}
+                onPressSort={() => setIsSortSheetOpen(true)}
               />
-            ))
-          ) : (
+            </>
+          }
+          ListEmptyComponent={
             <View style={styles.emptyState}>
               <Text style={styles.emptyTitle}>No documents found</Text>
               <Text style={styles.emptyBody}>
                 Try another title, party name, or date.
               </Text>
             </View>
-          )}
-        </ScrollView>
+          }
+        />
 
         <View style={styles.navWrap}>
           <BottomNav
