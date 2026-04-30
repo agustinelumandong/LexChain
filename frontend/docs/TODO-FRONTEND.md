@@ -365,13 +365,13 @@ Project recommendation summary:
   - [x] upload feedback
   - [x] auth feedback
 
-- [/] Adopt skeleton loading
+- [x] Adopt skeleton loading
   - [x] Create shared manual skeleton UI component
   - [x] Add skeleton to whitelist loading state
   - [x] Add dashboard card skeleton component for future loading
   - [x] Add documents list skeleton component for future backend loading
   - [x] Add profile summary skeleton component for future backend loading
-  - [ ] Add skeleton to processing screen if needed
+  - [-] Add skeleton to processing screen skipped because processing already has progress UI
 
 ### 9.2 Images and Assets
 - [REC: later] Decide whether to replace image usage with `expo-image` where beneficial
