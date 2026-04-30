@@ -374,8 +374,11 @@ Project recommendation summary:
   - [-] Add skeleton to processing screen skipped because processing already has progress UI
 
 ### 9.2 Images and Assets
-- [REC: later] Decide whether to replace image usage with `expo-image` where beneficial
-- [REC: later] Preload any critical onboarding/profile/document preview images if real assets are introduced
+- [x] Decide whether to replace image usage with `expo-image` where beneficial
+  - Existing app image usage already uses `expo-image`
+  - No React Native default `Image` usage found in current app code
+- [-] Preload any critical onboarding/profile/document preview images if real assets are introduced
+  - Deferred until real remote or critical above-the-fold image assets exist
 - [x] Audit font weight loading
   - Used UI weights: `500`, `600`, `700`, `800`
   - Current app does not load Inter font files via `useFonts`, and no local font assets exist to remove
