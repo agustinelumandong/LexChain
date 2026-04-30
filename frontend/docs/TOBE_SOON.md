@@ -177,14 +177,14 @@ Files:
 Priority: 2 — Do while building new screens. Keeps route files clean.
 
 ### 2.1 Extract Dashboard Styles
-Status: `[ ]`
+Status: `[/]`
 
 Files:
 - `app/(tabs)/index.tsx` — currently holds styles, kpiStyles, docStyles
 - `app/(tabs)/index.styles.ts` — create this
 
-- [ ] Create `app/(tabs)/index.styles.ts` and move all three StyleSheet blocks there
-- [ ] Import the styles back into `index.tsx`
+- [x] Create `app/(tabs)/index.styles.ts` and move all three StyleSheet blocks there
+- [x] Import the styles back into `index.tsx`
 - [ ] Apply the same styles-extraction pattern to `app/(tabs)/documents.tsx` and `app/(tabs)/profile.tsx` if they also have large StyleSheet blocks
 
 ---
