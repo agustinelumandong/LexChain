@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 
-import { fonts } from '@/theme';
+import { APP_COLORS, fonts } from '@/theme';
 type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'light';
 type ButtonSize = 'sm' | 'md' | 'lg';
 
@@ -28,12 +28,12 @@ type ButtonProps = {
 };
 
 const COLORS = {
-  primary: '#1689F5',
+  primary: APP_COLORS.primary,
   primaryPressed: '#0E73D8',
-  navy: '#133B73',
-  white: '#FFFFFF',
-  surfaceSoft: '#EAF4FF',
-  borderSoft: '#D7EBFF',
+  navy: APP_COLORS.navy,
+  white: APP_COLORS.white,
+  surfaceSoft: APP_COLORS.surfaceSoft,
+  borderSoft: APP_COLORS.borderSoft,
   lightSurface: 'rgba(255,255,255,0.14)',
   lightSurfacePressed: 'rgba(255,255,255,0.22)',
   lightBorder: 'rgba(255,255,255,0.24)',
