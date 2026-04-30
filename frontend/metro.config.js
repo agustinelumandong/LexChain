@@ -4,6 +4,7 @@ const { withNativewind } = require("nativewind/metro");
 
 /** @type {import('expo/metro-config').MetroConfig} */
 const config = getDefaultConfig(__dirname);
+const isProduction = process.env.NODE_ENV === "production";
 
 const aliases = [
   { find: "@/features/", replacement: "src/features/", prefix: true },
@@ -43,6 +44,18 @@ config.resolver.resolveRequest = (context, moduleName, platform) => {
     aliasedModule ?? moduleName,
     platform,
   );
+};
+
+config.transformer = {
+  ...config.transformer,
+  minifierConfig: {
+    ...config.transformer?.minifierConfig,
+    compress: {
+      ...config.transformer?.minifierConfig?.compress,
+      drop_console: isProduction,
+      drop_debugger: isProduction,
+    },
+  },
 };
 
 module.exports = withNativewind(config, {
