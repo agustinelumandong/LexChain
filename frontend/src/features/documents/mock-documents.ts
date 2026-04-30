@@ -1,24 +1,4 @@
-import type {
-  DocumentPreviewData,
-  ManageWhitelistData,
-  VerifyDocumentData,
-} from '@/features/document/components';
-
-export type DocumentSortKey = 'newest' | 'oldest' | 'title-az';
-export type DocumentTypeKey = 'all' | 'deed-of-sale' | 'lease-contract';
-export type DocumentStatusKey = 'all' | 'verified' | 'review-needed';
-
-export type MockDocument = {
-  id: string;
-  title: string;
-  parties: string;
-  date: string;
-  documentType: DocumentTypeKey;
-  status: DocumentStatusKey;
-  preview: DocumentPreviewData;
-  verify: VerifyDocumentData;
-  whitelist: ManageWhitelistData;
-};
+import type { MockDocument } from '@/types';
 
 export const MOCK_DOCUMENTS: MockDocument[] = [
   {

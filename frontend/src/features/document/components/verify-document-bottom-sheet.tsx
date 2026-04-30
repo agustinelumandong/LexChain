@@ -8,6 +8,7 @@ import { StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/ui';
+import type { VerifyDocumentData } from '@/types';
 import { DocumentScreenHeader } from './document-screen-header';
 import { DocumentSummaryCard } from './document-summary-card';
 import { DocumentTopBar } from './document-top-bar';
@@ -18,17 +19,6 @@ const COLORS = {
   backdrop: 'rgba(4, 18, 40, 0.42)',
   sheet: '#F3F8FF',
   borderSoft: '#D7EBFF',
-};
-
-export type VerifyDocumentData = {
-  id: string;
-  title: string;
-  summary: string;
-  summaryRows: { label: string; value: string }[];
-  steps: { label: string; status: 'done' | 'verifying' | 'pending' }[];
-  offChainHash: string;
-  onChainHash: string;
-  integrityStatus: string;
 };
 
 type VerifyDocumentBottomSheetProps = {

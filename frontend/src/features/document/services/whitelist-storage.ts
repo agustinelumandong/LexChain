@@ -1,10 +1,10 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type {
   ManageWhitelistData,
+  MockDocument,
   WhitelistGrant,
-  WhitelistSearchResult
-} from '../components/manage-whitelist-bottom-sheet';
-import type { MockDocument } from '@/features/documents/mock-documents';
+  WhitelistSearchResult,
+} from '@/types';
 
 const STORAGE_KEY = 'lexchain:document-whitelist';
 

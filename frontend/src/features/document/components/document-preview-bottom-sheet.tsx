@@ -8,6 +8,7 @@ import { StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/ui';
+import type { DocumentPreviewData } from '@/types';
 import { AccessWhitelistCard } from './access-whitelist-card';
 import { DetailSectionsCard } from './detail-sections-card';
 import { DocumentScreenHeader } from './document-screen-header';
@@ -18,23 +19,6 @@ const COLORS = {
   backdrop: 'rgba(4, 18, 40, 0.42)',
   sheet: '#F3F8FF',
   borderSoft: '#D7EBFF',
-};
-
-export type DocumentPreviewData = {
-  id: string;
-  title: string;
-  summary: string;
-  summaryRows: { label: string; value: string }[];
-  sections: (
-    | { title: string; body: string; rows?: never }
-    | { title: string; rows: { label: string; value: string }[]; body?: never }
-  )[];
-  whitelist: {
-    allowedCountLabel: string;
-    helperText: string;
-  };
-  confidenceLabel: string;
-  confidenceValue: string;
 };
 
 type DocumentPreviewBottomSheetProps = {
