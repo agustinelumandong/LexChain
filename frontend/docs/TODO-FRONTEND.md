@@ -418,10 +418,17 @@ Project recommendation summary:
   - Deferred until the app has heavier routes, remote media, or measured startup pressure
 
 ### 9.7 Build and Release
-- [REC: later] Decide when to add `eas.json`
-- [REC: later] Configure EAS build profiles when project is ready for tester distribution
-- [REC: later] Review tree-shaking guidance based on actual Expo SDK version
+- [x] Decide when to add `eas.json`
+  - `eas.json` already exists
+- [x] Configure EAS build profiles when project is ready for tester distribution
+  - [x] `development` profile uses dev client + internal APK
+  - [x] `preview` profile uses internal Android APK
+  - [x] `production` profile uses Android app bundle for store release
+- [x] Review tree-shaking guidance based on actual Expo SDK version
+  - Current project uses Expo SDK `54.0.33`
+  - Current imports are direct package imports or app-local aliases; no broad barrel imports found that need release-blocking cleanup
 - [REC: later] Run bundle-size analysis before production build
+  - Defer until the first real production/release candidate build
 
 ## Notes
 - Ignore device mockup framing from `.pen` file, including black outer device frame and fake status bar rows used only for presentation.
