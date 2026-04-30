@@ -2,7 +2,32 @@
   "extends": "expo/tsconfig.base",
   "compilerOptions": {
     "strict": true,
+    "baseUrl": ".",
     "paths": {
+      "@/features/*": [
+        "./src/features/*"
+      ],
+      "@/shared/*": [
+        "./src/shared/*"
+      ],
+      "@/theme": [
+        "./src/shared/theme/theme.ts"
+      ],
+      "@/hooks": [
+        "./src/shared/hooks/index.ts"
+      ],
+      "@/ui": [
+        "./src/shared/components/ui/index.ts"
+      ],
+      "@/mocks/*": [
+        "./src/mocks/*"
+      ],
+      "@/types": [
+        "./src/types/index.ts"
+      ],
+      "@/constants": [
+        "./src/constants/index.ts"
+      ],
       "@/*": [
         "./src/*"
       ]
