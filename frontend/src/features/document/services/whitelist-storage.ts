@@ -1,12 +1,11 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { STORAGE_KEYS } from '@/constants';
 import type {
   ManageWhitelistData,
   MockDocument,
   WhitelistGrant,
   WhitelistSearchResult,
 } from '@/types';
-
-const STORAGE_KEY = 'lexchain:document-whitelist';
 
 type PersistedWhitelist = {
   grants: WhitelistGrant[];
@@ -41,7 +40,7 @@ export function applyWhitelistToDocument(
 }
 
 async function loadWhitelistMap(): Promise<PersistedWhitelistMap> {
-  const rawValue = await AsyncStorage.getItem(STORAGE_KEY);
+  const rawValue = await AsyncStorage.getItem(STORAGE_KEYS.documentWhitelist);
 
   if (!rawValue) return {};
 
@@ -53,7 +52,7 @@ async function loadWhitelistMap(): Promise<PersistedWhitelistMap> {
 }
 
 async function saveWhitelistMap(value: PersistedWhitelistMap) {
-  await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(value));
+  await AsyncStorage.setItem(STORAGE_KEYS.documentWhitelist, JSON.stringify(value));
 }
 
 export async function hydrateDocumentsWithPersistedWhitelists(
