@@ -9,6 +9,7 @@ import { BackHandler, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { SearchInputWithResults } from '@/ui';
+import type { ManageWhitelistData } from '@/types';
 import { WhitelistGrantRow } from './whitelist-grant-row';
 import { WhitelistSearchResultRow } from './whitelist-search-result-row';
 
@@ -21,28 +22,6 @@ const COLORS = {
   textMuted: '#6F8FB5',
   borderSoft: '#D7EBFF',
   surfaceSoft: '#F3F8FF',
-};
-
-export type WhitelistGrant = {
-  id: string;
-  name: string;
-  accessLabel: string;
-  actionLabel: string;
-  email?: string;
-};
-
-export type WhitelistSearchResult = {
-  id: string;
-  name: string;
-  email: string;
-};
-
-export type ManageWhitelistData = {
-  title?: string;
-  searchLabel?: string;
-  searchPlaceholder?: string;
-  grants: WhitelistGrant[];
-  searchResults: WhitelistSearchResult[];
 };
 
 type ManageWhitelistBottomSheetProps = {

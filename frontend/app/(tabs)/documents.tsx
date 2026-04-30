@@ -17,14 +17,14 @@ import {
   DocumentsHeader,
   DocumentResultCard,
   DocumentsSortSheet,
-} from '@/features/documents';
-import {
   MOCK_DOCUMENTS,
-  type MockDocument,
-  type DocumentSortKey,
-  type DocumentStatusKey,
-  type DocumentTypeKey,
 } from '@/features/documents';
+import type {
+  DocumentSortKey,
+  DocumentStatusKey,
+  DocumentTypeKey,
+  MockDocument,
+} from '@/types';
 import { SearchInputWithResults, BottomNav } from '@/ui';
 import { useCloseSheetOnBack } from '@/hooks';
 import { toast } from 'sonner-native';
