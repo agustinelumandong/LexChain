@@ -1,6 +1,6 @@
 # LexChain Frontend UI Todo
 
-Last updated: 2026-04-26
+Last updated: 2026-04-30
 
 Status legend:
 - `done`
@@ -21,8 +21,8 @@ Recommended build priority:
 
 ## 1. Get Started
 Priority: 2
-Status: `LATER`
-- [/] Section complete
+Status: `done`
+- [x] Section complete
 
 Files:
 - `app/index.tsx`
@@ -323,7 +323,7 @@ Notes:
 
 ## 9. Expo Best Practices Adoption
 Priority: 9
-Status: `not started`
+Status: `in progress`
 - [ ] Section complete
 
 Reference source:
@@ -360,7 +360,7 @@ Project recommendation summary:
     - whitelist add/revoke feedback
     - auth success/error feedback
 - [x] Add `<Toaster />` to `app/_layout.tsx`
-- [/] Replace silent placeholder actions with toast feedback
+- [x] Replace silent placeholder actions with toast feedback
   - [x] whitelist hydrate/add/revoke feedback
   - [x] upload feedback
   - [x] auth feedback
@@ -416,7 +416,7 @@ Project recommendation summary:
 - Ignore device mockup framing from `.pen` file, including black outer device frame and fake status bar rows used only for presentation.
 - Implement only actual in-app UI.
 - Treat `expo-best-practices.md` as an adoption reference, not a requirement to install every library immediately.
-- Use `../TOBE_SOON.md` as the next source of truth after UI polish; start with Phase 1 cleanup before adding new UI features.
+- Use `../TOBE_SOON.md` as the next source of truth after UI polish; Phase 1 and Phase 2 cleanup are complete.
 - No real backend endpoints/API exist yet, so current document/whitelist/auth work should stay frontend-complete and backend-ready.
 - Keep `@react-native-community/datetimepicker` for now because it works in Expo Go.
 - Frontend package manager is `pnpm`; prefer `pnpm` commands going forward.
@@ -431,7 +431,7 @@ Project recommendation summary:
   - `app/document/[id].tsx` kept as unused fallback route
   - `app/verify/[id].tsx` kept as unused fallback route
 - Current next target:
-  - `TOBE_SOON.md` Phase 1.1 Path Aliases
+  - `TODO-FRONTEND.md` 9.1 Skeleton loading states
 
 ## Dev Client
 - `@expo/ui` only as optional dev-client UI polish.
