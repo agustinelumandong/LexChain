@@ -263,7 +263,7 @@ Design source:
 
 ## 8. Refactor / Structure Backlog
 Priority: 10
-Status: `not started`
+Status: `in progress`
 - [ ] Section complete
 
 Reference source:
@@ -282,7 +282,7 @@ Recommended next order from `TOBE_SOON.md`:
 Immediate recommended next target:
 - [x] Start Phase 1.1 Path Aliases
 - [x] Then Phase 1.2 Barrel Files
-- [ ] Then Phase 1.3 Centralized Types Folder
+- [x] Then Phase 1.3 Centralized Types Folder
 - [ ] Then Phase 1.4 Centralized Constants
 
 Phase 1 mirror checklist from `TOBE_SOON.md`:
@@ -294,9 +294,9 @@ Phase 1 mirror checklist from `TOBE_SOON.md`:
   - [x] Add feature barrels for auth, onboarding, documents, document, upload, profile, dashboard
   - [x] Add shared UI and shared hooks barrels
   - [x] Update component import sites to use feature/shared barrels where available
-- [ ] 1.3 Centralized Types Folder
-  - [ ] Create document/auth/upload type files and `src/types/index.ts`
-  - [ ] Move shared feature types into `@/types`
+- [x] 1.3 Centralized Types Folder
+  - [x] Create document/auth/upload type files and `src/types/index.ts`
+  - [x] Move shared feature types into `@/types`
 - [ ] 1.4 Centralized Constants
   - [ ] Move storage keys into `src/constants/storage-keys.ts`
   - [ ] Update whitelist storage to use `@/constants`
