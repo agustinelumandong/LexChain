@@ -25,7 +25,7 @@ export function DashboardRecentList({
 }: DashboardRecentListProps) {
   return (
     <View style={styles.group}>
- <Text style={styles.heading}>Recent documents</Text>
+      <Text style={styles.heading}>Recent documents</Text>
       {documents.length > 0 ? (
         documents.map((document) => (
           <DocumentRow
