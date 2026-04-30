@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { useRouter } from 'expo-router';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import {
@@ -15,11 +15,7 @@ import {
 } from '@/features/profile';
 import { BottomNav, Button } from '@/ui';
 
-import { APP_COLORS } from '@/theme';
-const COLORS = {
-  bg: APP_COLORS.bg,
-  surface: APP_COLORS.white,
-};
+import { styles } from './profile.styles';
 
 const SETTINGS_DETAILS: Record<string, SettingsInfoModalData> = {
   account: {
@@ -177,28 +173,3 @@ export default function ProfileScreen() {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: COLORS.bg,
-  },
-  surface: {
-    flex: 1,
-    backgroundColor: COLORS.bg,
-  },
-  scrollContent: {
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 24,
-    gap: 20,
-  },
-  sessionCard: {
-    borderRadius: 24,
-  },
-  navWrap: {
-    width: '100%',
-    paddingHorizontal: 16,
-    paddingBottom: 24,
-  },
-});
