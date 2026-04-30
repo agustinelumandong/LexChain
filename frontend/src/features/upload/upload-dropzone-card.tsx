@@ -2,7 +2,7 @@ import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 
-import type { PickedUploadFile } from './upload-file';
+import type { PickedUploadFile } from '@/types';
 import { Button } from '@/ui';
 
 const COLORS = {

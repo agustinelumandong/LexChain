@@ -7,14 +7,10 @@ import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { toast } from 'sonner-native';
 
-import { AccessWhitelistCard } from '@/features/document';
-import {
-  ManageWhitelistBottomSheet,
-  type ManageWhitelistData,
-} from '@/features/document';
+import { AccessWhitelistCard, ManageWhitelistBottomSheet } from '@/features/document';
 import { useCloseSheetOnBack } from '@/hooks';
 import { Button, SelectDropdownField } from '@/ui';
-import type { PickedUploadFile } from '@/features/upload';
+import type { ManageWhitelistData, PickedUploadFile } from '@/types';
 import {
   consumePendingCapturedFiles,
   UploadDropzoneCard,
