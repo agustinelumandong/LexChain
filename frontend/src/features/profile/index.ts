@@ -1,6 +1,6 @@
 export { ProfileHeader } from './profile-header';
 export { ProfileMetricsCard } from './profile-metrics-card';
-export { ProfileSummaryCard } from './profile-summary-card';
+export { ProfileSummaryCard, ProfileSummarySkeleton } from './profile-summary-card';
 export {
   SettingsInfoModal,
   type SettingsInfoModalData,
