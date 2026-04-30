@@ -1,6 +1,6 @@
 # LexChain Frontend UI Todo
 
-Last updated: 2026-04-30
+Last updated: 2026-05-01
 
 Status legend:
 - `done`
@@ -376,7 +376,10 @@ Project recommendation summary:
 ### 9.2 Images and Assets
 - [REC: later] Decide whether to replace image usage with `expo-image` where beneficial
 - [REC: later] Preload any critical onboarding/profile/document preview images if real assets are introduced
-- [REC: adopt first] Only load font weights actually used by the UI
+- [x] Audit font weight loading
+  - Used UI weights: `500`, `600`, `700`, `800`
+  - Current app does not load Inter font files via `useFonts`, and no local font assets exist to remove
+  - If Inter font files are added later, only load the used weights above
 
 ### 9.3 Lists and Rendering
 - [REC: later] Review long-list candidates for `FlashList`
