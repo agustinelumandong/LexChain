@@ -7,6 +7,27 @@ import { Platform } from 'react-native';
 
 const tintColorLight = '#0a7ea4';
 
+export const APP_COLORS = {
+  bg: '#F3F8FF',
+  white: '#FFFFFF',
+  primary: '#1689F5',
+  navy: '#133B73',
+  textMuted: '#6F8FB5',
+  borderSoft: '#D7EBFF',
+  surface: '#FFFFFF',
+  surfaceSoft: '#EAF4FF',
+  success: '#12A150',
+  warning: '#F59E0B',
+  danger: '#D94B66',
+} as const;
+
+export const fonts = {
+  regular: 'Inter',
+  medium: 'Inter',
+  bold: 'Inter',
+  extraBold: 'Inter',
+} as const;
+
 export const Colors = {
   light: {
     text: '#11181C',

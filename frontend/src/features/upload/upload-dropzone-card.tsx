@@ -5,6 +5,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import type { PickedUploadFile } from '@/types';
 import { Button } from '@/ui';
 
+import { fonts } from '@/theme';
 const COLORS = {
   primary: '#1689F5',
   navy: '#133B73',
@@ -146,7 +147,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     lineHeight: 21,
     fontWeight: '800',
-    fontFamily: 'Inter',
+    fontFamily: fonts.regular,
     textAlign: 'center',
   },
   body: {
@@ -154,7 +155,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 18,
     fontWeight: '500',
-    fontFamily: 'Inter',
+    fontFamily: fonts.regular,
     textAlign: 'center',
   },
   selectedList: {
@@ -182,14 +183,14 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 18,
     fontWeight: '800',
-    fontFamily: 'Inter',
+    fontFamily: fonts.regular,
   },
   selectedFileMeta: {
     color: COLORS.textMuted,
     fontSize: 12,
     lineHeight: 16,
     fontWeight: '500',
-    fontFamily: 'Inter',
+    fontFamily: fonts.regular,
   },
   removeButton: {
     width: 28,
@@ -204,7 +205,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 12,
     fontWeight: '800',
-    fontFamily: 'Inter',
+    fontFamily: fonts.regular,
   },
   metaRow: {
     flexDirection: 'row',
@@ -224,7 +225,7 @@ const styles = StyleSheet.create({
     fontSize: 10,
     lineHeight: 12,
     fontWeight: '700',
-    fontFamily: 'Inter',
+    fontFamily: fonts.regular,
     letterSpacing: 0.4,
   },
 });

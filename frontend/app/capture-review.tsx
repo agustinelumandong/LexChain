@@ -12,6 +12,7 @@ import {
 } from '@/features/upload';
 import { Button } from '@/ui';
 
+import { fonts } from '@/theme';
 const COLORS = {
   bg: '#041228',
   surface: '#0B1E38',
@@ -172,7 +173,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
     lineHeight: 13,
     fontWeight: '800',
-    fontFamily: 'Inter',
+    fontFamily: fonts.regular,
     letterSpacing: 0.5,
   },
   title: {
@@ -180,7 +181,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     lineHeight: 22,
     fontWeight: '800',
-    fontFamily: 'Inter',
+    fontFamily: fonts.regular,
   },
   scrollContent: {
     paddingHorizontal: 18,
@@ -193,7 +194,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 18,
     fontWeight: '500',
-    fontFamily: 'Inter',
+    fontFamily: fonts.regular,
   },
   grid: {
     flexDirection: 'row',
@@ -226,14 +227,14 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 18,
     fontWeight: '800',
-    fontFamily: 'Inter',
+    fontFamily: fonts.regular,
   },
   cardMeta: {
     color: COLORS.textMuted,
     fontSize: 11,
     lineHeight: 15,
     fontWeight: '500',
-    fontFamily: 'Inter',
+    fontFamily: fonts.regular,
   },
   removeButton: {
     width: 28,
@@ -248,7 +249,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 12,
     fontWeight: '800',
-    fontFamily: 'Inter',
+    fontFamily: fonts.regular,
   },
   emptyState: {
     borderRadius: 24,
@@ -261,14 +262,14 @@ const styles = StyleSheet.create({
     fontSize: 16,
     lineHeight: 20,
     fontWeight: '800',
-    fontFamily: 'Inter',
+    fontFamily: fonts.regular,
   },
   emptyBody: {
     color: COLORS.textMuted,
     fontSize: 13,
     lineHeight: 18,
     fontWeight: '500',
-    fontFamily: 'Inter',
+    fontFamily: fonts.regular,
   },
   footer: {
     paddingHorizontal: 18,

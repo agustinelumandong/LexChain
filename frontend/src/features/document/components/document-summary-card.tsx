@@ -1,6 +1,7 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
+import { fonts } from '@/theme';
 const COLORS = {
   navy: '#133B73',
   textMuted: '#6F8FB5',
@@ -54,7 +55,7 @@ const styles = StyleSheet.create({
   },
   title: {
     color: COLORS.navy,
-    fontFamily: 'Inter',
+    fontFamily: fonts.regular,
     fontSize: 18,
     lineHeight: 22,
     fontWeight: '800',
@@ -67,7 +68,7 @@ const styles = StyleSheet.create({
   },
   rowLabel: {
     color: COLORS.textMuted,
-    fontFamily: 'Inter',
+    fontFamily: fonts.regular,
     fontSize: 12,
     lineHeight: 14,
     fontWeight: '700',
@@ -75,7 +76,7 @@ const styles = StyleSheet.create({
   rowValue: {
     flexShrink: 1,
     color: COLORS.navy,
-    fontFamily: 'Inter',
+    fontFamily: fonts.regular,
     fontSize: 12,
     lineHeight: 14,
     fontWeight: '800',
@@ -83,14 +84,14 @@ const styles = StyleSheet.create({
   },
   summaryLabel: {
     color: COLORS.textMuted,
-    fontFamily: 'Inter',
+    fontFamily: fonts.regular,
     fontSize: 12,
     lineHeight: 14,
     fontWeight: '700',
   },
   summaryBody: {
     color: COLORS.navy,
-    fontFamily: 'Inter',
+    fontFamily: fonts.regular,
     fontSize: 13,
     lineHeight: 18,
     fontWeight: '500',

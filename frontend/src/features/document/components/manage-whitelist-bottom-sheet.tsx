@@ -13,6 +13,7 @@ import type { ManageWhitelistData } from '@/types';
 import { WhitelistGrantRow } from './whitelist-grant-row';
 import { WhitelistSearchResultRow } from './whitelist-search-result-row';
 
+import { fonts } from '@/theme';
 const COLORS = {
   backdrop: 'rgba(4, 18, 40, 0.42)',
   sheet: '#F3F8FF',
@@ -252,7 +253,7 @@ const styles = StyleSheet.create({
   },
   topBarLabel: {
     color: COLORS.navy,
-    fontFamily: 'Inter',
+    fontFamily: fonts.regular,
     fontSize: 14,
     lineHeight: 18,
     fontWeight: '800',
@@ -262,7 +263,7 @@ const styles = StyleSheet.create({
   },
   eyebrow: {
     color: COLORS.primary,
-    fontFamily: 'Inter',
+    fontFamily: fonts.regular,
     fontSize: 12,
     lineHeight: 14,
     fontWeight: '700',
@@ -270,14 +271,14 @@ const styles = StyleSheet.create({
   },
   title: {
     color: COLORS.navy,
-    fontFamily: 'Inter',
+    fontFamily: fonts.regular,
     fontSize: 24,
     lineHeight: 26,
     fontWeight: '800',
   },
   description: {
     color: COLORS.textMuted,
-    fontFamily: 'Inter',
+    fontFamily: fonts.regular,
     fontSize: 13,
     lineHeight: 18,
     fontWeight: '500',
@@ -292,7 +293,7 @@ const styles = StyleSheet.create({
   },
   grantsTitle: {
     color: COLORS.navy,
-    fontFamily: 'Inter',
+    fontFamily: fonts.regular,
     fontSize: 16,
     lineHeight: 20,
     fontWeight: '800',
@@ -311,14 +312,14 @@ const styles = StyleSheet.create({
   },
   stateTitle: {
     color: COLORS.navy,
-    fontFamily: 'Inter',
+    fontFamily: fonts.regular,
     fontSize: 14,
     lineHeight: 18,
     fontWeight: '800',
   },
   stateBody: {
     color: COLORS.textMuted,
-    fontFamily: 'Inter',
+    fontFamily: fonts.regular,
     fontSize: 12,
     lineHeight: 17,
     fontWeight: '500',
@@ -345,7 +346,7 @@ const styles = StyleSheet.create({
 
   emptyStateTitle: {
     color: COLORS.navy,
-    fontFamily: 'Inter',
+    fontFamily: fonts.regular,
     fontSize: 15,
     lineHeight: 19,
     fontWeight: '800',
@@ -354,7 +355,7 @@ const styles = StyleSheet.create({
 
   emptyStateBody: {
     color: COLORS.textMuted,
-    fontFamily: 'Inter',
+    fontFamily: fonts.regular,
     fontSize: 13,
     lineHeight: 19,
     fontWeight: '500',
@@ -373,7 +374,7 @@ const styles = StyleSheet.create({
 
   emptyStateHintText: {
     color: COLORS.primary,
-    fontFamily: 'Inter',
+    fontFamily: fonts.regular,
     fontSize: 12,
     lineHeight: 14,
     fontWeight: '700',

@@ -2,6 +2,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { fonts } from '@/theme';
 const COLORS = {
   primary: '#1689F5',
   navy: '#133B73',
@@ -131,7 +132,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.surfaceSoft,
   },
   navLabel: {
-    fontFamily: 'Inter',
+    fontFamily: fonts.regular,
     fontSize: 10,
     lineHeight: 12,
     fontWeight: '700',

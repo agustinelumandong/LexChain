@@ -29,6 +29,7 @@ import { SearchInputWithResults, BottomNav } from '@/ui';
 import { useCloseSheetOnBack } from '@/hooks';
 import { toast } from 'sonner-native';
 
+import { fonts } from '@/theme';
 const COLORS = {
   bg: '#F3F8FF',
   navy: '#133B73',
@@ -590,21 +591,21 @@ const styles = StyleSheet.create({
   },
   resultTitle: {
     color: COLORS.navy,
-    fontFamily: 'Inter',
+    fontFamily: fonts.regular,
     fontSize: 14,
     lineHeight: 18,
     fontWeight: '800',
   },
   resultMeta: {
     color: COLORS.textMuted,
-    fontFamily: 'Inter',
+    fontFamily: fonts.regular,
     fontSize: 12,
     lineHeight: 16,
     fontWeight: '500',
   },
   resultDate: {
     color: COLORS.textMuted,
-    fontFamily: 'Inter',
+    fontFamily: fonts.regular,
     fontSize: 12,
     lineHeight: 16,
     fontWeight: '700',
@@ -620,14 +621,14 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     color: COLORS.navy,
-    fontFamily: 'Inter',
+    fontFamily: fonts.regular,
     fontSize: 16,
     lineHeight: 20,
     fontWeight: '800',
   },
   emptyBody: {
     color: COLORS.textMuted,
-    fontFamily: 'Inter',
+    fontFamily: fonts.regular,
     fontSize: 13,
     lineHeight: 18,
     fontWeight: '500',
