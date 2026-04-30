@@ -179,7 +179,7 @@ export default function CameraCaptureScreen() {
         </View>
 
         {!capturedPhoto ? (
-          <View style={styles.frameWrap} pointerEvents="none">
+          <View style={[styles.frameWrap, styles.nonInteractive]}>
             <View style={styles.captureFrame} />
             <Text style={styles.frameHint}>Align document inside frame</Text>
           </View>
@@ -340,6 +340,9 @@ const styles = StyleSheet.create({
     right: 24,
     alignItems: 'center',
     gap: 12,
+  },
+  nonInteractive: {
+    pointerEvents: 'none',
   },
   captureFrame: {
     width: '100%',
