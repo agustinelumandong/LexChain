@@ -255,18 +255,20 @@ Files to create:
 ---
 
 ### 3.4 Environment Variables
-Status: `[ ]`
+Status: `[x]`
 
 Files to create:
-- `.env.development`
-- `.env.production`
-- `src/api/client.ts`
+- `.env.example`
+- `src/shared/config/env.ts`
+- `src/shared/config/index.ts`
 
-- [ ] Create `.env.development` with `EXPO_PUBLIC_API_URL=http://192.168.x.x:8000`
-- [ ] Create `.env.production` with `EXPO_PUBLIC_API_URL=https://api.lexchain.com`
-- [ ] Add both `.env.*` files to `.gitignore`
-- [ ] Create `src/api/client.ts` with an `axios` instance using `process.env.EXPO_PUBLIC_API_URL`
-- [ ] Never hardcode any URL or API key directly in source files
+- [x] Create `.env.example` with `EXPO_PUBLIC_API_URL`
+- [x] Add real `.env*` files to `.gitignore`
+- [x] Keep `.env.example` committed as the safe template
+- [x] Create `src/shared/config/env.ts` helper for reading `process.env.EXPO_PUBLIC_API_URL`
+- [-] Defer real `.env.development` and `.env.production` files to local/deployment setup
+- [-] Defer `src/api/client.ts` until backend endpoints and API client choice are confirmed
+- [x] Never hardcode any URL or API key directly in source files
 
 ---
 
