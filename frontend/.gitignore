@@ -34,8 +34,9 @@ frontend/dist-*-check/
 app-example
 
 # Environment variables
-.env*.local
 .env
+.env*
+!.env.example
 
 # TypeScript
 *.tsbuildinfo
