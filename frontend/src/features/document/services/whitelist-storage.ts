@@ -3,7 +3,7 @@ import type {
   ManageWhitelistData,
   WhitelistGrant,
   WhitelistSearchResult
-} from '@/features/document/components/manage-whitelist-bottom-sheet';
+} from '../components/manage-whitelist-bottom-sheet';
 import type { MockDocument } from '@/features/documents/mock-documents';
 
 const STORAGE_KEY = 'lexchain:document-whitelist';

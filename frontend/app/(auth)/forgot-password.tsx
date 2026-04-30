@@ -1,7 +1,5 @@
-import { AuthHeader } from '@/features/auth/auth-header';
-import { AuthInput } from '@/features/auth/auth-input';
-import { AuthScreenShell } from '@/features/auth/auth-screen-shell';
-import { Button } from '@/shared/components/ui/button';
+import { AuthHeader, AuthInput, AuthScreenShell } from '@/features/auth';
+import { Button } from '@/ui';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';

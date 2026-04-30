@@ -8,7 +8,7 @@ import React, { useEffect, useMemo, useRef } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Button } from '@/shared/components/ui/button';
+import { Button } from '@/ui';
 
 const COLORS = {
   backdrop: 'rgba(4, 18, 40, 0.42)',

@@ -2,9 +2,9 @@ import { Tabs } from 'expo-router';
 import React from 'react';
 
 import { HapticTab } from '@/shared/components/haptic-tab';
-import { IconSymbol } from '@/shared/components/ui/icon-symbol';
-import { useColorScheme } from '@/shared/hooks/use-color-scheme';
-import { Colors } from '@/shared/theme/theme';
+import { IconSymbol } from '@/ui';
+import { useColorScheme } from '@/hooks';
+import { Colors } from '@/theme';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();

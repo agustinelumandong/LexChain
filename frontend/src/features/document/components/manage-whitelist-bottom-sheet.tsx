@@ -8,7 +8,7 @@ import React, { useEffect, useMemo, useRef } from 'react';
 import { BackHandler, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { SearchInputWithResults } from '@/shared/components/ui/search-input-with-results';
+import { SearchInputWithResults } from '@/ui';
 import { WhitelistGrantRow } from './whitelist-grant-row';
 import { WhitelistSearchResultRow } from './whitelist-search-result-row';
 

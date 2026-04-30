@@ -7,18 +7,19 @@ import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { toast } from 'sonner-native';
 
-import { AccessWhitelistCard } from '@/features/document/components/access-whitelist-card';
+import { AccessWhitelistCard } from '@/features/document';
 import {
   ManageWhitelistBottomSheet,
   type ManageWhitelistData,
-} from '@/features/document/components/manage-whitelist-bottom-sheet';
-import { useCloseSheetOnBack } from '@/shared/hooks/use-close-sheet-on-back';
-import { Button } from '@/shared/components/ui/button';
-import type { PickedUploadFile } from '@/features/upload/upload-file';
-import { consumePendingCapturedFiles } from '@/features/upload/upload-session';
-import { UploadDropzoneCard } from '@/features/upload/upload-dropzone-card';
-import { UploadTopBar } from '@/features/upload/upload-top-bar';
-import { SelectDropdownField } from '@/shared/components/ui/select-dropdown-field';
+} from '@/features/document';
+import { useCloseSheetOnBack } from '@/hooks';
+import { Button, SelectDropdownField } from '@/ui';
+import type { PickedUploadFile } from '@/features/upload';
+import {
+  consumePendingCapturedFiles,
+  UploadDropzoneCard,
+  UploadTopBar,
+} from '@/features/upload';
 
 const COLORS = {
   bg: '#F3F8FF',

@@ -5,33 +5,28 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import {
   DocumentPreviewBottomSheet,
-} from '@/features/document/components/document-preview-bottom-sheet';
-import {
   ManageWhitelistBottomSheet,
-} from '@/features/document/components/manage-whitelist-bottom-sheet';
-import {
   VerifyDocumentBottomSheet,
-} from '@/features/document/components/verify-document-bottom-sheet';
-import { DocumentsFilterControls } from '@/features/documents/documents-filter-controls';
-import { DocumentsFilterSheet } from '@/features/documents/documents-filter-sheet';
-import { DocumentsHeader } from '@/features/documents/documents-header';
-import { DocumentResultCard } from '@/features/documents/document-result-card';
-import { DocumentsSortSheet } from '@/features/documents/documents-sort-sheet';
+  applyWhitelistToDocument,
+  hydrateDocumentsWithPersistedWhitelists,
+  persistDocumentWhitelist,
+} from '@/features/document';
+import {
+  DocumentsFilterControls,
+  DocumentsFilterSheet,
+  DocumentsHeader,
+  DocumentResultCard,
+  DocumentsSortSheet,
+} from '@/features/documents';
 import {
   MOCK_DOCUMENTS,
   type MockDocument,
   type DocumentSortKey,
   type DocumentStatusKey,
   type DocumentTypeKey,
-} from '@/features/documents/mock-documents';
-import { SearchInputWithResults } from '@/shared/components/ui/search-input-with-results';
-import {
-  applyWhitelistToDocument,
-  hydrateDocumentsWithPersistedWhitelists,
-  persistDocumentWhitelist,
-} from '@/features/document/services/whitelist-storage';
-import { useCloseSheetOnBack } from '@/shared/hooks/use-close-sheet-on-back';
-import { BottomNav } from '@/shared/components/ui/bottom-nav';
+} from '@/features/documents';
+import { SearchInputWithResults, BottomNav } from '@/ui';
+import { useCloseSheetOnBack } from '@/hooks';
 import { toast } from 'sonner-native';
 
 const COLORS = {

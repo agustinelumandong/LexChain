@@ -1,7 +1,7 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { Button } from '@/shared/components/ui/button';
+import { Button } from '@/ui';
 
 const COLORS = {
   navy: '#133B73',

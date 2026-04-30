@@ -11,8 +11,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Button } from '@/shared/components/ui/button';
-import { SelectDropdownField } from '@/shared/components/ui/select-dropdown-field';
+import { Button, SelectDropdownField } from '@/ui';
 
 const COLORS = {
   backdrop: 'rgba(4, 18, 40, 0.42)',

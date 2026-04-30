@@ -1,13 +1,10 @@
-import { AuthHeader } from "@/features/auth/auth-header";
-import { AuthInput } from "@/features/auth/auth-input";
-import { AuthScreenShell } from "@/features/auth/auth-screen-shell";
-import { Button } from "@/shared/components/ui/button";
-import { useCloseSheetOnBack } from "@/shared/hooks/use-close-sheet-on-back";
+import { AuthHeader, AuthInput, AuthScreenShell, TermsBottomSheet } from "@/features/auth";
+import { Button } from "@/ui";
+import { useCloseSheetOnBack } from "@/hooks";
 import { useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import { View, StyleSheet, Text } from "react-native";
 import { toast } from 'sonner-native';
-import TermsBottomSheet from "@/features/auth/terms-bottom-sheet";
 
 const COLORS = {
   primary: '#1689F5',

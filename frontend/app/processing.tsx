@@ -2,11 +2,13 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'expo-router';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { AiSummaryDraftCard } from '@/features/upload/ai-summary-draft-card';
-import { Button } from '@/shared/components/ui/button';
-import { DocumentScreenHeader } from '@/features/document/components/document-screen-header';
-import { DocumentTopBar } from '@/features/document/components/document-top-bar';
-import { VerificationStatusCard } from '@/features/document/components/verification-status-card';
+import { AiSummaryDraftCard } from '@/features/upload';
+import { Button } from '@/ui';
+import {
+  DocumentScreenHeader,
+  DocumentTopBar,
+  VerificationStatusCard,
+} from '@/features/document';
 
 const COLORS = {
   bg: '#F3F8FF',

@@ -2,8 +2,8 @@ import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 
-import type { PickedUploadFile } from '@/features/upload/upload-file';
-import { Button } from '@/shared/components/ui/button';
+import type { PickedUploadFile } from './upload-file';
+import { Button } from '@/ui';
 
 const COLORS = {
   primary: '#1689F5',

@@ -3,16 +3,17 @@ import { useRouter } from 'expo-router';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { ProfileHeader } from '@/features/profile/profile-header';
-import { ProfileMetricsCard } from '@/features/profile/profile-metrics-card';
+import {
+  ProfileHeader,
+  ProfileMetricsCard,
+  ProfileSummaryCard,
+  SettingsListCard,
+} from '@/features/profile';
 import {
   SettingsInfoModal,
   type SettingsInfoModalData,
-} from '@/features/profile/settings-info-modal';
-import { ProfileSummaryCard } from '@/features/profile/profile-summary-card';
-import { SettingsListCard } from '@/features/profile/settings-list-card';
-import { BottomNav } from '@/shared/components/ui/bottom-nav';
-import { Button } from '@/shared/components/ui/button';
+} from '@/features/profile';
+import { BottomNav, Button } from '@/ui';
 
 const COLORS = {
   bg: '#F3F8FF',
