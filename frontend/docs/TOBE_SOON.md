@@ -190,7 +190,7 @@ Files:
 ---
 
 ### 2.2 Fill the Dashboard Feature Folder
-Status: `[ ]`
+Status: `[/]`
 
 Files to create:
 - `src/features/dashboard/dashboard-kpi-card.tsx`
@@ -198,11 +198,11 @@ Files to create:
 - `src/features/dashboard/use-dashboard.ts`
 - `src/features/dashboard/index.ts`
 
-- [ ] Extract `KpiCard` component from `app/(tabs)/index.tsx` into `dashboard-kpi-card.tsx`
-- [ ] Extract `DocumentRow` component from `app/(tabs)/index.tsx` into `dashboard-recent-list.tsx`
-- [ ] Extract all `useState` / `useMemo` logic into `use-dashboard.ts` hook
+- [x] Extract `KpiCard` component from `app/(tabs)/index.tsx` into `dashboard-kpi-card.tsx`
+- [x] Extract `DocumentRow` component from `app/(tabs)/index.tsx` into `dashboard-recent-list.tsx`
+- [x] Extract all `useState` / `useMemo` logic into `use-dashboard.ts` hook
 - [ ] Reduce `app/(tabs)/index.tsx` to ~25–40 lines (JSX + hook calls only)
-- [ ] Create barrel `src/features/dashboard/index.ts`
+- [x] Create barrel `src/features/dashboard/index.ts`
 
 ---
 
