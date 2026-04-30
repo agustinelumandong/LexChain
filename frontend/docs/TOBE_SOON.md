@@ -162,15 +162,14 @@ Files to delete:
 ---
 
 ### 1.10 Flatten Unnecessary Nesting
-Status: `[ ]`
+Status: `[x]`
 
 Files:
-- `src/features/onboarding/components/get-started-hero.tsx` — current location
-- `src/features/onboarding/get-started-hero.tsx` — target location
+- `src/features/onboarding/get-started-hero.tsx` — current location
 
-- [ ] Move `get-started-hero.tsx` up one level (no need for a `components/` subfolder for a single file)
-- [ ] Delete the now-empty `components/` subfolder
-- [ ] Update import in `app/index.tsx`
+- [x] Move `get-started-hero.tsx` up one level (no need for a `components/` subfolder for a single file)
+- [x] Delete the now-empty `components/` subfolder
+- [x] Update onboarding barrel import
 
 ---
 

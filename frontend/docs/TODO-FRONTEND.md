@@ -26,7 +26,7 @@ Status: `LATER`
 
 Files:
 - `app/index.tsx`
-- `src/features/onboarding/components/get-started-hero.tsx`
+- `src/features/onboarding/get-started-hero.tsx`
 - `src/shared/components/ui/button.tsx`
 
 Design source:
@@ -239,7 +239,7 @@ Files involved:
 - `app/index.tsx`
 - `app/(auth)/sign-in.tsx`
 - `app/(auth)/sign-up.tsx`
-- `src/features/onboarding/components/get-started-hero.tsx`
+- `src/features/onboarding/get-started-hero.tsx`
 - `src/features/auth/auth-screen-shell.tsx`
 - `src/features/auth/auth-header.tsx`
 - `src/features/auth/auth-input.tsx`
@@ -263,8 +263,8 @@ Design source:
 
 ## 8. Refactor / Structure Backlog
 Priority: 10
-Status: `in progress`
-- [ ] Section complete
+Status: `done`
+- [x] Section complete
 
 Reference source:
 - `../TOBE_SOON.md`
@@ -313,8 +313,8 @@ Phase 1 mirror checklist from `TOBE_SOON.md`:
   - [x] Confirm no references, then delete unused starter components
 - [x] 1.9 Delete Dead Code
   - [x] Confirm and delete unused `upload-select-field.tsx`
-- [ ] 1.10 Flatten Unnecessary Nesting
-  - [ ] Move onboarding hero up one level if the folder remains single-file
+- [x] 1.10 Flatten Unnecessary Nesting
+  - [x] Move onboarding hero up one level if the folder remains single-file
 
 Notes:
 - Do not start Phase 3 backend/data tooling until real backend endpoints exist
