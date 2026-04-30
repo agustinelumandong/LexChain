@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'expo-router';
 import { FlatList, Pressable, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -185,29 +185,35 @@ export default function DocumentsScreen() {
     setWhitelistSearchQuery('');
   });
 
-  const openPreview = (documentId: string) => {
-    const nextDocument = documents.find((document) => document.id === documentId) ?? null;
+  const openPreview = useCallback(
+    (documentId: string) => {
+      const nextDocument = documents.find((document) => document.id === documentId) ?? null;
 
-    if (!nextDocument) {
-      return;
-    }
+      if (!nextDocument) {
+        return;
+      }
 
-    setSelectedDocumentId(nextDocument.id);
-    setIsVerifyOpen(false);
-    setIsPreviewOpen(true);
-  };
+      setSelectedDocumentId(nextDocument.id);
+      setIsVerifyOpen(false);
+      setIsPreviewOpen(true);
+    },
+    [documents],
+  );
 
-  const openVerify = (documentId: string) => {
-    const nextDocument = documents.find((document) => document.id === documentId) ?? null;
+  const openVerify = useCallback(
+    (documentId: string) => {
+      const nextDocument = documents.find((document) => document.id === documentId) ?? null;
 
-    if (!nextDocument) {
-      return;
-    }
+      if (!nextDocument) {
+        return;
+      }
 
-    setSelectedDocumentId(nextDocument.id);
-    setIsPreviewOpen(false);
-    setIsVerifyOpen(true);
-  };
+      setSelectedDocumentId(nextDocument.id);
+      setIsPreviewOpen(false);
+      setIsVerifyOpen(true);
+    },
+    [documents],
+  );
 
   const handleVerifyFromPreview = () => {
     setIsPreviewOpen(false);
@@ -270,14 +276,29 @@ export default function DocumentsScreen() {
   const sortLabel =
     DOCUMENT_SORT_OPTIONS.find((option) => option.value === sortKey)?.label ?? 'Newest first';
 
-  const renderDocumentResult = ({ item: document }: { item: MockDocument }) => (
-    <DocumentResultCard
-      title={document.title}
-      parties={document.parties}
-      date={document.date}
-      onPressCard={() => openPreview(document.id)}
-      onPressOpen={() => openPreview(document.id)}
-    />
+  const renderDocumentResult = useCallback(
+    ({ item: document }: { item: MockDocument }) => (
+      <DocumentResultCard
+        title={document.title}
+        parties={document.parties}
+        date={document.date}
+        onPressCard={() => openPreview(document.id)}
+        onPressOpen={() => openPreview(document.id)}
+      />
+    ),
+    [openPreview],
+  );
+
+  const renderSearchResult = useCallback(
+    (document: MockDocument) => (
+      <DocumentSearchResultRow
+        title={document.title}
+        parties={document.parties}
+        date={document.date}
+        onPress={() => openPreview(document.id)}
+      />
+    ),
+    [openPreview],
   );
 
   return (
@@ -303,14 +324,7 @@ export default function DocumentsScreen() {
                   results={filteredDocuments}
                   emptyText="No documents matched your search"
                   keyExtractor={(document) => document.id}
-                  renderItem={(document) => (
-                    <DocumentSearchResultRow
-                      title={document.title}
-                      parties={document.parties}
-                      date={document.date}
-                      onPress={() => openPreview(document.id)}
-                    />
-                  )}
+                  renderItem={renderSearchResult}
                 />
               </View>
 

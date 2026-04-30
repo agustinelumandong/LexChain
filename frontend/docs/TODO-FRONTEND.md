@@ -400,12 +400,12 @@ Project recommendation summary:
   - [x] Keep auth token storage deferred to backend/auth wiring
 
 ### 9.5 Performance
-- [REC: later] Review callback/object stability on interactive screens
-  - documents
-  - upload
-  - whitelist management
-- [REC: skip for now] Add memoization only where it solves a real rerender problem
-- [REC: later] Use `InteractionManager` if heavy work is added after navigation transitions
+- [x] Review callback/object stability on interactive screens
+  - [x] Documents list handlers stabilized for `FlatList`
+  - [-] Upload deferred until a measured rerender issue appears
+  - [-] Whitelist management deferred until backend-scale list behavior exists
+- [x] Add memoization only where it solves a real rerender/list stability problem
+- [-] Use `InteractionManager` deferred until heavy post-navigation work is added
 
 ### 9.6 Bundle and Startup
 - [REC: later] Confirm Hermes / new architecture settings in Expo config when preparing builds
