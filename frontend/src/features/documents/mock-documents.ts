@@ -1,6 +1,8 @@
-import type { ManageWhitelistData } from '@/features/document/components/manage-whitelist-bottom-sheet';
-import type { DocumentPreviewData } from '@/features/document/components/document-preview-bottom-sheet';
-import type { VerifyDocumentData } from '@/features/document/components/verify-document-bottom-sheet';
+import type {
+  DocumentPreviewData,
+  ManageWhitelistData,
+  VerifyDocumentData,
+} from '@/features/document/components';
 
 export type DocumentSortKey = 'newest' | 'oldest' | 'title-az';
 export type DocumentTypeKey = 'all' | 'deed-of-sale' | 'lease-contract';

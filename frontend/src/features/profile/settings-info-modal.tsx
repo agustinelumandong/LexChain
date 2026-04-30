@@ -3,7 +3,7 @@ import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 
-import { Button } from '@/shared/components/ui/button';
+import { Button } from '@/ui';
 
 const COLORS = {
   overlay: 'rgba(4, 18, 40, 0.48)',

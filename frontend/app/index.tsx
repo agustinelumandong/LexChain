@@ -8,8 +8,8 @@ import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useEffect, useRef } from 'react';
 
-import { Button } from '@/shared/components/ui/button';
-import { GetStartedHero } from '@/features/onboarding/components/get-started-hero';
+import { Button } from '@/ui';
+import { GetStartedHero } from '@/features/onboarding';
 import { Text, View, StyleSheet } from 'react-native';
 
 import { StatusBar } from 'expo-status-bar';

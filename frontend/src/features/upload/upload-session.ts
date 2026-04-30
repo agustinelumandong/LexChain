@@ -1,4 +1,4 @@
-import type { PickedUploadFile } from '@/features/upload/upload-file';
+import type { PickedUploadFile } from './upload-file';
 
 let pendingCapturedFiles: PickedUploadFile[] = [];
 

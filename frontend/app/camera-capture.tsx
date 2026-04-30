@@ -7,12 +7,12 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import type { PickedUploadFile } from '@/features/upload/upload-file';
+import type { PickedUploadFile } from '@/features/upload';
 import {
   getPendingCapturedFiles,
   setPendingCapturedFiles,
-} from '@/features/upload/upload-session';
-import { Button } from '@/shared/components/ui/button';
+} from '@/features/upload';
+import { Button } from '@/ui';
 
 const COLORS = {
   bg: '#041228',

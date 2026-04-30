@@ -7,12 +7,12 @@ import React, { useEffect, useMemo, useRef } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Button } from '@/shared/components/ui/button';
-import { AccessWhitelistCard } from '@/features/document/components/access-whitelist-card';
-import { DetailSectionsCard } from '@/features/document/components/detail-sections-card';
-import { DocumentScreenHeader } from '@/features/document/components/document-screen-header';
-import { DocumentSummaryCard } from '@/features/document/components/document-summary-card';
-import { DocumentTopBar } from '@/features/document/components/document-top-bar';
+import { Button } from '@/ui';
+import { AccessWhitelistCard } from './access-whitelist-card';
+import { DetailSectionsCard } from './detail-sections-card';
+import { DocumentScreenHeader } from './document-screen-header';
+import { DocumentSummaryCard } from './document-summary-card';
+import { DocumentTopBar } from './document-top-bar';
 
 const COLORS = {
   backdrop: 'rgba(4, 18, 40, 0.42)',

@@ -3,12 +3,14 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { Button } from '@/shared/components/ui/button';
-import { DocumentScreenHeader } from '@/features/document/components/document-screen-header';
-import { DocumentSummaryCard } from '@/features/document/components/document-summary-card';
-import { DocumentTopBar } from '@/features/document/components/document-top-bar';
-import { IntegrityCheckCard } from '@/features/document/components/integrity-check-card';
-import { VerificationStatusCard } from '@/features/document/components/verification-status-card';
+import { Button } from '@/ui';
+import {
+  DocumentScreenHeader,
+  DocumentSummaryCard,
+  DocumentTopBar,
+  IntegrityCheckCard,
+  VerificationStatusCard,
+} from '@/features/document';
 
 const COLORS = {
   bg: '#F3F8FF',

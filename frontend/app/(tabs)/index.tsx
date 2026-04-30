@@ -4,8 +4,8 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 
-import { MOCK_DOCUMENTS } from '@/features/documents/mock-documents';
-import { BottomNav } from '@/shared/components/ui/bottom-nav';
+import { MOCK_DOCUMENTS } from '@/features/documents';
+import { BottomNav } from '@/ui';
 
 const COLORS = {
   bg: '#F3F8FF',
