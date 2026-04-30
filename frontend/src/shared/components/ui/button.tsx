@@ -150,7 +150,7 @@ const styles = StyleSheet.create({
   },
   disabledPrimary: {
     backgroundColor: COLORS.disabledBg,
-    shadowOpacity: 0,
+    boxShadow: 'none',
     elevation: 0,
   },
   disabledSecondary: {
@@ -179,10 +179,7 @@ const styles = StyleSheet.create({
 const buttonVariantStyles = StyleSheet.create({
   primaryContainer: {
     backgroundColor: COLORS.primary,
-    shadowColor: COLORS.primary,
-    shadowOpacity: 0.14,
-    shadowRadius: 15,
-    shadowOffset: { width: 0, height: 10 },
+    boxShadow: `0px 10px 15px rgba(22, 137, 245, 0.14)`,
     elevation: 4,
   },
   primaryPressed: {
