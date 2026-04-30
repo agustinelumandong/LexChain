@@ -323,8 +323,8 @@ Notes:
 
 ## 9. Expo Best Practices Adoption
 Priority: 9
-Status: `in progress`
-- [ ] Section complete
+Status: `done`
+- [x] Section complete
 
 Reference source:
 - `expo-best-practices.md`
