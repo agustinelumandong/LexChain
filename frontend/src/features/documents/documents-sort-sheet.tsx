@@ -10,6 +10,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/ui';
 
+import { fonts } from '@/theme';
 const COLORS = {
   backdrop: 'rgba(4, 18, 40, 0.42)',
   sheet: '#F3F8FF',
@@ -188,7 +189,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 16,
     fontWeight: '700',
-    fontFamily: 'Inter',
+    fontFamily: fonts.regular,
   },
   headerBlock: {
     gap: 8,
@@ -198,7 +199,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 14,
     fontWeight: '700',
-    fontFamily: 'Inter',
+    fontFamily: fonts.regular,
     letterSpacing: 0.5,
   },
   title: {
@@ -206,14 +207,14 @@ const styles = StyleSheet.create({
     fontSize: 28,
     lineHeight: 30,
     fontWeight: '800',
-    fontFamily: 'Inter',
+    fontFamily: fonts.regular,
   },
   description: {
     color: COLORS.textMuted,
     fontSize: 14,
     lineHeight: 20,
     fontWeight: '500',
-    fontFamily: 'Inter',
+    fontFamily: fonts.regular,
   },
   optionList: {
     gap: 10,
@@ -243,7 +244,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 18,
     fontWeight: '600',
-    fontFamily: 'Inter',
+    fontFamily: fonts.regular,
   },
   optionLabelSelected: {
     color: COLORS.primary,
@@ -253,7 +254,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 16,
     fontWeight: '500',
-    fontFamily: 'Inter',
+    fontFamily: fonts.regular,
   },
   footer: {
     paddingHorizontal: 18,

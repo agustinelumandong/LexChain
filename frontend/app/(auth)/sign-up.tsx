@@ -6,6 +6,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { View, StyleSheet, Text } from "react-native";
 import { toast } from 'sonner-native';
 
+import { fonts } from '@/theme';
 const COLORS = {
   primary: '#1689F5',
   navy: '#133B73',
@@ -384,7 +385,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 14,
     fontWeight: '700',
-    fontFamily: 'Inter',
+    fontFamily: fonts.regular,
     letterSpacing: 0.4,
   },
   actions: {
@@ -399,7 +400,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
     lineHeight: 14,
     fontWeight: '700',
-    fontFamily: 'Inter',
+    fontFamily: fonts.regular,
   },
   passwordStrengthTrack: {
     height: 4,
@@ -423,7 +424,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
     lineHeight: 16,
     fontWeight: '500',
-    fontFamily: 'Inter',
+    fontFamily: fonts.regular,
   },
   termsPreview: {
     flexDirection: 'row',
@@ -444,20 +445,20 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 18,
     fontWeight: '700',
-    fontFamily: 'Inter',
+    fontFamily: fonts.regular,
   },
   termsPreviewBody: {
     color: COLORS.primary,
     fontSize: 12,
     lineHeight: 16,
     fontWeight: '500',
-    fontFamily: 'Inter',
+    fontFamily: fonts.regular,
   },
   termsPreviewAction: {
     color: COLORS.primary,
     fontSize: 13,
     lineHeight: 16,
     fontWeight: '700',
-    fontFamily: 'Inter',
+    fontFamily: fonts.regular,
   },
 });

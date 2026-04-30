@@ -7,6 +7,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { MOCK_DOCUMENTS } from '@/features/documents';
 import { BottomNav } from '@/ui';
 
+import { fonts } from '@/theme';
 const COLORS = {
   bg: '#F3F8FF',
   surface: '#FFFFFF',
@@ -212,7 +213,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 14,
     fontWeight: '700',
-    fontFamily: 'Inter',
+    fontFamily: fonts.regular,
     letterSpacing: 0.5,
   },
   title: {
@@ -220,14 +221,14 @@ const styles = StyleSheet.create({
     fontSize: 24,
     lineHeight: 30,
     fontWeight: '800',
-    fontFamily: 'Inter',
+    fontFamily: fonts.regular,
   },
   description: {
     color: COLORS.textMuted,
     fontSize: 13,
     lineHeight: 19,
     fontWeight: '500',
-    fontFamily: 'Inter',
+    fontFamily: fonts.regular,
   },
   kpiRow: {
     flexDirection: 'row',
@@ -241,7 +242,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 14,
     fontWeight: '700',
-    fontFamily: 'Inter',
+    fontFamily: fonts.regular,
   },
   searchBar: {
     minHeight: 50,
@@ -260,7 +261,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 18,
     fontWeight: '500',
-    fontFamily: 'Inter',
+    fontFamily: fonts.regular,
   },
   recentGroup: {
     gap: 12,
@@ -270,7 +271,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     lineHeight: 20,
     fontWeight: '800',
-    fontFamily: 'Inter',
+    fontFamily: fonts.regular,
   },
   navWrap: {
     width: '100%',
@@ -291,14 +292,14 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 17,
     fontWeight: '800',
-    fontFamily: 'Inter',
+    fontFamily: fonts.regular,
   },
   emptyRecentBody: {
     color: COLORS.textMuted,
     fontSize: 12,
     lineHeight: 17,
     fontWeight: '500',
-    fontFamily: 'Inter',
+    fontFamily: fonts.regular,
   },
 });
 
@@ -320,14 +321,14 @@ const kpiStyles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 14,
     fontWeight: '700',
-    fontFamily: 'Inter',
+    fontFamily: fonts.regular,
   },
   value: {
     color: COLORS.navy,
     fontSize: 28,
     lineHeight: 30,
     fontWeight: '800',
-    fontFamily: 'Inter',
+    fontFamily: fonts.regular,
   },
   metaRow: {
     flexDirection: 'row',
@@ -351,7 +352,7 @@ const kpiStyles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 14,
     fontWeight: '700',
-    fontFamily: 'Inter',
+    fontFamily: fonts.regular,
   },
 });
 
@@ -378,14 +379,14 @@ const docStyles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 17,
     fontWeight: '800',
-    fontFamily: 'Inter',
+    fontFamily: fonts.regular,
   },
   subtitle: {
     color: COLORS.textMuted,
     fontSize: 12,
     lineHeight: 14,
     fontWeight: '500',
-    fontFamily: 'Inter',
+    fontFamily: fonts.regular,
   },
   badge: {
     borderRadius: 999,
@@ -404,7 +405,7 @@ const docStyles = StyleSheet.create({
     fontSize: 11,
     lineHeight: 13,
     fontWeight: '800',
-    fontFamily: 'Inter',
+    fontFamily: fonts.regular,
   },
   badgeLabelMatch: {
     color: COLORS.primary,

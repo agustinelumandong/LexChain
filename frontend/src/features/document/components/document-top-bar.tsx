@@ -2,6 +2,7 @@ import React from 'react';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { fonts } from '@/theme';
 const COLORS = {
   navy: '#133B73',
   textMuted: '#6F8FB5',
@@ -48,7 +49,7 @@ const styles = StyleSheet.create({
   },
   label: {
     color: COLORS.navy,
-    fontFamily: 'Inter',
+    fontFamily: fonts.regular,
     fontSize: 14,
     lineHeight: 18,
     fontWeight: '800',

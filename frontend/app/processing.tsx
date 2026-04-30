@@ -10,6 +10,7 @@ import {
   VerificationStatusCard,
 } from '@/features/document';
 
+import { fonts } from '@/theme';
 const COLORS = {
   bg: '#F3F8FF',
   primary: '#1689F5',
@@ -174,14 +175,14 @@ const styles = StyleSheet.create({
   },
   progressTitle: {
     color: COLORS.navy,
-    fontFamily: 'Inter',
+    fontFamily: fonts.regular,
     fontSize: 15,
     lineHeight: 18,
     fontWeight: '800',
   },
   progressBody: {
     color: COLORS.textMuted,
-    fontFamily: 'Inter',
+    fontFamily: fonts.regular,
     fontSize: 13,
     lineHeight: 18,
     fontWeight: '500',
@@ -207,14 +208,14 @@ const styles = StyleSheet.create({
   progressMetaLabel: {
     flex: 1,
     color: COLORS.textMuted,
-    fontFamily: 'Inter',
+    fontFamily: fonts.regular,
     fontSize: 12,
     lineHeight: 16,
     fontWeight: '600',
   },
   progressMetaValue: {
     color: COLORS.primary,
-    fontFamily: 'Inter',
+    fontFamily: fonts.regular,
     fontSize: 12,
     lineHeight: 16,
     fontWeight: '800',
@@ -232,14 +233,14 @@ const styles = StyleSheet.create({
   },
   pendingSummaryTitle: {
     color: COLORS.navy,
-    fontFamily: 'Inter',
+    fontFamily: fonts.regular,
     fontSize: 15,
     lineHeight: 18,
     fontWeight: '800',
   },
   pendingSummaryBody: {
     color: COLORS.textMuted,
-    fontFamily: 'Inter',
+    fontFamily: fonts.regular,
     fontSize: 13,
     lineHeight: 18,
     fontWeight: '500',

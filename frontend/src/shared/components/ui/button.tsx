@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 
+import { fonts } from '@/theme';
 type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'light';
 type ButtonSize = 'sm' | 'md' | 'lg';
 
@@ -170,7 +171,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   label: {
-    fontFamily: 'Inter',
+    fontFamily: fonts.regular,
     fontWeight: '700',
     textAlign: 'center',
   },

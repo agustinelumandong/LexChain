@@ -14,6 +14,7 @@ import {
 } from '@/features/upload';
 import { Button } from '@/ui';
 
+import { fonts } from '@/theme';
 const COLORS = {
   bg: '#041228',
   overlay: 'rgba(4, 18, 40, 0.68)',
@@ -269,7 +270,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 14,
     fontWeight: '700',
-    fontFamily: 'Inter',
+    fontFamily: fonts.regular,
     letterSpacing: 0.5,
     textAlign: 'center',
   },
@@ -278,7 +279,7 @@ const styles = StyleSheet.create({
     fontSize: 28,
     lineHeight: 30,
     fontWeight: '800',
-    fontFamily: 'Inter',
+    fontFamily: fonts.regular,
     textAlign: 'center',
   },
   permissionBody: {
@@ -286,7 +287,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
     fontWeight: '500',
-    fontFamily: 'Inter',
+    fontFamily: fonts.regular,
     textAlign: 'center',
   },
   permissionActions: {
@@ -323,7 +324,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
     lineHeight: 13,
     fontWeight: '800',
-    fontFamily: 'Inter',
+    fontFamily: fonts.regular,
     letterSpacing: 0.5,
   },
   topTitle: {
@@ -331,7 +332,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     lineHeight: 20,
     fontWeight: '800',
-    fontFamily: 'Inter',
+    fontFamily: fonts.regular,
   },
   frameWrap: {
     position: 'absolute',
@@ -357,7 +358,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 18,
     fontWeight: '600',
-    fontFamily: 'Inter',
+    fontFamily: fonts.regular,
   },
   bottomPanel: {
     position: 'absolute',
@@ -399,7 +400,7 @@ const styles = StyleSheet.create({
     fontSize: 10,
     lineHeight: 10,
     fontWeight: '800',
-    fontFamily: 'Inter',
+    fontFamily: fonts.regular,
   },
   flashStub: {
     width: 48,

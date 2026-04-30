@@ -1,6 +1,7 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
+import { fonts } from '@/theme';
 const COLORS = {
   primary: '#1689F5',
   navy: '#133B73',
@@ -33,7 +34,7 @@ const styles = StyleSheet.create({
   },
   eyebrow: {
     color: COLORS.primary,
-    fontFamily: 'Inter',
+    fontFamily: fonts.regular,
     fontSize: 12,
     lineHeight: 14,
     fontWeight: '700',
@@ -41,14 +42,14 @@ const styles = StyleSheet.create({
   },
   title: {
     color: COLORS.navy,
-    fontFamily: 'Inter',
+    fontFamily: fonts.regular,
     fontSize: 24,
     lineHeight: 30,
     fontWeight: '800',
   },
   description: {
     color: COLORS.textMuted,
-    fontFamily: 'Inter',
+    fontFamily: fonts.regular,
     fontSize: 13,
     lineHeight: 19,
     fontWeight: '500',

@@ -2,6 +2,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { fonts } from '@/theme';
 const COLORS = {
   primary: '#1689F5',
   navy: '#133B73',
@@ -70,14 +71,14 @@ const styles = StyleSheet.create({
   },
   name: {
     color: COLORS.navy,
-    fontFamily: 'Inter',
+    fontFamily: fonts.regular,
     fontSize: 14,
     lineHeight: 18,
     fontWeight: '800',
   },
   email: {
     color: COLORS.textMuted,
-    fontFamily: 'Inter',
+    fontFamily: fonts.regular,
     fontSize: 12,
     lineHeight: 16,
     fontWeight: '500',

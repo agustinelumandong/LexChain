@@ -1,6 +1,7 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
+import { fonts } from '@/theme';
 const COLORS = {
   primary: '#1689F5',
   navy: '#133B73',
@@ -78,14 +79,14 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     color: COLORS.navy,
-    fontFamily: 'Inter',
+    fontFamily: fonts.regular,
     fontSize: 15,
     lineHeight: 18,
     fontWeight: '800',
   },
   sectionBody: {
     color: COLORS.navy,
-    fontFamily: 'Inter',
+    fontFamily: fonts.regular,
     fontSize: 13,
     lineHeight: 18,
     fontWeight: '500',
@@ -101,7 +102,7 @@ const styles = StyleSheet.create({
   },
   rowLabel: {
     color: COLORS.textMuted,
-    fontFamily: 'Inter',
+    fontFamily: fonts.regular,
     fontSize: 12,
     lineHeight: 14,
     fontWeight: '700',
@@ -109,7 +110,7 @@ const styles = StyleSheet.create({
   rowValue: {
     flexShrink: 1,
     color: COLORS.navy,
-    fontFamily: 'Inter',
+    fontFamily: fonts.regular,
     fontSize: 12,
     lineHeight: 14,
     fontWeight: '800',
@@ -126,14 +127,14 @@ const styles = StyleSheet.create({
   },
   confidenceLabel: {
     color: COLORS.primary,
-    fontFamily: 'Inter',
+    fontFamily: fonts.regular,
     fontSize: 12,
     lineHeight: 14,
     fontWeight: '700',
   },
   confidenceValue: {
     color: COLORS.primary,
-    fontFamily: 'Inter',
+    fontFamily: fonts.regular,
     fontSize: 13,
     lineHeight: 16,
     fontWeight: '800',

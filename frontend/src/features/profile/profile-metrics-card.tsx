@@ -1,6 +1,7 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
+import { fonts } from '@/theme';
 const COLORS = {
   navy: '#133B73',
   textMuted: '#6F8FB5',
@@ -58,14 +59,14 @@ const styles = StyleSheet.create({
     fontSize: 18,
     lineHeight: 24,
     fontWeight: '800',
-    fontFamily: 'Inter',
+    fontFamily: fonts.regular,
   },
   label: {
     color: COLORS.textMuted,
     fontSize: 11,
     lineHeight: 14,
     fontWeight: '700',
-    fontFamily: 'Inter',
+    fontFamily: fonts.regular,
     textAlign: 'center',
   },
   divider: {

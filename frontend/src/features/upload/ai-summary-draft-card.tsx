@@ -3,6 +3,7 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { Button } from '@/ui';
 
+import { fonts } from '@/theme';
 const COLORS = {
   navy: '#133B73',
   textMuted: '#6F8FB5',
@@ -76,7 +77,7 @@ const styles = StyleSheet.create({
   },
   title: {
     color: COLORS.navy,
-    fontFamily: 'Inter',
+    fontFamily: fonts.regular,
     fontSize: 15,
     lineHeight: 18,
     fontWeight: '800',
@@ -86,14 +87,14 @@ const styles = StyleSheet.create({
   },
   meta: {
     color: COLORS.textMuted,
-    fontFamily: 'Inter',
+    fontFamily: fonts.regular,
     fontSize: 12,
     lineHeight: 16,
     fontWeight: '500',
   },
   summary: {
     color: COLORS.navy,
-    fontFamily: 'Inter',
+    fontFamily: fonts.regular,
     fontSize: 13,
     lineHeight: 18,
     fontWeight: '500',

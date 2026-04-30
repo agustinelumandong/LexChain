@@ -14,6 +14,7 @@ import { Text, View, StyleSheet } from 'react-native';
 
 import { StatusBar } from 'expo-status-bar';
 
+import { fonts } from '@/theme';
 const COLORS = {
   primary: '#1689F5',
   primarySoft: '#3AA2FF',
@@ -177,7 +178,7 @@ const styles = StyleSheet.create({
     fontSize: 29,
     lineHeight: 33,
     fontWeight: '800',
-    fontFamily: 'Inter',
+    fontFamily: fonts.regular,
     letterSpacing: -0.6,
   },
   body: {
@@ -185,7 +186,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
     lineHeight: 22,
     fontWeight: '500',
-    fontFamily: 'Inter',
+    fontFamily: fonts.regular,
     maxWidth: 320,
   },
   actions: {

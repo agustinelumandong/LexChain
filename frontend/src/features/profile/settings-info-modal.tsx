@@ -5,6 +5,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 
 import { Button } from '@/ui';
 
+import { fonts } from '@/theme';
 const COLORS = {
   overlay: 'rgba(4, 18, 40, 0.48)',
   surface: '#FFFFFF',
@@ -110,7 +111,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
     lineHeight: 13,
     fontWeight: '800',
-    fontFamily: 'Inter',
+    fontFamily: fonts.regular,
     letterSpacing: 0.5,
   },
   title: {
@@ -118,7 +119,7 @@ const styles = StyleSheet.create({
     fontSize: 20,
     lineHeight: 24,
     fontWeight: '800',
-    fontFamily: 'Inter',
+    fontFamily: fonts.regular,
   },
   closeButton: {
     width: 36,
@@ -133,7 +134,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 18,
     fontWeight: '500',
-    fontFamily: 'Inter',
+    fontFamily: fonts.regular,
   },
   pointsWrap: {
     borderRadius: 22,
@@ -161,6 +162,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 18,
     fontWeight: '600',
-    fontFamily: 'Inter',
+    fontFamily: fonts.regular,
   },
 });

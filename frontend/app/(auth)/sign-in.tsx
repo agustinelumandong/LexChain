@@ -6,6 +6,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { View, StyleSheet, Text, Pressable } from 'react-native';
 import { toast } from 'sonner-native';
 
+import { fonts } from '@/theme';
 const COLORS = {
   primary: '#1689F5',
   navy: '#133B73',
@@ -209,7 +210,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 14,
     fontWeight: '700',
-    fontFamily: 'Inter',
+    fontFamily: fonts.regular,
     letterSpacing: 0.4,
   },
   forgotText: {
@@ -217,7 +218,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 16,
     fontWeight: '700',
-    fontFamily: 'Inter',
+    fontFamily: fonts.regular,
   },
   actions: {
     gap: 12,

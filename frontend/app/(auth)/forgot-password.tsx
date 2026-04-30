@@ -5,6 +5,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { toast } from 'sonner-native';
 
+import { fonts } from '@/theme';
 const COLORS = {
   primary: '#1689F5',
   navy: '#133B73',
@@ -171,21 +172,21 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 18,
     fontWeight: '800',
-    fontFamily: 'Inter',
+    fontFamily: fonts.regular,
   },
   noticeBody: {
     color: COLORS.navy,
     fontSize: 13,
     lineHeight: 18,
     fontWeight: '500',
-    fontFamily: 'Inter',
+    fontFamily: fonts.regular,
   },
   noticeMeta: {
     color: COLORS.textMuted,
     fontSize: 12,
     lineHeight: 16,
     fontWeight: '700',
-    fontFamily: 'Inter',
+    fontFamily: fonts.regular,
   },
   actions: {
     gap: 12,
@@ -195,7 +196,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 18,
     fontWeight: '600',
-    fontFamily: 'Inter',
+    fontFamily: fonts.regular,
     textAlign: 'center',
   },
 });
