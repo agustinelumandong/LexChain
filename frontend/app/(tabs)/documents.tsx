@@ -17,8 +17,8 @@ import {
   DocumentsHeader,
   DocumentResultCard,
   DocumentsSortSheet,
-  MOCK_DOCUMENTS,
 } from '@/features/documents';
+import { MOCK_DOCUMENTS } from '@/mocks';
 import type {
   DocumentSortKey,
   DocumentStatusKey,

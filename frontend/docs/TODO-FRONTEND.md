@@ -304,9 +304,9 @@ Phase 1 mirror checklist from `TOBE_SOON.md`:
   - [x] Export shared fonts and colors from `src/shared/theme/theme.ts`
   - [x] Replace repeated `fontFamily: 'Inter'` with shared `fonts.regular`
   - [x] Replace duplicated shared color constants with `APP_COLORS`
-- [ ] 1.6 Move Mock Data
-  - [ ] Move document mocks into `src/mocks/data/documents.ts`
-  - [ ] Add `src/mocks/index.ts`
+- [x] 1.6 Move Mock Data
+  - [x] Move document mocks into `src/mocks/data/documents.ts`
+  - [x] Add `src/mocks/index.ts`
 - [ ] 1.7 Move `tw.ts`
   - [ ] Move root `tw.ts` into `src/shared/utils/tw.ts`
 - [ ] 1.8 Delete Expo Starter Leftovers
