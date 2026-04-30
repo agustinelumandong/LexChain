@@ -1,6 +1,6 @@
 # LexChain — Improvement TODO
 
-Last updated: 2026-07-14
+Last updated: 2026-04-30
 
 Status legend:
 - `[ ]` not started
@@ -20,13 +20,13 @@ Recommended build order:
 Priority: 1 — Do first. These are foundational and unblock everything downstream.
 
 ### 1.1 Path Aliases
-Status: `[ ]`
+Status: `[x]`
 
 Files:
 - `tsconfig.json`
 - `metro.config.js` (may need resolver update for Metro to pick up aliases)
 
-- [ ] Add the following alias paths to `tsconfig.json` compilerOptions:
+- [x] Add the following alias paths to `tsconfig.json` compilerOptions:
   - `@/features/*` → `src/features/*`
   - `@/shared/*` → `src/shared/*`
   - `@/theme` → `src/shared/theme/theme.ts`
@@ -35,13 +35,13 @@ Files:
   - `@/mocks/*` → `src/mocks/*`
   - `@/types` → `src/types/index.ts`
   - `@/constants` → `src/constants/index.ts`
-- [ ] Verify Metro resolves aliases (check `babel.config.js` or `metro.config.js`)
-- [ ] Update all existing deep relative imports across the codebase to use aliases
+- [x] Verify Metro resolves aliases (check `babel.config.js` or `metro.config.js`)
+- [x] Update all existing deep relative imports across the codebase to use aliases
 
 ---
 
 ### 1.2 Barrel Files
-Status: `[ ]`
+Status: `[x]`
 
 Files to create:
 - `src/features/auth/index.ts`
@@ -55,21 +55,21 @@ Files to create:
 - `src/shared/components/ui/index.ts`
 - `src/shared/hooks/index.ts`
 
-- [ ] Create `src/features/auth/index.ts` — re-export AuthScreenShell, AuthHeader, AuthInput, TermsBottomSheet
-- [ ] Create `src/features/onboarding/index.ts` — re-export GetStartedHero
-- [ ] Create `src/features/documents/index.ts` — re-export all document list components + mock data
-- [ ] Create `src/features/document/components/index.ts` — re-export all document detail components
-- [ ] Create `src/features/document/index.ts` — re-export from components/ and services/
-- [ ] Create `src/features/upload/index.ts` — re-export all upload components, types, and session
-- [ ] Create `src/features/profile/index.ts` — re-export all profile components
-- [ ] Create `src/features/dashboard/index.ts` — re-export all dashboard components and hooks
-- [ ] Create `src/shared/components/ui/index.ts` — re-export Button, BottomNav, SearchInputWithResults, SelectDropdownField, Collapsible
-- [ ] Create `src/shared/hooks/index.ts` — re-export useCloseSheetOnBack, useColorScheme, useThemeColor
+- [x] Create `src/features/auth/index.ts` — re-export AuthScreenShell, AuthHeader, AuthInput, TermsBottomSheet
+- [x] Create `src/features/onboarding/index.ts` — re-export GetStartedHero
+- [x] Create `src/features/documents/index.ts` — re-export all document list components + mock data
+- [x] Create `src/features/document/components/index.ts` — re-export all document detail components
+- [x] Create `src/features/document/index.ts` — re-export from components/ and services/
+- [x] Create `src/features/upload/index.ts` — re-export all upload components, types, and session
+- [x] Create `src/features/profile/index.ts` — re-export all profile components
+- [x] Create `src/features/dashboard/index.ts` — re-export all dashboard components and hooks
+- [x] Create `src/shared/components/ui/index.ts` — re-export Button, BottomNav, SearchInputWithResults, SelectDropdownField, Collapsible
+- [x] Create `src/shared/hooks/index.ts` — re-export useCloseSheetOnBack, useColorScheme, useThemeColor
 
 ---
 
 ### 1.3 Centralized Types Folder
-Status: `[ ]`
+Status: `[x]`
 
 Files to create:
 - `src/types/document.types.ts`
@@ -77,87 +77,87 @@ Files to create:
 - `src/types/upload.types.ts`
 - `src/types/index.ts`
 
-- [ ] Create `src/types/document.types.ts` — move DocumentType, DocumentStatusKey, DocumentSortKey, WhitelistGrant, WhitelistSearchResult, ManageWhitelistData, MockDocument
-- [ ] Create `src/types/auth.types.ts` — add User, LoginPayload, AuthState (ready for backend)
-- [ ] Create `src/types/upload.types.ts` — move PickedUploadFile from `src/features/upload/upload-file.ts`
-- [ ] Create `src/types/index.ts` — barrel re-export all types
-- [ ] Update all import sites to import types from `@/types`
+- [x] Create `src/types/document.types.ts` — move DocumentType, DocumentStatusKey, DocumentSortKey, WhitelistGrant, WhitelistSearchResult, ManageWhitelistData, MockDocument
+- [x] Create `src/types/auth.types.ts` — add User, LoginPayload, AuthState (ready for backend)
+- [x] Create `src/types/upload.types.ts` — move PickedUploadFile from `src/features/upload/upload-file.ts`
+- [x] Create `src/types/index.ts` — barrel re-export all types
+- [x] Update all import sites to import types from `@/types`
 
 ---
 
 ### 1.4 Centralized Constants
-Status: `[ ]`
+Status: `[x]`
 
 Files to create:
 - `src/constants/storage-keys.ts`
 - `src/constants/index.ts`
 
-- [ ] Create `src/constants/storage-keys.ts` — replace magic string `'lexchain:document-whitelist'` and add `'lexchain:auth-token'` for when backend lands
-- [ ] Create `src/constants/index.ts` — barrel re-export
-- [ ] Update `whitelist-storage.ts` to import from `@/constants`
+- [x] Create `src/constants/storage-keys.ts` — replace magic string `'lexchain:document-whitelist'` and add `'lexchain:auth-token'` for when backend lands
+- [x] Create `src/constants/index.ts` — barrel re-export
+- [x] Update `whitelist-storage.ts` to import from `@/constants`
 
 ---
 
 ### 1.5 Theme Cleanup
-Status: `[ ]`
+Status: `[x]`
 
 Files:
 - `src/shared/theme/theme.ts`
 
-- [ ] Export a `fonts` constant from `theme.ts` with `regular`, `medium`, `bold`, `extraBold` keys
-- [ ] Replace all hardcoded `fontFamily: 'Inter'` strings across StyleSheet files with `fonts.regular` (or the appropriate weight key)
-- [ ] Make sure `COLORS` is exported from `theme.ts` and is the single source of truth for the design palette (currently re-declared in every screen file)
+- [x] Export a `fonts` constant from `theme.ts` with `regular`, `medium`, `bold`, `extraBold` keys
+- [x] Replace all hardcoded `fontFamily: 'Inter'` strings across StyleSheet files with `fonts.regular` (or the appropriate weight key)
+- [x] Centralize the shared app palette in `APP_COLORS` from `theme.ts`
 
 ---
 
 ### 1.6 Move Mock Data
-Status: `[ ]`
+Status: `[x]`
 
 Files:
 - `src/features/documents/mock-documents.ts` — current location
 - `src/mocks/data/documents.ts` — target location
 - `src/mocks/index.ts` — new barrel
 
-- [ ] Create `src/mocks/data/documents.ts` and move mock data there
-- [ ] Create `src/mocks/index.ts` barrel
-- [ ] Update all import sites (`app/(tabs)/index.tsx`, `app/(tabs)/documents.tsx`)
-- [ ] Delete original `src/features/documents/mock-documents.ts` after migration
+- [x] Create `src/mocks/data/documents.ts` and move mock data there
+- [x] Create `src/mocks/index.ts` barrel
+- [x] Update all import sites (`app/(tabs)/index.tsx`, `app/(tabs)/documents.tsx`)
+- [x] Delete original `src/features/documents/mock-documents.ts` after migration
 
 ---
 
 ### 1.7 Move `tw.ts`
-Status: `[ ]`
+Status: `[x]`
 
 Files:
 - `frontend/tw.ts` — current location (root level, wrong)
 - `src/shared/utils/tw.ts` — target location
 
-- [ ] Move `tw.ts` from project root into `src/shared/utils/tw.ts`
-- [ ] Update any import sites
+- [x] Move `tw.ts` from project root into `src/shared/utils/tw.ts`
+- [x] Update any import sites
 
 ---
 
 ### 1.8 Delete Expo Starter Leftovers
-Status: `[ ]`
+Status: `[x]`
 
 Files to delete:
 - `src/shared/components/hello-wave.tsx`
 - `src/shared/components/parallax-scroll-view.tsx`
 
-- [ ] Confirm neither file is referenced anywhere (`grep -r "hello-wave\|parallax-scroll"`)
-- [ ] Delete `hello-wave.tsx`
-- [ ] Delete `parallax-scroll-view.tsx`
+- [x] Confirm neither file is referenced anywhere (`grep -r "hello-wave\|parallax-scroll"`)
+- [x] Delete `hello-wave.tsx`
+- [x] Delete `parallax-scroll-view.tsx`
 
 ---
 
 ### 1.9 Delete Dead Code
-Status: `[ ]`
+Status: `[x]`
 
 Files to delete:
 - `src/features/upload/upload-select-field.tsx` — marked as "alternative", never used
 
-- [ ] Confirm `upload-select-field.tsx` has no active import sites
-- [ ] Delete it
+- [x] Confirm `upload-select-field.tsx` has no active import sites
+- [x] Delete it
 
 ---
 
