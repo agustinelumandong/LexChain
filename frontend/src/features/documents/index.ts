@@ -4,4 +4,3 @@ export { DocumentsFilterSheet } from './documents-filter-sheet';
 export { DocumentsHeader } from './documents-header';
 export { DocumentsSearchField } from './documents-search-field';
 export { DocumentsSortSheet } from './documents-sort-sheet';
-export { MOCK_DOCUMENTS } from './mock-documents';
