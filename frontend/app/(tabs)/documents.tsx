@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouter } from 'expo-router';
 import { FlatList, Pressable, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -7,9 +7,6 @@ import {
   DocumentPreviewBottomSheet,
   ManageWhitelistBottomSheet,
   VerifyDocumentBottomSheet,
-  applyWhitelistToDocument,
-  hydrateDocumentsWithPersistedWhitelists,
-  persistDocumentWhitelist,
 } from '@/features/document';
 import {
   DocumentsFilterControls,
@@ -17,8 +14,8 @@ import {
   DocumentsHeader,
   DocumentResultCard,
   DocumentsSortSheet,
+  useDocumentsStore,
 } from '@/features/documents';
-import { MOCK_DOCUMENTS } from '@/mocks';
 import type {
   DocumentSortKey,
   DocumentStatusKey,
@@ -63,7 +60,12 @@ const DOCUMENT_SORT_OPTIONS = [
 
 export default function DocumentsScreen() {
   const router = useRouter();
-  const [documents, setDocuments] = useState(MOCK_DOCUMENTS);
+  const documents = useDocumentsStore((state) => state.documents);
+  const isHydratingDocuments = useDocumentsStore((state) => state.isHydrating);
+  const isPersistingDocuments = useDocumentsStore((state) => state.isPersisting);
+  const hydrationError = useDocumentsStore((state) => state.hydrationError);
+  const addWhitelistResult = useDocumentsStore((state) => state.addWhitelistResult);
+  const revokeWhitelistGrant = useDocumentsStore((state) => state.revokeWhitelistGrant);
   const [searchQuery, setSearchQuery] = useState('');
   const [documentTypeFilter, setDocumentTypeFilter] = useState<DocumentTypeKey>('all');
   const [documentStatusFilter, setDocumentStatusFilter] = useState<DocumentStatusKey>('all');
@@ -73,7 +75,6 @@ export default function DocumentsScreen() {
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [isVerifyOpen, setIsVerifyOpen] = useState(false);
   const [isWhitelistOpen, setIsWhitelistOpen] = useState(false);
-  const [isWhitelistLoading, setIsWhitelistLoading] = useState(false);
   const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false);
   const [isSortSheetOpen, setIsSortSheetOpen] = useState(false);
   const [whitelistSearchQuery, setWhitelistSearchQuery] = useState('');
@@ -167,35 +168,13 @@ export default function DocumentsScreen() {
   );
   const isAnySheetOpen =
     isPreviewOpen || isVerifyOpen || isWhitelistOpen || isFilterSheetOpen || isSortSheetOpen;
+  const isWhitelistLoading = isHydratingDocuments || isPersistingDocuments;
 
   useEffect(() => {
-    let isMounted = true;
-
-    const loadPersistedWhitelists = async () => {
-      setIsWhitelistLoading(true);
-
-      try {
-        const hydratedDocuments = await hydrateDocumentsWithPersistedWhitelists(MOCK_DOCUMENTS);
-
-        if (isMounted) {
-          setDocuments(hydratedDocuments);
-        }
-      } catch (error) {
-        console.error('Failed to hydrate persisted document whitelists.', error);
-        toast.error('Failed to load saved whitelist access');
-      } finally {
-        if (isMounted) {
-          setIsWhitelistLoading(false);
-        }
-      }
-    };
-
-    loadPersistedWhitelists();
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
+    if (hydrationError) {
+      toast.error(hydrationError);
+    }
+  }, [hydrationError]);
 
   useCloseSheetOnBack(isAnySheetOpen, () => {
     setIsPreviewOpen(false);
@@ -246,110 +225,29 @@ export default function DocumentsScreen() {
     }, 180);
   };
 
-  const updateDocumentWhitelist = (
-    documentId: string,
-    updater: (document: (typeof documents)[number]) => (typeof documents)[number],
-  ) => {
-    setDocuments((currentDocuments) =>
-      currentDocuments.map((document) =>
-        document.id === documentId ? updater(document) : document,
-      ),
-    );
-  };
-
-  const handleAddWhitelistResult = async (resultId: string) => {
+  const handleAddWhitelistResult = (resultId: string) => {
     if (!selectedDocument) return;
 
-    const result = selectedDocument.whitelist.searchResults.find((entry) => entry.id === resultId);
-
-    if (!result) return;
-
-    const nextWhitelist = {
-      ...selectedDocument.whitelist,
-      grants: [
-        {
-          id: result.id,
-          name: result.name,
-          email: result.email,
-          accessLabel: 'View access',
-          actionLabel: 'View',
-        },
-        ...selectedDocument.whitelist.grants,
-      ],
-      searchResults: selectedDocument.whitelist.searchResults.filter(
-        (entry) => entry.id !== resultId,
-      ),
-    };
-
-    updateDocumentWhitelist(selectedDocument.id, (document) =>
-      applyWhitelistToDocument(document, nextWhitelist),
-    );
-
-    setWhitelistSearchQuery('');
-    setIsWhitelistLoading(true);
-
-    try {
-      await persistDocumentWhitelist(selectedDocument.id, {
-        grants: nextWhitelist.grants,
-        searchResults: nextWhitelist.searchResults,
-      });
-
+    if (addWhitelistResult(selectedDocument.id, resultId)) {
+      setWhitelistSearchQuery('');
       toast.success('Access granted');
-    } catch (error) {
-      console.error('Failed to persist added whitelist entry.', error);
-      toast.error('Failed to save granted access');
-    } finally {
-      setIsWhitelistLoading(false);
+      return;
     }
+
+    toast.error('Failed to save granted access');
   };
 
-  const handleRevokeGrant = async (grantId: string) => {
+  const handleRevokeGrant = (grantId: string) => {
     if (!selectedDocument) {
       return;
     }
 
-    const grant = selectedDocument.whitelist.grants.find((entry) => entry.id === grantId);
-
-    if (!grant) {
+    if (revokeWhitelistGrant(selectedDocument.id, grantId)) {
+      toast.success('Access revoked');
       return;
     }
 
-    const nextWhitelist = {
-      ...selectedDocument.whitelist,
-      grants: selectedDocument.whitelist.grants.filter((entry) => entry.id !== grantId),
-      searchResults:
-        grant.email &&
-        !selectedDocument.whitelist.searchResults.some((entry) => entry.id === grant.id)
-          ? [
-              {
-                id: grant.id,
-                name: grant.name,
-                email: grant.email,
-              },
-              ...selectedDocument.whitelist.searchResults,
-            ]
-          : selectedDocument.whitelist.searchResults,
-    };
-
-    updateDocumentWhitelist(selectedDocument.id, (document) =>
-      applyWhitelistToDocument(document, nextWhitelist),
-    );
-
-    setIsWhitelistLoading(true);
-
-    try {
-      await persistDocumentWhitelist(selectedDocument.id, {
-        grants: nextWhitelist.grants,
-        searchResults: nextWhitelist.searchResults,
-      });
-
-      toast.success('Access revoked');
-    } catch (error) {
-      console.error('Failed to persist revoked whitelist entry.', error);
-      toast.error('Failed to revoke access');
-    } finally {
-      setIsWhitelistLoading(false);
-    }
+    toast.error('Failed to revoke access');
   };
 
   const activeFilterSummary = [
