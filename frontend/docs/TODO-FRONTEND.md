@@ -393,9 +393,11 @@ Project recommendation summary:
   - Documents search results use a virtualized list because the list can grow
 
 ### 9.4 State Management
-- [REC: later] Decide whether whitelist/document/profile state should stay local or move to Zustand
-- [REC: later] If global/persistent state becomes necessary, add Zustand store intentionally
-- [REC: later] If persistence is needed later, evaluate Zustand + AsyncStorage
+- [x] Move document and whitelist state to a backend-ready Zustand store
+  - [x] Add `zustand`
+  - [x] Persist document whitelist state with AsyncStorage
+  - [x] Keep profile state local until backend profile data exists
+  - [x] Keep auth token storage deferred to backend/auth wiring
 
 ### 9.5 Performance
 - [REC: later] Review callback/object stability on interactive screens
