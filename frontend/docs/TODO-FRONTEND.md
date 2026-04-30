@@ -365,15 +365,13 @@ Project recommendation summary:
   - [x] upload feedback
   - [x] auth feedback
 
-- [REC: adopt first] Decide whether to add skeleton loading
-  - Options:
-    - `moti/skeleton`
-    - manual shimmer
-- [REC: adopt first] If adopted, use skeletons for:
-  - dashboard cards
-  - documents list
-  - profile summary
-  - processing screen loading states
+- [/] Adopt skeleton loading
+  - [x] Create shared manual skeleton UI component
+  - [x] Add skeleton to whitelist loading state
+  - [ ] Add skeleton to dashboard cards when real loading exists
+  - [ ] Add skeleton to documents list when backend loading exists
+  - [ ] Add skeleton to profile summary when real loading exists
+  - [ ] Add skeleton to processing screen if needed
 
 ### 9.2 Images and Assets
 - [REC: later] Decide whether to replace image usage with `expo-image` where beneficial

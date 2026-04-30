@@ -8,7 +8,7 @@ import React, { useEffect, useMemo, useRef } from 'react';
 import { BackHandler, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { SearchInputWithResults } from '@/ui';
+import { SearchInputWithResults, SkeletonBox } from '@/ui';
 import type { ManageWhitelistData } from '@/types';
 import { WhitelistGrantRow } from './whitelist-grant-row';
 import { WhitelistSearchResultRow } from './whitelist-search-result-row';
@@ -173,11 +173,10 @@ export function ManageWhitelistBottomSheet({
           <Text style={styles.grantsTitle}>Current grants</Text>
 
           {isLoading && data.grants.length === 0 ? (
-            <View style={styles.stateCard}>
-              <Text style={styles.stateTitle}>Loading access list...</Text>
-              <Text style={styles.stateBody}>
-                Syncing whitelist entries for this document.
-              </Text>
+            <View style={styles.skeletonList}>
+              <SkeletonBox height={52} borderRadius={16} />
+              <SkeletonBox height={52} borderRadius={16} />
+              <SkeletonBox height={52} borderRadius={16} />
             </View>
           ) : data.grants.length === 0 ? (
             <View style={styles.stateCard}>
@@ -301,7 +300,10 @@ const styles = StyleSheet.create({
   grantsList: {
     gap: 10,
   },
-    stateCard: {
+  skeletonList: {
+    gap: 10,
+  },
+  stateCard: {
     borderRadius: 20,
     backgroundColor: COLORS.surface,
     borderWidth: 1,
