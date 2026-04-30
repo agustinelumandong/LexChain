@@ -1,1 +1,1 @@
-export { GetStartedHero } from './components/get-started-hero';
+export { GetStartedHero } from './get-started-hero';

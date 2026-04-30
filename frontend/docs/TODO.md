@@ -25,7 +25,7 @@ Status: `LATER`
 
 Files:
 - `app/index.tsx`
-- `src/features/onboarding/components/get-started-hero.tsx`
+- `src/features/onboarding/get-started-hero.tsx`
 - `src/shared/components/ui/button.tsx`
 
 Design source:
@@ -221,7 +221,7 @@ Files involved:
 - `app/index.tsx`
 - `app/(auth)/sign-in.tsx`
 - `app/(auth)/sign-up.tsx`
-- `src/features/onboarding/components/get-started-hero.tsx`
+- `src/features/onboarding/get-started-hero.tsx`
 - `src/features/auth/auth-screen-shell.tsx`
 - `src/features/auth/auth-header.tsx`
 - `src/features/auth/auth-input.tsx`
