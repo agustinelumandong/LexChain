@@ -408,9 +408,14 @@ Project recommendation summary:
 - [-] Use `InteractionManager` deferred until heavy post-navigation work is added
 
 ### 9.6 Bundle and Startup
-- [REC: later] Confirm Hermes / new architecture settings in Expo config when preparing builds
-- [REC: later] Review imports for bundle size issues before production
-- [REC: later] Consider lazy-loading heavy screens only if app grows significantly
+- [x] Confirm Hermes / new architecture settings in Expo config
+  - [x] `newArchEnabled` is enabled
+  - [x] `jsEngine` is explicitly set to `hermes`
+- [x] Review imports for bundle size issues before production
+  - [x] Current large dependencies are app-level libraries already used by implemented screens
+  - [x] Metro production minifier strips `console` and `debugger`
+- [-] Consider lazy-loading heavy screens only if app grows significantly
+  - Deferred until the app has heavier routes, remote media, or measured startup pressure
 
 ### 9.7 Build and Release
 - [REC: later] Decide when to add `eas.json`
