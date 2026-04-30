@@ -7,17 +7,17 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { MOCK_DOCUMENTS } from '@/features/documents';
 import { BottomNav } from '@/ui';
 
-import { fonts } from '@/theme';
+import { APP_COLORS, fonts } from '@/theme';
 const COLORS = {
-  bg: '#F3F8FF',
-  surface: '#FFFFFF',
-  surfaceSoft: '#EAF4FF',
+  bg: APP_COLORS.bg,
+  surface: APP_COLORS.white,
+  surfaceSoft: APP_COLORS.surfaceSoft,
   surfaceSuccess: '#EAF8F0',
   surfaceWarning: '#FFF4DD',
-  primary: '#1689F5',
-  navy: '#133B73',
-  textMuted: '#6F8FB5',
-  borderSoft: '#D7EBFF',
+  primary: APP_COLORS.primary,
+  navy: APP_COLORS.navy,
+  textMuted: APP_COLORS.textMuted,
+  borderSoft: APP_COLORS.borderSoft,
   warning: '#D28B00',
 };
 
@@ -310,7 +310,7 @@ const kpiStyles = StyleSheet.create({
     borderRadius: 24,
     padding: 16,
     gap: 8,
-    shadowColor: '#133B73',
+    shadowColor: APP_COLORS.navy,
     shadowOpacity: 0.06,
     shadowRadius: 16,
     shadowOffset: { width: 0, height: 4 },

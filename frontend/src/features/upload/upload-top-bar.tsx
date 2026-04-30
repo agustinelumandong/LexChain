@@ -2,12 +2,12 @@ import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 
-import { fonts } from '@/theme';
+import { APP_COLORS, fonts } from '@/theme';
 const COLORS = {
-  navy: '#133B73',
-  primary: '#1689F5',
-  textMuted: '#6F8FB5',
-  borderSoft: '#D7EBFF',
+  navy: APP_COLORS.navy,
+  primary: APP_COLORS.primary,
+  textMuted: APP_COLORS.textMuted,
+  borderSoft: APP_COLORS.borderSoft,
 };
 
 type UploadTopBarProps = {

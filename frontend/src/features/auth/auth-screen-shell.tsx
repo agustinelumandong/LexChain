@@ -2,8 +2,9 @@ import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
+import { APP_COLORS } from '@/theme';
 const COLORS = {
-  surface: '#F3F8FF',
+  surface: APP_COLORS.bg,
 };
 
 type AuthScreenShellProps = {

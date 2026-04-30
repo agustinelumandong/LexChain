@@ -6,12 +6,12 @@ import React, { useEffect, useRef, useState } from 'react';
 import { View, StyleSheet, Text, Pressable } from 'react-native';
 import { toast } from 'sonner-native';
 
-import { fonts } from '@/theme';
+import { APP_COLORS, fonts } from '@/theme';
 const COLORS = {
-  primary: '#1689F5',
-  navy: '#133B73',
-  surfaceSoft: '#F3F8FF',
-  white: '#FFFFFF',
+  primary: APP_COLORS.primary,
+  navy: APP_COLORS.navy,
+  surfaceSoft: APP_COLORS.bg,
+  white: APP_COLORS.white,
 
 };
 

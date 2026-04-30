@@ -17,10 +17,11 @@ import {
   UploadTopBar,
 } from '@/features/upload';
 
+import { APP_COLORS } from '@/theme';
 const COLORS = {
-  bg: '#F3F8FF',
-  primary: '#1689F5',
-  white: '#FFFFFF',
+  bg: APP_COLORS.bg,
+  primary: APP_COLORS.primary,
+  white: APP_COLORS.white,
 };
 
 const DOCUMENT_TYPE_OPTIONS = [
@@ -355,7 +356,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#1689F5',
+    shadowColor: APP_COLORS.primary,
     shadowOpacity: 0.16,
     shadowRadius: 20,
     shadowOffset: { width: 0, height: 12 },

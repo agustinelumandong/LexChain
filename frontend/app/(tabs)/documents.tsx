@@ -29,12 +29,12 @@ import { SearchInputWithResults, BottomNav } from '@/ui';
 import { useCloseSheetOnBack } from '@/hooks';
 import { toast } from 'sonner-native';
 
-import { fonts } from '@/theme';
+import { APP_COLORS, fonts } from '@/theme';
 const COLORS = {
-  bg: '#F3F8FF',
-  navy: '#133B73',
-  textMuted: '#6F8FB5',
-  surface: '#FFFFFF',
+  bg: APP_COLORS.bg,
+  navy: APP_COLORS.navy,
+  textMuted: APP_COLORS.textMuted,
+  surface: APP_COLORS.white,
 };
 
 const DOCUMENT_TYPE_OPTIONS = [
@@ -577,7 +577,7 @@ const styles = StyleSheet.create({
   resultRow: {
     backgroundColor: COLORS.surface,
     borderWidth: 1,
-    borderColor: '#D7EBFF',
+    borderColor: APP_COLORS.borderSoft,
     paddingVertical: 14,
     paddingHorizontal: 16,
     flexDirection: 'row',

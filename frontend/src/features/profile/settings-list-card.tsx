@@ -2,12 +2,12 @@ import { MaterialIcons } from '@expo/vector-icons';
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { fonts } from '@/theme';
+import { APP_COLORS, fonts } from '@/theme';
 const COLORS = {
-  navy: '#133B73',
-  textMuted: '#6F8FB5',
-  surface: '#FFFFFF',
-  borderSoft: '#D7EBFF',
+  navy: APP_COLORS.navy,
+  textMuted: APP_COLORS.textMuted,
+  surface: APP_COLORS.white,
+  borderSoft: APP_COLORS.borderSoft,
 };
 
 type SettingsItem = {
@@ -57,7 +57,7 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     padding: 16,
     gap: 12,
-    shadowColor: '#133B73',
+    shadowColor: APP_COLORS.navy,
     shadowOpacity: 0.06,
     shadowRadius: 16,
     shadowOffset: { width: 0, height: 4 },

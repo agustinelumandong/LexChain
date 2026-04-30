@@ -1,11 +1,11 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { fonts } from '@/theme';
+import { APP_COLORS, fonts } from '@/theme';
 const COLORS = {
-  navy: '#133B73',
-  textMuted: '#6F8FB5',
-  surface: '#FFFFFF',
+  navy: APP_COLORS.navy,
+  textMuted: APP_COLORS.textMuted,
+  surface: APP_COLORS.white,
 };
 
 type SummaryRow = {
@@ -47,7 +47,7 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     padding: 18,
     gap: 12,
-    shadowColor: '#133B73',
+    shadowColor: APP_COLORS.navy,
     shadowOpacity: 0.06,
     shadowRadius: 16,
     shadowOffset: { width: 0, height: 4 },

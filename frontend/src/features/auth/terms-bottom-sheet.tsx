@@ -17,17 +17,17 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { fonts } from '@/theme';
+import { APP_COLORS, fonts } from '@/theme';
 const COLORS = {
   backdrop: 'rgba(4, 18, 40, 0.42)',
-  sheet: '#F3F8FF',
-  surface: '#FFFFFF',
-  surfaceSoft: '#EAF4FF',
-  primary: '#1689F5',
-  navy: '#133B73',
-  textMuted: '#6F8FB5',
-  borderSoft: '#D7EBFF',
-  success: '#12A150',
+  sheet: APP_COLORS.bg,
+  surface: APP_COLORS.white,
+  surfaceSoft: APP_COLORS.surfaceSoft,
+  primary: APP_COLORS.primary,
+  navy: APP_COLORS.navy,
+  textMuted: APP_COLORS.textMuted,
+  borderSoft: APP_COLORS.borderSoft,
+  success: APP_COLORS.success,
 };
 
 type TermsBottomSheetProps = {

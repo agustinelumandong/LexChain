@@ -8,16 +8,16 @@ import React, { useEffect, useMemo, useRef } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { fonts } from '@/theme';
+import { APP_COLORS, fonts } from '@/theme';
 const COLORS = {
   backdrop: 'rgba(4, 18, 40, 0.42)',
-  sheet: '#F3F8FF',
-  surface: '#FFFFFF',
-  borderSoft: '#D7EBFF',
-  navy: '#133B73',
-  textMuted: '#6F8FB5',
-  primary: '#1689F5',
-  primarySoft: '#EAF4FF',
+  sheet: APP_COLORS.bg,
+  surface: APP_COLORS.white,
+  borderSoft: APP_COLORS.borderSoft,
+  navy: APP_COLORS.navy,
+  textMuted: APP_COLORS.textMuted,
+  primary: APP_COLORS.primary,
+  primarySoft: APP_COLORS.surfaceSoft,
 };
 
 type UploadTypeBottomSheetProps = {

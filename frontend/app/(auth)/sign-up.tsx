@@ -6,17 +6,17 @@ import React, { useEffect, useRef, useState } from "react";
 import { View, StyleSheet, Text } from "react-native";
 import { toast } from 'sonner-native';
 
-import { fonts } from '@/theme';
+import { APP_COLORS, fonts } from '@/theme';
 const COLORS = {
-  primary: '#1689F5',
-  navy: '#133B73',
-  surfaceSoft: '#F3F8FF',
-  white: '#FFFFFF',
-  textMuted: '#6F8FB5',
-  borderSoft: '#D7EBFF',
-  success: '#12A150',
-  warning: '#F59E0B',
-  danger: '#D94B66',
+  primary: APP_COLORS.primary,
+  navy: APP_COLORS.navy,
+  surfaceSoft: APP_COLORS.bg,
+  white: APP_COLORS.white,
+  textMuted: APP_COLORS.textMuted,
+  borderSoft: APP_COLORS.borderSoft,
+  success: APP_COLORS.success,
+  warning: APP_COLORS.warning,
+  danger: APP_COLORS.danger,
 };
 
 const PASSWORD_RULES = [

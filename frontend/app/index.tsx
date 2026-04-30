@@ -14,14 +14,14 @@ import { Text, View, StyleSheet } from 'react-native';
 
 import { StatusBar } from 'expo-status-bar';
 
-import { fonts } from '@/theme';
+import { APP_COLORS, fonts } from '@/theme';
 const COLORS = {
-  primary: '#1689F5',
+  primary: APP_COLORS.primary,
   primarySoft: '#3AA2FF',
   sky: '#D4ECFF',
-  navy: '#133B73',
-  textMuted: '#6F8FB5',
-  white: '#FFFFFF',
+  navy: APP_COLORS.navy,
+  textMuted: APP_COLORS.textMuted,
+  white: APP_COLORS.white,
 };
 
 const SHEET_SNAP_POINTS = ['35%', '36%'];

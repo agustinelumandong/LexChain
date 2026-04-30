@@ -3,11 +3,11 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { Button } from '@/ui';
 
-import { fonts } from '@/theme';
+import { APP_COLORS, fonts } from '@/theme';
 const COLORS = {
-  primary: '#1689F5',
-  navy: '#133B73',
-  textMuted: '#6F8FB5',
+  primary: APP_COLORS.primary,
+  navy: APP_COLORS.navy,
+  textMuted: APP_COLORS.textMuted,
   surfaceSoft: '#F7FBFF',
   successSoft: '#EAF8F0',
 };

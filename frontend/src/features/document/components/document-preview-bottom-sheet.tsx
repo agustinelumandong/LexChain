@@ -15,10 +15,11 @@ import { DocumentScreenHeader } from './document-screen-header';
 import { DocumentSummaryCard } from './document-summary-card';
 import { DocumentTopBar } from './document-top-bar';
 
+import { APP_COLORS } from '@/theme';
 const COLORS = {
   backdrop: 'rgba(4, 18, 40, 0.42)',
-  sheet: '#F3F8FF',
-  borderSoft: '#D7EBFF',
+  sheet: APP_COLORS.bg,
+  borderSoft: APP_COLORS.borderSoft,
 };
 
 type DocumentPreviewBottomSheetProps = {

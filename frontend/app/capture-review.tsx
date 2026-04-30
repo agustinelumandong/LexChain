@@ -12,13 +12,13 @@ import {
 } from '@/features/upload';
 import { Button } from '@/ui';
 
-import { fonts } from '@/theme';
+import { APP_COLORS, fonts } from '@/theme';
 const COLORS = {
   bg: '#041228',
   surface: '#0B1E38',
   surfaceSoft: 'rgba(255,255,255,0.08)',
-  white: '#FFFFFF',
-  primary: '#1689F5',
+  white: APP_COLORS.white,
+  primary: APP_COLORS.primary,
   textMuted: '#B8CCE8',
 };
 

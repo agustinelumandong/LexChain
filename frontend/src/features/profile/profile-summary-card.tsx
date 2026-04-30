@@ -2,14 +2,14 @@ import { MaterialIcons } from '@expo/vector-icons';
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { fonts } from '@/theme';
+import { APP_COLORS, fonts } from '@/theme';
 const COLORS = {
-  primary: '#1689F5',
-  navy: '#133B73',
-  textMuted: '#6F8FB5',
-  surface: '#FFFFFF',
-  surfaceSoft: '#EAF4FF',
-  borderSoft: '#D7EBFF',
+  primary: APP_COLORS.primary,
+  navy: APP_COLORS.navy,
+  textMuted: APP_COLORS.textMuted,
+  surface: APP_COLORS.white,
+  surfaceSoft: APP_COLORS.surfaceSoft,
+  borderSoft: APP_COLORS.borderSoft,
 };
 
 type ProfileSummaryCardProps = {
@@ -63,7 +63,7 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     padding: 16,
     gap: 12,
-    shadowColor: '#133B73',
+    shadowColor: APP_COLORS.navy,
     shadowOpacity: 0.06,
     shadowRadius: 16,
     shadowOffset: { width: 0, height: 4 },
