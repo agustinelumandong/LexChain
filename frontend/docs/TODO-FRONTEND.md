@@ -368,9 +368,9 @@ Project recommendation summary:
 - [/] Adopt skeleton loading
   - [x] Create shared manual skeleton UI component
   - [x] Add skeleton to whitelist loading state
-  - [ ] Add skeleton to dashboard cards when real loading exists
-  - [ ] Add skeleton to documents list when backend loading exists
-  - [ ] Add skeleton to profile summary when real loading exists
+  - [x] Add dashboard card skeleton component for future loading
+  - [x] Add documents list skeleton component for future backend loading
+  - [x] Add profile summary skeleton component for future backend loading
   - [ ] Add skeleton to processing screen if needed
 
 ### 9.2 Images and Assets

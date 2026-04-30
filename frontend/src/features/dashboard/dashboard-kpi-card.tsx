@@ -1,5 +1,6 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { APP_COLORS, fonts } from '@/theme';
+import { SkeletonBox } from '@/ui';
 
 const COLORS = {
   surface: APP_COLORS.white,
@@ -35,6 +36,19 @@ export function DashboardKpiCard({
           ]}
         />
         <Text style={styles.meta}>{meta}</Text>
+      </View>
+    </View>
+  );
+}
+
+export function DashboardKpiSkeleton() {
+  return (
+    <View style={styles.card}>
+      <SkeletonBox width="60%" height={14} borderRadius={999} />
+      <SkeletonBox width="42%" height={30} borderRadius={999} />
+      <View style={styles.metaRow}>
+        <SkeletonBox width={10} height={10} borderRadius={999} />
+        <SkeletonBox width="70%" height={14} borderRadius={999} />
       </View>
     </View>
   );

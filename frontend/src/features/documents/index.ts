@@ -1,4 +1,5 @@
 export { DocumentResultCard } from './document-result-card';
+export { DocumentsListSkeleton } from './documents-list-skeleton';
 export { DocumentsFilterControls } from './documents-filter-controls';
 export { DocumentsFilterSheet } from './documents-filter-sheet';
 export { DocumentsHeader } from './documents-header';

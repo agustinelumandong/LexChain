@@ -3,6 +3,7 @@ import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { APP_COLORS, fonts } from '@/theme';
+import { SkeletonBox } from '@/ui';
 const COLORS = {
   primary: APP_COLORS.primary,
   navy: APP_COLORS.navy,
@@ -53,6 +54,33 @@ export function ProfileSummaryCard({
       <View style={styles.statusChip}>
         <Text style={styles.statusChipText}>Verified member</Text>
       </View>
+    </View>
+  );
+}
+
+export function ProfileSummarySkeleton() {
+  return (
+    <View style={styles.card}>
+      <View style={styles.topRow}>
+        <SkeletonBox width={60} height={60} borderRadius={18} />
+
+        <View style={styles.copy}>
+          <SkeletonBox width="55%" height={20} borderRadius={999} />
+          <SkeletonBox width="42%" height={14} borderRadius={999} />
+        </View>
+      </View>
+
+      <View style={styles.infoRow}>
+        <SkeletonBox width={16} height={16} borderRadius={999} />
+        <SkeletonBox width="70%" height={14} borderRadius={999} />
+      </View>
+
+      <View style={styles.infoRow}>
+        <SkeletonBox width={16} height={16} borderRadius={999} />
+        <SkeletonBox width="62%" height={14} borderRadius={999} />
+      </View>
+
+      <SkeletonBox width={120} height={32} borderRadius={999} />
     </View>
   );
 }
