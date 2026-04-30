@@ -283,7 +283,7 @@ Immediate recommended next target:
 - [x] Start Phase 1.1 Path Aliases
 - [x] Then Phase 1.2 Barrel Files
 - [x] Then Phase 1.3 Centralized Types Folder
-- [ ] Then Phase 1.4 Centralized Constants
+- [x] Then Phase 1.4 Centralized Constants
 
 Phase 1 mirror checklist from `TOBE_SOON.md`:
 - [x] 1.1 Path Aliases
@@ -297,9 +297,9 @@ Phase 1 mirror checklist from `TOBE_SOON.md`:
 - [x] 1.3 Centralized Types Folder
   - [x] Create document/auth/upload type files and `src/types/index.ts`
   - [x] Move shared feature types into `@/types`
-- [ ] 1.4 Centralized Constants
-  - [ ] Move storage keys into `src/constants/storage-keys.ts`
-  - [ ] Update whitelist storage to use `@/constants`
+- [x] 1.4 Centralized Constants
+  - [x] Move storage keys into `src/constants/storage-keys.ts`
+  - [x] Update whitelist storage to use `@/constants`
 - [ ] 1.5 Theme Cleanup
   - [ ] Export shared fonts and colors from `src/shared/theme/theme.ts`
   - [ ] Replace repeated `fontFamily: 'Inter'` and duplicated color constants over time
