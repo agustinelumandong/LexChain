@@ -311,8 +311,8 @@ Phase 1 mirror checklist from `TOBE_SOON.md`:
   - [x] Move root `tw.ts` into `src/shared/utils/tw.ts`
 - [x] 1.8 Delete Expo Starter Leftovers
   - [x] Confirm no references, then delete unused starter components
-- [ ] 1.9 Delete Dead Code
-  - [ ] Confirm and delete unused `upload-select-field.tsx`
+- [x] 1.9 Delete Dead Code
+  - [x] Confirm and delete unused `upload-select-field.tsx`
 - [ ] 1.10 Flatten Unnecessary Nesting
   - [ ] Move onboarding hero up one level if the folder remains single-file
 
