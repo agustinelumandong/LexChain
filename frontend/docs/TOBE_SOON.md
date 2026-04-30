@@ -180,28 +180,32 @@ Priority: 2 — Do while building new screens. Keeps route files clean.
 Status: `[x]`
 
 Files:
-- `app/(tabs)/index.tsx` — currently holds styles, kpiStyles, docStyles
-- `app/(tabs)/index.styles.ts` — create this
+- `src/features/dashboard/dashboard-overview.styles.ts` — current dashboard style location
+- `app/(tabs)/documents.styles.ts`
+- `app/(tabs)/profile.styles.ts`
 
-- [x] Create `app/(tabs)/index.styles.ts` and move all three StyleSheet blocks there
-- [x] Import the styles back into `index.tsx`
+- [x] Move dashboard route styles out of `app/(tabs)/index.tsx`
+- [x] Move dashboard styles into the dashboard feature folder after 2.2 extraction
 - [x] Apply the same styles-extraction pattern to `app/(tabs)/documents.tsx` and `app/(tabs)/profile.tsx` if they also have large StyleSheet blocks
 
 ---
 
 ### 2.2 Fill the Dashboard Feature Folder
-Status: `[/]`
+Status: `[x]`
 
 Files to create:
+- `src/features/dashboard/dashboard-overview.tsx`
+- `src/features/dashboard/dashboard-overview.styles.ts`
 - `src/features/dashboard/dashboard-kpi-card.tsx`
 - `src/features/dashboard/dashboard-recent-list.tsx`
 - `src/features/dashboard/use-dashboard.ts`
 - `src/features/dashboard/index.ts`
 
+- [x] Extract dashboard screen JSX from `app/(tabs)/index.tsx` into `dashboard-overview.tsx`
 - [x] Extract `KpiCard` component from `app/(tabs)/index.tsx` into `dashboard-kpi-card.tsx`
 - [x] Extract `DocumentRow` component from `app/(tabs)/index.tsx` into `dashboard-recent-list.tsx`
 - [x] Extract all `useState` / `useMemo` logic into `use-dashboard.ts` hook
-- [ ] Reduce `app/(tabs)/index.tsx` to ~25–40 lines (JSX + hook calls only)
+- [x] Reduce `app/(tabs)/index.tsx` to a small route wrapper
 - [x] Create barrel `src/features/dashboard/index.ts`
 
 ---
