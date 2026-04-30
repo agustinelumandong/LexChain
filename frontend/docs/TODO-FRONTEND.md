@@ -309,8 +309,8 @@ Phase 1 mirror checklist from `TOBE_SOON.md`:
   - [x] Add `src/mocks/index.ts`
 - [x] 1.7 Move `tw.ts`
   - [x] Move root `tw.ts` into `src/shared/utils/tw.ts`
-- [ ] 1.8 Delete Expo Starter Leftovers
-  - [ ] Confirm no references, then delete unused starter components
+- [x] 1.8 Delete Expo Starter Leftovers
+  - [x] Confirm no references, then delete unused starter components
 - [ ] 1.9 Delete Dead Code
   - [ ] Confirm and delete unused `upload-select-field.tsx`
 - [ ] 1.10 Flatten Unnecessary Nesting
