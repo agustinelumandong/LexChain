@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useRouter } from 'expo-router';
 import * as DocumentPicker from 'expo-document-picker';
+import * as Haptics from 'expo-haptics';
 import { useFocusEffect } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
@@ -88,6 +89,7 @@ export default function UploadScreen() {
     `${count} allowed wallet${count === 1 ? '' : 's'}/users`;
 
   const openWhitelist = () => {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setIsWhitelistOpen(true);
   };
 
@@ -122,6 +124,7 @@ export default function UploadScreen() {
     setWhitelistSearchQuery('');
 
     if (addedName) {
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       toast.success(`${addedName} added to upload access`);
     }
   };
@@ -156,6 +159,7 @@ export default function UploadScreen() {
     });
 
     if (revokedName) {
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       toast.success(`${revokedName} removed from upload access`);
     }
   };
@@ -173,6 +177,8 @@ export default function UploadScreen() {
   };
 
   const handleChooseFile = async () => {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+
     try {
       const result = await DocumentPicker.getDocumentAsync({
         copyToCacheDirectory: true,
@@ -185,6 +191,7 @@ export default function UploadScreen() {
       }
 
       if (!result.assets?.length) {
+        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
         toast.warning('No files were selected');
         return;
       }
@@ -208,20 +215,24 @@ export default function UploadScreen() {
       );
     } catch (error) {
       console.error('Failed to choose upload file', error);
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       toast.error('Failed to choose file');
     }
   };
 
   const handleOpenCameraCapture = () => {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     router.push('/camera-capture');
   };
 
   const handleContinueToProcessing = () => {
     if (pickedFiles.length === 0) {
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       toast.warning('Add a file or captured page first');
       return;
     }
 
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     toast.success('Upload started');
     router.push('/processing');
   };

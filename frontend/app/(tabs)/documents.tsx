@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'expo-router';
+import * as Haptics from 'expo-haptics';
 import { FlatList, Pressable, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
@@ -173,6 +174,7 @@ export default function DocumentsScreen() {
 
   useEffect(() => {
     if (hydrationError) {
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       toast.error(hydrationError);
     }
   }, [hydrationError]);
@@ -194,6 +196,7 @@ export default function DocumentsScreen() {
         return;
       }
 
+      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       setSelectedDocumentId(nextDocument.id);
       setIsVerifyOpen(false);
       setIsPreviewOpen(true);
@@ -209,6 +212,7 @@ export default function DocumentsScreen() {
         return;
       }
 
+      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       setSelectedDocumentId(nextDocument.id);
       setIsPreviewOpen(false);
       setIsVerifyOpen(true);
@@ -237,10 +241,12 @@ export default function DocumentsScreen() {
 
     if (addWhitelistResult(selectedDocument.id, resultId)) {
       setWhitelistSearchQuery('');
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       toast.success('Access granted');
       return;
     }
 
+    void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     toast.error('Failed to save granted access');
   };
 
@@ -250,10 +256,12 @@ export default function DocumentsScreen() {
     }
 
     if (revokeWhitelistGrant(selectedDocument.id, grantId)) {
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       toast.success('Access revoked');
       return;
     }
 
+    void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     toast.error('Failed to revoke access');
   };
 

@@ -1,5 +1,6 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'expo-router';
+import * as Haptics from 'expo-haptics';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AiSummaryDraftCard } from '@/features/upload';
@@ -29,6 +30,7 @@ const PROCESSING_STEPS = [
 
 export default function ProcessingScreen() {
   const router = useRouter();
+  const hasNotifiedCompletionRef = useRef(false);
   const [activeStepIndex, setActiveStepIndex] = useState(1);
 
   useEffect(() => {
@@ -64,6 +66,15 @@ export default function ProcessingScreen() {
       }),
     [activeStepIndex, isComplete],
   );
+
+  useEffect(() => {
+    if (!isComplete || hasNotifiedCompletionRef.current) {
+      return;
+    }
+
+    hasNotifiedCompletionRef.current = true;
+    void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+  }, [isComplete]);
 
   return (
     <SafeAreaView style={styles.screen}>

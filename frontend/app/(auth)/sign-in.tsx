@@ -7,6 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from '@/ui';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import * as Haptics from 'expo-haptics';
 import { toast } from 'sonner-native';
 import { APP_COLORS, fonts } from '@/theme';
 
@@ -56,6 +57,7 @@ export default function SignInScreen() {
       router.push('/(tabs)');
     },
     () => {
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       toast.warning('Check your email and password');
     },
   );
