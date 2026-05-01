@@ -15,7 +15,7 @@ export const secureStorage = {
   async remove(key: SecureStorageKey) {
     await SecureStore.deleteItemAsync(key);
   },
-}
+};
 
 export const authTokenStorage = {
   async set(token: string) {
@@ -28,6 +28,5 @@ export const authTokenStorage = {
 
   async remove() {
     await secureStorage.remove(STORAGE_KEYS.authToken);
-  }
-}
- }
+  },
+};
