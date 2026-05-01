@@ -298,16 +298,16 @@ Files to create:
 ---
 
 ### 3.7 Form Validation with Zod
-Status: `[ ]`
+Status: `[x]`
 
 Files to create:
 - `src/features/auth/schemas/sign-in.schema.ts`
 - `src/features/auth/schemas/sign-up.schema.ts`
 
-- [ ] Install `react-hook-form`, `zod`, `@hookform/resolvers`
-- [ ] Create `signInSchema` with email and password validation
-- [ ] Create `signUpSchema` with all sign-up field rules (replace manual `validateSignUp`)
-- [ ] Replace `useState` error fields in `sign-in.tsx` and `sign-up.tsx` with `useForm` + `zodResolver`
+- [x] Install `react-hook-form`, `zod`, `@hookform/resolvers`
+- [x] Create `signInSchema` with email and password validation
+- [x] Create `signUpSchema` with all sign-up field rules (replace manual `validateSignUp`)
+- [x] Replace `useState` error fields in `sign-in.tsx` and `sign-up.tsx` with `useForm` + `zodResolver`
 
 ---
 

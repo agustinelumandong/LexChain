@@ -1,30 +1,33 @@
-import { AuthHeader, AuthInput, AuthScreenShell } from '@/features/auth';
+import React, { useEffect, useRef, useState } from 'react';
+import { View, StyleSheet, Text, Pressable } from 'react-native';
+import { AuthHeader, AuthInput, AuthScreenShell, signInSchema } from '@/features/auth';
+import type { SignInFormValues } from '@/features/auth';
+import { Controller, useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from '@/ui';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import React, { useEffect, useRef, useState } from 'react';
-import { View, StyleSheet, Text, Pressable } from 'react-native';
 import { toast } from 'sonner-native';
-
 import { APP_COLORS, fonts } from '@/theme';
-const COLORS = {
-  primary: APP_COLORS.primary,
-  navy: APP_COLORS.navy,
-  surfaceSoft: APP_COLORS.bg,
-  white: APP_COLORS.white,
-
-};
 
 export default function SignInScreen() {
   const router = useRouter();
   const transitionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [isSwitchingScreen, setIsSwitchingScreen] = useState(false);
-  const [emailError, setEmailError] = useState('');
-  const [passwordError, setPasswordError] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
+
+  const {
+    control,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<SignInFormValues>({
+    resolver: zodResolver(signInSchema),
+    defaultValues: {
+      email: '',
+      password: '',
+    },
+  });
 
   useEffect(() => {
     return () => {
@@ -47,41 +50,15 @@ export default function SignInScreen() {
     }, 420);
   };
 
-  const validateSignIn = () => {
-    let isValid = true;
-
-    if (!email.trim()) {
-      setEmailError('Email address is required.');
-      isValid = false;
-    } else if (!/\S+@\S+\.\S+/.test(email.trim())) {
-      setEmailError('Enter a valid email address.');
-      isValid = false;
-    } else {
-      setEmailError('');
-    }
-
-    if (!password.trim()) {
-      setPasswordError('Password is required.');
-      isValid = false;
-    } else if (password.trim().length < 8) {
-      setPasswordError('Password must be at least 8 characters.');
-      isValid = false;
-    } else {
-      setPasswordError('');
-    }
-
-    return isValid;
-  };
-
-  const handleSignIn = () => {
-    if (!validateSignIn()) {
+  const handleSignIn = handleSubmit(
+    () => {
+      toast.success('Signed in successfully');
+      router.push('/(tabs)');
+    },
+    () => {
       toast.warning('Check your email and password');
-      return;
-    }
-
-    toast.success('Signed in successfully');
-    router.push('/(tabs)');
-  };
+    },
+  );
 
   const navigateToForgotPassword = () => {
     router.push('/(auth)/forgot-password');
@@ -96,35 +73,38 @@ export default function SignInScreen() {
           description="Access your repository."
         />
         <View style={styles.fieldStack} >
-          <AuthInput
-            label="Email"
-            placeholder="your@email.com"
-            value={email}
-            onChangeText={(value) => {
-              setEmail(value);
-              if (emailError) {
-                setEmailError('');
-              }
-            }}
-            iconName="mail-outline"
-            keyboardType="email-address"
-            error={emailError}
+         <Controller
+            control={control}
+            name="email"
+            render={({ field: { value, onChange } }) => (
+              <AuthInput
+                label="Email"
+                placeholder="your@email.com"
+                value={value}
+                onChangeText={onChange}
+                iconName="mail-outline"
+                keyboardType="email-address"
+                error={errors.email?.message}
+              />
+            )}
           />
 
-          <AuthInput
-            label="Password"
-            placeholder="●●●●●●●●"
-            value={password}
-            onChangeText={(value) => {
-              setPassword(value);
-              if (passwordError) {
-                setPasswordError('');
-              }
-            }}
-            iconName="lock-outline"
-            secureTextEntry
-            error={passwordError}
+          <Controller
+            control={control}
+            name="password"
+            render={({ field: { value, onChange } }) => (
+              <AuthInput
+                label="Password"
+                placeholder="●●●●●●●●"
+                value={value}
+                onChangeText={onChange}
+                iconName="lock-outline"
+                secureTextEntry
+                error={errors.password?.message}
+              />
+            )}
           />
+
         </View>
 
         <View style={styles.utilityRow}>
@@ -134,7 +114,7 @@ export default function SignInScreen() {
           >
             <View style={[styles.checkbox, rememberMe && styles.checkboxChecked]}>
               {rememberMe ? (
-                <MaterialIcons name="check" size={14} color={COLORS.white} />
+                <MaterialIcons name="check" size={14} color={APP_COLORS.white} />
               ) : null}
             </View>
             <Text style={styles.chipText}>REMEMBER ME</Text>
@@ -187,7 +167,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 999,
-    backgroundColor: COLORS.surfaceSoft,
+    backgroundColor: APP_COLORS.bg,
   },
   chipActive: {
     backgroundColor: '#E3F1FF',
@@ -197,16 +177,16 @@ const styles = StyleSheet.create({
     height: 18,
     borderRadius: 999,
     borderWidth: 1.5,
-    borderColor: COLORS.primary,
+    borderColor: APP_COLORS.primary,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'transparent',
   },
   checkboxChecked: {
-    backgroundColor: COLORS.primary,
+    backgroundColor: APP_COLORS.primary,
   },
   chipText: {
-    color: COLORS.primary,
+    color: APP_COLORS.primary,
     fontSize: 12,
     lineHeight: 14,
     fontWeight: '700',
@@ -214,7 +194,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.4,
   },
   forgotText: {
-    color: COLORS.primary,
+    color: APP_COLORS.primary,
     fontSize: 13,
     lineHeight: 16,
     fontWeight: '700',
