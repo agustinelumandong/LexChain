@@ -333,14 +333,17 @@ Files:
 ---
 
 ### 4.2 Font Loading
-Status: `[ ]`
+Status: `[x]`
 
 Files:
 - `app/_layout.tsx`
 
-- [ ] Audit which Inter weights are actually used in StyleSheet files (400, 500, 700, 800)
-- [ ] Load only those 4 weights via `useFonts` — remove any others
-- [ ] Hook font loading into the splash screen flow (hide splash only after fonts are ready)
+- [x] Audit which Inter weights are actually used in StyleSheet files
+  - Current used weights: `500`, `600`, `700`, `800`
+- [-] Load only those 4 weights via `useFonts` — remove any others
+  - Deferred because no local Inter font files exist under `assets`
+- [-] Hook font loading into the splash screen flow (hide splash only after fonts are ready)
+  - Deferred until real font files are added
 
 ---
 
