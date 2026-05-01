@@ -12,7 +12,7 @@ export const secureStorage = {
     return await SecureStore.getItemAsync(key);
   },
 
-  async remove(key: SecureStorageKey) {
+  async delete(key: SecureStorageKey) {
     await SecureStore.deleteItemAsync(key);
   },
 };
@@ -26,7 +26,7 @@ export const authTokenStorage = {
     return secureStorage.get(STORAGE_KEYS.authToken);
   },
 
-  async remove() {
-    await secureStorage.remove(STORAGE_KEYS.authToken);
+  async delete() {
+    await secureStorage.delete(STORAGE_KEYS.authToken);
   },
 };
