@@ -1,5 +1,5 @@
 import { MaterialIcons } from '@expo/vector-icons';
-import React from 'react';
+import React, { memo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { APP_COLORS, fonts } from '@/theme';
@@ -21,7 +21,7 @@ type DocumentResultCardProps = {
   onPressMore?: () => void;
 };
 
-export function DocumentResultCard({
+export const DocumentResultCard = memo(function DocumentResultCard({
   title,
   parties,
   date,
@@ -62,7 +62,7 @@ export function DocumentResultCard({
       </View>
     </Pressable>
   );
-}
+});
 
 const styles = StyleSheet.create({
   card: {
