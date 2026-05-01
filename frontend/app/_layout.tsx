@@ -12,12 +12,16 @@ import { Platform } from "react-native";
 import { Toaster } from "sonner-native";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient, setupQueryFocusListener } from "@/shared/providers";
+import { OfflineBanner } from "@/ui";
+import { useNetwork } from "@/hooks";
 
 export const unstable_settings = {
   anchor: "(tabs)",
 };
 
 export default function RootLayout() {
+  const { isOnline } = useNetwork();
+
   useEffect(() => {
     if (Platform.OS === "android") {
       NavigationBar.setStyle("auto");
@@ -32,6 +36,7 @@ export default function RootLayout() {
     <QueryClientProvider client={queryClient}>
       <GestureHandlerRootView style={{ flex: 1 }}>
         <SafeAreaProvider>
+          {!isOnline ? <OfflineBanner /> : null}
           <BottomSheetModalProvider>
             <StatusBar style="auto" />
             <ThemeProvider value={DefaultTheme}>
