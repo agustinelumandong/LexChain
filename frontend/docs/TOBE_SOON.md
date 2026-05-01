@@ -214,16 +214,16 @@ Files to create:
 Priority: 3 — Do when backend wiring begins. These are not needed until real API calls exist.
 
 ### 3.1 Centralized Error Handling
-Status: `[ ]`
+Status: `[x]`
 
 Files to create:
 - `src/shared/utils/api-error.ts`
 - `src/shared/hooks/use-error-toast.ts`
 
-- [ ] Create `parseApiError(error: unknown): AppError` utility in `api-error.ts`
-- [ ] Handle Axios errors, network errors, and unknown errors
-- [ ] Create `useErrorToast` hook that calls `parseApiError` and handles `UNAUTHORIZED` redirect
-- [ ] Replace all per-screen `try/catch` error handling with `useErrorToast`
+- [x] Create `parseApiError(error: unknown): AppError` utility in `api-error.ts`
+- [x] Handle Axios errors, network errors, and unknown errors
+- [x] Create `useErrorToast` hook that calls `parseApiError` and handles `UNAUTHORIZED` redirect
+- [-] Replace all per-screen `try/catch` error handling with `useErrorToast`
 
 ---
 
