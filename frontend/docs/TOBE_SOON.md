@@ -315,16 +315,20 @@ Files to create:
 Priority: 4 — Do before any release or demo build.
 
 ### 4.1 Bundle & Build
-Status: `[ ]`
+Status: `[x]`
 
 Files:
 - `metro.config.js`
 - `app.json`
 
-- [ ] Add `drop_console: true` and `drop_debugger: true` to Metro `minifierConfig` (strips logs from prod bundle)
-- [ ] Verify `jsEngine: "hermes"` is set in `app.json` (should be default in Expo 54, but confirm)
-- [ ] Run `npx expo-bundle-visualizer` and audit for unexpectedly large packages
-- [ ] Confirm only one icon set is used throughout (MaterialIcons only — no mixing)
+- [x] Add `drop_console: true` and `drop_debugger: true` to Metro `minifierConfig` (strips logs from prod bundle)
+- [x] Verify `jsEngine: "hermes"` is set in `app.json` (should be default in Expo 54, but confirm)
+- [-] Run `npx expo-bundle-visualizer` and audit for unexpectedly large packages
+  - Deferred until the first release candidate build
+- [x] Confirm only one icon set is used throughout
+  - App UI uses MaterialIcons through `@expo/vector-icons`
+  - Tab `IconSymbol` keeps Expo Symbols for iOS with MaterialIcons fallback
+  - Removed unused `lucide-react-native` dependency
 
 ---
 
