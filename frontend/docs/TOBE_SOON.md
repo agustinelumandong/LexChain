@@ -285,15 +285,15 @@ Files to create:
 ---
 
 ### 3.6 Shared Query State Components
-Status: `[ ]`
+Status: `[x]`
 
 Files to create:
 - `src/shared/components/ui/query-states.tsx`
 
-- [ ] Create `LoadingState` component (ActivityIndicator with primary color)
-- [ ] Create `ErrorState` component (message + retry Button)
-- [ ] Create `EmptyState` component (message text)
-- [ ] Replace all per-screen inline loading/error/empty patterns with these shared components
+- [x] Create `LoadingState` component (ActivityIndicator with primary color)
+- [x] Create `ErrorState` component (message + retry Button)
+- [x] Create `EmptyState` component (message text)
+- [-] Replace all per-screen inline loading/error/empty patterns with these shared components
 
 ---
 
