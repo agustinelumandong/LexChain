@@ -247,10 +247,10 @@ Status: `[x]`
 Files to create:
 - `src/shared/utils/secure-storage.ts`
 
-- [ ] Install `expo-secure-store`
-- [ ] Create `secureStorage` wrapper with `set`, `get`, `delete` methods
-- [ ] Store auth tokens via `secureStorage`, not `AsyncStorage`
-- [ ] Keep `AsyncStorage` for non-sensitive data (whitelist, UI preferences)
+- [x] Install `expo-secure-store`
+- [x] Create `secureStorage` wrapper with `set`, `get`, `delete` methods
+- [x] Store auth tokens via `secureStorage`, not `AsyncStorage`
+- [x] Keep `AsyncStorage` for non-sensitive data (whitelist, UI preferences)
 
 ---
 
