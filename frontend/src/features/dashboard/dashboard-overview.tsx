@@ -2,6 +2,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { BottomNav } from '@/ui';
 
@@ -30,18 +31,22 @@ export function DashboardOverview() {
           </View>
 
           <View style={styles.kpiRow}>
-            <DashboardKpiCard
-              label="Documents"
-              value={`${dashboardStats.documentsCount}`}
-              meta={`${dashboardStats.verifiedCount} verified`}
-              tone={dashboardStats.verifiedCount > 0 ? 'positive' : 'warning'}
-            />
-            <DashboardKpiCard
-              label="Active grants"
-              value={`${dashboardStats.activeGrantsCount}`}
-              meta={`${dashboardStats.reviewNeededCount} need review`}
-              tone={dashboardStats.reviewNeededCount > 0 ? 'warning' : 'positive'}
-            />
+            <Animated.View style={styles.kpiItem} entering={FadeInDown.delay(80).springify()}>
+              <DashboardKpiCard
+                label="Documents"
+                value={`${dashboardStats.documentsCount}`}
+                meta={`${dashboardStats.verifiedCount} verified`}
+                tone={dashboardStats.verifiedCount > 0 ? 'positive' : 'warning'}
+              />
+            </Animated.View>
+            <Animated.View style={styles.kpiItem} entering={FadeInDown.delay(140).springify()}>
+              <DashboardKpiCard
+                label="Active grants"
+                value={`${dashboardStats.activeGrantsCount}`}
+                meta={`${dashboardStats.reviewNeededCount} need review`}
+                tone={dashboardStats.reviewNeededCount > 0 ? 'warning' : 'positive'}
+              />
+            </Animated.View>
           </View>
 
           <View style={styles.searchGroup}>
