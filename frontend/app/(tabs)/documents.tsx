@@ -309,6 +309,10 @@ export default function DocumentsScreen() {
           keyExtractor={(document) => document.id}
           renderItem={renderDocumentResult}
           contentContainerStyle={styles.scrollContent}
+          initialNumToRender={8}
+          maxToRenderPerBatch={8}
+          windowSize={7}
+          removeClippedSubviews
           showsVerticalScrollIndicator={false}
           ListHeaderComponent={
             <>

@@ -348,17 +348,21 @@ Files:
 ---
 
 ### 4.3 List Performance
-Status: `[ ]`
+Status: `[x]`
 
 Files:
 - `app/(tabs)/documents.tsx`
 - `src/features/document/components/manage-whitelist-bottom-sheet.tsx`
 
-- [ ] Replace `ScrollView + .map()` in the Documents list with `FlatList`
-- [ ] Add `getItemLayout`, `removeClippedSubviews`, `maxToRenderPerBatch`, `windowSize` to FlatList
-- [ ] Wrap `DocumentResultCard` with `React.memo`
-- [ ] Wrap press handlers passed as props with `useCallback`
-- [ ] Review whitelist grants list — switch to FlatList if it can grow large
+- [x] Replace `ScrollView + .map()` in the Documents list with `FlatList`
+- [x] Add `removeClippedSubviews`, `maxToRenderPerBatch`, and `windowSize` to FlatList
+- [-] Add `getItemLayout`
+  - Deferred because document cards can have variable height from wrapped titles/content
+- [x] Wrap `DocumentResultCard` with `React.memo`
+- [x] Wrap press handlers passed as props with `useCallback`
+- [-] Review whitelist grants list — switch to FlatList if it can grow large
+  - Deferred until backend-scale whitelist data exists
+  - Implementation guide: `docs/WHITELIST-FLATLIST.md`
 
 ---
 
