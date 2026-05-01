@@ -398,18 +398,18 @@ Files:
 ---
 
 ### 4.6 Haptics
-Status: `[ ]`
+Status: `[x]`
 
 Files:
 - `app/upload.tsx`
 - `app/processing.tsx`
 - `app/(tabs)/documents.tsx`
 
-- [ ] `expo-haptics` is already installed — wire it up
-- [ ] Add `Haptics.impactAsync(Light)` on all primary button presses
-- [ ] Add `Haptics.notificationAsync(Success)` when upload processing completes
-- [ ] Add `Haptics.notificationAsync(Success)` when a whitelist grant is added
-- [ ] Add `Haptics.notificationAsync(Error)` when a form validation error fires
+- [x] `expo-haptics` is already installed — wire it up
+- [x] Add `Haptics.impactAsync(Light)` on primary upload/document actions
+- [x] Add `Haptics.notificationAsync(Success)` when upload processing completes
+- [x] Add `Haptics.notificationAsync(Success)` when a whitelist grant is added or revoked
+- [x] Add `Haptics.notificationAsync(Error)` when a form validation error fires
 
 ---
 

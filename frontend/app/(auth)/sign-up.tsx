@@ -2,6 +2,7 @@ import { AuthHeader, AuthInput, AuthScreenShell, TermsBottomSheet, PASSWORD_RULE
 import { Button } from "@/ui";
 import { useCloseSheetOnBack } from "@/hooks";
 import { useRouter } from "expo-router";
+import * as Haptics from 'expo-haptics';
 import React, { useEffect, useRef, useState } from "react";
 import { View, StyleSheet, Text } from "react-native";
 import { toast } from 'sonner-native';
@@ -100,6 +101,7 @@ export default function SignUpScreen() {
       setIsTermsSheetVisible(true);
     },
     () => {
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       toast.warning('Complete all required sign up fields');
     },
   );
@@ -278,6 +280,7 @@ export default function SignUpScreen() {
         onConfirm={() => {
 
           if (!acceptedTerms) {
+            void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
             toast.warning('Accept the terms to create your account');
             return;
           }
@@ -287,6 +290,7 @@ export default function SignUpScreen() {
           setTimeout(() => {
             setIsSubmitting(false);
             setIsTermsSheetVisible(false);
+            void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
             toast.success('Account created successfully');
             router.replace('/(tabs)');
           }, 500);
