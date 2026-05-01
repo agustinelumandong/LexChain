@@ -367,15 +367,18 @@ Files:
 ---
 
 ### 4.4 Image Optimization
-Status: `[ ]`
+Status: `[x]`
 
 Files:
-- `app/camera-capture.tsx` (already uses expo-image ✓)
-- `app/capture-review.tsx` (already uses expo-image ✓)
+- `app/camera-capture.tsx` (already uses expo-image)
+- `app/capture-review.tsx` (already uses expo-image)
+- `src/features/onboarding/get-started-hero.tsx` (already uses expo-image)
 - Any future screens that add real document thumbnails
 
-- [ ] When real document thumbnails or user avatars are added, use `expo-image` with `cachePolicy="memory-disk"` and a `placeholder` blurhash
-- [ ] Never use React Native's default `Image` component for remote URLs
+- [-] When real document thumbnails or user avatars are added, use `expo-image` with `cachePolicy="memory-disk"` and a `placeholder` blurhash
+  - Deferred until real remote thumbnails or avatars exist
+- [x] Never use React Native's default `Image` component for remote URLs
+  - Current app image usage already uses `expo-image`
 
 ---
 
