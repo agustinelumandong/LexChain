@@ -228,16 +228,16 @@ Files to create:
 ---
 
 ### 3.2 React Query Setup
-Status: `[ ]`
+Status: `[x]`
 
 Files to create:
 - `src/shared/providers/query-client.ts`
 
-- [ ] Install `@tanstack/react-query`
-- [ ] Create `QueryClient` with default `staleTime: 5min`, `gcTime: 10min`, `retry: 2`, `refetchOnFocus: true`
-- [ ] Wrap `app/_layout.tsx` with `QueryClientProvider`
-- [ ] Use per-query `staleTime: 30min` override for legal documents (they are stable)
-- [ ] Add AppState listener in `_layout.tsx` to call `queryClient.invalidateQueries()` on foreground resume
+- [x] Install `@tanstack/react-query`
+- [x] Create `QueryClient` with default `staleTime: 5min`, `gcTime: 10min`, `retry: 2`, `refetchOnFocus: true`
+- [x] Wrap `app/_layout.tsx` with `QueryClientProvider`
+- [-] Use per-query `staleTime: 30min` override for legal documents (they are stable)
+- [x] Add AppState listener in `_layout.tsx` to call `queryClient.invalidateQueries()` on foreground resume
 
 ---
 
