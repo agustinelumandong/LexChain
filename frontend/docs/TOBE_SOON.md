@@ -383,16 +383,17 @@ Files:
 ---
 
 ### 4.5 Animations
-Status: `[ ]`
+Status: `[x]`
 
 Files:
 - `app/(tabs)/documents.tsx`
 - `app/(tabs)/index.tsx`
 
-- [ ] Add `Animated.View` with `FadeInDown.delay(i * 60).springify()` stagger to the Documents list
-- [ ] Add `FadeInDown` entrance animation to Dashboard KPI cards
-- [ ] Confirm all `Animated.timing` / `Animated.spring` calls use `useNativeDriver: true`
-- [ ] Verify `Layout.springify()` is used on list reorders (filter/sort changes)
+- [x] Add `Animated.View` with `FadeInDown.delay(i * 60).springify()` stagger to the Documents list
+- [x] Add `FadeInDown` entrance animation to Dashboard KPI cards
+- [x] Confirm all `Animated.timing` / `Animated.spring` calls use `useNativeDriver: true`
+- [-] Verify `Layout.springify()` is used on list reorders (filter/sort changes)
+  - Deferred because current filter/sort changes are simple list refreshes and layout animation may feel jumpy
 
 ---
 

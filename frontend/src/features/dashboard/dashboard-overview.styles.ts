@@ -55,6 +55,9 @@ export const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 12,
   },
+  kpiItem: {
+    flex: 1,
+  },
   searchGroup: {
     gap: 6,
   },

@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'expo-router';
 import { FlatList, Pressable, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import {
   DocumentPreviewBottomSheet,
@@ -277,14 +278,16 @@ export default function DocumentsScreen() {
     DOCUMENT_SORT_OPTIONS.find((option) => option.value === sortKey)?.label ?? 'Newest first';
 
   const renderDocumentResult = useCallback(
-    ({ item: document }: { item: MockDocument }) => (
-      <DocumentResultCard
-        title={document.title}
-        parties={document.parties}
-        date={document.date}
-        onPressCard={() => openPreview(document.id)}
-        onPressOpen={() => openPreview(document.id)}
-      />
+    ({ item: document, index }: { item: MockDocument; index: number }) => (
+      <Animated.View entering={FadeInDown.delay(index * 60).springify()}>
+        <DocumentResultCard
+          title={document.title}
+          parties={document.parties}
+          date={document.date}
+          onPressCard={() => openPreview(document.id)}
+          onPressOpen={() => openPreview(document.id)}
+        />
+      </Animated.View>
     ),
     [openPreview],
   );
