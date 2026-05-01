@@ -5,3 +5,4 @@ export { IconSymbol } from './icon-symbol';
 export { SearchInputWithResults } from './search-input-with-results';
 export { SelectDropdownField } from './select-dropdown-field';
 export { SkeletonBox } from './skeleton';
+export { OfflineBanner } from './offline-banner';

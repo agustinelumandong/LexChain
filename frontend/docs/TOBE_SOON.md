@@ -273,14 +273,14 @@ Files to create:
 ---
 
 ### 3.5 Offline Detection
-Status: `[ ]`
+Status: `[x]`
 
 Files to create:
 - `src/shared/hooks/use-network.ts`
 
-- [ ] Install `@react-native-community/netinfo`
-- [ ] Create `useNetwork` hook that subscribes to `NetInfo` and returns `{ isOnline }`
-- [ ] Add an `OfflineBanner` component to `app/_layout.tsx` that renders when offline
+- [x] Install `@react-native-community/netinfo`
+- [x] Create `useNetwork` hook that subscribes to `NetInfo` and returns `{ isOnline }`
+- [x] Add an `OfflineBanner` component to `app/_layout.tsx` that renders when offline
 
 ---
 
