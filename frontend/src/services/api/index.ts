@@ -16,4 +16,5 @@ export type {
   GlobalSearchHit,
   GlobalSearchPayload,
   GlobalSearchResponse,
+  GlobalSearchResult,
 } from './documents.api';

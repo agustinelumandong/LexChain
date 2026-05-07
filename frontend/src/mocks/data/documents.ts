@@ -4,7 +4,7 @@ export const MOCK_DOCUMENTS: MockDocument[] = [
   {
     id: '1002',
     title: 'Deed of Sale #1002',
-    parties: 'Santos & Dela Cruz',
+    summary: 'Santos & Dela Cruz',
     date: '2026-06-10',
     documentType: 'deed-of-sale',
     status: 'verified',
@@ -101,7 +101,7 @@ export const MOCK_DOCUMENTS: MockDocument[] = [
   {
     id: '44',
     title: 'Lease Contract #44',
-    parties: 'Rivera Holdings & LCN Realty',
+    summary: 'Rivera Holdings & LCN Realty',
     date: '2026-05-22',
     documentType: 'lease-contract',
     status: 'review-needed',
