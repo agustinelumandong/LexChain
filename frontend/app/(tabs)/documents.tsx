@@ -14,6 +14,7 @@ import {
   DocumentsFilterControls,
   DocumentsFilterSheet,
   DocumentsHeader,
+  DocumentsListSkeleton,
   DocumentResultCard,
   DocumentsSortSheet,
   useDocumentsStore,
@@ -316,7 +317,7 @@ export default function DocumentsScreen() {
     <SafeAreaView style={styles.screen}>
       <View style={styles.surface}>
         <FlatList
-          data={filteredDocuments}
+          data={isHydratingDocuments ? [] : filteredDocuments}
           keyExtractor={(document) => document.id}
           renderItem={renderDocumentResult}
           contentContainerStyle={styles.scrollContent}
@@ -352,12 +353,16 @@ export default function DocumentsScreen() {
             </>
           }
           ListEmptyComponent={
-            <View style={styles.emptyState}>
-              <Text style={styles.emptyTitle}>No documents found</Text>
-              <Text style={styles.emptyBody}>
-                Try another title, party name, or date.
-              </Text>
-            </View>
+            isHydratingDocuments ? (
+              <DocumentsListSkeleton />
+            ) : (
+              <View style={styles.emptyState}>
+                <Text style={styles.emptyTitle}>No documents found</Text>
+                <Text style={styles.emptyBody}>
+                  Try another title, party name, or date.
+                </Text>
+              </View>
+            )
           }
         />
 

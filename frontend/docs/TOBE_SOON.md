@@ -414,16 +414,18 @@ Files:
 ---
 
 ### 4.7 Skeleton Loaders
-Status: `[ ]`
+Status: `[x]`
 
 Files:
 - `app/(tabs)/documents.tsx`
 - `app/(tabs)/index.tsx`
 
-- [ ] Install `moti` (for skeleton) or `react-native-skeleton-placeholder`
-- [ ] Replace `ActivityIndicator` loading states on Documents list with a skeleton that matches the card shape
-- [ ] Add skeleton placeholders to Dashboard KPI cards during load
-- [ ] Add skeleton to the whitelist grants list inside the manage-whitelist sheet
+- [-] Install `moti` (for skeleton) or `react-native-skeleton-placeholder`
+  - Skipped because the project uses the existing manual `SkeletonBox`
+- [x] Replace raw Documents loading with a skeleton that matches the card shape
+- [-] Add skeleton placeholders to Dashboard KPI cards during load
+  - Future-ready `DashboardKpiSkeleton` exists, but dashboard has no backend loading flag yet
+- [x] Add skeleton to the whitelist grants list inside the manage-whitelist sheet
 
 ---
 
