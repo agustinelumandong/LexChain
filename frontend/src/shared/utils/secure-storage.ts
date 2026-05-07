@@ -1,7 +1,9 @@
 import * as SecureStore from 'expo-secure-store';
 import { STORAGE_KEYS } from '@/constants';
 
-type SecureStorageKey = (typeof STORAGE_KEYS)[keyof typeof STORAGE_KEYS];
+type SecureStorageKey =
+  | typeof STORAGE_KEYS.authToken
+  | typeof STORAGE_KEYS.refreshToken;
 
 export const secureStorage = {
   async set(key: SecureStorageKey, value: string) {
@@ -28,5 +30,19 @@ export const authTokenStorage = {
 
   async delete() {
     await secureStorage.delete(STORAGE_KEYS.authToken);
+  },
+};
+
+export const refreshTokenStorage = {
+  async set(token: string) {
+    await secureStorage.set(STORAGE_KEYS.refreshToken, token);
+  },
+
+  async get() {
+    return secureStorage.get(STORAGE_KEYS.refreshToken);
+  },
+
+  async delete() {
+    await secureStorage.delete(STORAGE_KEYS.refreshToken);
   },
 };

@@ -10,6 +10,8 @@ import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { toast } from 'sonner-native';
 import { APP_COLORS, fonts } from '@/theme';
+import { useSignIn } from '@/services/query';
+import { parseApiError } from '@/shared/utils/api-error';
 
 export default function SignInScreen() {
   const router = useRouter();
@@ -17,6 +19,7 @@ export default function SignInScreen() {
 
   const [isSwitchingScreen, setIsSwitchingScreen] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
+  const signInMutation = useSignIn();
 
   const {
     control,
@@ -52,9 +55,21 @@ export default function SignInScreen() {
   };
 
   const handleSignIn = handleSubmit(
-    () => {
-      toast.success('Signed in successfully');
-      router.push('/(tabs)');
+    async (values) => {
+      try {
+        await signInMutation.mutateAsync({
+          email: values.email.trim(),
+          password: values.password,
+        });
+
+        toast.success('Signed in successfully');
+        router.replace('/(tabs)');
+      } catch (error) {
+        const appError = parseApiError(error);
+
+        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        toast.error(appError.message);
+      }
     },
     () => {
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
@@ -132,6 +147,7 @@ export default function SignInScreen() {
             label="Sign in"
             fullWidth
             leftIconName="login"
+            disabled={signInMutation.isPending}
             onPress={handleSignIn}
           />
 
