@@ -95,6 +95,7 @@ export function DocumentsFilterControls({
 
 const styles = StyleSheet.create({
   wrap: {
+    marginTop: 12,
     gap: 8,
   },
   controlsRow: {
