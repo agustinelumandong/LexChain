@@ -1,25 +1,94 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import {
-  AccessWhitelistCard,
   DetailSectionsCard,
   DocumentScreenHeader,
   DocumentSummaryCard,
   DocumentTopBar,
 } from '@/features/document';
-import { Button } from '@/ui';
+import { Button, ErrorState, LoadingState } from '@/ui';
+import { useDocument } from '@/services/query';
+import { parseApiError } from '@/shared/utils/api-error';
 
 import { APP_COLORS } from '@/theme';
+
 const COLORS = {
   bg: APP_COLORS.bg,
 };
 
+function formatDate(value?: string) {
+  if (!value) {
+    return 'Unknown';
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return date.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+}
+
+function stringifyInsight(value: Record<string, unknown>) {
+  const entries = Object.entries(value);
+
+  if (entries.length === 0) {
+    return 'No details';
+  }
+
+  return entries
+    .map(([key, entryValue]) => `${key}: ${String(entryValue)}`)
+    .join(', ');
+}
+
 export default function DocumentDetailsScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
+  const documentId = Array.isArray(id) ? id[0] : id;
+  const documentQuery = useDocument(documentId);
+  const document = documentQuery.data;
+
+  const detailSections = useMemo(() => {
+    if (!document) {
+      return [];
+    }
+
+    return [
+      {
+        title: 'Core fields',
+        rows: [
+          { label: 'Document ID', value: document.document_id },
+          { label: 'Content type', value: document.content_type },
+          { label: 'Status', value: document.status },
+          { label: 'Uploaded', value: formatDate(document.created_at) },
+        ],
+      },
+      {
+        title: 'Labels',
+        body: document.labels?.length ? document.labels.join(', ') : 'No labels yet',
+      },
+      {
+        title: 'Entities',
+        body: document.entities?.length
+          ? document.entities.map(stringifyInsight).join('\n')
+          : 'No extracted entities yet',
+      },
+      {
+        title: 'Risk flags',
+        body: document.risk_flags?.length
+          ? document.risk_flags.map(stringifyInsight).join('\n')
+          : 'No risk flags yet',
+      },
+    ];
+  }, [document]);
 
   return (
     <SafeAreaView style={styles.screen}>
@@ -36,59 +105,41 @@ export default function DocumentDetailsScreen() {
 
           <DocumentScreenHeader
             eyebrow="DOCUMENT DETAILS"
-            title="Document details"
-            description="Core summary, files, clauses, and topical context."
+            title={document?.file_name ?? 'Document details'}
+            description="Core summary, labels, extracted entities, and risk flags."
           />
 
-          <DocumentSummaryCard
-            title={`Deed of Sale #${id ?? '1002'}`}
-            rows={[
-              { label: 'Reference', value: 'REF-2026-1002' },
-              { label: 'Parties', value: 'Santos • Dela Cruz' },
-              { label: 'Files uploaded', value: '3 files' },
-            ]}
-            summary="Land sale file with attachments, extracted clauses, and context for legal review."
-          />
+          {documentQuery.isLoading ? (
+            <LoadingState message="Loading document..." />
+          ) : documentQuery.error ? (
+            <ErrorState
+              title="Document unavailable"
+              message={parseApiError(documentQuery.error).message}
+              onRetry={() => {
+                void documentQuery.refetch();
+              }}
+            />
+          ) : document ? (
+            <>
+              <DocumentSummaryCard
+                title={document.file_name}
+                rows={[
+                  { label: 'Reference', value: document.document_id },
+                  { label: 'Status', value: document.status },
+                  { label: 'Uploaded', value: formatDate(document.created_at) },
+                ]}
+                summary={document.summary ?? 'Summary is not ready yet.'}
+              />
 
-          <AccessWhitelistCard
-            allowedCountLabel="3 allowed wallets/users"
-            helperText="Whitelist rules apply to this document only. Manage allowed access before sharing."
-            onPressManage={() => {}}
-            onPressAdd={() => {}}
-          />
-
-          <DetailSectionsCard
-            sections={[
-              {
-                title: 'Core fields',
-                rows: [
-                  { label: 'Document type', value: 'Deed of Sale' },
-                  { label: 'Effective date', value: '2026-06-10' },
-                ],
-              },
-              {
-                title: 'Clauses',
-                body: 'Payment, transfer, warranty.',
-              },
-              {
-                title: 'Obligations',
-                rows: [
-                  { label: 'Seller', value: 'Transfer title' },
-                  { label: 'Buyer', value: 'Release payment' },
-                ],
-              },
-              {
-                title: 'Attachments',
-                rows: [{ label: 'Files', value: 'SaleDeed.pdf + 2' }],
-              },
-              {
-                title: 'Risk flags',
-                rows: [{ label: 'Missing fields', value: 'None' }],
-              },
-            ]}
-            confidenceLabel="Confidence"
-            confidenceValue="Verified"
-          />
+              <DetailSectionsCard
+                sections={detailSections}
+                confidenceLabel="Processing"
+                confidenceValue={document.status}
+              />
+            </>
+          ) : (
+            <ErrorState title="Document not found" message="No document data returned." />
+          )}
         </ScrollView>
 
         <View style={styles.footer}>
