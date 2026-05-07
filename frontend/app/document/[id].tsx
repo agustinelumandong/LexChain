@@ -1,16 +1,18 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { toast } from 'sonner-native';
 
 import {
   DetailSectionsCard,
   DocumentScreenHeader,
   DocumentSummaryCard,
   DocumentTopBar,
+  RenameDocumentSheet,
 } from '@/features/document';
 import { Button, ErrorState, LoadingState } from '@/ui';
-import { useDocument } from '@/services/query';
+import { useDocument, useRenameDocument } from '@/services/query';
 import { parseApiError } from '@/shared/utils/api-error';
 
 import { APP_COLORS } from '@/theme';
@@ -54,7 +56,20 @@ export default function DocumentDetailsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const documentId = Array.isArray(id) ? id[0] : id;
   const documentQuery = useDocument(documentId);
+  const renameMutation = useRenameDocument();
   const document = documentQuery.data;
+
+  const [isRenameSheetVisible, setIsRenameSheetVisible] = useState(false);
+
+  const handleRename = async (newName: string) => {
+    try {
+      await renameMutation.mutateAsync({ documentId, fileName: newName });
+      setIsRenameSheetVisible(false);
+      toast.success('Document renamed successfully');
+    } catch (error) {
+      toast.error(parseApiError(error).message);
+    }
+  };
 
   const detailSections = useMemo(() => {
     if (!document) {
@@ -88,8 +103,9 @@ export default function DocumentDetailsScreen() {
         >
           <DocumentTopBar
             label="Details"
-            rightIconName="description"
+            rightIconName="edit"
             onPressBack={() => router.back()}
+            onPressRight={() => setIsRenameSheetVisible(true)}
           />
 
           <DocumentScreenHeader
@@ -140,6 +156,14 @@ export default function DocumentDetailsScreen() {
           />
         </View>
       </View>
+
+      <RenameDocumentSheet
+        visible={isRenameSheetVisible}
+        currentName={document?.file_name ?? ''}
+        onClose={() => setIsRenameSheetVisible(false)}
+        onRename={handleRename}
+        isLoading={renameMutation.isPending}
+      />
     </SafeAreaView>
   );
 }
