@@ -83,6 +83,16 @@ export const apiClient = {
           : JSON.stringify(body),
     }),
 
+  patch: <T>(path: string, body?: unknown, options?: RequestOptions) =>
+    request<T>(path, {
+      ...options,
+      method: 'PATCH',
+      body:
+        body === undefined || isFormDataBody(body as RequestInit['body'])
+          ? (body as RequestInit['body'])
+          : JSON.stringify(body),
+    }),
+
   delete: <T>(path: string, options?: RequestOptions) =>
     request<T>(path, { ...options, method: 'DELETE' }),
 };
