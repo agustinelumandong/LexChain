@@ -17,8 +17,9 @@ type ApiErrorResponse = {
   error?: {
     code?: string;
     message?: string;
-  };
+  } | string;
   message?: string;
+  detail?: string | { msg?: string; message?: string }[];
 };
 
 type ErrorWithResponse = {
@@ -66,8 +67,11 @@ export function parseApiError(error: unknown): AppError {
   return {
     code: getCodeFromStatus(status),
     message:
-      data?.error?.message ??
+      (typeof data?.error === 'string' ? data.error : data?.error?.message) ??
       data?.message ??
+      (typeof data?.detail === 'string'
+        ? data.detail
+        : data?.detail?.[0]?.msg ?? data?.detail?.[0]?.message) ??
       error.message ??
       'Something went wrong. Please try again.',
     status,
