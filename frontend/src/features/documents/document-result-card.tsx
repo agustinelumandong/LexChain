@@ -14,7 +14,6 @@ const COLORS = {
 
 type DocumentResultCardProps = {
   title: string;
-  summary: string;
   date: string;
   onPressCard?: () => void;
   onPressOpen?: () => void;
@@ -23,7 +22,6 @@ type DocumentResultCardProps = {
 
 export const DocumentResultCard = memo(function DocumentResultCard({
   title,
-  summary,
   date,
   onPressCard,
   onPressOpen,
@@ -52,7 +50,6 @@ export const DocumentResultCard = memo(function DocumentResultCard({
 
       <View style={styles.metaRow}>
         <View style={styles.metaWrap}>
-          <Text style={styles.meta}>Summary: {summary}</Text>
           <Text style={styles.meta}>Date: {date}</Text>
         </View>
 
