@@ -1,23 +1,38 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { APP_COLORS, fonts } from '@/theme';
-import type { MockDocument } from '@/types';
+import type { DocumentListItem } from '@/services/api';
 
 const COLORS = {
   surface: APP_COLORS.white,
   surfaceSoft: APP_COLORS.surfaceSoft,
   surfaceSuccess: '#EAF8F0',
   surfaceWarning: '#FFF4DD',
+  surfaceError: '#FEE2E2',
   primary: APP_COLORS.primary,
   navy: APP_COLORS.navy,
   textMuted: APP_COLORS.textMuted,
   warning: '#D28B00',
+  success: '#16A34A',
+  error: '#DC2626',
 };
 
 type DashboardRecentListProps = {
-  documents: MockDocument[];
-  onPressDocument: () => void;
+  documents: DocumentListItem[];
+  onPressDocument: (documentId: string) => void;
 };
+
+function formatDate(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+  return date.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+}
 
 export function DashboardRecentList({
   documents,
@@ -30,11 +45,11 @@ export function DashboardRecentList({
         documents.map((document) => (
           <DocumentRow
             key={document.id}
-            title={document.title}
-            subtitle={document.status === 'verified' ? 'Summary ready' : 'Integrity warning'}
-            badgeLabel={document.status === 'verified' ? 'MATCH' : 'REVIEW'}
-            badgeTone={document.status === 'verified' ? 'match' : 'review'}
-            onPress={onPressDocument}
+            title={document.file_name.length > 30 ? `${document.file_name.slice(0, 30)}...` : document.file_name}
+            subtitle={formatDate(document.created_at)}
+            badgeLabel={document.status}
+            badgeTone={getBadgeTone(document.status)}
+            onPress={() => onPressDocument(document.id)}
           />
         ))
       ) : (
@@ -49,11 +64,24 @@ export function DashboardRecentList({
   );
 }
 
+type BadgeTone = 'success' | 'warning' | 'error';
+
+function getBadgeTone(status: string): BadgeTone {
+  const normalizedStatus = status.toLowerCase();
+  if (normalizedStatus.includes('verified') || normalizedStatus.includes('complete') || normalizedStatus.includes('success')) {
+    return 'success';
+  }
+  if (normalizedStatus.includes('failed') || normalizedStatus.includes('error')) {
+    return 'error';
+  }
+  return 'warning';
+}
+
 type DocumentRowProps = {
   title: string;
   subtitle: string;
   badgeLabel: string;
-  badgeTone: 'match' | 'review';
+  badgeTone: BadgeTone;
   onPress?: () => void;
 };
 
@@ -73,20 +101,24 @@ function DocumentRow({
       onPress={onPress}
     >
       <View style={styles.copy}>
-        <Text style={styles.title}>{title}</Text>
+        <Text style={styles.title} numberOfLines={1}>{title}</Text>
         <Text style={styles.subtitle}>{subtitle}</Text>
       </View>
 
       <View
         style={[
           styles.badge,
-          badgeTone === 'match' ? styles.badgeMatch : styles.badgeReview,
+          badgeTone === 'success' && styles.badgeSuccess,
+          badgeTone === 'warning' && styles.badgeWarning,
+          badgeTone === 'error' && styles.badgeError,
         ]}
       >
         <Text
           style={[
             styles.badgeLabel,
-            badgeTone === 'match' ? styles.badgeLabelMatch : styles.badgeLabelReview,
+            badgeTone === 'success' && styles.badgeLabelSuccess,
+            badgeTone === 'warning' && styles.badgeLabelWarning,
+            badgeTone === 'error' && styles.badgeLabelError,
           ]}
         >
           {badgeLabel}
@@ -143,29 +175,37 @@ const styles = StyleSheet.create({
     fontFamily: fonts.regular,
   },
   badge: {
-    borderRadius: 999,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
+    borderRadius: 12,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden',
   },
-  badgeMatch: {
+  badgeSuccess: {
     backgroundColor: COLORS.surfaceSuccess,
   },
-  badgeReview: {
+  badgeWarning: {
     backgroundColor: COLORS.surfaceWarning,
+  },
+  badgeError: {
+    backgroundColor: COLORS.surfaceError,
   },
   badgeLabel: {
     fontSize: 11,
     lineHeight: 13,
     fontWeight: '800',
     fontFamily: fonts.regular,
+    textTransform: 'capitalize',
   },
-  badgeLabelMatch: {
-    color: COLORS.primary,
+  badgeLabelSuccess: {
+    color: COLORS.success,
   },
-  badgeLabelReview: {
+  badgeLabelWarning: {
     color: COLORS.warning,
+  },
+  badgeLabelError: {
+    color: COLORS.error,
   },
   emptyState: {
     borderRadius: 20,

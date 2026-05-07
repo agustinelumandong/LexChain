@@ -1,30 +1,29 @@
 import { useMemo } from 'react';
 
-import { MOCK_DOCUMENTS } from '@/mocks';
+import { useDocuments } from '@/services/query';
 
 export function useDashboard() {
+  const documentsQuery = useDocuments();
+  const documents = documentsQuery.data ?? [];
+
   return useMemo(() => {
-    const documentsCount = MOCK_DOCUMENTS.length;
-    const activeGrantsCount = MOCK_DOCUMENTS.reduce(
-      (total, document) => total + document.whitelist.grants.length,
-      0,
-    );
-    const reviewNeededCount = MOCK_DOCUMENTS.filter(
-      (document) => document.status === 'review-needed',
+    const documentsCount = documents.length;
+    const verifiedCount = documents.filter(
+      (doc) => doc.status === 'verified',
     ).length;
-    const verifiedCount = MOCK_DOCUMENTS.filter(
-      (document) => document.status === 'verified',
+    const tamperedCount = documents.filter(
+      (doc) => doc.status === 'failed' || doc.status === 'error',
     ).length;
-    const recentDocuments = [...MOCK_DOCUMENTS]
-      .sort((left, right) => right.date.localeCompare(left.date))
+    const recentDocuments = [...documents]
+      .sort((left, right) => right.created_at.localeCompare(left.created_at))
       .slice(0, 3);
 
     return {
       documentsCount,
-      activeGrantsCount,
-      reviewNeededCount,
       verifiedCount,
+      tamperedCount,
       recentDocuments,
+      isLoading: documentsQuery.isLoading,
     };
-  }, []);
+  }, [documents, documentsQuery.isLoading]);
 }
