@@ -15,7 +15,7 @@ import {
 } from '@/features/profile';
 import { BottomNav, Button } from '@/ui';
 
-import { styles } from './profile.styles';
+import { styles } from '@/features/profile/profile-screen.styles';
 
 const SETTINGS_DETAILS: Record<string, SettingsInfoModalData> = {
   account: {

@@ -74,7 +74,7 @@ export const styles = StyleSheet.create({
     gap: 12,
     borderRadius: 24,
     padding: 20,
-    backgroundColor: 'none',
+    backgroundColor: 'transparent',
   },
   emptyTitle: {
     color: COLORS.navy,
