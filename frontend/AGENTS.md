@@ -112,3 +112,14 @@ pnpm run reset-project
 ### Maintenance Rule
 - When a session uncovers a new repo-specific lesson, pitfall, workaround, or preferred pattern that would help future work, explicitly ask the user whether to add it to `AGENTS.md` instead of updating the file silently.
 - Ask in a simple yes/no form. If the user says yes, update `AGENTS.md` with the new learning in the most relevant section or create a new subsection if needed.
+
+## graphify
+
+This project has a graphify knowledge graph at graphify-out/.
+
+Rules:
+- Before answering architecture or codebase questions, read graphify-out/GRAPH_REPORT.md for god nodes and community structure
+- If graphify-out/wiki/index.md exists, navigate it instead of reading raw files
+- For cross-module "how does X relate to Y" questions, prefer `graphify query "<question>"`, `graphify path "<A>" "<B>"`, or `graphify explain "<concept>"` over grep — these traverse the graph's EXTRACTED + INFERRED edges instead of scanning files
+- Generated build outputs such as `dist-web-check/` and `dist-tailwind-check/` can create noisy single-letter god nodes in graphify reports; exclude or ignore those folders when you need a source-architecture graph.
+- After modifying code files in this session, run `graphify update .` to keep the graph current (AST-only, no API cost)
