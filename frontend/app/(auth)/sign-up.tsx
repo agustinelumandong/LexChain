@@ -10,6 +10,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Controller, useForm } from 'react-hook-form';
 import type { SignUpFormValues } from '@/features/auth';
 import { APP_COLORS, fonts } from '@/theme';
+import { useSignUp } from '@/services/query';
+import { parseApiError } from '@/shared/utils/api-error';
 
 function getPasswordStrengthState(value: string) {
   const checks = PASSWORD_RULES.map((rule) => ({
@@ -51,7 +53,7 @@ export default function SignUpScreen() {
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [hasReachedTermsEnd, setHasReachedTermsEnd] = useState(false);
   const [isTermsSheetVisible, setIsTermsSheetVisible] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const signUpMutation = useSignUp();
   const {
     control,
     handleSubmit,
@@ -105,6 +107,38 @@ export default function SignUpScreen() {
       toast.warning('Complete all required sign up fields');
     },
   );
+
+  const submitSignUp = handleSubmit(async (values) => {
+    if (!acceptedTerms) {
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      toast.warning('Accept the terms to create your account');
+      return;
+    }
+
+    try {
+      const response = await signUpMutation.mutateAsync({
+        email: values.email.trim(),
+        password: values.password,
+        f_name: values.firstName.trim(),
+        l_name: values.lastName.trim(),
+        phone_number: null,
+      });
+
+      setIsTermsSheetVisible(false);
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      toast.success(
+        response.requires_email_confirmation
+          ? 'Account created. Check your email to verify before signing in.'
+          : response.message,
+      );
+      router.replace('/(auth)/sign-in');
+    } catch (error) {
+      const appError = parseApiError(error);
+
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      toast.error(appError.message);
+    }
+  });
 
 
   return (
@@ -255,6 +289,7 @@ export default function SignUpScreen() {
             label="Sign up"
             fullWidth
             leftIconName="person-add"
+            disabled={signUpMutation.isPending}
             onPress={handleOpenTerms}
           />
 
@@ -273,27 +308,12 @@ export default function SignUpScreen() {
         visible={isTermsSheetVisible}
         acceptedTerms={acceptedTerms}
         hasReachedEnd={hasReachedTermsEnd}
-        isSubmitting={isSubmitting}
+        isSubmitting={signUpMutation.isPending}
         onClose={() => setIsTermsSheetVisible(false)}
         onToggleAcceptedTerms={() => setAcceptedTerms((prev) => !prev)}
         onReachedEnd={() => setHasReachedTermsEnd(true)}
         onConfirm={() => {
-
-          if (!acceptedTerms) {
-            void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-            toast.warning('Accept the terms to create your account');
-            return;
-          }
-
-          setIsSubmitting(true);
-
-          setTimeout(() => {
-            setIsSubmitting(false);
-            setIsTermsSheetVisible(false);
-            void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-            toast.success('Account created successfully');
-            router.replace('/(tabs)');
-          }, 500);
+          void submitSignUp();
         }}
       />
     </AuthScreenShell>
