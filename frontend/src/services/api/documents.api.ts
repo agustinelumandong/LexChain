@@ -33,17 +33,43 @@ export type GlobalSearchPayload = {
 };
 
 export type GlobalSearchHit = {
-  chunk_id: string;
   document_id: string;
-  chunk_index: number;
-  score: number;
-  text: string;
+};
+
+export type GlobalSearchResult = {
+  document_id: string;
+  document?: DocumentDetail;
 };
 
 export type GlobalSearchResponse = {
   query: string;
   results: GlobalSearchHit[];
 };
+
+// Helper to fetch search results with document details
+export async function fetchSearchResultsWithDetails(
+  payload: GlobalSearchPayload,
+): Promise<GlobalSearchResult[]> {
+  const response = await apiClient.post<GlobalSearchResponse>('/search', payload);
+  const results = response.results;
+
+  // Fetch details for each result in parallel
+  const resultsWithDetails = await Promise.all(
+    results.map(async (hit) => {
+      try {
+        const detail = await apiClient.get<DocumentDetail>(
+          `/documents/${encodeURIComponent(hit.document_id)}`,
+        );
+        return { document_id: hit.document_id, document: detail };
+      } catch {
+        // If detail fetch fails, return without details
+        return { document_id: hit.document_id, document: undefined };
+      }
+    }),
+  );
+
+  return resultsWithDetails;
+}
 
 function createUploadForm(file: PickedUploadFile) {
   const formData = new FormData();
