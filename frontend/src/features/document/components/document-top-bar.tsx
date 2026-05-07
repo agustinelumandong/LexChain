@@ -10,14 +10,16 @@ const COLORS = {
 
 type DocumentTopBarProps = {
   label: string;
-  rightIconName: React.ComponentProps<typeof MaterialIcons>['name'];
+  rightIconName?: React.ComponentProps<typeof MaterialIcons>['name'];
   onPressBack?: () => void;
+  onPressRight?: () => void;
 };
 
 export function DocumentTopBar({
   label,
   rightIconName,
   onPressBack,
+  onPressRight,
 }: DocumentTopBarProps) {
   return (
     <View style={styles.wrap}>
@@ -30,7 +32,11 @@ export function DocumentTopBar({
         <Text style={styles.label}>{label}</Text>
       </Pressable>
 
-      <MaterialIcons name={rightIconName} size={18} color={COLORS.textMuted} />
+      {rightIconName && (
+        <Pressable onPress={onPressRight} style={styles.rightAction}>
+          <MaterialIcons name={rightIconName} size={18} color={COLORS.textMuted} />
+        </Pressable>
+      )}
     </View>
   );
 }
@@ -46,6 +52,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+  },
+  rightAction: {
+    padding: 4,
   },
   label: {
     color: COLORS.navy,
