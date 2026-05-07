@@ -14,7 +14,7 @@ const COLORS = {
 type DashboardKpiCardProps = {
   label: string;
   value: string;
-  meta: string;
+  meta?: string;
   tone?: 'positive' | 'warning';
 };
 
@@ -24,6 +24,15 @@ export function DashboardKpiCard({
   meta,
   tone = 'positive',
 }: DashboardKpiCardProps) {
+  if (!meta) {
+    return (
+      <View style={styles.card}>
+        <Text style={styles.label}>{label}</Text>
+        <Text style={styles.value}>{value}</Text>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.card}>
       <Text style={styles.label}>{label}</Text>

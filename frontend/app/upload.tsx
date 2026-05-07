@@ -277,7 +277,7 @@ export default function UploadScreen() {
             onPressCamera={handleOpenCameraCapture}
           />
 
-          <SelectDropdownField
+          {/*<SelectDropdownField
             label="Document Type"
             value={selectedDocumentType}
             options={DOCUMENT_TYPE_OPTIONS}
@@ -288,7 +288,7 @@ export default function UploadScreen() {
               setSelectedDocumentType(value);
               setIsTypeDropdownOpen(false);
             }}
-          />
+          />*/}
 
           <UploadDropzoneCard
             mode={pickedFiles.length > 0 ? 'selected' : 'empty'}
