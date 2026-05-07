@@ -1,4 +1,4 @@
-/# Lifecycle Hooks Reference
+# Lifecycle Hooks Reference
 
 ## Module Lifecycle (in module definition)
 
