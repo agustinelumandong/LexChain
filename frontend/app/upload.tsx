@@ -17,6 +17,8 @@ import {
   UploadDropzoneCard,
   UploadTopBar,
 } from '@/features/upload';
+import { useUploadDocument } from '@/services/query';
+import { parseApiError } from '@/shared/utils/api-error';
 
 import { APP_COLORS } from '@/theme';
 const COLORS = {
@@ -64,6 +66,7 @@ export default function UploadScreen() {
   const [whitelistSearchQuery, setWhitelistSearchQuery] = useState('');
   const [whitelistData, setWhitelistData] = useState(INITIAL_WHITELIST);
   const [pickedFiles, setPickedFiles] = useState<PickedUploadFile[]>([]);
+  const uploadMutation = useUploadDocument();
 
   useFocusEffect(
     React.useCallback(() => {
@@ -225,16 +228,31 @@ export default function UploadScreen() {
     router.push('/camera-capture');
   };
 
-  const handleContinueToProcessing = () => {
+  const handleContinueToProcessing = async () => {
     if (pickedFiles.length === 0) {
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       toast.warning('Add a file or captured page first');
       return;
     }
 
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    toast.success('Upload started');
-    router.push('/processing');
+    try {
+      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      const response = await uploadMutation.mutateAsync(pickedFiles[0]);
+
+      toast.success(response.message || 'Document accepted for processing');
+      router.push({
+        pathname: '/processing',
+        params: {
+          documentId: response.document_id,
+          status: response.status,
+        },
+      });
+    } catch (error) {
+      const appError = parseApiError(error);
+
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      toast.error(appError.message);
+    }
   };
 
   const handleRemoveFile = (fileId: string) => {
@@ -294,7 +312,8 @@ export default function UploadScreen() {
                 label="Upload document"
                 fullWidth
                 rightIconName="arrow-forward"
-                disabled={pickedFiles.length === 0}
+                disabled={pickedFiles.length === 0 || uploadMutation.isPending}
+                loading={uploadMutation.isPending}
                 onPress={handleContinueToProcessing}
               />
             </View>
