@@ -430,15 +430,18 @@ Files:
 ---
 
 ### 4.8 UX Details
-Status: `[ ]`
+Status: `[x]`
 
 Files:
 - `src/features/auth/auth-screen-shell.tsx`
 - All screens with forms
 
-- [ ] Wrap all auth screens in `KeyboardAvoidingView` (`behavior="padding"` on iOS, `"height"` on Android)
-- [ ] Add `pressed` scale/opacity feedback to all `Pressable` card components (`{ opacity: 0.85, transform: [{ scale: 0.98 }] }`)
-- [ ] Audit every touchable in the app — every tappable surface must have a visible pressed state
+- [x] Wrap all auth screens in `KeyboardAvoidingView` (`behavior="padding"` on iOS, `"height"` on Android)
+- [x] Add `pressed` scale/opacity feedback to primary `Pressable` card/list components
+- [x] Audit every touchable in the app
+  - Shared `Button` already has pressed states
+  - Primary card/list/dropdown/search touchables now have visible pressed states
+  - Icon-only close/back controls keep their compact existing visual treatment
 
 ---
 

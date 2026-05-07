@@ -476,7 +476,13 @@ function DocumentSearchResultRow({
   onPress,
 }: DocumentSearchResultRowProps) {
   return (
-    <Pressable style={styles.resultRow} onPress={onPress}>
+    <Pressable
+      style={({ pressed }) => [
+        styles.resultRow,
+        pressed && styles.resultRowPressed,
+      ]}
+      onPress={onPress}
+    >
       <View style={styles.resultCopy}>
         <Text style={styles.resultTitle}>{title}</Text>
         <Text style={styles.resultMeta}>{parties}</Text>
