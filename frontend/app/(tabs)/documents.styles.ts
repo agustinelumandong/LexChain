@@ -38,6 +38,10 @@ export const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: 12,
   },
+  resultRowPressed: {
+    opacity: 0.85,
+    transform: [{ scale: 0.98 }],
+  },
   resultCopy: {
     flex: 1,
     gap: 4,

@@ -79,6 +79,10 @@ export const styles = StyleSheet.create({
     gap: 12,
     paddingHorizontal: 16,
   },
+  searchBarPressed: {
+    opacity: 0.85,
+    transform: [{ scale: 0.98 }],
+  },
   searchPlaceholder: {
     color: COLORS.textMuted,
     flex: 1,

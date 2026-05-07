@@ -65,7 +65,13 @@ function DocumentRow({
   onPress,
 }: DocumentRowProps) {
   return (
-    <Pressable style={styles.row} onPress={onPress}>
+    <Pressable
+      style={({ pressed }) => [
+        styles.row,
+        pressed && styles.rowPressed,
+      ]}
+      onPress={onPress}
+    >
       <View style={styles.copy}>
         <Text style={styles.title}>{title}</Text>
         <Text style={styles.subtitle}>{subtitle}</Text>
@@ -112,6 +118,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: 12,
+  },
+  rowPressed: {
+    opacity: 0.85,
+    transform: [{ scale: 0.98 }],
   },
   copy: {
     flex: 1,

@@ -35,7 +35,14 @@ export function SelectDropdownField({
   return (
     <View style={styles.wrap}>
       <Text style={styles.label}>{label}</Text>
-      <Pressable style={[styles.field, isOpen && styles.fieldActive]} onPress={onPress}>
+      <Pressable
+        style={({ pressed }) => [
+          styles.field,
+          isOpen && styles.fieldActive,
+          pressed && styles.fieldPressed,
+        ]}
+        onPress={onPress}
+      >
         <Text style={[styles.value, isOpen && styles.valueActive]}>{value}</Text>
         <MaterialIcons
           name={isOpen ? 'keyboard-arrow-up' : 'keyboard-arrow-down'}
@@ -57,7 +64,11 @@ export function SelectDropdownField({
               return (
                 <Pressable
                   key={optionValue}
-                  style={[styles.optionRow, isSelected && styles.optionRowSelected]}
+                  style={({ pressed }) => [
+                    styles.optionRow,
+                    isSelected && styles.optionRowSelected,
+                    pressed && styles.optionRowPressed,
+                  ]}
                   onPress={() => onSelect?.(optionValue)}
                 >
                   <Text style={[styles.optionLabel, isSelected && styles.optionLabelSelected]}>
@@ -105,6 +116,10 @@ const styles = StyleSheet.create({
     borderColor: COLORS.primary,
     backgroundColor: '#F7FBFF',
   },
+  fieldPressed: {
+    opacity: 0.85,
+    transform: [{ scale: 0.98 }],
+  },
   value: {
     color: COLORS.navy,
     fontSize: 14,
@@ -151,6 +166,9 @@ const styles = StyleSheet.create({
   },
   optionRowSelected: {
     backgroundColor: APP_COLORS.surfaceSoft,
+  },
+  optionRowPressed: {
+    opacity: 0.85,
   },
   optionLabel: {
     color: COLORS.navy,

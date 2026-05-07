@@ -24,7 +24,13 @@ export function DocumentsSearchField({
   return (
     <View style={styles.wrap}>
       <Text style={styles.label}>{label}</Text>
-      <Pressable style={styles.field} onPress={onPress}>
+      <Pressable
+        style={({ pressed }) => [
+          styles.field,
+          pressed && styles.fieldPressed,
+        ]}
+        onPress={onPress}
+      >
         <MaterialIcons name="search" size={18} color={COLORS.textMuted} />
         <Text style={styles.placeholder}>{placeholder}</Text>
       </Pressable>
@@ -53,6 +59,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
     paddingHorizontal: 16,
+  },
+  fieldPressed: {
+    opacity: 0.85,
+    transform: [{ scale: 0.98 }],
   },
   placeholder: {
     color: COLORS.textMuted,

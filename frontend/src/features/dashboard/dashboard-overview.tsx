@@ -51,7 +51,13 @@ export function DashboardOverview() {
 
           <View style={styles.searchGroup}>
             <Text style={styles.sectionLabel}>Search</Text>
-            <Pressable style={styles.searchBar} onPress={() => router.push('/(tabs)/documents')}>
+            <Pressable
+              style={({ pressed }) => [
+                styles.searchBar,
+                pressed && styles.searchBarPressed,
+              ]}
+              onPress={() => router.push('/(tabs)/documents')}
+            >
               <MaterialIcons name="search" size={18} color={COLORS.textMuted} />
               <Text style={styles.searchPlaceholder}>Search by title, party, or date</Text>
             </Pressable>

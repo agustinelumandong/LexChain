@@ -29,7 +29,13 @@ export function SettingsListCard({ title, items }: SettingsListCardProps) {
 
       {items.map((item, index) => (
         <React.Fragment key={item.label}>
-          <Pressable style={styles.item} onPress={item.onPress}>
+          <Pressable
+            style={({ pressed }) => [
+              styles.item,
+              pressed && styles.itemPressed,
+            ]}
+            onPress={item.onPress}
+          >
             <View style={styles.itemLead}>
               <View style={styles.iconWrap}>
                 <MaterialIcons name={item.iconName} size={18} color={COLORS.navy} />
@@ -75,6 +81,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: 12,
+  },
+  itemPressed: {
+    opacity: 0.85,
+    transform: [{ scale: 0.98 }],
   },
   itemLead: {
     flex: 1,

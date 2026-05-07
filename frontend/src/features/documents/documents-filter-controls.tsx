@@ -28,7 +28,13 @@ type ControlButtonProps = {
 
 function ControlButton({ iconName, label, detail, onPress }: ControlButtonProps) {
   return (
-    <Pressable style={styles.controlButton} onPress={onPress}>
+    <Pressable
+      style={({ pressed }) => [
+        styles.controlButton,
+        pressed && styles.controlButtonPressed,
+      ]}
+      onPress={onPress}
+    >
       <View style={styles.controlButtonLeft}>
         <MaterialIcons name={iconName} size={18} color={COLORS.primary} />
         <Text style={styles.controlButtonLabel}>{label}</Text>
@@ -107,6 +113,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: 10,
+  },
+  controlButtonPressed: {
+    opacity: 0.85,
+    transform: [{ scale: 0.98 }],
   },
   controlButtonLeft: {
     flex: 1,
