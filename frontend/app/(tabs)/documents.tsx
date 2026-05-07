@@ -306,8 +306,8 @@ export default function DocumentsScreen() {
                   value={searchQuery}
                   onChangeText={setSearchQuery}
                   placeholder="Title, party, date, or keyword"
-                  showDropdown={isBackendSearchActive}
-                  showResults={isBackendSearchActive}
+                  // showDropdown={isBackendSearchActive}
+                  // showResults={isBackendSearchActive}
                   results={filteredDocuments}
                   emptyText="No documents matched your search"
                   keyExtractor={(document, index) => `${document.id}-${index}`}
