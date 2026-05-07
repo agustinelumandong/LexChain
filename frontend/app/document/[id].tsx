@@ -65,21 +65,10 @@ export default function DocumentDetailsScreen() {
       {
         title: 'Core fields',
         rows: [
-          { label: 'Document ID', value: document.document_id },
           { label: 'Content type', value: document.content_type },
           { label: 'Status', value: document.status },
           { label: 'Uploaded', value: formatDate(document.created_at) },
         ],
-      },
-      {
-        title: 'Labels',
-        body: document.labels?.length ? document.labels.join(', ') : 'No labels yet',
-      },
-      {
-        title: 'Entities',
-        body: document.entities?.length
-          ? document.entities.map(stringifyInsight).join('\n')
-          : 'No extracted entities yet',
       },
       {
         title: 'Risk flags',
