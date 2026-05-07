@@ -275,7 +275,6 @@ export default function DocumentsScreen() {
       <Animated.View entering={FadeInDown.delay(index * 60).springify()}>
         <DocumentResultCard
           title={document.title}
-          summary={document.snippet ?? document.summary}
           date={document.date}
           onPressCard={() => openDocument(document.id)}
           onPressOpen={() => openDocument(document.id)}
