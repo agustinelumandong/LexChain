@@ -55,7 +55,7 @@ export type VerifyDocumentData = {
 export type MockDocument = {
   id: string;
   title: string;
-  parties: string;
+  summary: string;
   date: string;
   documentType: DocumentTypeKey;
   status: DocumentStatusKey;

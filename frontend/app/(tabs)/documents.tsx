@@ -21,11 +21,13 @@ import type {
 } from '@/types';
 import { SearchInputWithResults, BottomNav } from '@/ui';
 import { useCloseSheetOnBack } from '@/hooks';
-import { useDocuments, useGlobalSearch } from '@/services/query';
-import type { DocumentListItem, GlobalSearchHit } from '@/services/api';
+import { useDocuments } from '@/services/query';
+import type { DocumentListItem, GlobalSearchResult } from '@/services/api';
+import { fetchSearchResultsWithDetails } from '@/services/api/documents.api';
 import { parseApiError } from '@/shared/utils/api-error';
 
 import { styles } from '@/features/documents/documents-screen.styles';
+import { useQuery } from '@tanstack/react-query';
 
 const DOCUMENT_TYPE_OPTIONS = [
   { label: 'All types', value: 'all' },
@@ -60,7 +62,7 @@ const DOCUMENT_SORT_OPTIONS = [
 type DisplayDocument = {
   id: string;
   title: string;
-  parties: string;
+  summary: string;
   date: string;
   rawDate: string;
   documentType: DocumentTypeKey;
@@ -96,7 +98,7 @@ function mapDocument(item: DocumentListItem): DisplayDocument {
   return {
     id: item.id,
     title: item.file_name,
-    parties: `Status: ${item.status}`,
+    summary: '',
     date: formatDate(item.created_at),
     rawDate: item.created_at,
     documentType: 'all',
@@ -104,16 +106,31 @@ function mapDocument(item: DocumentListItem): DisplayDocument {
   };
 }
 
-function mapSearchHit(hit: GlobalSearchHit): DisplayDocument {
+function mapSearchResult(result: GlobalSearchResult): DisplayDocument {
+  const doc = result.document;
+
+  if (!doc) {
+    return {
+      id: result.document_id,
+      title: 'Unknown Document',
+      summary: 'Unable to load details',
+      date: '',
+      rawDate: '',
+      documentType: 'all',
+      status: 'review-needed',
+      snippet: '',
+    };
+  }
+
   return {
-    id: hit.document_id,
-    title: `Search match #${hit.chunk_index + 1}`,
-    parties: hit.text,
-    date: `Score ${hit.score.toFixed(2)}`,
-    rawDate: '',
+    id: doc.document_id,
+    title: doc.file_name,
+    summary: doc.summary ?? doc.labels?.join(', ') ?? 'No summary available',
+    date: formatDate(doc.created_at),
+    rawDate: doc.created_at,
     documentType: 'all',
-    status: 'review-needed',
-    snippet: hit.text,
+    status: mapStatus(doc.status),
+    snippet: doc.summary ?? '',
   };
 }
 
@@ -138,12 +155,13 @@ export default function DocumentsScreen() {
   }, [searchQuery]);
 
   const isBackendSearchActive = debouncedSearchQuery.length > 0;
-  const searchQueryResult = useGlobalSearch(
-    { query: debouncedSearchQuery },
-    isBackendSearchActive,
-  );
+  const searchQueryResult = useQuery({
+    queryKey: ['search', debouncedSearchQuery],
+    queryFn: () => fetchSearchResultsWithDetails({ query: debouncedSearchQuery }),
+    enabled: isBackendSearchActive,
+  });
   const documents = (documentsQuery.data ?? []).map(mapDocument);
-  const searchResults = (searchQueryResult.data?.results ?? []).map(mapSearchHit);
+  const searchResults = (searchQueryResult.data ?? []).map(mapSearchResult);
 
   const matchesStructuredFilters = (document: DisplayDocument) => {
     if (documentTypeFilter !== 'all' && document.documentType !== documentTypeFilter) {
@@ -257,7 +275,7 @@ export default function DocumentsScreen() {
       <Animated.View entering={FadeInDown.delay(index * 60).springify()}>
         <DocumentResultCard
           title={document.title}
-          parties={document.snippet ?? document.parties}
+          summary={document.snippet ?? document.summary}
           date={document.date}
           onPressCard={() => openDocument(document.id)}
           onPressOpen={() => openDocument(document.id)}
@@ -271,7 +289,7 @@ export default function DocumentsScreen() {
     (document: DisplayDocument) => (
       <DocumentSearchResultRow
         title={document.title}
-        parties={document.snippet ?? document.parties}
+        summary={document.snippet ?? document.summary}
         date={document.date}
         onPress={() => openDocument(document.id)}
       />
@@ -379,14 +397,14 @@ export default function DocumentsScreen() {
 
 type DocumentSearchResultRowProps = {
   title: string;
-  parties: string;
+  summary: string;
   date: string;
   onPress: () => void;
 };
 
 function DocumentSearchResultRow({
   title,
-  parties,
+  summary,
   date,
   onPress,
 }: DocumentSearchResultRowProps) {
@@ -400,7 +418,7 @@ function DocumentSearchResultRow({
     >
       <View style={styles.resultCopy}>
         <Text style={styles.resultTitle}>{title}</Text>
-        <Text style={styles.resultMeta} numberOfLines={2}>{parties}</Text>
+        <Text style={styles.resultMeta} numberOfLines={2}>{summary}</Text>
       </View>
       <Text style={styles.resultDate}>{date}</Text>
     </Pressable>
