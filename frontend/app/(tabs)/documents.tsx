@@ -4,12 +4,8 @@ import * as Haptics from 'expo-haptics';
 import { FlatList, Pressable, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
+import { toast } from 'sonner-native';
 
-import {
-  DocumentPreviewBottomSheet,
-  ManageWhitelistBottomSheet,
-  VerifyDocumentBottomSheet,
-} from '@/features/document';
 import {
   DocumentsFilterControls,
   DocumentsFilterSheet,
@@ -17,19 +13,19 @@ import {
   DocumentsListSkeleton,
   DocumentResultCard,
   DocumentsSortSheet,
-  useDocumentsStore,
 } from '@/features/documents';
 import type {
   DocumentSortKey,
   DocumentStatusKey,
   DocumentTypeKey,
-  MockDocument,
 } from '@/types';
 import { SearchInputWithResults, BottomNav } from '@/ui';
 import { useCloseSheetOnBack } from '@/hooks';
-import { toast } from 'sonner-native';
+import { useDocuments, useGlobalSearch } from '@/services/query';
+import type { DocumentListItem, GlobalSearchHit } from '@/services/api';
+import { parseApiError } from '@/shared/utils/api-error';
 
-import { styles } from './documents.styles';
+import { styles } from '@/features/documents/documents-screen.styles';
 
 const DOCUMENT_TYPE_OPTIONS = [
   { label: 'All types', value: 'all' },
@@ -61,46 +57,95 @@ const DOCUMENT_SORT_OPTIONS = [
   },
 ] as const;
 
+type DisplayDocument = {
+  id: string;
+  title: string;
+  parties: string;
+  date: string;
+  rawDate: string;
+  documentType: DocumentTypeKey;
+  status: DocumentStatusKey;
+  snippet?: string;
+};
+
+function formatDate(value: string) {
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return date.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+}
+
+function mapStatus(status: string): DocumentStatusKey {
+  const normalizedStatus = status.toLowerCase();
+
+  if (normalizedStatus.includes('verified') || normalizedStatus.includes('complete')) {
+    return 'verified';
+  }
+
+  return 'review-needed';
+}
+
+function mapDocument(item: DocumentListItem): DisplayDocument {
+  return {
+    id: item.id,
+    title: item.file_name,
+    parties: `Status: ${item.status}`,
+    date: formatDate(item.created_at),
+    rawDate: item.created_at,
+    documentType: 'all',
+    status: mapStatus(item.status),
+  };
+}
+
+function mapSearchHit(hit: GlobalSearchHit): DisplayDocument {
+  return {
+    id: hit.document_id,
+    title: `Search match #${hit.chunk_index + 1}`,
+    parties: hit.text,
+    date: `Score ${hit.score.toFixed(2)}`,
+    rawDate: '',
+    documentType: 'all',
+    status: 'review-needed',
+    snippet: hit.text,
+  };
+}
+
 export default function DocumentsScreen() {
   const router = useRouter();
-  const documents = useDocumentsStore((state) => state.documents);
-  const isHydratingDocuments = useDocumentsStore((state) => state.isHydrating);
-  const isPersistingDocuments = useDocumentsStore((state) => state.isPersisting);
-  const hydrationError = useDocumentsStore((state) => state.hydrationError);
-  const addWhitelistResult = useDocumentsStore((state) => state.addWhitelistResult);
-  const revokeWhitelistGrant = useDocumentsStore((state) => state.revokeWhitelistGrant);
+  const documentsQuery = useDocuments();
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   const [documentTypeFilter, setDocumentTypeFilter] = useState<DocumentTypeKey>('all');
   const [documentStatusFilter, setDocumentStatusFilter] = useState<DocumentStatusKey>('all');
   const [documentDateFilter, setDocumentDateFilter] = useState<Date | null>(null);
   const [sortKey, setSortKey] = useState<DocumentSortKey>('newest');
-  const [selectedDocumentId, setSelectedDocumentId] = useState<string | null>(null);
-  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
-  const [isVerifyOpen, setIsVerifyOpen] = useState(false);
-  const [isWhitelistOpen, setIsWhitelistOpen] = useState(false);
   const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false);
   const [isSortSheetOpen, setIsSortSheetOpen] = useState(false);
-  const [whitelistSearchQuery, setWhitelistSearchQuery] = useState('');
-  const selectedDocument = documents.find((document) => document.id === selectedDocumentId) ?? null;
-  const normalizedSearchQuery = searchQuery.trim().toLowerCase();
-  const extractContentText = (document: MockDocument) =>
-    [
-      document.preview.summary,
-      ...document.preview.sections.flatMap((section) => {
-        if ('body' in section && section.body) {
-          return [section.title, section.body];
-        }
 
-        return [
-          section.title,
-          ...((section.rows ?? []).flatMap((row) => [row.label, row.value])),
-        ];
-      }),
-    ]
-      .join(' ')
-      .toLowerCase();
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery.trim());
+    }, 350);
 
-  const matchesStructuredFilters = (document: MockDocument) => {
+    return () => clearTimeout(timeout);
+  }, [searchQuery]);
+
+  const isBackendSearchActive = debouncedSearchQuery.length > 0;
+  const searchQueryResult = useGlobalSearch(
+    { query: debouncedSearchQuery },
+    isBackendSearchActive,
+  );
+  const documents = (documentsQuery.data ?? []).map(mapDocument);
+  const searchResults = (searchQueryResult.data?.results ?? []).map(mapSearchHit);
+
+  const matchesStructuredFilters = (document: DisplayDocument) => {
     if (documentTypeFilter !== 'all' && document.documentType !== documentTypeFilter) {
       return false;
     }
@@ -110,7 +155,7 @@ export default function DocumentsScreen() {
     }
 
     if (documentDateFilter) {
-      const documentDate = new Date(`${document.date}T00:00:00`);
+      const documentDate = new Date(document.rawDate);
 
       if (
         documentDate.getFullYear() !== documentDateFilter.getFullYear() ||
@@ -136,27 +181,13 @@ export default function DocumentsScreen() {
     });
   };
 
-  const matchesSearch = (document: MockDocument) => {
-    if (normalizedSearchQuery.length === 0) {
-      return true;
-    }
-
-    return [
-      document.title,
-      document.parties,
-      document.date,
-      document.preview.summary,
-      extractContentText(document),
-    ].some((field) => field.toLowerCase().includes(normalizedSearchQuery));
-  };
-
-  const sortDocuments = (items: typeof documents) => {
+  const sortDocuments = (items: DisplayDocument[]) => {
     if (sortKey === 'newest') {
-      return [...items].sort((left, right) => right.date.localeCompare(left.date));
+      return [...items].sort((left, right) => right.rawDate.localeCompare(left.rawDate));
     }
 
     if (sortKey === 'oldest') {
-      return [...items].sort((left, right) => left.date.localeCompare(right.date));
+      return [...items].sort((left, right) => left.rawDate.localeCompare(right.rawDate));
     }
 
     if (sortKey === 'title-az') {
@@ -166,105 +197,40 @@ export default function DocumentsScreen() {
     return items;
   };
 
-  const filteredDocuments = sortDocuments(
-    documents.filter((document) => matchesStructuredFilters(document) && matchesSearch(document)),
-  );
-  const isAnySheetOpen =
-    isPreviewOpen || isVerifyOpen || isWhitelistOpen || isFilterSheetOpen || isSortSheetOpen;
-  const isWhitelistLoading = isHydratingDocuments || isPersistingDocuments;
+  const filteredDocuments = isBackendSearchActive
+    ? searchResults
+    : sortDocuments(documents.filter(matchesStructuredFilters));
+  const isAnySheetOpen = isFilterSheetOpen || isSortSheetOpen;
+  const isLoadingDocuments =
+    documentsQuery.isLoading || (isBackendSearchActive && searchQueryResult.isLoading);
 
   useEffect(() => {
-    if (hydrationError) {
+    if (documentsQuery.error) {
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      toast.error(hydrationError);
+      toast.error(parseApiError(documentsQuery.error).message);
     }
-  }, [hydrationError]);
+
+    if (searchQueryResult.error) {
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      toast.error(parseApiError(searchQueryResult.error).message);
+    }
+  }, [documentsQuery.error, searchQueryResult.error]);
 
   useCloseSheetOnBack(isAnySheetOpen, () => {
-    setIsPreviewOpen(false);
-    setIsVerifyOpen(false);
-    setIsWhitelistOpen(false);
     setIsFilterSheetOpen(false);
     setIsSortSheetOpen(false);
-    setWhitelistSearchQuery('');
   });
 
-  const openPreview = useCallback(
+  const openDocument = useCallback(
     (documentId: string) => {
-      const nextDocument = documents.find((document) => document.id === documentId) ?? null;
-
-      if (!nextDocument) {
-        return;
-      }
-
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      setSelectedDocumentId(nextDocument.id);
-      setIsVerifyOpen(false);
-      setIsPreviewOpen(true);
+      router.push({
+        pathname: '/document/[id]',
+        params: { id: documentId },
+      });
     },
-    [documents],
+    [router],
   );
-
-  const openVerify = useCallback(
-    (documentId: string) => {
-      const nextDocument = documents.find((document) => document.id === documentId) ?? null;
-
-      if (!nextDocument) {
-        return;
-      }
-
-      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      setSelectedDocumentId(nextDocument.id);
-      setIsPreviewOpen(false);
-      setIsVerifyOpen(true);
-    },
-    [documents],
-  );
-
-  const handleVerifyFromPreview = () => {
-    setIsPreviewOpen(false);
-
-    setTimeout(() => {
-      setIsVerifyOpen(true);
-    }, 180);
-  };
-
-  const openWhitelist = () => {
-    setIsPreviewOpen(false);
-
-    setTimeout(() => {
-      setIsWhitelistOpen(true);
-    }, 180);
-  };
-
-  const handleAddWhitelistResult = (resultId: string) => {
-    if (!selectedDocument) return;
-
-    if (addWhitelistResult(selectedDocument.id, resultId)) {
-      setWhitelistSearchQuery('');
-      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      toast.success('Access granted');
-      return;
-    }
-
-    void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-    toast.error('Failed to save granted access');
-  };
-
-  const handleRevokeGrant = (grantId: string) => {
-    if (!selectedDocument) {
-      return;
-    }
-
-    if (revokeWhitelistGrant(selectedDocument.id, grantId)) {
-      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      toast.success('Access revoked');
-      return;
-    }
-
-    void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-    toast.error('Failed to revoke access');
-  };
 
   const activeFilterSummary = [
     documentTypeFilter !== 'all'
@@ -287,38 +253,38 @@ export default function DocumentsScreen() {
     DOCUMENT_SORT_OPTIONS.find((option) => option.value === sortKey)?.label ?? 'Newest first';
 
   const renderDocumentResult = useCallback(
-    ({ item: document, index }: { item: MockDocument; index: number }) => (
+    ({ item: document, index }: { item: DisplayDocument; index: number }) => (
       <Animated.View entering={FadeInDown.delay(index * 60).springify()}>
         <DocumentResultCard
           title={document.title}
-          parties={document.parties}
+          parties={document.snippet ?? document.parties}
           date={document.date}
-          onPressCard={() => openPreview(document.id)}
-          onPressOpen={() => openPreview(document.id)}
+          onPressCard={() => openDocument(document.id)}
+          onPressOpen={() => openDocument(document.id)}
         />
       </Animated.View>
     ),
-    [openPreview],
+    [openDocument],
   );
 
   const renderSearchResult = useCallback(
-    (document: MockDocument) => (
+    (document: DisplayDocument) => (
       <DocumentSearchResultRow
         title={document.title}
-        parties={document.parties}
+        parties={document.snippet ?? document.parties}
         date={document.date}
-        onPress={() => openPreview(document.id)}
+        onPress={() => openDocument(document.id)}
       />
     ),
-    [openPreview],
+    [openDocument],
   );
 
   return (
     <SafeAreaView style={styles.screen}>
       <View style={styles.surface}>
         <FlatList
-          data={isHydratingDocuments ? [] : filteredDocuments}
-          keyExtractor={(document) => document.id}
+          data={isLoadingDocuments ? [] : filteredDocuments}
+          keyExtractor={(document, index) => `${document.id}-${index}`}
           renderItem={renderDocumentResult}
           contentContainerStyle={styles.scrollContent}
           initialNumToRender={8}
@@ -326,6 +292,10 @@ export default function DocumentsScreen() {
           windowSize={7}
           removeClippedSubviews
           showsVerticalScrollIndicator={false}
+          refreshing={documentsQuery.isRefetching}
+          onRefresh={() => {
+            void documentsQuery.refetch();
+          }}
           ListHeaderComponent={
             <>
               <DocumentsHeader />
@@ -336,10 +306,11 @@ export default function DocumentsScreen() {
                   value={searchQuery}
                   onChangeText={setSearchQuery}
                   placeholder="Title, party, date, or keyword"
-                  showDropdown={false}
+                  showDropdown={isBackendSearchActive}
+                  showResults={isBackendSearchActive}
                   results={filteredDocuments}
                   emptyText="No documents matched your search"
-                  keyExtractor={(document) => document.id}
+                  keyExtractor={(document, index) => `${document.id}-${index}`}
                   renderItem={renderSearchResult}
                 />
               </View>
@@ -353,7 +324,7 @@ export default function DocumentsScreen() {
             </>
           }
           ListEmptyComponent={
-            isHydratingDocuments ? (
+            isLoadingDocuments ? (
               <DocumentsListSkeleton />
             ) : (
               <View style={styles.emptyState}>
@@ -376,62 +347,6 @@ export default function DocumentsScreen() {
           />
         </View>
       </View>
-
-      <DocumentPreviewBottomSheet
-        visible={isPreviewOpen}
-        document={selectedDocument?.preview ?? null}
-        onClose={() => setIsPreviewOpen(false)}
-        onVerify={handleVerifyFromPreview}
-        onManageWhitelist={openWhitelist}
-        onAddWhitelist={openWhitelist}
-      />
-
-      <VerifyDocumentBottomSheet
-        visible={isVerifyOpen}
-        document={selectedDocument?.verify ?? null}
-        onClose={() => setIsVerifyOpen(false)}
-        onBackToDetails={() => {
-          setIsVerifyOpen(false);
-
-          setTimeout(() => {
-            setIsPreviewOpen(true);
-          }, 180);
-        }}
-      />
-
-      <ManageWhitelistBottomSheet
-        visible={isWhitelistOpen}
-        data={selectedDocument?.whitelist ?? null}
-        searchQuery={whitelistSearchQuery}
-        isLoading={isWhitelistLoading}
-        onChangeSearchQuery={setWhitelistSearchQuery}
-        onClose={() => {
-          setIsWhitelistOpen(false);
-          setWhitelistSearchQuery('');
-        }}
-        onPressGrantAction={(grantId) => {
-          if (!selectedDocument) {
-            return;
-          }
-
-          const selectedGrant = selectedDocument.whitelist.grants.find(
-            (grant) => grant.id === grantId,
-          );
-
-          setIsWhitelistOpen(false);
-
-          setTimeout(() => {
-            if (selectedGrant?.actionLabel === 'Verify') {
-              openVerify(selectedDocument.id);
-              return;
-            }
-
-            openPreview(selectedDocument.id);
-          }, 180);
-        }}
-        onPressRevoke={handleRevokeGrant}
-        onPressAddResult={handleAddWhitelistResult}
-      />
 
       <DocumentsFilterSheet
         visible={isFilterSheetOpen}
@@ -485,7 +400,7 @@ function DocumentSearchResultRow({
     >
       <View style={styles.resultCopy}>
         <Text style={styles.resultTitle}>{title}</Text>
-        <Text style={styles.resultMeta}>{parties}</Text>
+        <Text style={styles.resultMeta} numberOfLines={2}>{parties}</Text>
       </View>
       <Text style={styles.resultDate}>{date}</Text>
     </Pressable>
