@@ -24,7 +24,8 @@ export function useUploadDocument() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (file: PickedUploadFile) => documentsApi.upload(file),
+    mutationFn: ({ file, fileName }: { file: PickedUploadFile; fileName: string }) =>
+      documentsApi.upload(file, fileName),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.documents.all });
     },
@@ -36,5 +37,18 @@ export function useGlobalSearch(payload: GlobalSearchPayload, enabled: boolean) 
     queryKey: queryKeys.documents.search(payload.query),
     queryFn: () => documentsApi.globalSearch(payload),
     enabled,
+  });
+}
+
+export function useRenameDocument() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ documentId, fileName }: { documentId: string; fileName: string }) =>
+      documentsApi.rename(documentId, fileName),
+    onSuccess: (_, { documentId }) => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.documents.detail(documentId) });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.documents.all });
+    },
   });
 }

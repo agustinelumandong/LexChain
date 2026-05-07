@@ -4,5 +4,6 @@ export {
   useDocument,
   useDocuments,
   useGlobalSearch,
+  useRenameDocument,
   useUploadDocument,
 } from './use-documents';
