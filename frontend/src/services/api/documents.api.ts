@@ -28,6 +28,16 @@ export type DocumentUploadAcceptedResponse = {
   message: string;
 };
 
+export type RenameDocumentRequest = {
+  file_name: string;
+};
+
+export type RenameDocumentResponse = {
+  document_id: string;
+  file_name: string;
+  status: string;
+};
+
 export type GlobalSearchPayload = {
   query: string;
 };
@@ -89,9 +99,18 @@ export const documentsApi = {
   detail: (documentId: string) =>
     apiClient.get<DocumentDetail>(`/documents/${encodeURIComponent(documentId)}`),
 
-  upload: (file: PickedUploadFile) =>
-    apiClient.post<DocumentUploadAcceptedResponse>('/documents/upload', createUploadForm(file)),
+  upload: (file: PickedUploadFile, fileName: string) =>
+    apiClient.post<DocumentUploadAcceptedResponse>(
+      `/documents/upload?file_name=${encodeURIComponent(fileName)}`,
+      createUploadForm(file),
+    ),
 
   globalSearch: (payload: GlobalSearchPayload) =>
     apiClient.post<GlobalSearchResponse>('/search', payload),
+
+  rename: (documentId: string, fileName: string) =>
+    apiClient.patch<RenameDocumentResponse>(
+      `/documents/${encodeURIComponent(documentId)}/`,
+      { file_name: fileName },
+    ),
 };

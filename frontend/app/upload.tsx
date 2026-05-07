@@ -4,7 +4,7 @@ import * as DocumentPicker from 'expo-document-picker';
 import * as Haptics from 'expo-haptics';
 import { useFocusEffect } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { toast } from 'sonner-native';
 
@@ -25,6 +25,9 @@ const COLORS = {
   bg: APP_COLORS.bg,
   primary: APP_COLORS.primary,
   white: APP_COLORS.white,
+  textMuted: APP_COLORS.textMuted,
+  navy: APP_COLORS.navy,
+  borderSoft: APP_COLORS.borderSoft,
 };
 
 const DOCUMENT_TYPE_OPTIONS = [
@@ -66,6 +69,7 @@ export default function UploadScreen() {
   const [whitelistSearchQuery, setWhitelistSearchQuery] = useState('');
   const [whitelistData, setWhitelistData] = useState(INITIAL_WHITELIST);
   const [pickedFiles, setPickedFiles] = useState<PickedUploadFile[]>([]);
+  const [documentTitle, setDocumentTitle] = useState('');
   const uploadMutation = useUploadDocument();
 
   useFocusEffect(
@@ -235,9 +239,18 @@ export default function UploadScreen() {
       return;
     }
 
+    if (!documentTitle.trim()) {
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      toast.warning('Enter a document title');
+      return;
+    }
+
     try {
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      const response = await uploadMutation.mutateAsync(pickedFiles[0]);
+      const response = await uploadMutation.mutateAsync({
+        file: pickedFiles[0],
+        fileName: documentTitle.trim(),
+      });
 
       toast.success(response.message || 'Document accepted for processing');
       router.push({
@@ -289,6 +302,17 @@ export default function UploadScreen() {
               setIsTypeDropdownOpen(false);
             }}
           />*/}
+
+          <View style={styles.titleInputContainer}>
+            <Text style={styles.titleInputLabel}>Document Title</Text>
+            <TextInput
+              style={styles.titleInput}
+              value={documentTitle}
+              onChangeText={setDocumentTitle}
+              placeholder="Enter document title"
+              placeholderTextColor={COLORS.textMuted}
+            />
+          </View>
 
           <UploadDropzoneCard
             mode={pickedFiles.length > 0 ? 'selected' : 'empty'}
@@ -391,5 +415,23 @@ const styles = StyleSheet.create({
     shadowRadius: 20,
     shadowOffset: { width: 0, height: 12 },
     elevation: 8,
+  },
+  titleInputContainer: {
+    gap: 8,
+  },
+  titleInputLabel: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: COLORS.navy,
+  },
+  titleInput: {
+    backgroundColor: COLORS.white,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLORS.borderSoft,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    fontSize: 16,
+    color: COLORS.navy,
   },
 });
