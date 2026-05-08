@@ -1,6 +1,6 @@
 # AGENT SKILLS KNOWLEDGE BASE
 
-**Scope:** `.agents/` only  
+**Scope:** `.agent/` only
 **Role:** Local skill-pack documentation for this frontend workspace.
 
 ---
@@ -9,7 +9,7 @@
 
 This subtree stores reusable skill instructions and references consumed by coding agents. It is documentation/config support, **not runtime app code**.
 
-**Read `.agents/rules/expo.md` FIRST** before any Expo-related work — it enforces official Expo LLM docs usage.
+**Read `.agent/rules/expo.md` FIRST** before any Expo-related work — it enforces official Expo LLM docs usage.
 
 ---
 
@@ -109,5 +109,5 @@ This subtree stores reusable skill instructions and references consumed by codin
 
 - These files influence agent behavior during development sessions.
 - Runtime/frontend behavior is owned by `app/`, `src/features/`, `src/shared/`.
-- **MANDATORY reading order**: `.agents/rules/expo.md` → `AGENTS.md` → then pick relevant skill.
+- **MANDATORY reading order**: `.agent/rules/expo.md` → `AGENTS.md` → then pick relevant skill.
 - User-level `.agent/` directory mirrors this structure with global/user-installed skills.
