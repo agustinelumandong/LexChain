@@ -1,6 +1,6 @@
 # PROJECT KNOWLEDGE BASE
 
-**Generated:** 2026-05-08T20:40:00+08:00
+**Generated:** 2026-05-09T21:30:00+08:00
 **Commit:** 49bd004c
 **Branch:** dev
 **Expo SDK:** 54.0.33 | React Native: 0.81.5 | React: 19.1.0
@@ -100,6 +100,21 @@ frontend/
 2. **THEN:** Check `AGENTS.md` (this file) for project-level conventions.
 3. **THEN:** Check `graphify-out/GRAPH_REPORT.md` for god nodes and community structure when answering architecture questions.
 4. **THEN:** Check the relevant skill docs listed in **SKILL LOADING REMINDER** before implementation.
+
+---
+
+## PRIORITY OF INSTRUCTIONS
+
+When instructions conflict, follow this order:
+
+1. User's explicit request for the current task
+2. Safety/security rules
+3. `.agents/rules/expo.md`
+4. This `AGENTS.md`
+5. Existing code patterns near the edited file
+6. Generic framework advice
+
+Do not follow generic React Native or Expo advice if it conflicts with this repository's documented patterns.
 
 ---
 
@@ -790,21 +805,6 @@ customNavigationService.navigate("SignIn");
 - Don't replace working code just because another pattern is popular.
 - Don't modify lockfiles with a different package manager.
 - Don't import `.agents/` or `.agent/` files into runtime code.
-
----
-
-## PRIORITY OF INSTRUCTIONS
-
-When instructions conflict, follow this order:
-
-1. User's explicit request for the current task
-2. Safety/security rules
-3. `.agents/rules/expo.md`
-4. This `AGENTS.md`
-5. Existing code patterns near the edited file
-6. Generic framework advice
-
-Do not follow generic React Native or Expo advice if it conflicts with this repository's documented patterns.
 
 ---
 
