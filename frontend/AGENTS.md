@@ -790,3 +790,59 @@ customNavigationService.navigate("SignIn");
 - Don't replace working code just because another pattern is popular.
 - Don't modify lockfiles with a different package manager.
 - Don't import `.agents/` or `.agent/` files into runtime code.
+
+---
+
+## PRIORITY OF INSTRUCTIONS
+
+When instructions conflict, follow this order:
+
+1. User's explicit request for the current task
+2. Safety/security rules
+3. `.agents/rules/expo.md`
+4. This `AGENTS.md`
+5. Existing code patterns near the edited file
+6. Generic framework advice
+
+Do not follow generic React Native or Expo advice if it conflicts with this repository's documented patterns.
+
+---
+
+## BEFORE EDITING
+
+Before changing code:
+
+- Identify the smallest set of files needed for the task.
+- Check nearby files for existing patterns.
+- Check whether a shared component, hook, API function, type, or utility already exists.
+- Check route names before editing navigation.
+- Check `docs/openapi.json` before changing API calls.
+- Check `graphify-out/GRAPH_REPORT.md` for god nodes — avoid modifying them unless required.
+- Check relevant skill docs (e.g., `/native-data-fetching`, `/building-native-ui`) before data or UI work.
+
+---
+
+## AFTER EDITING
+
+After changing code:
+
+- Run `pnpm run lint` when practical.
+- Check TypeScript errors in touched files.
+- Confirm imports use project aliases (`@/features/*`, `@/ui`, `@/shared/*`) where appropriate.
+- Confirm no raw `fetch` was added inside screens or components.
+- Confirm no `.agents/` or `.agent/` files were imported into runtime code.
+- Confirm `lightningcss` stayed pinned to `1.30.1`.
+- Confirm no `@gorhom/bottom-sheet` named imports (must use default import for `BottomSheet`).
+- Mention any behavior change, API contract assumption, or untested area in the final response.
+
+---
+
+## SECURITY RULES
+
+This app handles document verification, whitelist access, and auth tokens. Rules:
+
+- Never store secrets, private keys, service-role keys, or backend credentials in frontend code.
+- Never log auth tokens, private document data, verification keys, or sensitive API responses.
+- Treat client-side checks as UX only. Backend authorization remains the source of truth.
+- Keep secure storage access centralized in `src/shared/utils/secure-storage.ts`.
+- Do not weaken document verification, whitelist, or auth flows without explicit approval.
