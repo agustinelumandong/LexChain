@@ -169,7 +169,7 @@ frontend/
 
 ---
 
-## CODE MAP (From graphify - God Nodes)
+## CODE MAP — GOD NODES
 
 These are the most connected abstractions. Changes here ripple widely.
 
@@ -213,7 +213,7 @@ These are the most connected abstractions. Changes here ripple widely.
 
 ---
 
-## UNIQUE STYLES
+## PROJECT-SPECIFIC BEHAVIOR
 
 - Tab bar is **hidden** (`tabBarStyle: { display: 'none' }`) but tabs still work as route groups for navigation structure.
 - `unstable_settings.anchor: "(tabs)"` in root layout sets default navigation anchor.
