@@ -98,25 +98,41 @@ frontend/
 
 1. **FIRST:** Read `.agents/rules/expo.md` (or `.agent/rules/expo.md`) — enforces Expo LLM docs usage.
 2. **THEN:** Check `AGENTS.md` (this file) for project-level conventions.
-3. **THEN:** Check `graphify-out/GRAPH_REPORT.md` for god nodes and community structure (for architecture questions).
+3. **THEN:** Check `graphify-out/GRAPH_REPORT.md` for god nodes and community structure when answering architecture questions.
+4. **THEN:** Check the relevant skill docs listed in **SKILL LOADING REMINDER** before implementation.
 
-### Skill Loading:
+---
 
-**ALWAYS check for available skills before implementing.** When a task matches a skill description, use the `skill()` tool to load it.
+## ANTI-PATTERNS / DO NOT BREAK
 
-**Available skills for this project:**
-| Skill | When to use |
-|-------|------------|
-| `/building-native-ui` | UI components, animations, navigation, styling |
-| `/native-data-fetching` | API calls, React Query, fetch patterns |
-| `/expo-tailwind-setup` | NativeWind, Tailwind, CSS setup |
-| `/expo-deployment` | iOS/Android deployment |
-| `/expo-cicd-workflows` | EAS builds, CI/CD |
-| `/expo-dev-client` | Dev client builds |
-| `/expo-module` | Native module writing |
-| `/ui-ux-pro-max` | UI/UX design decisions |
-| `/upgrading-expo` | SDK upgrades |
-| `/react-doctor` | After React changes (catch issues early) |
+### BottomSheet Import
+- **Must use `default` import** from `@gorhom/bottom-sheet`. Named import causes `Element type is invalid` error.
+  ```tsx
+  // ✅ Correct
+  import BottomSheet from '@gorhom/bottom-sheet';
+  import { BottomSheetModal, BottomSheetBackdrop, ... } from '@gorhom/bottom-sheet';
+
+  // ❌ Wrong — will crash
+  import { BottomSheet } from '@gorhom/bottom-sheet';
+  ```
+
+### Package Manager
+- Both `package-lock.json` and `pnpm-lock.yaml` exist. Use `pnpm` for all changes.
+
+### lightningcss Version
+- **Must stay pinned to `1.30.1`** in both `overrides` and `pnpm.overrides` in `package.json`. Drift to `1.32.0` breaks NativeWind bundling with `failed to deserialize; expected an object-like struct named Specifier`.
+
+### Auth Navigation
+- Use `router.replace(...)`, NOT `router.push(...)` for auth toggle buttons ("Create account" ↔ "Sign in"). Prevents screen stacking when spam-tapped.
+
+### Navigation Abstractions
+- **DO NOT** add parallel navigation abstractions outside Expo Router route files.
+
+### Themed Primitives
+- **DO NOT** bypass `ThemedText`, `ThemedView`, `Colors` for routine UI text/view rendering.
+
+### Agent Files in Runtime
+- **DO NOT** import `.agents/` files into runtime code paths. Agent docs are for development sessions only.
 
 ---
 
@@ -194,39 +210,6 @@ These are the most connected abstractions. Changes here ripple widely.
 - **TypeScript strict mode** enabled.
 - **Package manager**: Use `pnpm` (both `package-lock.json` and `pnpm-lock.yaml` exist — avoid drift).
 - **Expo docs**: Use official LLM docs at `docs.expo.dev/llms.txt` (enforced by `.agents/rules/expo.md`).
-
----
-
-## ANTI-PATTERNS (THIS PROJECT)
-
-### BottomSheet Import
-- **Must use `default` import** from `@gorhom/bottom-sheet`. Named import causes `Element type is invalid` error.
-  ```tsx
-  // ✅ Correct
-  import BottomSheet from '@gorhom/bottom-sheet';
-  import { BottomSheetModal, BottomSheetBackdrop, ... } from '@gorhom/bottom-sheet';
-
-  // ❌ Wrong — will crash
-  import { BottomSheet } from '@gorhom/bottom-sheet';
-  ```
-
-### Package Manager
-- Both `package-lock.json` and `pnpm-lock.yaml` exist. Use `pnpm` for all changes.
-
-### lightningcss Version
-- **Must stay pinned to `1.30.1`** in both `overrides` and `pnpm.overrides` in `package.json`. Drift to `1.32.0` breaks NativeWind bundling with `failed to deserialize; expected an object-like struct named Specifier`.
-
-### Auth Navigation
-- Use `router.replace(...)`, NOT `router.push(...)` for auth toggle buttons ("Create account" ↔ "Sign in"). Prevents screen stacking when spam-tapped.
-
-### Navigation Abstractions
-- **DO NOT** add parallel navigation abstractions outside Expo Router route files.
-
-### Themed Primitives
-- **DO NOT** bypass `ThemedText`, `ThemedView`, `Colors` for routine UI text/view rendering.
-
-### Agent Files in Runtime
-- **DO NOT** import `.agents/` files into runtime code paths. Agent docs are for development sessions only.
 
 ---
 
@@ -309,22 +292,28 @@ pnpm run reset-project  # Move app/ → app-example/, reset to blank
 
 ## SKILL LOADING REMINDER
 
-**Before implementing ANY feature, ALWAYS check if a relevant skill exists.** Use the `skill()` tool:
+Before implementing a feature, check whether a relevant project skill or rule exists.
 
-| Task | Skill to Load |
-|------|---------------|
-| UI components, animations | `/building-native-ui` |
-| API calls, data fetching | `/native-data-fetching` |
-| Styling, NativeWind, Tailwind | `/expo-tailwind-setup` |
-| Deployment (App Store, Play Store) | `/expo-deployment` |
-| CI/CD, EAS builds | `/expo-cicd-workflows` |
-| Expo SDK upgrade | `/upgrading-expo` |
-| Native modules | `/expo-module` |
-| Dev client builds | `/expo-dev-client` |
-| UI/UX design decisions | `/ui-ux-pro-max` |
-| After React changes | `/react-doctor` (opencode built-in) |
+If the coding agent supports project skills, load the matching skill before implementation.
+If the coding agent does not support a `skill()` tool, manually read the matching `.agents/skills/<skill>/` documentation before making changes.
 
-Check the skill list at the top of this file for the complete set. User-installed skills override built-ins — always prefer project skills when domain matches.
+Prefer project-local skills and rules over generic advice.
+
+| Task | Skill / Doc to Check |
+|------|----------------------|
+| Expo rules, routing, CLI, SDK behavior | `.agents/rules/expo.md` |
+| UI components, animations, layout, styling | `.agents/skills/building-native-ui/` |
+| API calls, React Query, fetch patterns | `.agents/skills/native-data-fetching/` |
+| NativeWind, Tailwind, CSS setup | `.agents/skills/expo-tailwind-setup/` |
+| Deployment, App Store, Play Store | `.agents/skills/expo-deployment/` |
+| CI/CD and EAS builds | `.agents/skills/expo-cicd-workflows/` |
+| Expo SDK upgrades | `.agents/skills/upgrading-expo/` |
+| Native module work | `.agents/skills/expo-module/` |
+| Development client builds | `.agents/skills/expo-dev-client/` |
+| UI/UX design decisions | `.agents/skills/ui-ux-pro-max/` |
+| After React-heavy changes | `/react-doctor` if available |
+
+Do not import files from `.agents/` or `.agent/` into runtime application code.
 
 ---
 
@@ -333,7 +322,7 @@ Check the skill list at the top of this file for the complete set. User-installe
 - **Readability first**: Choose readable, maintainable code over clever tricks.
 - **KISS**: Pick the simplest solution that fully solves the task.
 - **DRY carefully**: Extract repeated logic only when reuse is clear and proven.
-- **YAGNI**: Build only what is required right now — avoid speculative complexity.
+- **YAGNI**: Build only what is required right now. Avoid speculative complexity.
 - **Single responsibility**: Each function, component, hook, service, or module should have one clear purpose.
 - **Separate concerns**: Keep UI, domain logic, navigation, and API/data access distinct.
 - **Consistency over new abstractions**: Follow existing project patterns before introducing new ones.
@@ -351,6 +340,7 @@ Check the skill list at the top of this file for the complete set. User-installe
 - Do reuse existing app patterns before inventing a new one.
 - Do explain major tradeoffs in comments only when the code is not self-explanatory.
 - Do make small, reviewable changes.
+- Do prefer boring, predictable code over clever code.
 
 ### Don't
 
@@ -359,6 +349,103 @@ Check the skill list at the top of this file for the complete set. User-installe
 - Don't add libraries for simple helpers, formatting, or small UI behavior.
 - Don't hide important logic inside overly clever utilities.
 - Don't change unrelated files just for style preference.
+- Don't introduce architecture that the current feature does not need.
+
+### Examples
+
+#### KISS / Readability First
+
+### Do:
+
+```ts
+export function formatDocumentCount(count: number): string {
+  return `${count} ${count === 1 ? "document" : "documents"}`;
+}
+```
+
+### Don't:
+```ts
+export const formatDocumentCount = (n: number) =>
+  `${n} document${+(n !== 1) ? "s" : ""}`;
+```
+
+#### DRY, but do not over-abstract too early
+
+### Do:
+
+```tsx
+<Button label="Upload document" onPress={handleUpload} />
+<Button label="Cancel" variant="secondary" onPress={handleCancel} />
+```
+
+### Don't:
+```tsx
+const actions = [
+  {
+    id: "upload",
+    label: "Upload document",
+    behavior: "primary-action",
+    interactionMode: "document-flow",
+    handler: handleUpload,
+  },
+  {
+    id: "cancel",
+    label: "Cancel",
+    behavior: "secondary-action",
+    interactionMode: "document-flow",
+    handler: handleCancel,
+  },
+];
+
+actions.map((action) => (
+  <DynamicActionRenderer
+    key={action.id}
+    action={action}
+    renderStrategy="document-action-footer"
+  />
+));
+```
+
+#### Single Responsibility
+
+### Do:
+
+```ts
+export function mapDocumentStatus(status: string): DocumentStatus {
+  if (status === "verified") return "verified";
+  if (status === "pending") return "pending";
+  if (status === "rejected") return "rejected";
+
+  return "unknown";
+}
+```
+
+### Don't:
+
+```ts
+export function mapDocumentStatusAndShowToastAndNavigate() {
+  // Maps document status
+  // Shows toast
+  // Saves state
+  // Navigates user
+}
+```
+
+#### Minimize Blast Radius
+
+### Do:
+
+```ts
+// Fix only the auth toggle behavior.
+router.replace("/(auth)/sign-in");
+```
+
+### Don't:
+
+```ts
+// Do not rewrite the full auth navigation system just to prevent stacking.
+createNewAuthNavigationFramework();
+```
 
 ---
 
@@ -371,14 +458,14 @@ Check the skill list at the top of this file for the complete set. User-installe
 - Do not use outdated Expo advice such as `expo eject` or old "managed vs bare workflow" assumptions.
 - Use `npx expo` commands instead of deprecated global `expo-cli`.
 - Optimize for mobile-first layouts and interactions, while keeping web compatibility in mind.
-- Prefer platform-appropriate UI and behavior; do not force web-only patterns into native screens.
-- Use `react-native` primitives unless the project already uses a UI library.
-- Use `Pressable`/touch-friendly components for interactive UI.
+- Prefer platform-appropriate UI and behavior. Do not force web-only patterns into native screens.
+- Use `react-native` primitives unless the project already has a shared component for the same use case.
+- Use `Pressable` or project Button components for touch-friendly interactions.
 - Respect safe areas, keyboard behavior, status bars, and platform differences.
 - Preserve accessibility, responsiveness, and performance in every change.
 - Be careful with unnecessary effects, large lists, excessive re-renders, and inline heavy computations.
 - Prefer `FlatList`, `SectionList`, or an existing optimized list component for large collections.
-- Keep state as local as possible; lift or centralize it only when necessary.
+- Keep state as local as possible. Lift or centralize it only when necessary.
 - Keep business logic out of presentational components.
 - Extract reusable logic into hooks only when it is reused or clearly improves clarity.
 - Prefer feature-based organization for growing app areas.
@@ -389,48 +476,31 @@ Check the skill list at the top of this file for the complete set. User-installe
 ### Do
 
 ```tsx
-// Good: screen uses a focused API function and keeps UI readable
-import { useEffect, useState } from "react";
-import { ActivityIndicator, Text, View } from "react-native";
+import { ActivityIndicator } from "react-native";
 
-import { authApi } from "@/services/api";
+import { ThemedText } from "@/shared/components/themed-text";
+import { ThemedView } from "@/shared/components/themed-view";
+import { useCurrentUser } from "@/services/query/use-auth";
 
 export function ProfileSummary() {
-  const [name, setName] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    let isMounted = true;
-
-    async function loadProfile() {
-      try {
-        const profile = await authApi.getCurrentUser();
-
-        if (isMounted) {
-          setName(profile.name);
-        }
-      } finally {
-        if (isMounted) {
-          setIsLoading(false);
-        }
-      }
-    }
-
-    loadProfile();
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
+  const { data: user, isLoading, isError } = useCurrentUser();
 
   if (isLoading) {
     return <ActivityIndicator />;
   }
 
+  if (isError) {
+    return (
+      <ThemedView>
+        <ThemedText>Unable to load profile.</ThemedText>
+      </ThemedView>
+    );
+  }
+
   return (
-    <View>
-      <Text>{name}</Text>
-    </View>
+    <ThemedView>
+      <ThemedText>{user?.name}</ThemedText>
+    </ThemedView>
   );
 }
 ```
@@ -438,7 +508,10 @@ export function ProfileSummary() {
 ### Don't
 
 ```tsx
-// Bad: API call, transformation, loading logic, and UI are all mixed casually
+// Bad: raw fetch, untyped data, and plain text/view primitives for routine themed UI.
+import { useEffect, useState } from "react";
+import { Text, View } from "react-native";
+
 export function ProfileSummary() {
   const [data, setData] = useState<any>();
 
@@ -448,7 +521,11 @@ export function ProfileSummary() {
       .then((json) => setData(json));
   }, []);
 
-  return <Text>{data?.user?.profile?.name}</Text>;
+  return (
+    <View>
+      <Text>{data?.user?.profile?.name}</Text>
+    </View>
+  );
 }
 ```
 
@@ -458,15 +535,18 @@ export function ProfileSummary() {
 
 This repository is a frontend Expo app. It may call backend endpoints through an API client, but it should not implement backend responsibilities.
 
-- Keep all network requests inside API/client/service modules (`src/services/api/`).
+- Keep all network requests inside API/client/service modules in `src/services/api/`.
 - Screens and UI components should not call `fetch` directly unless no API layer exists yet.
-- Use typed request and response shapes (see `src/services/api/` for examples).
-- Keep API base URLs and environment-specific values in the existing config/env pattern (`src/shared/config/`).
+- Use React Query hooks from `src/services/query/` for server state when available.
+- Use typed request and response shapes. Check `src/types/` and existing API modules before creating new types.
+- Keep API base URLs and environment-specific values in the existing config/env pattern in `src/shared/config/`.
 - Do not hardcode production URLs inside components.
-- Handle loading, empty, success, and error states in UI (use `QueryStates` component from `@/ui`).
+- Handle loading, empty, success, and error states in UI.
+- Prefer existing `QueryStates`, `OfflineBanner`, and error utilities where applicable.
+- Use `parseApiError()` from `src/shared/utils/api-error.ts` for API error normalization.
 - Do not store secrets, private keys, service-role keys, or backend credentials in the frontend.
 - Do not implement backend-only validation, authorization, or database logic in the app.
-- Do client-side validation only for user experience; backend remains the source of truth.
+- Do client-side validation only for user experience. The backend remains the source of truth.
 - Keep mock/demo data clearly separated from real API calls.
 - When backend is not ready, use mock services or adapters that can be replaced later without rewriting screens.
 
@@ -475,39 +555,41 @@ This repository is a frontend Expo app. It may call backend endpoints through an
 ```ts
 // src/services/api/auth.api.ts
 import { apiClient } from "./client";
-
-type LoginRequest = {
-  email: string;
-  password: string;
-};
-
-type LoginResponse = {
-  token: string;
-  user: {
-    id: string;
-    name: string;
-    email: string;
-  };
-};
+import type { LoginRequest, LoginResponse } from "@/types";
 
 export async function login(payload: LoginRequest): Promise<LoginResponse> {
   return apiClient.post<LoginResponse>("/auth/login", payload);
 }
 
-// Good: screen calls a feature API function, not raw fetch
-const result = await login({ email, password });
+// src/services/query/use-auth.ts
+import { useMutation } from "@tanstack/react-query";
+
+import { login } from "@/services/api/auth.api";
+
+export function useSignIn() {
+  return useMutation({
+    mutationFn: login,
+  });
+}
+
+// Good: screen uses a query/mutation hook instead of raw fetch.
+const signInMutation = useSignIn();
+
+await signInMutation.mutateAsync({
+  email,
+  password,
+});
 ```
 
 ### Don't
 
-```tsx
-// Bad: hardcoded URL, untyped response, raw fetch inside screen
+```ts
+// Bad: hardcoded URL, untyped response, raw fetch inside screen.
 const response = await fetch("https://production-api.com/auth/login", {
   method: "POST",
   body: JSON.stringify({ email, password }),
 });
-
-// Bad: frontend pretending to be backend
+// Bad: frontend pretending to be backend.
 const ADMIN_SECRET = "secret-key";
 ```
 
@@ -522,23 +604,34 @@ const ADMIN_SECRET = "secret-key";
 - Use composition for complex UI instead of adding too many boolean props.
 - Keep screen-specific components near the feature/screen unless they are reused elsewhere.
 - Move shared components only when reuse is real.
+- Prefer existing project primitives such as `ThemedText`, `ThemedView`, `Button`, `IconSymbol`, and `QueryStates`.
+- Do not bypass themed primitives for routine text and container UI.
 
 ### Do
 
 ```tsx
-type BalanceCardProps = {
+import { ThemedText } from "@/shared/components/themed-text";
+import { ThemedView } from "@/shared/components/themed-view";
+
+type DocumentStatusCardProps = {
   title: string;
-  amount: string;
+  statusLabel: string;
   caption?: string;
 };
 
-export function BalanceCard({ title, amount, caption }: BalanceCardProps) {
+export function DocumentStatusCard({
+  title,
+  statusLabel,
+  caption,
+}: DocumentStatusCardProps) {
   return (
-    <View>
-      <Text>{title}</Text>
-      <Text>{amount}</Text>
-      {caption ? <Text>{caption}</Text> : null}
-    </View>
+    <ThemedView className="rounded-2xl p-4">
+      <ThemedText className="text-base font-semibold">{title}</ThemedText>
+      <ThemedText className="mt-1 text-sm">{statusLabel}</ThemedText>
+      {caption ? (
+        <ThemedText className="mt-2 text-xs opacity-70">{caption}</ThemedText>
+      ) : null}
+    </ThemedView>
   );
 }
 ```
@@ -546,14 +639,16 @@ export function BalanceCard({ title, amount, caption }: BalanceCardProps) {
 ### Don't
 
 ```tsx
-// Bad: too many flags make the component unclear
+// Bad: too many flags make the component unclear and hard to maintain.
 <UniversalCard
-  type="balance"
-  showMoney
+  type="document"
+  showStatus
   showCaption
   enableHeroMode
   useDashboardLayout
   variant="special"
+  hasVerificationMode
+  shouldRenderActions
 />
 ```
 
@@ -561,30 +656,50 @@ export function BalanceCard({ title, amount, caption }: BalanceCardProps) {
 
 ## Styling and UI Rules
 
-- Follow the existing design system, theme file (`src/shared/theme/theme.ts`), color tokens (`APP_COLORS`), spacing, typography, and component patterns.
-- Do not introduce a new styling approach unless explicitly requested (this project uses NativeWind + Tailwind v4 via `@/tw`).
+- Follow the existing design system, theme file `src/shared/theme/theme.ts`, color tokens, spacing, typography, and component patterns.
+- This project uses NativeWind v5 + Tailwind v4 through `@/tw`.
+- Prefer existing theme tokens and shared primitives before one-off styles.
+- Do not introduce a new styling approach unless explicitly requested.
 - Use responsive layout patterns that work on native and web.
 - Design mobile-first, then adapt for larger screens.
 - Respect safe areas on screens.
 - Avoid fixed heights that break on small devices unless required.
 - Use touch-friendly sizes for buttons, inputs, and interactive elements.
 - Keep visual polish consistent across screens.
+- Use `StyleSheet.create(...)` only when NativeWind is awkward, unsupported, or less readable.
 
 ### Do
 
 ```tsx
-<View style={styles.container}>
-  <Text style={styles.title}>Welcome back</Text>
-</View>
+import { ThemedText } from "@/shared/components/themed-text";
+import { ThemedView } from "@/shared/components/themed-view";
+
+export function WelcomeHeader() {
+  return (
+    <ThemedView className="px-5 py-6">
+      <ThemedText className="text-2xl font-bold">
+        Welcome back
+      </ThemedText>
+      <ThemedText className="mt-2 text-sm opacity-70">
+        Manage and verify your documents.
+      </ThemedText>
+    </ThemedView>
+  );
+}
+```
+
+### Also acceptable when needed
+
+```tsx
+import { StyleSheet, View } from "react-native";
+
+export function AbsoluteOverlay() {
+  return <View pointerEvents="none" style={styles.overlay} />;
+}
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    paddingHorizontal: 20,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: "700",
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
   },
 });
 ```
@@ -592,7 +707,7 @@ const styles = StyleSheet.create({
 ### Don't
 
 ```tsx
-// Bad: random one-off values that ignore the app theme
+// Bad: random one-off values that ignore the app theme and may break on small devices.
 <View style={{ padding: 13, backgroundColor: "#123abc", height: 812 }}>
 ```
 
@@ -603,26 +718,41 @@ const styles = StyleSheet.create({
 - Follow Expo Router file-based routing conventions.
 - Use route groups and layout files consistently with the existing app structure.
 - Do not navigate by pushing duplicate auth screens when a redirect or replace is more appropriate.
-- Use `router.replace` for auth transitions where the user should not go back to the previous screen.
-- Use `router.push` only when the previous screen should remain in history.
+- Use `router.replace(...)` for auth transitions where the user should not go back to the previous auth screen.
+- Use `router.push(...)` only when the previous screen should remain in history.
 - Keep navigation logic out of deeply nested presentational components when possible.
 - Do not create custom navigation systems if Expo Router already solves the problem.
+- Do not add parallel navigation abstractions outside Expo Router route files.
+- Route names must match actual files and route groups in `app/`.
 
 ### Do
 
 ```ts
 import { router } from "expo-router";
 
+// Auth toggle: prevents stacking sign-in/sign-up screens.
 router.replace("/(auth)/sign-in");
+```
+
+```ts
+import { router } from "expo-router";
+
+// Detail navigation: previous screen should remain in history.
+router.push(`/document/${documentId}`);
 ```
 
 ### Don't
 
 ```ts
-// Bad for auth redirect because it can stack screens repeatedly
+// Bad for auth redirect because it can stack screens repeatedly.
 router.push("/sign-in");
 router.push("/sign-in");
 router.push("/sign-in");
+```
+
+```ts
+// Bad: do not create another router abstraction for an Expo Router app.
+customNavigationService.navigate("SignIn");
 ```
 
 ---
@@ -639,12 +769,18 @@ router.push("/sign-in");
 - Do not change formatting across unrelated files.
 - Do not remove comments, TODOs, or existing behavior without understanding why they exist.
 - Keep generated code aligned with the current repository structure.
+- Update exports from `index.ts` files when adding public feature/service members.
+- Avoid touching god nodes such as `parseApiError()` or `request()` unless the task requires it.
+- If a change touches API behavior, check `docs/openapi.json` and existing API modules first.
+- If a change touches navigation, check `app/_layout.tsx`, route groups, and existing route names first.
 
 ### Do
 
 - Do fix the requested screen or feature directly.
 - Do keep existing naming and folder conventions.
 - Do mention when a requested change may affect navigation, storage, API contracts, or app config.
+- Do keep package manager usage consistent with `pnpm`.
+- Do preserve the pinned `lightningcss` version unless explicitly asked to fix that dependency issue.
 
 ### Don't
 
@@ -652,3 +788,5 @@ router.push("/sign-in");
 - Don't move files into a new architecture without approval.
 - Don't install a new state manager for one shared value.
 - Don't replace working code just because another pattern is popular.
+- Don't modify lockfiles with a different package manager.
+- Don't import `.agents/` or `.agent/` files into runtime code.
