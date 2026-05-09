@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
-import { documentsApi, type GlobalSearchPayload } from '@/services/api';
+import { documentsApi, type AskResponse, type GlobalSearchPayload } from '@/services/api';
 import type { PickedUploadFile } from '@/types';
 
 import { queryKeys } from './keys';
@@ -58,5 +58,15 @@ export function useRenameDocument() {
       void queryClient.invalidateQueries({ queryKey: queryKeys.documents.detail(documentId) });
       void queryClient.invalidateQueries({ queryKey: queryKeys.documents.all });
     },
+  });
+}
+
+export function useAskDocument() {
+  return useMutation<
+    AskResponse,
+    Error,
+    { documentId: string; question: string }
+  >({
+    mutationFn: ({ documentId, question }) => documentsApi.ask(documentId, question),
   });
 }
