@@ -5,14 +5,22 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { toast } from 'sonner-native';
 
 import {
+  AskDocumentCard,
   DetailSectionsCard,
   DocumentScreenHeader,
+  DocumentSearchBar,
   DocumentSummaryCard,
   DocumentTopBar,
   RenameDocumentSheet,
+  SearchResultsCard,
 } from '@/features/document';
 import { Button, ErrorState, LoadingState } from '@/ui';
-import { useDocument, useRenameDocument } from '@/services/query';
+import {
+  useAskDocument,
+  useDocument,
+  useRenameDocument,
+  useSearchDocument,
+} from '@/services/query';
 import { parseApiError } from '@/shared/utils/api-error';
 
 import { APP_COLORS } from '@/theme';
@@ -60,6 +68,15 @@ export default function DocumentDetailsScreen() {
   const document = documentQuery.data;
 
   const [isRenameSheetVisible, setIsRenameSheetVisible] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [hasSearched, setHasSearched] = useState(false);
+
+  const searchMutation = useSearchDocument(
+    hasSearched ? documentId : '',
+    hasSearched ? searchQuery : '',
+  );
+
+  const qaMutation = useAskDocument();
 
   const handleRename = async (newName: string) => {
     try {
@@ -69,6 +86,15 @@ export default function DocumentDetailsScreen() {
     } catch (error) {
       toast.error(parseApiError(error).message);
     }
+  };
+
+  const handleSearch = () => {
+    if (searchQuery.trim().length === 0) return;
+    setHasSearched(true);
+  };
+
+  const handleAsk = (question: string) => {
+    qaMutation.mutate({ documentId, question });
   };
 
   const detailSections = useMemo(() => {
@@ -135,6 +161,47 @@ export default function DocumentDetailsScreen() {
                 ]}
                 summary={document.summary ?? 'Summary is not ready yet.'}
               />
+
+              <DocumentSearchBar
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                onSubmit={handleSearch}
+                isLoading={searchMutation.isPending}
+              />
+
+              {searchMutation.data && (
+                <SearchResultsCard
+                  hits={searchMutation.data.results}
+                  onPressHit={(chunkId) => {
+                    toast(`Chunk: ${chunkId}`);
+                  }}
+                />
+              )}
+
+              {searchMutation.isError && (
+                <ErrorState
+                  title="Search failed"
+                  message={parseApiError(searchMutation.error).message}
+                  onRetry={() => {
+                    void searchMutation.refetch();
+                  }}
+                />
+              )}
+
+              <AskDocumentCard
+                answer={qaMutation.data?.answer}
+                model={qaMutation.data?.model}
+                citations={qaMutation.data?.citations}
+                isLoading={qaMutation.isPending}
+                onAsk={handleAsk}
+              />
+
+              {qaMutation.isError && (
+                <ErrorState
+                  title="Question failed"
+                  message={parseApiError(qaMutation.error).message}
+                />
+              )}
 
               <DetailSectionsCard
                 sections={detailSections}
