@@ -1,13 +1,16 @@
 export { AccessWhitelistCard } from './access-whitelist-card';
+export { AskDocumentCard } from './ask-document-card';
 export { DetailSectionsCard } from './detail-sections-card';
 export { DocumentActionsSheet } from './document-actions-sheet';
 export { DocumentPreviewBottomSheet } from './document-preview-bottom-sheet';
 export { DocumentScreenHeader } from './document-screen-header';
+export { DocumentSearchBar } from './document-search-bar';
 export { DocumentSummaryCard } from './document-summary-card';
 export { DocumentTopBar } from './document-top-bar';
 export { IntegrityCheckCard } from './integrity-check-card';
 export { ManageWhitelistBottomSheet } from './manage-whitelist-bottom-sheet';
 export { RenameDocumentSheet } from './rename-document-sheet';
+export { SearchResultsCard } from './search-results-card';
 export { VerificationStatusCard } from './verification-status-card';
 export { VerifyDocumentBottomSheet } from './verify-document-bottom-sheet';
 export { WhitelistGrantRow } from './whitelist-grant-row';
