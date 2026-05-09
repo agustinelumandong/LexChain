@@ -158,7 +158,7 @@ export const documentsApi = {
 
   rename: (documentId: string, fileName: string) =>
     apiClient.patch<RenameDocumentResponse>(
-      `/documents/${encodeDocumentId(documentId)}`,
+      `/documents/${encodeDocumentId(documentId)}/`,
       { file_name: fileName },
     ),
 
