@@ -5,17 +5,17 @@ import type { PickedUploadFile } from '@/types';
 
 import { queryKeys } from './keys';
 
-export function useDocuments() {
+export function useDocuments(params?: { limit?: number; offset?: number }) {
   return useQuery({
     queryKey: queryKeys.documents.all,
-    queryFn: documentsApi.list,
+    queryFn: () => documentsApi.list(params),
   });
 }
 
 export function useDocument(documentId?: string) {
   return useQuery({
     queryKey: queryKeys.documents.detail(documentId ?? ''),
-    queryFn: () => documentsApi.detail(documentId ?? ''),
+    queryFn: () => documentsApi.getById(documentId ?? ''),
     enabled: Boolean(documentId),
   });
 }

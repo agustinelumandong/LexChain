@@ -109,30 +109,62 @@ function createUploadForm(file: PickedUploadFile) {
   return formData;
 }
 
+const toQueryString = (params: Record<string, string | number | undefined>) => {
+  const searchParams = new URLSearchParams();
+
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined) {
+      searchParams.set(key, String(value));
+    }
+  });
+
+  const query = searchParams.toString();
+  return query ? `?${query}` : '';
+};
+
+const encodeDocumentId = (documentId: string) => {
+  const trimmed = documentId.trim();
+
+  if (!trimmed) {
+    throw new Error('documentId is required');
+  }
+
+  return encodeURIComponent(trimmed);
+};
+
 export const documentsApi = {
-  list: () => apiClient.get<DocumentListItem[]>('/documents/'),
-
-  detail: (documentId: string) =>
-    apiClient.get<DocumentDetail>(`/documents/${encodeURIComponent(documentId)}`),
-
-  upload: (file: PickedUploadFile, fileName: string) =>
-    apiClient.post<DocumentUploadAcceptedResponse>(
-      `/documents/upload?file_name=${encodeURIComponent(fileName)}`,
-      createUploadForm(file),
+  list: (params?: { limit?: number; offset?: number }) =>
+    apiClient.get<DocumentListItem[]>(
+      `/documents/${toQueryString({
+        limit: params?.limit,
+        offset: params?.offset,
+      })}`,
     ),
+
+  getById: (documentId: string) =>
+    apiClient.get<DocumentDetail>(`/documents/${encodeDocumentId(documentId)}`),
+
+  upload: (file: PickedUploadFile, fileName: string) => {
+    const searchParams = new URLSearchParams({ file_name: fileName });
+
+    return apiClient.post<DocumentUploadAcceptedResponse>(
+      `/documents/upload?${searchParams.toString()}`,
+      createUploadForm(file),
+    );
+  },
 
   globalSearch: (payload: GlobalSearchPayload) =>
     apiClient.post<GlobalSearchResponse>('/search', payload),
 
   rename: (documentId: string, fileName: string) =>
     apiClient.patch<RenameDocumentResponse>(
-      `/documents/${encodeURIComponent(documentId)}/`,
+      `/documents/${encodeDocumentId(documentId)}`,
       { file_name: fileName },
     ),
 
   search: (documentId: string, query: string) =>
     apiClient.post<SearchResponse>(
-      `/documents/${encodeURIComponent(documentId)}/search`,
+      `/documents/${encodeDocumentId(documentId)}/search`,
       { query },
     ),
 };
