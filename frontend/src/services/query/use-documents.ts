@@ -40,6 +40,14 @@ export function useGlobalSearch(payload: GlobalSearchPayload, enabled: boolean) 
   });
 }
 
+export function useSearchDocument(documentId: string, query: string) {
+  return useQuery({
+    queryKey: ['documents', documentId, 'search', query] as const,
+    queryFn: () => documentsApi.search(documentId, query),
+    enabled: Boolean(documentId) && query.trim().length > 0,
+  });
+}
+
 export function useRenameDocument() {
   const queryClient = useQueryClient();
 

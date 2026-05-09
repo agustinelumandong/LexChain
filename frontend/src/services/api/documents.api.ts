@@ -43,7 +43,10 @@ export type GlobalSearchPayload = {
 };
 
 export type GlobalSearchHit = {
+  chunk_id: string;
   document_id: string;
+  chunk_index: number;
+  score: number;
 };
 
 export type GlobalSearchResult = {
@@ -54,6 +57,19 @@ export type GlobalSearchResult = {
 export type GlobalSearchResponse = {
   query: string;
   results: GlobalSearchHit[];
+};
+
+export type SearchHit = {
+  chunk_id: string;
+  chunk_index: number;
+  score: number;
+  text: string;
+};
+
+export type SearchResponse = {
+  query: string;
+  document_id: string;
+  results: SearchHit[];
 };
 
 // Helper to fetch search results with document details
@@ -112,5 +128,11 @@ export const documentsApi = {
     apiClient.patch<RenameDocumentResponse>(
       `/documents/${encodeURIComponent(documentId)}/`,
       { file_name: fileName },
+    ),
+
+  search: (documentId: string, query: string) =>
+    apiClient.post<SearchResponse>(
+      `/documents/${encodeURIComponent(documentId)}/search`,
+      { query },
     ),
 };
