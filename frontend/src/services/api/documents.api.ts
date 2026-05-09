@@ -1,4 +1,4 @@
-import type { PickedUploadFile } from '@/types';
+import type { DocumentStatusKey, PickedUploadFile } from '@/types';
 
 import { apiClient } from './client';
 
@@ -6,7 +6,7 @@ export type DocumentListItem = {
   id: string;
   file_name: string;
   content_type: string;
-  status: string;
+  status: DocumentStatusKey;
   created_at: string;
 };
 
@@ -14,7 +14,7 @@ export type DocumentDetail = {
   document_id: string;
   file_name: string;
   content_type: string;
-  status: string;
+  status: DocumentStatusKey;
   summary?: string | null;
   labels?: string[];
   entities?: Record<string, unknown>[];
@@ -47,6 +47,7 @@ export type GlobalSearchHit = {
   document_id: string;
   chunk_index: number;
   score: number;
+  text: string;
 };
 
 export type GlobalSearchResult = {
@@ -70,6 +71,19 @@ export type SearchResponse = {
   query: string;
   document_id: string;
   results: SearchHit[];
+};
+
+export type AskCitation = {
+  chunk_id: string;
+  chunk_index: number;
+  score: number;
+};
+
+export type AskResponse = {
+  question: string;
+  answer: string;
+  model: string;
+  citations: AskCitation[];
 };
 
 // Helper to fetch search results with document details
@@ -166,5 +180,11 @@ export const documentsApi = {
     apiClient.post<SearchResponse>(
       `/documents/${encodeDocumentId(documentId)}/search`,
       { query },
+    ),
+
+  ask: (documentId: string, question: string) =>
+    apiClient.post<AskResponse>(
+      `/documents/${encodeDocumentId(documentId)}/ask`,
+      { question },
     ),
 };

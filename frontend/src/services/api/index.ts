@@ -17,4 +17,10 @@ export type {
   GlobalSearchPayload,
   GlobalSearchResponse,
   GlobalSearchResult,
+  RenameDocumentRequest,
+  RenameDocumentResponse,
+  SearchHit,
+  SearchResponse,
+  AskCitation,
+  AskResponse,
 } from './documents.api';

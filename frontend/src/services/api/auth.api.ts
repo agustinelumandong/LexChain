@@ -1,5 +1,7 @@
 import { apiClient } from './client';
 
+import type { SupabaseUser } from '@/types';
+
 export type SignInPayload = {
   email: string;
   password: string;
@@ -10,7 +12,7 @@ export type SignInResponse = {
   refresh_token: string;
   token_type?: string;
   expires_in: number;
-  user: Record<string, unknown>;
+  user: SupabaseUser;
 };
 
 export type SignUpPayload = {
