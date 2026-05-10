@@ -172,7 +172,10 @@ export function RenameDocumentSheet({
     >
       <BottomSheetScrollView
         style={styles.scrollArea}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingBottom: 170 + keyboardHeight },
+        ]}
         keyboardDismissMode="none"
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
@@ -183,7 +186,7 @@ export function RenameDocumentSheet({
         <View style={styles.inputStack}>
           {[0, 1, 2, 3, 4, 5].map((index) => (
             <View key={index} style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>File Name</Text>
+              <Text style={styles.inputLabel}>File Name {index + 1}</Text>
               <BottomSheetTextInput
                 style={[styles.input, error && styles.inputError]}
                 value={newName}
@@ -219,7 +222,6 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: 20,
     paddingTop: 8,
-    paddingBottom: 170,
   },
   title: {
     fontSize: 20,
