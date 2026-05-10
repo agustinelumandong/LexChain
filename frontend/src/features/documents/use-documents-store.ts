@@ -4,8 +4,9 @@ import { createJSONStorage, persist } from 'zustand/middleware';
 
 import { STORAGE_KEYS } from '@/constants';
 import { applyWhitelistToDocument } from '@/features/document';
-import { MOCK_DOCUMENTS } from '@/mocks';
 import type { MockDocument, WhitelistGrant, WhitelistSearchResult } from '@/types';
+
+import { MOCK_DOCUMENTS } from './data/mock-documents';
 
 type PersistedWhitelist = {
   grants: WhitelistGrant[];
