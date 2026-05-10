@@ -24,10 +24,7 @@ import {
 import { parseApiError } from '@/shared/utils/api-error';
 
 import { APP_COLORS } from '@/theme';
-
-const COLORS = {
-  bg: APP_COLORS.bg,
-};
+import { LinearGradient } from 'expo-linear-gradient';
 
 function formatDate(value?: string) {
   if (!value) {
@@ -201,7 +198,14 @@ export default function DocumentDetailsScreen() {
           )}
         </ScrollView>
 
-        <View style={styles.footer}>
+        <LinearGradient
+          colors={[
+            'rgba(243, 248, 255, 0)',
+            APP_COLORS.borderSoft,
+          ]}
+          pointerEvents="box-none"
+          style={styles.footer}
+        >
           <Button
             imageSource={require('@/../assets/images/lexchain-bot-question-mark.png')}
             size="md"
@@ -211,7 +215,7 @@ export default function DocumentDetailsScreen() {
             hugWidth
             onPress={() => setIsAskSheetVisible(true)}
           />
-        </View>
+        </LinearGradient>
       </View>
 
       <RenameDocumentSheet
@@ -240,20 +244,26 @@ export default function DocumentDetailsScreen() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: COLORS.bg,
+    backgroundColor: APP_COLORS.bg,
   },
   surface: {
     flex: 1,
-    backgroundColor: COLORS.bg,
+    backgroundColor: APP_COLORS.bg,
   },
   scrollContent: {
     paddingHorizontal: 18,
     paddingTop: 12,
-    paddingBottom: 24,
+    paddingBottom: 112,
     gap: 20,
   },
   footer: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    alignItems: 'center',
     paddingHorizontal: 18,
+    paddingTop: 36,
     paddingBottom: 24,
   },
 });
