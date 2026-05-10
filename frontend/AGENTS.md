@@ -131,6 +131,12 @@ Do not follow generic React Native or Expo advice if it conflicts with this repo
   import { BottomSheet } from '@gorhom/bottom-sheet';
   ```
 
+### BottomSheet Footer TextInput + Keyboard
+- When a `TextInput` lives inside `BottomSheetModal.footerComponent`, **do not keep the input value in the parent sheet component** if that value is part of the `footerComponent` callback dependencies. Every keystroke can recreate/remount the footer, blur the input, and close the keyboard.
+- Keep composer/input state inside a small stable footer component (for example `AskComposer`) and only call the parent on submit.
+- Avoid React `Keyboard` listener state for moving a focused footer composer when typing. State updates during keyboard open can re-render the footer and cause focus flicker. Prefer `react-native-reanimated` `useAnimatedKeyboard()` + `useAnimatedStyle()` so the footer moves above the keyboard on the UI thread.
+- If the footer moves above the keyboard, add enough `BottomSheetScrollView` bottom padding so long conversations or forms can still scroll above the raised footer.
+
 ### Package Manager
 - Both `package-lock.json` and `pnpm-lock.yaml` exist. Use `pnpm` for all changes.
 
