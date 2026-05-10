@@ -6,9 +6,10 @@ import {
   StyleProp,
   StyleSheet,
   View,
-  ViewStyle
+  ViewStyle,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
 
 import { ThemedText } from '@/shared/components/themed-text';
 
@@ -27,8 +28,13 @@ type ButtonProps = {
   hugWidth?: boolean;
   height?: number;
   fullRound?: boolean;
+  accessibilityLabel?: string;
+  iconName?: React.ComponentProps<typeof MaterialIcons>['name'];
   leftIconName?: React.ComponentProps<typeof MaterialIcons>['name'];
   rightIconName?: React.ComponentProps<typeof MaterialIcons>['name'];
+  imageSource?: React.ComponentProps<typeof Image>['source'];
+  imageSize?: number;
+  imageStyle?: React.ComponentProps<typeof Image>['style'];
   style?: StyleProp<ViewStyle>;
 };
 
@@ -71,11 +77,20 @@ export function Button({
   hugWidth = false,
   height,
   fullRound = false,
+  accessibilityLabel,
+  iconName,
   leftIconName,
   rightIconName,
+  imageSource,
+  imageSize,
+  imageStyle,
   style,
 }: ButtonProps) {
   const isInactive = disabled || loading;
+  const hasLabel = Boolean(label);
+  const iconOnlyName = !hasLabel && !imageSource
+    ? iconName ?? leftIconName ?? rightIconName
+    : iconName;
   const [measuredWidth, setMeasuredWidth] = useState(0);
   const fullRoundHeight = fullRound && measuredWidth > 0 ? measuredWidth : undefined;
 
@@ -99,6 +114,7 @@ export function Button({
       onLayout={handleLayout}
       disabled={isInactive}
       accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel ?? label}
       accessibilityState={{ disabled: isInactive, busy: loading }}
       style={({ pressed }) => [
         styles.base,
@@ -124,23 +140,44 @@ export function Button({
            />
         ) : (
           <View style={styles.content}>
-            {leftIconName ?
+            {imageSource ? (
+              <Image
+                source={imageSource}
+                style={[
+                  styles.image,
+                  imageSizeStyles[size],
+                  imageSize ? { width: imageSize, height: imageSize } : null,
+                  imageStyle,
+                ]}
+                contentFit="contain"
+              />
+            ) : null}
+            {iconOnlyName ? (
+              <MaterialIcons
+                name={iconOnlyName}
+                size={iconSizeStyles[size]}
+                color={isInactive ? disabledIconColor[variant] : variantIconColor[variant]}
+              />
+            ) : null}
+            {hasLabel && leftIconName && !iconName && !imageSource ?
               <MaterialIcons
                 name={leftIconName}
                 size={iconSizeStyles[size]}
                 color={isInactive ? disabledIconColor[variant] : variantIconColor[variant]}
               /> :null}
-            <ThemedText
-              style={[
-                styles.label,
-                labelStyles[variant],
-                labelSizeStyles[size],
-                isInactive && disabledLabelStyles[variant],
-              ]}
-            >
-              {label}
-            </ThemedText>
-            {rightIconName ?
+            {hasLabel ? (
+              <ThemedText
+                style={[
+                  styles.label,
+                  labelStyles[variant],
+                  labelSizeStyles[size],
+                  isInactive && disabledLabelStyles[variant],
+                ]}
+              >
+                {label}
+              </ThemedText>
+            ) : null}
+            {hasLabel && rightIconName ?
               <MaterialIcons
                 name={rightIconName}
                 size={iconSizeStyles[size]}
@@ -207,6 +244,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 12,
+  },
+  image: {
+    flexShrink: 0,
   },
   label: {
     fontFamily: fonts.regular,
@@ -333,3 +373,18 @@ const iconSizeStyles: Record<ButtonSize, number> = {
   md: 14,
   lg: 16,
 };
+
+const imageSizeStyles = StyleSheet.create({
+  sm: {
+    width: 16,
+    height: 16,
+  },
+  md: {
+    width: 20,
+    height: 20,
+  },
+  lg: {
+    width: 24,
+    height: 24,
+  },
+});
