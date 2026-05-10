@@ -203,9 +203,12 @@ export default function DocumentDetailsScreen() {
 
         <View style={styles.footer}>
           <Button
-            label="?"
-            hugWidth={true}
+            imageSource={require('@/../assets/images/lexchain-bot-question-mark.png')}
+            size="md"
+            accessibilityLabel="Bot"
+            imageSize={32}
             fullRound
+            hugWidth
             onPress={() => setIsAskSheetVisible(true)}
           />
         </View>
