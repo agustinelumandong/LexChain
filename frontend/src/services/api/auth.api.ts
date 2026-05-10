@@ -1,6 +1,9 @@
 import { apiClient } from './client';
 
+import { env } from '@/shared/config';
 import type { SupabaseUser } from '@/types';
+
+import { mockAuthApi } from './mock';
 
 export type SignInPayload = {
   email: string;
@@ -39,12 +42,27 @@ export type MessageResponse = {
 };
 
 export const authApi = {
-  signIn: (payload: SignInPayload) =>
-    apiClient.post<SignInResponse>('/auth/signin', payload, { auth: false }),
+  signIn: (payload: SignInPayload) => {
+    if (env.useMockApi) {
+      return mockAuthApi.signIn(payload);
+    }
 
-  signUp: (payload: SignUpPayload) =>
-    apiClient.post<SignUpResponse>('/auth/signup', payload, { auth: false }),
+    return apiClient.post<SignInResponse>('/auth/signin', payload, { auth: false });
+  },
 
-  resendVerification: (payload: ResendVerificationPayload) =>
-    apiClient.post<MessageResponse>('/auth/resend-verification', payload, { auth: false }),
+  signUp: (payload: SignUpPayload) => {
+    if (env.useMockApi) {
+      return mockAuthApi.signUp(payload);
+    }
+
+    return apiClient.post<SignUpResponse>('/auth/signup', payload, { auth: false });
+  },
+
+  resendVerification: (payload: ResendVerificationPayload) => {
+    if (env.useMockApi) {
+      return mockAuthApi.resendVerification(payload);
+    }
+
+    return apiClient.post<MessageResponse>('/auth/resend-verification', payload, { auth: false });
+  },
 };

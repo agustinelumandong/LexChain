@@ -1,11 +1,11 @@
-import { requireApiUrl } from '@/shared/config';
+import { env, requireApiUrl } from '@/shared/config';
 import { authTokenStorage } from '@/shared/utils/secure-storage';
 
 type RequestOptions = RequestInit & {
   auth?: boolean;
 };
 
-const API_BASE_URL = requireApiUrl().replace(/\/$/, '');
+const API_BASE_URL = env.useMockApi ? '' : requireApiUrl().replace(/\/$/, '');
 
 function buildUrl(path: string) {
   return `${API_BASE_URL}${path.startsWith('/') ? path : `/${path}`}`;
