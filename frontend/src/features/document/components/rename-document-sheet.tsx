@@ -1,6 +1,11 @@
-import { BottomSheetBackdrop, BottomSheetModal } from '@gorhom/bottom-sheet';
+import {
+  BottomSheetBackdrop,
+  BottomSheetModal,
+  BottomSheetTextInput,
+  BottomSheetView,
+} from '@gorhom/bottom-sheet';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Keyboard, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Keyboard, Platform, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/ui';
@@ -37,19 +42,15 @@ export function RenameDocumentSheet({
   const insets = useSafeAreaInsets();
   const [newName, setNewName] = useState(currentName);
   const [error, setError] = useState<string | null>(null);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
 
-  const snapPoints = useMemo(() => ['40%'], []);
+  const snapPoints = useMemo(() => ['70%'], []);
 
-  const handleSheetChanges = useCallback(
-    (index: number) => {
-      if (index === -1) {
-        onClose();
-        setNewName(currentName);
-        setError(null);
-      }
-    },
-    [onClose, currentName],
-  );
+  const handleDismiss = useCallback(() => {
+    onClose();
+    setNewName(currentName);
+    setError(null);
+  }, [currentName, onClose]);
 
   const handleRename = useCallback(() => {
     const trimmedName = newName.trim();
@@ -94,58 +95,89 @@ export function RenameDocumentSheet({
     }
 
     sheet.dismiss();
-  }, [visible]);
+  }, [currentName, visible]);
+
+  useEffect(() => {
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+
+    const showSubscription = Keyboard.addListener(showEvent, (event) => {
+      setKeyboardHeight(Math.max(0, event.endCoordinates.height - insets.bottom));
+    });
+    const hideSubscription = Keyboard.addListener(hideEvent, () => {
+      setKeyboardHeight(0);
+    });
+
+    return () => {
+      showSubscription.remove();
+      hideSubscription.remove();
+    };
+  }, [insets.bottom]);
 
   return (
     <BottomSheetModal
       ref={bottomSheetRef}
       index={0}
       snapPoints={snapPoints}
-      onChange={handleSheetChanges}
+      onDismiss={handleDismiss}
+      enableDynamicSizing={false}
       enablePanDownToClose
+      keyboardBehavior="interactive"
+      keyboardBlurBehavior="restore"
+      android_keyboardInputMode="adjustResize"
       backdropComponent={renderBackdrop}
       backgroundStyle={styles.sheetBackground}
       handleIndicatorStyle={styles.handleIndicator}
     >
-      <View style={[styles.content, { paddingBottom: insets.bottom + 20 }]}>
-        <Text style={styles.title}>Rename Document</Text>
-        <Text style={styles.subtitle}>Enter a new name for your document</Text>
+      <BottomSheetView style={styles.content}>
+        <View style={styles.body}>
+          <Text style={styles.title}>Rename Document</Text>
+          <Text style={styles.subtitle}>Enter a new name for your document</Text>
 
-        <View style={styles.inputContainer}>
-          <Text style={styles.inputLabel}>File Name</Text>
-          <TextInput
-            style={[styles.input, error && styles.inputError]}
-            value={newName}
-            onChangeText={(text) => {
-              setNewName(text);
-              setError(null);
-            }}
-            placeholder="Document name"
-            placeholderTextColor={COLORS.textMuted}
-            autoFocus
-            selectTextOnFocus
-          />
-          {error && <Text style={styles.errorText}>{error}</Text>}
-        </View>
-
-        <View style={styles.buttonRow}>
-          <View style={styles.buttonWrapper}>
-            <Button
-              label="Cancel"
-              variant="secondary"
-              onPress={() => bottomSheetRef.current?.close()}
+          <View style={styles.inputContainer}>
+            <Text style={styles.inputLabel}>File Name</Text>
+            <BottomSheetTextInput
+              style={[styles.input, error && styles.inputError]}
+              value={newName}
+              onChangeText={(text) => {
+                setNewName(text);
+                setError(null);
+              }}
+              placeholder="Document name"
+              placeholderTextColor={COLORS.textMuted}
             />
-          </View>
-          <View style={styles.buttonWrapper}>
-            <Button
-              label={isLoading ? 'Renaming...' : 'Rename'}
-              onPress={handleRename}
-              disabled={isLoading || !newName.trim()}
-              loading={isLoading}
-            />
+            {error && <Text style={styles.errorText}>{error}</Text>}
           </View>
         </View>
-      </View>
+
+        <View
+          style={[
+            styles.footer,
+            { paddingBottom: Math.max(insets.bottom, 20) },
+            keyboardHeight > 0 && {
+              transform: [{ translateY: -keyboardHeight }],
+            },
+          ]}
+        >
+          <View style={styles.buttonRow}>
+            <View style={styles.buttonWrapper}>
+              <Button
+                label="Cancel"
+                variant="secondary"
+                onPress={() => bottomSheetRef.current?.close()}
+              />
+            </View>
+            <View style={styles.buttonWrapper}>
+              <Button
+                label={isLoading ? 'Renaming...' : 'Rename'}
+                onPress={handleRename}
+                disabled={isLoading || !newName.trim()}
+                loading={isLoading}
+              />
+            </View>
+          </View>
+        </View>
+      </BottomSheetView>
     </BottomSheetModal>
   );
 }
@@ -162,8 +194,12 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    paddingHorizontal: 20,
+    height: '100%',
     paddingTop: 8,
+  },
+  body: {
+    paddingHorizontal: 20,
+    paddingBottom: 120,
   },
   title: {
     fontSize: 20,
@@ -207,6 +243,17 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: 6,
     fontFamily: fonts.regular,
+  },
+  footer: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: COLORS.sheet,
+    paddingTop: 16,
+    paddingHorizontal: 20,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.borderSoft,
   },
   buttonRow: {
     flexDirection: 'row',
