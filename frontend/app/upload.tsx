@@ -10,7 +10,7 @@ import { toast } from 'sonner-native';
 
 import { AccessWhitelistCard, ManageWhitelistBottomSheet } from '@/features/document';
 import { useCloseSheetOnBack } from '@/hooks';
-import { Button, SelectDropdownField } from '@/ui';
+import { Button } from '@/ui';
 import type { ManageWhitelistData, PickedUploadFile } from '@/types';
 import {
   consumePendingCapturedFiles,
@@ -29,14 +29,6 @@ const COLORS = {
   navy: APP_COLORS.navy,
   borderSoft: APP_COLORS.borderSoft,
 };
-
-const DOCUMENT_TYPE_OPTIONS = [
-  'Deed of Sale',
-  'Lease Contract',
-  'Affidavit',
-  'Memorandum',
-  'Special Power of Attorney',
-];
 
 const INITIAL_WHITELIST: ManageWhitelistData = {
   grants: [
@@ -63,8 +55,6 @@ const INITIAL_WHITELIST: ManageWhitelistData = {
 
 export default function UploadScreen() {
   const router = useRouter();
-  const [selectedDocumentType, setSelectedDocumentType] = useState('Deed of Sale');
-  const [isTypeDropdownOpen, setIsTypeDropdownOpen] = useState(false);
   const [isWhitelistOpen, setIsWhitelistOpen] = useState(false);
   const [whitelistSearchQuery, setWhitelistSearchQuery] = useState('');
   const [whitelistData, setWhitelistData] = useState(INITIAL_WHITELIST);
@@ -289,19 +279,6 @@ export default function UploadScreen() {
             onPressBack={() => router.back()}
             onPressCamera={handleOpenCameraCapture}
           />
-
-          {/*<SelectDropdownField
-            label="Document Type"
-            value={selectedDocumentType}
-            options={DOCUMENT_TYPE_OPTIONS}
-            isOpen={isTypeDropdownOpen}
-            onPress={() => setIsTypeDropdownOpen((currentValue) => !currentValue)}
-            onOutsidePress={() => setIsTypeDropdownOpen(false)}
-            onSelect={(value) => {
-              setSelectedDocumentType(value);
-              setIsTypeDropdownOpen(false);
-            }}
-          />*/}
 
           <View style={styles.titleInputContainer}>
             <Text style={styles.titleInputLabel}>Document Title</Text>
