@@ -170,6 +170,11 @@ export function RenameDocumentSheet({
       backgroundStyle={styles.sheetBackground}
       handleIndicatorStyle={styles.handleIndicator}
     >
+      <View style={styles.header}>
+        <Text style={styles.title}>Rename Document</Text>
+        <Text style={styles.subtitle}>Enter a new name for your document</Text>
+      </View>
+
       <BottomSheetScrollView
         style={styles.scrollArea}
         contentContainerStyle={[
@@ -180,9 +185,6 @@ export function RenameDocumentSheet({
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.title}>Rename Document</Text>
-        <Text style={styles.subtitle}>Enter a new name for your document</Text>
-
         <View style={styles.inputStack}>
           {[0, 1, 2, 3, 4, 5].map((index) => (
             <View key={index} style={styles.inputGroup}>
@@ -223,6 +225,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 8,
   },
+  header: {
+    backgroundColor: COLORS.sheet,
+    paddingHorizontal: 20,
+    paddingTop: 8,
+    paddingBottom: 20,
+  },
   title: {
     fontSize: 20,
     fontWeight: '800',
@@ -234,7 +242,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: COLORS.textMuted,
     fontFamily: fonts.regular,
-    marginBottom: 24,
   },
   inputStack: {
     gap: 18,
