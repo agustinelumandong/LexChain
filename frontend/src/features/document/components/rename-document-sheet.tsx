@@ -55,7 +55,7 @@ export function RenameDocumentSheet({
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [headerHasShadow, setHeaderHasShadow] = useState(false);
 
-  const snapPoints = useMemo(() => ['70%', '95%'], []);
+  const snapPoints = useMemo(() => ['70%'], []);
 
   const handleDismiss = useCallback(() => {
     onClose();
@@ -208,22 +208,20 @@ export function RenameDocumentSheet({
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.inputStack}>
-          {[0, 1, 2, 3, 4, 5].map((index) => (
-            <View key={index} style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>File Name {index + 1}</Text>
-              <BottomSheetTextInput
-                style={[styles.input, error && styles.inputError]}
-                value={newName}
-                onChangeText={(text) => {
-                  setNewName(text);
-                  setError(null);
-                }}
-                placeholder="Document name"
-                placeholderTextColor={COLORS.textMuted}
-              />
-              {error && <Text style={styles.errorText}>{error}</Text>}
-            </View>
-          ))}
+          <View style={styles.inputGroup}>
+            <Text style={styles.inputLabel}>File Name</Text>
+            <BottomSheetTextInput
+              style={[styles.input, error && styles.inputError]}
+              value={newName}
+              onChangeText={(text) => {
+                setNewName(text);
+                setError(null);
+              }}
+              placeholder="Document name"
+              placeholderTextColor={COLORS.textMuted}
+            />
+            {error && <Text style={styles.errorText}>{error}</Text>}
+          </View>
         </View>
       </BottomSheetScrollView>
     </BottomSheetModal>
@@ -284,7 +282,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: COLORS.navy,
     fontFamily: fonts.regular,
-    marginBottom: 8,
   },
   input: {
     backgroundColor: COLORS.surface,
