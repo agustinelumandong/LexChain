@@ -4,11 +4,12 @@ import {
   Pressable,
   StyleProp,
   StyleSheet,
-  Text,
   View,
   ViewStyle
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
+
+import { ThemedText } from '@/shared/components/themed-text';
 
 import { APP_COLORS, fonts } from '@/theme';
 type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'light';
@@ -99,7 +100,7 @@ export function Button({
                 size={iconSizeStyles[size]}
                 color={isInactive ? disabledIconColor[variant] : variantIconColor[variant]}
               /> :null}
-            <Text
+            <ThemedText
               style={[
                 styles.label,
                 labelStyles[variant],
@@ -108,7 +109,7 @@ export function Button({
               ]}
             >
               {label}
-            </Text>
+            </ThemedText>
             {rightIconName ?
               <MaterialIcons
                 name={rightIconName}
