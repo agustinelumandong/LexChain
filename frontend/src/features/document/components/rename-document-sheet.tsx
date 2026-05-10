@@ -1,8 +1,10 @@
 import {
   BottomSheetBackdrop,
+  BottomSheetFooter,
+  type BottomSheetFooterProps,
   BottomSheetModal,
+  BottomSheetScrollView,
   BottomSheetTextInput,
-  BottomSheetView,
 } from '@gorhom/bottom-sheet';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Keyboard, Platform, StyleSheet, Text, View } from 'react-native';
@@ -44,7 +46,7 @@ export function RenameDocumentSheet({
   const [error, setError] = useState<string | null>(null);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
 
-  const snapPoints = useMemo(() => ['70%'], []);
+  const snapPoints = useMemo(() => ['70%', '95%'], []);
 
   const handleDismiss = useCallback(() => {
     onClose();
@@ -78,6 +80,44 @@ export function RenameDocumentSheet({
       />
     ),
     [],
+  );
+
+  const renderFooter = useCallback(
+    (props: BottomSheetFooterProps) => (
+      <BottomSheetFooter
+        {...props}
+        bottomInset={insets.bottom}
+        style={styles.footerContainer}
+      >
+        <View
+          style={[
+            styles.footer,
+            keyboardHeight > 0 && {
+              transform: [{ translateY: -keyboardHeight }],
+            },
+          ]}
+        >
+          <View style={styles.buttonRow}>
+            <View style={styles.buttonWrapper}>
+              <Button
+                label="Cancel"
+                variant="secondary"
+                onPress={() => bottomSheetRef.current?.close()}
+              />
+            </View>
+            <View style={styles.buttonWrapper}>
+              <Button
+                label={isLoading ? 'Renaming...' : 'Rename'}
+                onPress={handleRename}
+                disabled={isLoading || !newName.trim()}
+                loading={isLoading}
+              />
+            </View>
+          </View>
+        </View>
+      </BottomSheetFooter>
+    ),
+    [handleRename, insets.bottom, isLoading, keyboardHeight, newName],
   );
 
   useEffect(() => {
@@ -126,58 +166,39 @@ export function RenameDocumentSheet({
       keyboardBlurBehavior="restore"
       android_keyboardInputMode="adjustResize"
       backdropComponent={renderBackdrop}
+      footerComponent={renderFooter}
       backgroundStyle={styles.sheetBackground}
       handleIndicatorStyle={styles.handleIndicator}
     >
-      <BottomSheetView style={styles.content}>
-        <View style={styles.body}>
-          <Text style={styles.title}>Rename Document</Text>
-          <Text style={styles.subtitle}>Enter a new name for your document</Text>
+      <BottomSheetScrollView
+        style={styles.scrollArea}
+        contentContainerStyle={styles.scrollContent}
+        keyboardDismissMode="none"
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        <Text style={styles.title}>Rename Document</Text>
+        <Text style={styles.subtitle}>Enter a new name for your document</Text>
 
-          <View style={styles.inputContainer}>
-            <Text style={styles.inputLabel}>File Name</Text>
-            <BottomSheetTextInput
-              style={[styles.input, error && styles.inputError]}
-              value={newName}
-              onChangeText={(text) => {
-                setNewName(text);
-                setError(null);
-              }}
-              placeholder="Document name"
-              placeholderTextColor={COLORS.textMuted}
-            />
-            {error && <Text style={styles.errorText}>{error}</Text>}
-          </View>
-        </View>
-
-        <View
-          style={[
-            styles.footer,
-            { paddingBottom: Math.max(insets.bottom, 20) },
-            keyboardHeight > 0 && {
-              transform: [{ translateY: -keyboardHeight }],
-            },
-          ]}
-        >
-          <View style={styles.buttonRow}>
-            <View style={styles.buttonWrapper}>
-              <Button
-                label="Cancel"
-                variant="secondary"
-                onPress={() => bottomSheetRef.current?.close()}
+        <View style={styles.inputStack}>
+          {[0, 1, 2, 3, 4, 5].map((index) => (
+            <View key={index} style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>File Name</Text>
+              <BottomSheetTextInput
+                style={[styles.input, error && styles.inputError]}
+                value={newName}
+                onChangeText={(text) => {
+                  setNewName(text);
+                  setError(null);
+                }}
+                placeholder="Document name"
+                placeholderTextColor={COLORS.textMuted}
               />
+              {error && <Text style={styles.errorText}>{error}</Text>}
             </View>
-            <View style={styles.buttonWrapper}>
-              <Button
-                label={isLoading ? 'Renaming...' : 'Rename'}
-                onPress={handleRename}
-                disabled={isLoading || !newName.trim()}
-                loading={isLoading}
-              />
-            </View>
-          </View>
+          ))}
         </View>
-      </BottomSheetView>
+      </BottomSheetScrollView>
     </BottomSheetModal>
   );
 }
@@ -192,14 +213,13 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.surfaceSoft,
     width: 40,
   },
-  content: {
+  scrollArea: {
     flex: 1,
-    height: '100%',
-    paddingTop: 8,
   },
-  body: {
+  scrollContent: {
     paddingHorizontal: 20,
-    paddingBottom: 120,
+    paddingTop: 8,
+    paddingBottom: 170,
   },
   title: {
     fontSize: 20,
@@ -214,8 +234,11 @@ const styles = StyleSheet.create({
     fontFamily: fonts.regular,
     marginBottom: 24,
   },
-  inputContainer: {
-    marginBottom: 24,
+  inputStack: {
+    gap: 18,
+  },
+  inputGroup: {
+    gap: 8,
   },
   inputLabel: {
     fontSize: 14,
@@ -244,14 +267,14 @@ const styles = StyleSheet.create({
     marginTop: 6,
     fontFamily: fonts.regular,
   },
+  footerContainer: {
+    backgroundColor: 'transparent',
+  },
   footer: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
     backgroundColor: COLORS.sheet,
     paddingTop: 16,
     paddingHorizontal: 20,
+    paddingBottom: 20,
     borderTopWidth: 1,
     borderTopColor: COLORS.borderSoft,
   },
