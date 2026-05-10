@@ -4,19 +4,21 @@ import {
   type BottomSheetFooterProps,
   BottomSheetModal,
   BottomSheetScrollView,
-  BottomSheetTextInput,
 } from '@gorhom/bottom-sheet';
 import { MaterialIcons } from '@expo/vector-icons';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
-  Keyboard,
-  Platform,
   Pressable,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from 'react-native';
+import Animated, {
+  useAnimatedKeyboard,
+  useAnimatedStyle,
+} from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { APP_COLORS, fonts } from '@/theme';
@@ -51,6 +53,77 @@ type AskDocumentSheetProps = {
   onAsk: (question: string) => void;
 };
 
+type AskComposerProps = BottomSheetFooterProps & {
+  bottomInset: number;
+  isLoading?: boolean;
+  onSubmit: (question: string) => void;
+  animatedStyle: React.ComponentProps<typeof Animated.View>['style'];
+};
+
+const AskComposer = React.memo(function AskComposer({
+  bottomInset,
+  isLoading,
+  onSubmit,
+  animatedStyle,
+  ...footerProps
+}: AskComposerProps) {
+  const inputRef = useRef<TextInput>(null);
+  const [question, setQuestion] = useState('');
+
+  const handleSubmit = useCallback(() => {
+    const trimmedQuestion = question.trim();
+
+    if (!trimmedQuestion || isLoading) {
+      return;
+    }
+
+    onSubmit(trimmedQuestion);
+    setQuestion('');
+  }, [isLoading, onSubmit, question]);
+
+  return (
+    <BottomSheetFooter
+      {...footerProps}
+      bottomInset={bottomInset}
+      style={styles.footerContainer}
+    >
+      <Animated.View style={[styles.composer, animatedStyle]}>
+        <Pressable
+          style={styles.inputShell}
+          onPress={() => inputRef.current?.focus()}
+        >
+          <TextInput
+            ref={inputRef}
+            style={styles.input}
+            value={question}
+            onChangeText={setQuestion}
+            placeholder="Ask a question about this document..."
+            placeholderTextColor={COLORS.textMuted}
+            multiline
+            textAlignVertical="top"
+          />
+        </Pressable>
+        <Pressable
+          style={[
+            styles.sendButton,
+            (!question.trim() || isLoading) && styles.sendButtonDisabled,
+          ]}
+          disabled={!question.trim() || isLoading}
+          onPress={handleSubmit}
+          accessibilityRole="button"
+          accessibilityLabel="Send question"
+        >
+          {isLoading ? (
+            <ActivityIndicator size="small" color={COLORS.white} />
+          ) : (
+            <MaterialIcons name="arrow-upward" size={20} color={COLORS.white} />
+          )}
+        </Pressable>
+      </Animated.View>
+    </BottomSheetFooter>
+  );
+});
+
 export function AskDocumentSheet({
   visible,
   documentTitle,
@@ -62,8 +135,6 @@ export function AskDocumentSheet({
 }: AskDocumentSheetProps) {
   const bottomSheetRef = useRef<BottomSheetModal>(null);
   const insets = useSafeAreaInsets();
-  const [question, setQuestion] = useState('');
-  const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [lastAnswer, setLastAnswer] = useState<string | undefined>();
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
@@ -74,20 +145,20 @@ export function AskDocumentSheet({
   ]);
 
   const snapPoints = useMemo(() => ['70%', '95%'], []);
+  const keyboard = useAnimatedKeyboard();
+  const composerAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [
+      {
+        translateY: -Math.max(0, keyboard.height.value - insets.bottom),
+      },
+    ],
+  }));
 
   const handleDismiss = useCallback(() => {
     onClose();
-    setQuestion('');
-    setKeyboardHeight(0);
   }, [onClose]);
 
-  const handleSubmit = useCallback(() => {
-    const trimmedQuestion = question.trim();
-
-    if (!trimmedQuestion || isLoading) {
-      return;
-    }
-
+  const handleSubmitQuestion = useCallback((trimmedQuestion: string) => {
     setMessages((currentMessages) => [
       ...currentMessages,
       {
@@ -96,9 +167,8 @@ export function AskDocumentSheet({
         text: trimmedQuestion,
       },
     ]);
-    setQuestion('');
     onAsk(trimmedQuestion);
-  }, [isLoading, onAsk, question]);
+  }, [onAsk]);
 
   const renderBackdrop = useCallback(
     (props: React.ComponentProps<typeof BottomSheetBackdrop>) => (
@@ -115,47 +185,15 @@ export function AskDocumentSheet({
 
   const renderFooter = useCallback(
     (props: BottomSheetFooterProps) => (
-      <BottomSheetFooter
+      <AskComposer
         {...props}
         bottomInset={insets.bottom}
-        style={styles.footerContainer}
-      >
-        <View
-          style={[
-            styles.composer,
-            keyboardHeight > 0 && {
-              transform: [{ translateY: -keyboardHeight }],
-            },
-          ]}
-        >
-          <BottomSheetTextInput
-            style={styles.input}
-            value={question}
-            onChangeText={setQuestion}
-            placeholder="Ask a question about this document..."
-            placeholderTextColor={COLORS.textMuted}
-            multiline
-          />
-          <Pressable
-            style={[
-              styles.sendButton,
-              (!question.trim() || isLoading) && styles.sendButtonDisabled,
-            ]}
-            disabled={!question.trim() || isLoading}
-            onPress={handleSubmit}
-            accessibilityRole="button"
-            accessibilityLabel="Send question"
-          >
-            {isLoading ? (
-              <ActivityIndicator size="small" color={COLORS.white} />
-            ) : (
-              <MaterialIcons name="arrow-upward" size={20} color={COLORS.white} />
-            )}
-          </Pressable>
-        </View>
-      </BottomSheetFooter>
+        isLoading={isLoading}
+        onSubmit={handleSubmitQuestion}
+        animatedStyle={composerAnimatedStyle}
+      />
     ),
-    [handleSubmit, insets.bottom, isLoading, keyboardHeight, question],
+    [composerAnimatedStyle, handleSubmitQuestion, insets.bottom, isLoading],
   );
 
   useEffect(() => {
@@ -204,23 +242,6 @@ export function AskDocumentSheet({
     ]);
   }, [errorMessage]);
 
-  useEffect(() => {
-    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
-    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
-
-    const showSubscription = Keyboard.addListener(showEvent, (event) => {
-      setKeyboardHeight(Math.max(0, event.endCoordinates.height - insets.bottom));
-    });
-    const hideSubscription = Keyboard.addListener(hideEvent, () => {
-      setKeyboardHeight(0);
-    });
-
-    return () => {
-      showSubscription.remove();
-      hideSubscription.remove();
-    };
-  }, [insets.bottom]);
-
   return (
     <BottomSheetModal
       ref={bottomSheetRef}
@@ -253,7 +274,7 @@ export function AskDocumentSheet({
         style={styles.scrollArea}
         contentContainerStyle={[
           styles.scrollContent,
-          { paddingBottom: 140 + keyboardHeight },
+          { paddingBottom: 420 },
         ]}
         keyboardDismissMode="none"
         keyboardShouldPersistTaps="handled"
@@ -380,7 +401,7 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: COLORS.borderSoft,
   },
-  input: {
+  inputShell: {
     flex: 1,
     minHeight: 56,
     maxHeight: 118,
@@ -388,6 +409,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.borderSoft,
     backgroundColor: COLORS.surface,
+  },
+  input: {
+    minHeight: 56,
+    maxHeight: 118,
     paddingHorizontal: 14,
     paddingTop: 14,
     paddingBottom: 14,
