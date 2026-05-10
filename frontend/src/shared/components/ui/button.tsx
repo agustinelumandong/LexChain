@@ -68,7 +68,7 @@ export function Button({
   disabled = false,
   loading = false,
   fullWidth = false,
-  hugWidth = true,
+  hugWidth = false,
   height,
   fullRound = false,
   leftIconName,
