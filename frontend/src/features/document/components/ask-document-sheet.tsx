@@ -6,6 +6,7 @@ import {
   BottomSheetScrollView,
 } from '@gorhom/bottom-sheet';
 import { MaterialIcons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Pressable,
@@ -21,6 +22,8 @@ import Animated, {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { APP_COLORS, fonts } from '@/theme';
+
+const BOT_AVATAR = require('../../../../assets/images/lexchain-bot.png');
 
 const COLORS = {
   backdrop: 'rgba(4, 18, 40, 0.42)',
@@ -297,27 +300,38 @@ export function AskDocumentSheet({
         showsVerticalScrollIndicator={false}
       >
         {messages.map((message) => (
-          <View
-            key={message.id}
-            style={[
-              styles.messageBubble,
-              message.role === 'user' ? styles.userBubble : styles.assistantBubble,
-            ]}
-          >
-            <Text
-              style={[
-                styles.messageText,
-                message.role === 'user' ? styles.userText : styles.assistantText,
-              ]}
-            >
-              {message.text}
-            </Text>
-          </View>
+          message.role === 'assistant' ? (
+            <View key={message.id} style={styles.assistantMessageRow}>
+              <Image
+                source={BOT_AVATAR}
+                style={styles.botAvatar}
+                contentFit="contain"
+              />
+              <View style={[styles.messageBubble, styles.assistantBubble]}>
+                <Text style={[styles.messageText, styles.assistantText]}>
+                  {message.text}
+                </Text>
+              </View>
+            </View>
+          ) : (
+            <View key={message.id} style={[styles.messageBubble, styles.userBubble]}>
+              <Text style={[styles.messageText, styles.userText]}>
+                {message.text}
+              </Text>
+            </View>
+          )
         ))}
 
         {isLoading && (
-          <View style={[styles.messageBubble, styles.assistantBubble]}>
-            <Text style={[styles.messageText, styles.assistantText]}>Thinking...</Text>
+          <View style={styles.assistantMessageRow}>
+            <Image
+              source={BOT_AVATAR}
+              style={styles.botAvatar}
+              contentFit="contain"
+            />
+            <View style={[styles.messageBubble, styles.assistantBubble]}>
+              <Text style={[styles.messageText, styles.assistantText]}>Thinking...</Text>
+            </View>
           </View>
         )}
       </BottomSheetScrollView>
@@ -376,6 +390,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 18,
     gap: 12,
+  },
+  assistantMessageRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: 8,
+    maxWidth: '92%',
+  },
+  botAvatar: {
+    width: 32,
+    height: 32,
+    marginBottom: 2,
   },
   messageBubble: {
     maxWidth: '82%',
