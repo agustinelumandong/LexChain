@@ -398,8 +398,8 @@ const styles = StyleSheet.create({
     maxWidth: '92%',
   },
   botAvatar: {
-    width: 32,
-    height: 32,
+    width: 52,
+    height: 52,
     marginBottom: 2,
   },
   messageBubble: {
