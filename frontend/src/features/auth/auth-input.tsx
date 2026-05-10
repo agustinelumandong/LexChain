@@ -2,13 +2,13 @@ import React, { useRef, useState } from 'react';
 import {
   View,
   StyleSheet,
-  Text,
   TextInput,
   Pressable,
   TextInputProps,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 
+import { ThemedText } from '@/shared/components/themed-text';
 import { APP_COLORS, fonts } from '@/theme';
 const COLORS = {
   primary: APP_COLORS.primary,
@@ -73,7 +73,7 @@ export function AuthInput({
 
   return (
     <View style={styles.group}>
-      <Text style={styles.label}>{label}</Text>
+      <ThemedText style={styles.label}>{label}</ThemedText>
 
       <View
         ref={wrapperRef}
@@ -117,7 +117,7 @@ export function AuthInput({
         ) : null}
       </View>
 
-      {hasError ? <Text style={styles.errorText}>{error}</Text> : null}
+      {hasError ? <ThemedText style={styles.errorText}>{error}</ThemedText> : null}
     </View>
   );
 }
