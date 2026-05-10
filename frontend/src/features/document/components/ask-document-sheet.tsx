@@ -8,7 +8,6 @@ import {
 import { MaterialIcons } from '@expo/vector-icons';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  ActivityIndicator,
   Pressable,
   StyleSheet,
   Text,
@@ -55,14 +54,12 @@ type AskDocumentSheetProps = {
 
 type AskComposerProps = BottomSheetFooterProps & {
   bottomInset: number;
-  isLoading?: boolean;
   onSubmit: (question: string) => void;
   animatedStyle: React.ComponentProps<typeof Animated.View>['style'];
 };
 
 const AskComposer = React.memo(function AskComposer({
   bottomInset,
-  isLoading,
   onSubmit,
   animatedStyle,
   ...footerProps
@@ -70,16 +67,27 @@ const AskComposer = React.memo(function AskComposer({
   const inputRef = useRef<TextInput>(null);
   const [question, setQuestion] = useState('');
 
+  const keepInputFocused = useCallback(() => {
+    requestAnimationFrame(() => {
+      inputRef.current?.focus();
+    });
+    setTimeout(() => {
+      inputRef.current?.focus();
+    }, 80);
+  }, []);
+
   const handleSubmit = useCallback(() => {
     const trimmedQuestion = question.trim();
 
-    if (!trimmedQuestion || isLoading) {
+    if (!trimmedQuestion) {
+      keepInputFocused();
       return;
     }
 
     onSubmit(trimmedQuestion);
     setQuestion('');
-  }, [isLoading, onSubmit, question]);
+    keepInputFocused();
+  }, [keepInputFocused, onSubmit, question]);
 
   return (
     <BottomSheetFooter
@@ -100,24 +108,22 @@ const AskComposer = React.memo(function AskComposer({
             placeholder="Ask a question about this document..."
             placeholderTextColor={COLORS.textMuted}
             multiline
+            blurOnSubmit={false}
             textAlignVertical="top"
           />
         </Pressable>
         <Pressable
           style={[
             styles.sendButton,
-            (!question.trim() || isLoading) && styles.sendButtonDisabled,
+            !question.trim() && styles.sendButtonDisabled,
           ]}
-          disabled={!question.trim() || isLoading}
+          disabled={!question.trim()}
+          onPressIn={keepInputFocused}
           onPress={handleSubmit}
           accessibilityRole="button"
           accessibilityLabel="Send question"
         >
-          {isLoading ? (
-            <ActivityIndicator size="small" color={COLORS.white} />
-          ) : (
-            <MaterialIcons name="arrow-upward" size={20} color={COLORS.white} />
-          )}
+          <MaterialIcons name="arrow-upward" size={20} color={COLORS.white} />
         </Pressable>
       </Animated.View>
     </BottomSheetFooter>
@@ -188,12 +194,11 @@ export function AskDocumentSheet({
       <AskComposer
         {...props}
         bottomInset={insets.bottom}
-        isLoading={isLoading}
         onSubmit={handleSubmitQuestion}
         animatedStyle={composerAnimatedStyle}
       />
     ),
-    [composerAnimatedStyle, handleSubmitQuestion, insets.bottom, isLoading],
+    [composerAnimatedStyle, handleSubmitQuestion, insets.bottom],
   );
 
   useEffect(() => {

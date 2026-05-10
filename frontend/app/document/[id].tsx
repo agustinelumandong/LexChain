@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -78,6 +78,7 @@ export default function DocumentDetailsScreen() {
   );
 
   const qaMutation = useAskDocument();
+  const { mutate: askDocument } = qaMutation;
 
   const handleRename = async (newName: string) => {
     try {
@@ -94,9 +95,9 @@ export default function DocumentDetailsScreen() {
     setHasSearched(true);
   };
 
-  const handleAsk = (question: string) => {
-    qaMutation.mutate({ documentId, question });
-  };
+  const handleAsk = useCallback((question: string) => {
+    askDocument({ documentId, question });
+  }, [askDocument, documentId]);
 
   const detailSections = useMemo(() => {
     if (!document) {
