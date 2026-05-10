@@ -55,12 +55,14 @@ type AskDocumentSheetProps = {
 type AskComposerProps = BottomSheetFooterProps & {
   bottomInset: number;
   onSubmit: (question: string) => void;
+  onFocusComposer: () => void;
   animatedStyle: React.ComponentProps<typeof Animated.View>['style'];
 };
 
 const AskComposer = React.memo(function AskComposer({
   bottomInset,
   onSubmit,
+  onFocusComposer,
   animatedStyle,
   ...footerProps
 }: AskComposerProps) {
@@ -98,7 +100,10 @@ const AskComposer = React.memo(function AskComposer({
       <Animated.View style={[styles.composer, animatedStyle]}>
         <Pressable
           style={styles.inputShell}
-          onPress={() => inputRef.current?.focus()}
+          onPress={() => {
+            onFocusComposer();
+            inputRef.current?.focus();
+          }}
         >
           <TextInput
             ref={inputRef}
@@ -109,6 +114,7 @@ const AskComposer = React.memo(function AskComposer({
             placeholderTextColor={COLORS.textMuted}
             multiline
             blurOnSubmit={false}
+            onFocus={onFocusComposer}
             textAlignVertical="top"
           />
         </Pressable>
@@ -164,6 +170,10 @@ export function AskDocumentSheet({
     onClose();
   }, [onClose]);
 
+  const handleFocusComposer = useCallback(() => {
+    bottomSheetRef.current?.snapToIndex(1);
+  }, []);
+
   const handleSubmitQuestion = useCallback((trimmedQuestion: string) => {
     setMessages((currentMessages) => [
       ...currentMessages,
@@ -195,10 +205,11 @@ export function AskDocumentSheet({
         {...props}
         bottomInset={insets.bottom}
         onSubmit={handleSubmitQuestion}
+        onFocusComposer={handleFocusComposer}
         animatedStyle={composerAnimatedStyle}
       />
     ),
-    [composerAnimatedStyle, handleSubmitQuestion, insets.bottom],
+    [composerAnimatedStyle, handleFocusComposer, handleSubmitQuestion, insets.bottom],
   );
 
   useEffect(() => {
@@ -257,7 +268,7 @@ export function AskDocumentSheet({
       enablePanDownToClose
       keyboardBehavior="interactive"
       keyboardBlurBehavior="restore"
-      android_keyboardInputMode="adjustResize"
+      android_keyboardInputMode="adjustPan"
       backdropComponent={renderBackdrop}
       footerComponent={renderFooter}
       backgroundStyle={styles.sheetBackground}
