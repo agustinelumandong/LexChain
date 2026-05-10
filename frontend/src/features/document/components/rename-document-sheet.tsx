@@ -7,7 +7,15 @@ import {
   BottomSheetTextInput,
 } from '@gorhom/bottom-sheet';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Keyboard, Platform, StyleSheet, Text, View } from 'react-native';
+import {
+  Keyboard,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
+  Platform,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/ui';
@@ -45,6 +53,7 @@ export function RenameDocumentSheet({
   const [newName, setNewName] = useState(currentName);
   const [error, setError] = useState<string | null>(null);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const [headerHasShadow, setHeaderHasShadow] = useState(false);
 
   const snapPoints = useMemo(() => ['70%', '95%'], []);
 
@@ -52,6 +61,7 @@ export function RenameDocumentSheet({
     onClose();
     setNewName(currentName);
     setError(null);
+    setHeaderHasShadow(false);
   }, [currentName, onClose]);
 
   const handleRename = useCallback(() => {
@@ -120,6 +130,16 @@ export function RenameDocumentSheet({
     [handleRename, insets.bottom, isLoading, keyboardHeight, newName],
   );
 
+  const handleScroll = useCallback(
+    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+      const shouldShowShadow = event.nativeEvent.contentOffset.y > 2;
+      if (shouldShowShadow !== headerHasShadow) {
+        setHeaderHasShadow(shouldShowShadow);
+      }
+    },
+    [headerHasShadow],
+  );
+
   useEffect(() => {
     const sheet = bottomSheetRef.current;
 
@@ -130,6 +150,7 @@ export function RenameDocumentSheet({
     if (visible) {
       setNewName(currentName);
       setError(null);
+      setHeaderHasShadow(false);
       sheet.present();
       return;
     }
@@ -170,7 +191,7 @@ export function RenameDocumentSheet({
       backgroundStyle={styles.sheetBackground}
       handleIndicatorStyle={styles.handleIndicator}
     >
-      <View style={styles.header}>
+      <View style={[styles.header, headerHasShadow && styles.headerShadow]}>
         <Text style={styles.title}>Rename Document</Text>
         <Text style={styles.subtitle}>Enter a new name for your document</Text>
       </View>
@@ -181,6 +202,7 @@ export function RenameDocumentSheet({
           styles.scrollContent,
           { paddingBottom: 170 + keyboardHeight },
         ]}
+        onScroll={handleScroll}
         keyboardDismissMode="none"
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
@@ -230,6 +252,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 8,
     paddingBottom: 20,
+    zIndex: 1,
+  },
+  headerShadow: {
+    shadowColor: COLORS.navy,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    elevation: 4,
   },
   title: {
     fontSize: 20,
