@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
+  type LayoutChangeEvent,
   Pressable,
   StyleProp,
   StyleSheet,
@@ -16,13 +17,16 @@ type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'light';
 type ButtonSize = 'sm' | 'md' | 'lg';
 
 type ButtonProps = {
-  label: string;
+  label?: string;
   onPress?: () => void;
   variant?: ButtonVariant;
   size?: ButtonSize;
   disabled?: boolean;
   loading?: boolean;
   fullWidth?: boolean;
+  hugWidth?: boolean;
+  height?: number;
+  fullRound?: boolean;
   leftIconName?: React.ComponentProps<typeof MaterialIcons>['name'];
   rightIconName?: React.ComponentProps<typeof MaterialIcons>['name'];
   style?: StyleProp<ViewStyle>;
@@ -64,15 +68,35 @@ export function Button({
   disabled = false,
   loading = false,
   fullWidth = false,
+  hugWidth = true,
+  height,
+  fullRound = false,
   leftIconName,
   rightIconName,
   style,
 }: ButtonProps) {
   const isInactive = disabled || loading;
+  const [measuredWidth, setMeasuredWidth] = useState(0);
+  const fullRoundHeight = fullRound && measuredWidth > 0 ? measuredWidth : undefined;
+
+  const handleLayout = useCallback(
+    (event: LayoutChangeEvent) => {
+      if (!fullRound) {
+        return;
+      }
+
+      const nextWidth = Math.round(event.nativeEvent.layout.width);
+      setMeasuredWidth((currentWidth) =>
+        currentWidth === nextWidth ? currentWidth : nextWidth,
+      );
+    },
+    [fullRound],
+  );
 
   return (
     <Pressable
       onPress={onPress}
+      onLayout={handleLayout}
       disabled={isInactive}
       accessibilityRole="button"
       accessibilityState={{ disabled: isInactive, busy: loading }}
@@ -80,6 +104,12 @@ export function Button({
         styles.base,
         styles[size],
         fullWidth && styles.fullWidth,
+        !fullWidth && hugWidth && styles.hugWidth,
+        height && !fullRound ? { height, minHeight: height } : null,
+        fullRoundHeight
+          ? { height: fullRoundHeight, minHeight: fullRoundHeight }
+          : null,
+        fullRound && styles.fullRound,
         variantStyles[variant].container,
         pressed && !isInactive && variantStyles[variant].pressed,
         isInactive && variantStyles[variant].disabledContainer,
@@ -146,6 +176,13 @@ const styles = StyleSheet.create({
   },
   fullWidth: {
     width: '100%',
+  },
+  hugWidth: {
+    alignSelf: 'center',
+  },
+  fullRound: {
+    borderRadius: 9999,
+    overflow: 'hidden',
   },
   disabled: {
     opacity: 0.5,

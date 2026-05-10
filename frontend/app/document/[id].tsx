@@ -5,7 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { toast } from 'sonner-native';
 
 import {
-  AskDocumentCard,
+  AskDocumentSheet,
   DetailSectionsCard,
   DocumentScreenHeader,
   DocumentSearchBar,
@@ -68,6 +68,7 @@ export default function DocumentDetailsScreen() {
   const document = documentQuery.data;
 
   const [isRenameSheetVisible, setIsRenameSheetVisible] = useState(false);
+  const [isAskSheetVisible, setIsAskSheetVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [hasSearched, setHasSearched] = useState(false);
 
@@ -188,21 +189,6 @@ export default function DocumentDetailsScreen() {
                 />
               )}
 
-              <AskDocumentCard
-                answer={qaMutation.data?.answer}
-                model={qaMutation.data?.model}
-                citations={qaMutation.data?.citations}
-                isLoading={qaMutation.isPending}
-                onAsk={handleAsk}
-              />
-
-              {qaMutation.isError && (
-                <ErrorState
-                  title="Question failed"
-                  message={parseApiError(qaMutation.error).message}
-                />
-              )}
-
               <DetailSectionsCard
                 sections={detailSections}
                 confidenceLabel="Processing"
@@ -216,10 +202,10 @@ export default function DocumentDetailsScreen() {
 
         <View style={styles.footer}>
           <Button
-            label="Back to documents"
-            fullWidth
-            leftIconName="arrow-back"
-            onPress={() => router.push('/(tabs)/documents')}
+            label="?"
+            hugWidth={true}
+            fullRound
+            onPress={() => setIsAskSheetVisible(true)}
           />
         </View>
       </View>
@@ -230,6 +216,18 @@ export default function DocumentDetailsScreen() {
         onClose={() => setIsRenameSheetVisible(false)}
         onRename={handleRename}
         isLoading={renameMutation.isPending}
+      />
+
+      <AskDocumentSheet
+        visible={isAskSheetVisible}
+        documentTitle={document?.file_name ?? 'this document'}
+        answer={qaMutation.data?.answer}
+        isLoading={qaMutation.isPending}
+        errorMessage={
+          qaMutation.isError ? parseApiError(qaMutation.error).message : undefined
+        }
+        onClose={() => setIsAskSheetVisible(false)}
+        onAsk={handleAsk}
       />
     </SafeAreaView>
   );
