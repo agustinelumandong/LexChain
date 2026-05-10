@@ -2,6 +2,10 @@ import type { DocumentStatusKey, PickedUploadFile } from '@/types';
 
 import { apiClient } from './client';
 
+import { env } from '@/shared/config';
+
+import { mockDocumentsApi } from './mock';
+
 export type DocumentListItem = {
   id: string;
   file_name: string;
@@ -90,6 +94,10 @@ export type AskResponse = {
 export async function fetchSearchResultsWithDetails(
   payload: GlobalSearchPayload,
 ): Promise<GlobalSearchResult[]> {
+  if (env.useMockApi) {
+    return mockDocumentsApi.buildSearchResultsWithDetails(payload);
+  }
+
   const response = await apiClient.post<GlobalSearchResponse>('/search', payload);
   const results = response.results;
 
@@ -147,18 +155,34 @@ const encodeDocumentId = (documentId: string) => {
 };
 
 export const documentsApi = {
-  list: (params?: { limit?: number; offset?: number }) =>
-    apiClient.get<DocumentListItem[]>(
+  list: (params?: { limit?: number; offset?: number }) => {
+    if (env.useMockApi) {
+      return mockDocumentsApi.list(params);
+    }
+
+    return apiClient.get<DocumentListItem[]>(
       `/documents/${toQueryString({
         limit: params?.limit,
         offset: params?.offset,
       })}`,
-    ),
+    );
+  },
 
-  getById: (documentId: string) =>
-    apiClient.get<DocumentDetail>(`/documents/${encodeDocumentId(documentId)}`),
+  getById: (documentId: string) => {
+    const encodedDocumentId = encodeDocumentId(documentId);
+
+    if (env.useMockApi) {
+      return mockDocumentsApi.getById(documentId);
+    }
+
+    return apiClient.get<DocumentDetail>(`/documents/${encodedDocumentId}`);
+  },
 
   upload: (file: PickedUploadFile, fileName: string) => {
+    if (env.useMockApi) {
+      return mockDocumentsApi.upload(file, fileName);
+    }
+
     const searchParams = new URLSearchParams({ file_name: fileName });
 
     return apiClient.post<DocumentUploadAcceptedResponse>(
@@ -167,24 +191,50 @@ export const documentsApi = {
     );
   },
 
-  globalSearch: (payload: GlobalSearchPayload) =>
-    apiClient.post<GlobalSearchResponse>('/search', payload),
+  globalSearch: (payload: GlobalSearchPayload) => {
+    if (env.useMockApi) {
+      return mockDocumentsApi.globalSearch(payload);
+    }
 
-  rename: (documentId: string, fileName: string) =>
-    apiClient.patch<RenameDocumentResponse>(
-      `/documents/${encodeDocumentId(documentId)}/`,
+    return apiClient.post<GlobalSearchResponse>('/search', payload);
+  },
+
+  rename: (documentId: string, fileName: string) => {
+    const encodedDocumentId = encodeDocumentId(documentId);
+
+    if (env.useMockApi) {
+      return mockDocumentsApi.rename(documentId, fileName);
+    }
+
+    return apiClient.patch<RenameDocumentResponse>(
+      `/documents/${encodedDocumentId}/`,
       { file_name: fileName },
-    ),
+    );
+  },
 
-  search: (documentId: string, query: string) =>
-    apiClient.post<SearchResponse>(
-      `/documents/${encodeDocumentId(documentId)}/search`,
+  search: (documentId: string, query: string) => {
+    const encodedDocumentId = encodeDocumentId(documentId);
+
+    if (env.useMockApi) {
+      return mockDocumentsApi.search(documentId, query);
+    }
+
+    return apiClient.post<SearchResponse>(
+      `/documents/${encodedDocumentId}/search`,
       { query },
-    ),
+    );
+  },
 
-  ask: (documentId: string, question: string) =>
-    apiClient.post<AskResponse>(
-      `/documents/${encodeDocumentId(documentId)}/ask`,
+  ask: (documentId: string, question: string) => {
+    const encodedDocumentId = encodeDocumentId(documentId);
+
+    if (env.useMockApi) {
+      return mockDocumentsApi.ask(documentId, question);
+    }
+
+    return apiClient.post<AskResponse>(
+      `/documents/${encodedDocumentId}/ask`,
       { question },
-    ),
+    );
+  },
 };
