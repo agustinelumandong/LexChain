@@ -4,15 +4,15 @@ import { useDocuments } from '@/services/query';
 
 export function useDashboard() {
   const documentsQuery = useDocuments();
-  const documents = documentsQuery.data ?? [];
 
   return useMemo(() => {
+    const documents = documentsQuery.data ?? [];
     const documentsCount = documents.length;
     const verifiedCount = documents.filter(
-      (doc) => doc.status === 'verified',
+      (doc) => doc.status === 'COMPLETED',
     ).length;
     const tamperedCount = documents.filter(
-      (doc) => doc.status === 'failed' || doc.status === 'error',
+      (doc) => doc.status === 'FAILED',
     ).length;
     const recentDocuments = [...documents]
       .sort((left, right) => right.created_at.localeCompare(left.created_at))
@@ -25,5 +25,5 @@ export function useDashboard() {
       recentDocuments,
       isLoading: documentsQuery.isLoading,
     };
-  }, [documents, documentsQuery.isLoading]);
+  }, [documentsQuery.data, documentsQuery.isLoading]);
 }

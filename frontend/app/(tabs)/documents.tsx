@@ -16,7 +16,6 @@ import {
 } from '@/features/documents';
 import type {
   DocumentSortKey,
-  DocumentStatusKey,
   DocumentTypeKey,
 } from '@/types';
 import { SearchInputWithResults, BottomNav } from '@/ui';
@@ -66,9 +65,11 @@ type DisplayDocument = {
   date: string;
   rawDate: string;
   documentType: DocumentTypeKey;
-  status: DocumentStatusKey;
+  status: DocumentFilterStatusKey;
   snippet?: string;
 };
+
+type DocumentFilterStatusKey = (typeof DOCUMENT_STATUS_OPTIONS)[number]['value'];
 
 function formatDate(value: string) {
   const date = new Date(value);
@@ -84,7 +85,7 @@ function formatDate(value: string) {
   });
 }
 
-function mapStatus(status: string): DocumentStatusKey {
+function mapStatus(status: string): DocumentFilterStatusKey {
   const normalizedStatus = status.toLowerCase();
 
   if (normalizedStatus.includes('verified') || normalizedStatus.includes('complete')) {
@@ -140,7 +141,8 @@ export default function DocumentsScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   const [documentTypeFilter, setDocumentTypeFilter] = useState<DocumentTypeKey>('all');
-  const [documentStatusFilter, setDocumentStatusFilter] = useState<DocumentStatusKey>('all');
+  const [documentStatusFilter, setDocumentStatusFilter] =
+    useState<DocumentFilterStatusKey>('all');
   const [documentDateFilter, setDocumentDateFilter] = useState<Date | null>(null);
   const [sortKey, setSortKey] = useState<DocumentSortKey>('newest');
   const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false);
@@ -374,7 +376,9 @@ export default function DocumentsScreen() {
         selectedDate={documentDateFilter}
         onClose={() => setIsFilterSheetOpen(false)}
         onChangeType={(value) => setDocumentTypeFilter(value as DocumentTypeKey)}
-        onChangeStatus={(value) => setDocumentStatusFilter(value as DocumentStatusKey)}
+        onChangeStatus={(value) =>
+          setDocumentStatusFilter(value as DocumentFilterStatusKey)
+        }
         onChangeDate={setDocumentDateFilter}
         onClear={() => {
           setDocumentTypeFilter('all');
