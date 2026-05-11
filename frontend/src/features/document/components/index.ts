@@ -9,6 +9,7 @@ export { DocumentSearchBar } from './document-search-bar';
 export { DocumentSummaryCard } from './document-summary-card';
 export { DocumentTopBar } from './document-top-bar';
 export { IntegrityCheckCard } from './integrity-check-card';
+export { LexChainPdfViewer } from './lexchain-pdf-viewer';
 export { ManageWhitelistBottomSheet } from './manage-whitelist-bottom-sheet';
 export { RenameDocumentSheet } from './rename-document-sheet';
 export { SearchResultsCard } from './search-results-card';
