@@ -173,6 +173,9 @@ export default function DocumentPdfViewerScreen() {
         {permissions.canViewPdf ? (
           <View style={styles.viewerFrame}>
             <LexChainPdfViewer uri={uri} />
+            <View pointerEvents="none" style={styles.watermarkOverlay}>
+              <Text style={styles.watermarkText}>LexChain Verified</Text>
+            </View>
           </View>
         ) : (
           <View style={styles.blockedCard}>
@@ -209,6 +212,22 @@ const styles = StyleSheet.create({
   viewerFrame: {
     flex: 1,
     minHeight: 0,
+  },
+  watermarkOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  watermarkText: {
+    transform: [{ rotate: '-28deg' }],
+    color: 'rgba(0, 56, 116, 0.12)',
+    fontFamily: fonts.regular,
+    fontSize: 64,
+    fontWeight: '900',
+    letterSpacing: 0,
+    lineHeight: 50,
+    textAlign: 'center',
+    textTransform: 'uppercase',
   },
   blockedCard: {
     minHeight: 320,
