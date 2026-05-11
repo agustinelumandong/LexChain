@@ -165,6 +165,7 @@ export function AskDocumentSheet({
   onAsk,
 }: AskDocumentSheetProps) {
   const bottomSheetRef = useRef<BottomSheetModal>(null);
+  const scrollViewRef = useRef<React.ElementRef<typeof BottomSheetScrollView>>(null);
   const insets = useSafeAreaInsets();
   const [lastAnswer, setLastAnswer] = useState<string | undefined>();
   const [composerResetKey, setComposerResetKey] = useState(0);
@@ -195,6 +196,15 @@ export function AskDocumentSheet({
     bottomSheetRef.current?.snapToIndex(1);
   }, []);
 
+  const scrollToLatestMessage = useCallback(() => {
+    requestAnimationFrame(() => {
+      scrollViewRef.current?.scrollToEnd({ animated: true });
+    });
+    setTimeout(() => {
+      scrollViewRef.current?.scrollToEnd({ animated: true });
+    }, 120);
+  }, []);
+
   const handleSubmitQuestion = useCallback((trimmedQuestion: string) => {
     setMessages((currentMessages) => [
       ...currentMessages,
@@ -204,8 +214,9 @@ export function AskDocumentSheet({
         text: trimmedQuestion,
       },
     ]);
+    scrollToLatestMessage();
     onAsk(trimmedQuestion);
-  }, [onAsk]);
+  }, [onAsk, scrollToLatestMessage]);
 
   const renderBackdrop = useCallback(
     (props: React.ComponentProps<typeof BottomSheetBackdrop>) => (
@@ -270,7 +281,8 @@ export function AskDocumentSheet({
         text: answer,
       },
     ]);
-  }, [answer, lastAnswer]);
+    scrollToLatestMessage();
+  }, [answer, lastAnswer, scrollToLatestMessage]);
 
   useEffect(() => {
     if (!errorMessage) {
@@ -285,7 +297,14 @@ export function AskDocumentSheet({
         text: errorMessage,
       },
     ]);
-  }, [errorMessage]);
+    scrollToLatestMessage();
+  }, [errorMessage, scrollToLatestMessage]);
+
+  useEffect(() => {
+    if (isLoading) {
+      scrollToLatestMessage();
+    }
+  }, [isLoading, scrollToLatestMessage]);
 
   return (
     <BottomSheetModal
@@ -316,11 +335,13 @@ export function AskDocumentSheet({
       </View>
 
       <BottomSheetScrollView
+        ref={scrollViewRef}
         style={styles.scrollArea}
         contentContainerStyle={[
           styles.scrollContent,
           { paddingBottom: 420 },
         ]}
+        onContentSizeChange={scrollToLatestMessage}
         keyboardDismissMode="none"
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
