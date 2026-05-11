@@ -393,8 +393,8 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 24,
   },
   handleIndicator: {
-    backgroundColor: COLORS.surfaceSoft,
-    width: 40,
+    backgroundColor: COLORS.borderSoft,
+    width: 80,
   },
   header: {
     flexDirection: 'row',
