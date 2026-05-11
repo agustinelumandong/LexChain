@@ -48,6 +48,8 @@ type DetailBodyBlock =
       text: string;
     };
 
+const TEST_PDF_URI = 'https://www.deped.gov.ph/wp-content/uploads/2017/08/DO_s2017_042-1.pdf';
+
 const INITIAL_DOCUMENT_WHITELIST: ManageWhitelistData = {
   grants: [
     {
@@ -111,6 +113,14 @@ function formatReference(value: string) {
   }
 
   return `${value.slice(0, 8)}...${value.slice(-7)}`;
+}
+
+function getDocumentPdfUri(document: {
+  file_uri?: string | null;
+  file_url?: string | null;
+  pdf_url?: string | null;
+}) {
+  return document.pdf_url ?? document.file_url ?? document.file_uri ?? TEST_PDF_URI;
 }
 
 function formatStatusLabel(value: string) {
@@ -406,6 +416,7 @@ export default function DocumentDetailsScreen() {
   }, [askDocument, documentId]);
 
   const canManageWhitelist = true;
+  const currentDocumentRole = canManageWhitelist ? 'owner' : 'viewer';
 
   const handleAddWhitelistResult = (resultId: string) => {
     let addedName: string | undefined;
@@ -552,7 +563,17 @@ export default function DocumentDetailsScreen() {
                   size="sm"
                   leftIconName="picture-as-pdf"
                   style={styles.actionButton}
-                  onPress={() => toast('PDF viewer is not available yet.')}
+                  onPress={() => {
+                    router.push({
+                      pathname: './pdf-viewer',
+                      params: {
+                        documentId: document.document_id,
+                        title: document.file_name,
+                        uri: getDocumentPdfUri(document),
+                        role: currentDocumentRole,
+                      },
+                    });
+                  }}
                 />
                 <Button
                   label="Search within document"
