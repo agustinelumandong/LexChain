@@ -1,4 +1,5 @@
 import React from 'react';
+import { MaterialIcons } from '@expo/vector-icons';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { APP_COLORS, fonts } from '@/theme';
@@ -26,7 +27,12 @@ export function DocumentSummaryCard({
 }: DocumentSummaryCardProps) {
   return (
     <View style={styles.card}>
-      <Text style={styles.title}>{title}</Text>
+      <View style={styles.header}>
+        <View style={styles.iconBubble}>
+          <MaterialIcons name="description" size={22} color={APP_COLORS.primary} />
+        </View>
+        <Text style={styles.title}>{title}</Text>
+      </View>
 
       {rows.map((row) => (
         <View key={row.label} style={styles.row}>
@@ -35,8 +41,12 @@ export function DocumentSummaryCard({
         </View>
       ))}
 
-      <Text style={styles.summaryLabel}>Short summary</Text>
-      <Text style={styles.summaryBody}>{summary}</Text>
+      <View style={styles.divider} />
+
+      <View style={styles.summaryWrap}>
+        <Text style={styles.summaryLabel}>Short summary</Text>
+        <Text style={styles.summaryBody}>{summary}</Text>
+      </View>
     </View>
   );
 }
@@ -45,13 +55,27 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: COLORS.surface,
     borderRadius: 24,
-    padding: 18,
-    gap: 12,
+    padding: 20,
+    gap: 13,
     shadowColor: APP_COLORS.navy,
     shadowOpacity: 0.06,
     shadowRadius: 16,
     shadowOffset: { width: 0, height: 4 },
     elevation: 4,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    marginBottom: 4,
+  },
+  iconBubble: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: APP_COLORS.surfaceSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   title: {
     color: COLORS.navy,
@@ -81,6 +105,14 @@ const styles = StyleSheet.create({
     lineHeight: 14,
     fontWeight: '800',
     textAlign: 'right',
+  },
+  divider: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: APP_COLORS.borderSoft,
+    marginTop: 4,
+  },
+  summaryWrap: {
+    gap: 8,
   },
   summaryLabel: {
     color: COLORS.textMuted,

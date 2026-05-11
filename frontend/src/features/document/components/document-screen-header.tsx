@@ -30,7 +30,7 @@ export function DocumentScreenHeader({
 
 const styles = StyleSheet.create({
   wrap: {
-    gap: 8,
+    gap: 6,
   },
   eyebrow: {
     color: COLORS.primary,
@@ -43,8 +43,8 @@ const styles = StyleSheet.create({
   title: {
     color: COLORS.navy,
     fontFamily: fonts.regular,
-    fontSize: 24,
-    lineHeight: 30,
+    fontSize: 23,
+    lineHeight: 28,
     fontWeight: '800',
   },
   description: {
