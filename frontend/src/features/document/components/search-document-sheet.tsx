@@ -49,6 +49,7 @@ export function SearchDocumentSheet({
     hasSearched ? documentId : '',
     hasSearched ? searchQuery : '',
   );
+  const isSearching = hasSearched && searchMutation.isFetching;
 
   const handleDismiss = useCallback(() => {
     onClose();
@@ -134,7 +135,7 @@ export function SearchDocumentSheet({
             }
           }}
           onSubmit={handleSearch}
-          isLoading={searchMutation.isPending}
+          isLoading={isSearching}
         />
 
         {!hasSearched ? (
