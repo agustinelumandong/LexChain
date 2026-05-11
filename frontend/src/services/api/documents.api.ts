@@ -18,6 +18,9 @@ export type DocumentDetail = {
   document_id: string;
   file_name: string;
   content_type: string;
+  file_uri?: string | null;
+  file_url?: string | null;
+  pdf_url?: string | null;
   status: DocumentStatusKey;
   summary?: string | null;
   labels?: string[];

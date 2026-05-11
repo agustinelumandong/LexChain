@@ -1,6 +1,17 @@
 export type DocumentSortKey = 'newest' | 'oldest' | 'title-az';
 export type DocumentTypeKey = 'all' | 'deed-of-sale' | 'lease-contract' | 'power-of-attorney';
 export type DocumentStatusKey = 'all' | 'COMPLETED' | 'PROCESSING' | 'QUEUED' | 'FAILED';
+export type DocumentAccessRole = 'owner' | 'editor' | 'viewer' | 'verifier';
+
+export type DocumentPermission = {
+  canViewPdf: boolean;
+  canViewSummary: boolean;
+  canViewOcrText: boolean;
+  canAskDocument: boolean;
+  canInviteUsers: boolean;
+  canVerifyDocument: boolean;
+  canDownloadPdf: boolean;
+};
 
 export type WhitelistGrant = {
   id: string;
