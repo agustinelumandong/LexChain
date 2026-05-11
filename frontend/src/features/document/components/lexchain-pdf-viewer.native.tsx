@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import Pdf from 'react-native-pdf';
 
@@ -17,6 +17,9 @@ const COLORS = {
 };
 
 export function LexChainPdfViewer({ uri }: LexChainPdfViewerProps) {
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageCount, setPageCount] = useState(0);
+
   if (!uri) {
     return (
       <View style={[styles.container, styles.emptyState]}>
@@ -44,9 +47,22 @@ export function LexChainPdfViewer({ uri }: LexChainPdfViewerProps) {
           console.log('PDF error:', error);
         }}
         onLoadComplete={(numberOfPages) => {
+          setCurrentPage(1);
+          setPageCount(numberOfPages);
           console.log(`Loaded ${numberOfPages} pages`);
         }}
+        onPageChanged={(page, numberOfPages) => {
+          setCurrentPage(page);
+          setPageCount(numberOfPages);
+        }}
       />
+      {pageCount > 0 ? (
+        <View pointerEvents="none" style={styles.pagePill}>
+          <Text style={styles.pagePillText}>
+            Page {currentPage} / {pageCount}
+          </Text>
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -65,6 +81,24 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
     backgroundColor: COLORS.white,
+  },
+  pagePill: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255, 255, 255, 0.88)',
+    borderWidth: 1,
+    borderColor: COLORS.borderSoft,
+  },
+  pagePillText: {
+    color: COLORS.navy,
+    fontFamily: fonts.regular,
+    fontSize: 12,
+    fontWeight: '800',
+    lineHeight: 15,
   },
   loading: {
     flex: 1,
