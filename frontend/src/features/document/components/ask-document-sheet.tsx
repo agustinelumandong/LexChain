@@ -36,7 +36,6 @@ const COLORS = {
   textMuted: APP_COLORS.textMuted,
   borderSoft: APP_COLORS.borderSoft,
   error: '#DC2626',
-  success: '#03A66A',
 };
 
 type ChatMessage = {
@@ -57,6 +56,7 @@ type AskDocumentSheetProps = {
 
 type AskComposerProps = BottomSheetFooterProps & {
   bottomInset: number;
+  resetKey: number;
   onSubmit: (question: string) => void;
   onFocusComposer: () => void;
   animatedStyle: React.ComponentProps<typeof Animated.View>['style'];
@@ -64,6 +64,7 @@ type AskComposerProps = BottomSheetFooterProps & {
 
 const AskComposer = React.memo(function AskComposer({
   bottomInset,
+  resetKey,
   onSubmit,
   onFocusComposer,
   animatedStyle,
@@ -71,6 +72,9 @@ const AskComposer = React.memo(function AskComposer({
 }: AskComposerProps) {
   const inputRef = useRef<TextInput>(null);
   const [question, setQuestion] = useState('');
+  const [isFocused, setIsFocused] = useState(false);
+  const hasQuestion = question.trim().length > 0;
+  const shouldShowSubmit = isFocused || hasQuestion;
 
   const keepInputFocused = useCallback(() => {
     requestAnimationFrame(() => {
@@ -94,6 +98,11 @@ const AskComposer = React.memo(function AskComposer({
     keepInputFocused();
   }, [keepInputFocused, onSubmit, question]);
 
+  useEffect(() => {
+    setQuestion('');
+    setIsFocused(false);
+  }, [resetKey]);
+
   return (
     <BottomSheetFooter
       {...footerProps}
@@ -105,6 +114,7 @@ const AskComposer = React.memo(function AskComposer({
           style={styles.inputShell}
           onPress={() => {
             onFocusComposer();
+            setIsFocused(true);
             inputRef.current?.focus();
           }}
         >
@@ -117,23 +127,29 @@ const AskComposer = React.memo(function AskComposer({
             placeholderTextColor={COLORS.textMuted}
             multiline
             blurOnSubmit={false}
-            onFocus={onFocusComposer}
+            onFocus={() => {
+              setIsFocused(true);
+              onFocusComposer();
+            }}
+            onBlur={() => setIsFocused(false)}
             textAlignVertical="top"
           />
         </Pressable>
-        <Pressable
-          style={[
-            styles.sendButton,
-            !question.trim() && styles.sendButtonDisabled,
-          ]}
-          disabled={!question.trim()}
-          onPressIn={keepInputFocused}
-          onPress={handleSubmit}
-          accessibilityRole="button"
-          accessibilityLabel="Send question"
-        >
-          <MaterialIcons name="arrow-upward" size={20} color={COLORS.white} />
-        </Pressable>
+        {shouldShowSubmit ? (
+          <Pressable
+            style={[
+              styles.sendButton,
+              !hasQuestion && styles.sendButtonDisabled,
+            ]}
+            disabled={!hasQuestion}
+            onPressIn={keepInputFocused}
+            onPress={handleSubmit}
+            accessibilityRole="button"
+            accessibilityLabel="Send question"
+          >
+            <MaterialIcons name="arrow-upward" size={20} color={COLORS.white} />
+          </Pressable>
+        ) : null}
       </Animated.View>
     </BottomSheetFooter>
   );
@@ -151,6 +167,7 @@ export function AskDocumentSheet({
   const bottomSheetRef = useRef<BottomSheetModal>(null);
   const insets = useSafeAreaInsets();
   const [lastAnswer, setLastAnswer] = useState<string | undefined>();
+  const [composerResetKey, setComposerResetKey] = useState(0);
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: 'welcome',
@@ -170,6 +187,7 @@ export function AskDocumentSheet({
   }));
 
   const handleDismiss = useCallback(() => {
+    setComposerResetKey((currentKey) => currentKey + 1);
     onClose();
   }, [onClose]);
 
@@ -207,12 +225,19 @@ export function AskDocumentSheet({
       <AskComposer
         {...props}
         bottomInset={insets.bottom}
+        resetKey={composerResetKey}
         onSubmit={handleSubmitQuestion}
         onFocusComposer={handleFocusComposer}
         animatedStyle={composerAnimatedStyle}
       />
     ),
-    [composerAnimatedStyle, handleFocusComposer, handleSubmitQuestion, insets.bottom],
+    [
+      composerAnimatedStyle,
+      composerResetKey,
+      handleFocusComposer,
+      handleSubmitQuestion,
+      insets.bottom,
+    ],
   );
 
   useEffect(() => {
@@ -223,6 +248,7 @@ export function AskDocumentSheet({
     }
 
     if (visible) {
+      setComposerResetKey((currentKey) => currentKey + 1);
       sheet.present();
       return;
     }
@@ -414,7 +440,7 @@ const styles = StyleSheet.create({
   },
   userBubble: {
     alignSelf: 'flex-end',
-    backgroundColor: COLORS.success,
+    backgroundColor: COLORS.primary,
   },
   messageText: {
     fontSize: 14,
