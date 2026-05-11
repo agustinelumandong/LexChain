@@ -11,10 +11,12 @@ import {
   DocumentScreenHeader,
   DocumentSummaryCard,
   DocumentTopBar,
+  ManageWhitelistBottomSheet,
   RenameDocumentSheet,
   SearchDocumentSheet,
 } from '@/features/document';
 import { Button, ErrorState, LoadingState } from '@/ui';
+import type { ManageWhitelistData } from '@/types';
 import {
   useAskDocument,
   useDocument,
@@ -45,6 +47,37 @@ type DetailBodyBlock =
       severity?: string;
       text: string;
     };
+
+const INITIAL_DOCUMENT_WHITELIST: ManageWhitelistData = {
+  grants: [
+    {
+      id: 'deped-records',
+      name: 'DepEd Records Office',
+      email: 'records@deped.gov.ph',
+      accessLabel: 'View access',
+      actionLabel: 'View',
+    },
+    {
+      id: 'legal-review',
+      name: 'Legal Review Team',
+      email: 'legal@lexchain.app',
+      accessLabel: 'Verify access',
+      actionLabel: 'Verify',
+    },
+  ],
+  searchResults: [
+    {
+      id: 'school-admin',
+      name: 'School Admin',
+      email: 'admin@school.gov.ph',
+    },
+    {
+      id: 'regional-office',
+      name: 'Regional Office',
+      email: 'regional@deped.gov.ph',
+    },
+  ],
+};
 
 function formatDate(value?: string) {
   if (!value) {
@@ -282,6 +315,49 @@ function DocumentStatusCard({
   );
 }
 
+function formatWhitelistCountLabel(count: number) {
+  return `${count} allowed user${count === 1 ? '' : 's'}`;
+}
+
+function AccessControlCard({
+  allowedCountLabel,
+  canManageWhitelist,
+  onPressManage,
+}: {
+  allowedCountLabel: string;
+  canManageWhitelist: boolean;
+  onPressManage: () => void;
+}) {
+  return (
+    <View style={styles.accessCard}>
+      <View style={styles.cardIconBubble}>
+        <MaterialIcons name="shield" size={24} color={APP_COLORS.primary} />
+      </View>
+
+      <View style={styles.accessCopy}>
+        <Text style={styles.statusTitle}>Access control</Text>
+        <Text style={styles.statusBody}>
+          {canManageWhitelist
+            ? 'Manage who can view or verify this document.'
+            : 'Whitelist access is managed by the document issuer.'}
+        </Text>
+        <Text style={styles.accessCount}>{allowedCountLabel}</Text>
+      </View>
+
+      {canManageWhitelist ? (
+        <View style={styles.accessAction}>
+          <Button
+            label="Manage"
+            variant="secondary"
+            size="sm"
+            onPress={onPressManage}
+          />
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
 function ConfidenceCard({ isReady }: { isReady: boolean }) {
   return (
     <View style={styles.confidenceCard}>
@@ -308,6 +384,9 @@ export default function DocumentDetailsScreen() {
   const [isRenameSheetVisible, setIsRenameSheetVisible] = useState(false);
   const [isAskSheetVisible, setIsAskSheetVisible] = useState(false);
   const [isSearchSheetVisible, setIsSearchSheetVisible] = useState(false);
+  const [isWhitelistSheetVisible, setIsWhitelistSheetVisible] = useState(false);
+  const [whitelistSearchQuery, setWhitelistSearchQuery] = useState('');
+  const [whitelistData, setWhitelistData] = useState(INITIAL_DOCUMENT_WHITELIST);
 
   const qaMutation = useAskDocument();
   const { mutate: askDocument } = qaMutation;
@@ -325,6 +404,77 @@ export default function DocumentDetailsScreen() {
   const handleAsk = useCallback((question: string) => {
     askDocument({ documentId, question });
   }, [askDocument, documentId]);
+
+  const canManageWhitelist = true;
+
+  const handleAddWhitelistResult = (resultId: string) => {
+    let addedName: string | undefined;
+
+    setWhitelistData((current) => {
+      const result = current.searchResults.find((entry) => entry.id === resultId);
+
+      if (!result) {
+        return current;
+      }
+
+      addedName = result.name;
+
+      return {
+        ...current,
+        grants: [
+          {
+            id: result.id,
+            name: result.name,
+            email: result.email,
+            accessLabel: 'View access',
+            actionLabel: 'View',
+          },
+          ...current.grants,
+        ],
+        searchResults: current.searchResults.filter((entry) => entry.id !== resultId),
+      };
+    });
+
+    setWhitelistSearchQuery('');
+
+    if (addedName) {
+      toast.success(`${addedName} added to document access`);
+    }
+  };
+
+  const handleRevokeWhitelistGrant = (grantId: string) => {
+    let revokedName: string | undefined;
+
+    setWhitelistData((current) => {
+      const grant = current.grants.find((entry) => entry.id === grantId);
+
+      if (!grant) {
+        return current;
+      }
+
+      revokedName = grant.name;
+
+      return {
+        ...current,
+        grants: current.grants.filter((entry) => entry.id !== grantId),
+        searchResults:
+          grant.email && !current.searchResults.some((entry) => entry.id === grant.id)
+            ? [
+                {
+                  id: grant.id,
+                  name: grant.name,
+                  email: grant.email,
+                },
+                ...current.searchResults,
+              ]
+            : current.searchResults,
+      };
+    });
+
+    if (revokedName) {
+      toast.success(`${revokedName} removed from document access`);
+    }
+  };
 
   const riskSections = useMemo(() => {
     if (!document) {
@@ -438,6 +588,12 @@ export default function DocumentDetailsScreen() {
                 uploadedAt={document.created_at}
               />
 
+              <AccessControlCard
+                allowedCountLabel={formatWhitelistCountLabel(whitelistData.grants.length)}
+                canManageWhitelist={canManageWhitelist}
+                onPressManage={() => setIsWhitelistSheetVisible(true)}
+              />
+
               <VersionHistoryCard items={versionHistory} />
 
               <Text style={styles.insightsEyebrow}>DOCUMENT INSIGHTS</Text>
@@ -509,6 +665,20 @@ export default function DocumentDetailsScreen() {
           toast(`Section: ${chunkId}`);
         }}
       />
+
+      <ManageWhitelistBottomSheet
+        visible={isWhitelistSheetVisible}
+        data={whitelistData}
+        searchQuery={whitelistSearchQuery}
+        onChangeSearchQuery={setWhitelistSearchQuery}
+        onClose={() => {
+          setIsWhitelistSheetVisible(false);
+          setWhitelistSearchQuery('');
+        }}
+        onPressGrantAction={() => {}}
+        onPressRevoke={handleRevokeWhitelistGrant}
+        onPressAddResult={handleAddWhitelistResult}
+      />
     </SafeAreaView>
   );
 }
@@ -569,6 +739,34 @@ const styles = StyleSheet.create({
     shadowRadius: 16,
     shadowOffset: { width: 0, height: 4 },
     elevation: 4,
+  },
+  accessCard: {
+    backgroundColor: APP_COLORS.white,
+    borderRadius: 24,
+    padding: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    shadowColor: APP_COLORS.navy,
+    shadowOpacity: 0.06,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
+  },
+  accessCopy: {
+    flex: 1,
+    gap: 4,
+  },
+  accessCount: {
+    color: APP_COLORS.primary,
+    fontFamily: fonts.regular,
+    fontSize: 12,
+    lineHeight: 16,
+    fontWeight: '800',
+    marginTop: 2,
+  },
+  accessAction: {
+    minWidth: 104,
   },
   statusCopy: {
     flex: 1,
