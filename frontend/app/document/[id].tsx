@@ -9,18 +9,16 @@ import {
   AskDocumentSheet,
   DetailSectionsCard,
   DocumentScreenHeader,
-  DocumentSearchBar,
   DocumentSummaryCard,
   DocumentTopBar,
   RenameDocumentSheet,
-  SearchResultsCard,
+  SearchDocumentSheet,
 } from '@/features/document';
 import { Button, ErrorState, LoadingState } from '@/ui';
 import {
   useAskDocument,
   useDocument,
   useRenameDocument,
-  useSearchDocument,
 } from '@/services/query';
 import { parseApiError } from '@/shared/utils/api-error';
 
@@ -309,13 +307,7 @@ export default function DocumentDetailsScreen() {
 
   const [isRenameSheetVisible, setIsRenameSheetVisible] = useState(false);
   const [isAskSheetVisible, setIsAskSheetVisible] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [hasSearched, setHasSearched] = useState(false);
-
-  const searchMutation = useSearchDocument(
-    hasSearched ? documentId : '',
-    hasSearched ? searchQuery : '',
-  );
+  const [isSearchSheetVisible, setIsSearchSheetVisible] = useState(false);
 
   const qaMutation = useAskDocument();
   const { mutate: askDocument } = qaMutation;
@@ -328,11 +320,6 @@ export default function DocumentDetailsScreen() {
     } catch (error) {
       toast.error(parseApiError(error).message);
     }
-  };
-
-  const handleSearch = () => {
-    if (searchQuery.trim().length === 0) return;
-    setHasSearched(true);
   };
 
   const handleAsk = useCallback((question: string) => {
@@ -417,13 +404,13 @@ export default function DocumentDetailsScreen() {
                   style={styles.actionButton}
                   onPress={() => toast('PDF viewer is not available yet.')}
                 />
-                 <Button
+                <Button
                   label="Search within document"
                   variant="secondary"
                   size="sm"
                   leftIconName="search"
                   style={styles.actionButton}
-                  onPress={() => toast('Search is not available yet.')}
+                  onPress={() => setIsSearchSheetVisible(true)}
                 />
                 <Button
                   label="Ask LexChain"
@@ -467,32 +454,6 @@ export default function DocumentDetailsScreen() {
               />
 
               <ConfidenceCard isReady={Boolean(document.summary)} />
-
-              <DocumentSearchBar
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-                onSubmit={handleSearch}
-                isLoading={searchMutation.isPending}
-              />
-
-              {searchMutation.data && (
-                <SearchResultsCard
-                  hits={searchMutation.data.results}
-                  onPressHit={(chunkId) => {
-                    toast(`Chunk: ${chunkId}`);
-                  }}
-                />
-              )}
-
-              {searchMutation.isError && (
-                <ErrorState
-                  title="Search failed"
-                  message={parseApiError(searchMutation.error).message}
-                  onRetry={() => {
-                    void searchMutation.refetch();
-                  }}
-                />
-              )}
             </>
           ) : (
             <ErrorState title="Document not found" message="No document data returned." />
@@ -538,6 +499,16 @@ export default function DocumentDetailsScreen() {
         onClose={() => setIsAskSheetVisible(false)}
         onAsk={handleAsk}
       />
+
+      <SearchDocumentSheet
+        visible={isSearchSheetVisible}
+        documentId={documentId}
+        documentTitle={document?.file_name ?? 'this document'}
+        onClose={() => setIsSearchSheetVisible(false)}
+        onPressMatch={(chunkId) => {
+          toast(`Section: ${chunkId}`);
+        }}
+      />
     </SafeAreaView>
   );
 }
@@ -564,7 +535,7 @@ const styles = StyleSheet.create({
   },
   actionButton: {
     flex: 1,
-    minWidth: 104,
+    minWidth: 132,
   },
   insightsEyebrow: {
     color: APP_COLORS.primary,
