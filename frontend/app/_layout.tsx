@@ -47,6 +47,10 @@ export default function RootLayout() {
                 <Stack.Screen name="upload" options={{ headerShown: false }} />
                 <Stack.Screen name="document/[id]" options={{ headerShown: false }} />
                 <Stack.Screen
+                  name="document/pdf-viewer"
+                  options={{ headerShown: false }}
+                />
+                <Stack.Screen
                   name="camera-capture"
                   options={{ headerShown: false }}
                 />
