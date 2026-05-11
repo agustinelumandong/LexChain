@@ -257,7 +257,7 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 24,
   },
   handleIndicator: {
-    backgroundColor: COLORS.surfaceSoft,
+    backgroundColor: COLORS.borderSoft,
     width: 40,
   },
   scrollArea: {

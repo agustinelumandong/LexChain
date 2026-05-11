@@ -22,6 +22,7 @@ const COLORS = {
   navy: APP_COLORS.navy,
   textMuted: APP_COLORS.textMuted,
   white: APP_COLORS.white,
+  borderSoft: APP_COLORS.borderSoft,
 };
 
 const SHEET_SNAP_POINTS = ['35%', '36%'];
@@ -168,7 +169,7 @@ const styles = StyleSheet.create({
     width: 64,
     height: 6,
     borderRadius: 999,
-    backgroundColor: 'rgba(0,0,0,0.1)',
+    backgroundColor: COLORS.borderSoft,
   },
   copyBlock: {
     gap: 10,

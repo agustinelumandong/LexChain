@@ -244,7 +244,7 @@ const styles = StyleSheet.create({
     width: 64,
     height: 6,
     borderRadius: 999,
-    backgroundColor: '#B9D9FF',
+    backgroundColor: COLORS.borderSoft,
     marginTop: 10,
     marginBottom: 8,
   },
