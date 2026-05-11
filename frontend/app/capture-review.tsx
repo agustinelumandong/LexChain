@@ -60,7 +60,7 @@ export default function CaptureReviewScreen() {
           showsVerticalScrollIndicator={false}
         >
           <Text style={styles.body}>
-            Review queued pages, remove anything blurry, then go back to keep scanning or finish upload.
+            Review queued pages, remove anything blurry, then go back to keep scanning or finish the PDF scan.
           </Text>
 
           {capturedFiles.length > 0 ? (

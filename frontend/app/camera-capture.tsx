@@ -69,7 +69,7 @@ export default function CameraCaptureScreen() {
 
     try {
       const photo = await cameraRef.current.takePictureAsync({
-        quality: 0.9,
+        quality: 0.72,
       });
 
       setCapturedPhoto({
@@ -168,7 +168,7 @@ export default function CameraCaptureScreen() {
 
           <View style={styles.topCopy}>
             <Text style={styles.topEyebrow}>CAMERA</Text>
-            <Text style={styles.topTitle}>Capture document</Text>
+            <Text style={styles.topTitle}>Scan to PDF</Text>
           </View>
 
           <Pressable
@@ -203,7 +203,7 @@ export default function CameraCaptureScreen() {
                   onPress={handleAddPage}
                 />
                 <Button
-                  label={capturedQueue.length > 0 ? 'Finish capture' : 'Use photo'}
+                  label={capturedQueue.length > 0 ? 'Finish scan' : 'Use photo'}
                   fullWidth
                   onPress={handleFinishCapture}
                 />
