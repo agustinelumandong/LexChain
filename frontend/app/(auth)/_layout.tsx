@@ -7,6 +7,7 @@ import {
   StackNavigationEventMap,
   StackNavigationOptions,
 } from '@react-navigation/stack';
+import { StatusBar } from 'expo-status-bar';
 
 const { Navigator } = createStackNavigator();
 
@@ -80,6 +81,7 @@ export default function AuthLayout() {
         transitionSpec,
       }}
     >
+      <StatusBar style="auto" />
       <AuthStack.Screen
         name="sign-in"
         options={{
