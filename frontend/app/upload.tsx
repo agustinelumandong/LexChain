@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useRouter } from 'expo-router';
 import * as DocumentPicker from 'expo-document-picker';
 import * as Haptics from 'expo-haptics';
+import * as Sharing from 'expo-sharing';
 import { useFocusEffect } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
@@ -13,6 +14,7 @@ import { useCloseSheetOnBack } from '@/hooks';
 import { Button } from '@/ui';
 import type { ManageWhitelistData, PickedUploadFile } from '@/types';
 import {
+  createPdfFromImages,
   consumePendingCapturedFiles,
   UploadDropzoneCard,
   UploadTopBar,
@@ -60,6 +62,7 @@ export default function UploadScreen() {
   const [whitelistData, setWhitelistData] = useState(INITIAL_WHITELIST);
   const [pickedFiles, setPickedFiles] = useState<PickedUploadFile[]>([]);
   const [documentTitle, setDocumentTitle] = useState('');
+  const [isPreparingScanPdf, setIsPreparingScanPdf] = useState(false);
   const uploadMutation = useUploadDocument();
 
   useFocusEffect(
@@ -67,12 +70,28 @@ export default function UploadScreen() {
       const pendingCapturedFiles = consumePendingCapturedFiles();
 
       if (pendingCapturedFiles.length > 0) {
-        setPickedFiles((currentFiles) => [...currentFiles, ...pendingCapturedFiles]);
-        toast.success(
-          pendingCapturedFiles.length === 1
-            ? 'Captured page added'
-            : `${pendingCapturedFiles.length} captured pages added`,
-        );
+        setIsPreparingScanPdf(true);
+
+        void createPdfFromImages(pendingCapturedFiles)
+          .then((scanPdf) => {
+            setPickedFiles([scanPdf]);
+            setDocumentTitle((currentTitle) =>
+              currentTitle.trim() ? currentTitle : scanPdf.name,
+            );
+            toast.success(
+              pendingCapturedFiles.length === 1
+                ? 'Captured page converted to PDF'
+                : `${pendingCapturedFiles.length} captured pages converted to PDF`,
+            );
+          })
+          .catch((error) => {
+            console.error('Failed to create PDF from captured pages', error);
+            void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+            toast.error('Failed to convert scan to PDF');
+          })
+          .finally(() => {
+            setIsPreparingScanPdf(false);
+          });
       }
     }, []),
   );
@@ -173,14 +192,17 @@ export default function UploadScreen() {
     return `${Math.max(1, Math.round(fileSize / 1024))} KB`;
   };
 
+  const isPdfFile = (file: PickedUploadFile) =>
+    file.mimeType === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+
   const handleChooseFile = async () => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
     try {
       const result = await DocumentPicker.getDocumentAsync({
         copyToCacheDirectory: true,
-        multiple: true,
-        type: ['application/pdf', 'image/*'],
+        multiple: false,
+        type: 'application/pdf',
       });
 
       if (result.canceled) {
@@ -193,23 +215,28 @@ export default function UploadScreen() {
         return;
       }
 
-      setPickedFiles((currentFiles) => [
-        ...currentFiles,
-        ...result.assets.map((asset, index) => ({
-          id: `${asset.uri}-${Date.now()}-${index}`,
-          name: asset.name,
-          sizeLabel: formatFileSize(asset.size),
-          uri: asset.uri,
-          mimeType: asset.mimeType,
-          sourceLabel: 'file' as const,
-        })),
-      ]);
+      const asset = result.assets[0];
+      const selectedFile: PickedUploadFile = {
+        id: `${asset.uri}-${Date.now()}`,
+        name: asset.name,
+        sizeLabel: formatFileSize(asset.size),
+        uri: asset.uri,
+        mimeType: asset.mimeType ?? 'application/pdf',
+        sourceLabel: 'file',
+      };
 
-      toast.success(
-        result.assets.length === 1
-          ? 'File added to upload'
-          : `${result.assets.length} files added to upload`,
+      if (!isPdfFile(selectedFile)) {
+        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        toast.warning('LexChain only accepts PDF documents');
+        return;
+      }
+
+      setPickedFiles([selectedFile]);
+      setDocumentTitle((currentTitle) =>
+        currentTitle.trim() ? currentTitle : selectedFile.name,
       );
+
+      toast.success('PDF ready to upload');
     } catch (error) {
       console.error('Failed to choose upload file', error);
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
@@ -222,10 +249,61 @@ export default function UploadScreen() {
     router.push('/camera-capture');
   };
 
+  const handlePreviewFile = (file: PickedUploadFile) => {
+    if (!isPdfFile(file)) {
+      toast.warning('Only PDF documents can be previewed');
+      return;
+    }
+
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    router.push({
+      pathname: '/document/pdf-viewer',
+      params: {
+        documentId: file.id,
+        title: documentTitle.trim() || file.name,
+        uri: file.uri,
+        role: 'owner',
+      },
+    });
+  };
+
+  const handleShareFile = async (file: PickedUploadFile) => {
+    if (!isPdfFile(file)) {
+      toast.warning('Only PDF documents can be saved');
+      return;
+    }
+
+    const isSharingAvailable = await Sharing.isAvailableAsync();
+
+    if (!isSharingAvailable) {
+      toast.error('Saving this PDF is not available on this device');
+      return;
+    }
+
+    try {
+      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      await Sharing.shareAsync(file.uri, {
+        mimeType: 'application/pdf',
+        dialogTitle: 'Save scanned PDF',
+        UTI: 'com.adobe.pdf',
+      });
+    } catch (error) {
+      console.error('Failed to share upload PDF', error);
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      toast.error('Failed to open save options');
+    }
+  };
+
   const handleContinueToProcessing = async () => {
     if (pickedFiles.length === 0) {
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      toast.warning('Add a file or captured page first');
+      toast.warning('Choose a PDF or scan pages first');
+      return;
+    }
+
+    if (!isPdfFile(pickedFiles[0])) {
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      toast.warning('Final document must be a PDF');
       return;
     }
 
@@ -295,6 +373,8 @@ export default function UploadScreen() {
             mode={pickedFiles.length > 0 ? 'selected' : 'empty'}
             files={pickedFiles}
             onChooseFile={handleChooseFile}
+            onPreviewFile={handlePreviewFile}
+            onShareFile={handleShareFile}
             onRemoveFile={handleRemoveFile}
           />
 
@@ -313,8 +393,8 @@ export default function UploadScreen() {
                 label="Upload document"
                 fullWidth
                 rightIconName="arrow-forward"
-                disabled={pickedFiles.length === 0 || uploadMutation.isPending}
-                loading={uploadMutation.isPending}
+                disabled={pickedFiles.length === 0 || isPreparingScanPdf || uploadMutation.isPending}
+                loading={isPreparingScanPdf || uploadMutation.isPending}
                 onPress={handleContinueToProcessing}
               />
             </View>

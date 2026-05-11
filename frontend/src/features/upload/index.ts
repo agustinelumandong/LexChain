@@ -9,3 +9,4 @@ export {
 } from './upload-session';
 export { UploadTopBar } from './upload-top-bar';
 export { UploadTypeBottomSheet } from './upload-type-bottom-sheet';
+export { createPdfFromImages } from './create-pdf-from-images';
