@@ -1,5 +1,5 @@
-import React, { useCallback, useEffect, useState } from 'react';
-import { useRouter } from 'expo-router';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useFocusEffect, useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { FlatList, Pressable, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -137,6 +137,7 @@ function mapSearchResult(result: GlobalSearchResult): DisplayDocument {
 
 export default function DocumentsScreen() {
   const router = useRouter();
+  const isOpeningDocumentRef = useRef(false);
   const documentsQuery = useDocuments();
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
@@ -241,8 +242,19 @@ export default function DocumentsScreen() {
     setIsSortSheetOpen(false);
   });
 
+  useFocusEffect(
+    useCallback(() => {
+      isOpeningDocumentRef.current = false;
+    }, []),
+  );
+
   const openDocument = useCallback(
     (documentId: string) => {
+      if (isOpeningDocumentRef.current) {
+        return;
+      }
+
+      isOpeningDocumentRef.current = true;
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       router.push({
         pathname: '/document/[id]',
