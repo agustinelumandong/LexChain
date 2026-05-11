@@ -1,4 +1,5 @@
 import React from 'react';
+import { MaterialIcons } from '@expo/vector-icons';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { APP_COLORS, fonts } from '@/theme';
@@ -6,8 +7,9 @@ const COLORS = {
   primary: APP_COLORS.primary,
   navy: APP_COLORS.navy,
   textMuted: APP_COLORS.textMuted,
-  surfaceSoft: '#F7FBFF',
+  surfaceSoft: APP_COLORS.white,
   successSoft: '#EAF8F0',
+  borderSoft: APP_COLORS.borderSoft,
 };
 
 type DetailRow = {
@@ -53,12 +55,25 @@ type DetailSectionsCardProps = {
   sections: DetailSection[];
   confidenceLabel?: string;
   confidenceValue?: string;
+  iconName?: React.ComponentProps<typeof MaterialIcons>['name'];
+  riskHelperText?: string;
+};
+
+const GROUP_ICONS: Record<string, React.ComponentProps<typeof MaterialIcons>['name']> = {
+  Organizations: 'account-balance',
+  People: 'person',
+  Dates: 'calendar-today',
+  Links: 'link',
+  'Document numbers': 'tag',
+  Locations: 'location-on',
 };
 
 export function DetailSectionsCard({
   sections,
   confidenceLabel,
   confidenceValue,
+  iconName,
+  riskHelperText,
 }: DetailSectionsCardProps) {
   return (
     <View style={styles.card}>
@@ -70,7 +85,14 @@ export function DetailSectionsCard({
         return (
           <View key={section.title} style={styles.section}>
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>{section.title}</Text>
+              <View style={styles.titleRow}>
+                {iconName ? (
+                  <View style={styles.iconBubble}>
+                    <MaterialIcons name={iconName} size={22} color={COLORS.primary} />
+                  </View>
+                ) : null}
+                <Text style={styles.sectionTitle}>{section.title}</Text>
+              </View>
               {firstRiskBlock?.severity ? (
                 <Text style={styles.riskPill}>{firstRiskBlock.severity}</Text>
               ) : null}
@@ -82,16 +104,36 @@ export function DetailSectionsCard({
               <View style={styles.blocksWrap}>
                 {section.bodyBlocks.map((block, index) =>
                   block.kind === 'risk' ? (
-                    <View key={`${block.kind}-${index}`} style={styles.riskBlock}>
+                    <View
+                      key={`${block.kind}-${index}`}
+                      style={[styles.riskBlock, iconName && styles.riskBlockWithIcon]}
+                    >
                       {block.severity && block !== firstRiskBlock ? (
                         <Text style={styles.riskPill}>{block.severity}</Text>
                       ) : null}
                       <Text style={styles.sectionBody}>{block.text}</Text>
+                      {riskHelperText ? (
+                        <View style={styles.riskHelperRow}>
+                          <MaterialIcons name="info-outline" size={16} color={COLORS.primary} />
+                          <Text style={styles.riskHelperText}>{riskHelperText}</Text>
+                        </View>
+                      ) : null}
                     </View>
                   ) : (
                     <View key={`${block.kind}-${block.title}`} style={styles.groupBlock}>
-                      <Text style={styles.groupTitle}>{block.title}</Text>
-                      <Text style={styles.sectionBody}>{block.values.join('\n')}</Text>
+                      <View style={styles.groupTitleRow}>
+                        <MaterialIcons
+                          name={GROUP_ICONS[block.title] ?? 'label'}
+                          size={20}
+                          color={COLORS.primary}
+                        />
+                        <Text style={styles.groupTitle}>{block.title}</Text>
+                      </View>
+                      <View style={styles.chipWrap}>
+                        {block.values.map((value) => (
+                          <Text key={value} style={styles.valueChip}>{value}</Text>
+                        ))}
+                      </View>
                     </View>
                   ),
                 )}
@@ -124,8 +166,13 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: COLORS.surfaceSoft,
     borderRadius: 24,
-    padding: 18,
+    padding: 20,
     gap: 18,
+    shadowColor: APP_COLORS.navy,
+    shadowOpacity: 0.06,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
   },
   section: {
     gap: 8,
@@ -135,6 +182,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: 12,
+  },
+  titleRow: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+  },
+  iconBubble: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: APP_COLORS.surfaceSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   sectionTitle: {
     flex: 1,
@@ -152,10 +213,21 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   blocksWrap: {
-    gap: 14,
+    gap: 0,
   },
   groupBlock: {
-    gap: 5,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    paddingVertical: 13,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: COLORS.borderSoft,
+  },
+  groupTitleRow: {
+    width: 112,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 9,
   },
   groupTitle: {
     color: COLORS.navy,
@@ -164,9 +236,32 @@ const styles = StyleSheet.create({
     lineHeight: 16,
     fontWeight: '700',
   },
+  chipWrap: {
+    flex: 1,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  valueChip: {
+    overflow: 'hidden',
+    borderRadius: 8,
+    backgroundColor: APP_COLORS.surfaceSoft,
+    borderWidth: 1,
+    borderColor: COLORS.borderSoft,
+    color: COLORS.navy,
+    fontFamily: fonts.regular,
+    fontSize: 12,
+    lineHeight: 16,
+    fontWeight: '600',
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+  },
   riskBlock: {
     alignItems: 'flex-start',
-    gap: 8,
+    gap: 14,
+  },
+  riskBlockWithIcon: {
+    paddingLeft: 56,
   },
   riskPill: {
     overflow: 'hidden',
@@ -179,6 +274,18 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     paddingHorizontal: 9,
     paddingVertical: 4,
+  },
+  riskHelperRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  riskHelperText: {
+    color: COLORS.primary,
+    fontFamily: fonts.regular,
+    fontSize: 13,
+    lineHeight: 17,
+    fontWeight: '800',
   },
   rowsWrap: {
     gap: 8,

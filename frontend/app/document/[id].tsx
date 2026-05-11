@@ -1,4 +1,5 @@
 import React, { useCallback, useMemo, useState } from 'react';
+import { MaterialIcons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -73,6 +74,23 @@ function formatContentType(value: string) {
   return value.split('/').pop()?.toUpperCase() ?? value;
 }
 
+function formatReference(value: string) {
+  if (value.length <= 16) {
+    return value;
+  }
+
+  return `${value.slice(0, 8)}...${value.slice(-7)}`;
+}
+
+function formatStatusLabel(value: string) {
+  return value
+    .toLowerCase()
+    .split(/[_\s-]+/)
+    .filter(Boolean)
+    .map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1)}`)
+    .join(' ');
+}
+
 function getRecordText(record: Record<string, unknown>, key: string) {
   const value = record[key];
   return typeof value === 'string' ? value.trim() : '';
@@ -83,7 +101,7 @@ const ENTITY_TYPE_LABELS: Record<string, string> = {
   PERSON: 'People',
   DATE: 'Dates',
   URL: 'Links',
-  DOCUMENT_NUMBER: 'Document numbers',
+  DOCUMENT_NUMBER: 'Document No.',
   LOCATION: 'Locations',
 };
 
@@ -173,9 +191,9 @@ function buildVersionHistory({
     },
     {
       id: 'current',
-      date: 'Current',
+      date: formatDate(createdAt),
       label: 'Current version',
-      statusLabel: status,
+      statusLabel: formatStatusLabel(status),
       description: 'Active document version used for search, summaries, and access review.',
       isCurrent: true,
     },
@@ -186,7 +204,9 @@ function VersionHistoryCard({ items }: { items: VersionHistoryItem[] }) {
   return (
     <View style={styles.versionCard}>
       <View style={styles.versionHeader}>
-        <Text style={styles.versionEyebrow}>VERSION HISTORY</Text>
+        <View style={styles.cardIconBubble}>
+          <MaterialIcons name="history" size={24} color={APP_COLORS.primary} />
+        </View>
         <Text style={styles.versionTitle}>Document updates</Text>
       </View>
 
@@ -250,13 +270,31 @@ function DocumentStatusCard({
 }) {
   return (
     <View style={styles.statusCard}>
+      <View style={styles.cardIconBubble}>
+        <MaterialIcons name="verified-user" size={24} color={APP_COLORS.primary} />
+      </View>
+
       <View style={styles.statusCopy}>
-        <Text style={styles.statusEyebrow}>STATUS</Text>
-        <Text style={styles.statusTitle}>Verification state</Text>
+        <Text style={styles.statusTitle}>Verification</Text>
         <Text style={styles.statusBody}>Last updated {formatDate(uploadedAt)}</Text>
       </View>
 
-      <Text style={styles.statusPill}>{status}</Text>
+      <Text style={styles.statusPill}>{formatStatusLabel(status)}</Text>
+    </View>
+  );
+}
+
+function ConfidenceCard({ isReady }: { isReady: boolean }) {
+  return (
+    <View style={styles.confidenceCard}>
+      <View style={styles.cardIconBubble}>
+        <MaterialIcons name="verified" size={24} color={APP_COLORS.primary} />
+      </View>
+      <View style={styles.statusCopy}>
+        <Text style={styles.statusTitle}>Summary confidence</Text>
+        <Text style={styles.statusBody}>AI-generated summary reliability</Text>
+      </View>
+      <Text style={styles.confidencePill}>{isReady ? 'High' : 'Pending'}</Text>
     </View>
   );
 }
@@ -370,10 +408,38 @@ export default function DocumentDetailsScreen() {
             />
           ) : document ? (
             <>
+              <View style={styles.actionRow}>
+                <Button
+                  label="View PDF"
+                  variant="secondary"
+                  size="sm"
+                  leftIconName="picture-as-pdf"
+                  style={styles.actionButton}
+                  onPress={() => toast('PDF viewer is not available yet.')}
+                />
+                 <Button
+                  label="Search within document"
+                  variant="secondary"
+                  size="sm"
+                  leftIconName="search"
+                  style={styles.actionButton}
+                  onPress={() => toast('Search is not available yet.')}
+                />
+                <Button
+                  label="Ask LexChain"
+                  variant="secondary"
+                  size="sm"
+                  leftIconName="auto-awesome"
+                  style={styles.actionButton}
+                  onPress={() => setIsAskSheetVisible(true)}
+                />
+
+              </View>
+
               <DocumentSummaryCard
                 title="Document summary"
                 rows={[
-                  { label: 'Reference', value: document.document_id },
+                  { label: 'Reference', value: formatReference(document.document_id) },
                   { label: 'Type', value: formatContentType(document.content_type) },
                   { label: 'Uploaded', value: formatDate(document.created_at) },
                 ]}
@@ -387,9 +453,20 @@ export default function DocumentDetailsScreen() {
 
               <VersionHistoryCard items={versionHistory} />
 
-              <DetailSectionsCard sections={riskSections} />
+              <Text style={styles.insightsEyebrow}>DOCUMENT INSIGHTS</Text>
 
-              <DetailSectionsCard sections={extractedSections} />
+              <DetailSectionsCard
+                sections={riskSections}
+                iconName="warning-amber"
+                riskHelperText="Why this matters"
+              />
+
+              <DetailSectionsCard
+                sections={extractedSections}
+                iconName="description"
+              />
+
+              <ConfidenceCard isReady={Boolean(document.summary)} />
 
               <DocumentSearchBar
                 value={searchQuery}
@@ -476,9 +553,27 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 18,
-    paddingTop: 12,
+    paddingTop: 10,
     paddingBottom: 112,
-    gap: 20,
+    gap: 16,
+  },
+  actionRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  actionButton: {
+    flex: 1,
+    minWidth: 104,
+  },
+  insightsEyebrow: {
+    color: APP_COLORS.primary,
+    fontFamily: fonts.regular,
+    fontSize: 12,
+    lineHeight: 14,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+    marginTop: 2,
   },
   footer: {
     position: 'absolute',
@@ -493,11 +588,11 @@ const styles = StyleSheet.create({
   statusCard: {
     backgroundColor: APP_COLORS.white,
     borderRadius: 24,
-    padding: 18,
+    padding: 20,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: 16,
+    gap: 14,
     shadowColor: APP_COLORS.navy,
     shadowOpacity: 0.06,
     shadowRadius: 16,
@@ -507,14 +602,6 @@ const styles = StyleSheet.create({
   statusCopy: {
     flex: 1,
     gap: 4,
-  },
-  statusEyebrow: {
-    color: APP_COLORS.primary,
-    fontFamily: fonts.regular,
-    fontSize: 12,
-    lineHeight: 14,
-    fontWeight: '800',
-    letterSpacing: 0.5,
   },
   statusTitle: {
     color: APP_COLORS.navy,
@@ -533,19 +620,27 @@ const styles = StyleSheet.create({
   statusPill: {
     overflow: 'hidden',
     borderRadius: 999,
-    backgroundColor: APP_COLORS.surfaceSoft,
-    color: APP_COLORS.primary,
+    backgroundColor: '#EAF8F0',
+    color: '#0C6B3A',
     fontFamily: fonts.regular,
-    fontSize: 11,
-    lineHeight: 14,
+    fontSize: 12,
+    lineHeight: 16,
     fontWeight: '800',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+  },
+  cardIconBubble: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: APP_COLORS.surfaceSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   versionCard: {
     backgroundColor: APP_COLORS.white,
     borderRadius: 24,
-    padding: 18,
+    padding: 20,
     gap: 18,
     shadowColor: APP_COLORS.navy,
     shadowOpacity: 0.06,
@@ -554,15 +649,9 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   versionHeader: {
-    gap: 4,
-  },
-  versionEyebrow: {
-    color: APP_COLORS.primary,
-    fontFamily: fonts.regular,
-    fontSize: 12,
-    lineHeight: 14,
-    fontWeight: '800',
-    letterSpacing: 0.5,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
   },
   versionTitle: {
     color: APP_COLORS.navy,
@@ -638,8 +727,8 @@ const styles = StyleSheet.create({
   versionStatus: {
     overflow: 'hidden',
     borderRadius: 999,
-    backgroundColor: APP_COLORS.surfaceSoft,
-    color: APP_COLORS.primary,
+    backgroundColor: '#EAF8F0',
+    color: '#0C6B3A',
     fontFamily: fonts.regular,
     fontSize: 11,
     lineHeight: 14,
@@ -653,5 +742,30 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 17,
     fontWeight: '600',
+  },
+  confidenceCard: {
+    backgroundColor: APP_COLORS.white,
+    borderRadius: 24,
+    padding: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    shadowColor: APP_COLORS.navy,
+    shadowOpacity: 0.06,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
+  },
+  confidencePill: {
+    overflow: 'hidden',
+    borderRadius: 999,
+    backgroundColor: APP_COLORS.surfaceSoft,
+    color: APP_COLORS.primary,
+    fontFamily: fonts.regular,
+    fontSize: 12,
+    lineHeight: 16,
+    fontWeight: '800',
+    paddingHorizontal: 12,
+    paddingVertical: 7,
   },
 });
