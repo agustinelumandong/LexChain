@@ -21,7 +21,7 @@ type UploadTopBarProps = {
 export function UploadTopBar({
   eyebrow = 'UPLOAD DOCUMENT',
   title = 'Upload document',
-  description = 'Add a file or use camera.',
+  description = 'Choose a PDF or scan pages into one PDF.',
   onPressBack,
   onPressCamera,
 }: UploadTopBarProps) {

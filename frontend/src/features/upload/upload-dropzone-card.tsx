@@ -20,6 +20,8 @@ type UploadDropzoneCardProps = {
   mode?: 'empty' | 'selected';
   files?: PickedUploadFile[];
   onChooseFile?: () => void;
+  onPreviewFile?: (file: PickedUploadFile) => void;
+  onShareFile?: (file: PickedUploadFile) => void;
   onRemoveFile?: (fileId: string) => void;
 };
 
@@ -35,6 +37,8 @@ export function UploadDropzoneCard({
   mode = 'empty',
   files = [],
   onChooseFile,
+  onPreviewFile,
+  onShareFile,
   onRemoveFile,
 }: UploadDropzoneCardProps) {
   const isSelected = mode === 'selected';
@@ -58,8 +62,8 @@ export function UploadDropzoneCard({
 
         <Text style={styles.body}>
           {isSelected
-            ? 'Review attached files and captured pages, remove anything wrong, then continue to processing.'
-            : 'Upload a PDF, image, or photographed document so LexChain can extract text, summarize it, and prepare integrity checks.'}
+            ? 'Review the PDF that will be uploaded, remove it if needed, then continue to processing.'
+            : 'Choose an existing PDF or scan pages with the camera. LexChain stores the final document as PDF.'}
         </Text>
 
         {isSelected ? (
@@ -75,6 +79,22 @@ export function UploadDropzoneCard({
                   </Text>
                 </View>
 
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={() => onPreviewFile?.(file)}
+                  style={styles.fileActionButton}
+                >
+                  <MaterialIcons name="visibility" size={16} color={COLORS.primary} />
+                </Pressable>
+
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={() => onShareFile?.(file)}
+                  style={styles.fileActionButton}
+                >
+                  <MaterialIcons name="file-download" size={16} color={COLORS.primary} />
+                </Pressable>
+
                 <Pressable style={styles.removeButton} onPress={() => onRemoveFile?.(file.id)}>
                   <Text style={styles.removeButtonLabel}>X</Text>
                 </Pressable>
@@ -88,19 +108,19 @@ export function UploadDropzoneCard({
         {isSelected ? (
           <>
             <MetaChip label={`${files.length} ITEM${files.length > 1 ? 'S' : ''}`} />
-            {fileCount > 0 ? <MetaChip label={`${fileCount} FILE${fileCount > 1 ? 'S' : ''}`} /> : null}
-            {cameraCount > 0 ? <MetaChip label={`${cameraCount} PAGE${cameraCount > 1 ? 'S' : ''}`} /> : null}
+            {fileCount > 0 ? <MetaChip label="PDF FILE" /> : null}
+            {cameraCount > 0 ? <MetaChip label="SCAN PDF" /> : null}
           </>
         ) : (
           <>
-            <MetaChip label="PDF | JPG | PNG" />
+            <MetaChip label="PDF ONLY" />
             <MetaChip label="UP TO 10 MB" />
           </>
         )}
       </View>
 
       <Button
-        label={isSelected ? 'Add more files' : 'Choose file'}
+        label={isSelected ? 'Replace PDF' : 'Choose PDF'}
         fullWidth
         leftIconName="upload"
         onPress={onChooseFile}
@@ -195,6 +215,14 @@ const styles = StyleSheet.create({
   removeButton: {
     width: 28,
     height: 28,
+    borderRadius: 999,
+    backgroundColor: COLORS.surfaceSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  fileActionButton: {
+    width: 32,
+    height: 32,
     borderRadius: 999,
     backgroundColor: COLORS.surfaceSoft,
     alignItems: 'center',
