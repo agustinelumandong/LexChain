@@ -12,6 +12,7 @@ export { IntegrityCheckCard } from './integrity-check-card';
 export { ManageWhitelistBottomSheet } from './manage-whitelist-bottom-sheet';
 export { RenameDocumentSheet } from './rename-document-sheet';
 export { SearchResultsCard } from './search-results-card';
+export { SearchDocumentSheet } from './search-document-sheet';
 export { VerificationStatusCard } from './verification-status-card';
 export { VerifyDocumentBottomSheet } from './verify-document-bottom-sheet';
 export { WhitelistGrantRow } from './whitelist-grant-row';

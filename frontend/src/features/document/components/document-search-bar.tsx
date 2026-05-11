@@ -27,9 +27,11 @@ export function DocumentSearchBar({
   isLoading = false,
 }: DocumentSearchBarProps) {
   const [isFocused, setIsFocused] = useState(false);
+  const hasQuery = value.trim().length > 0;
+  const shouldShowSubmit = isFocused || hasQuery;
 
   const handleSubmit = () => {
-    if (value.trim().length > 0) {
+    if (hasQuery) {
       onSubmit();
     }
   };
@@ -62,11 +64,15 @@ export function DocumentSearchBar({
         )}
       </View>
 
-      {value.trim().length > 0 && (
+      {shouldShowSubmit && (
         <Pressable
           onPress={handleSubmit}
-          style={[styles.searchButton, isLoading && styles.searchButtonLoading]}
-          disabled={isLoading}
+          style={[
+            styles.searchButton,
+            !hasQuery && styles.searchButtonDisabled,
+            isLoading && styles.searchButtonLoading,
+          ]}
+          disabled={isLoading || !hasQuery}
         >
           {isLoading ? (
             <MaterialIcons name="hourglass-empty" size={16} color={COLORS.surface} />
@@ -135,5 +141,10 @@ const styles = StyleSheet.create({
   },
   searchButtonLoading: {
     opacity: 0.7,
+  },
+  searchButtonDisabled: {
+    backgroundColor: COLORS.borderSoft,
+    shadowOpacity: 0,
+    elevation: 0,
   },
 });
