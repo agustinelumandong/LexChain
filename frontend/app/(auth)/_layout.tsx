@@ -73,33 +73,35 @@ const forSlideFadeFromLeft = (props: StackCardInterpolationProps) =>
 
 export default function AuthLayout() {
   return (
-    <AuthStack
-      screenOptions={{
-        headerShown: false,
-        gestureEnabled: true,
-        cardOverlayEnabled: false,
-        transitionSpec,
-      }}
-    >
+    <>
       <StatusBar style="auto" />
-      <AuthStack.Screen
-        name="sign-in"
-        options={{
-          cardStyleInterpolator: forSlideFadeFromLeft,
+      <AuthStack
+        screenOptions={{
+          headerShown: false,
+          gestureEnabled: true,
+          cardOverlayEnabled: false,
+          transitionSpec,
         }}
-      />
-      <AuthStack.Screen
-        name="forgot-password"
-        options={{
-          cardStyleInterpolator: forSlideFadeFromRight,
-        }}
-      />
-      <AuthStack.Screen
-        name="sign-up"
-        options={{
-          cardStyleInterpolator: forSlideFadeFromRight,
-        }}
-      />
-    </AuthStack>
+      >
+        <AuthStack.Screen
+          name="sign-in"
+          options={{
+            cardStyleInterpolator: forSlideFadeFromLeft,
+          }}
+        />
+        <AuthStack.Screen
+          name="forgot-password"
+          options={{
+            cardStyleInterpolator: forSlideFadeFromRight,
+          }}
+        />
+        <AuthStack.Screen
+          name="sign-up"
+          options={{
+            cardStyleInterpolator: forSlideFadeFromRight,
+          }}
+        />
+      </AuthStack>
+    </>
   );
 }
