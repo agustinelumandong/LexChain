@@ -49,23 +49,29 @@ export function RenameDocumentSheet({
   isLoading,
 }: RenameDocumentSheetProps) {
   const bottomSheetRef = useRef<BottomSheetModal>(null);
+  const latestNameRef = useRef(currentName);
   const insets = useSafeAreaInsets();
   const [newName, setNewName] = useState(currentName);
+  const [canRename, setCanRename] = useState(Boolean(currentName.trim()));
   const [error, setError] = useState<string | null>(null);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [headerHasShadow, setHeaderHasShadow] = useState(false);
+  const [isInputFocused, setIsInputFocused] = useState(false);
 
   const snapPoints = useMemo(() => ['70%'], []);
 
   const handleDismiss = useCallback(() => {
     onClose();
+    latestNameRef.current = currentName;
     setNewName(currentName);
+    setCanRename(Boolean(currentName.trim()));
     setError(null);
     setHeaderHasShadow(false);
+    setIsInputFocused(false);
   }, [currentName, onClose]);
 
   const handleRename = useCallback(() => {
-    const trimmedName = newName.trim();
+    const trimmedName = latestNameRef.current.trim();
     if (!trimmedName) {
       setError('Name cannot be empty');
       return;
@@ -77,7 +83,7 @@ export function RenameDocumentSheet({
     setError(null);
     Keyboard.dismiss();
     onRename(trimmedName);
-  }, [newName, onRename]);
+  }, [onRename]);
 
   const renderBackdrop = useCallback(
     (props: any) => (
@@ -119,7 +125,7 @@ export function RenameDocumentSheet({
               <Button
                 label={isLoading ? 'Renaming...' : 'Rename'}
                 onPress={handleRename}
-                disabled={isLoading || !newName.trim()}
+                disabled={isLoading || !canRename}
                 loading={isLoading}
               />
             </View>
@@ -127,7 +133,7 @@ export function RenameDocumentSheet({
         </View>
       </BottomSheetFooter>
     ),
-    [handleRename, insets.bottom, isLoading, keyboardHeight, newName],
+    [canRename, handleRename, insets.bottom, isLoading, keyboardHeight],
   );
 
   const handleScroll = useCallback(
@@ -148,9 +154,12 @@ export function RenameDocumentSheet({
     }
 
     if (visible) {
+      latestNameRef.current = currentName;
       setNewName(currentName);
+      setCanRename(Boolean(currentName.trim()));
       setError(null);
       setHeaderHasShadow(false);
+      setIsInputFocused(false);
       sheet.present();
       return;
     }
@@ -211,14 +220,27 @@ export function RenameDocumentSheet({
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>File Name</Text>
             <BottomSheetTextInput
-              style={[styles.input, error && styles.inputError]}
+              style={[
+                styles.input,
+                isInputFocused && styles.inputFocused,
+                error && styles.inputError,
+              ]}
               value={newName}
               onChangeText={(text) => {
+                latestNameRef.current = text;
                 setNewName(text);
+                setCanRename(Boolean(text.trim()));
                 setError(null);
               }}
               placeholder="Document name"
               placeholderTextColor={COLORS.textMuted}
+              returnKeyType="done"
+              blurOnSubmit={false}
+              autoCorrect={false}
+              autoCapitalize="sentences"
+              onFocus={() => setIsInputFocused(true)}
+              onBlur={() => setIsInputFocused(false)}
+              onSubmitEditing={handleRename}
             />
             {error && <Text style={styles.errorText}>{error}</Text>}
           </View>
@@ -293,6 +315,9 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: COLORS.navy,
     fontFamily: fonts.regular,
+  },
+  inputFocused: {
+    borderColor: COLORS.primary,
   },
   inputError: {
     borderColor: COLORS.error,
