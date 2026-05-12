@@ -22,6 +22,7 @@ import {
   useDocument,
   useRenameDocument,
 } from '@/services/query';
+import { useCloseSheetOnBack } from '@/hooks';
 import { parseApiError } from '@/shared/utils/api-error';
 
 import { APP_COLORS, fonts } from '@/theme';
@@ -400,6 +401,40 @@ export default function DocumentDetailsScreen() {
 
   const qaMutation = useAskDocument();
   const { mutate: askDocument } = qaMutation;
+  const isAnySheetVisible =
+    isRenameSheetVisible ||
+    isAskSheetVisible ||
+    isSearchSheetVisible ||
+    isWhitelistSheetVisible;
+
+  const closeVisibleSheet = useCallback(() => {
+    if (isAskSheetVisible) {
+      setIsAskSheetVisible(false);
+      return;
+    }
+
+    if (isSearchSheetVisible) {
+      setIsSearchSheetVisible(false);
+      return;
+    }
+
+    if (isWhitelistSheetVisible) {
+      setIsWhitelistSheetVisible(false);
+      setWhitelistSearchQuery('');
+      return;
+    }
+
+    if (isRenameSheetVisible) {
+      setIsRenameSheetVisible(false);
+    }
+  }, [
+    isAskSheetVisible,
+    isRenameSheetVisible,
+    isSearchSheetVisible,
+    isWhitelistSheetVisible,
+  ]);
+
+  useCloseSheetOnBack(isAnySheetVisible, closeVisibleSheet);
 
   const handleRename = async (newName: string) => {
     try {
