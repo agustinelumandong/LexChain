@@ -1,7 +1,6 @@
 import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { Image } from 'expo-image';
-import { MaterialIcons } from '@expo/vector-icons';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -10,7 +9,7 @@ import {
   getPendingCapturedFiles,
   setPendingCapturedFiles,
 } from '@/features/upload';
-import { Button } from '@/ui';
+import { Button, ScreenHeader } from '@/ui';
 
 import { APP_COLORS, fonts } from '@/theme';
 const COLORS = {
@@ -42,18 +41,14 @@ export default function CaptureReviewScreen() {
   return (
     <SafeAreaView style={styles.screen}>
       <View style={styles.surface}>
-        <View style={styles.topBar}>
-          <Pressable style={styles.topAction} onPress={() => router.back()}>
-            <MaterialIcons name="chevron-left" size={20} color={COLORS.white} />
-          </Pressable>
-
-          <View style={styles.topCopy}>
-            <Text style={styles.eyebrow}>CAPTURE REVIEW</Text>
-            <Text style={styles.title}>Captured pages</Text>
-          </View>
-
-          <View style={styles.topSpacer} />
-        </View>
+        <ScreenHeader
+          eyebrow="CAPTURE REVIEW"
+          title="Captured pages"
+          subtitle="Review queued pages before finishing the PDF scan."
+          tone="dark"
+          leftAccessibilityLabel="Back to camera"
+          onPressLeft={() => router.back()}
+        />
 
         <ScrollView
           contentContainerStyle={styles.scrollContent}
@@ -144,44 +139,6 @@ const styles = StyleSheet.create({
   surface: {
     flex: 1,
     backgroundColor: COLORS.bg,
-  },
-  topBar: {
-    paddingHorizontal: 18,
-    paddingTop: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  topAction: {
-    width: 42,
-    height: 42,
-    borderRadius: 16,
-    backgroundColor: COLORS.surfaceSoft,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  topCopy: {
-    alignItems: 'center',
-    gap: 4,
-  },
-  topSpacer: {
-    width: 42,
-    height: 42,
-  },
-  eyebrow: {
-    color: COLORS.primary,
-    fontSize: 11,
-    lineHeight: 13,
-    fontWeight: '800',
-    fontFamily: fonts.regular,
-    letterSpacing: 0.5,
-  },
-  title: {
-    color: COLORS.white,
-    fontSize: 18,
-    lineHeight: 22,
-    fontWeight: '800',
-    fontFamily: fonts.regular,
   },
   scrollContent: {
     paddingHorizontal: 18,

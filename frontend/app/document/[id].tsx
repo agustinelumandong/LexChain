@@ -8,14 +8,12 @@ import { toast } from 'sonner-native';
 import {
   AskDocumentSheet,
   DetailSectionsCard,
-  DocumentScreenHeader,
   DocumentSummaryCard,
-  DocumentTopBar,
   ManageWhitelistBottomSheet,
   RenameDocumentSheet,
   SearchDocumentSheet,
 } from '@/features/document';
-import { Button, ErrorState, LoadingState } from '@/ui';
+import { Button, ErrorState, LoadingState, ScreenHeader } from '@/ui';
 import type { ManageWhitelistData } from '@/types';
 import {
   useAskDocument,
@@ -562,22 +560,21 @@ export default function DocumentDetailsScreen() {
   return (
     <SafeAreaView style={styles.screen}>
       <View style={styles.surface}>
+        <ScreenHeader
+            eyebrow="DOCUMENT DETAILS"
+            title={document?.file_name ?? 'Document details'}
+            subtitle="AI summary, verification status, ownership history, risk review, and searchable details."
+            leftAccessibilityLabel="Back to documents"
+            rightIconName="edit"
+            rightAccessibilityLabel="Rename document"
+            onPressLeft={() => router.back()}
+            onPressRight={() => setIsRenameSheetVisible(true)}
+          />
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-          <DocumentTopBar
-            label="Details"
-            rightIconName="edit"
-            onPressBack={() => router.back()}
-            onPressRight={() => setIsRenameSheetVisible(true)}
-          />
 
-          <DocumentScreenHeader
-            eyebrow="DOCUMENT DETAILS"
-            title={document?.file_name ?? 'Document details'}
-            description="AI summary, verification status, ownership history, risk review, and searchable details."
-          />
 
           {documentQuery.isLoading ? (
             <LoadingState message="Loading document..." />
@@ -749,8 +746,7 @@ const styles = StyleSheet.create({
     backgroundColor: APP_COLORS.bg,
   },
   scrollContent: {
-    paddingHorizontal: 18,
-    paddingTop: 10,
+    paddingHorizontal: 16,
     paddingBottom: 112,
     gap: 16,
   },

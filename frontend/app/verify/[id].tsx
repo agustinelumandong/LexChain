@@ -3,11 +3,9 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { Button } from '@/ui';
+import { Button, ScreenHeader } from '@/ui';
 import {
-  DocumentScreenHeader,
   DocumentSummaryCard,
-  DocumentTopBar,
   IntegrityCheckCard,
   VerificationStatusCard,
 } from '@/features/document';
@@ -28,16 +26,12 @@ export default function VerifyDocumentScreen() {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-          <DocumentTopBar
-            label="Verifying Docs"
-            rightIconName="fact-check"
-            onPressBack={() => router.back()}
-          />
-
-          <DocumentScreenHeader
+          <ScreenHeader
             eyebrow="VERIFYING DOCS STATUS"
             title="Verifying Docs"
-            description="Summary and checks in progress."
+            subtitle="Summary and checks in progress."
+            leftAccessibilityLabel="Back"
+            onPressLeft={() => router.back()}
           />
 
           <VerificationStatusCard

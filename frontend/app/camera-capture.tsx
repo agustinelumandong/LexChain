@@ -12,7 +12,7 @@ import {
   getPendingCapturedFiles,
   setPendingCapturedFiles,
 } from '@/features/upload';
-import { Button } from '@/ui';
+import { Button, ScreenHeader } from '@/ui';
 
 import { APP_COLORS, fonts } from '@/theme';
 const COLORS = {
@@ -161,23 +161,19 @@ export default function CameraCaptureScreen() {
           <CameraView ref={cameraRef} style={styles.cameraPreview} facing={facing} />
         )}
 
-        <View style={styles.topBar}>
-          <Pressable style={styles.topAction} onPress={() => router.back()}>
-            <MaterialIcons name="close" size={20} color={COLORS.white} />
-          </Pressable>
-
-          <View style={styles.topCopy}>
-            <Text style={styles.topEyebrow}>CAMERA</Text>
-            <Text style={styles.topTitle}>Scan to PDF</Text>
-          </View>
-
-          <Pressable
-            style={styles.topAction}
-            onPress={() => setFacing((current) => (current === 'back' ? 'front' : 'back'))}
-          >
-            <MaterialIcons name="flip-camera-ios" size={20} color={COLORS.white} />
-          </Pressable>
-        </View>
+        <ScreenHeader
+          eyebrow="CAMERA"
+          title="Scan to PDF"
+          subtitle="Align the document and capture pages for one PDF."
+          tone="dark"
+          style={styles.topBar}
+          leftIconName="close"
+          leftAccessibilityLabel="Back to upload"
+          rightIconName="flip-camera-ios"
+          rightAccessibilityLabel="Flip camera"
+          onPressLeft={() => router.back()}
+          onPressRight={() => setFacing((current) => (current === 'back' ? 'front' : 'back'))}
+        />
 
         {!capturedPhoto ? (
           <View style={[styles.frameWrap, styles.nonInteractive]}>
@@ -300,39 +296,9 @@ const styles = StyleSheet.create({
   topBar: {
     position: 'absolute',
     top: 52,
-    left: 18,
-    right: 18,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    left: 0,
+    right: 0,
     zIndex: 10,
-  },
-  topAction: {
-    width: 42,
-    height: 42,
-    borderRadius: 16,
-    backgroundColor: COLORS.overlay,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  topCopy: {
-    alignItems: 'center',
-    gap: 4,
-  },
-  topEyebrow: {
-    color: COLORS.primary,
-    fontSize: 11,
-    lineHeight: 13,
-    fontWeight: '800',
-    fontFamily: fonts.regular,
-    letterSpacing: 0.5,
-  },
-  topTitle: {
-    color: COLORS.white,
-    fontSize: 16,
-    lineHeight: 20,
-    fontWeight: '800',
-    fontFamily: fonts.regular,
   },
   frameWrap: {
     position: 'absolute',

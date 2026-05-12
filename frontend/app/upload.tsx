@@ -11,13 +11,12 @@ import { toast } from 'sonner-native';
 
 import { AccessWhitelistCard, ManageWhitelistBottomSheet } from '@/features/document';
 import { useCloseSheetOnBack } from '@/hooks';
-import { Button } from '@/ui';
+import { Button, ScreenHeader } from '@/ui';
 import type { ManageWhitelistData, PickedUploadFile } from '@/types';
 import {
   createPdfFromImages,
   consumePendingCapturedFiles,
   UploadDropzoneCard,
-  UploadTopBar,
 } from '@/features/upload';
 import { useUploadDocument } from '@/services/query';
 import { parseApiError } from '@/shared/utils/api-error';
@@ -353,9 +352,15 @@ export default function UploadScreen() {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-          <UploadTopBar
-            onPressBack={() => router.back()}
-            onPressCamera={handleOpenCameraCapture}
+          <ScreenHeader
+            eyebrow="UPLOAD DOCUMENT"
+            title="Upload document"
+            subtitle="Choose a PDF or scan pages into one PDF."
+            leftAccessibilityLabel="Back"
+            rightIconName="photo-camera"
+            rightAccessibilityLabel="Open camera scanner"
+            onPressLeft={() => router.back()}
+            onPressRight={handleOpenCameraCapture}
           />
 
           <View style={styles.titleInputContainer}>
