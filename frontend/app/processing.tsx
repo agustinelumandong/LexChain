@@ -4,12 +4,8 @@ import * as Haptics from 'expo-haptics';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AiSummaryDraftCard } from '@/features/upload';
-import { Button } from '@/ui';
-import {
-  DocumentScreenHeader,
-  DocumentTopBar,
-  VerificationStatusCard,
-} from '@/features/document';
+import { Button, ScreenHeader } from '@/ui';
+import { VerificationStatusCard } from '@/features/document';
 
 import { APP_COLORS, fonts } from '@/theme';
 const COLORS = {
@@ -83,20 +79,16 @@ export default function ProcessingScreen() {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-          <DocumentTopBar
-            label="Processing"
-            rightIconName="description"
-            onPressBack={() => router.back()}
-          />
-
-          <DocumentScreenHeader
+          <ScreenHeader
             eyebrow="PROCESSING STATUS"
             title={isComplete ? 'Processing complete' : 'Processing'}
-            description={
+            subtitle={
               isComplete
                 ? 'Your document summary is ready and the file can now be found in Documents.'
                 : 'LexChain is scanning the upload, drafting the summary, and preparing integrity checks.'
             }
+            leftAccessibilityLabel="Back"
+            onPressLeft={() => router.back()}
           />
 
           <View style={styles.progressCard}>

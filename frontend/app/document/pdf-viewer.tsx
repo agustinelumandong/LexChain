@@ -10,12 +10,10 @@ import { StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import {
-  DocumentScreenHeader,
-  DocumentTopBar,
   LexChainPdfViewer,
   getDocumentPermissions,
 } from '@/features/document';
-import { Button } from '@/ui';
+import { Button, ScreenHeader } from '@/ui';
 import { APP_COLORS, fonts } from '@/theme';
 import type { DocumentPermission } from '@/types';
 
@@ -157,17 +155,15 @@ export default function DocumentPdfViewerScreen() {
   return (
     <SafeAreaView style={styles.screen}>
       <View style={styles.content}>
-        <DocumentTopBar
-          label="PDF Viewer"
-          rightIconName="info-outline"
-          onPressBack={() => router.back()}
-          onPressRight={() => setIsToolsSheetVisible(true)}
-        />
-
-        <DocumentScreenHeader
+        <ScreenHeader
           eyebrow="DOCUMENT PDF"
           title={title}
-          description="Read the original document and keep LexChain metadata close by."
+          subtitle="Read the original document and keep LexChain metadata close by."
+          leftAccessibilityLabel="Back to document details"
+          rightIconName="info-outline"
+          rightAccessibilityLabel="Open document tools"
+          onPressLeft={() => router.back()}
+          onPressRight={() => setIsToolsSheetVisible(true)}
         />
 
         {permissions.canViewPdf ? (

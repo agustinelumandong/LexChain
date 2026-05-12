@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { ScreenHeader } from '@/ui';
 import { APP_COLORS, fonts } from '@/theme';
 
 type ProfileDetailScreenProps = {
@@ -65,22 +66,12 @@ export function ProfileDetailScreen({
 
   return (
     <SafeAreaView style={styles.screen}>
-      <View style={styles.header}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Go back"
-          style={({ pressed }) => [styles.backButton, pressed && styles.pressed]}
-          onPress={() => router.back()}
-        >
-          <MaterialIcons name="arrow-back" size={20} color={COLORS.navy} />
-        </Pressable>
-
-        <View style={styles.headerCopy}>
-          <Text style={styles.eyebrow}>PROFILE</Text>
-          <Text style={styles.title}>{title}</Text>
-          <Text style={styles.subtitle}>{subtitle}</Text>
-        </View>
-      </View>
+      <ScreenHeader
+        eyebrow="PROFILE"
+        title={title}
+        subtitle={subtitle}
+        onPressLeft={() => router.back()}
+      />
 
       <ScrollView
         contentContainerStyle={[styles.content, footer ? styles.contentWithFooter : null]}
@@ -170,56 +161,9 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.bg,
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 12,
-    paddingHorizontal: 16,
-    paddingTop: 10,
-    paddingBottom: 14,
-  },
-  backButton: {
-    width: 42,
-    height: 42,
-    borderRadius: 16,
-    backgroundColor: COLORS.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: APP_COLORS.navy,
-    shadowOpacity: 0.05,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 3,
-  },
   pressed: {
     opacity: 0.82,
     transform: [{ scale: 0.98 }],
-  },
-  headerCopy: {
-    flex: 1,
-    gap: 4,
-  },
-  eyebrow: {
-    color: COLORS.primary,
-    fontFamily: fonts.regular,
-    fontSize: 11,
-    lineHeight: 13,
-    fontWeight: '800',
-    letterSpacing: 0.5,
-  },
-  title: {
-    color: COLORS.navy,
-    fontFamily: fonts.regular,
-    fontSize: 24,
-    lineHeight: 29,
-    fontWeight: '800',
-  },
-  subtitle: {
-    color: COLORS.textMuted,
-    fontFamily: fonts.regular,
-    fontSize: 13,
-    lineHeight: 18,
-    fontWeight: '500',
   },
   content: {
     paddingHorizontal: 16,
