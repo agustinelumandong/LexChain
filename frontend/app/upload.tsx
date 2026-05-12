@@ -348,11 +348,7 @@ export default function UploadScreen() {
   return (
     <SafeAreaView style={styles.screen}>
       <View style={styles.surface}>
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-        >
-          <ScreenHeader
+        <ScreenHeader
             eyebrow="UPLOAD DOCUMENT"
             title="Upload document"
             subtitle="Choose a PDF or scan pages into one PDF."
@@ -362,6 +358,10 @@ export default function UploadScreen() {
             onPressLeft={() => router.back()}
             onPressRight={handleOpenCameraCapture}
           />
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
 
           <View style={styles.titleInputContainer}>
             <Text style={styles.titleInputLabel}>Document Title</Text>
@@ -443,9 +443,8 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 16,
-    paddingTop: 12,
     paddingBottom: 148,
-    gap: 20,
+    gap: 12,
   },
   footer: {
     position: 'absolute',
