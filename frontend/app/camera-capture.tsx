@@ -1,0 +1,428 @@
+import { CameraView, type CameraType, useCameraPermissions } from 'expo-camera';
+import { Image } from 'expo-image';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
+import React, { useRef, useState } from 'react';
+import { MaterialIcons } from '@expo/vector-icons';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
+import type { PickedUploadFile } from '@/types';
+import {
+  getPendingCapturedFiles,
+  setPendingCapturedFiles,
+} from '@/features/upload';
+import { Button } from '@/ui';
+
+import { APP_COLORS, fonts } from '@/theme';
+const COLORS = {
+  bg: '#041228',
+  overlay: 'rgba(4, 18, 40, 0.68)',
+  white: APP_COLORS.white,
+  primary: APP_COLORS.primary,
+  primarySoft: 'rgba(22, 137, 245, 0.16)',
+  textMuted: '#B8CCE8',
+  frame: 'rgba(255,255,255,0.18)',
+};
+
+type CapturedPhoto = {
+  uri: string;
+  width?: number;
+  height?: number;
+};
+
+function formatFileSizeFromDimensions(photo: CapturedPhoto) {
+  if (!photo.width || !photo.height) {
+    return undefined;
+  }
+
+  const estimatedBytes = photo.width * photo.height * 0.45;
+
+  if (estimatedBytes >= 1024 * 1024) {
+    return `${(estimatedBytes / (1024 * 1024)).toFixed(1)} MB`;
+  }
+
+  return `${Math.max(1, Math.round(estimatedBytes / 1024))} KB`;
+}
+
+export default function CameraCaptureScreen() {
+  const router = useRouter();
+  const cameraRef = useRef<CameraView>(null);
+  const [permission, requestPermission] = useCameraPermissions();
+  const [facing, setFacing] = useState<CameraType>('back');
+  const [capturedPhoto, setCapturedPhoto] = useState<CapturedPhoto | null>(null);
+  const [capturedQueue, setCapturedQueue] = useState<PickedUploadFile[]>([]);
+  const [isCapturing, setIsCapturing] = useState(false);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      setCapturedQueue(getPendingCapturedFiles());
+    }, []),
+  );
+
+  const handleTakePhoto = async () => {
+    if (!cameraRef.current || isCapturing) {
+      return;
+    }
+
+    setIsCapturing(true);
+
+    try {
+      const photo = await cameraRef.current.takePictureAsync({
+        quality: 0.72,
+      });
+
+      setCapturedPhoto({
+        uri: photo.uri,
+        width: photo.width,
+        height: photo.height,
+      });
+    } finally {
+      setIsCapturing(false);
+    }
+  };
+
+  const buildCapturedFile = (photo: CapturedPhoto, index: number): PickedUploadFile => ({
+    id: `${photo.uri}-${index}-${Date.now()}`,
+    name: `Captured page ${index + 1}`,
+    sizeLabel: formatFileSizeFromDimensions(photo),
+    uri: photo.uri,
+    mimeType: 'image/jpeg',
+    sourceLabel: 'camera',
+  });
+
+  const handleAddPage = () => {
+    if (!capturedPhoto) {
+      return;
+    }
+
+    setCapturedQueue((currentQueue) => {
+      const nextQueue = [
+        ...currentQueue,
+        buildCapturedFile(capturedPhoto, currentQueue.length),
+      ];
+      setPendingCapturedFiles(nextQueue);
+      return nextQueue;
+    });
+    setCapturedPhoto(null);
+  };
+
+  const handleFinishCapture = () => {
+    const nextQueue = [...capturedQueue];
+
+    if (capturedPhoto) {
+      nextQueue.push(buildCapturedFile(capturedPhoto, nextQueue.length));
+    }
+
+    if (nextQueue.length === 0) {
+      return;
+    }
+
+    setPendingCapturedFiles(nextQueue);
+    router.back();
+  };
+
+  if (!permission) {
+    return <SafeAreaView style={styles.screen} />;
+  }
+
+  if (!permission.granted) {
+    return (
+      <SafeAreaView style={styles.screen}>
+        <View style={styles.permissionWrap}>
+          <Text style={styles.permissionEyebrow}>CAMERA ACCESS</Text>
+          <Text style={styles.permissionTitle}>Allow camera access</Text>
+          <Text style={styles.permissionBody}>
+            LexChain needs camera access so you can capture a document directly in the app.
+          </Text>
+
+          <View style={styles.permissionActions}>
+            <Button label="Grant permission" fullWidth onPress={requestPermission} />
+            <Button
+              label="Back to upload"
+              variant="secondary"
+              fullWidth
+              onPress={() => router.back()}
+            />
+          </View>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  return (
+    <SafeAreaView style={styles.screen} edges={['left', 'right', 'bottom']}>
+      <StatusBar style="light" translucent backgroundColor="transparent" />
+
+      <View style={styles.surface}>
+        {capturedPhoto ? (
+          <Image source={{ uri: capturedPhoto.uri }} style={styles.cameraPreview} contentFit="cover" />
+        ) : (
+          <CameraView ref={cameraRef} style={styles.cameraPreview} facing={facing} />
+        )}
+
+        <View style={styles.topBar}>
+          <Pressable style={styles.topAction} onPress={() => router.back()}>
+            <MaterialIcons name="close" size={20} color={COLORS.white} />
+          </Pressable>
+
+          <View style={styles.topCopy}>
+            <Text style={styles.topEyebrow}>CAMERA</Text>
+            <Text style={styles.topTitle}>Scan to PDF</Text>
+          </View>
+
+          <Pressable
+            style={styles.topAction}
+            onPress={() => setFacing((current) => (current === 'back' ? 'front' : 'back'))}
+          >
+            <MaterialIcons name="flip-camera-ios" size={20} color={COLORS.white} />
+          </Pressable>
+        </View>
+
+        {!capturedPhoto ? (
+          <View style={[styles.frameWrap, styles.nonInteractive]}>
+            <View style={styles.captureFrame} />
+            <Text style={styles.frameHint}>Align document inside frame</Text>
+          </View>
+        ) : null}
+
+        <View style={styles.bottomPanel}>
+          {capturedPhoto ? (
+            <>
+              <View style={styles.panelActions}>
+                <Button
+                  label="Retake"
+                  variant="secondary"
+                  fullWidth
+                  onPress={() => setCapturedPhoto(null)}
+                />
+                <Button
+                  label="Add page"
+                  variant="secondary"
+                  fullWidth
+                  onPress={handleAddPage}
+                />
+                <Button
+                  label={capturedQueue.length > 0 ? 'Finish scan' : 'Use photo'}
+                  fullWidth
+                  onPress={handleFinishCapture}
+                />
+              </View>
+            </>
+          ) : (
+            <View style={styles.captureControls}>
+              <Pressable
+                style={styles.galleryStub}
+                onPress={() => {
+                  if (capturedQueue.length > 0) {
+                    router.push('/capture-review');
+                  }
+                }}
+              >
+                <MaterialIcons name="collections" size={20} color={COLORS.white} />
+                {capturedQueue.length > 0 ? (
+                  <View style={styles.queueBubble}>
+                    <Text style={styles.queueBubbleText}>
+                      {capturedQueue.length > 99 ? '99+' : capturedQueue.length}
+                    </Text>
+                  </View>
+                ) : null}
+              </Pressable>
+
+              <Pressable style={styles.captureButton} onPress={handleTakePhoto}>
+                <View style={styles.captureButtonInner} />
+              </Pressable>
+
+              {capturedQueue.length > 0 ? (
+                <Pressable style={styles.flashStub} onPress={handleFinishCapture}>
+                  <MaterialIcons name="check" size={20} color={COLORS.white} />
+                </Pressable>
+              ) : (
+                <Pressable style={styles.flashStub}>
+                  <MaterialIcons name="flash-off" size={20} color={COLORS.white} />
+                </Pressable>
+              )}
+            </View>
+          )}
+        </View>
+      </View>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  screen: {
+    flex: 1,
+    backgroundColor: COLORS.bg,
+  },
+  surface: {
+    flex: 1,
+    backgroundColor: COLORS.bg,
+  },
+  permissionWrap: {
+    flex: 1,
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+    gap: 14,
+  },
+  permissionEyebrow: {
+    color: COLORS.primary,
+    fontSize: 12,
+    lineHeight: 14,
+    fontWeight: '700',
+    fontFamily: fonts.regular,
+    letterSpacing: 0.5,
+    textAlign: 'center',
+  },
+  permissionTitle: {
+    color: COLORS.white,
+    fontSize: 28,
+    lineHeight: 30,
+    fontWeight: '800',
+    fontFamily: fonts.regular,
+    textAlign: 'center',
+  },
+  permissionBody: {
+    color: COLORS.textMuted,
+    fontSize: 14,
+    lineHeight: 20,
+    fontWeight: '500',
+    fontFamily: fonts.regular,
+    textAlign: 'center',
+  },
+  permissionActions: {
+    gap: 12,
+    marginTop: 8,
+  },
+  cameraPreview: {
+    flex: 1,
+  },
+  topBar: {
+    position: 'absolute',
+    top: 52,
+    left: 18,
+    right: 18,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    zIndex: 10,
+  },
+  topAction: {
+    width: 42,
+    height: 42,
+    borderRadius: 16,
+    backgroundColor: COLORS.overlay,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  topCopy: {
+    alignItems: 'center',
+    gap: 4,
+  },
+  topEyebrow: {
+    color: COLORS.primary,
+    fontSize: 11,
+    lineHeight: 13,
+    fontWeight: '800',
+    fontFamily: fonts.regular,
+    letterSpacing: 0.5,
+  },
+  topTitle: {
+    color: COLORS.white,
+    fontSize: 16,
+    lineHeight: 20,
+    fontWeight: '800',
+    fontFamily: fonts.regular,
+  },
+  frameWrap: {
+    position: 'absolute',
+    top: '16%',
+    left: 24,
+    right: 24,
+    alignItems: 'center',
+    gap: 12,
+  },
+  nonInteractive: {
+    pointerEvents: 'none',
+  },
+  captureFrame: {
+    width: '100%',
+    aspectRatio: 0.62,
+    borderRadius: 28,
+    borderWidth: 2,
+    borderColor: COLORS.frame,
+    backgroundColor: 'transparent',
+  },
+  frameHint: {
+    color: COLORS.white,
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '600',
+    fontFamily: fonts.regular,
+  },
+  bottomPanel: {
+    position: 'absolute',
+    left: 42,
+    right: 42,
+    bottom: 42,
+    gap: 14,
+  },
+  panelActions: {
+    gap: 10,
+  },
+  captureControls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  galleryStub: {
+    width: 48,
+    height: 48,
+    borderRadius: 18,
+    backgroundColor: COLORS.primarySoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  queueBubble: {
+    position: 'absolute',
+    top: -6,
+    right: -8,
+    minWidth: 18,
+    height: 18,
+    borderRadius: 999,
+    paddingHorizontal: 4,
+    backgroundColor: COLORS.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  queueBubbleText: {
+    color: COLORS.white,
+    fontSize: 10,
+    lineHeight: 10,
+    fontWeight: '800',
+    fontFamily: fonts.regular,
+  },
+  flashStub: {
+    width: 48,
+    height: 48,
+    borderRadius: 18,
+    backgroundColor: COLORS.primarySoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  captureButton: {
+    width: 84,
+    height: 84,
+    borderRadius: 999,
+    borderWidth: 2,
+    borderColor: COLORS.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  captureButtonInner: {
+    width: 66,
+    height: 66,
+    borderRadius: 999,
+    backgroundColor: COLORS.white,
+  },
+});

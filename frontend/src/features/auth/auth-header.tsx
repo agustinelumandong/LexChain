@@ -1,10 +1,11 @@
 import React from 'react';
 import { Text, View, StyleSheet } from 'react-native';
 
+import { APP_COLORS, fonts } from '@/theme';
 const COLORS = {
-  primary: '#1689F5',
-  navy: '#133B73',
-  textMuted: '#6F8FB5',
+  primary: APP_COLORS.primary,
+  navy: APP_COLORS.navy,
+  textMuted: APP_COLORS.textMuted,
 };
 
 type AuthHeaderProps = {
@@ -33,7 +34,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 14,
     fontWeight: '700',
-    fontFamily: 'Inter',
+    fontFamily: fonts.regular,
     letterSpacing: 0.5,
   },
   title: {
@@ -41,13 +42,13 @@ const styles = StyleSheet.create({
     fontSize: 32,
     lineHeight: 34,
     fontWeight: '800',
-    fontFamily: 'Inter',
+    fontFamily: fonts.regular,
   },
   description: {
     color: COLORS.textMuted,
     fontSize: 14,
     lineHeight: 20,
     fontWeight: '500',
-    fontFamily: 'Inter',
+    fontFamily: fonts.regular,
   },
 });

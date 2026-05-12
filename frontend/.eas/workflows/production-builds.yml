@@ -1,0 +1,19 @@
+name: Create Android APK Build
+
+# Trigger this workflow manually or on specific events
+on:
+  workflow_dispatch: {}     # Allows manual trigger from GitHub or Expo dashboard
+  push:
+    branches:
+      - main
+      - release/*
+      - dev
+  # pull_request:         # Uncomment if you want builds on PRs (use preview profile instead)
+
+jobs:
+  build_android_apk:
+    type: build
+    params:
+      platform: android
+      profile: preview        # Generates an installable APK for tester/device installs
+      # message: "Preview Android APK build from CI"   # Optional custom message

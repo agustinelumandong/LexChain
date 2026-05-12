@@ -7,6 +7,7 @@ import {
   StackNavigationEventMap,
   StackNavigationOptions,
 } from '@react-navigation/stack';
+import { StatusBar } from 'expo-status-bar';
 
 const { Navigator } = createStackNavigator();
 
@@ -72,26 +73,35 @@ const forSlideFadeFromLeft = (props: StackCardInterpolationProps) =>
 
 export default function AuthLayout() {
   return (
-    <AuthStack
-      screenOptions={{
-        headerShown: false,
-        gestureEnabled: true,
-        cardOverlayEnabled: false,
-        transitionSpec,
-      }}
-    >
-      <AuthStack.Screen
-        name="sign-in"
-        options={{
-          cardStyleInterpolator: forSlideFadeFromLeft,
+    <>
+      <StatusBar style="auto" />
+      <AuthStack
+        screenOptions={{
+          headerShown: false,
+          gestureEnabled: true,
+          cardOverlayEnabled: false,
+          transitionSpec,
         }}
-      />
-      <AuthStack.Screen
-        name="sign-up"
-        options={{
-          cardStyleInterpolator: forSlideFadeFromRight,
-        }}
-      />
-    </AuthStack>
+      >
+        <AuthStack.Screen
+          name="sign-in"
+          options={{
+            cardStyleInterpolator: forSlideFadeFromLeft,
+          }}
+        />
+        <AuthStack.Screen
+          name="forgot-password"
+          options={{
+            cardStyleInterpolator: forSlideFadeFromRight,
+          }}
+        />
+        <AuthStack.Screen
+          name="sign-up"
+          options={{
+            cardStyleInterpolator: forSlideFadeFromRight,
+          }}
+        />
+      </AuthStack>
+    </>
   );
 }

@@ -1,34 +1,77 @@
-import { AuthHeader } from "@/features/auth/auth-header";
-import { AuthInput } from "@/features/auth/auth-input";
-import { AuthScreenShell } from "@/features/auth/auth-screen-shell";
-import { Button } from "@/shared/components/ui/button";
+import { AuthHeader, AuthInput, AuthScreenShell, TermsBottomSheet, PASSWORD_RULES, signUpSchema } from "@/features/auth";
+import { Button } from "@/ui";
+import { useCloseSheetOnBack } from "@/hooks";
 import { useRouter } from "expo-router";
+import * as Haptics from 'expo-haptics';
 import React, { useEffect, useRef, useState } from "react";
-import { View, StyleSheet, Pressable, Text } from "react-native";
-import TermsBottomSheet from "@/features/auth/terms-bottom-sheet";
+import { View, StyleSheet, Text } from "react-native";
+import { toast } from 'sonner-native';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { Controller, useForm } from 'react-hook-form';
+import type { SignUpFormValues } from '@/features/auth';
+import { APP_COLORS, fonts } from '@/theme';
+import { useSignUp } from '@/services/query';
+import { parseApiError } from '@/shared/utils/api-error';
 
-const COLORS = {
-  primary: '#1689F5',
-  navy: '#133B73',
-  surfaceSoft: '#F3F8FF',
-  white: '#FFFFFF',
-};
+function getPasswordStrengthState(value: string) {
+  const checks = PASSWORD_RULES.map((rule) => ({
+    key: rule.key,
+    label: rule.label,
+    passed: rule.test(value),
+  }));
+
+  const passedCount = checks.filter((rule) => rule.passed).length;
+  const progress = passedCount / PASSWORD_RULES.length;
+
+  let tone: string = APP_COLORS.danger;
+  let label = 'Weak';
+
+  if (passedCount >= 5) {
+    tone = APP_COLORS.success;
+    label = 'Strong';
+  } else if (passedCount >= 3) {
+    tone = APP_COLORS.warning;
+    label = 'Fair';
+  }
+
+  return {
+    checks,
+    passedCount,
+    progress,
+    tone,
+    label,
+    missingRules: checks.filter((rule) => !rule.passed).map((rule) => rule.label),
+  };
+}
 
 export default function SignUpScreen() {
   const router = useRouter();
   const transitionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
   const [isSwitchingScreen, setIsSwitchingScreen] = useState(false);
 
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [hasReachedTermsEnd, setHasReachedTermsEnd] = useState(false);
   const [isTermsSheetVisible, setIsTermsSheetVisible] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const signUpMutation = useSignUp();
+  const {
+    control,
+    handleSubmit,
+    watch,
+    formState: { errors },
+  } = useForm<SignUpFormValues>({
+    resolver: zodResolver(signUpSchema),
+    defaultValues: {
+      firstName: '',
+      lastName: '',
+      email: '',
+      password: '',
+      confirmPassword: '',
+    },
+  });
+  const password = watch('password');
+  const passwordStrength = getPasswordStrengthState(password);
+  const shouldShowPasswordStrength = password.length > 0;
 
   useEffect(() => {
     return () => {
@@ -37,6 +80,10 @@ export default function SignUpScreen() {
       }
     };
   }, []);
+
+  useCloseSheetOnBack(isTermsSheetVisible, () => {
+    setIsTermsSheetVisible(false);
+  });
 
   const navigateToSignIn = () => {
     if (isSwitchingScreen) {
@@ -51,65 +98,181 @@ export default function SignUpScreen() {
     }, 420);
   };
 
+  const handleOpenTerms = handleSubmit(
+    () => {
+      setIsTermsSheetVisible(true);
+    },
+    () => {
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      toast.warning('Complete all required sign up fields');
+    },
+  );
+
+  const submitSignUp = handleSubmit(async (values) => {
+    if (!acceptedTerms) {
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      toast.warning('Accept the terms to create your account');
+      return;
+    }
+
+    try {
+      const response = await signUpMutation.mutateAsync({
+        email: values.email.trim(),
+        password: values.password,
+        f_name: values.firstName.trim(),
+        l_name: values.lastName.trim(),
+        phone_number: null,
+      });
+
+      setIsTermsSheetVisible(false);
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      toast.success(
+        response.requires_email_confirmation
+          ? 'Account created. Check your email to verify before signing in.'
+          : response.message,
+      );
+      router.replace('/(auth)/sign-in');
+    } catch (error) {
+      const appError = parseApiError(error);
+
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      toast.error(appError.message);
+    }
+  });
+
+
   return (
     <AuthScreenShell>
       <View style={styles.container}>
         <AuthHeader
-          eyebrow="GET STARTED"
-          title="Create an account"
-          description="Join LexChain to manage your legal documents with ease."
+          eyebrow="CREATE ACCOUNT"
+          title="Create account"
+          description="Start your secure workspace."
         />
 
         <View style={styles.fieldStack}>
           <View style={styles.nameRow}>
             <View style={styles.nameField}>
-              <AuthInput
-                label="First Name"
-                placeholder="John"
-                value={firstName}
-                onChangeText={setFirstName}
-                iconName="person-outline"
+              <Controller
+                control={control}
+                name="firstName"
+                render={({ field: { value, onChange } }) => (
+                  <AuthInput
+                    label="First Name"
+                    placeholder="John"
+                    value={value}
+                    onChangeText={onChange}
+                    iconName="person-outline"
+                    autoCapitalize="words"
+                    error={errors.firstName?.message}
+                  />
+                )}
               />
             </View>
             <View style={styles.nameField}>
-              <AuthInput
-                label="Last Name"
-                placeholder="Doe"
-                value={lastName}
-                onChangeText={setLastName}
-                iconName="person-outline"
+             <Controller
+                control={control}
+                name="lastName"
+                render={({ field: { value, onChange } }) => (
+                  <AuthInput
+                    label="Last Name"
+                    placeholder="Doe"
+                    value={value}
+                    onChangeText={onChange}
+                    iconName="person-outline"
+                    autoCapitalize="words"
+                    error={errors.lastName?.message}
+                  />
+                )}
               />
             </View>
           </View>
 
-          <AuthInput
-              label="Email"
-              placeholder="your@email.com"
-              value={email}
-              onChangeText={setEmail}
-              iconName="mail-outline"
-            />
-
-            <AuthInput
-              label="Password"
-              placeholder="Create a strong password"
-              value={password}
-              onChangeText={setPassword}
-              iconName="lock-outline"
-              secureTextEntry
+         <Controller
+            control={control}
+            name="email"
+            render={({ field: { value, onChange } }) => (
+              <AuthInput
+                label="Email"
+                placeholder="your@email.com"
+                value={value}
+                onChangeText={onChange}
+                iconName="mail-outline"
+                keyboardType="email-address"
+                error={errors.email?.message}
+              />
+            )}
+          />
+           <Controller
+              control={control}
+              name="password"
+              render={({ field: { value, onChange } }) => (
+                <AuthInput
+                  label="Password"
+                  placeholder="Create a strong password"
+                  value={value}
+                  onChangeText={onChange}
+                  iconName="lock-outline"
+                  secureTextEntry
+                  error={errors.password?.message}
+              />
+            )}
           />
 
-          <AuthInput
-              label="Confirm Password"
-              placeholder="Confirm your password"
-              value={confirmPassword}
-              onChangeText={setConfirmPassword}
-              iconName="lock-outline"
-              secureTextEntry
-            />
+          <View style={styles.passwordStrengthCard}>
+            {shouldShowPasswordStrength ? (
+              <>
+                <View style={styles.passwordStrengthTrack}>
+                  <View
+                    style={[
+                      styles.passwordStrengthFill,
+                      {
+                        width: `${passwordStrength.progress * 100}%`,
+                        backgroundColor: passwordStrength.tone,
+                      },
+                    ]}
+                  />
+                </View>
+
+                <View style={styles.passwordStrengthMeta}>
+                  <Text style={styles.passwordStrengthHint}>
+                    {passwordStrength.missingRules.length > 0
+                      ? `Need: ${passwordStrength.missingRules.join(', ')}`
+                      : 'All password rules met'}
+                  </Text>
+
+                  <Text
+                    style={[
+                      styles.passwordStrengthLabel,
+                      { color: passwordStrength.tone },
+                    ]}
+                  >
+                    {passwordStrength.label}
+                  </Text>
+                </View>
+              </>
+            ) : null}
+          </View>
+
+          <Controller
+            control={control}
+            name="confirmPassword"
+            render={({ field: { value, onChange } }) => (
+              <AuthInput
+                label="Confirm Password"
+                placeholder="Confirm your password"
+                value={value}
+                onChangeText={onChange}
+                iconName="lock-outline"
+                secureTextEntry
+                error={errors.confirmPassword?.message}
+              />
+            )}
+          />
+
         </View>
 
-        <Pressable style={styles.termsPreview} onPress={() => setIsTermsSheetVisible(true)}>
+        {/*<Pressable style={styles.termsPreview} onPress={handleOpenTerms}>
           <View style={styles.termsPreviewText}>
             <Text style={styles.termsPreviewTitle}>Terms of Service</Text>
             <Text style={styles.termsPreviewBody}>
@@ -119,14 +282,15 @@ export default function SignUpScreen() {
           <Text style={styles.termsPreviewAction}>
             {acceptedTerms ? 'Accepted' : 'Open'}
           </Text>
-        </Pressable>
+        </Pressable>*/}
 
         <View style={styles.actions}>
           <Button
             label="Sign up"
             fullWidth
             leftIconName="person-add"
-            onPress={() => setIsTermsSheetVisible(true)}
+            disabled={signUpMutation.isPending}
+            onPress={handleOpenTerms}
           />
 
           <Button
@@ -144,18 +308,12 @@ export default function SignUpScreen() {
         visible={isTermsSheetVisible}
         acceptedTerms={acceptedTerms}
         hasReachedEnd={hasReachedTermsEnd}
-        isSubmitting={isSubmitting}
+        isSubmitting={signUpMutation.isPending}
         onClose={() => setIsTermsSheetVisible(false)}
         onToggleAcceptedTerms={() => setAcceptedTerms((prev) => !prev)}
         onReachedEnd={() => setHasReachedTermsEnd(true)}
         onConfirm={() => {
-          setIsSubmitting(true);
-
-          setTimeout(() => {
-            setIsSubmitting(false);
-            setIsTermsSheetVisible(false);
-            router.replace('/(tabs)');
-          }, 500);
+          void submitSignUp();
         }}
       />
     </AuthScreenShell>
@@ -181,18 +339,53 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 999,
-    backgroundColor: COLORS.surfaceSoft,
+    backgroundColor: APP_COLORS.bg,
   },
   chipText: {
-    color: COLORS.primary,
+    color: APP_COLORS.primary,
     fontSize: 12,
     lineHeight: 14,
     fontWeight: '700',
-    fontFamily: 'Inter',
+    fontFamily: fonts.regular,
     letterSpacing: 0.4,
   },
   actions: {
     gap: 12,
+  },
+  passwordStrengthCard: {
+    gap: 8,
+    paddingHorizontal: 4,
+    marginTop: -2,
+  },
+  passwordStrengthLabel: {
+    fontSize: 11,
+    lineHeight: 14,
+    fontWeight: '700',
+    fontFamily: fonts.regular,
+  },
+  passwordStrengthTrack: {
+    height: 4,
+    borderRadius: 999,
+    backgroundColor: APP_COLORS.bg,
+    overflow: 'hidden',
+  },
+  passwordStrengthFill: {
+    height: '100%',
+    borderRadius: 999,
+  },
+  passwordStrengthMeta: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  passwordStrengthHint: {
+    flex: 1,
+    color: APP_COLORS.textMuted,
+    fontSize: 11,
+    lineHeight: 16,
+    fontWeight: '500',
+    fontFamily: fonts.regular,
   },
   termsPreview: {
     flexDirection: 'row',
@@ -202,31 +395,31 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 14,
     borderRadius: 18,
-    backgroundColor: COLORS.surfaceSoft,
+    backgroundColor: APP_COLORS.bg,
   },
   termsPreviewText: {
     flex: 1,
     gap: 4,
   },
   termsPreviewTitle: {
-    color: COLORS.navy,
+    color: APP_COLORS.navy,
     fontSize: 14,
     lineHeight: 18,
     fontWeight: '700',
-    fontFamily: 'Inter',
+    fontFamily: fonts.regular,
   },
   termsPreviewBody: {
-    color: COLORS.primary,
+    color: APP_COLORS.primary,
     fontSize: 12,
     lineHeight: 16,
     fontWeight: '500',
-    fontFamily: 'Inter',
+    fontFamily: fonts.regular,
   },
   termsPreviewAction: {
-    color: COLORS.primary,
+    color: APP_COLORS.primary,
     fontSize: 13,
     lineHeight: 16,
     fontWeight: '700',
-    fontFamily: 'Inter',
+    fontFamily: fonts.regular,
   },
 });

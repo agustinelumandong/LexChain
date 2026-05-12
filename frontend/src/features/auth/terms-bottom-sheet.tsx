@@ -1,20 +1,34 @@
-import { Button } from '@/shared/components/ui/button';
+import { Button } from '@/ui';
+import {
+  BottomSheetBackdrop,
+  BottomSheetModal,
+  BottomSheetScrollView,
+} from '@gorhom/bottom-sheet';
 import { MaterialIcons } from '@expo/vector-icons';
-import React from 'react';
-import { Modal, NativeScrollEvent, NativeSyntheticEvent, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+import React, { useEffect, useMemo, useRef } from 'react';
+import {
+  NativeScrollEvent,
+  NativeSyntheticEvent,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { APP_COLORS, fonts } from '@/theme';
 const COLORS = {
   backdrop: 'rgba(4, 18, 40, 0.42)',
-  sheet: '#F3F8FF',
-  surface: '#FFFFFF',
-  surfaceSoft: '#EAF4FF',
-  primary: '#1689F5',
-  navy: '#133B73',
-  textMuted: '#6F8FB5',
-  borderSoft: '#D7EBFF',
-  success: '#12A150',
-}
+  sheet: APP_COLORS.bg,
+  surface: APP_COLORS.white,
+  surfaceSoft: APP_COLORS.surfaceSoft,
+  primary: APP_COLORS.primary,
+  navy: APP_COLORS.navy,
+  textMuted: APP_COLORS.textMuted,
+  borderSoft: APP_COLORS.borderSoft,
+  success: APP_COLORS.success,
+};
 
 type TermsBottomSheetProps = {
   visible: boolean;
@@ -35,138 +49,168 @@ export default function TermsBottomSheet({
   onClose,
   onToggleAcceptedTerms,
   onConfirm,
-  onReachedEnd
+  onReachedEnd,
 }: TermsBottomSheetProps) {
+  const bottomSheetRef = useRef<BottomSheetModal>(null);
+  const insets = useSafeAreaInsets();
+  const snapPoints = useMemo(() => ['90%'], []);
+
+  useEffect(() => {
+    const sheet = bottomSheetRef.current;
+
+    if (!sheet) {
+      return;
+    }
+
+    if (visible) {
+      sheet.present();
+      return;
+    }
+
+    sheet.dismiss();
+  }, [visible]);
+
   const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-    if (hasReachedEnd) return;
+    if (hasReachedEnd) {
+      return;
+    }
 
     const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
     const threshold = 24;
-    const reachedBottom = contentOffset.y + layoutMeasurement.height >= contentSize.height - threshold;
+    const reachedBottom =
+      contentOffset.y + layoutMeasurement.height >= contentSize.height - threshold;
 
-    if (reachedBottom) onReachedEnd();
-};
+    if (reachedBottom) {
+      onReachedEnd();
+    }
+  };
+
+  const renderBackdrop = (props: React.ComponentProps<typeof BottomSheetBackdrop>) => (
+    <BottomSheetBackdrop
+      {...props}
+      appearsOnIndex={0}
+      disappearsOnIndex={-1}
+      opacity={1}
+      pressBehavior="close"
+      style={styles.backdrop}
+    />
+  );
 
   return (
-    <Modal
-        visible={visible}
-        transparent
-        animationType="slide"
-        onRequestClose={onClose}
-        statusBarTranslucent
-        navigationBarTranslucent
-        presentationStyle="overFullScreen"
+    <>
+      {visible ? <StatusBar style="light" translucent backgroundColor="transparent" /> : null}
+
+      <BottomSheetModal
+        ref={bottomSheetRef}
+        index={0}
+        snapPoints={snapPoints}
+        onDismiss={onClose}
+        enablePanDownToClose
+        backdropComponent={renderBackdrop}
+        handleIndicatorStyle={styles.handle}
+        backgroundStyle={styles.sheet}
       >
-      <StatusBar style="light" translucent backgroundColor="transparent" />
-
-      <View style={styles.overlay}>
-        <Pressable style={styles.backdrop} onPress={onClose} />
-
-        <View style={styles.sheet}>
-          <View style={styles.handle} />
-
-          <View style={styles.header}>
-            <View style={styles.headerCopy}>
-              <Text style={styles.eyebrow}>LEGAL CONSENT</Text>
-              <Text style={styles.title}>Terms of Service</Text>
-              <Text style={styles.description}>
-                Review terms before creating your LexChain account.
-              </Text>
-            </View>
-
-            <Pressable style={styles.closeButton} onPress={onClose}>
-              <MaterialIcons name="close" size={20} color={COLORS.navy} />
-            </Pressable>
+        <View style={styles.header}>
+          <View style={styles.headerCopy}>
+            <Text style={styles.eyebrow}>LEGAL CONSENT</Text>
+            <Text style={styles.title}>Terms of Service</Text>
+            <Text style={styles.description}>
+              Review terms before creating your LexChain account.
+            </Text>
           </View>
 
-           <ScrollView
-            style={styles.scrollArea}
-            contentContainerStyle={styles.scrollContent}
-            showsVerticalScrollIndicator={false}
-            onScroll={handleScroll}
-            scrollEventThrottle={16}
-          >
-            <Section
-              title="1. Account responsibility"
-              body="You are responsible for information submitted through your account, including document metadata, uploaded files, and access permissions you grant to others."
-            />
-            <Section
-              title="2. Legal document handling"
-              body="LexChain helps organize, summarize, and verify legal documents. You should only upload content you are authorized to manage, review, or share."
-            />
-            <Section
-              title="3. Privacy and confidentiality"
-              body="Documents may contain private or sensitive legal information. You agree to use the platform carefully and avoid uploading data in violation of confidentiality duties or applicable law."
-            />
-            <Section
-              title="4. Acceptable use"
-              body="You must not use the platform for fraud, identity misrepresentation, unauthorized disclosure, tampering, or unlawful access to protected records."
-            />
-            <Section
-              title="5. Consent to processing"
-              body="By continuing, you consent to storage and processing required to provide upload, summary, access control, and verification features within the LexChain system."
-            />
-
-            <View style={styles.reachedRow}>
-              <MaterialIcons
-                name={hasReachedEnd ? 'check-circle' : 'south'}
-                size={18}
-                color={hasReachedEnd ? COLORS.success : COLORS.primary}
-              />
-              <Text
-                style={[
-                  styles.reachedText,
-                  hasReachedEnd && styles.reachedTextDone,
-                ]}
-              >
-                {hasReachedEnd
-                  ? 'You reached end of terms.'
-                  : 'Scroll to end to unlock acceptance.'}
-              </Text>
-            </View>
-          </ScrollView>
-
-          <View style={styles.footer}>
-            <Pressable
-              style={[
-                styles.checkboxRow,
-                !hasReachedEnd && styles.checkboxRowDisabled,
-              ]}
-              onPress={hasReachedEnd ? onToggleAcceptedTerms : undefined}
-            >
-              <View
-                style={[
-                  styles.checkbox,
-                  acceptedTerms && styles.checkboxChecked,
-                  !hasReachedEnd && styles.checkboxDisabled,
-                ]}
-              >
-                {acceptedTerms ? (
-                  <MaterialIcons name="check" size={16} color="#FFFFFF" />
-                ) : null}
-              </View>
-
-              <Text
-                style={[
-                  styles.checkboxLabel,
-                  !hasReachedEnd && styles.checkboxLabelDisabled,
-                ]}
-              >
-                I accept Terms of Service and Privacy Policy
-              </Text>
-            </Pressable>
-
-            <Button
-              label="Confirm and create account"
-              fullWidth
-              loading={isSubmitting}
-              disabled={!hasReachedEnd || !acceptedTerms || isSubmitting}
-              onPress={onConfirm}
-            />
-          </View>
+          <Pressable style={styles.closeButton} onPress={() => bottomSheetRef.current?.dismiss()}>
+            <MaterialIcons name="close" size={20} color={COLORS.navy} />
+          </Pressable>
         </View>
-      </View>
-    </Modal>
+
+        <BottomSheetScrollView
+          style={styles.scrollArea}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          onScroll={handleScroll}
+          scrollEventThrottle={16}
+        >
+          <Section
+            title="1. Account responsibility"
+            body="You are responsible for information submitted through your account, including document metadata, uploaded files, and access permissions you grant to others."
+          />
+          <Section
+            title="2. Legal document handling"
+            body="LexChain helps organize, summarize, and verify legal documents. You should only upload content you are authorized to manage, review, or share."
+          />
+          <Section
+            title="3. Privacy and confidentiality"
+            body="Documents may contain private or sensitive legal information. You agree to use the platform carefully and avoid uploading data in violation of confidentiality duties or applicable law."
+          />
+          <Section
+            title="4. Acceptable use"
+            body="You must not use the platform for fraud, identity misrepresentation, unauthorized disclosure, tampering, or unlawful access to protected records."
+          />
+          <Section
+            title="5. Consent to processing"
+            body="By continuing, you consent to storage and processing required to provide upload, summary, access control, and verification features within the LexChain system."
+          />
+
+          <View style={styles.reachedRow}>
+            <MaterialIcons
+              name={hasReachedEnd ? 'check-circle' : 'south'}
+              size={18}
+              color={hasReachedEnd ? COLORS.success : COLORS.primary}
+            />
+            <Text
+              style={[
+                styles.reachedText,
+                hasReachedEnd && styles.reachedTextDone,
+              ]}
+            >
+              {hasReachedEnd
+                ? 'You reached end of terms.'
+                : 'Scroll to end to unlock acceptance.'}
+            </Text>
+          </View>
+        </BottomSheetScrollView>
+
+        <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 24) }]}>
+          <Pressable
+            style={[
+              styles.checkboxRow,
+              !hasReachedEnd && styles.checkboxRowDisabled,
+            ]}
+            onPress={hasReachedEnd ? onToggleAcceptedTerms : undefined}
+          >
+            <View
+              style={[
+                styles.checkbox,
+                acceptedTerms && styles.checkboxChecked,
+                !hasReachedEnd && styles.checkboxDisabled,
+              ]}
+            >
+              {acceptedTerms ? (
+                <MaterialIcons name="check" size={16} color="#FFFFFF" />
+              ) : null}
+            </View>
+
+            <Text
+              style={[
+                styles.checkboxLabel,
+                !hasReachedEnd && styles.checkboxLabelDisabled,
+              ]}
+            >
+              I accept Terms of Service and Privacy Policy
+            </Text>
+          </Pressable>
+
+          <Button
+            label="Confirm and create account"
+            fullWidth
+            loading={isSubmitting}
+            disabled={!hasReachedEnd || !acceptedTerms || isSubmitting}
+            onPress={onConfirm}
+          />
+        </View>
+      </BottomSheetModal>
+    </>
   );
 }
 
@@ -185,20 +229,13 @@ function Section({ title, body }: SectionProps) {
 }
 
 const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    justifyContent: 'flex-end',
-  },
   backdrop: {
-    ...StyleSheet.absoluteFillObject,
     backgroundColor: COLORS.backdrop,
   },
   sheet: {
-    height: '90%',
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
     backgroundColor: COLORS.sheet,
-    overflow: 'hidden',
     borderWidth: 1,
     borderColor: COLORS.borderSoft,
   },
@@ -207,7 +244,7 @@ const styles = StyleSheet.create({
     width: 64,
     height: 6,
     borderRadius: 999,
-    backgroundColor: '#B9D9FF',
+    backgroundColor: COLORS.borderSoft,
     marginTop: 10,
     marginBottom: 8,
   },
@@ -228,7 +265,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 14,
     fontWeight: '700',
-    fontFamily: 'Inter',
+    fontFamily: fonts.regular,
     letterSpacing: 0.5,
   },
   title: {
@@ -236,14 +273,14 @@ const styles = StyleSheet.create({
     fontSize: 28,
     lineHeight: 30,
     fontWeight: '800',
-    fontFamily: 'Inter',
+    fontFamily: fonts.regular,
   },
   description: {
     color: COLORS.textMuted,
     fontSize: 14,
     lineHeight: 20,
     fontWeight: '500',
-    fontFamily: 'Inter',
+    fontFamily: fonts.regular,
   },
   closeButton: {
     width: 36,
@@ -276,14 +313,14 @@ const styles = StyleSheet.create({
     fontSize: 15,
     lineHeight: 20,
     fontWeight: '700',
-    fontFamily: 'Inter',
+    fontFamily: fonts.regular,
   },
   sectionBody: {
     color: COLORS.textMuted,
     fontSize: 14,
     lineHeight: 21,
     fontWeight: '500',
-    fontFamily: 'Inter',
+    fontFamily: fonts.regular,
   },
   reachedRow: {
     flexDirection: 'row',
@@ -296,7 +333,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 18,
     fontWeight: '700',
-    fontFamily: 'Inter',
+    fontFamily: fonts.regular,
   },
   reachedTextDone: {
     color: COLORS.success,
@@ -305,7 +342,6 @@ const styles = StyleSheet.create({
     gap: 14,
     paddingHorizontal: 18,
     paddingTop: 14,
-    paddingBottom: 24,
     borderTopWidth: 1,
     borderTopColor: COLORS.borderSoft,
     backgroundColor: 'rgba(255,255,255,0.92)',
@@ -341,7 +377,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
     fontWeight: '600',
-    fontFamily: 'Inter',
+    fontFamily: fonts.regular,
   },
   checkboxLabelDisabled: {
     color: COLORS.textMuted,

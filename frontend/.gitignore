@@ -1,43 +1,90 @@
-# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
-
-# dependencies
+# Dependencies
 node_modules/
 
 # Expo
 .expo/
-dist/
-web-build/
+.expo-shared/
 expo-env.d.ts
+eas-build/
 
-# Native
+# Native / Generated
+ios/
+android/
 .kotlin/
-*.orig.*
 *.jks
 *.p8
 *.p12
 *.key
 *.mobileprovision
+*.orig.*
 
-# Metro
+# Metro / Bundler
 .metro-health-check*
+.metro/
 
-# debug
+# Build outputs & Checks
+dist/
+web-build/
+build/
+.tmp/
+frontend/dist-*-check/
+**/dist-*-check/
+
+# App specific
+app-example
+
+# Environment variables
+.env
+.env*
+!.env.example
+
+# TypeScript
+*.tsbuildinfo
+
+# Logs & Debug
 npm-debug.*
 yarn-debug.*
 yarn-error.*
+*.log
+debug.log
 
 # macOS
 .DS_Store
 *.pem
 
-# local env files
-.env*.local
+# Temporary / Cache
+.tmp/
+.temp/
+.cache/
+.turbo/
+coverage/
 
-# typescript
-*.tsbuildinfo
+# Editor directories (ignore most, allow useful shared files)
+.vscode/
+!.vscode/extensions.json
+!.vscode/settings.json
+!.vscode/launch.json
 
-app-example
+.zed/
 
-# generated native folders
-/ios
-/android
+# AI Coding Agents & Tools (local configs)
+# .agents/
+.opencode/
+.sispyhus/
+.sisyphus/
+# skills-lock.json
+
+# Other common ignores
+*.swp
+*.swo
+.idea/
+.DS_Store
+Thumbs.db
+
+# *.pen
+
+# docs/
+
+graphify-out
+
+openapi.json
