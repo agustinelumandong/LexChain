@@ -5,8 +5,8 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { BottomNav } from '@/ui';
 
-import { DashboardKpiCard } from './dashboard-kpi-card';
-import { DashboardRecentList } from './dashboard-recent-list';
+import { DashboardKpiCard, DashboardKpiSkeleton } from './dashboard-kpi-card';
+import { DashboardRecentList, DashboardRecentListSkeleton } from './dashboard-recent-list';
 import { styles } from './dashboard-overview.styles';
 import { useDashboard } from './use-dashboard';
 
@@ -31,26 +31,37 @@ export function DashboardOverview() {
 
           <View style={styles.kpiRow}>
             <Animated.View style={styles.kpiItem} entering={FadeInDown.delay(80).springify()}>
-              <DashboardKpiCard
-                label="Documents"
-                value={`${dashboardStats.documentsCount}`}
-                tone={dashboardStats.documentsCount > 0 ? 'positive' : 'warning'}
-              />
+              {dashboardStats.isLoading ? (
+                <DashboardKpiSkeleton />
+              ) : (
+                <DashboardKpiCard
+                  label="Documents"
+                  value={`${dashboardStats.documentsCount}`}
+                  tone={dashboardStats.documentsCount > 0 ? 'positive' : 'warning'}
+                />
+              )}
             </Animated.View>
             <Animated.View style={styles.kpiItem} entering={FadeInDown.delay(140).springify()}>
-              <DashboardKpiCard
-                label="Tampered"
-                value={`${dashboardStats.tamperedCount}`}
-                tone={dashboardStats.tamperedCount > 0 ? 'warning' : 'positive'}
-              />
+              {dashboardStats.isLoading ? (
+                <DashboardKpiSkeleton />
+              ) : (
+                <DashboardKpiCard
+                  label="Tampered"
+                  value={`${dashboardStats.tamperedCount}`}
+                  tone={dashboardStats.tamperedCount > 0 ? 'warning' : 'positive'}
+                />
+              )}
             </Animated.View>
           </View>
 
-
-          <DashboardRecentList
-            documents={dashboardStats.recentDocuments}
-            onPressDocument={(documentId) => router.push(`/document/${documentId}`)}
-          />
+          {dashboardStats.isLoading ? (
+            <DashboardRecentListSkeleton />
+          ) : (
+            <DashboardRecentList
+              documents={dashboardStats.recentDocuments}
+              onPressDocument={(documentId) => router.push(`/document/${documentId}`)}
+            />
+          )}
         </ScrollView>
 
         <View style={styles.navWrap}>

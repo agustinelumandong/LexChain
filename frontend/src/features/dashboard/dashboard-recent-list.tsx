@@ -2,6 +2,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { APP_COLORS, fonts } from '@/theme';
 import type { DocumentListItem } from '@/services/api';
+import { SkeletonBox } from '@/ui';
 
 const COLORS = {
   surface: APP_COLORS.white,
@@ -60,6 +61,24 @@ export function DashboardRecentList({
           </Text>
         </View>
       )}
+    </View>
+  );
+}
+
+export function DashboardRecentListSkeleton() {
+  return (
+    <View style={styles.group}>
+      <SkeletonBox width={148} height={20} borderRadius={999} />
+      {Array.from({ length: 3 }).map((_, index) => (
+        <View key={index} style={styles.row}>
+          <View style={styles.copy}>
+            <SkeletonBox width="72%" height={14} borderRadius={999} />
+            <SkeletonBox width="38%" height={12} borderRadius={999} />
+          </View>
+
+          <SkeletonBox width={84} height={28} borderRadius={12} />
+        </View>
+      ))}
     </View>
   );
 }
