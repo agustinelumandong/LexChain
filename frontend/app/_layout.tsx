@@ -45,6 +45,14 @@ export default function RootLayout() {
                 <Stack.Screen name="(auth)" options={{ headerShown: false }} />
                 <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
                 <Stack.Screen name="upload" options={{ headerShown: false }} />
+                <Stack.Screen name="profile/account" options={{ headerShown: false }} />
+                <Stack.Screen
+                  name="profile/notifications"
+                  options={{ headerShown: false }}
+                />
+                <Stack.Screen name="profile/security" options={{ headerShown: false }} />
+                <Stack.Screen name="profile/privacy" options={{ headerShown: false }} />
+                <Stack.Screen name="profile/support" options={{ headerShown: false }} />
                 <Stack.Screen name="document/[id]" options={{ headerShown: false }} />
                 <Stack.Screen
                   name="document/pdf-viewer"
@@ -74,6 +82,11 @@ export default function RootLayout() {
             theme="light"
             toastOptions={{
               style: {
+                width: 280,
+                borderRadius: 999,
+                alignSelf: 'center',
+                paddingHorizontal: 14,
+                paddingVertical: 12,
                 backgroundColor: "#fff",
               },
             }}
