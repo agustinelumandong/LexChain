@@ -31,6 +31,15 @@ type ErrorWithResponse = {
   message?: string;
 };
 
+function isAppError(error: unknown): error is AppError {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'code' in error &&
+    typeof (error as AppError).code === 'string'
+  );
+}
+
 function isErrorWithResponse(error: unknown): error is ErrorWithResponse {
   return typeof error === 'object' && error !== null;
 }
@@ -48,6 +57,7 @@ function getCodeFromStatus(status?: number): AppErrorCode {
 }
 
 export function parseApiError(error: unknown): AppError {
+  if (isAppError(error)) return error;
   if (!isErrorWithResponse(error)) {
     return {
       code: 'UNKNOWN_ERROR',

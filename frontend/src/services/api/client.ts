@@ -1,5 +1,6 @@
 import { env, requireApiUrl } from '@/shared/config';
 import { authTokenStorage } from '@/shared/utils/secure-storage';
+import { parseApiError } from '@/shared/utils/api-error';
 
 type RequestOptions = RequestInit & {
   auth?: boolean;
@@ -49,21 +50,21 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
       headers,
     });
   } catch (error) {
-    throw {
+    throw parseApiError({
       request: true,
       message: error instanceof Error ? error.message : 'Network request failed',
-    };
+    });
   }
 
   const data = await parseResponse(response);
 
   if (!response.ok) {
-    throw {
+    throw parseApiError({
       response: {
         status: response.status,
         data,
       },
-    };
+    });
   }
 
   return data as T;
