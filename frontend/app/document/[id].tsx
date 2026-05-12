@@ -13,7 +13,7 @@ import {
   RenameDocumentSheet,
   SearchDocumentSheet,
 } from '@/features/document';
-import { Button, ErrorState, LoadingState, ScreenHeader } from '@/ui';
+import { Button, ErrorState, ScreenHeader, SkeletonBox } from '@/ui';
 import type { ManageWhitelistData } from '@/types';
 import {
   useAskDocument,
@@ -382,6 +382,41 @@ function ConfidenceCard({ isReady }: { isReady: boolean }) {
   );
 }
 
+function DocumentDetailsSkeleton() {
+  return (
+    <>
+      <View style={styles.skeletonActionRow}>
+        <SkeletonBox height={40} borderRadius={999} style={styles.skeletonAction} />
+        <SkeletonBox height={40} borderRadius={999} style={styles.skeletonAction} />
+      </View>
+
+      <View style={styles.skeletonCard}>
+        <SkeletonBox width="52%" height={18} borderRadius={999} />
+        <View style={styles.skeletonMetaGrid}>
+          <SkeletonBox width="44%" height={14} borderRadius={999} />
+          <SkeletonBox width="35%" height={14} borderRadius={999} />
+          <SkeletonBox width="48%" height={14} borderRadius={999} />
+        </View>
+        <SkeletonBox height={14} borderRadius={999} />
+        <SkeletonBox width="86%" height={14} borderRadius={999} />
+        <SkeletonBox width="64%" height={14} borderRadius={999} />
+      </View>
+
+      <View style={styles.skeletonCard}>
+        <SkeletonBox width="46%" height={18} borderRadius={999} />
+        <SkeletonBox width="72%" height={14} borderRadius={999} />
+        <SkeletonBox width={118} height={32} borderRadius={999} />
+      </View>
+
+      <View style={styles.skeletonCard}>
+        <SkeletonBox width="50%" height={18} borderRadius={999} />
+        <SkeletonBox width="76%" height={14} borderRadius={999} />
+        <SkeletonBox width="58%" height={14} borderRadius={999} />
+      </View>
+    </>
+  );
+}
+
 export default function DocumentDetailsScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -561,23 +596,21 @@ export default function DocumentDetailsScreen() {
     <SafeAreaView style={styles.screen}>
       <View style={styles.surface}>
         <ScreenHeader
-            eyebrow="DOCUMENT DETAILS"
-            title={document?.file_name ?? 'Document details'}
-            subtitle="AI summary, verification status, ownership history, risk review, and searchable details."
-            leftAccessibilityLabel="Back to documents"
-            rightIconName="edit"
-            rightAccessibilityLabel="Rename document"
-            onPressLeft={() => router.back()}
-            onPressRight={() => setIsRenameSheetVisible(true)}
-          />
+          eyebrow="DOCUMENT DETAILS"
+          title={document?.file_name ?? 'Document details'}
+          subtitle="AI summary, verification status, ownership history, risk review, and searchable details."
+          leftAccessibilityLabel="Back to documents"
+          rightIconName="edit"
+          rightAccessibilityLabel="Rename document"
+          onPressLeft={() => router.back()}
+          onPressRight={() => setIsRenameSheetVisible(true)}
+        />
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-
-
           {documentQuery.isLoading ? (
-            <LoadingState message="Loading document..." />
+            <DocumentDetailsSkeleton />
           ) : documentQuery.error ? (
             <ErrorState
               title="Document unavailable"
@@ -749,6 +782,29 @@ const styles = StyleSheet.create({
   actionButton: {
     flex: 1,
     minWidth: 132,
+  },
+  skeletonActionRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  skeletonAction: {
+    flex: 1,
+    minWidth: 132,
+  },
+  skeletonCard: {
+    backgroundColor: APP_COLORS.white,
+    borderRadius: 24,
+    padding: 16,
+    gap: 14,
+    shadowColor: APP_COLORS.navy,
+    shadowOpacity: 0.06,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
+  },
+  skeletonMetaGrid: {
+    gap: 10,
   },
   insightsEyebrow: {
     color: APP_COLORS.primary,
