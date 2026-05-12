@@ -771,7 +771,8 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 16,
-    paddingBottom: 112,
+    paddingBottom: 248,
+    marginTop: 138,
     gap: 16,
   },
   actionRow: {

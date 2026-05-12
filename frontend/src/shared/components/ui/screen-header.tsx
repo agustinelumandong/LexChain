@@ -3,6 +3,8 @@ import React from 'react';
 import { Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 
 import { APP_COLORS, fonts } from '@/theme';
+import { LinearGradient } from 'expo-linear-gradient';
+import { BlurView } from 'expo-blur';
 
 type ScreenHeaderTone = 'light' | 'dark';
 
@@ -47,55 +49,97 @@ export function ScreenHeader({
   const iconColor = isDark ? COLORS.white : COLORS.navy;
 
   return (
-    <View style={[styles.header, style]}>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={leftAccessibilityLabel}
-        style={({ pressed }) => [
-          styles.actionButton,
-          isDark ? styles.darkActionButton : styles.lightActionButton,
-          pressed && styles.pressed,
-        ]}
-        onPress={onPressLeft}
-      >
-        <MaterialIcons name={leftIconName} size={20} color={iconColor} />
-      </Pressable>
+    <View style={[styles.wrapper, style]}>
+      <View style={styles.shadow}>
+        <BlurView intensity={100} tint="light" style={styles.glass}>
+          <LinearGradient
+            colors={[
+                  APP_COLORS.borderSoft,
+                  'rgba(243, 248, 255, 0)',
+                ]}
+            style={[styles.header, style]}
+          >
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={leftAccessibilityLabel}
+              style={({ pressed }) => [
+                styles.actionButton,
+                isDark ? styles.darkActionButton : styles.lightActionButton,
+                pressed && styles.pressed,
+              ]}
+              onPress={onPressLeft}
+            >
+              <MaterialIcons name={leftIconName} size={20} color={iconColor} />
+            </Pressable>
 
-      <View style={styles.headerCopy}>
-        <Text style={styles.eyebrow}>{eyebrow}</Text>
-        <Text style={[styles.title, isDark && styles.darkTitle]}>{title}</Text>
-        <Text style={[styles.subtitle, isDark && styles.darkSubtitle]}>{subtitle}</Text>
+            <View style={styles.headerCopy}>
+              <Text style={styles.eyebrow}>{eyebrow}</Text>
+              <Text style={[styles.title, isDark && styles.darkTitle]}>{title}</Text>
+              <Text style={[styles.subtitle, isDark && styles.darkSubtitle]}>{subtitle}</Text>
+            </View>
+
+            {rightIconName && onPressRight ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={rightAccessibilityLabel}
+                style={({ pressed }) => [
+                  styles.actionButton,
+                  isDark ? styles.darkActionButton : styles.lightActionButton,
+                  pressed && styles.pressed,
+                ]}
+                onPress={onPressRight}
+              >
+                <MaterialIcons name={rightIconName} size={20} color={iconColor} />
+              </Pressable>
+            ) : (
+              <View style={styles.actionSpacer} />
+            )}
+          <View pointerEvents="none" style={styles.glassHighlight} />
+          </LinearGradient>
+        </BlurView>
       </View>
-
-      {rightIconName && onPressRight ? (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={rightAccessibilityLabel}
-          style={({ pressed }) => [
-            styles.actionButton,
-            isDark ? styles.darkActionButton : styles.lightActionButton,
-            pressed && styles.pressed,
-          ]}
-          onPress={onPressRight}
-        >
-          <MaterialIcons name={rightIconName} size={20} color={iconColor} />
-        </Pressable>
-      ) : (
-        <View style={styles.actionSpacer} />
-      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  wrapper: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 0,
+    zIndex: 999,
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 12,
     paddingHorizontal: 16,
-    paddingTop: 10,
+    paddingTop: 14,
     paddingBottom: 14,
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
   },
+   shadow: {
+    shadowColor: '#000',
+    shadowOpacity: 0.12,
+    shadowRadius: 24,
+    shadowOffset: { width: 0, height: 12 },
+  },
+  glass: {
+    overflow: 'hidden',
+    borderBottomWidth: 5,
+    borderColor: 'rgba(255, 255, 255, 0.45)',
+    backgroundColor: 'rgba(255, 255, 255, 0.18)',
+  },
+  glassHighlight: {
+  position: 'absolute',
+  top: 1,
+  left: 1,
+  right: 1,
+  height: 1,
+  backgroundColor: 'rgba(255, 255, 255, 0.75)',
+},
   actionButton: {
     width: 32,
     height: 32,
