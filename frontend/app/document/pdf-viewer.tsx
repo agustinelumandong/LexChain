@@ -154,18 +154,17 @@ export default function DocumentPdfViewerScreen() {
 
   return (
     <SafeAreaView style={styles.screen}>
+      <ScreenHeader
+        eyebrow="DOCUMENT PDF"
+        title={title}
+        subtitle="Read the original document and keep LexChain metadata close by."
+        leftAccessibilityLabel="Back to document details"
+        rightIconName="info-outline"
+        rightAccessibilityLabel="Open document tools"
+        onPressLeft={() => router.back()}
+        onPressRight={() => setIsToolsSheetVisible(true)}
+      />
       <View style={styles.content}>
-        <ScreenHeader
-          eyebrow="DOCUMENT PDF"
-          title={title}
-          subtitle="Read the original document and keep LexChain metadata close by."
-          leftAccessibilityLabel="Back to document details"
-          rightIconName="info-outline"
-          rightAccessibilityLabel="Open document tools"
-          onPressLeft={() => router.back()}
-          onPressRight={() => setIsToolsSheetVisible(true)}
-        />
-
         {permissions.canViewPdf ? (
           <View style={styles.viewerFrame}>
             <LexChainPdfViewer uri={uri} />
@@ -202,8 +201,8 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    padding: 20,
-    gap: 12,
+    paddingHorizontal: 16,
+    gap: 16,
   },
   viewerFrame: {
     flex: 1,
