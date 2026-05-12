@@ -615,15 +615,6 @@ export default function DocumentDetailsScreen() {
                   style={styles.actionButton}
                   onPress={() => setIsSearchSheetVisible(true)}
                 />
-                <Button
-                  label="Ask LexChain"
-                  variant="secondary"
-                  size="sm"
-                  leftIconName="auto-awesome"
-                  style={styles.actionButton}
-                  onPress={() => setIsAskSheetVisible(true)}
-                />
-
               </View>
 
               <DocumentSummaryCard
