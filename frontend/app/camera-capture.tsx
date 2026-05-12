@@ -164,7 +164,7 @@ export default function CameraCaptureScreen() {
         <ScreenHeader
           eyebrow="CAMERA"
           title="Scan to PDF"
-          subtitle="Align the document and capture pages for one PDF."
+          subtitle="Align the document and capture pages."
           tone="dark"
           style={styles.topBar}
           leftIconName="close"
