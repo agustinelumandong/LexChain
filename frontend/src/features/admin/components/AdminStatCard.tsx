@@ -4,14 +4,18 @@ import { APP_COLORS, fonts } from '@/theme';
 
 type AdminStatCardProps = {
   label: string;
-  value: number;
+  value: number | string;
+  detail?: string;
 };
 
-export function AdminStatCard({ label, value }: AdminStatCardProps) {
+export function AdminStatCard({ label, value, detail }: AdminStatCardProps) {
+  const displayValue = typeof value === 'number' ? value.toLocaleString() : value;
+
   return (
     <View style={styles.card}>
-      <Text style={styles.value}>{value.toLocaleString()}</Text>
+      <Text style={styles.value}>{displayValue}</Text>
       <Text style={styles.label}>{label}</Text>
+      {detail ? <Text style={styles.detail}>{detail}</Text> : null}
     </View>
   );
 }
@@ -40,5 +44,12 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 18,
     fontWeight: '700',
+  },
+  detail: {
+    color: APP_COLORS.textMuted,
+    fontFamily: fonts.regular,
+    fontSize: 12,
+    lineHeight: 16,
+    fontWeight: '600',
   },
 });
