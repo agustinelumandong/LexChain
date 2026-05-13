@@ -21,7 +21,10 @@ export function AdminScreenShell({
     <SafeAreaView style={styles.screen}>
       <View style={styles.layout}>
         <AdminSidebar />
-        <ScrollView contentContainerStyle={styles.content}>
+        <ScrollView
+          style={styles.scrollArea}
+          contentContainerStyle={styles.content}
+        >
           <View style={styles.header}>
             <Text style={styles.eyebrow}>LexChain Super Admin</Text>
             <Text style={styles.title}>{title}</Text>
@@ -61,10 +64,17 @@ const styles = StyleSheet.create({
   layout: {
     flex: 1,
     flexDirection: 'row',
+    width: '100%',
+  },
+  scrollArea: {
+    flex: 1,
+    minWidth: 0,
+    width: '100%',
   },
   content: {
+    alignSelf: 'stretch',
     flexGrow: 1,
-    maxWidth: 1180,
+    width: '100%',
     padding: 28,
     gap: 22,
   },
