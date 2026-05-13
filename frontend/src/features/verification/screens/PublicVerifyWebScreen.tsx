@@ -71,7 +71,7 @@ export function PublicVerifyWebScreen({ code }: PublicVerifyWebScreenProps) {
             />
             <Button
               label="Go to LexChain"
-              leftIconName="open-in-new"
+              leftIconName="home"
               onPress={() => router.replace('/')}
             />
           </View>
