@@ -63,7 +63,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
   },
   content: {
-    width: '100%',
+    flexGrow: 1,
     maxWidth: 1180,
     padding: 28,
     gap: 22,
