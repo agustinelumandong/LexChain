@@ -1,13 +1,10 @@
-import { useRouter } from 'expo-router';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Link } from 'expo-router';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { Button } from '@/ui';
 import { APP_COLORS, fonts } from '@/theme';
 
 export function WebsiteLandingScreen() {
-  const router = useRouter();
-
   return (
     <SafeAreaView style={styles.screen}>
       <ScrollView contentContainerStyle={styles.content}>
@@ -22,17 +19,20 @@ export function WebsiteLandingScreen() {
           </Text>
 
           <View style={styles.actions}>
-            <Button
-              label="Verify a document"
-              leftIconName="verified"
-              onPress={() => router.push('/public/verify')}
-            />
-            <Button
-              label="Super Admin"
-              variant="secondary"
-              leftIconName="admin-panel-settings"
-              onPress={() => router.push('/admin/login')}
-            />
+            <Link href="/public/verify" asChild>
+              <Pressable style={[styles.linkButton, styles.primaryButton]}>
+                <Text style={[styles.linkText, styles.primaryText]}>
+                  Verify a document
+                </Text>
+              </Pressable>
+            </Link>
+            <Link href="/admin/login" asChild>
+              <Pressable style={[styles.linkButton, styles.secondaryButton]}>
+                <Text style={[styles.linkText, styles.secondaryText]}>
+                  Super Admin
+                </Text>
+              </Pressable>
+            </Link>
           </View>
         </View>
       </ScrollView>
@@ -86,5 +86,34 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: 12,
     paddingTop: 8,
+  },
+  linkButton: {
+    minHeight: 52,
+    borderRadius: 999,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 22,
+    paddingVertical: 14,
+  },
+  primaryButton: {
+    backgroundColor: APP_COLORS.primary,
+  },
+  secondaryButton: {
+    backgroundColor: APP_COLORS.surfaceSoft,
+    borderWidth: 1,
+    borderColor: APP_COLORS.borderSoft,
+  },
+  linkText: {
+    fontFamily: fonts.regular,
+    fontSize: 15,
+    lineHeight: 18,
+    fontWeight: '800',
+    textAlign: 'center',
+  },
+  primaryText: {
+    color: APP_COLORS.white,
+  },
+  secondaryText: {
+    color: APP_COLORS.primary,
   },
 });
