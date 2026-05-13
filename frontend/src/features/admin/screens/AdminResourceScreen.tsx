@@ -44,7 +44,12 @@ export function AdminResourceScreen<T>({
       {isLoading ? <LoadingState message={`Loading ${title.toLowerCase()}...`} /> : null}
       {error ? <ErrorState title={`Unable to load ${title.toLowerCase()}`} /> : null}
       {data ? (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.tableScroller}
+          contentContainerStyle={styles.tableScrollerContent}
+        >
           <AdminDataTable<T>
             rows={data}
             getRowKey={getRowKey}
@@ -78,5 +83,12 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     lineHeight: 19,
+  },
+  tableScroller: {
+    width: '100%',
+  },
+  tableScrollerContent: {
+    flexGrow: 1,
+    minWidth: '100%',
   },
 });
