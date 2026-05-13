@@ -1,38 +1,10 @@
-import { useState } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
-import { Link, useRouter } from 'expo-router';
+import { Link } from 'expo-router';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { Button } from '@/ui';
-import { queryKeys } from '@/services/query';
 import { APP_COLORS, fonts } from '@/theme';
-import type { SupabaseUser } from '@/types';
-
-const DEMO_ADMIN_USER: SupabaseUser = {
-  id: 'super-admin-demo',
-  email: 'superadmin@lexchain.demo',
-  role: 'super_admin',
-  user_metadata: {
-    f_name: 'Super',
-    l_name: 'Admin',
-  },
-};
 
 export function AdminLoginScreen() {
-  const router = useRouter();
-  const queryClient = useQueryClient();
-  const [email, setEmail] = useState(DEMO_ADMIN_USER.email ?? '');
-  const [password, setPassword] = useState('presentation');
-
-  const handleLogin = () => {
-    queryClient.setQueryData(queryKeys.auth.currentUser, {
-      ...DEMO_ADMIN_USER,
-      email: email.trim() || DEMO_ADMIN_USER.email,
-    });
-    router.replace('/admin/dashboard');
-  };
-
   return (
     <SafeAreaView style={styles.screen}>
       <View style={styles.card}>
@@ -48,8 +20,8 @@ export function AdminLoginScreen() {
           <View style={styles.field}>
             <Text style={styles.label}>Email</Text>
             <TextInput
-              value={email}
-              onChangeText={setEmail}
+              value="superadmin@lexchain.demo"
+              editable={false}
               autoCapitalize="none"
               keyboardType="email-address"
               style={styles.input}
@@ -58,20 +30,22 @@ export function AdminLoginScreen() {
           <View style={styles.field}>
             <Text style={styles.label}>Password</Text>
             <TextInput
-              value={password}
-              onChangeText={setPassword}
+              value="presentation"
+              editable={false}
               secureTextEntry
               style={styles.input}
             />
           </View>
         </View>
 
-        <Button
-          label="Enter admin dashboard"
-          leftIconName="admin-panel-settings"
-          fullWidth
-          onPress={handleLogin}
-        />
+        <Link href="/admin/dashboard" asChild>
+          <Pressable
+            accessibilityRole="link"
+            style={styles.submitButton}
+          >
+            <Text style={styles.submitText}>Enter admin dashboard</Text>
+          </Pressable>
+        </Link>
 
         <Link href="/" asChild>
           <Pressable accessibilityRole="link">
@@ -160,6 +134,23 @@ const styles = StyleSheet.create({
     color: APP_COLORS.primary,
     fontFamily: fonts.regular,
     fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '800',
+    textAlign: 'center',
+  },
+  submitButton: {
+    minHeight: 52,
+    borderRadius: 999,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: APP_COLORS.primary,
+    paddingHorizontal: 22,
+    paddingVertical: 14,
+  },
+  submitText: {
+    color: APP_COLORS.white,
+    fontFamily: fonts.regular,
+    fontSize: 15,
     lineHeight: 18,
     fontWeight: '800',
     textAlign: 'center',
