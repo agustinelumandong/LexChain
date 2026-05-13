@@ -26,6 +26,7 @@
     "clsx": "^2.1.1",
     "ecc-universal": "^1.9.0",
     "expo": "~54.0.34",
+    "expo-blur": "~15.0.8",
     "expo-camera": "^17.0.10",
     "expo-constants": "~18.0.13",
     "expo-dev-client": "~6.0.21",

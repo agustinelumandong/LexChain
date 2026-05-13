@@ -48,6 +48,7 @@ type DetailBodyBlock =
     };
 
 const TEST_PDF_URI = 'https://www.deped.gov.ph/wp-content/uploads/2017/08/DO_s2017_042-1.pdf';
+const HEADER_CONTENT_GAP = 12;
 
 const INITIAL_DOCUMENT_WHITELIST: ManageWhitelistData = {
   grants: [
@@ -431,6 +432,7 @@ export default function DocumentDetailsScreen() {
   const [isWhitelistSheetVisible, setIsWhitelistSheetVisible] = useState(false);
   const [whitelistSearchQuery, setWhitelistSearchQuery] = useState('');
   const [whitelistData, setWhitelistData] = useState(INITIAL_DOCUMENT_WHITELIST);
+  const [headerHeight, setHeaderHeight] = useState(126);
 
   const qaMutation = useAskDocument();
   const { mutate: askDocument } = qaMutation;
@@ -592,8 +594,14 @@ export default function DocumentDetailsScreen() {
     });
   }, [document]);
 
+  const handleHeaderHeightChange = useCallback((nextHeight: number) => {
+    setHeaderHeight((currentHeight) =>
+      currentHeight === nextHeight ? currentHeight : nextHeight,
+    );
+  }, []);
+
   return (
-    <SafeAreaView style={styles.screen}>
+    <SafeAreaView style={styles.screen} edges={['left', 'right', 'bottom']}>
       <View style={styles.surface}>
         <ScreenHeader
           eyebrow="DOCUMENT DETAILS"
@@ -604,9 +612,14 @@ export default function DocumentDetailsScreen() {
           rightAccessibilityLabel="Rename document"
           onPressLeft={() => router.back()}
           onPressRight={() => setIsRenameSheetVisible(true)}
+          onHeightChange={handleHeaderHeightChange}
+          includeTopInset
         />
         <ScrollView
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[
+            styles.scrollContent,
+            { paddingTop: headerHeight + HEADER_CONTENT_GAP },
+          ]}
           showsVerticalScrollIndicator={false}
         >
           {documentQuery.isLoading ? (
@@ -771,8 +784,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 16,
-    paddingBottom: 248,
-    marginTop: 138,
+    paddingBottom: 128,
     gap: 16,
   },
   actionRow: {

@@ -1,10 +1,19 @@
 import { MaterialIcons } from '@expo/vector-icons';
 import React from 'react';
-import { Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
+import {
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+  type LayoutChangeEvent,
+  type StyleProp,
+  type ViewStyle,
+} from 'react-native';
 
 import { APP_COLORS, fonts } from '@/theme';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type ScreenHeaderTone = 'light' | 'dark';
 
@@ -20,6 +29,8 @@ type ScreenHeaderProps = {
   rightAccessibilityLabel?: string;
   tone?: ScreenHeaderTone;
   style?: StyleProp<ViewStyle>;
+  onHeightChange?: (height: number) => void;
+  includeTopInset?: boolean;
 };
 
 const COLORS = {
@@ -44,20 +55,27 @@ export function ScreenHeader({
   rightAccessibilityLabel,
   tone = 'light',
   style,
+  onHeightChange,
+  includeTopInset = false,
 }: ScreenHeaderProps) {
+  const insets = useSafeAreaInsets();
   const isDark = tone === 'dark';
   const iconColor = isDark ? COLORS.white : COLORS.navy;
+  const headerTopPadding = includeTopInset ? insets.top + 14 : 14;
+  const handleLayout = (event: LayoutChangeEvent) => {
+    onHeightChange?.(event.nativeEvent.layout.height);
+  };
 
   return (
-    <View style={[styles.wrapper, style]}>
+    <View style={[styles.wrapper, style]} onLayout={handleLayout}>
       <View style={styles.shadow}>
         <BlurView intensity={100} tint="light" style={styles.glass}>
           <LinearGradient
             colors={[
-                  APP_COLORS.borderSoft,
-                  'rgba(243, 248, 255, 0)',
-                ]}
-            style={[styles.header, style]}
+              APP_COLORS.borderSoft,
+              'rgba(243, 248, 255, 0)',
+            ]}
+            style={[styles.header, { paddingTop: headerTopPadding }]}
           >
             <Pressable
               accessibilityRole="button"
@@ -94,7 +112,7 @@ export function ScreenHeader({
             ) : (
               <View style={styles.actionSpacer} />
             )}
-          <View pointerEvents="none" style={styles.glassHighlight} />
+            <View pointerEvents="none" style={styles.glassHighlight} />
           </LinearGradient>
         </BlurView>
       </View>
@@ -120,7 +138,7 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 24,
     borderBottomRightRadius: 24,
   },
-   shadow: {
+  shadow: {
     shadowColor: '#000',
     shadowOpacity: 0.12,
     shadowRadius: 24,
@@ -133,13 +151,13 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.18)',
   },
   glassHighlight: {
-  position: 'absolute',
-  top: 1,
-  left: 1,
-  right: 1,
-  height: 1,
-  backgroundColor: 'rgba(255, 255, 255, 0.75)',
-},
+    position: 'absolute',
+    top: 1,
+    left: 1,
+    right: 1,
+    height: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.75)',
+  },
   actionButton: {
     width: 32,
     height: 32,
