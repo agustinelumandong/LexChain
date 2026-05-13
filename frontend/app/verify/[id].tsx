@@ -3,21 +3,75 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { Button, ScreenHeader } from '@/ui';
+import { Button, ErrorState, ScreenHeader } from '@/ui';
 import {
   DocumentSummaryCard,
   IntegrityCheckCard,
   VerificationStatusCard,
 } from '@/features/document';
+import { useDocument, useVerifyOnChainDocument } from '@/services/query';
+import { parseApiError } from '@/shared/utils/api-error';
 
 import { APP_COLORS } from '@/theme';
 const COLORS = {
   bg: APP_COLORS.bg,
 };
 
+function formatDate(value?: string) {
+  if (!value) {
+    return 'Pending';
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return date.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+}
+
+function formatContentType(value?: string) {
+  if (!value) {
+    return 'Pending';
+  }
+
+  if (value === 'application/pdf') {
+    return 'PDF';
+  }
+
+  return value.split('/').pop()?.toUpperCase() ?? value;
+}
+
+function formatReference(value?: string) {
+  if (!value) {
+    return 'Pending';
+  }
+
+  if (value.length <= 16) {
+    return value;
+  }
+
+  return `${value.slice(0, 8)}...${value.slice(-7)}`;
+}
+
 export default function VerifyDocumentScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
+  const documentId = Array.isArray(id) ? id[0] : id;
+  const documentQuery = useDocument(documentId);
+  const onChainQuery = useVerifyOnChainDocument(documentId);
+  const document = documentQuery.data;
+  const onChainRecord = onChainQuery.data;
+  const chainStatus = onChainQuery.isLoading
+    ? 'Verifying'
+    : onChainRecord
+      ? 'Match'
+      : 'No on-chain record';
 
   return (
     <SafeAreaView style={styles.screen}>
@@ -34,31 +88,46 @@ export default function VerifyDocumentScreen() {
             onPressLeft={() => router.back()}
           />
 
+          {documentQuery.error ? (
+            <ErrorState
+              title="Document unavailable"
+              message={parseApiError(documentQuery.error).message}
+              onRetry={() => {
+                void documentQuery.refetch();
+              }}
+            />
+          ) : null}
+
           <VerificationStatusCard
             title="Processing status"
             steps={[
-              { label: 'Uploaded Docs Verifying', status: 'done' },
-              { label: 'Docs Scanning', status: 'verifying' },
-              { label: 'Generating Summary', status: 'pending' },
-              { label: 'Anchor Pending', status: 'pending' },
+              { label: 'Document loaded', status: document ? 'done' : 'verifying' },
+              {
+                label: 'AI processing',
+                status: document?.summary ? 'done' : document ? 'verifying' : 'pending',
+              },
+              {
+                label: 'On-chain record',
+                status: onChainRecord ? 'done' : onChainQuery.isLoading ? 'verifying' : 'pending',
+              },
             ]}
           />
 
           <DocumentSummaryCard
-            title={`Deed of Sale #${id ?? '1002'}`}
+            title={document?.file_name ?? `Document #${documentId ?? 'unknown'}`}
             rows={[
-              { label: 'Reference', value: 'REF-2026-1002' },
-              { label: 'Parties', value: 'Santos • Dela Cruz' },
-              { label: 'Date', value: '2026-06-10' },
-              { label: 'Topical agenda', value: 'Ownership transfer' },
+              { label: 'Reference', value: formatReference(document?.document_id) },
+              { label: 'Type', value: formatContentType(document?.content_type) },
+              { label: 'Uploaded', value: formatDate(document?.created_at) },
+              { label: 'Verified', value: formatDate(onChainRecord?.verified_at) },
             ]}
-            summary="Verification compares extracted record and uploaded file hash against anchored reference."
+            summary={document?.summary ?? 'Verification compares the document record against the on-chain anchor when available.'}
           />
 
           <IntegrityCheckCard
-            offChainHash="0xA13...9F2"
-            onChainHash="0xA13...9F2"
-            status="Match"
+            offChainHash={onChainRecord?.data_hash ?? 'Pending'}
+            onChainHash={onChainRecord?.data_hash ?? 'Pending'}
+            status={chainStatus}
             onPressViewAnchor={() => {}}
           />
         </ScrollView>
