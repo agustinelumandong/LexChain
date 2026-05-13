@@ -1,8 +1,10 @@
 import type {
   DocumentListItem,
   DocumentDetail,
+  DocumentPartyListResponse,
   DocumentUploadAcceptedResponse,
   RenameDocumentResponse,
+  VersionHistoryResponse,
 } from '@/services/api/documents.api';
 
 export const MOCK_DOCUMENT_LIST: DocumentListItem[] = [
@@ -34,6 +36,7 @@ export const MOCK_DOCUMENT_DETAIL: DocumentDetail = {
   file_name: 'DepEd Memorandum No. 028, s. 2026',
   content_type: 'application/pdf',
   status: 'COMPLETED',
+  is_latest: true,
   summary:
     'DepEd Memorandum No. 028, s. 2026, issued by the Department of Education of the Republic of the Philippines on May 6, 2026, provides guidelines for the Basic Education Information System (BEIS) data collection and validation for school year 2025-2026. It directs public and private elementary and secondary schools, including state/local universities and colleges offering basic education, to update school information in BEIS from May 7 to June 15, 2026.',
   labels: [
@@ -70,6 +73,7 @@ export const MOCK_DOCUMENT_DETAIL: DocumentDetail = {
     },
   ],
   created_at: '2026-05-08T18:03:03.282234Z',
+  updated_at: '2026-05-08T18:03:03.282234Z',
 };
 
 export const MOCK_DOCUMENT_DETAIL_PROCESSING: DocumentDetail = {
@@ -77,11 +81,13 @@ export const MOCK_DOCUMENT_DETAIL_PROCESSING: DocumentDetail = {
   file_name: 'Power of Attorney - Martinez Family.pdf',
   content_type: 'application/pdf',
   status: 'PROCESSING',
+  is_latest: true,
   summary: null,
   labels: [],
   entities: [],
   risk_flags: [],
   created_at: '2026-04-15T11:00:00Z',
+  updated_at: '2026-04-15T11:00:00Z',
 };
 
 export const MOCK_DOCUMENT_DETAIL_QUEUED: DocumentDetail = {
@@ -89,11 +95,13 @@ export const MOCK_DOCUMENT_DETAIL_QUEUED: DocumentDetail = {
   file_name: 'New Document.pdf',
   content_type: 'application/pdf',
   status: 'QUEUED',
+  is_latest: true,
   summary: null,
   labels: [],
   entities: [],
   risk_flags: [],
   created_at: '2026-05-09T10:00:00Z',
+  updated_at: '2026-05-09T10:00:00Z',
 };
 
 export const MOCK_UPLOAD_ACCEPTED: DocumentUploadAcceptedResponse = {
@@ -106,6 +114,34 @@ export const MOCK_RENAME_RESPONSE: RenameDocumentResponse = {
   document_id: 'eb1d48cf-2313-4edb-b2e9-4667f6faf449',
   file_name: 'DepEd Memorandum No. 028, s. 2026',
   status: 'COMPLETED',
+};
+
+export const MOCK_VERSION_HISTORY_RESPONSE: VersionHistoryResponse = {
+  current_document_id: 'eb1d48cf-2313-4edb-b2e9-4667f6faf449',
+  total_version: 1,
+  versions: [
+    {
+      document_id: 'eb1d48cf-2313-4edb-b2e9-4667f6faf449',
+      file_name: 'DepEd Memorandum No. 028, s. 2026',
+      document_hash: 'mock-document-hash',
+      status: 'COMPLETED',
+      tx_hash: null,
+      is_latest: true,
+      created_at: '2026-05-08T18:03:03.282234Z',
+    },
+  ],
+};
+
+export const MOCK_DOCUMENT_PARTIES_RESPONSE: DocumentPartyListResponse = {
+  document_id: 'eb1d48cf-2313-4edb-b2e9-4667f6faf449',
+  parties: [
+    {
+      id: 'a4a710b8-9e80-4585-b4cf-44eae4a3e101',
+      user_id: 'ec0a534a-693b-46c2-bde1-fd46c599f501',
+      role: 'viewer',
+      created_at: '2026-05-09T10:00:00Z',
+    },
+  ],
 };
 
 export const MOCK_DOCUMENT_NOT_FOUND_ERROR = {

@@ -1,6 +1,11 @@
 export { apiClient } from './client';
 export { authApi } from './auth.api';
+export { blockchainApi } from './blockchain.api';
 export { documentsApi } from './documents.api';
+export type {
+  NotarizeResponse,
+  OnChainVerificationResponse,
+} from './blockchain.api';
 export type {
   MessageResponse,
   ResendVerificationPayload,
@@ -23,4 +28,10 @@ export type {
   SearchResponse,
   AskCitation,
   AskResponse,
+  AddPartyRequest,
+  DocumentPartyListResponse,
+  DocumentPartyResponse,
+  RemovePartyResponse,
+  VersionHistoryItem,
+  VersionHistoryResponse,
 } from './documents.api';
