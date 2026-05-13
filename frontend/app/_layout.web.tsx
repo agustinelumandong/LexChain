@@ -1,9 +1,11 @@
 import { DefaultTheme, ThemeProvider } from "@react-navigation/native";
+import { MaterialIcons } from "@expo/vector-icons";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import { Stack, usePathname, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import "react-native-reanimated";
 import "@/global.css";
+import { useFonts } from "expo-font";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { useEffect } from "react";
@@ -36,6 +38,9 @@ export default function RootLayout() {
   const pathname = usePathname();
   const router = useRouter();
   const shouldShowWebsiteHome = isAppOnlyWebPath(pathname);
+  const [fontsLoaded] = useFonts({
+    ...MaterialIcons.font,
+  });
 
   useEffect(() => {
     return setupQueryFocusListener();
@@ -46,6 +51,10 @@ export default function RootLayout() {
       router.replace("/");
     }
   }, [router, shouldShowWebsiteHome]);
+
+  if (!fontsLoaded) {
+    return null;
+  }
 
   return (
     <QueryClientProvider client={queryClient}>
