@@ -1,10 +1,10 @@
-import { useRouter } from 'expo-router';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { Button, EmptyState, ErrorState, LoadingState } from '@/ui';
+import { EmptyState, ErrorState, LoadingState } from '@/ui';
 import { APP_COLORS, fonts } from '@/theme';
 import { parseApiError } from '@/shared/utils/api-error';
+import { WebsiteLinkButton } from '@/features/website';
 
 import { VerificationResultCard } from '../components/VerificationResultCard';
 import { getDemoPublicVerification } from '../api';
@@ -19,7 +19,6 @@ function normalizeCode(code?: string | string[]) {
 }
 
 export function PublicVerifyWebScreen({ code }: PublicVerifyWebScreenProps) {
-  const router = useRouter();
   const verificationCode = normalizeCode(code);
   const verificationQuery = usePublicVerification(verificationCode);
   const result = verificationQuery.data ?? (
@@ -63,17 +62,12 @@ export function PublicVerifyWebScreen({ code }: PublicVerifyWebScreenProps) {
           ) : null}
 
           <View style={styles.actions}>
-            <Button
+            <WebsiteLinkButton
+              href="/public/verify"
               label="Verify another document"
               variant="secondary"
-              leftIconName="search"
-              onPress={() => router.replace('/public/verify')}
             />
-            <Button
-              label="Go to LexChain"
-              leftIconName="home"
-              onPress={() => router.replace('/')}
-            />
+            <WebsiteLinkButton href="/" label="Go to LexChain" />
           </View>
         </View>
       </ScrollView>

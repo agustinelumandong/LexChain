@@ -1,24 +1,20 @@
 import { useState } from 'react';
-import { useRouter } from 'expo-router';
+import { Link } from 'expo-router';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { Button } from '@/ui';
 import { APP_COLORS, fonts } from '@/theme';
+import { WebsiteLinkButton } from '@/features/website';
 
 export default function PublicVerifyIndexRoute() {
-  const router = useRouter();
   const [code, setCode] = useState('LEX-DEMO-2026');
-
-  const handleVerify = () => {
-    const trimmedCode = code.trim();
-
-    if (!trimmedCode) {
-      return;
-    }
-
-    router.push(`/public/verify/${encodeURIComponent(trimmedCode)}`);
-  };
+  const trimmedCode = code.trim();
+  const verifyHref = trimmedCode
+    ? {
+        pathname: '/public/verify/[code]' as const,
+        params: { code: trimmedCode },
+      }
+    : '/public/verify';
 
   return (
     <SafeAreaView style={styles.screen}>
@@ -41,16 +37,13 @@ export default function PublicVerifyIndexRoute() {
           />
         </View>
 
-        <Button
-          label="Verify document"
-          leftIconName="verified"
-          fullWidth
-          onPress={handleVerify}
-        />
+        <WebsiteLinkButton href={verifyHref} label="Verify document" />
 
-        <Pressable onPress={() => router.replace('/')}>
-          <Text style={styles.homeLink}>Back to website</Text>
-        </Pressable>
+        <Link href="/" asChild>
+          <Pressable accessibilityRole="link">
+            <Text style={styles.homeLink}>Back to website</Text>
+          </Pressable>
+        </Link>
       </View>
     </SafeAreaView>
   );
