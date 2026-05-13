@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { useRouter } from 'expo-router';
+import { Link, useRouter } from 'expo-router';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -73,9 +73,11 @@ export function AdminLoginScreen() {
           onPress={handleLogin}
         />
 
-        <Pressable onPress={() => router.replace('/')}>
-          <Text style={styles.returnLink}>Return to LexChain</Text>
-        </Pressable>
+        <Link href="/" asChild>
+          <Pressable accessibilityRole="link">
+            <Text style={styles.returnLink}>Return to LexChain</Text>
+          </Pressable>
+        </Link>
       </View>
     </SafeAreaView>
   );

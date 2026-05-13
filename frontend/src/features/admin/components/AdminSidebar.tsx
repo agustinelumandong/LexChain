@@ -1,4 +1,4 @@
-import { usePathname, useRouter } from 'expo-router';
+import { Link, usePathname } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { APP_COLORS, fonts } from '@/theme';
@@ -11,7 +11,6 @@ const LINKS = [
 ] as const;
 
 export function AdminSidebar() {
-  const router = useRouter();
   const pathname = usePathname();
 
   return (
@@ -26,16 +25,16 @@ export function AdminSidebar() {
           const isActive = pathname === link.href;
 
           return (
+            <Link key={link.href} href={link.href} asChild>
             <Pressable
-              key={link.href}
-              accessibilityRole="button"
+              accessibilityRole="link"
               style={[styles.link, isActive && styles.linkActive]}
-              onPress={() => router.replace(link.href)}
             >
               <Text style={[styles.linkText, isActive && styles.linkTextActive]}>
                 {link.label}
               </Text>
             </Pressable>
+            </Link>
           );
         })}
       </View>
