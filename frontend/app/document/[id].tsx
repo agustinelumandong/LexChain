@@ -1,5 +1,6 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { MaterialIcons } from '@expo/vector-icons';
+import * as DocumentPicker from 'expo-document-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -14,11 +15,17 @@ import {
   SearchDocumentSheet,
 } from '@/features/document';
 import { Button, ErrorState, ScreenHeader, SkeletonBox } from '@/ui';
-import type { ManageWhitelistData } from '@/types';
+import type { ManageWhitelistData, PickedUploadFile } from '@/types';
 import {
+  useAddDocumentParty,
   useAskDocument,
   useDocument,
+  useDocumentParties,
+  useDocumentVersions,
+  useNotarizeDocument,
   useRenameDocument,
+  useRemoveDocumentParty,
+  useUpdateDocumentVersion,
 } from '@/services/query';
 import { useCloseSheetOnBack } from '@/hooks';
 import { parseApiError } from '@/shared/utils/api-error';
@@ -115,12 +122,35 @@ function formatReference(value: string) {
   return `${value.slice(0, 8)}...${value.slice(-7)}`;
 }
 
+function formatFileSize(fileSize?: number | null) {
+  if (!fileSize || Number.isNaN(fileSize)) {
+    return undefined;
+  }
+
+  if (fileSize >= 1024 * 1024) {
+    return `${(fileSize / (1024 * 1024)).toFixed(1)} MB`;
+  }
+
+  return `${Math.max(1, Math.round(fileSize / 1024))} KB`;
+}
+
+function isPdfFile(file: PickedUploadFile) {
+  return file.mimeType === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+}
+
 function getDocumentPdfUri(document: {
+  storage_url?: string | null;
   file_uri?: string | null;
   file_url?: string | null;
   pdf_url?: string | null;
 }) {
-  return document.pdf_url ?? document.file_url ?? document.file_uri ?? TEST_PDF_URI;
+  return (
+    document.pdf_url ??
+    document.file_url ??
+    document.file_uri ??
+    document.storage_url ??
+    TEST_PDF_URI
+  );
 }
 
 function formatStatusLabel(value: string) {
@@ -239,6 +269,48 @@ function buildVersionHistory({
       isCurrent: true,
     },
   ];
+}
+
+function mapApiVersionHistory(
+  versions: {
+    document_id: string;
+    file_name: string;
+    status: string;
+    is_latest: boolean;
+    created_at: string;
+  }[] = [],
+): VersionHistoryItem[] {
+  return versions.map((version) => ({
+    id: version.document_id,
+    date: formatDate(version.created_at),
+    label: version.is_latest ? 'Current version' : version.file_name,
+    statusLabel: formatStatusLabel(version.status),
+    description: version.is_latest
+      ? 'Active document version used for search, summaries, and access review.'
+      : 'Previous document version kept in the version history.',
+    isCurrent: version.is_latest,
+  }));
+}
+
+function mapPartiesToWhitelistData(
+  parties: {
+    user_id: string;
+    role: string;
+  }[] = [],
+): ManageWhitelistData {
+  return {
+    ...INITIAL_DOCUMENT_WHITELIST,
+    grants: parties.map((party) => {
+      const roleLabel = formatStatusLabel(party.role);
+
+      return {
+        id: party.user_id,
+        name: `User ${formatReference(party.user_id)}`,
+        accessLabel: `${roleLabel || 'Viewer'} access`,
+        actionLabel: roleLabel || 'View',
+      };
+    }),
+  };
 }
 
 function VersionHistoryCard({ items }: { items: VersionHistoryItem[] }) {
@@ -423,7 +495,13 @@ export default function DocumentDetailsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const documentId = Array.isArray(id) ? id[0] : id;
   const documentQuery = useDocument(documentId);
+  const versionHistoryQuery = useDocumentVersions(documentId);
+  const partiesQuery = useDocumentParties(documentId);
   const renameMutation = useRenameDocument();
+  const updateVersionMutation = useUpdateDocumentVersion();
+  const notarizeMutation = useNotarizeDocument();
+  const addPartyMutation = useAddDocumentParty();
+  const removePartyMutation = useRemoveDocumentParty();
   const document = documentQuery.data;
 
   const [isRenameSheetVisible, setIsRenameSheetVisible] = useState(false);
@@ -431,7 +509,6 @@ export default function DocumentDetailsScreen() {
   const [isSearchSheetVisible, setIsSearchSheetVisible] = useState(false);
   const [isWhitelistSheetVisible, setIsWhitelistSheetVisible] = useState(false);
   const [whitelistSearchQuery, setWhitelistSearchQuery] = useState('');
-  const [whitelistData, setWhitelistData] = useState(INITIAL_DOCUMENT_WHITELIST);
   const [headerHeight, setHeaderHeight] = useState(126);
 
   const qaMutation = useAskDocument();
@@ -487,73 +564,92 @@ export default function DocumentDetailsScreen() {
 
   const canManageWhitelist = true;
   const currentDocumentRole = canManageWhitelist ? 'owner' : 'viewer';
+  const canNotarizeDocument = document?.status === 'COMPLETED';
 
-  const handleAddWhitelistResult = (resultId: string) => {
-    let addedName: string | undefined;
+  const handleChooseVersionFile = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        copyToCacheDirectory: true,
+        multiple: false,
+        type: 'application/pdf',
+      });
 
-    setWhitelistData((current) => {
-      const result = current.searchResults.find((entry) => entry.id === resultId);
-
-      if (!result) {
-        return current;
+      if (result.canceled || !result.assets?.length) {
+        return;
       }
 
-      addedName = result.name;
-
-      return {
-        ...current,
-        grants: [
-          {
-            id: result.id,
-            name: result.name,
-            email: result.email,
-            accessLabel: 'View access',
-            actionLabel: 'View',
-          },
-          ...current.grants,
-        ],
-        searchResults: current.searchResults.filter((entry) => entry.id !== resultId),
+      const asset = result.assets[0];
+      const selectedFile: PickedUploadFile = {
+        id: `${asset.uri}-${Date.now()}`,
+        name: asset.name,
+        sizeLabel: formatFileSize(asset.size),
+        uri: asset.uri,
+        mimeType: asset.mimeType ?? 'application/pdf',
+        sourceLabel: 'file',
       };
-    });
 
-    setWhitelistSearchQuery('');
+      if (!isPdfFile(selectedFile)) {
+        toast.warning('LexChain only accepts PDF documents');
+        return;
+      }
 
-    if (addedName) {
-      toast.success(`${addedName} added to document access`);
+      const response = await updateVersionMutation.mutateAsync({
+        documentId,
+        file: selectedFile,
+        fileName: selectedFile.name,
+      });
+
+      toast.success(response.message || 'Document update accepted for processing');
+    } catch (error) {
+      toast.error(parseApiError(error).message);
     }
   };
 
-  const handleRevokeWhitelistGrant = (grantId: string) => {
-    let revokedName: string | undefined;
+  const handleNotarize = async () => {
+    if (!canNotarizeDocument) {
+      toast.warning('Document must be completed before notarization');
+      return;
+    }
 
-    setWhitelistData((current) => {
-      const grant = current.grants.find((entry) => entry.id === grantId);
+    try {
+      await notarizeMutation.mutateAsync(documentId);
+      toast.success('Document notarized on-chain');
+      router.push(`/verify/${documentId}`);
+    } catch (error) {
+      toast.error(parseApiError(error).message);
+    }
+  };
 
-      if (!grant) {
-        return current;
-      }
+  const handleAddWhitelistResult = async (resultId: string) => {
+    const result = INITIAL_DOCUMENT_WHITELIST.searchResults.find(
+      (entry) => entry.id === resultId,
+    );
 
-      revokedName = grant.name;
+    if (!result) {
+      return;
+    }
 
-      return {
-        ...current,
-        grants: current.grants.filter((entry) => entry.id !== grantId),
-        searchResults:
-          grant.email && !current.searchResults.some((entry) => entry.id === grant.id)
-            ? [
-                {
-                  id: grant.id,
-                  name: grant.name,
-                  email: grant.email,
-                },
-                ...current.searchResults,
-              ]
-            : current.searchResults,
-      };
-    });
+    try {
+      await addPartyMutation.mutateAsync({
+        documentId,
+        payload: {
+          email: result.email,
+          role: 'viewer',
+        },
+      });
+      setWhitelistSearchQuery('');
+      toast.success(`${result.name} added to document access`);
+    } catch (error) {
+      toast.error(parseApiError(error).message);
+    }
+  };
 
-    if (revokedName) {
-      toast.success(`${revokedName} removed from document access`);
+  const handleRevokeWhitelistGrant = async (partyUserId: string) => {
+    try {
+      await removePartyMutation.mutateAsync({ documentId, partyUserId });
+      toast.success('User removed from document access');
+    } catch (error) {
+      toast.error(parseApiError(error).message);
     }
   };
 
@@ -588,11 +684,22 @@ export default function DocumentDetailsScreen() {
       return [];
     }
 
+    const apiVersions = mapApiVersionHistory(versionHistoryQuery.data?.versions);
+
+    if (apiVersions.length > 0) {
+      return apiVersions;
+    }
+
     return buildVersionHistory({
       createdAt: document.created_at,
       status: document.status,
     });
-  }, [document]);
+  }, [document, versionHistoryQuery.data?.versions]);
+
+  const whitelistData = useMemo(
+    () => mapPartiesToWhitelistData(partiesQuery.data?.parties),
+    [partiesQuery.data?.parties],
+  );
 
   const handleHeaderHeightChange = useCallback((nextHeight: number) => {
     setHeaderHeight((currentHeight) =>
@@ -661,6 +768,25 @@ export default function DocumentDetailsScreen() {
                   style={styles.actionButton}
                   onPress={() => setIsSearchSheetVisible(true)}
                 />
+                <Button
+                  label="Update version"
+                  variant="secondary"
+                  size="sm"
+                  leftIconName="upload-file"
+                  style={styles.actionButton}
+                  loading={updateVersionMutation.isPending}
+                  onPress={handleChooseVersionFile}
+                />
+                <Button
+                  label="Notarize"
+                  variant="secondary"
+                  size="sm"
+                  leftIconName="verified"
+                  style={styles.actionButton}
+                  disabled={!canNotarizeDocument}
+                  loading={notarizeMutation.isPending}
+                  onPress={handleNotarize}
+                />
               </View>
 
               <DocumentSummaryCard
@@ -675,7 +801,7 @@ export default function DocumentDetailsScreen() {
 
               <DocumentStatusCard
                 status={document.status}
-                uploadedAt={document.created_at}
+                uploadedAt={document.updated_at}
               />
 
               <AccessControlCard
@@ -760,6 +886,11 @@ export default function DocumentDetailsScreen() {
         visible={isWhitelistSheetVisible}
         data={whitelistData}
         searchQuery={whitelistSearchQuery}
+        isLoading={
+          partiesQuery.isLoading ||
+          addPartyMutation.isPending ||
+          removePartyMutation.isPending
+        }
         onChangeSearchQuery={setWhitelistSearchQuery}
         onClose={() => {
           setIsWhitelistSheetVisible(false);
