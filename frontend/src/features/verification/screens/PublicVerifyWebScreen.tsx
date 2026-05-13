@@ -67,7 +67,7 @@ export function PublicVerifyWebScreen({ code }: PublicVerifyWebScreenProps) {
               label="Verify another document"
               variant="secondary"
               leftIconName="search"
-              onPress={() => router.replace('/')}
+              onPress={() => router.replace('/public/verify')}
             />
             <Button
               label="Go to LexChain"
