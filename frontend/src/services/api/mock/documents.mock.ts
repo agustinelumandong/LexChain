@@ -1,9 +1,11 @@
 import {
   MOCK_DOCUMENT_DETAIL,
   MOCK_DOCUMENT_DETAIL_PROCESSING,
+  MOCK_DOCUMENT_PARTIES_RESPONSE,
   MOCK_DOCUMENT_LIST,
   MOCK_RENAME_RESPONSE,
   MOCK_UPLOAD_ACCEPTED,
+  MOCK_VERSION_HISTORY_RESPONSE,
 } from './data/documents-api';
 import type { PickedUploadFile } from '@/types';
 
@@ -14,13 +16,18 @@ import {
 
 import type {
   AskResponse,
+  AddPartyRequest,
   DocumentDetail,
   DocumentListItem,
+  DocumentPartyListResponse,
+  DocumentPartyResponse,
   DocumentUploadAcceptedResponse,
   GlobalSearchPayload,
   GlobalSearchResponse,
+  RemovePartyResponse,
   RenameDocumentResponse,
   SearchResponse,
+  VersionHistoryResponse,
 } from '../documents.api';
 
 import { mockDelay } from './delay';
@@ -40,7 +47,9 @@ function buildFallbackDocumentDetail(documentId: string): DocumentDetail {
       document_id: documentId,
       file_name: 'Mock Document.pdf',
       status: 'COMPLETED',
+      is_latest: true,
       created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
     };
   }
 
@@ -96,7 +105,9 @@ export const mockDocumentsApi = {
         file_name: fileName,
         content_type: listItem.content_type,
         status: 'QUEUED',
+        is_latest: true,
         created_at: createdAt,
+        updated_at: createdAt,
         summary: null,
         labels: [],
         entities: [],
@@ -108,6 +119,68 @@ export const mockDocumentsApi = {
       ...MOCK_UPLOAD_ACCEPTED,
       document_id: documentId,
       status: 'QUEUED',
+    };
+  },
+
+  async updateVersion(
+    documentId: string,
+    file: PickedUploadFile,
+    fileName: string,
+  ): Promise<DocumentUploadAcceptedResponse> {
+    await mockDelay();
+
+    const currentDetail = mockDocumentDetails[documentId] ?? buildFallbackDocumentDetail(documentId);
+    const updatedAt = new Date().toISOString();
+
+    mockDocumentDetails = {
+      ...mockDocumentDetails,
+      [documentId]: {
+        ...currentDetail,
+        file_name: fileName,
+        content_type: file.mimeType ?? currentDetail.content_type,
+        status: 'QUEUED',
+        is_latest: true,
+        updated_at: updatedAt,
+      },
+    };
+
+    mockDocumentList = mockDocumentList.map((document) =>
+      document.id === documentId
+        ? {
+            ...document,
+            file_name: fileName,
+            content_type: file.mimeType ?? document.content_type,
+            status: 'QUEUED',
+          }
+        : document,
+    );
+
+    return {
+      document_id: documentId,
+      status: 'QUEUED',
+      message: 'Document update accepted for processing',
+    };
+  },
+
+  async getVersions(documentId: string): Promise<VersionHistoryResponse> {
+    await mockDelay();
+
+    const detail = mockDocumentDetails[documentId] ?? buildFallbackDocumentDetail(documentId);
+
+    return {
+      ...MOCK_VERSION_HISTORY_RESPONSE,
+      current_document_id: documentId,
+      total_version: 1,
+      versions: [
+        {
+          ...MOCK_VERSION_HISTORY_RESPONSE.versions[0],
+          document_id: documentId,
+          file_name: detail.file_name,
+          status: detail.status,
+          is_latest: detail.is_latest,
+          created_at: detail.created_at,
+        },
+      ],
     };
   },
 
@@ -172,6 +245,42 @@ export const mockDocumentsApi = {
           score: 0.98,
         },
       ],
+    };
+  },
+
+  async getParties(documentId: string): Promise<DocumentPartyListResponse> {
+    await mockDelay();
+
+    return {
+      ...MOCK_DOCUMENT_PARTIES_RESPONSE,
+      document_id: documentId,
+    };
+  },
+
+  async addParty(
+    _documentId: string,
+    payload: AddPartyRequest,
+  ): Promise<DocumentPartyResponse> {
+    await mockDelay();
+
+    return {
+      id: `mock-party-${Date.now()}`,
+      user_id: `mock-user-${payload.email.toLowerCase()}`,
+      role: payload.role ?? 'viewer',
+      created_at: new Date().toISOString(),
+    };
+  },
+
+  async removeParty(
+    documentId: string,
+    partyUserId: string,
+  ): Promise<RemovePartyResponse> {
+    await mockDelay();
+
+    return {
+      document_id: documentId,
+      user_id: partyUserId,
+      message: 'Mock party removed from document',
     };
   },
 

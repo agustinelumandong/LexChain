@@ -22,11 +22,13 @@ export type DocumentDetail = {
   file_url?: string | null;
   pdf_url?: string | null;
   status: DocumentStatusKey;
+  is_latest: boolean;
   summary?: string | null;
   labels?: string[];
   entities?: Record<string, unknown>[];
   risk_flags?: Record<string, unknown>[];
   created_at: string;
+  updated_at: string;
 };
 
 export type DocumentUploadAcceptedResponse = {
@@ -54,7 +56,6 @@ export type GlobalSearchHit = {
   document_id: string;
   chunk_index: number;
   score: number;
-  text: string;
 };
 
 export type GlobalSearchResult = {
@@ -89,8 +90,47 @@ export type AskCitation = {
 export type AskResponse = {
   question: string;
   answer: string;
-  model: string;
-  citations: AskCitation[];
+  model?: string;
+  citations?: AskCitation[];
+} & Record<string, unknown>;
+
+export type VersionHistoryItem = {
+  document_id: string;
+  file_name: string;
+  document_hash: string;
+  status: string;
+  tx_hash: string | null;
+  is_latest: boolean;
+  created_at: string;
+};
+
+export type VersionHistoryResponse = {
+  current_document_id: string;
+  versions: VersionHistoryItem[];
+  total_version: number;
+};
+
+export type AddPartyRequest = {
+  email: string;
+  role?: 'viewer' | 'signer' | 'editor' | string;
+};
+
+export type DocumentPartyResponse = {
+  id: string;
+  user_id: string;
+  role: string;
+  created_at: string;
+};
+
+export type DocumentPartyListResponse = {
+  document_id: string;
+  parties?: DocumentPartyResponse[];
+};
+
+export type RemovePartyResponse = {
+  document_id: string;
+  user_id: string;
+  message: string;
 };
 
 // Helper to fetch search results with document details
@@ -194,6 +234,33 @@ export const documentsApi = {
     );
   },
 
+  updateVersion: (documentId: string, file: PickedUploadFile, fileName: string) => {
+    const encodedDocumentId = encodeDocumentId(documentId);
+
+    if (env.useMockApi) {
+      return mockDocumentsApi.updateVersion(documentId, file, fileName);
+    }
+
+    const searchParams = new URLSearchParams({ file_name: fileName });
+
+    return apiClient.post<DocumentUploadAcceptedResponse>(
+      `/documents/${encodedDocumentId}/update?${searchParams.toString()}`,
+      createUploadForm(file),
+    );
+  },
+
+  getVersions: (documentId: string) => {
+    const encodedDocumentId = encodeDocumentId(documentId);
+
+    if (env.useMockApi) {
+      return mockDocumentsApi.getVersions(documentId);
+    }
+
+    return apiClient.get<VersionHistoryResponse>(
+      `/documents/${encodedDocumentId}/versions`,
+    );
+  },
+
   globalSearch: (payload: GlobalSearchPayload) => {
     if (env.useMockApi) {
       return mockDocumentsApi.globalSearch(payload);
@@ -238,6 +305,44 @@ export const documentsApi = {
     return apiClient.post<AskResponse>(
       `/documents/${encodedDocumentId}/ask`,
       { question },
+    );
+  },
+
+  getParties: (documentId: string) => {
+    const encodedDocumentId = encodeDocumentId(documentId);
+
+    if (env.useMockApi) {
+      return mockDocumentsApi.getParties(documentId);
+    }
+
+    return apiClient.get<DocumentPartyListResponse>(
+      `/documents/${encodedDocumentId}/parties`,
+    );
+  },
+
+  addParty: (documentId: string, payload: AddPartyRequest) => {
+    const encodedDocumentId = encodeDocumentId(documentId);
+
+    if (env.useMockApi) {
+      return mockDocumentsApi.addParty(documentId, payload);
+    }
+
+    return apiClient.post<DocumentPartyResponse>(
+      `/documents/${encodedDocumentId}/parties`,
+      payload,
+    );
+  },
+
+  removeParty: (documentId: string, partyUserId: string) => {
+    const encodedDocumentId = encodeDocumentId(documentId);
+    const encodedPartyUserId = encodeDocumentId(partyUserId);
+
+    if (env.useMockApi) {
+      return mockDocumentsApi.removeParty(documentId, partyUserId);
+    }
+
+    return apiClient.delete<RemovePartyResponse>(
+      `/documents/${encodedDocumentId}/parties/${encodedPartyUserId}`,
     );
   },
 };
