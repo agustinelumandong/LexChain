@@ -1,13 +1,26 @@
+import { MaterialIcons } from '@expo/vector-icons';
 import { Link, usePathname } from 'expo-router';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { APP_COLORS, fonts } from '@/theme';
 
 const LINKS = [
-  { label: 'Dashboard', href: '/admin/dashboard' },
-  { label: 'Users', href: '/admin/users' },
-  { label: 'Documents', href: '/admin/documents' },
-  { label: 'Verifications', href: '/admin/verifications' },
+  { label: 'Dashboard', href: '/admin/dashboard', icon: 'dashboard' },
+  { label: 'Users', href: '/admin/users', icon: 'group' },
+  { label: 'Document Issuers', href: '/admin/document-issuers', icon: 'business' },
+  { label: 'Documents', href: '/admin/documents', icon: 'description' },
+  { label: 'Categories', href: '/admin/categories', icon: 'category' },
+  {
+    label: 'Invitations & Permissions',
+    href: '/admin/invitations-permissions',
+    icon: 'admin-panel-settings',
+  },
+  { label: 'Verification Logs', href: '/admin/verification-logs', icon: 'verified-user' },
+  { label: 'Blockchain Records', href: '/admin/blockchain-records', icon: 'account-tree' },
+  { label: 'OCR / NLP Processing', href: '/admin/ocr-nlp-processing', icon: 'document-scanner' },
+  { label: 'Analytics', href: '/admin/analytics', icon: 'analytics' },
+  { label: 'Audit Logs', href: '/admin/audit-logs', icon: 'manage-search' },
+  { label: 'System Settings', href: '/admin/system-settings', icon: 'settings' },
 ] as const;
 
 export function AdminSidebar() {
@@ -20,32 +33,37 @@ export function AdminSidebar() {
         <Text style={styles.caption}>Super Admin</Text>
       </View>
 
-      <View style={styles.nav}>
+      <ScrollView contentContainerStyle={styles.nav} showsVerticalScrollIndicator={false}>
         {LINKS.map((link) => {
           const isActive = pathname === link.href;
 
           return (
             <Link key={link.href} href={link.href} asChild>
-            <Pressable
-              accessibilityRole="link"
-              style={[styles.link, isActive && styles.linkActive]}
-            >
-              <Text style={[styles.linkText, isActive && styles.linkTextActive]}>
-                {link.label}
-              </Text>
-            </Pressable>
+              <Pressable
+                accessibilityRole="link"
+                style={[styles.link, isActive && styles.linkActive]}
+              >
+                <MaterialIcons
+                  name={link.icon}
+                  size={18}
+                  color={isActive ? APP_COLORS.primary : APP_COLORS.textMuted}
+                />
+                <Text style={[styles.linkText, isActive && styles.linkTextActive]}>
+                  {link.label}
+                </Text>
+              </Pressable>
             </Link>
           );
         })}
-      </View>
+      </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   sidebar: {
-    width: 230,
-    gap: 28,
+    width: 286,
+    gap: 24,
     borderRightWidth: 1,
     borderRightColor: APP_COLORS.borderSoft,
     backgroundColor: APP_COLORS.white,
@@ -66,12 +84,16 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   nav: {
-    gap: 8,
+    gap: 6,
+    paddingBottom: 8,
   },
   link: {
-    borderRadius: 12,
+    alignItems: 'center',
+    borderRadius: 10,
+    flexDirection: 'row',
+    gap: 10,
     paddingHorizontal: 14,
-    paddingVertical: 12,
+    paddingVertical: 11,
   },
   linkActive: {
     backgroundColor: APP_COLORS.surfaceSoft,
