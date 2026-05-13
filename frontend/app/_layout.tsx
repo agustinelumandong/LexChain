@@ -1,9 +1,11 @@
 import { DefaultTheme, ThemeProvider } from "@react-navigation/native";
+import { MaterialIcons } from "@expo/vector-icons";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import "react-native-reanimated";
 import "@/global.css";
+import { useFonts } from "expo-font";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import * as NavigationBar from "expo-navigation-bar";
@@ -21,6 +23,9 @@ export const unstable_settings = {
 
 export default function RootLayout() {
   const { isOnline } = useNetwork();
+  const [fontsLoaded] = useFonts({
+    ...MaterialIcons.font,
+  });
 
   useEffect(() => {
     if (Platform.OS === "android") {
@@ -31,6 +36,10 @@ export default function RootLayout() {
   useEffect(() => {
     return setupQueryFocusListener();
   }, []);
+
+  if (!fontsLoaded) {
+    return null;
+  }
 
   return (
     <QueryClientProvider client={queryClient}>
