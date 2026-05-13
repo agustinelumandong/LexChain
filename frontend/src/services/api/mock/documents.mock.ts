@@ -46,6 +46,7 @@ function buildFallbackDocumentDetail(documentId: string): DocumentDetail {
       ...MOCK_DOCUMENT_DETAIL,
       document_id: documentId,
       file_name: 'Mock Document.pdf',
+      storage_url: `mock://documents/${documentId}`,
       status: 'COMPLETED',
       is_latest: true,
       created_at: new Date().toISOString(),
@@ -103,6 +104,7 @@ export const mockDocumentsApi = {
         ...MOCK_DOCUMENT_DETAIL,
         document_id: documentId,
         file_name: fileName,
+        storage_url: `mock://documents/${documentId}`,
         content_type: listItem.content_type,
         status: 'QUEUED',
         is_latest: true,
@@ -214,9 +216,11 @@ export const mockDocumentsApi = {
 
     return {
       ...MOCK_RENAME_RESPONSE,
-      document_id: documentId,
+      id: documentId,
       file_name: fileName,
+      content_type: currentDetail.content_type,
       status: currentDetail.status,
+      created_at: currentDetail.created_at,
     };
   },
 

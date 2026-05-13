@@ -34,6 +34,7 @@ export const MOCK_DOCUMENT_LIST: DocumentListItem[] = [
 export const MOCK_DOCUMENT_DETAIL: DocumentDetail = {
   document_id: 'eb1d48cf-2313-4edb-b2e9-4667f6faf449',
   file_name: 'DepEd Memorandum No. 028, s. 2026',
+  storage_url: 'mock://documents/deped-memorandum-028-2026.pdf',
   content_type: 'application/pdf',
   status: 'COMPLETED',
   is_latest: true,
@@ -79,6 +80,7 @@ export const MOCK_DOCUMENT_DETAIL: DocumentDetail = {
 export const MOCK_DOCUMENT_DETAIL_PROCESSING: DocumentDetail = {
   document_id: '550e8400-e29b-41d4-a716-446655440003',
   file_name: 'Power of Attorney - Martinez Family.pdf',
+  storage_url: 'mock://documents/power-of-attorney-martinez.pdf',
   content_type: 'application/pdf',
   status: 'PROCESSING',
   is_latest: true,
@@ -93,6 +95,7 @@ export const MOCK_DOCUMENT_DETAIL_PROCESSING: DocumentDetail = {
 export const MOCK_DOCUMENT_DETAIL_QUEUED: DocumentDetail = {
   document_id: '550e8400-e29b-41d4-a716-446655440099',
   file_name: 'New Document.pdf',
+  storage_url: 'mock://documents/new-document.pdf',
   content_type: 'application/pdf',
   status: 'QUEUED',
   is_latest: true,
@@ -111,9 +114,11 @@ export const MOCK_UPLOAD_ACCEPTED: DocumentUploadAcceptedResponse = {
 };
 
 export const MOCK_RENAME_RESPONSE: RenameDocumentResponse = {
-  document_id: 'eb1d48cf-2313-4edb-b2e9-4667f6faf449',
+  id: 'eb1d48cf-2313-4edb-b2e9-4667f6faf449',
   file_name: 'DepEd Memorandum No. 028, s. 2026',
+  content_type: 'application/pdf',
   status: 'COMPLETED',
+  created_at: '2026-05-08T18:03:03.282234Z',
 };
 
 export const MOCK_VERSION_HISTORY_RESPONSE: VersionHistoryResponse = {
