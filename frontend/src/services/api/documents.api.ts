@@ -14,9 +14,12 @@ export type DocumentListItem = {
   created_at: string;
 };
 
+export type DocumentUploadResponse = DocumentListItem;
+
 export type DocumentDetail = {
   document_id: string;
   file_name: string;
+  storage_url: string;
   content_type: string;
   file_uri?: string | null;
   file_url?: string | null;
@@ -41,11 +44,7 @@ export type RenameDocumentRequest = {
   file_name: string;
 };
 
-export type RenameDocumentResponse = {
-  document_id: string;
-  file_name: string;
-  status: string;
-};
+export type RenameDocumentResponse = DocumentUploadResponse;
 
 export type GlobalSearchPayload = {
   query: string;
@@ -276,7 +275,7 @@ export const documentsApi = {
       return mockDocumentsApi.rename(documentId, fileName);
     }
 
-    return apiClient.patch<RenameDocumentResponse>(
+    return apiClient.patch<DocumentUploadResponse>(
       `/documents/${encodedDocumentId}/`,
       { file_name: fileName },
     );

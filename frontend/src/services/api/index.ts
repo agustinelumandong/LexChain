@@ -18,6 +18,7 @@ export type {
   DocumentDetail,
   DocumentListItem,
   DocumentUploadAcceptedResponse,
+  DocumentUploadResponse,
   GlobalSearchHit,
   GlobalSearchPayload,
   GlobalSearchResponse,
