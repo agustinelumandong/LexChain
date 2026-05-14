@@ -563,13 +563,13 @@ export default function DocumentDetailsScreen() {
 
   const handleNotarize = async () => {
     if (!canNotarizeDocument) {
-      toast.warning('Document must be completed before notarization');
+      toast.warning('Document must be completed before blockchain anchoring');
       return;
     }
 
     try {
       await notarizeMutation.mutateAsync(documentId);
-      toast.success('Document notarized on-chain');
+      toast.success('Document anchored to blockchain');
       router.push(`/verify/${documentId}`);
     } catch (error) {
       toast.error(parseApiError(error).message);
@@ -741,7 +741,7 @@ export default function DocumentDetailsScreen() {
                   onPress={handleChooseVersionFile}
                 />
                 <Button
-                  label="Notarize"
+                  label="Anchor to Blockchain"
                   variant="secondary"
                   size="sm"
                   leftIconName="verified"
