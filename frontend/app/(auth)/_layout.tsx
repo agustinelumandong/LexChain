@@ -101,6 +101,12 @@ export default function AuthLayout() {
             cardStyleInterpolator: forSlideFadeFromRight,
           }}
         />
+        <AuthStack.Screen
+          name="callback"
+          options={{
+            cardStyleInterpolator: forSlideFadeFromRight,
+          }}
+        />
       </AuthStack>
     </>
   );

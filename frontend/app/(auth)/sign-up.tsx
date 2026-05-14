@@ -1,7 +1,7 @@
 import { AuthHeader, AuthInput, AuthScreenShell, TermsBottomSheet, PASSWORD_RULES, signUpSchema } from "@/features/auth";
 import { Button } from "@/ui";
 import { useCloseSheetOnBack } from "@/hooks";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import * as Haptics from 'expo-haptics';
 import React, { useEffect, useRef, useState } from "react";
 import { View, StyleSheet, Text } from "react-native";
@@ -12,6 +12,10 @@ import type { SignUpFormValues } from '@/features/auth';
 import { APP_COLORS, fonts } from '@/theme';
 import { useSignUp } from '@/services/query';
 import { parseApiError } from '@/shared/utils/api-error';
+import {
+  getInvitationRouteParams,
+  normalizeAuthCallbackParams,
+} from '@/features/auth/callback/auth-callback.params';
 
 function getPasswordStrengthState(value: string) {
   const checks = PASSWORD_RULES.map((rule) => ({
@@ -46,7 +50,10 @@ function getPasswordStrengthState(value: string) {
 
 export default function SignUpScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams<Record<string, string | string[]>>();
   const transitionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const authRouteParams = getInvitationRouteParams(normalizeAuthCallbackParams(params));
+  const inviteEmail = authRouteParams.email ?? '';
 
   const [isSwitchingScreen, setIsSwitchingScreen] = useState(false);
 
@@ -64,7 +71,7 @@ export default function SignUpScreen() {
     defaultValues: {
       firstName: '',
       lastName: '',
-      email: '',
+      email: inviteEmail,
       password: '',
       confirmPassword: '',
     },
@@ -91,7 +98,10 @@ export default function SignUpScreen() {
     }
 
     setIsSwitchingScreen(true);
-    router.replace('/(auth)/sign-in');
+    router.replace({
+      pathname: '/(auth)/sign-in',
+      params: authRouteParams,
+    });
 
     transitionTimeoutRef.current = setTimeout(() => {
       setIsSwitchingScreen(false);
@@ -122,6 +132,7 @@ export default function SignUpScreen() {
         f_name: values.firstName.trim(),
         l_name: values.lastName.trim(),
         phone_number: null,
+        ...(authRouteParams.token ? { token: authRouteParams.token } : null),
       });
 
       setIsTermsSheetVisible(false);
@@ -131,7 +142,10 @@ export default function SignUpScreen() {
           ? 'Account created. Check your email to verify before signing in.'
           : response.message,
       );
-      router.replace('/(auth)/sign-in');
+      router.replace({
+        pathname: '/(auth)/sign-in',
+        params: authRouteParams,
+      });
     } catch (error) {
       const appError = parseApiError(error);
 

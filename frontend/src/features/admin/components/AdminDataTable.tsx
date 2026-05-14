@@ -5,7 +5,7 @@ import { APP_COLORS, fonts } from '@/theme';
 export type AdminDataTableColumn<T> = {
   key: keyof T | string;
   header: string;
-  render?: (row: T) => string | number | null | undefined;
+  render?: (row: T) => string | number | boolean | null | undefined;
 };
 
 type AdminDataTableProps<T> = {

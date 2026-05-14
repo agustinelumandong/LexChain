@@ -9,3 +9,13 @@ export { AdminDashboardScreen } from './screens/AdminDashboardScreen';
 export { AdminUsersScreen } from './screens/AdminUsersScreen';
 export { AdminDocumentsScreen } from './screens/AdminDocumentsScreen';
 export { AdminVerificationsScreen } from './screens/AdminVerificationsScreen';
+export {
+  AdminAnalyticsScreen,
+  AdminAuditLogsScreen,
+  AdminBlockchainRecordsScreen,
+  AdminCategoriesScreen,
+  AdminInvitationsPermissionsScreen,
+  AdminIssuersScreen,
+  AdminProcessingScreen,
+  AdminSystemSettingsScreen,
+} from './screens/AdminManagementScreens';
