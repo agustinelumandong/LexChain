@@ -1,5 +1,5 @@
 import { useFocusEffect, useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { Image } from 'expo-image';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -12,6 +12,7 @@ import {
 import { Button, ScreenHeader } from '@/ui';
 
 import { APP_COLORS, fonts } from '@/theme';
+const HEADER_CONTENT_GAP = 12;
 const COLORS = {
   bg: '#041228',
   surface: '#0B1E38',
@@ -25,6 +26,10 @@ export default function CaptureReviewScreen() {
   const router = useRouter();
   const [capturedFiles, setCapturedFiles] = useState<PickedUploadFile[]>([]);
   const [previewFile, setPreviewFile] = useState<PickedUploadFile | null>(null);
+  const [headerHeight, setHeaderHeight] = useState(126);
+  const handleHeaderHeightChange = useCallback((nextHeight: number) => {
+    setHeaderHeight((h) => (h === nextHeight ? h : nextHeight));
+  }, []);
 
   useFocusEffect(
     React.useCallback(() => {
@@ -48,10 +53,12 @@ export default function CaptureReviewScreen() {
           tone="dark"
           leftAccessibilityLabel="Back to camera"
           onPressLeft={() => router.back()}
+          onHeightChange={handleHeaderHeightChange}
+          includeTopInset
         />
 
         <ScrollView
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[styles.scrollContent, { paddingTop: headerHeight + HEADER_CONTENT_GAP }]}
           showsVerticalScrollIndicator={false}
         >
           <Text style={styles.body}>
@@ -142,7 +149,6 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 18,
-    paddingTop: 20,
     paddingBottom: 24,
     gap: 16,
   },

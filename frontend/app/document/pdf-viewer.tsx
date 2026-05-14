@@ -15,6 +15,7 @@ import {
 } from '@/features/document';
 import { Button, ScreenHeader } from '@/ui';
 import { APP_COLORS, fonts } from '@/theme';
+const HEADER_CONTENT_GAP = 12;
 import type { DocumentPermission } from '@/types';
 
 const COLORS = {
@@ -137,6 +138,10 @@ function PdfToolsSheet({
 export default function DocumentPdfViewerScreen() {
   const router = useRouter();
   const [isToolsSheetVisible, setIsToolsSheetVisible] = useState(false);
+  const [headerHeight, setHeaderHeight] = useState(126);
+  const handleHeaderHeightChange = useCallback((nextHeight: number) => {
+    setHeaderHeight((h) => (h === nextHeight ? h : nextHeight));
+  }, []);
   const params = useLocalSearchParams<{
     documentId?: string;
     title?: string;
@@ -153,7 +158,7 @@ export default function DocumentPdfViewerScreen() {
   );
 
   return (
-    <SafeAreaView style={styles.screen}>
+    <SafeAreaView style={styles.screen} edges={['left', 'right', 'bottom']}>
       <ScreenHeader
         eyebrow="DOCUMENT PDF"
         title={title}
@@ -163,8 +168,10 @@ export default function DocumentPdfViewerScreen() {
         rightAccessibilityLabel="Open document tools"
         onPressLeft={() => router.back()}
         onPressRight={() => setIsToolsSheetVisible(true)}
+        onHeightChange={handleHeaderHeightChange}
+        includeTopInset
       />
-      <View style={styles.content}>
+      <View style={[styles.content, { paddingTop: headerHeight + HEADER_CONTENT_GAP }]}>
         {permissions.canViewPdf ? (
           <View style={styles.viewerFrame}>
             <LexChainPdfViewer uri={uri} />
@@ -202,6 +209,7 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     paddingHorizontal: 16,
+    paddingBottom: 16,
     gap: 16,
   },
   viewerFrame: {
