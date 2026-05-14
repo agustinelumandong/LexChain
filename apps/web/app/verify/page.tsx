@@ -2,17 +2,16 @@ import { PublicVerifyForm } from "./public-verify-form";
 
 export default function VerifyPage() {
   return (
-    <main className="min-h-screen bg-[#f7f9fc] px-6 py-14 text-[#102033]">
-      <section className="mx-auto max-w-3xl rounded-lg border border-[#d9e2ef] bg-white p-8">
-        <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#2563eb]">
-          Public verifier
+    <main className="flex min-h-dvh items-center justify-center bg-[#F5FAFF] px-5 py-14 text-[#102033]">
+      <section className="w-full max-w-[760px] rounded-[24px] border border-[#E4EEF9] bg-white p-7 shadow-[0_10px_24px_rgba(12,43,73,0.08)] sm:p-8">
+        <p className="text-sm font-black uppercase text-[#0985E7]">
+          LexChain
         </p>
-        <h1 className="mt-4 text-3xl font-semibold tracking-tight">
-          Verify a notarized PDF
+        <h1 className="mt-2 text-3xl font-black leading-9 text-[#0C2B49]">
+          Public verifier
         </h1>
-        <p className="mt-4 text-sm leading-6 text-[#526172]">
-          Upload one PDF and LexChain will check whether it matches a notarized
-          record through the public verification API.
+        <p className="mt-3 text-sm font-semibold leading-5 text-[#64748b]">
+          Upload a PDF and LexChain checks whether it matches a notarized record.
         </p>
         <div className="mt-8">
           <PublicVerifyForm />
