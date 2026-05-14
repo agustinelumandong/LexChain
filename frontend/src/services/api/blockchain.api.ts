@@ -7,7 +7,7 @@ import { mockBlockchainApi } from './mock';
 type ApiSchema<Name extends keyof components['schemas']> =
   components['schemas'][Name];
 
-export type NotarizeResponse = ApiSchema<'NotarizeResponse'>;
+export type RecordDocumentResponse = ApiSchema<'RecordResponse'>;
 
 export type OnChainVerificationResponse =
   ApiSchema<'OnChainVerificationResponse'>;
@@ -30,8 +30,8 @@ export const blockchainApi = {
       return mockBlockchainApi.notarize(documentId);
     }
 
-    return apiClient.post<NotarizeResponse>(
-      `/blockchain/notarize/${encodedDocumentId}`,
+    return apiClient.post<RecordDocumentResponse>(
+      `/blockchain/record/${encodedDocumentId}`,
     );
   },
 
