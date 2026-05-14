@@ -37,14 +37,6 @@ export default function ProfileScreen() {
             email={account.email}
           />
 
-          <ProfileMetricsCard
-            metrics={[
-              { label: 'Documents', value: '124' },
-              { label: 'Active grants', value: '53' },
-              { label: 'Verified rate', value: '98%' },
-            ]}
-          />
-
           <SettingsListCard
             title="Settings"
             items={[
