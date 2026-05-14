@@ -20,16 +20,11 @@ export const unstable_settings = {
   anchor: "(tabs)",
 };
 
-function isAppOnlyWebPath(pathname: string) {
+function isWebAllowedPath(pathname: string) {
   return (
-    pathname === "/upload" ||
-    pathname === "/camera-capture" ||
-    pathname === "/capture-review" ||
-    pathname === "/processing" ||
-    pathname === "/documents" ||
-    pathname === "/profile" ||
-    pathname.startsWith("/document/") ||
-    pathname.startsWith("/verify/")
+    pathname === "/" ||
+    pathname.startsWith("/admin") ||
+    pathname.startsWith("/public")
   );
 }
 
@@ -37,7 +32,7 @@ export default function RootLayout() {
   const { isOnline } = useNetwork();
   const pathname = usePathname();
   const router = useRouter();
-  const shouldShowWebsiteHome = isAppOnlyWebPath(pathname);
+  const shouldRedirectToHome = !isWebAllowedPath(pathname);
   const [fontsLoaded] = useFonts({
     ...MaterialIcons.font,
   });
@@ -47,10 +42,10 @@ export default function RootLayout() {
   }, []);
 
   useEffect(() => {
-    if (shouldShowWebsiteHome) {
+    if (shouldRedirectToHome) {
       router.replace("/");
     }
-  }, [router, shouldShowWebsiteHome]);
+  }, [router, shouldRedirectToHome]);
 
   if (!fontsLoaded) {
     return null;
@@ -64,7 +59,7 @@ export default function RootLayout() {
           <BottomSheetModalProvider>
             <StatusBar style="auto" />
             <ThemeProvider value={DefaultTheme}>
-              {shouldShowWebsiteHome ? (
+              {shouldRedirectToHome ? (
                 <WebsiteLandingScreen />
               ) : (
                 <Stack>
