@@ -270,6 +270,9 @@ export const mockDocumentsApi = {
     return {
       id: `mock-party-${Date.now()}`,
       user_id: `mock-user-${payload.email.toLowerCase()}`,
+      email: payload.email,
+      f_name: 'Invited',
+      l_name: 'User',
       role: payload.role ?? 'viewer',
       created_at: new Date().toISOString(),
     };

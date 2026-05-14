@@ -1,4 +1,5 @@
 import type { DocumentStatusKey, PickedUploadFile } from '@/types';
+import type { components } from './generated/schema';
 
 import { apiClient } from './client';
 
@@ -6,79 +7,44 @@ import { env } from '@/shared/config';
 
 import { mockDocumentsApi } from './mock';
 
-export type DocumentListItem = {
-  id: string;
-  file_name: string;
-  content_type: string;
+type ApiSchema<Name extends keyof components['schemas']> =
+  components['schemas'][Name];
+
+export type DocumentListItem = ApiSchema<'DocumentUploadResponse'> & {
   status: DocumentStatusKey;
-  created_at: string;
 };
 
 export type DocumentUploadResponse = DocumentListItem;
 
-export type DocumentDetail = {
-  document_id: string;
-  file_name: string;
-  storage_url: string;
-  content_type: string;
+export type DocumentDetail = ApiSchema<'DocumentResponse'> & {
+  status: DocumentStatusKey;
+  storage_url?: string | null;
   file_uri?: string | null;
   file_url?: string | null;
   pdf_url?: string | null;
-  status: DocumentStatusKey;
-  is_latest: boolean;
-  summary?: string | null;
-  labels?: string[];
-  entities?: Record<string, unknown>[];
-  risk_flags?: Record<string, unknown>[];
-  created_at: string;
-  updated_at: string;
 };
 
-export type DocumentUploadAcceptedResponse = {
-  document_id: string;
-  status: string;
-  message: string;
-};
+export type DocumentUploadAcceptedResponse =
+  ApiSchema<'DocumentUploadAcceptedResponse'>;
 
-export type RenameDocumentRequest = {
-  file_name: string;
-};
+export type RenameDocumentRequest = ApiSchema<'RenameDocumentRequest'>;
 
 export type RenameDocumentResponse = DocumentUploadResponse;
 
-export type GlobalSearchPayload = {
-  query: string;
-};
+export type GlobalSearchPayload = ApiSchema<'SearchRequest'>;
 
-export type GlobalSearchHit = {
-  chunk_id: string;
-  document_id: string;
-  chunk_index: number;
-  score: number;
-};
+export type GlobalSearchHit = ApiSchema<'GlobalSearchHit'>;
 
 export type GlobalSearchResult = {
   document_id: string;
   document?: DocumentDetail;
 };
 
-export type GlobalSearchResponse = {
-  query: string;
-  results: GlobalSearchHit[];
-};
+export type GlobalSearchResponse = ApiSchema<'GlobalSearchResponse'>;
 
-export type SearchHit = {
-  chunk_id: string;
-  chunk_index: number;
-  score: number;
-  text: string;
-};
+export type SearchHit = ApiSchema<'SearchHit'>;
 
-export type SearchResponse = {
-  query: string;
-  document_id: string;
-  results: SearchHit[];
-};
+export type SearchResponse = ApiSchema<'SearchResponse'>;
 
 export type AskCitation = {
   chunk_id: string;
@@ -93,44 +59,19 @@ export type AskResponse = {
   citations?: AskCitation[];
 } & Record<string, unknown>;
 
-export type VersionHistoryItem = {
-  document_id: string;
-  file_name: string;
-  document_hash: string;
-  status: string;
-  tx_hash: string | null;
-  is_latest: boolean;
-  created_at: string;
+export type VersionHistoryItem = ApiSchema<'VersionHistoryItem'>;
+
+export type VersionHistoryResponse = ApiSchema<'VersionHistoryResponse'>;
+
+export type AddPartyRequest = Omit<ApiSchema<'AddPartyRequest'>, 'role'> & {
+  role?: ApiSchema<'AddPartyRequest'>['role'];
 };
 
-export type VersionHistoryResponse = {
-  current_document_id: string;
-  versions: VersionHistoryItem[];
-  total_version: number;
-};
+export type DocumentPartyResponse = ApiSchema<'DocumentPartyResponse'>;
 
-export type AddPartyRequest = {
-  email: string;
-  role?: 'viewer' | 'signer' | 'editor' | string;
-};
+export type DocumentPartyListResponse = ApiSchema<'DocumentPartyListResponse'>;
 
-export type DocumentPartyResponse = {
-  id: string;
-  user_id: string;
-  role: string;
-  created_at: string;
-};
-
-export type DocumentPartyListResponse = {
-  document_id: string;
-  parties?: DocumentPartyResponse[];
-};
-
-export type RemovePartyResponse = {
-  document_id: string;
-  user_id: string;
-  message: string;
-};
+export type RemovePartyResponse = ApiSchema<'RemovePartyResponse'>;
 
 // Helper to fetch search results with document details
 export async function fetchSearchResultsWithDetails(

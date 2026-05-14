@@ -11,11 +11,13 @@ import {
   DetailSectionsCard,
   DocumentSummaryCard,
   ManageWhitelistBottomSheet,
+  mapPartiesToWhitelistData,
+  mapUserSearchToWhitelistResult,
   RenameDocumentSheet,
   SearchDocumentSheet,
 } from '@/features/document';
 import { Button, ErrorState, ScreenHeader, SkeletonBox } from '@/ui';
-import type { ManageWhitelistData, PickedUploadFile } from '@/types';
+import type { PickedUploadFile } from '@/types';
 import {
   useAddDocumentParty,
   useAskDocument,
@@ -26,6 +28,7 @@ import {
   useRenameDocument,
   useRemoveDocumentParty,
   useUpdateDocumentVersion,
+  useUserSearch,
 } from '@/services/query';
 import { useCloseSheetOnBack } from '@/hooks';
 import { parseApiError } from '@/shared/utils/api-error';
@@ -56,37 +59,6 @@ type DetailBodyBlock =
 
 const TEST_PDF_URI = 'https://www.deped.gov.ph/wp-content/uploads/2017/08/DO_s2017_042-1.pdf';
 const HEADER_CONTENT_GAP = 12;
-
-const INITIAL_DOCUMENT_WHITELIST: ManageWhitelistData = {
-  grants: [
-    {
-      id: 'deped-records',
-      name: 'DepEd Records Office',
-      email: 'records@deped.gov.ph',
-      accessLabel: 'View access',
-      actionLabel: 'View',
-    },
-    {
-      id: 'legal-review',
-      name: 'Legal Review Team',
-      email: 'legal@lexchain.app',
-      accessLabel: 'Verify access',
-      actionLabel: 'Verify',
-    },
-  ],
-  searchResults: [
-    {
-      id: 'school-admin',
-      name: 'School Admin',
-      email: 'admin@school.gov.ph',
-    },
-    {
-      id: 'regional-office',
-      name: 'Regional Office',
-      email: 'regional@deped.gov.ph',
-    },
-  ],
-};
 
 function formatDate(value?: string) {
   if (!value) {
@@ -292,27 +264,6 @@ function mapApiVersionHistory(
   }));
 }
 
-function mapPartiesToWhitelistData(
-  parties: {
-    user_id: string;
-    role: string;
-  }[] = [],
-): ManageWhitelistData {
-  return {
-    ...INITIAL_DOCUMENT_WHITELIST,
-    grants: parties.map((party) => {
-      const roleLabel = formatStatusLabel(party.role);
-
-      return {
-        id: party.user_id,
-        name: `User ${formatReference(party.user_id)}`,
-        accessLabel: `${roleLabel || 'Viewer'} access`,
-        actionLabel: roleLabel || 'View',
-      };
-    }),
-  };
-}
-
 function VersionHistoryCard({ items }: { items: VersionHistoryItem[] }) {
   return (
     <View style={styles.versionCard}>
@@ -510,6 +461,11 @@ export default function DocumentDetailsScreen() {
   const [isWhitelistSheetVisible, setIsWhitelistSheetVisible] = useState(false);
   const [whitelistSearchQuery, setWhitelistSearchQuery] = useState('');
   const [headerHeight, setHeaderHeight] = useState(126);
+  const trimmedWhitelistSearchQuery = whitelistSearchQuery.trim();
+  const userSearchQuery = useUserSearch(
+    trimmedWhitelistSearchQuery,
+    isWhitelistSheetVisible && trimmedWhitelistSearchQuery.length >= 3,
+  );
 
   const qaMutation = useAskDocument();
   const { mutate: askDocument } = qaMutation;
@@ -621,7 +577,7 @@ export default function DocumentDetailsScreen() {
   };
 
   const handleAddWhitelistResult = async (resultId: string) => {
-    const result = INITIAL_DOCUMENT_WHITELIST.searchResults.find(
+    const result = whitelistData.searchResults.find(
       (entry) => entry.id === resultId,
     );
 
@@ -697,8 +653,12 @@ export default function DocumentDetailsScreen() {
   }, [document, versionHistoryQuery.data?.versions]);
 
   const whitelistData = useMemo(
-    () => mapPartiesToWhitelistData(partiesQuery.data?.parties),
-    [partiesQuery.data?.parties],
+    () =>
+      mapPartiesToWhitelistData(
+        partiesQuery.data?.parties,
+        mapUserSearchToWhitelistResult(userSearchQuery.data),
+      ),
+    [partiesQuery.data?.parties, userSearchQuery.data],
   );
 
   const handleHeaderHeightChange = useCallback((nextHeight: number) => {
@@ -889,7 +849,8 @@ export default function DocumentDetailsScreen() {
         isLoading={
           partiesQuery.isLoading ||
           addPartyMutation.isPending ||
-          removePartyMutation.isPending
+          removePartyMutation.isPending ||
+          userSearchQuery.isFetching
         }
         onChangeSearchQuery={setWhitelistSearchQuery}
         onClose={() => {

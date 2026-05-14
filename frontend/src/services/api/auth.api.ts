@@ -1,45 +1,29 @@
 import { apiClient } from './client';
+import type { components } from './generated/schema';
 
 import { env } from '@/shared/config';
 import type { SupabaseUser } from '@/types';
 
 import { mockAuthApi } from './mock';
 
-export type SignInPayload = {
-  email: string;
-  password: string;
-};
+type ApiSchema<Name extends keyof components['schemas']> =
+  components['schemas'][Name];
 
-export type SignInResponse = {
-  access_token: string;
-  refresh_token: string;
-  token_type?: string;
-  expires_in: number;
+export type SignInPayload = ApiSchema<'SignInRequest'>;
+
+export type SignInResponse = Omit<ApiSchema<'SignInResponse'>, 'user'> & {
   user: SupabaseUser;
 };
 
-export type SignUpPayload = {
-  email: string;
-  password: string;
-  f_name: string;
-  l_name: string;
-  phone_number: string | null;
+export type SignUpPayload = ApiSchema<'SignUpRequest'> & {
+  token?: string;
 };
 
-export type SignUpResponse = {
-  message: string;
-  user_id: string;
-  email: string;
-  requires_email_confirmation: boolean;
-};
+export type SignUpResponse = ApiSchema<'SignUpResponse'>;
 
-export type ResendVerificationPayload = {
-  email: string;
-};
+export type ResendVerificationPayload = ApiSchema<'ResendVerificationRequest'>;
 
-export type MessageResponse = {
-  message: string;
-};
+export type MessageResponse = ApiSchema<'MessageResponse'>;
 
 export const authApi = {
   signIn: (payload: SignInPayload) => {

@@ -1,23 +1,16 @@
 import { env } from '@/shared/config';
 
 import { apiClient } from './client';
+import type { components } from './generated/schema';
 import { mockBlockchainApi } from './mock';
 
-export type NotarizeResponse = {
-  document_id: string;
-  tx_hash: string;
-  onchain_document_id: string;
-  data_hash: string;
-};
+type ApiSchema<Name extends keyof components['schemas']> =
+  components['schemas'][Name];
 
-export type OnChainVerificationResponse = {
-  document_id: string;
-  onchain_document_id: string;
-  data_hash: string;
-  onchain_timestamp: number;
-  issued_by: string;
-  verified_at: string;
-};
+export type NotarizeResponse = ApiSchema<'NotarizeResponse'>;
+
+export type OnChainVerificationResponse =
+  ApiSchema<'OnChainVerificationResponse'>;
 
 const encodeDocumentId = (documentId: string) => {
   const trimmed = documentId.trim();
