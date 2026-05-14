@@ -18,7 +18,7 @@ export function WebHero() {
         </Text>
         <View style={styles.actions}>
           <WebsiteLinkButton href="/public/verify" label="Verify a Document" />
-          <WebsiteLinkButton href="/(auth)/sign-in" label="Sign In to App" variant="secondary" />
+          <WebsiteLinkButton href="/admin/login" label="Admin Login" variant="secondary" />
         </View>
         <View style={styles.stats}>
           <View style={styles.stat}>

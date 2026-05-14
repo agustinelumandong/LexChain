@@ -15,7 +15,6 @@ export function WebCTA() {
         </Text>
         <View style={styles.actions}>
           <WebsiteLinkButton href="/public/verify" label="Public Verifier" />
-          <WebsiteLinkButton href="/(auth)/sign-in" label="Sign In" variant="secondary" />
           <WebsiteLinkButton href="/admin/login" label="Admin Panel" variant="secondary" />
         </View>
       </View>
