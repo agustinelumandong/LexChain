@@ -1,12 +1,27 @@
+import { MaterialIcons } from '@expo/vector-icons';
+import { Link } from 'expo-router';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { APP_COLORS, fonts } from '@/theme';
+import { fonts } from '@/theme';
 
 export function WebFooter() {
   return (
     <View style={styles.footer}>
       <View style={styles.inner}>
-        <Text style={styles.brand}>LexChain</Text>
+        <View style={styles.brand}>
+          <View style={styles.logoMark}>
+            <MaterialIcons name="layers" size={18} color="#fff" />
+          </View>
+          <Text style={styles.brandName}>LexChain</Text>
+        </View>
+        <View style={styles.links}>
+          <Link href="/public/verify" style={styles.link}>
+            <Text style={styles.linkText}>Verify</Text>
+          </Link>
+          <Link href="/admin/login" style={styles.link}>
+            <Text style={styles.linkText}>Admin</Text>
+          </Link>
+        </View>
         <Text style={styles.copy}>
           © {new Date().getFullYear()} LexChain. Blockchain-powered document verification.
         </Text>
@@ -17,30 +32,56 @@ export function WebFooter() {
 
 const styles = StyleSheet.create({
   footer: {
-    backgroundColor: APP_COLORS.navy,
+    backgroundColor: '#0C2B49',
     paddingHorizontal: 24,
-    paddingVertical: 32,
+    paddingVertical: 40,
   },
   inner: {
-    maxWidth: 1120,
+    maxWidth: 1100,
     alignSelf: 'center',
     width: '100%',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     flexWrap: 'wrap',
-    gap: 12,
+    gap: 16,
   },
   brand: {
-    color: APP_COLORS.white,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  logoMark: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    backgroundColor: '#0985E7',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  brandName: {
+    color: '#fff',
     fontFamily: fonts.regular,
     fontSize: 18,
     fontWeight: '900',
   },
-  copy: {
-    color: '#A8C4E0',
+  links: {
+    flexDirection: 'row',
+    gap: 20,
+  },
+  link: {
+    display: 'flex',
+  },
+  linkText: {
+    color: '#8ecbff',
     fontFamily: fonts.regular,
     fontSize: 13,
+    fontWeight: '700',
+  },
+  copy: {
+    color: 'rgba(255,255,255,0.5)',
+    fontFamily: fonts.regular,
+    fontSize: 12,
     fontWeight: '500',
   },
 });
