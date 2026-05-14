@@ -5,19 +5,24 @@ import { APP_COLORS, fonts } from '@/theme';
 
 const PROBLEMS = [
   {
-    icon: 'warning' as const,
-    title: 'Document Fraud',
-    description: 'Forged legal documents cost billions annually and undermine trust in institutions.',
+    icon: 'folder' as const,
+    title: 'Scattered Storage',
+    description: 'Legal files are still kept in paper folders, manual logbooks, email threads, and disconnected drives.',
+  },
+  {
+    icon: 'search-off' as const,
+    title: 'Hard to Find',
+    description: 'Finding the correct document takes time because records are named, tagged, or stored inconsistently.',
   },
   {
     icon: 'visibility-off' as const,
-    title: 'No Transparency',
-    description: 'Traditional verification relies on manual checks with no audit trail.',
+    title: 'No Integrity Check',
+    description: 'Teams cannot easily know if a scanned copy is the same file that was originally issued.',
   },
   {
     icon: 'lock-open' as const,
-    title: 'Tampering Risk',
-    description: 'Digital documents can be altered without detection after signing.',
+    title: 'Uncontrolled Access',
+    description: 'Sensitive documents are shared without clear visibility into who should access them.',
   },
 ];
 
@@ -27,7 +32,12 @@ export function WebProblem() {
       <View style={styles.inner}>
         <Text style={styles.eyebrow}>THE PROBLEM</Text>
         <Text style={styles.title}>
-          Legal documents are vulnerable to fraud and tampering.
+          Legal documents are hard to find, easy to lose, and difficult to verify.
+        </Text>
+        <Text style={styles.subtitle}>
+          Many teams still rely on paper folders, manual logbooks, shared drives, or scattered
+          digital copies. That makes important records hard to retrieve, easy to lose, and
+          difficult to trust when authenticity matters.
         </Text>
         <View style={styles.grid}>
           {PROBLEMS.map((item) => (
@@ -55,23 +65,32 @@ const styles = StyleSheet.create({
     maxWidth: 1000,
     alignSelf: 'center',
     alignItems: 'center',
-    gap: 32,
+    gap: 24,
   },
   eyebrow: {
     color: APP_COLORS.danger,
     fontFamily: fonts.regular,
     fontSize: 12,
     fontWeight: '800',
-    letterSpacing: 1.5,
+    letterSpacing: 2,
   },
   title: {
-    color: APP_COLORS.navy,
+    color: '#0f172a',
     fontFamily: fonts.regular,
-    fontSize: 32,
-    lineHeight: 40,
+    fontSize: 36,
+    lineHeight: 44,
     fontWeight: '900',
     textAlign: 'center',
-    maxWidth: 600,
+    maxWidth: 650,
+  },
+  subtitle: {
+    color: '#64748b',
+    fontFamily: fonts.regular,
+    fontSize: 16,
+    lineHeight: 26,
+    fontWeight: '500',
+    textAlign: 'center',
+    maxWidth: 620,
   },
   grid: {
     flexDirection: 'row',
@@ -84,7 +103,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFF5F5',
     borderRadius: 16,
     padding: 24,
-    width: 300,
+    width: 460,
     gap: 12,
   },
   iconWrap: {
@@ -96,13 +115,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   cardTitle: {
-    color: APP_COLORS.navy,
+    color: '#0f172a',
     fontFamily: fonts.regular,
     fontSize: 17,
     fontWeight: '800',
   },
   cardDesc: {
-    color: APP_COLORS.textMuted,
+    color: '#64748b',
     fontFamily: fonts.regular,
     fontSize: 14,
     lineHeight: 22,

@@ -70,34 +70,16 @@ export default function RootLayout() {
                   <Stack.Screen name="public" options={{ headerShown: false }} />
                   <Stack.Screen name="upload" options={{ headerShown: false }} />
                   <Stack.Screen name="profile/account" options={{ headerShown: false }} />
-                  <Stack.Screen
-                    name="profile/notifications"
-                    options={{ headerShown: false }}
-                  />
+                  <Stack.Screen name="profile/notifications" options={{ headerShown: false }} />
                   <Stack.Screen name="profile/security" options={{ headerShown: false }} />
                   <Stack.Screen name="profile/privacy" options={{ headerShown: false }} />
                   <Stack.Screen name="profile/support" options={{ headerShown: false }} />
                   <Stack.Screen name="document/[id]" options={{ headerShown: false }} />
-                  <Stack.Screen
-                    name="document/pdf-viewer"
-                    options={{ headerShown: false }}
-                  />
-                  <Stack.Screen
-                    name="camera-capture"
-                    options={{ headerShown: false }}
-                  />
-                  <Stack.Screen
-                    name="capture-review"
-                    options={{ headerShown: false }}
-                  />
-                  <Stack.Screen
-                    name="processing"
-                    options={{ headerShown: false }}
-                  />
-                  <Stack.Screen
-                    name="modal"
-                    options={{ presentation: "modal", title: "Modal" }}
-                  />
+                  <Stack.Screen name="document/pdf-viewer" options={{ headerShown: false }} />
+                  <Stack.Screen name="camera-capture" options={{ headerShown: false }} />
+                  <Stack.Screen name="capture-review" options={{ headerShown: false }} />
+                  <Stack.Screen name="processing" options={{ headerShown: false }} />
+                  <Stack.Screen name="modal" options={{ presentation: "modal", title: "Modal" }} />
                 </Stack>
               )}
             </ThemeProvider>

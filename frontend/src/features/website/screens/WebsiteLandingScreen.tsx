@@ -1,7 +1,6 @@
 import { ScrollView, StyleSheet } from 'react-native';
 
-import { APP_COLORS } from '@/theme';
-
+import { WebAskDemo } from '../components/WebAskDemo';
 import { WebCTA } from '../components/WebCTA';
 import { WebFeatures } from '../components/WebFeatures';
 import { WebFooter } from '../components/WebFooter';
@@ -9,6 +8,7 @@ import { WebHero } from '../components/WebHero';
 import { WebHowItWorks } from '../components/WebHowItWorks';
 import { WebNavbar } from '../components/WebNavbar';
 import { WebProblem } from '../components/WebProblem';
+import { WebVerificationDemo } from '../components/WebVerificationDemo';
 
 export function WebsiteLandingScreen() {
   return (
@@ -18,6 +18,8 @@ export function WebsiteLandingScreen() {
       <WebProblem />
       <WebFeatures />
       <WebHowItWorks />
+      <WebVerificationDemo />
+      <WebAskDemo />
       <WebCTA />
       <WebFooter />
     </ScrollView>
@@ -27,7 +29,7 @@ export function WebsiteLandingScreen() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: APP_COLORS.bg,
+    backgroundColor: '#fff',
   },
   content: {
     flexGrow: 1,

@@ -4,54 +4,32 @@ import { StyleSheet, Text, View } from 'react-native';
 import { APP_COLORS, fonts } from '@/theme';
 
 const FEATURES = [
-  {
-    icon: 'document-scanner' as const,
-    title: 'AI-Powered OCR & NLP',
-    description: 'Automatically extract text, entities, and summaries from uploaded legal documents.',
-  },
-  {
-    icon: 'link' as const,
-    title: 'Blockchain Anchoring',
-    description: 'Every document hash is anchored on-chain, creating an immutable proof of existence.',
-  },
-  {
-    icon: 'verified' as const,
-    title: 'Instant Verification',
-    description: 'Anyone with a verification code can confirm document authenticity in seconds.',
-  },
-  {
-    icon: 'admin-panel-settings' as const,
-    title: 'Access Control',
-    description: 'Whitelist-based permissions let you control who can view, verify, or download.',
-  },
-  {
-    icon: 'history' as const,
-    title: 'Version History',
-    description: 'Track every revision with full audit trail and blockchain-backed integrity.',
-  },
-  {
-    icon: 'question-answer' as const,
-    title: 'Ask Your Document',
-    description: 'AI-powered Q&A lets you query document contents in natural language.',
-  },
+  { icon: 'lock' as const, title: 'Secure Upload & Storage', copy: 'Manage legal documents with ownership, access rules, and organized metadata.' },
+  { icon: 'document-scanner' as const, title: 'AI-Powered OCR & NLP', copy: 'Convert scanned documents into readable, searchable content automatically.' },
+  { icon: 'auto-awesome' as const, title: 'AI Document Summaries', copy: 'Get short explanations that help users understand long legal files faster.' },
+  { icon: 'fact-check' as const, title: 'Key Information Detection', copy: 'Identify parties, dates, obligations, clauses, categories, and risk indicators.' },
+  { icon: 'question-answer' as const, title: 'Ask-Document Search', copy: 'Ask questions about authorized documents and receive focused answers from content.' },
+  { icon: 'fingerprint' as const, title: 'Blockchain Verification', copy: 'Confirm document integrity without exposing private document content on-chain.' },
 ];
 
 export function WebFeatures() {
   return (
     <View style={styles.section}>
       <View style={styles.inner}>
-        <Text style={styles.eyebrow}>FEATURES</Text>
-        <Text style={styles.title}>
-          Everything you need for trusted document management.
+        <Text style={styles.eyebrow}>MAIN FEATURES</Text>
+        <Text style={styles.title}>Built for faster legal document work.</Text>
+        <Text style={styles.subtitle}>
+          The system focuses on real daily value: quick retrieval, clearer document
+          understanding, controlled sharing, and reliable integrity checks.
         </Text>
         <View style={styles.grid}>
           {FEATURES.map((item) => (
             <View key={item.title} style={styles.card}>
               <View style={styles.iconWrap}>
-                <MaterialIcons name={item.icon} size={22} color={APP_COLORS.primary} />
+                <MaterialIcons name={item.icon} size={22} color="#0985E7" />
               </View>
               <Text style={styles.cardTitle}>{item.title}</Text>
-              <Text style={styles.cardDesc}>{item.description}</Text>
+              <Text style={styles.cardCopy}>{item.copy}</Text>
             </View>
           ))}
         </View>
@@ -62,7 +40,7 @@ export function WebFeatures() {
 
 const styles = StyleSheet.create({
   section: {
-    backgroundColor: APP_COLORS.bg,
+    backgroundColor: '#fff',
     paddingHorizontal: 24,
     paddingVertical: 80,
   },
@@ -70,21 +48,29 @@ const styles = StyleSheet.create({
     maxWidth: 1100,
     alignSelf: 'center',
     alignItems: 'center',
-    gap: 32,
+    gap: 20,
   },
   eyebrow: {
-    color: APP_COLORS.primary,
+    color: '#0985E7',
     fontFamily: fonts.regular,
     fontSize: 12,
     fontWeight: '800',
-    letterSpacing: 1.5,
+    letterSpacing: 2,
   },
   title: {
-    color: APP_COLORS.navy,
+    color: '#0f172a',
     fontFamily: fonts.regular,
-    fontSize: 32,
-    lineHeight: 40,
+    fontSize: 36,
+    lineHeight: 44,
     fontWeight: '900',
+    textAlign: 'center',
+  },
+  subtitle: {
+    color: '#64748b',
+    fontFamily: fonts.regular,
+    fontSize: 16,
+    lineHeight: 26,
+    fontWeight: '500',
     textAlign: 'center',
     maxWidth: 600,
   },
@@ -93,33 +79,35 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: 20,
     justifyContent: 'center',
-    paddingTop: 16,
+    paddingTop: 24,
   },
   card: {
-    backgroundColor: APP_COLORS.white,
+    backgroundColor: '#fff',
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: APP_COLORS.borderSoft,
+    borderColor: '#e2e8f0',
     padding: 24,
     width: 330,
     gap: 12,
+    // @ts-ignore
+    boxShadow: '0 1px 3px rgba(9,133,231,0.03)',
   },
   iconWrap: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    backgroundColor: APP_COLORS.surfaceSoft,
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    backgroundColor: 'rgba(9,133,231,0.1)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   cardTitle: {
-    color: APP_COLORS.navy,
+    color: '#0f172a',
     fontFamily: fonts.regular,
-    fontSize: 17,
-    fontWeight: '800',
+    fontSize: 18,
+    fontWeight: '900',
   },
-  cardDesc: {
-    color: APP_COLORS.textMuted,
+  cardCopy: {
+    color: '#64748b',
     fontFamily: fonts.regular,
     fontSize: 14,
     lineHeight: 22,
