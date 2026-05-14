@@ -84,7 +84,7 @@ export default function RootLayout() {
                 />
                 <Stack.Screen
                   name="modal"
-                  options={{ presentation: "modal", title: "Modal" }}
+                  options={{ presentation: "modal", title: "Modal", headerShown: false }}
                 />
               </Stack>
             </ThemeProvider>
