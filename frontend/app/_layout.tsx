@@ -55,6 +55,7 @@ export default function RootLayout() {
                 <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
                 <Stack.Screen name="admin" options={{ headerShown: false }} />
                 <Stack.Screen name="public" options={{ headerShown: false }} />
+                <Stack.Screen name="auth/callback" options={{ headerShown: false }} />
                 <Stack.Screen name="upload" options={{ headerShown: false }} />
                 <Stack.Screen name="profile/account" options={{ headerShown: false }} />
                 <Stack.Screen
