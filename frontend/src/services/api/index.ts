@@ -1,7 +1,9 @@
 export { apiClient } from './client';
+export { openApiClient } from './openapi-client';
 export { authApi } from './auth.api';
 export { blockchainApi } from './blockchain.api';
 export { documentsApi } from './documents.api';
+export type { components, paths } from './generated/schema';
 export type {
   NotarizeResponse,
   OnChainVerificationResponse,
