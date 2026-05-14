@@ -15,11 +15,19 @@ export type PublicVerifyResponse = ApiSchema<'PublicVerifyResponse'>;
 function createVerifyForm(file: PickedUploadFile) {
   const formData = new FormData();
 
-  formData.append('file', {
-    uri: file.uri,
-    name: file.name,
-    type: file.mimeType ?? 'application/pdf',
-  } as unknown as Blob);
+  if (file.nativeFile) {
+    formData.append('file', file.nativeFile, file.name);
+    return formData;
+  }
+
+  formData.append(
+    'file',
+    {
+      uri: file.uri,
+      name: file.name,
+      type: file.mimeType ?? 'application/pdf',
+    } as unknown as Blob,
+  );
 
   return formData;
 }
