@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -8,6 +8,7 @@ import { Button, ScreenHeader } from '@/ui';
 import { VerificationStatusCard } from '@/features/document';
 
 import { APP_COLORS, fonts } from '@/theme';
+const HEADER_CONTENT_GAP = 12;
 const COLORS = {
   bg: APP_COLORS.bg,
   primary: APP_COLORS.primary,
@@ -28,6 +29,10 @@ export default function ProcessingScreen() {
   const router = useRouter();
   const hasNotifiedCompletionRef = useRef(false);
   const [activeStepIndex, setActiveStepIndex] = useState(1);
+  const [headerHeight, setHeaderHeight] = useState(126);
+  const handleHeaderHeightChange = useCallback((nextHeight: number) => {
+    setHeaderHeight((h) => (h === nextHeight ? h : nextHeight));
+  }, []);
 
   useEffect(() => {
     if (activeStepIndex >= PROCESSING_STEPS.length) {
@@ -75,21 +80,23 @@ export default function ProcessingScreen() {
   return (
     <SafeAreaView style={styles.screen}>
       <View style={styles.surface}>
+        <ScreenHeader
+          eyebrow="PROCESSING STATUS"
+          title={isComplete ? 'Processing complete' : 'Processing'}
+          subtitle={
+            isComplete
+              ? 'Your document summary is ready and the file can now be found in Documents.'
+              : 'LexChain is scanning the upload, drafting the summary, and preparing integrity checks.'
+          }
+          leftAccessibilityLabel="Back"
+          onPressLeft={() => router.back()}
+          onHeightChange={handleHeaderHeightChange}
+          includeTopInset
+        />
         <ScrollView
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[styles.scrollContent, { paddingTop: headerHeight + HEADER_CONTENT_GAP }]}
           showsVerticalScrollIndicator={false}
         >
-          <ScreenHeader
-            eyebrow="PROCESSING STATUS"
-            title={isComplete ? 'Processing complete' : 'Processing'}
-            subtitle={
-              isComplete
-                ? 'Your document summary is ready and the file can now be found in Documents.'
-                : 'LexChain is scanning the upload, drafting the summary, and preparing integrity checks.'
-            }
-            leftAccessibilityLabel="Back"
-            onPressLeft={() => router.back()}
-          />
 
           <View style={styles.progressCard}>
             <View style={styles.progressCopy}>
@@ -250,7 +257,6 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 16,
-    paddingTop: 12,
     paddingBottom: 24,
     gap: 20,
   },

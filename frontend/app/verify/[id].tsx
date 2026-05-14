@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback, useState } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -13,6 +13,7 @@ import { useDocument, useVerifyOnChainDocument } from '@/services/query';
 import { parseApiError } from '@/shared/utils/api-error';
 
 import { APP_COLORS } from '@/theme';
+const HEADER_CONTENT_GAP = 12;
 const COLORS = {
   bg: APP_COLORS.bg,
 };
@@ -72,21 +73,27 @@ export default function VerifyDocumentScreen() {
     : onChainRecord
       ? 'Match'
       : 'No on-chain record';
+  const [headerHeight, setHeaderHeight] = useState(126);
+  const handleHeaderHeightChange = useCallback((nextHeight: number) => {
+    setHeaderHeight((h) => (h === nextHeight ? h : nextHeight));
+  }, []);
 
   return (
     <SafeAreaView style={styles.screen}>
       <View style={styles.surface}>
+        <ScreenHeader
+          eyebrow="VERIFYING DOCS STATUS"
+          title="Verifying Docs"
+          subtitle="Summary and checks in progress."
+          leftAccessibilityLabel="Back"
+          onPressLeft={() => router.back()}
+          onHeightChange={handleHeaderHeightChange}
+          includeTopInset
+        />
         <ScrollView
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[styles.scrollContent, { paddingTop: headerHeight + HEADER_CONTENT_GAP }]}
           showsVerticalScrollIndicator={false}
         >
-          <ScreenHeader
-            eyebrow="VERIFYING DOCS STATUS"
-            title="Verifying Docs"
-            subtitle="Summary and checks in progress."
-            leftAccessibilityLabel="Back"
-            onPressLeft={() => router.back()}
-          />
 
           {documentQuery.error ? (
             <ErrorState
@@ -157,7 +164,6 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 18,
-    paddingTop: 12,
     paddingBottom: 24,
     gap: 20,
   },
