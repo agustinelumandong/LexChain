@@ -6,16 +6,23 @@ import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from '@/ui';
 import { MaterialIcons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { toast } from 'sonner-native';
 import { APP_COLORS, fonts } from '@/theme';
 import { useSignIn } from '@/services/query';
 import { parseApiError } from '@/shared/utils/api-error';
+import {
+  getInvitationRouteParams,
+  normalizeAuthCallbackParams,
+} from '@/features/auth/callback/auth-callback.params';
 
 export default function SignInScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams<Record<string, string | string[]>>();
   const transitionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const authRouteParams = getInvitationRouteParams(normalizeAuthCallbackParams(params));
+  const inviteEmail = authRouteParams.email ?? '';
 
   const [isSwitchingScreen, setIsSwitchingScreen] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
@@ -28,7 +35,7 @@ export default function SignInScreen() {
   } = useForm<SignInFormValues>({
     resolver: zodResolver(signInSchema),
     defaultValues: {
-      email: '',
+      email: inviteEmail,
       password: '',
     },
   });
@@ -47,7 +54,10 @@ export default function SignInScreen() {
     }
 
     setIsSwitchingScreen(true);
-    router.replace('/(auth)/sign-up');
+    router.replace({
+      pathname: '/(auth)/sign-up',
+      params: authRouteParams,
+    });
 
     transitionTimeoutRef.current = setTimeout(() => {
       setIsSwitchingScreen(false);
@@ -63,6 +73,14 @@ export default function SignInScreen() {
         });
 
         toast.success('Signed in successfully');
+        if (authRouteParams.document_id) {
+          router.replace({
+            pathname: '/document/[id]',
+            params: { id: authRouteParams.document_id },
+          });
+          return;
+        }
+
         router.replace('/(tabs)');
       } catch (error) {
         const appError = parseApiError(error);

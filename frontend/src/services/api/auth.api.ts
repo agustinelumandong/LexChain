@@ -24,6 +24,7 @@ export type SignUpPayload = {
   f_name: string;
   l_name: string;
   phone_number: string | null;
+  token?: string;
 };
 
 export type SignUpResponse = {
