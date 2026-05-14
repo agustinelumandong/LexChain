@@ -2,6 +2,11 @@ export const queryKeys = {
   auth: {
     currentUser: ['auth', 'current-user'] as const,
   },
+  admin: {
+    dashboard: ['admin', 'dashboard'] as const,
+    users: ['admin', 'users'] as const,
+    invitations: ['admin', 'invitations'] as const,
+  },
   documents: {
     all: ['documents'] as const,
     list: (params?: { limit?: number; offset?: number }) =>
@@ -15,5 +20,8 @@ export const queryKeys = {
   },
   blockchain: {
     verify: (documentId: string) => ['blockchain', 'verify', documentId] as const,
+  },
+  users: {
+    search: (email: string) => ['users', 'search', email] as const,
   },
 };
