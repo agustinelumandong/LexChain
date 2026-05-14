@@ -1,7 +1,7 @@
 import { MaterialIcons } from '@expo/vector-icons';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { APP_COLORS, fonts } from '@/theme';
+import { fonts } from '@/theme';
 
 import { WebsiteLinkButton } from './WebsiteLinkButton';
 import { WebStoreButtons } from './WebStoreButtons';
