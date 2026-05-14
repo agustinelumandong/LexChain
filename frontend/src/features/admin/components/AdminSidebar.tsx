@@ -127,7 +127,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   linkActive: {
-    backgroundColor: 'transparent',
+    backgroundColor: '#EEF4FB',
   },
   activeRail: {
     backgroundColor: 'transparent',
