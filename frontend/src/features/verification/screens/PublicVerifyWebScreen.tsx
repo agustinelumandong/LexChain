@@ -1,13 +1,11 @@
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { EmptyState, ErrorState, LoadingState } from '@/ui';
+import { EmptyState, LoadingState } from '@/ui';
 import { APP_COLORS, fonts } from '@/theme';
-import { parseApiError } from '@/shared/utils/api-error';
 import { WebsiteLinkButton } from '@/features/website';
 
 import { VerificationResultCard } from '../components/VerificationResultCard';
-import { getDemoPublicVerification } from '../api';
 import { usePublicVerification } from '../hooks';
 
 type PublicVerifyWebScreenProps = {
@@ -18,21 +16,20 @@ function normalizeCode(code?: string | string[]) {
   return Array.isArray(code) ? code[0] : code;
 }
 
+function isNotImplemented(error: unknown) {
+  return error instanceof Error && error.message === 'NOT_IMPLEMENTED';
+}
+
 export function PublicVerifyWebScreen({ code }: PublicVerifyWebScreenProps) {
   const verificationCode = normalizeCode(code);
-  const verificationQuery = usePublicVerification(verificationCode);
-  const result = verificationQuery.data ?? (
-    verificationCode ? getDemoPublicVerification(verificationCode) : null
-  );
+  const { data, isLoading, error } = usePublicVerification(verificationCode);
 
   return (
     <SafeAreaView style={styles.screen}>
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.brand}>
           <Text style={styles.logo}>LexChain</Text>
-          <Text style={styles.subtitle}>
-            Public document verification portal
-          </Text>
+          <Text style={styles.subtitle}>Public document verification portal</Text>
         </View>
 
         <View style={styles.panel}>
@@ -43,28 +40,28 @@ export function PublicVerifyWebScreen({ code }: PublicVerifyWebScreenProps) {
             />
           ) : null}
 
-          {verificationQuery.isLoading && !result ? (
+          {isLoading ? (
             <LoadingState message="Checking verification record..." />
           ) : null}
 
-          {verificationQuery.error ? (
-            <ErrorState
+          {error && isNotImplemented(error) ? (
+            <EmptyState
+              title="Code verification coming soon"
+              message="This verification link is not yet supported. Upload your PDF on the verification page to check a document."
+            />
+          ) : error ? (
+            <EmptyState
               title="Unable to verify"
-              message={parseApiError(verificationQuery.error).message}
-              onRetry={() => {
-                void verificationQuery.refetch();
-              }}
+              message="Something went wrong. Please try again later."
             />
           ) : null}
 
-          {result ? (
-            <VerificationResultCard result={result} />
-          ) : null}
+          {data ? <VerificationResultCard result={data} /> : null}
 
           <View style={styles.actions}>
             <WebsiteLinkButton
               href="/public/verify"
-              label="Verify another document"
+              label="Verify a document"
               variant="secondary"
             />
             <WebsiteLinkButton href="/" label="Go to LexChain" />
