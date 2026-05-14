@@ -1,15 +1,17 @@
 import {
   BottomSheetBackdrop,
+  BottomSheetFooter,
+  type BottomSheetFooterProps,
   BottomSheetModal,
   BottomSheetScrollView,
 } from '@gorhom/bottom-sheet';
 import { MaterialIcons } from '@expo/vector-icons';
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { BackHandler, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { SearchInputWithResults, SkeletonBox } from '@/ui';
-import type { DocumentPartyRole, ManageWhitelistData } from '@/types';
+import type { DocumentPartyRole, ManageWhitelistData, WhitelistGrant } from '@/types';
 import { WhitelistGrantRow } from './whitelist-grant-row';
 import { WhitelistSearchResultRow } from './whitelist-search-result-row';
 
@@ -30,36 +32,30 @@ type MobileUserRoleKey = 'participant' | 'owner' | 'lawyer';
 const MOBILE_USER_ROLES: {
   key: MobileUserRoleKey;
   label: string;
-  helper: string;
 }[] = [
-  {
-    key: 'participant',
-    label: 'Witness/Participant',
-    helper: 'Viewer',
-  },
-  {
-    key: 'owner',
-    label: 'Owner',
-    helper: 'Viewer',
-  },
-  {
-    key: 'lawyer',
-    label: 'Lawyer',
-    helper: 'Viewer, signer, or editor',
-  },
-];
-
-const LAWYER_ACCESS_ROLES: {
-  key: DocumentPartyRole;
-  label: string;
-}[] = [
-  { key: 'viewer', label: 'Viewer' },
-  { key: 'signer', label: 'Signer' },
-  { key: 'editor', label: 'Editor' },
+  { key: 'participant', label: 'Witness/Participant' },
+  { key: 'owner', label: 'Owner' },
+  { key: 'lawyer', label: 'Lawyer' },
 ];
 
 function getAddLabel(role: DocumentPartyRole) {
+  if (role === 'viewer') {
+    return 'Add Read';
+  }
+
   return `Add ${role.charAt(0).toUpperCase()}${role.slice(1)}`;
+}
+
+function getMobileRoleLabel(role: MobileUserRoleKey) {
+  if (role === 'owner') {
+    return 'Owner';
+  }
+
+  if (role === 'lawyer') {
+    return 'Lawyer';
+  }
+
+  return 'Witness/Participant';
 }
 
 type ManageWhitelistBottomSheetProps = {
@@ -86,14 +82,16 @@ export function ManageWhitelistBottomSheet({
   onPressAddResult,
 }: ManageWhitelistBottomSheetProps) {
   const bottomSheetRef = useRef<BottomSheetModal>(null);
+  const grantSheetRef = useRef<BottomSheetModal>(null);
   const insets = useSafeAreaInsets();
-  const [selectedMobileRole, setSelectedMobileRole] =
+  const [selectedGrantId, setSelectedGrantId] = useState<string | null>(null);
+  const [selectedGrantRole, setSelectedGrantRole] =
     useState<MobileUserRoleKey>('participant');
-  const [selectedAccessRole, setSelectedAccessRole] =
-    useState<DocumentPartyRole>('viewer');
+  const [isGrantRoleDropdownOpen, setIsGrantRoleDropdownOpen] = useState(false);
+  const [revokeCountdown, setRevokeCountdown] = useState<number | null>(null);
   const snapPoints = useMemo(() => ['90%'], []);
-  const effectiveAccessRole =
-    selectedMobileRole === 'lawyer' ? selectedAccessRole : 'viewer';
+  const grantSnapPoints = useMemo(() => ['38%'], []);
+  const effectiveAccessRole: DocumentPartyRole = 'viewer';
 
   useEffect(() => {
     const sheet = bottomSheetRef.current;
@@ -112,10 +110,18 @@ export function ManageWhitelistBottomSheet({
 
   useEffect(() => {
     if (!visible) {
+      setSelectedGrantId(null);
+      setIsGrantRoleDropdownOpen(false);
+      setRevokeCountdown(null);
       return;
     }
 
     const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (selectedGrantId) {
+        grantSheetRef.current?.dismiss();
+        return true;
+      }
+
       bottomSheetRef.current?.dismiss();
       return true;
     });
@@ -123,7 +129,36 @@ export function ManageWhitelistBottomSheet({
     return () => {
       subscription.remove();
     };
-  }, [visible]);
+  }, [selectedGrantId, visible]);
+
+  useEffect(() => {
+    const sheet = grantSheetRef.current;
+
+    if (!sheet) {
+      return;
+    }
+
+    if (selectedGrantId) {
+      sheet.present();
+      return;
+    }
+
+    sheet.dismiss();
+  }, [selectedGrantId]);
+
+  useEffect(() => {
+    if (revokeCountdown === null || revokeCountdown <= 0) {
+      return;
+    }
+
+    const timeout = setTimeout(() => {
+      setRevokeCountdown((current) =>
+        current === null ? null : Math.max(0, current - 1),
+      );
+    }, 1000);
+
+    return () => clearTimeout(timeout);
+  }, [revokeCountdown]);
 
   const renderBackdrop = (props: React.ComponentProps<typeof BottomSheetBackdrop>) => (
     <BottomSheetBackdrop
@@ -136,36 +171,119 @@ export function ManageWhitelistBottomSheet({
     />
   );
 
-  if (!data) {
-    return null;
-  }
+  const renderGrantBackdrop = (props: React.ComponentProps<typeof BottomSheetBackdrop>) => (
+    <BottomSheetBackdrop
+      {...props}
+      appearsOnIndex={0}
+      disappearsOnIndex={-1}
+      opacity={0.2}
+      pressBehavior="close"
+    />
+  );
 
   const normalizedQuery = searchQuery.trim().toLowerCase();
+  const grants = data?.grants ?? [];
+  const searchResults = data?.searchResults ?? [];
   const filteredSearchResults =
     normalizedQuery.length > 0
-      ? data.searchResults.filter(
+      ? searchResults.filter(
           (result) =>
             result.name.toLowerCase().includes(normalizedQuery) ||
             result.email.toLowerCase().includes(normalizedQuery),
         )
       : [];
   const shouldShowSearchResults = normalizedQuery.length > 0;
+  const selectedGrant = grants.find((grant) => grant.id === selectedGrantId);
+
+  const openGrantMenu = (grant: WhitelistGrant) => {
+    setSelectedGrantId(grant.id);
+    setSelectedGrantRole(grant.assignedAs ?? 'participant');
+    setIsGrantRoleDropdownOpen(false);
+    setRevokeCountdown(null);
+  };
+
+  const closeGrantMenu = useCallback(() => {
+    setSelectedGrantId(null);
+    setIsGrantRoleDropdownOpen(false);
+    setRevokeCountdown(null);
+  }, []);
+
+  const handlePressRevoke = useCallback(() => {
+    if (!selectedGrant) {
+      return;
+    }
+
+    if (revokeCountdown === null) {
+      setRevokeCountdown(3);
+      return;
+    }
+
+    if (revokeCountdown === 0) {
+      onPressRevoke?.(selectedGrant.id);
+      closeGrantMenu();
+    }
+  }, [closeGrantMenu, onPressRevoke, revokeCountdown, selectedGrant]);
+
+  const revokeLabel =
+    revokeCountdown === null
+      ? 'Revoke'
+      : revokeCountdown > 0
+        ? `${revokeCountdown}...`
+        : 'Confirm';
+
+  const renderGrantFooter = useCallback(
+    (props: BottomSheetFooterProps) => (
+      <BottomSheetFooter
+        {...props}
+        bottomInset={insets.bottom}
+        style={styles.grantFooterContainer}
+      >
+        <View style={styles.grantFooter}>
+          <Pressable
+            accessibilityRole="button"
+            style={[
+              styles.revokeButton,
+              revokeCountdown !== null && revokeCountdown > 0 && styles.revokeButtonWaiting,
+              revokeCountdown === 0 && styles.revokeButtonConfirm,
+            ]}
+            onPress={handlePressRevoke}
+          >
+            <Text
+              style={[
+                styles.revokeButtonLabel,
+                revokeCountdown !== null && revokeCountdown > 0 && styles.revokeButtonLabelWaiting,
+                revokeCountdown === 0 && styles.revokeButtonLabelConfirm,
+              ]}
+            >
+              {revokeLabel}
+            </Text>
+          </Pressable>
+        </View>
+      </BottomSheetFooter>
+    ),
+    [handlePressRevoke, insets.bottom, revokeCountdown, revokeLabel],
+  );
+
+  if (!data) {
+    return null;
+  }
 
   return (
-    <BottomSheetModal
-      ref={bottomSheetRef}
-      index={0}
-      snapPoints={snapPoints}
-      onDismiss={onClose}
-      enableDynamicSizing={false}
-      enablePanDownToClose
-      keyboardBehavior="interactive"
-      keyboardBlurBehavior="restore"
-      android_keyboardInputMode="adjustResize"
-      backdropComponent={renderBackdrop}
-      handleIndicatorStyle={styles.handle}
-      backgroundStyle={styles.sheet}
-    >
+    <>
+      <BottomSheetModal
+        ref={bottomSheetRef}
+        index={0}
+        snapPoints={snapPoints}
+        onDismiss={onClose}
+        enableDynamicSizing={false}
+        enablePanDownToClose
+        keyboardBehavior="interactive"
+        keyboardBlurBehavior="restore"
+        android_keyboardInputMode="adjustResize"
+        backdropComponent={renderBackdrop}
+        handleIndicatorStyle={styles.handle}
+        backgroundStyle={styles.sheet}
+      >
       <BottomSheetScrollView
         style={styles.scrollArea}
         contentContainerStyle={[
@@ -187,76 +305,6 @@ export function ManageWhitelistBottomSheet({
           <Text style={styles.eyebrow}>WHITELIST ACCESS</Text>
           <Text style={styles.title}>Manage access</Text>
           <Text style={styles.description}>Grant or revoke document access.</Text>
-        </View>
-
-        <View style={styles.roleBlock}>
-          <Text style={styles.sectionTitle}>Assign as</Text>
-
-          <View style={styles.roleList}>
-            {MOBILE_USER_ROLES.map((role) => {
-              const isSelected = selectedMobileRole === role.key;
-
-              return (
-                <Pressable
-                  key={role.key}
-                  style={[
-                    styles.roleCard,
-                    isSelected && styles.roleCardSelected,
-                  ]}
-                  onPress={() => {
-                    setSelectedMobileRole(role.key);
-                    setSelectedAccessRole('viewer');
-                  }}
-                >
-                  <View style={styles.roleCopy}>
-                    <Text
-                      style={[
-                        styles.roleLabel,
-                        isSelected && styles.roleLabelSelected,
-                      ]}
-                    >
-                      {role.label}
-                    </Text>
-                    <Text style={styles.roleHelper}>{role.helper}</Text>
-                  </View>
-
-                  <MaterialIcons
-                    name={isSelected ? 'radio-button-checked' : 'radio-button-unchecked'}
-                    size={20}
-                    color={isSelected ? COLORS.primary : COLORS.textMuted}
-                  />
-                </Pressable>
-              );
-            })}
-          </View>
-
-          {selectedMobileRole === 'lawyer' ? (
-            <View style={styles.accessRoleList}>
-              {LAWYER_ACCESS_ROLES.map((role) => {
-                const isSelected = selectedAccessRole === role.key;
-
-                return (
-                  <Pressable
-                    key={role.key}
-                    style={[
-                      styles.accessRolePill,
-                      isSelected && styles.accessRolePillSelected,
-                    ]}
-                    onPress={() => setSelectedAccessRole(role.key)}
-                  >
-                    <Text
-                      style={[
-                        styles.accessRoleLabel,
-                        isSelected && styles.accessRoleLabelSelected,
-                      ]}
-                    >
-                      {role.label}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-          ) : null}
         </View>
 
         <View style={styles.searchBlock}>
@@ -286,13 +334,13 @@ export function ManageWhitelistBottomSheet({
         <View style={styles.grantsBlock}>
           <Text style={styles.grantsTitle}>Current grants</Text>
 
-          {isLoading && data.grants.length === 0 ? (
+          {isLoading && grants.length === 0 ? (
             <View style={styles.skeletonList}>
               <SkeletonBox height={52} borderRadius={16} />
               <SkeletonBox height={52} borderRadius={16} />
               <SkeletonBox height={52} borderRadius={16} />
             </View>
-          ) : data.grants.length === 0 ? (
+          ) : grants.length === 0 ? (
             <View style={styles.stateCard}>
               <View style={styles.emptyStateCard}>
                 <MaterialIcons name="shield" size={24} color={COLORS.primary} />
@@ -308,21 +356,86 @@ export function ManageWhitelistBottomSheet({
             </View>
           ) : (
             <View style={styles.grantsList}>
-              {data.grants.map((grant) => (
+              {grants.map((grant) => (
                 <WhitelistGrantRow
                   key={grant.id}
                   name={grant.name}
                   accessLabel={grant.accessLabel}
-                  actionLabel={grant.actionLabel}
-                  onPressAction={() => onPressGrantAction?.(grant.id)}
-                  onPressRevoke={() => onPressRevoke?.(grant.id)}
+                  onPressMenu={() => {
+                    onPressGrantAction?.(grant.id);
+                    openGrantMenu(grant);
+                  }}
                 />
               ))}
             </View>
           )}
         </View>
       </BottomSheetScrollView>
-    </BottomSheetModal>
+      </BottomSheetModal>
+
+      <BottomSheetModal
+        ref={grantSheetRef}
+        index={0}
+        snapPoints={grantSnapPoints}
+        onDismiss={closeGrantMenu}
+        enableDynamicSizing={true}
+        enablePanDownToClose
+        backdropComponent={renderGrantBackdrop}
+        footerComponent={renderGrantFooter}
+        handleIndicatorStyle={styles.handle}
+        backgroundStyle={styles.sheet}
+      >
+        <BottomSheetScrollView
+          contentContainerStyle={[
+            styles.grantActionContent,
+            { paddingBottom: Math.max(insets.bottom, 24) + 100 },
+          ]}
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.grantActionHeader}>
+            <Text style={styles.grantActionTitle}>{selectedGrant?.name ?? 'Access grant'}</Text>
+            <Text style={styles.grantActionSubtitle}>
+              {selectedGrant?.email ?? 'Manage this user access'}
+            </Text>
+          </View>
+
+          <View style={styles.dropdownBlock}>
+            <Text style={styles.dropdownLabel}>Assign as</Text>
+            <Pressable
+              style={styles.dropdownButton}
+              onPress={() => setIsGrantRoleDropdownOpen((current) => !current)}
+            >
+              <Text style={styles.dropdownValue}>{getMobileRoleLabel(selectedGrantRole)}</Text>
+              <MaterialIcons
+                name={isGrantRoleDropdownOpen ? 'expand-less' : 'expand-more'}
+                size={20}
+                color={COLORS.textMuted}
+              />
+            </Pressable>
+
+            {isGrantRoleDropdownOpen ? (
+              <View style={styles.dropdownMenu}>
+                {MOBILE_USER_ROLES.map((role) => (
+                  <Pressable
+                    key={role.key}
+                    style={styles.dropdownItem}
+                    onPress={() => {
+                      setSelectedGrantRole(role.key);
+                      setIsGrantRoleDropdownOpen(false);
+                    }}
+                  >
+                    <Text style={styles.dropdownItemLabel}>{role.label}</Text>
+                    {selectedGrantRole === role.key ? (
+                      <MaterialIcons name="check" size={18} color={COLORS.primary} />
+                    ) : null}
+                  </Pressable>
+                ))}
+              </View>
+            ) : null}
+          </View>
+        </BottomSheetScrollView>
+      </BottomSheetModal>
+    </>
   );
 }
 
@@ -396,84 +509,6 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     fontWeight: '500',
   },
-  roleBlock: {
-    gap: 10,
-  },
-  sectionTitle: {
-    color: COLORS.navy,
-    fontFamily: fonts.regular,
-    fontSize: 16,
-    lineHeight: 20,
-    fontWeight: '800',
-  },
-  roleList: {
-    gap: 8,
-  },
-  roleCard: {
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: COLORS.borderSoft,
-    backgroundColor: COLORS.surface,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 12,
-  },
-  roleCardSelected: {
-    borderColor: COLORS.primary,
-    backgroundColor: '#F4FAFF',
-  },
-  roleCopy: {
-    flex: 1,
-    gap: 3,
-  },
-  roleLabel: {
-    color: COLORS.navy,
-    fontFamily: fonts.regular,
-    fontSize: 13,
-    lineHeight: 17,
-    fontWeight: '800',
-  },
-  roleLabelSelected: {
-    color: COLORS.primary,
-  },
-  roleHelper: {
-    color: COLORS.textMuted,
-    fontFamily: fonts.regular,
-    fontSize: 11,
-    lineHeight: 15,
-    fontWeight: '600',
-  },
-  accessRoleList: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  accessRolePill: {
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: COLORS.borderSoft,
-    backgroundColor: COLORS.surface,
-    paddingVertical: 9,
-    paddingHorizontal: 14,
-  },
-  accessRolePillSelected: {
-    borderColor: COLORS.primary,
-    backgroundColor: COLORS.primary,
-  },
-  accessRoleLabel: {
-    color: COLORS.navy,
-    fontFamily: fonts.regular,
-    fontSize: 12,
-    lineHeight: 15,
-    fontWeight: '800',
-  },
-  accessRoleLabelSelected: {
-    color: COLORS.surface,
-  },
   searchBlock: {
     position: 'relative',
     gap: 8,
@@ -491,6 +526,113 @@ const styles = StyleSheet.create({
   },
   grantsList: {
     gap: 10,
+  },
+  grantActionContent: {
+    paddingHorizontal: 18,
+    gap: 18,
+  },
+  grantActionHeader: {
+    gap: 6,
+  },
+  grantActionTitle: {
+    color: COLORS.navy,
+    fontFamily: fonts.regular,
+    fontSize: 20,
+    lineHeight: 24,
+    fontWeight: '800',
+  },
+  grantActionSubtitle: {
+    color: COLORS.textMuted,
+    fontFamily: fonts.regular,
+    fontSize: 12,
+    lineHeight: 16,
+    fontWeight: '600',
+  },
+  dropdownBlock: {
+    gap: 8,
+  },
+  dropdownLabel: {
+    color: COLORS.navy,
+    fontFamily: fonts.regular,
+    fontSize: 13,
+    lineHeight: 17,
+    fontWeight: '800',
+  },
+  dropdownButton: {
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.borderSoft,
+    borderRadius: 16,
+    paddingVertical: 13,
+    paddingHorizontal: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  dropdownValue: {
+    color: COLORS.navy,
+    fontFamily: fonts.regular,
+    fontSize: 14,
+    lineHeight: 18,
+    fontWeight: '800',
+  },
+  dropdownMenu: {
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.borderSoft,
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  dropdownItem: {
+    minHeight: 46,
+    paddingHorizontal: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  dropdownItemLabel: {
+    color: COLORS.navy,
+    fontFamily: fonts.regular,
+    fontSize: 13,
+    lineHeight: 17,
+    fontWeight: '700',
+  },
+  grantFooterContainer: {
+    backgroundColor: 'transparent',
+  },
+  grantFooter: {
+    paddingHorizontal: 18,
+    paddingTop: 12,
+    paddingBottom: 14,
+    backgroundColor: COLORS.sheet,
+  },
+  revokeButton: {
+    borderRadius: 999,
+    backgroundColor: '#FFECEF',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+  },
+  revokeButtonWaiting: {
+    backgroundColor: COLORS.borderSoft,
+  },
+  revokeButtonConfirm: {
+    backgroundColor: '#D8627B',
+  },
+  revokeButtonLabel: {
+    color: '#D8627B',
+    fontFamily: fonts.regular,
+    fontSize: 13,
+    lineHeight: 17,
+    fontWeight: '800',
+  },
+  revokeButtonLabelWaiting: {
+    color: COLORS.textMuted,
+  },
+  revokeButtonLabelConfirm: {
+    color: COLORS.surface,
   },
   skeletonList: {
     gap: 10,

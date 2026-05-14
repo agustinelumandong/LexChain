@@ -20,6 +20,7 @@ export type WhitelistGrant = {
   accessLabel: string;
   actionLabel: string;
   email?: string;
+  assignedAs?: 'participant' | 'owner' | 'lawyer';
 };
 
 export type WhitelistSearchResult = {
