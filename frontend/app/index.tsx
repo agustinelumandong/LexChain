@@ -36,8 +36,6 @@ export default function Index() {
   const animationConfigs = useBottomSheetSpringConfigs({
     damping: 68,
     overshootClamping: true,
-    restDisplacementThreshold: 0.08,
-    restSpeedThreshold: 0.08,
     stiffness: 380,
   });
 
@@ -96,7 +94,6 @@ export default function Index() {
         snapPoints={SHEET_SNAP_POINTS}
         animateOnMount
         enableDynamicSizing={false}
-        enableDismissOnClose={false}
         enableOverDrag
         enablePanDownToClose={false}
         overDragResistanceFactor={8}

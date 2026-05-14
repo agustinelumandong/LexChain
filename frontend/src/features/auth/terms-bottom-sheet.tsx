@@ -129,7 +129,6 @@ export default function TermsBottomSheet({
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
           onScroll={handleScroll}
-          scrollEventThrottle={16}
         >
           <Section
             title="1. Account responsibility"

@@ -13,8 +13,8 @@ type PublicVerifyResult = {
   status: string;
   confidence: number;
   file_name?: string | null;
-  notarized_at?: number | null;
-  notarized_by?: string | null;
+  recorded_at?: number | null;
+  recorded_by?: string | null;
   tx_hash?: string | null;
   matched_at: string;
 };
@@ -258,8 +258,8 @@ export default function PublicVerifierDom({ verifyPdf }: PublicVerifierDomProps)
             <div style={styles.rows}>
               <ResultRow label="Confidence" value={`${Math.round(result.confidence * 100)}%`} />
               <ResultRow label="Matched" value={formatDate(result.matched_at)} />
-              <ResultRow label="Notarized" value={formatDate(result.notarized_at)} />
-              <ResultRow label="Notarized by" value={result.notarized_by ?? 'Not available'} />
+              <ResultRow label="Recorded" value={formatDate(result.recorded_at)} />
+              <ResultRow label="Recorded by" value={result.recorded_by ?? 'Not available'} />
               <ResultRow label="Transaction" value={formatHash(result.tx_hash)} />
             </div>
           </section>
