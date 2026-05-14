@@ -4,12 +4,12 @@ import {
   BottomSheetScrollView,
 } from '@gorhom/bottom-sheet';
 import { MaterialIcons } from '@expo/vector-icons';
-import React, { useEffect, useMemo, useRef } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { BackHandler, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { SearchInputWithResults, SkeletonBox } from '@/ui';
-import type { ManageWhitelistData } from '@/types';
+import type { DocumentPartyRole, ManageWhitelistData } from '@/types';
 import { WhitelistGrantRow } from './whitelist-grant-row';
 import { WhitelistSearchResultRow } from './whitelist-search-result-row';
 
@@ -25,6 +25,43 @@ const COLORS = {
   surfaceSoft: APP_COLORS.bg,
 };
 
+type MobileUserRoleKey = 'participant' | 'owner' | 'lawyer';
+
+const MOBILE_USER_ROLES: {
+  key: MobileUserRoleKey;
+  label: string;
+  helper: string;
+}[] = [
+  {
+    key: 'participant',
+    label: 'Witness/Participant',
+    helper: 'Viewer',
+  },
+  {
+    key: 'owner',
+    label: 'Owner',
+    helper: 'Viewer',
+  },
+  {
+    key: 'lawyer',
+    label: 'Lawyer',
+    helper: 'Viewer, signer, or editor',
+  },
+];
+
+const LAWYER_ACCESS_ROLES: {
+  key: DocumentPartyRole;
+  label: string;
+}[] = [
+  { key: 'viewer', label: 'Viewer' },
+  { key: 'signer', label: 'Signer' },
+  { key: 'editor', label: 'Editor' },
+];
+
+function getAddLabel(role: DocumentPartyRole) {
+  return `Add ${role.charAt(0).toUpperCase()}${role.slice(1)}`;
+}
+
 type ManageWhitelistBottomSheetProps = {
   visible: boolean;
   data: ManageWhitelistData | null;
@@ -34,7 +71,7 @@ type ManageWhitelistBottomSheetProps = {
   onClose: () => void;
   onPressGrantAction?: (grantId: string) => void;
   onPressRevoke?: (grantId: string) => void;
-  onPressAddResult?: (resultId: string) => void;
+  onPressAddResult?: (resultId: string, role: DocumentPartyRole) => void;
 };
 
 export function ManageWhitelistBottomSheet({
@@ -50,7 +87,13 @@ export function ManageWhitelistBottomSheet({
 }: ManageWhitelistBottomSheetProps) {
   const bottomSheetRef = useRef<BottomSheetModal>(null);
   const insets = useSafeAreaInsets();
+  const [selectedMobileRole, setSelectedMobileRole] =
+    useState<MobileUserRoleKey>('participant');
+  const [selectedAccessRole, setSelectedAccessRole] =
+    useState<DocumentPartyRole>('viewer');
   const snapPoints = useMemo(() => ['90%'], []);
+  const effectiveAccessRole =
+    selectedMobileRole === 'lawyer' ? selectedAccessRole : 'viewer';
 
   useEffect(() => {
     const sheet = bottomSheetRef.current;
@@ -146,6 +189,76 @@ export function ManageWhitelistBottomSheet({
           <Text style={styles.description}>Grant or revoke document access.</Text>
         </View>
 
+        <View style={styles.roleBlock}>
+          <Text style={styles.sectionTitle}>Assign as</Text>
+
+          <View style={styles.roleList}>
+            {MOBILE_USER_ROLES.map((role) => {
+              const isSelected = selectedMobileRole === role.key;
+
+              return (
+                <Pressable
+                  key={role.key}
+                  style={[
+                    styles.roleCard,
+                    isSelected && styles.roleCardSelected,
+                  ]}
+                  onPress={() => {
+                    setSelectedMobileRole(role.key);
+                    setSelectedAccessRole('viewer');
+                  }}
+                >
+                  <View style={styles.roleCopy}>
+                    <Text
+                      style={[
+                        styles.roleLabel,
+                        isSelected && styles.roleLabelSelected,
+                      ]}
+                    >
+                      {role.label}
+                    </Text>
+                    <Text style={styles.roleHelper}>{role.helper}</Text>
+                  </View>
+
+                  <MaterialIcons
+                    name={isSelected ? 'radio-button-checked' : 'radio-button-unchecked'}
+                    size={20}
+                    color={isSelected ? COLORS.primary : COLORS.textMuted}
+                  />
+                </Pressable>
+              );
+            })}
+          </View>
+
+          {selectedMobileRole === 'lawyer' ? (
+            <View style={styles.accessRoleList}>
+              {LAWYER_ACCESS_ROLES.map((role) => {
+                const isSelected = selectedAccessRole === role.key;
+
+                return (
+                  <Pressable
+                    key={role.key}
+                    style={[
+                      styles.accessRolePill,
+                      isSelected && styles.accessRolePillSelected,
+                    ]}
+                    onPress={() => setSelectedAccessRole(role.key)}
+                  >
+                    <Text
+                      style={[
+                        styles.accessRoleLabel,
+                        isSelected && styles.accessRoleLabelSelected,
+                      ]}
+                    >
+                      {role.label}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          ) : null}
+        </View>
+
         <View style={styles.searchBlock}>
           <SearchInputWithResults
             label={data.searchLabel ?? 'Search user'}
@@ -161,9 +274,10 @@ export function ManageWhitelistBottomSheet({
               <WhitelistSearchResultRow
                 name={result.name}
                 email={result.email}
+                addLabel={getAddLabel(effectiveAccessRole)}
                 roundedTop={index === 0}
                 roundedBottom={index === filteredSearchResults.length - 1}
-                onPressAdd={() => onPressAddResult?.(result.id)}
+                onPressAdd={() => onPressAddResult?.(result.id, effectiveAccessRole)}
               />
             )}
           />
@@ -281,6 +395,84 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 18,
     fontWeight: '500',
+  },
+  roleBlock: {
+    gap: 10,
+  },
+  sectionTitle: {
+    color: COLORS.navy,
+    fontFamily: fonts.regular,
+    fontSize: 16,
+    lineHeight: 20,
+    fontWeight: '800',
+  },
+  roleList: {
+    gap: 8,
+  },
+  roleCard: {
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: COLORS.borderSoft,
+    backgroundColor: COLORS.surface,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  roleCardSelected: {
+    borderColor: COLORS.primary,
+    backgroundColor: '#F4FAFF',
+  },
+  roleCopy: {
+    flex: 1,
+    gap: 3,
+  },
+  roleLabel: {
+    color: COLORS.navy,
+    fontFamily: fonts.regular,
+    fontSize: 13,
+    lineHeight: 17,
+    fontWeight: '800',
+  },
+  roleLabelSelected: {
+    color: COLORS.primary,
+  },
+  roleHelper: {
+    color: COLORS.textMuted,
+    fontFamily: fonts.regular,
+    fontSize: 11,
+    lineHeight: 15,
+    fontWeight: '600',
+  },
+  accessRoleList: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  accessRolePill: {
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: COLORS.borderSoft,
+    backgroundColor: COLORS.surface,
+    paddingVertical: 9,
+    paddingHorizontal: 14,
+  },
+  accessRolePillSelected: {
+    borderColor: COLORS.primary,
+    backgroundColor: COLORS.primary,
+  },
+  accessRoleLabel: {
+    color: COLORS.navy,
+    fontFamily: fonts.regular,
+    fontSize: 12,
+    lineHeight: 15,
+    fontWeight: '800',
+  },
+  accessRoleLabelSelected: {
+    color: COLORS.surface,
   },
   searchBlock: {
     position: 'relative',

@@ -17,7 +17,7 @@ import {
   SearchDocumentSheet,
 } from '@/features/document';
 import { Button, ErrorState, ScreenHeader, SkeletonBox } from '@/ui';
-import type { PickedUploadFile } from '@/types';
+import type { DocumentPartyRole, PickedUploadFile } from '@/types';
 import {
   useAddDocumentParty,
   useAskDocument,
@@ -576,7 +576,10 @@ export default function DocumentDetailsScreen() {
     }
   };
 
-  const handleAddWhitelistResult = async (resultId: string) => {
+  const handleAddWhitelistResult = async (
+    resultId: string,
+    role: DocumentPartyRole,
+  ) => {
     const result = whitelistData.searchResults.find(
       (entry) => entry.id === resultId,
     );
@@ -590,11 +593,11 @@ export default function DocumentDetailsScreen() {
         documentId,
         payload: {
           email: result.email,
-          role: 'viewer',
+          role,
         },
       });
       setWhitelistSearchQuery('');
-      toast.success(`${result.name} added to document access`);
+      toast.success(`${result.name} added as ${role}`);
     } catch (error) {
       toast.error(parseApiError(error).message);
     }
