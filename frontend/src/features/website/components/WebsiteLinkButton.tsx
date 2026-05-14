@@ -1,5 +1,5 @@
 import { Link, type Href } from 'expo-router';
-import { Pressable, StyleSheet, Text } from 'react-native';
+import { StyleSheet, Text } from 'react-native';
 
 import { APP_COLORS, fonts } from '@/theme';
 
@@ -17,24 +17,23 @@ export function WebsiteLinkButton({
   const isPrimary = variant === 'primary';
 
   return (
-    <Link href={href} asChild>
-      <Pressable
-        accessibilityRole="link"
-        style={[
-          styles.button,
-          isPrimary ? styles.primaryButton : styles.secondaryButton,
-        ]}
-      >
-        <Text style={[styles.label, isPrimary ? styles.primaryText : styles.secondaryText]}>
-          {label}
-        </Text>
-      </Pressable>
+    <Link
+      href={href}
+      style={[
+        styles.button,
+        isPrimary ? styles.primaryButton : styles.secondaryButton,
+      ]}
+    >
+      <Text style={[styles.label, isPrimary ? styles.primaryText : styles.secondaryText]}>
+        {label}
+      </Text>
     </Link>
   );
 }
 
 const styles = StyleSheet.create({
   button: {
+    display: 'flex',
     minHeight: 52,
     borderRadius: 999,
     alignItems: 'center',
