@@ -1,7 +1,8 @@
 import { useFocusEffect, useRouter } from 'expo-router';
-import React, { useCallback, useState } from 'react';
+import React, { useState } from 'react';
 import { Image } from 'expo-image';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { MaterialIcons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import type { PickedUploadFile } from '@/types';
@@ -9,27 +10,23 @@ import {
   getPendingCapturedFiles,
   setPendingCapturedFiles,
 } from '@/features/upload';
-import { Button, ScreenHeader } from '@/ui';
+import { Button } from '@/ui';
 
 import { APP_COLORS, fonts } from '@/theme';
-const HEADER_CONTENT_GAP = 12;
 const COLORS = {
-  bg: '#041228',
-  surface: '#0B1E38',
-  surfaceSoft: 'rgba(255,255,255,0.08)',
+  bg: APP_COLORS.surfaceSoft,
+  surface: APP_COLORS.white,
+  surfaceSoft: APP_COLORS.surfaceSoft,
   white: APP_COLORS.white,
   primary: APP_COLORS.primary,
-  textMuted: '#B8CCE8',
+  textMuted: APP_COLORS.textMuted,
+  navy: APP_COLORS.navy,
 };
 
 export default function CaptureReviewScreen() {
   const router = useRouter();
   const [capturedFiles, setCapturedFiles] = useState<PickedUploadFile[]>([]);
   const [previewFile, setPreviewFile] = useState<PickedUploadFile | null>(null);
-  const [headerHeight, setHeaderHeight] = useState(126);
-  const handleHeaderHeightChange = useCallback((nextHeight: number) => {
-    setHeaderHeight((h) => (h === nextHeight ? h : nextHeight));
-  }, []);
 
   useFocusEffect(
     React.useCallback(() => {
@@ -46,19 +43,24 @@ export default function CaptureReviewScreen() {
   return (
     <SafeAreaView style={styles.screen}>
       <View style={styles.surface}>
-        <ScreenHeader
-          eyebrow="CAPTURE REVIEW"
-          title="Captured pages"
-          subtitle="Review queued pages before finishing the PDF scan."
-          tone="dark"
-          leftAccessibilityLabel="Back to camera"
-          onPressLeft={() => router.back()}
-          onHeightChange={handleHeaderHeightChange}
-          includeTopInset
-        />
+        <View style={styles.topBar}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Back to camera"
+            style={styles.topBarButton}
+            onPress={() => router.back()}
+          >
+            <MaterialIcons name="arrow-back" size={20} color={COLORS.navy} />
+          </Pressable>
+          <View style={styles.topBarCopy}>
+            <Text style={styles.topBarEyebrow}>CAPTURE REVIEW</Text>
+            <Text style={styles.topBarTitle}>Captured pages</Text>
+          </View>
+          <View style={styles.topBarButton} />
+        </View>
 
         <ScrollView
-          contentContainerStyle={[styles.scrollContent, { paddingTop: headerHeight + HEADER_CONTENT_GAP }]}
+          contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
           <Text style={styles.body}>
@@ -103,7 +105,7 @@ export default function CaptureReviewScreen() {
         <View style={styles.footer}>
           <Button
             label="Back to camera"
-            variant="secondary"
+            variant="primary"
             fullWidth
             onPress={() => router.back()}
           />
@@ -121,7 +123,7 @@ export default function CaptureReviewScreen() {
 
           <View style={styles.previewShell}>
             <Pressable style={styles.previewClose} onPress={() => setPreviewFile(null)}>
-              <Text style={styles.removeButtonLabel}>X</Text>
+              <MaterialIcons name="close" size={18} color={COLORS.white} />
             </Pressable>
 
             {previewFile ? (
@@ -152,7 +154,43 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
     gap: 16,
   },
-  body: {
+  topBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 14,
+    backgroundColor: COLORS.bg,
+  },
+  topBarButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    backgroundColor: COLORS.surfaceSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  topBarCopy: {
+    flex: 1,
+    alignItems: 'center',
+    gap: 2,
+  },
+  topBarEyebrow: {
+    color: COLORS.primary,
+    fontFamily: fonts.regular,
+    fontSize: 10,
+    lineHeight: 12,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  topBarTitle: {
+    color: COLORS.navy,
+    fontFamily: fonts.regular,
+    fontSize: 16,
+    lineHeight: 20,
+    fontWeight: '800',
+  },  body: {
     color: COLORS.textMuted,
     fontSize: 13,
     lineHeight: 18,
@@ -186,7 +224,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   cardTitle: {
-    color: COLORS.white,
+    color: COLORS.navy,
     fontSize: 14,
     lineHeight: 18,
     fontWeight: '800',
@@ -221,7 +259,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   emptyTitle: {
-    color: COLORS.white,
+    color: COLORS.navy,
     fontSize: 16,
     lineHeight: 20,
     fontWeight: '800',
@@ -240,30 +278,30 @@ const styles = StyleSheet.create({
   },
   previewModal: {
     flex: 1,
-    backgroundColor: 'transparent',
+    backgroundColor: 'rgba(4, 18, 40, 0.92)',
     justifyContent: 'center',
     alignItems: 'center',
+    padding: 24,
   },
   previewBackdrop: {
     ...StyleSheet.absoluteFillObject,
   },
   previewShell: {
-    width: '88%',
-    height: '78%',
+    width: '100%',
+    aspectRatio: 0.75,
     borderRadius: 28,
     overflow: 'hidden',
     backgroundColor: COLORS.surface,
-    padding: 16,
   },
   previewClose: {
     position: 'absolute',
-    top: 14,
-    right: 14,
+    top: 12,
+    right: 12,
     zIndex: 2,
     width: 32,
     height: 32,
     borderRadius: 999,
-    backgroundColor: COLORS.surfaceSoft,
+    backgroundColor: 'rgba(4, 18, 40, 0.6)',
     alignItems: 'center',
     justifyContent: 'center',
   },

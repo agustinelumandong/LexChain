@@ -12,7 +12,7 @@ import {
   getPendingCapturedFiles,
   setPendingCapturedFiles,
 } from '@/features/upload';
-import { Button, ScreenHeader } from '@/ui';
+import { Button } from '@/ui';
 
 import { APP_COLORS, fonts } from '@/theme';
 const COLORS = {
@@ -161,19 +161,30 @@ export default function CameraCaptureScreen() {
           <CameraView ref={cameraRef} style={styles.cameraPreview} facing={facing} />
         )}
 
-        <ScreenHeader
-          eyebrow="CAMERA"
-          title="Scan to PDF"
-          subtitle="Align the document and capture pages."
-          tone="dark"
-          style={styles.topBar}
-          leftIconName="close"
-          leftAccessibilityLabel="Back to upload"
-          rightIconName="flip-camera-ios"
-          rightAccessibilityLabel="Flip camera"
-          onPressLeft={() => router.back()}
-          onPressRight={() => setFacing((current) => (current === 'back' ? 'front' : 'back'))}
-        />
+        <View style={styles.topBar}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Back to upload"
+            style={styles.topBarButton}
+            onPress={() => router.back()}
+          >
+            <MaterialIcons name="close" size={20} color={COLORS.white} />
+          </Pressable>
+
+          <View style={styles.topBarCopy}>
+            <Text style={styles.topBarEyebrow}>CAMERA</Text>
+            <Text style={styles.topBarTitle}>Scan to PDF</Text>
+          </View>
+
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Flip camera"
+            style={styles.topBarButton}
+            onPress={() => setFacing((current) => (current === 'back' ? 'front' : 'back'))}
+          >
+            <MaterialIcons name="flip-camera-ios" size={20} color={COLORS.white} />
+          </Pressable>
+        </View>
 
         {!capturedPhoto ? (
           <View style={[styles.frameWrap, styles.nonInteractive]}>
@@ -295,10 +306,44 @@ const styles = StyleSheet.create({
   },
   topBar: {
     position: 'absolute',
-    top: 52,
+    top: 0,
     left: 0,
     right: 0,
     zIndex: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 16,
+    paddingTop: 52,
+    paddingBottom: 14,
+  },
+  topBarButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  topBarCopy: {
+    flex: 1,
+    alignItems: 'center',
+    gap: 2,
+  },
+  topBarEyebrow: {
+    color: COLORS.primary,
+    fontFamily: fonts.regular,
+    fontSize: 10,
+    lineHeight: 12,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  topBarTitle: {
+    color: COLORS.white,
+    fontFamily: fonts.regular,
+    fontSize: 16,
+    lineHeight: 20,
+    fontWeight: '800',
   },
   frameWrap: {
     position: 'absolute',
