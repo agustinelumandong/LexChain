@@ -1,8 +1,6 @@
-import { MaterialIcons } from '@expo/vector-icons';
-import { Image } from 'expo-image';
 import { Link } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Platform, StyleSheet, Text, View } from 'react-native';
+import { Image, Platform, StyleSheet, Text, View } from 'react-native';
 
 import { APP_COLORS, fonts } from '@/theme';
 
@@ -22,9 +20,9 @@ export function WebNavbar() {
       <View style={[styles.nav, scrolled && styles.navScrolled]}>
         <View style={styles.brand}>
           <Image
-            source={{ uri: '/assets/assets/images/icons/logo-lexchain.svg' }}
+            source={require('../../../../assets/images/splash-icon.png')}
             style={styles.logo}
-            contentFit="contain"
+            resizeMode="contain"
           />
           <View>
             <Text style={styles.brandName}>LexChain</Text>

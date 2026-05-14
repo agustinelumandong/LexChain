@@ -1,7 +1,7 @@
 import { MaterialIcons } from '@expo/vector-icons';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { APP_COLORS, fonts } from '@/theme';
+import { fonts } from '@/theme';
 
 const FEATURES = [
   { icon: 'lock' as const, title: 'Secure Upload & Storage', copy: 'Manage legal documents with ownership, access rules, and organized metadata.' },
