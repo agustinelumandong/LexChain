@@ -43,22 +43,16 @@ export function AdminSidebar() {
           const isActive = pathname === link.href;
 
           return (
-            <Link key={link.href} href={link.href} asChild>
-              <Pressable
-                accessibilityRole="link"
-                style={[styles.link, isActive && styles.linkActive]}
-              >
-                <View style={[styles.activeRail, isActive && styles.activeRailVisible]} />
-                <MaterialIcons
-                  name={link.icon}
-                  size={20}
-                  color={isActive ? '#111827' : '#A7B4C4'}
-                />
-
-                <Text style={[styles.linkText, isActive && styles.linkTextActive]}>
-                  {link.label}
-                </Text>
-              </Pressable>
+            <Link key={link.href} href={link.href} style={[styles.link, isActive && styles.linkActive]}>
+              <MaterialIcons
+                name={link.icon}
+                size={20}
+                color={isActive ? '#111827' : '#A7B4C4'}
+              />
+              <Text style={[styles.linkText, isActive && styles.linkTextActive]}>
+                {link.label}
+              </Text>
+              <View style={[styles.activeRail, isActive && styles.activeRailVisible]} />
             </Link>
           );
         })}
@@ -118,10 +112,11 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   nav: {
-    gap: 14,
+    gap: 2,
     paddingBottom: 12,
   },
   link: {
+    display: 'flex',
     alignItems: 'center',
     borderRadius: 12,
     flexDirection: 'row',
@@ -130,14 +125,11 @@ const styles = StyleSheet.create({
     paddingLeft: 22,
     paddingRight: 12,
     paddingVertical: 8,
-    position: 'relative',
   },
   linkActive: {
     backgroundColor: 'transparent',
   },
   activeRail: {
-    left: 0,
-    position: 'absolute',
     backgroundColor: 'transparent',
     borderRadius: 999,
     height: 26,
