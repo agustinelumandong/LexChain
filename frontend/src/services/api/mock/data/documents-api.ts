@@ -143,6 +143,9 @@ export const MOCK_DOCUMENT_PARTIES_RESPONSE: DocumentPartyListResponse = {
     {
       id: 'a4a710b8-9e80-4585-b4cf-44eae4a3e101',
       user_id: 'ec0a534a-693b-46c2-bde1-fd46c599f501',
+      email: 'viewer@example.com',
+      f_name: 'Demo',
+      l_name: 'Viewer',
       role: 'viewer',
       created_at: '2026-05-09T10:00:00Z',
     },
