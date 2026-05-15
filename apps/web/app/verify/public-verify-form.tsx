@@ -239,140 +239,142 @@ export function PublicVerifyForm() {
         </div>
       ) : null}
 
-      <div
-        role="button"
-        tabIndex={0}
-        aria-disabled={isPending}
-        aria-label="Choose or drop one PDF file to verify"
-        onClick={() => {
-          if (!isPending) {
-            inputRef.current?.click();
-          }
-        }}
-        onKeyDown={(event) => {
-          if ((event.key === "Enter" || event.key === " ") && !isPending) {
-            event.preventDefault();
-            inputRef.current?.click();
-          }
-        }}
-        className={[
-          "rounded-[18px] border border-dashed px-6 py-24 text-center transition",
-          isDragging ? "border-[#0985E7] bg-[#EAF6FF]" : "border-[#9fb0c6] bg-[#f7f9fc]",
-          isPending ? "cursor-wait opacity-75" : "cursor-pointer hover:border-[#0985E7]",
-        ].join(" ")}
-      >
-        <input
-          ref={inputRef}
-          className="sr-only"
-          type="file"
-          accept="application/pdf,.pdf"
-          disabled={isPending}
-          onClick={(event) => event.stopPropagation()}
-          onChange={(event) => {
-            void handleFile(event.currentTarget.files?.[0]);
-            event.currentTarget.value = "";
+      {!result ? (
+        <div
+          role="button"
+          tabIndex={0}
+          aria-disabled={isPending}
+          aria-label="Choose or drop one PDF file to verify"
+          onClick={() => {
+            if (!isPending) {
+              inputRef.current?.click();
+            }
           }}
-        />
-        <div className="mx-auto flex h-11 w-11 items-center justify-center text-[#0985E7]">
-          <svg
-            aria-hidden="true"
-            className="h-10 w-10"
-            fill="none"
-            stroke="currentColor"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth="2.4"
-            viewBox="0 0 24 24"
-          >
-            <path d="M16 16l-4-4-4 4" />
-            <path d="M12 12v9" />
-            <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3" />
-            <path d="M16 16l-4-4-4 4" />
-          </svg>
-        </div>
-        <p className="mt-3 text-xs font-black uppercase tracking-[0.14em] text-[#64748b]">
-          PDF only
-        </p>
-        <p className="mt-3 text-xl font-black text-[#0C2B49]">
-          {selectedFile?.name ?? (isPending ? "Verifying uploaded document..." : "Drag and Drop here")}
-        </p>
-        {selectedFile ? (
-          <div className="mt-3 space-y-4">
-            <p className="text-sm font-semibold text-[#64748b]">
-              {formatFileSize(selectedFile.size)}
-            </p>
-            <p className="text-sm font-semibold text-[#64748b]">
-              Choose or drop one PDF file to verify
-            </p>
-            {isPending ? (
-              <div className="mx-auto max-w-sm rounded-2xl bg-white/75 p-4 text-left">
-                <div className="flex items-center justify-between gap-4">
-                  <div>
-                    <p className="text-sm font-black text-[#0C2B49]">
-                      Verifying uploaded document...
-                    </p>
-                    <p className="mt-1 text-sm font-semibold text-[#64748b]">
-                      OCR, hash comparison, and blockchain lookup are running.
-                    </p>
-                  </div>
-                  <p className="text-sm font-black text-[#0985E7]">{progress}%</p>
-                </div>
-                <div className="mt-4 h-2 overflow-hidden rounded-full bg-[#E4EEF9]">
-                  <div
-                    className="h-full rounded-full bg-[#0985E7] transition-[width] duration-150"
-                    style={{ width: `${progress}%` }}
-                  />
-                </div>
-                {progress >= 70 ? (
-                  <p className="mt-3 text-center text-xs font-black uppercase tracking-[0.14em] text-[#64748b]">
-                    Waiting for verification response
-                  </p>
-                ) : null}
-              </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center gap-3 sm:flex-row">
-                <button
-                  className="rounded-full border border-[#E4EEF9] bg-white px-6 py-3 text-sm font-black text-[#64748b] transition hover:bg-[#F5FAFF] disabled:cursor-not-allowed disabled:opacity-60"
-                  disabled={isPending}
-                  type="button"
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    removeSelectedFile();
-                  }}
-                >
-                  Remove file
-                </button>
-                <button
-                  className="rounded-full bg-[#0985E7] px-9 py-3 text-sm font-black text-white shadow-[0_10px_24px_rgba(9,133,231,0.22)] transition hover:bg-[#0770c4] disabled:cursor-not-allowed disabled:bg-[#9fb0c6] disabled:shadow-none"
-                  disabled={isPending}
-                  type="button"
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    void verifySelectedFile();
-                  }}
-                >
-                  Verify
-                </button>
-              </div>
-            )}
-          </div>
-        ) : (
-          <>
-            <p className="mt-2 text-base font-semibold text-[#64748b]">or</p>
-            <button
-              className="mt-4 rounded-full bg-[#0985E7] px-8 py-3 text-sm font-black text-white shadow-[0_10px_24px_rgba(9,133,231,0.22)] transition hover:bg-[#0770c4] cursor-pointer disabled:cursor-not-allowed disabled:bg-[#9fb0c6] disabled:shadow-none"
-              disabled={isPending}
-              type="button"
-              onClick={(event) => {
-                event.stopPropagation();
-                inputRef.current?.click();
-              }}
+          onKeyDown={(event) => {
+            if ((event.key === "Enter" || event.key === " ") && !isPending) {
+              event.preventDefault();
+              inputRef.current?.click();
+            }
+          }}
+          className={[
+            "rounded-[18px] border border-dashed px-6 py-24 text-center transition",
+            isDragging ? "border-[#0985E7] bg-[#EAF6FF]" : "border-[#9fb0c6] bg-[#f7f9fc]",
+            isPending ? "cursor-wait opacity-75" : "cursor-pointer hover:border-[#0985E7]",
+          ].join(" ")}
+        >
+          <input
+            ref={inputRef}
+            className="sr-only"
+            type="file"
+            accept="application/pdf,.pdf"
+            disabled={isPending}
+            onClick={(event) => event.stopPropagation()}
+            onChange={(event) => {
+              void handleFile(event.currentTarget.files?.[0]);
+              event.currentTarget.value = "";
+            }}
+          />
+          <div className="mx-auto flex h-11 w-11 items-center justify-center text-[#0985E7]">
+            <svg
+              aria-hidden="true"
+              className="h-10 w-10"
+              fill="none"
+              stroke="currentColor"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="2.4"
+              viewBox="0 0 24 24"
             >
-              Select file
-            </button>
-          </>
-        )}
-      </div>
+              <path d="M16 16l-4-4-4 4" />
+              <path d="M12 12v9" />
+              <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3" />
+              <path d="M16 16l-4-4-4 4" />
+            </svg>
+          </div>
+          <p className="mt-3 text-xs font-black uppercase tracking-[0.14em] text-[#64748b]">
+            PDF only
+          </p>
+          <p className="mt-3 text-xl font-black text-[#0C2B49]">
+            {selectedFile?.name ?? (isPending ? "Verifying uploaded document..." : "Drag and Drop here")}
+          </p>
+          {selectedFile ? (
+            <div className="mt-3 space-y-4">
+              <p className="text-sm font-semibold text-[#64748b]">
+                {formatFileSize(selectedFile.size)}
+              </p>
+              <p className="text-sm font-semibold text-[#64748b]">
+                Choose or drop one PDF file to verify
+              </p>
+              {isPending ? (
+                <div className="mx-auto max-w-sm rounded-2xl bg-white/75 p-4 text-left">
+                  <div className="flex items-center justify-between gap-4">
+                    <div>
+                      <p className="text-sm font-black text-[#0C2B49]">
+                        Verifying uploaded document...
+                      </p>
+                      <p className="mt-1 text-sm font-semibold text-[#64748b]">
+                        OCR, hash comparison, and blockchain lookup are running.
+                      </p>
+                    </div>
+                    <p className="text-sm font-black text-[#0985E7]">{progress}%</p>
+                  </div>
+                  <div className="mt-4 h-2 overflow-hidden rounded-full bg-[#E4EEF9]">
+                    <div
+                      className="h-full rounded-full bg-[#0985E7] transition-[width] duration-150"
+                      style={{ width: `${progress}%` }}
+                    />
+                  </div>
+                  {progress >= 70 ? (
+                    <p className="mt-3 text-center text-xs font-black uppercase tracking-[0.14em] text-[#64748b]">
+                      Waiting for verification response
+                    </p>
+                  ) : null}
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center gap-3 sm:flex-row">
+                  <button
+                    className="rounded-full border border-[#E4EEF9] bg-white px-6 py-3 text-sm font-black text-[#64748b] transition hover:bg-[#F5FAFF] disabled:cursor-not-allowed disabled:opacity-60"
+                    disabled={isPending}
+                    type="button"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      removeSelectedFile();
+                    }}
+                  >
+                    Remove file
+                  </button>
+                  <button
+                    className="rounded-full bg-[#0985E7] px-9 py-3 text-sm font-black text-white shadow-[0_10px_24px_rgba(9,133,231,0.22)] transition hover:bg-[#0770c4] disabled:cursor-not-allowed disabled:bg-[#9fb0c6] disabled:shadow-none"
+                    disabled={isPending}
+                    type="button"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      void verifySelectedFile();
+                    }}
+                  >
+                    Verify
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <>
+              <p className="mt-2 text-base font-semibold text-[#64748b]">or</p>
+              <button
+                className="mt-4 rounded-full bg-[#0985E7] px-8 py-3 text-sm font-black text-white shadow-[0_10px_24px_rgba(9,133,231,0.22)] transition hover:bg-[#0770c4] cursor-pointer disabled:cursor-not-allowed disabled:bg-[#9fb0c6] disabled:shadow-none"
+                disabled={isPending}
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  inputRef.current?.click();
+                }}
+              >
+                Select file
+              </button>
+            </>
+          )}
+        </div>
+      ) : null}
 
       {error ? (
         <div className="rounded-2xl bg-red-50 p-4">
@@ -410,26 +412,47 @@ export function PublicVerifyForm() {
               </dd>
             </div>
             <div className="flex justify-between gap-5 py-3.5">
-              <dt className="text-[13px] font-black text-[#64748b]">Notarized</dt>
+              <dt className="text-[13px] font-black text-[#64748b]">Recorded</dt>
               <dd className="text-right text-[13px] font-black text-[#0C2B49]">
-                {formatDate(result.notarized_at)}
+                {formatDate(result.recorded_at)}
               </dd>
             </div>
             <div className="flex justify-between gap-5 py-3.5">
-              <dt className="text-[13px] font-black text-[#64748b]">Notarized by</dt>
+              <dt className="text-[13px] font-black text-[#64748b]">Recorded by</dt>
               <dd className="break-all text-right text-[13px] font-black text-[#0C2B49]">
-                {result.notarized_by ?? "Not available"}
+                {result.recorded_by ?? "Not available"}
               </dd>
             </div>
           </dl>
-          <div className="mt-4 rounded-2xl bg-[#F5FAFF] p-4">
+          <div className="mt-4 rounded-2xl bg-[#F5FAFF] p-4 text-center">
             <p className="text-xs font-black uppercase tracking-[0.14em] text-[#64748b]">
               Transaction hash
             </p>
-            <p className="mt-2 break-all font-mono text-sm font-black text-[#0C2B49]">
+            <p className="mx-auto mt-2 max-w-full break-all font-mono text-sm font-black text-[#0C2B49]">
               {formatHash(result.tx_hash)}
             </p>
           </div>
+          {result.storage_url ? (
+            <div className="mt-4 rounded-2xl p-4 text-center">
+              <div className="mt-3 flex flex-col items-center justify-center gap-3 sm:flex-row">
+                <a
+                  className="inline-flex rounded-full bg-[#0985E7] px-5 py-2.5 text-sm font-black text-white shadow-[0_10px_24px_rgba(9,133,231,0.18)] transition hover:bg-[#0770c4]"
+                  href={result.storage_url}
+                  rel="noreferrer"
+                  target="_blank"
+                >
+                  Open PDF
+                </a>
+                <button
+                  className="rounded-full border border-[#E4EEF9] bg-white px-5 py-2.5 text-sm font-black text-[#0C2B49] transition hover:bg-[#F5FAFF]"
+                  type="button"
+                  onClick={removeSelectedFile}
+                >
+                  Verify another document
+                </button>
+              </div>
+            </div>
+          ) : null}
         </section>
       ) : null}
     </div>
