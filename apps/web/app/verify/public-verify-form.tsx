@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 
 import {
   type PublicVerifyResponse,
@@ -69,7 +69,6 @@ function formatConfidence(value: number) {
 }
 
 export function PublicVerifyForm() {
-  const inputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [, setDragDepth] = useState(0);
   const [isPending, setIsPending] = useState(false);
@@ -144,6 +143,12 @@ export function PublicVerifyForm() {
     setResult(null);
     setError(null);
     setProgress(0);
+  }
+
+  function handleInputFile(input: HTMLInputElement) {
+    const file = input.files?.[0];
+    input.value = "";
+    void handleFile(file);
   }
 
   function removeSelectedFile() {
@@ -241,39 +246,14 @@ export function PublicVerifyForm() {
 
       {!result ? (
         <div
-          role="button"
-          tabIndex={0}
           aria-disabled={isPending}
           aria-label="Choose or drop one PDF file to verify"
-          onClick={() => {
-            if (!isPending) {
-              inputRef.current?.click();
-            }
-          }}
-          onKeyDown={(event) => {
-            if ((event.key === "Enter" || event.key === " ") && !isPending) {
-              event.preventDefault();
-              inputRef.current?.click();
-            }
-          }}
           className={[
-            "rounded-[18px] border border-dashed px-6 py-24 text-center transition",
+            "relative rounded-[18px] border border-dashed px-6 py-24 text-center transition",
             isDragging ? "border-[#0985E7] bg-[#EAF6FF]" : "border-[#9fb0c6] bg-[#f7f9fc]",
             isPending ? "cursor-wait opacity-75" : "cursor-pointer hover:border-[#0985E7]",
           ].join(" ")}
         >
-          <input
-            ref={inputRef}
-            className="sr-only"
-            type="file"
-            accept="application/pdf,.pdf"
-            disabled={isPending}
-            onClick={(event) => event.stopPropagation()}
-            onChange={(event) => {
-              void handleFile(event.currentTarget.files?.[0]);
-              event.currentTarget.value = "";
-            }}
-          />
           <div className="mx-auto flex h-11 w-11 items-center justify-center text-[#0985E7]">
             <svg
               aria-hidden="true"
@@ -360,17 +340,23 @@ export function PublicVerifyForm() {
           ) : (
             <>
               <p className="mt-2 text-base font-semibold text-[#64748b]">or</p>
-              <button
-                className="mt-4 rounded-full bg-[#0985E7] px-8 py-3 text-sm font-black text-white shadow-[0_10px_24px_rgba(9,133,231,0.22)] transition hover:bg-[#0770c4] cursor-pointer disabled:cursor-not-allowed disabled:bg-[#9fb0c6] disabled:shadow-none"
-                disabled={isPending}
-                type="button"
-                onClick={(event) => {
-                  event.stopPropagation();
-                  inputRef.current?.click();
-                }}
+              <label
+                className={[
+                  "relative mt-4 inline-flex cursor-pointer overflow-hidden rounded-full bg-[#0985E7] px-8 py-3 text-sm font-black text-white shadow-[0_10px_24px_rgba(9,133,231,0.22)] transition hover:bg-[#0770c4]",
+                  isPending ? "cursor-not-allowed bg-[#9fb0c6] shadow-none" : "",
+                ].join(" ")}
               >
+                <input
+                  className="absolute inset-0 h-full w-full cursor-pointer opacity-0 disabled:cursor-not-allowed"
+                  type="file"
+                  accept="application/pdf,.pdf"
+                  disabled={isPending}
+                  aria-label="Choose one PDF file to verify"
+                  onChange={(event) => handleInputFile(event.currentTarget)}
+                  onInput={(event) => handleInputFile(event.currentTarget)}
+                />
                 Select file
-              </button>
+              </label>
             </>
           )}
         </div>
