@@ -2,8 +2,9 @@ export type PublicVerifyResponse = {
   status: string;
   confidence: number;
   file_name?: string | null;
-  notarized_at?: number | null;
-  notarized_by?: string | null;
+  storage_url?: string | null;
+  recorded_at?: number | null;
+  recorded_by?: string | null;
   tx_hash?: string | null;
   matched_at: string;
 };
@@ -12,12 +13,6 @@ type ApiErrorPayload = {
   detail?: unknown;
   message?: unknown;
 };
-
-const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL?.trim().replace(/\/$/, "") ?? "";
-
-function buildUrl(path: string) {
-  return `${apiBaseUrl}${path}`;
-}
 
 function getErrorMessage(payload: ApiErrorPayload | null, fallback: string) {
   if (typeof payload?.message === "string") {
@@ -42,14 +37,12 @@ export async function verifyPublicPdf(file: File): Promise<PublicVerifyResponse>
   let response: Response;
 
   try {
-    response = await fetch(buildUrl("/public/verify"), {
+    response = await fetch("/api/public/verify", {
       method: "POST",
       body: formData,
     });
   } catch {
-    throw new Error(
-      "Unable to reach the verification API. Check NEXT_PUBLIC_API_URL and try again.",
-    );
+    throw new Error("Unable to reach the verification API. Check API_URL and try again.");
   }
 
   const payload = (await response.json().catch(() => null)) as ApiErrorPayload | null;
