@@ -2,11 +2,10 @@ import BottomSheet, {
   BottomSheetView,
   useBottomSheetSpringConfigs,
 } from '@gorhom/bottom-sheet';
-import { useIsFocused } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useEffect, useRef } from 'react';
+import React, { useCallback, useEffect, useRef } from 'react';
 
 import { Button } from '@/ui';
 import { GetStartedHero } from '@/features/onboarding';
@@ -29,7 +28,6 @@ const SHEET_SNAP_POINTS = ['35%', '36%'];
 
 export default function Index() {
   const router = useRouter();
-  const isFocused = useIsFocused();
   const bottomSheetRef = useRef<BottomSheet>(null);
   const navigationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const focusTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -39,20 +37,26 @@ export default function Index() {
     stiffness: 380,
   });
 
-  useEffect(() => {
-    if (focusTimeoutRef.current) {
-      clearTimeout(focusTimeoutRef.current);
-    }
+  useFocusEffect(
+    useCallback(() => {
+      if (focusTimeoutRef.current) {
+        clearTimeout(focusTimeoutRef.current);
+      }
 
-    if (isFocused) {
       focusTimeoutRef.current = setTimeout(() => {
         bottomSheetRef.current?.snapToIndex(0);
       }, 40);
-      return;
-    }
 
-    bottomSheetRef.current?.close();
-  }, [isFocused]);
+      return () => {
+        if (focusTimeoutRef.current) {
+          clearTimeout(focusTimeoutRef.current);
+          focusTimeoutRef.current = null;
+        }
+
+        bottomSheetRef.current?.close();
+      };
+    }, []),
+  );
 
   useEffect(() => {
     return () => {
