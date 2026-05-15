@@ -1,12 +1,8 @@
-import { useFocusEffect, usePreventRemove } from '@react-navigation/native';
+import { useFocusEffect } from 'expo-router';
 import { useCallback } from 'react';
 import { BackHandler } from 'react-native';
 
 export function useCloseSheetOnBack(isOpen: boolean, onClose: () => void) {
-  usePreventRemove(isOpen, () => {
-    onClose();
-  });
-
   useFocusEffect(
     useCallback(() => {
       if (!isOpen) {
