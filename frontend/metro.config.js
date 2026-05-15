@@ -6,9 +6,6 @@ const { withNativewind } = require("nativewind/metro");
 const config = getDefaultConfig(__dirname);
 const isProduction = process.env.NODE_ENV === "production";
 
-config.projectRoot = __dirname;
-config.watchFolders = [__dirname];
-
 const aliases = [
   { find: "@/features/", replacement: "src/features/", prefix: true },
   { find: "@/shared/", replacement: "src/shared/", prefix: true },
