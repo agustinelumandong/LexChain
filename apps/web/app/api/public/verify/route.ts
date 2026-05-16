@@ -1,30 +1,12 @@
+import { getApiErrorMessage, proxyFormDataToApi } from "@lexchain/api";
+import { getApiBaseUrl } from "@lexchain/config";
+
 type ApiErrorPayload = {
   detail?: unknown;
   message?: unknown;
 };
 
-const apiBaseUrl =
-  (process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL)?.trim().replace(/\/$/, "") ?? "";
-
-function buildBackendUrl(path: string) {
-  return `${apiBaseUrl}${path}`;
-}
-
-function getErrorMessage(payload: ApiErrorPayload | null, fallback: string) {
-  if (typeof payload?.message === "string") {
-    return payload.message;
-  }
-
-  if (typeof payload?.detail === "string") {
-    return payload.detail;
-  }
-
-  if (Array.isArray(payload?.detail) && payload.detail.length > 0) {
-    return "The uploaded PDF could not be verified. Check the file and try again.";
-  }
-
-  return fallback;
-}
+const apiBaseUrl = getApiBaseUrl(process.env);
 
 export async function POST(request: Request) {
   if (!apiBaseUrl) {
@@ -37,10 +19,7 @@ export async function POST(request: Request) {
   let response: Response;
 
   try {
-    response = await fetch(buildBackendUrl("/public/verify"), {
-      method: "POST",
-      body: await request.formData(),
-    });
+    response = await proxyFormDataToApi(apiBaseUrl, "/public/verify", await request.formData());
   } catch {
     return Response.json(
       { message: "Unable to reach the verification API." },
@@ -52,7 +31,12 @@ export async function POST(request: Request) {
 
   if (!response.ok) {
     return Response.json(
-      { message: getErrorMessage(payload, `Verification failed with status ${response.status}.`) },
+      {
+        message: getApiErrorMessage(
+          payload,
+          `Verification failed with status ${response.status}.`,
+        ),
+      },
       { status: response.status },
     );
   }

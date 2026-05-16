@@ -3,9 +3,19 @@
   "private": true,
   "packageManager": "pnpm@10.33.0",
   "scripts": {
-    "web:dev": "pnpm --dir apps/web dev",
-    "web:build": "pnpm --dir apps/web build",
-    "web:lint": "pnpm --dir apps/web lint",
-    "mobile:lint": "pnpm --dir frontend run lint"
+    "mobile": "pnpm --filter mobile start",
+    "mobile:android": "pnpm --filter mobile android",
+    "mobile:ios": "pnpm --filter mobile ios",
+    "mobile:lint": "pnpm --filter mobile lint",
+    "web": "pnpm --filter web dev",
+    "web:build": "pnpm --filter web build",
+    "web:lint": "pnpm --filter web lint",
+    "generate:api-types": "pnpm --filter @lexchain/types generate",
+    "lint": "pnpm -r lint"
+  },
+  "pnpm": {
+    "overrides": {
+      "lightningcss": "1.30.1"
+    }
   }
 }
