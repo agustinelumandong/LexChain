@@ -11,8 +11,8 @@ You are working on my LexChain frontend repo.
 - [x] Move generated OpenAPI types ownership to `packages/types`.
 - [x] Use shared config/API helpers from the Next.js web app.
 - [x] Keep one root `pnpm-lock.yaml`.
-- [ ] Finish production-grade admin feature parity page by page.
-- [ ] Remove Expo web fallback files only after the Next.js site is deployed and confirmed.
+- [x] Finish admin feature parity page by page in Next.js with real tables, metrics, and demo fallback data where backend endpoints are not available yet.
+- [x] Remove Expo web fallback files and web-only Expo admin/public/website feature modules after Next.js routes were confirmed building.
 
 I want to update the architecture so Expo remains the mobile app, and Next.js becomes the new web app for:
 - Landing page

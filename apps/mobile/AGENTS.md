@@ -18,21 +18,15 @@ Expo Router frontend (React Native + web) for LexChain document management. Feat
 ## STRUCTURE (VERIFIED)
 
 ```text
-frontend/
+apps/mobile/
 ├── app/                          # Expo Router route tree + layouts
 │   ├── _layout.tsx               # Native root layout (Stack + all providers)
-│   ├── _layout.web.tsx           # Web root layout (redirects non-allowed paths to /)
 │   ├── index.tsx                 # Native landing + BottomSheet
-│   ├── index.web.tsx             # Web: renders WebsiteLandingScreen
 │   ├── modal.tsx                 # Modal presentation
 │   ├── upload.tsx                # Upload flow (native)
-│   ├── upload.web.tsx            # Web: redirects to /
 │   ├── camera-capture.tsx        # Camera capture (native)
-│   ├── camera-capture.web.tsx    # Web: redirects to /
 │   ├── capture-review.tsx        # Review captured images (native)
-│   ├── capture-review.web.tsx    # Web: redirects to /
 │   ├── processing.tsx            # AI processing screen (native)
-│   ├── processing.web.tsx        # Web: redirects to /
 │   ├── (auth)/
 │   │   ├── _layout.tsx           # Auth navigation wrapper (slide+fade transitions)
 │   │   ├── sign-in.tsx
@@ -44,46 +38,19 @@ frontend/
 │   ├── (tabs)/
 │   │   ├── _layout.tsx           # Bottom tabs (hidden, route groups only)
 │   │   ├── index.tsx             # Home tab (native)
-│   │   ├── index.web.tsx         # Web: redirects to /
 │   │   ├── documents.tsx         # Documents tab (native)
-│   │   ├── documents.web.tsx     # Web: redirects to /
-│   │   ├── profile.tsx           # Profile tab (native)
-│   │   └── profile.web.tsx       # Web: redirects to /
+│   │   └── profile.tsx           # Profile tab (native)
 │   ├── document/
 │   │   ├── [id].tsx              # Document detail route (native)
-│   │   ├── [id].web.tsx          # Web: redirects to /
 │   │   └── pdf-viewer.tsx        # In-app PDF viewer (native)
 │   ├── verify/
-│   │   ├── [id].tsx              # Document verification (native)
-│   │   └── [id].web.tsx          # Web: redirects to /
+│   │   └── [id].tsx              # Document verification (native)
 │   ├── profile/
 │   │   ├── account.tsx
 │   │   ├── notifications.tsx
 │   │   ├── security.tsx
 │   │   ├── privacy.tsx
 │   │   └── support.tsx
-│   ├── public/                   # Unauthenticated public web routes
-│   │   ├── _layout.tsx           # Stack, headerShown: false
-│   │   └── verify/
-│   │       ├── index.tsx         # PDF upload verifier (PublicVerifierDom)
-│   │       └── [code].tsx        # Code-based verification (PublicVerifyWebScreen)
-│   └── admin/                    # Admin panel (web-only)
-│       ├── _layout.tsx
-│       ├── login.tsx
-│       └── (protected)/
-│           ├── _layout.tsx
-│           ├── dashboard.tsx
-│           ├── documents.tsx
-│           ├── users.tsx
-│           ├── analytics.tsx
-│           ├── audit-logs.tsx
-│           ├── blockchain-records.tsx
-│           ├── categories.tsx
-│           ├── document-issuers.tsx
-│           ├── invitations-permissions.tsx
-│           ├── ocr-nlp-processing.tsx
-│           ├── system-settings.tsx
-│           └── verification-logs.tsx
 ├── src/
 │   ├── features/                 # Feature modules
 │   │   ├── auth/                 # Auth components + Zod schemas + OAuth callback
@@ -93,12 +60,6 @@ frontend/
 │   │   │   ├── terms-bottom-sheet.tsx
 │   │   │   ├── schemas/          # sign-in.schema.ts, sign-up.schema.ts
 │   │   │   └── callback/         # auth-callback-screen.tsx, auth-callback.params.ts
-│   │   ├── admin/                # Admin panel screens + API + hooks
-│   │   │   ├── api.ts
-│   │   │   ├── hooks.ts
-│   │   │   ├── types.ts
-│   │   │   ├── components/       # AdminSidebar, AdminDataTable, AdminStatCard
-│   │   │   └── screens/          # AdminDashboardScreen, AdminLoginScreen, etc.
 │   │   ├── dashboard/            # Home KPI cards + recent list
 │   │   ├── document/             # Document detail components + services
 │   │   │   ├── components/       # Sheets, cards, PDF viewer, whitelist UI
@@ -106,21 +67,7 @@ frontend/
 │   │   ├── documents/            # Document list/search/filter
 │   │   ├── onboarding/           # GetStartedHero
 │   │   ├── profile/              # Profile screens + settings
-│   │   ├── upload/               # Upload session, type picker, dropzone
-│   │   ├── verification/         # Public document verification
-│   │   │   ├── api.ts            # verifyDocumentByCode (stub — no backend endpoint yet)
-│   │   │   ├── hooks.ts          # usePublicVerification
-│   │   │   ├── types.ts          # PublicVerificationResult, PublicVerificationStatus
-│   │   │   ├── components/
-│   │   │   │   ├── PublicVerifierDom.tsx      # "use dom" PDF upload verifier
-│   │   │   │   ├── VerificationResultCard.tsx
-│   │   │   │   └── VerificationStatusBadge.tsx
-│   │   │   └── screens/
-│   │   │       └── PublicVerifyWebScreen.tsx
-│   │   └── website/              # Marketing landing page (web-only)
-│   │       ├── web-home-redirect.tsx
-│   │       ├── components/       # WebNavbar, WebHero, WebFeatures, WebFooter, etc.
-│   │       └── screens/          # WebsiteLandingScreen
+│   │   └── upload/               # Upload session, type picker, dropzone
 │   ├── shared/
 │   │   ├── components/           # Primitives (ThemedText, Screen, etc.)
 │   │   │   └── ui/               # Button, IconSymbol, QueryStates, OfflineBanner, etc.
@@ -256,7 +203,6 @@ Do not follow generic React Native or Expo advice if it conflicts with this repo
 |---|---|---|
 | App entry | `package.json` (`main: "expo-router/entry"`) | Expo Router auto-discovery |
 | Root layout (native) | `app/_layout.tsx` | Stack navigator + all providers |
-| Root layout (web) | `app/_layout.web.tsx` | Redirects non-allowed paths to `/`; allowed: `/`, `/admin`, `/public` |
 | Tab layout | `app/(tabs)/_layout.tsx` | Tabs hidden, used as route groups |
 | Auth screens | `app/(auth)/` + `src/features/auth/` | Sign-in, sign-up, forgot password |
 | OAuth callback | `app/(auth)/callback.tsx` + `app/auth/callback.tsx` | Handles OAuth deep-link + web redirect |
@@ -267,18 +213,16 @@ Do not follow generic React Native or Expo advice if it conflicts with this repo
 | Document list | `app/(tabs)/documents.tsx` + `src/features/documents/` | Search, filter, sort sheets |
 | Profile | `app/(tabs)/profile.tsx` + `src/features/profile/` | Profile + settings |
 | Profile sub-screens | `app/profile/` | account, notifications, security, privacy, support |
-| Public verifier (PDF) | `app/public/verify/index.tsx` + `PublicVerifierDom` | DOM component, web-only PDF upload |
-| Public verifier (code) | `app/public/verify/[code].tsx` + `PublicVerifyWebScreen` | Code-based lookup (backend stub) |
-| Admin panel | `app/admin/` + `src/features/admin/` | Web-only; login + protected routes |
-| Website landing | `app/index.web.tsx` + `src/features/website/` | Marketing page, web-only |
-| Web redirect stubs | `app/**/*.web.tsx` | All native-only routes redirect to `/` on web |
+| Public verifier (web) | `../web/app/verify/` | Next.js owns public verification |
+| Admin panel (web) | `../web/app/admin/` | Next.js owns admin routes |
+| Website landing (web) | `../web/app/page.tsx` | Next.js owns marketing page |
 | API client | `src/services/api/client.ts` | Base request wrapper with interceptors |
 | Auth API | `src/services/api/auth.api.ts` | Login, logout, register, verify |
 | Documents API | `src/services/api/documents.api.ts` | CRUD, search, whitelist |
 | Public API | `src/services/api/public.api.ts` | `POST /public/verify` (file upload, no auth) |
 | Admin API | `src/services/api/admin.api.ts` | Admin CRUD operations |
 | Blockchain API | `src/services/api/blockchain.api.ts` | Notarize + on-chain verify |
-| Generated schema | `src/services/api/generated/schema.ts` | Auto-generated from `docs/openapi.json` |
+| Generated schema | `../../packages/types/src/generated/schema.ts` | Auto-generated from `../../openapi-updated.json` |
 | Mock APIs | `src/services/api/mock/` | auth, documents, public, admin, blockchain, users |
 | Auth hooks | `src/services/query/use-auth.ts` | useSignIn, useSignUp, useResendVerification |
 | Doc hooks | `src/services/query/use-documents.ts` | useDocuments, useDocument, useGlobalSearch, etc. |
@@ -420,34 +364,21 @@ pnpm run reset-project  # Move app/ → app-example/, reset to blank
 - Whitelist grants stored in secure storage, hydrated on app load.
 
 ### Web Layer
-- `app/_layout.web.tsx` is the web root. It only allows `/`, `/admin`, `/public` — everything else redirects to `/`.
-- All native-only routes have `.web.tsx` stubs that render `WebHomeRedirect` (redirects to `/`).
-- `WebsiteLandingScreen` is the marketing landing page rendered at `/` on web.
-- `WebHomeRedirect` uses `window.location.replace('/')` on web and `router.replace('/')` as fallback.
-- Web-allowed paths: `/` (landing), `/admin/*` (admin panel), `/public/*` (public verifier).
+- Expo is now mobile-focused. Next.js in `../web/` owns landing, admin, public verifier, invite fallback, download, terms, and privacy pages.
+- Do not reintroduce Expo web-only landing/admin/public verifier routes unless there is a clear compatibility plan.
 
 ### Public Verification Feature
-- Two separate flows: PDF upload (`/public/verify`) and code-based (`/public/verify/[code]`).
-- PDF upload uses `PublicVerifierDom` (`"use dom"` component) → `publicApi.verifyDocument` → `POST /public/verify`.
-- Code-based lookup: backend endpoint `GET /public/verify/{code}` does **not exist yet**. `verifyDocumentByCode` throws `NOT_IMPLEMENTED` until backend is ready.
-- `PublicVerifyResponse` (from schema) has: `status`, `confidence`, `file_name`, `notarized_at`, `notarized_by`, `tx_hash`, `matched_at`.
-- `PublicVerificationResult` (code-based type) has: `verification_code`, `status`, `file_name`, `document_hash`, `uploaded_at`, `verified_at`, `owner_display_name`, `message`. These are **different shapes**.
-- `PublicVerifierDom` file input: must add `onClick={(e) => e.stopPropagation()}` on the `<input>` to prevent click event bubbling back to the parent div, which would open the file dialog twice and cancel it.
+- Browser public verifier lives in `../web/app/verify/`.
+- The live PDF upload flow posts through the Next.js route handler to backend `POST /public/verify`.
+- Code-based lookup remains explicit about backend limitation if `GET /public/verify/{code}` is not implemented.
 
 ### Admin Panel
-- Full admin panel at `app/admin/` with protected routes under `app/admin/(protected)/`.
-- Admin feature at `src/features/admin/` with screens, components, api, hooks, types.
-- Admin routes: dashboard, documents, users, analytics, audit-logs, blockchain-records, categories, document-issuers, invitations-permissions, ocr-nlp-processing, system-settings, verification-logs.
+- Full web admin routes live in `../web/app/admin/`.
+- Mobile should not import admin screens or React Native web-only admin feature code.
 
 ### Query Layer
 - `src/services/query/keys.ts` centralizes all React Query key factories — use it before defining inline keys.
 - Separate query hooks per domain: `use-auth`, `use-documents`, `use-admin`, `use-blockchain`, `use-public`, `use-users`.
-
-### DOM Components (`"use dom"`)
-- `PublicVerifierDom` uses `"use dom"` directive — runs as a webview on native, plain web on web.
-- DOM components use plain HTML/CSS inline styles, not NativeWind or StyleSheet.
-- Pass callbacks (like `verifyPdf`) as props from the Expo Router route into the DOM component.
-- DOM component props must be serializable; use `dom?: import('expo/dom').DOMProps` for DOM-specific config.
 
 ---
 

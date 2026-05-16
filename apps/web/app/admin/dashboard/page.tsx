@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
 import { AdminShell } from "../admin-shell";
+import { adminStats } from "../admin-demo-data";
 import { backendUrl } from "@/lib/admin-api";
 
 type DashboardData = {
@@ -13,26 +13,51 @@ type DashboardData = {
   pending_invitations: number;
 };
 
-async function getDashboard(): Promise<DashboardData | null> {
+async function getDashboard(): Promise<{ data: DashboardData; source: "live" | "demo" }> {
   const cookieStore = await cookies();
   const token = cookieStore.get("admin_token")?.value;
-  if (!token) return null;
+  if (!token) {
+    return {
+      data: {
+        total_users: adminStats.total_users,
+        total_lawyers: adminStats.total_document_issuers,
+        total_documents: adminStats.total_documents,
+        total_processed: adminStats.processed_documents,
+        total_failed: adminStats.failed_documents,
+        total_on_chain: adminStats.total_documents - adminStats.pending_documents,
+        pending_invitations: adminStats.pending_documents,
+      },
+      source: "demo",
+    };
+  }
 
   try {
     const res = await fetch(backendUrl("/admin/dashboard"), {
       headers: { Authorization: `Bearer ${token}` },
       cache: "no-store",
     });
-    if (!res.ok) return null;
-    return res.json();
+    if (!res.ok) {
+      throw new Error("Dashboard API unavailable.");
+    }
+    return { data: await res.json(), source: "live" };
   } catch {
-    return null;
+    return {
+      data: {
+        total_users: adminStats.total_users,
+        total_lawyers: adminStats.total_document_issuers,
+        total_documents: adminStats.total_documents,
+        total_processed: adminStats.processed_documents,
+        total_failed: adminStats.failed_documents,
+        total_on_chain: adminStats.total_documents - adminStats.pending_documents,
+        pending_invitations: adminStats.pending_documents,
+      },
+      source: "demo",
+    };
   }
 }
 
 export default async function AdminDashboardPage() {
-  const data = await getDashboard();
-  if (!data) redirect("/admin/login");
+  const { data, source } = await getDashboard();
 
   const stats = [
     { label: "Total users", value: data.total_users, detail: "Registered accounts", icon: "◉" },
@@ -61,6 +86,11 @@ export default async function AdminDashboardPage() {
           <p className="max-w-3xl text-sm font-semibold leading-5 text-[#64748b]">
             Live platform health — document processing, blockchain anchoring, and user activity.
           </p>
+          {source === "demo" ? (
+            <p className="inline-flex rounded-full bg-[#EAF6FF] px-3 py-1 text-xs font-black text-[#0770c4]">
+              Demo fallback data. Sign in and set API_URL for live admin data.
+            </p>
+          ) : null}
         </header>
 
         <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">

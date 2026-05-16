@@ -1,15 +1,17 @@
 import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
 import { AdminShell } from "../admin-shell";
+import { adminUsers } from "../admin-demo-data";
 import { backendUrl } from "@/lib/admin-api";
 
 type AdminUser = {
   id: string;
   email: string;
-  f_name: string;
-  l_name: string;
+  f_name?: string;
+  l_name?: string;
+  name?: string;
   role: string;
-  is_active: boolean;
+  is_active?: boolean;
+  status?: string;
   created_at: string;
 };
 
@@ -22,29 +24,58 @@ function formatRole(role: string) {
   return role === "admin" ? "super_admin" : role;
 }
 
-async function getUsers(): Promise<UsersData | null> {
+async function getUsers(): Promise<{ data: UsersData; source: "live" | "demo" }> {
   const cookieStore = await cookies();
   const token = cookieStore.get("admin_token")?.value;
-  if (!token) return null;
+  if (!token) {
+    return {
+      data: {
+        users: adminUsers.map((user) => ({
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          status: user.status,
+          created_at: user.created_at,
+        })),
+        total: adminUsers.length,
+      },
+      source: "demo",
+    };
+  }
 
   try {
     const res = await fetch(backendUrl("/admin/users"), {
       headers: { Authorization: `Bearer ${token}` },
       cache: "no-store",
     });
-    if (!res.ok) return null;
-    return res.json();
+    if (!res.ok) {
+      throw new Error("Users API unavailable.");
+    }
+    return { data: await res.json(), source: "live" };
   } catch {
-    return null;
+    return {
+      data: {
+        users: adminUsers.map((user) => ({
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          status: user.status,
+          created_at: user.created_at,
+        })),
+        total: adminUsers.length,
+      },
+      source: "demo",
+    };
   }
 }
 
 export default async function AdminUsersPage() {
-  const data = await getUsers();
-  if (!data) redirect("/admin/login");
+  const { data, source } = await getUsers();
 
-  const active = data.users.filter((u) => u.is_active).length;
-  const admins = data.users.filter((u) => u.role === "admin").length;
+  const active = data.users.filter((u) => u.is_active ?? u.status === "active").length;
+  const admins = data.users.filter((u) => u.role === "admin" || u.role === "super_admin").length;
 
   return (
     <AdminShell activeHref="/admin/users">
@@ -57,6 +88,11 @@ export default async function AdminUsersPage() {
           <p className="max-w-3xl text-sm font-semibold leading-5 text-[#64748b]">
             All registered user accounts, roles, and activity state.
           </p>
+          {source === "demo" ? (
+            <p className="inline-flex rounded-full bg-[#EAF6FF] px-3 py-1 text-xs font-black text-[#0770c4]">
+              Demo fallback data. Sign in and set API_URL for live admin data.
+            </p>
+          ) : null}
         </header>
 
         <section className="grid gap-4 md:grid-cols-3">
@@ -112,7 +148,7 @@ export default async function AdminUsersPage() {
                     className={i % 2 === 0 ? "bg-white" : "bg-[#F8FBFF]"}
                   >
                     <td className="px-6 py-3.5 font-semibold text-[#0C2B49]">
-                      {user.f_name} {user.l_name}
+                      {user.name ?? `${user.f_name ?? ""} ${user.l_name ?? ""}`.trim()}
                     </td>
                     <td className="px-6 py-3.5 text-[#64748b]">{user.email}</td>
                     <td className="px-6 py-3.5">
@@ -124,11 +160,12 @@ export default async function AdminUsersPage() {
                       <span
                         className={`rounded-full px-2.5 py-1 text-xs font-black ${
                           user.is_active
+                          ?? user.status === "active"
                             ? "bg-green-50 text-green-700"
                             : "bg-red-50 text-red-600"
                         }`}
                       >
-                        {user.is_active ? "Active" : "Inactive"}
+                        {user.is_active ?? user.status === "active" ? "Active" : "Inactive"}
                       </span>
                     </td>
                     <td className="px-6 py-3.5 text-[#64748b]">
