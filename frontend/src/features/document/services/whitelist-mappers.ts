@@ -12,13 +12,30 @@ function formatReference(value: string) {
   return `${value.slice(0, 8)}...${value.slice(-7)}`;
 }
 
-function formatStatusLabel(value: string) {
-  return value
-    .toLowerCase()
-    .split(/[_\s-]+/)
-    .filter(Boolean)
-    .map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1)}`)
-    .join(' ');
+function getAssignedRole(value: string): 'participant' | 'owner' | 'lawyer' {
+  const normalizedRole = value.toLowerCase();
+
+  if (normalizedRole === 'owner' || normalizedRole === 'issuer') {
+    return 'owner';
+  }
+
+  if (normalizedRole === 'signer' || normalizedRole === 'editor') {
+    return 'lawyer';
+  }
+
+  return 'participant';
+}
+
+function getAssignedRoleLabel(value: 'participant' | 'owner' | 'lawyer') {
+  if (value === 'owner') {
+    return 'Owner';
+  }
+
+  if (value === 'lawyer') {
+    return 'Lawyer';
+  }
+
+  return 'Witness/Participant';
 }
 
 function getDisplayName(user: {
@@ -57,13 +74,15 @@ export function mapPartiesToWhitelistData(
 ): ManageWhitelistData {
   return {
     grants: parties.map((party) => {
-      const roleLabel = formatStatusLabel(party.role);
+      const assignedAs = getAssignedRole(party.role);
+      const roleLabel = getAssignedRoleLabel(assignedAs);
 
       return {
         id: party.user_id,
         name: getDisplayName(party),
         email: party.email,
-        accessLabel: `${roleLabel || 'Viewer'} access`,
+        assignedAs,
+        accessLabel: roleLabel,
         actionLabel: roleLabel || 'View',
       };
     }),

@@ -1,3 +1,4 @@
+import { MaterialIcons } from '@expo/vector-icons';
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
@@ -7,25 +8,19 @@ const COLORS = {
   navy: APP_COLORS.navy,
   textMuted: APP_COLORS.textMuted,
   surfaceSoft: '#F7FBFF',
-  dangerBg: '#FFECEF',
-  danger: '#D8627B',
   pillBg: APP_COLORS.surfaceSoft,
 };
 
 type WhitelistGrantRowProps = {
   name: string;
   accessLabel: string;
-  actionLabel: string;
-  onPressAction?: () => void;
-  onPressRevoke?: () => void;
+  onPressMenu?: () => void;
 };
 
 export function WhitelistGrantRow({
   name,
   accessLabel,
-  actionLabel,
-  onPressAction,
-  onPressRevoke,
+  onPressMenu,
 }: WhitelistGrantRowProps) {
   return (
     <View style={styles.card}>
@@ -34,15 +29,14 @@ export function WhitelistGrantRow({
         <Text style={styles.access}>{accessLabel}</Text>
       </View>
 
-      <View style={styles.actions}>
-        <Pressable style={styles.primaryPill} onPress={onPressAction}>
-          <Text style={styles.primaryPillLabel}>{actionLabel}</Text>
-        </Pressable>
-
-        <Pressable style={styles.revokePill} onPress={onPressRevoke}>
-          <Text style={styles.revokePillLabel}>Revoke</Text>
-        </Pressable>
-      </View>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`Open access menu for ${name}`}
+        style={({ pressed }) => [styles.menuButton, pressed && styles.menuButtonPressed]}
+        onPress={onPressMenu}
+      >
+        <MaterialIcons name="more-horiz" size={22} color={COLORS.navy} />
+      </Pressable>
     </View>
   );
 }
@@ -76,35 +70,15 @@ const styles = StyleSheet.create({
     lineHeight: 16,
     fontWeight: '500',
   },
-  actions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  primaryPill: {
+  menuButton: {
+    width: 38,
+    height: 38,
     borderRadius: 999,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
     backgroundColor: COLORS.pillBg,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  primaryPillLabel: {
-    color: COLORS.primary,
-    fontFamily: fonts.regular,
-    fontSize: 11,
-    lineHeight: 14,
-    fontWeight: '800',
-  },
-  revokePill: {
-    borderRadius: 999,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    backgroundColor: COLORS.dangerBg,
-  },
-  revokePillLabel: {
-    color: COLORS.danger,
-    fontFamily: fonts.regular,
-    fontSize: 11,
-    lineHeight: 14,
-    fontWeight: '800',
+  menuButtonPressed: {
+    opacity: 0.72,
   },
 });

@@ -16,8 +16,8 @@ export type {
   InvitationResponse,
 } from './admin.api';
 export type {
-  NotarizeResponse,
   OnChainVerificationResponse,
+  RecordDocumentResponse,
 } from './blockchain.api';
 export type {
   MessageResponse,

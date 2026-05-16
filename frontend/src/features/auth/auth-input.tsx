@@ -26,13 +26,15 @@ type AuthInputProps = {
   placeholder?: string;
   value: string;
   onChangeText: (value: string) => void;
-  iconName: string;
+  iconName: React.ComponentProps<typeof MaterialIcons>['name'];
   iconSize?: number;
   iconColor?: string;
   secureTextEntry?: boolean;
   keyboardType?: TextInputProps['keyboardType'];
   autoCapitalize?: TextInputProps['autoCapitalize'];
+  autoComplete?: TextInputProps['autoComplete'];
   autoCorrect?: boolean;
+  textContentType?: TextInputProps['textContentType'];
   error?: string;
 };
 
@@ -47,7 +49,9 @@ export function AuthInput({
   secureTextEntry = false,
   keyboardType,
   autoCapitalize = 'none',
+  autoComplete,
   autoCorrect = false,
+  textContentType,
   error,
 }: AuthInputProps) {
   const wrapperRef = useRef<View>(null);
@@ -96,7 +100,9 @@ export function AuthInput({
           secureTextEntry={isSecureEnabled}
           keyboardType={keyboardType}
           autoCapitalize={autoCapitalize}
+          autoComplete={autoComplete}
           autoCorrect={autoCorrect}
+          textContentType={textContentType}
           onFocus={handleFocus}
           onBlur={handleBlur}
           style={styles.input}

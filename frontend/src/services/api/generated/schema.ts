@@ -102,7 +102,7 @@ export interface paths {
         };
         /**
          * List all documents
-         * @description Return all documents belonging to the authenticated user.
+         * @description Return all latest document versions belonging to or shared with the authenticated user.
          */
         get: operations["get_all_user_documents_documents__get"];
         put?: never;
@@ -122,7 +122,7 @@ export interface paths {
         };
         /**
          * Get a document
-         * @description Return a single document belonging to the authenticated user.
+         * @description Return a single document if the user owns it or is a whitelisted party.
          */
         get: operations["get_user_document_documents__document_id__get"];
         put?: never;
@@ -144,11 +144,7 @@ export interface paths {
         put?: never;
         /**
          * Upload a document
-         * @description Upload a document file for the authenticated user.
-         *
-         *         - **Supported types**: PDF, DOCX, DOC, TXT
-         *         - **Max size**: 10 MB
-         *         - The file is saved locally and indexed in the database.
+         * @description Upload a PDF document. Only lawyers and admins may upload.
          */
         post: operations["upload_document_documents_upload_post"];
         delete?: never;
@@ -172,7 +168,7 @@ export interface paths {
         head?: never;
         /**
          * Rename a document
-         * @description Update the display name of a document.
+         * @description Update the display name of a document. Only the document owner (lawyer) may rename.
          */
         patch: operations["rename_document_documents__document_id___patch"];
         trace?: never;
@@ -188,10 +184,7 @@ export interface paths {
         put?: never;
         /**
          * Update a document (new version)
-         * @description Upload a new file as the next version of an existing document.
-         *         - Supersedes the current version (marked as not latest).
-         *         - The new file goes through the full processing pipeline (OCR → LLM → chunks).
-         *         - Previous versions remain accessible via the version history endpoint.
+         * @description Upload a new file as the next version of an existing document. Only the document owner may update.
          */
         post: operations["update_document_documents__document_id__update_post"];
         delete?: never;
@@ -209,7 +202,7 @@ export interface paths {
         };
         /**
          * Get version history
-         * @description Return the full version chain for a document (newest → oldest).
+         * @description Return the full version chain for a document (newest → oldest). Accessible by owner or any party.
          */
         get: operations["get_version_history_documents__document_id__versions_get"];
         put?: never;
@@ -229,13 +222,13 @@ export interface paths {
         };
         /**
          * List document parties
-         * @description Return all whitelisted parties for a document.
+         * @description Return all whitelisted parties for a document. Accessible by owner or any party.
          */
         get: operations["get_document_parties_documents__document_id__parties_get"];
         put?: never;
         /**
          * Add a party to a document
-         * @description Whitelist a user to access this document.
+         * @description Whitelist a user by email to access this document. Only the document owner may add parties.
          */
         post: operations["add_document_party_documents__document_id__parties_post"];
         delete?: never;
@@ -256,7 +249,7 @@ export interface paths {
         post?: never;
         /**
          * Remove a party from a document
-         * @description Revoke a user's access to this document.
+         * @description Revoke a user's access to this document. Only the document owner may remove parties.
          */
         delete: operations["remove_document_party_documents__document_id__parties__party_user_id__delete"];
         options?: never;
@@ -315,7 +308,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/blockchain/notarize/{document_id}": {
+    "/blockchain/record/{document_id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -325,12 +318,12 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Notarize a document on-chain
+         * Record a document on-chain
          * @description Store the document hash on the LexChainNotary smart contract.
          *         - **Requirement**: Document must be in COMPLETED status.
          *         - The document's SHA256 hash is written to the blockchain.
          */
-        post: operations["notarize_document_blockchain_notarize__document_id__post"];
+        post: operations["record_document_blockchain_record__document_id__post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -440,7 +433,7 @@ export interface paths {
         put?: never;
         /**
          * Public document verifier
-         * @description Upload a PDF to verify if it matches a notarized document in the system.
+         * @description Upload a PDF to verify if it matches a document recorded on-chain in the system.
          *         - No authentication required.
          *         - Extracts text via OCR, hashes it, and compares against the database.
          *         - If no exact text match, falls back to semantic similarity search.
@@ -486,8 +479,8 @@ export interface components {
             total_processed: number;
             /** Total Failed */
             total_failed: number;
-            /** Total Notarized */
-            total_notarized: number;
+            /** Total On Chain */
+            total_on_chain: number;
             /** Pending Invitations */
             pending_invitations: number;
         };
@@ -525,6 +518,11 @@ export interface components {
         AskRequest: {
             /** Question */
             question: string;
+            /**
+             * History
+             * @description Previous conversation turns
+             */
+            history?: components["schemas"]["ChatMessage"][];
         };
         /** Body_update_document_documents__document_id__update_post */
         Body_update_document_documents__document_id__update_post: {
@@ -540,6 +538,16 @@ export interface components {
         Body_verify_public_public_verify_post: {
             /** File */
             file: string;
+        };
+        /** ChatMessage */
+        ChatMessage: {
+            /**
+             * Role
+             * @description user or assistant
+             */
+            role: string;
+            /** Content */
+            content: string;
         };
         /** CreateInvitationRequest */
         CreateInvitationRequest: {
@@ -566,6 +574,8 @@ export interface components {
              * @description Document identifier.
              */
             document_id: string;
+            /** @description The owner/issuer of the document */
+            issuer: components["schemas"]["DocumentPartyResponse"];
             /** Parties */
             parties?: components["schemas"]["DocumentPartyResponse"][];
         };
@@ -643,6 +653,11 @@ export interface components {
              * @description Processing status of the document
              */
             status: string;
+            /**
+             * On Chain
+             * @description Check if document is already recorded on-chain or not
+             */
+            on_chain: boolean;
             /**
              * Is Latest
              * @description Check if document is the latest one
@@ -807,33 +822,6 @@ export interface components {
             message: string;
         };
         /**
-         * NotarizeResponse
-         * @description Response returned after notarizing a document on-chain.
-         */
-        NotarizeResponse: {
-            /**
-             * Document Id
-             * Format: uuid
-             * @description Document identifier.
-             */
-            document_id: string;
-            /**
-             * Tx Hash
-             * @description Transaction hash on the blockchain
-             */
-            tx_hash: string;
-            /**
-             * Onchain Document Id
-             * @description Document Id stored on-chain
-             */
-            onchain_document_id: string;
-            /**
-             * Data Hash
-             * @description SHA256 hash stored on-chain.
-             */
-            data_hash: string;
-        };
-        /**
          * OnChainVerificationResponse
          * @description Response returned when verifying an on-chain record.
          */
@@ -879,10 +867,12 @@ export interface components {
             confidence: number;
             /** File Name */
             file_name?: string | null;
-            /** Notarized At */
-            notarized_at?: number | null;
-            /** Notarized By */
-            notarized_by?: string | null;
+            /** Storage Url */
+            storage_url?: string | null;
+            /** Recorded At */
+            recorded_at?: number | null;
+            /** Recorded By */
+            recorded_by?: string | null;
             /** Tx Hash */
             tx_hash?: string | null;
             /**
@@ -890,6 +880,33 @@ export interface components {
              * Format: date-time
              */
             matched_at: string;
+        };
+        /**
+         * RecordResponse
+         * @description Response returned after recording a document on-chain.
+         */
+        RecordResponse: {
+            /**
+             * Document Id
+             * Format: uuid
+             * @description Document identifier.
+             */
+            document_id: string;
+            /**
+             * Tx Hash
+             * @description Transaction hash on the blockchain
+             */
+            tx_hash: string;
+            /**
+             * Onchain Document Id
+             * @description Document Id stored on-chain
+             */
+            onchain_document_id: string;
+            /**
+             * Data Hash
+             * @description SHA256 hash stored on-chain.
+             */
+            data_hash: string;
         };
         /**
          * RemovePartyResponse
@@ -1358,7 +1375,7 @@ export interface operations {
                     "application/json": components["schemas"]["DocumentUploadResponse"][];
                 };
             };
-            /** @description Not authenticated */
+            /** @description Not authenticated — missing or invalid bearer token */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -1396,14 +1413,14 @@ export interface operations {
                     "application/json": components["schemas"]["DocumentResponse"];
                 };
             };
-            /** @description Not authenticated */
+            /** @description Not authenticated — missing or invalid bearer token */
             401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description Document not found */
+            /** @description Document not found or user has no access */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -1445,15 +1462,22 @@ export interface operations {
                     "application/json": components["schemas"]["DocumentUploadAcceptedResponse"];
                 };
             };
-            /** @description Empty file, unsupported type, or file too large */
+            /** @description Empty file, unsupported file type, or file exceeds size limit */
             400: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description Not authenticated */
+            /** @description Not authenticated — missing or invalid bearer token */
             401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden — only lawyers may upload documents */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -1494,8 +1518,15 @@ export interface operations {
                     "application/json": components["schemas"]["DocumentUploadResponse"];
                 };
             };
-            /** @description Not authenticated */
+            /** @description Not authenticated — missing or invalid bearer token */
             401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden — only the document owner may rename */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -1545,15 +1576,22 @@ export interface operations {
                     "application/json": components["schemas"]["DocumentUploadAcceptedResponse"];
                 };
             };
-            /** @description Empty file, unsupported type, or file too large */
+            /** @description Empty file, unsupported file type, or file exceeds size limit */
             400: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description Not authenticated */
+            /** @description Not authenticated — missing or invalid bearer token */
             401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden — only the document owner may update */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -1597,14 +1635,14 @@ export interface operations {
                     "application/json": components["schemas"]["VersionHistoryResponse"];
                 };
             };
-            /** @description Not authenticated */
+            /** @description Not authenticated — missing or invalid bearer token */
             401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description Document not found */
+            /** @description Document not found or user has no access */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -1642,14 +1680,14 @@ export interface operations {
                     "application/json": components["schemas"]["DocumentPartyListResponse"];
                 };
             };
-            /** @description Not authenticated */
+            /** @description Not authenticated — missing or invalid bearer token */
             401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description Document not found */
+            /** @description Document not found or user has no access */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -1691,15 +1729,22 @@ export interface operations {
                     "application/json": components["schemas"]["DocumentPartyResponse"];
                 };
             };
-            /** @description Already a party */
+            /** @description User does not exist, or role is invalid for this user */
             400: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description Not authenticated */
+            /** @description Not authenticated — missing or invalid bearer token */
             401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden — only the document owner may add parties */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -1744,8 +1789,15 @@ export interface operations {
                     "application/json": components["schemas"]["RemovePartyResponse"];
                 };
             };
-            /** @description Not authenticated */
+            /** @description Not authenticated — missing or invalid bearer token */
             401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden — only the document owner may remove parties */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -1872,7 +1924,7 @@ export interface operations {
             };
         };
     };
-    notarize_document_blockchain_notarize__document_id__post: {
+    record_document_blockchain_record__document_id__post: {
         parameters: {
             query?: never;
             header?: never;
@@ -1883,16 +1935,16 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Document notarized on-chain */
+            /** @description Document recorded on-chain */
             201: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["NotarizeResponse"];
+                    "application/json": components["schemas"]["RecordResponse"];
                 };
             };
-            /** @description Document not ready or already notarized */
+            /** @description Document not ready or already recorded */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -1901,6 +1953,13 @@ export interface operations {
             };
             /** @description Not authenticated */
             401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not authorized */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };

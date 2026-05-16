@@ -75,6 +75,7 @@ export default function RootLayout() {
                   <Stack.Screen name="profile/privacy" options={{ headerShown: false }} />
                   <Stack.Screen name="profile/support" options={{ headerShown: false }} />
                   <Stack.Screen name="document/[id]" options={{ headerShown: false }} />
+                  <Stack.Screen name="document/menu" options={{ headerShown: false }} />
                   <Stack.Screen name="document/pdf-viewer" options={{ headerShown: false }} />
                   <Stack.Screen name="camera-capture" options={{ headerShown: false }} />
                   <Stack.Screen name="capture-review" options={{ headerShown: false }} />

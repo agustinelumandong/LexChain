@@ -37,6 +37,7 @@ export const MOCK_DOCUMENT_DETAIL: DocumentDetail = {
   storage_url: 'mock://documents/deped-memorandum-028-2026.pdf',
   content_type: 'application/pdf',
   status: 'COMPLETED',
+  on_chain: true,
   is_latest: true,
   summary:
     'DepEd Memorandum No. 028, s. 2026, issued by the Department of Education of the Republic of the Philippines on May 6, 2026, provides guidelines for the Basic Education Information System (BEIS) data collection and validation for school year 2025-2026. It directs public and private elementary and secondary schools, including state/local universities and colleges offering basic education, to update school information in BEIS from May 7 to June 15, 2026.',
@@ -83,6 +84,7 @@ export const MOCK_DOCUMENT_DETAIL_PROCESSING: DocumentDetail = {
   storage_url: 'mock://documents/power-of-attorney-martinez.pdf',
   content_type: 'application/pdf',
   status: 'PROCESSING',
+  on_chain: false,
   is_latest: true,
   summary: null,
   labels: [],
@@ -98,6 +100,7 @@ export const MOCK_DOCUMENT_DETAIL_QUEUED: DocumentDetail = {
   storage_url: 'mock://documents/new-document.pdf',
   content_type: 'application/pdf',
   status: 'QUEUED',
+  on_chain: false,
   is_latest: true,
   summary: null,
   labels: [],
@@ -139,6 +142,15 @@ export const MOCK_VERSION_HISTORY_RESPONSE: VersionHistoryResponse = {
 
 export const MOCK_DOCUMENT_PARTIES_RESPONSE: DocumentPartyListResponse = {
   document_id: 'eb1d48cf-2313-4edb-b2e9-4667f6faf449',
+  issuer: {
+    id: '52d9f35c-9691-42ab-a897-dc7f9504b9c6',
+    user_id: 'a79d44a5-53f3-4734-8309-7a9c861adf9b',
+    email: 'records@deped.gov.ph',
+    f_name: 'DepEd',
+    l_name: 'Records',
+    role: 'issuer',
+    created_at: '2026-05-08T18:03:03.282234Z',
+  },
   parties: [
     {
       id: 'a4a710b8-9e80-4585-b4cf-44eae4a3e101',

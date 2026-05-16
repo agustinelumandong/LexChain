@@ -33,6 +33,7 @@ type ProfileSettingsStore = {
   updateAccount: (account: ProfileAccount) => void;
   updateNotification: (key: keyof NotificationSettings, value: boolean) => void;
   updateSecurity: (key: keyof SecuritySettings, value: boolean) => void;
+  resetProfileSettings: () => void;
 };
 
 export const DEFAULT_PROFILE_ACCOUNT: ProfileAccount = {
@@ -92,6 +93,13 @@ export const useProfileSettingsStore = create<ProfileSettingsStore>()(
             [key]: value,
           },
         }));
+      },
+      resetProfileSettings: () => {
+        set({
+          account: DEFAULT_PROFILE_ACCOUNT,
+          notifications: DEFAULT_NOTIFICATIONS,
+          security: DEFAULT_SECURITY,
+        });
       },
     }),
     {

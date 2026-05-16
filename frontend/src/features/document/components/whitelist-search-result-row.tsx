@@ -14,6 +14,7 @@ const COLORS = {
 type WhitelistSearchResultRowProps = {
   name: string;
   email: string;
+  addLabel?: string;
   onPressAdd?: () => void;
   roundedTop?: boolean;
   roundedBottom?: boolean;
@@ -22,6 +23,7 @@ type WhitelistSearchResultRowProps = {
 export function WhitelistSearchResultRow({
   name,
   email,
+  addLabel = 'Add',
   onPressAdd,
   roundedTop = false,
   roundedBottom = false,
@@ -40,7 +42,10 @@ export function WhitelistSearchResultRow({
         <Text style={styles.email}>{email}</Text>
       </View>
 
-      <MaterialIcons name="add" size={22} color={COLORS.primary} />
+      <View style={styles.addPill}>
+        <Text style={styles.addLabel}>{addLabel}</Text>
+        <MaterialIcons name="add" size={18} color={COLORS.primary} />
+      </View>
     </Pressable>
   );
 }
@@ -82,5 +87,21 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 16,
     fontWeight: '500',
+  },
+  addPill: {
+    borderRadius: 999,
+    backgroundColor: APP_COLORS.surfaceSoft,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  addLabel: {
+    color: COLORS.primary,
+    fontFamily: fonts.regular,
+    fontSize: 11,
+    lineHeight: 14,
+    fontWeight: '800',
   },
 });
