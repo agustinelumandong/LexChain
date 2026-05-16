@@ -1,7 +1,0 @@
-# .graphifyignore
-node_modules/
-.git/
-storybook-static/
-dist/
-
-dist-*
