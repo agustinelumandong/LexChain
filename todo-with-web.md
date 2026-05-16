@@ -1,5 +1,19 @@
 You are working on my LexChain frontend repo.
 
+## Current Implementation Status
+
+- [x] Move the old Expo app from `frontend/` to `apps/mobile/`.
+- [x] Keep mobile-native routes and features in Expo, including `apps/mobile/app/verify/[id].tsx`.
+- [x] Create `apps/web` with Next.js App Router.
+- [x] Add Next.js landing, public verifier, invite fallback, admin login, admin dashboard, and admin section routes.
+- [x] Add `/download`, `/privacy`, and `/terms` web pages.
+- [x] Add `packages/types`, `packages/api`, and `packages/config`.
+- [x] Move generated OpenAPI types ownership to `packages/types`.
+- [x] Use shared config/API helpers from the Next.js web app.
+- [x] Keep one root `pnpm-lock.yaml`.
+- [ ] Finish production-grade admin feature parity page by page.
+- [ ] Remove Expo web fallback files only after the Next.js site is deployed and confirmed.
+
 I want to update the architecture so Expo remains the mobile app, and Next.js becomes the new web app for:
 - Landing page
 - Admin panel
