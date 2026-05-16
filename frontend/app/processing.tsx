@@ -248,7 +248,7 @@ export default function ProcessingScreen() {
 
         <View style={styles.footer}>
           <Button
-            label={isComplete ? 'Back to documents' : 'Cancel and go back'}
+            label={isComplete ? 'Back to documents' : 'Back to documents'}
             fullWidth
             leftIconName="arrow-back"
             onPress={() => router.replace('/(tabs)/documents')}
