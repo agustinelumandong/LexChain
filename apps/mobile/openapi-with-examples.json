@@ -1,0 +1,1462 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "FastAPI",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/auth/signup": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Register a new user",
+        "description": "Create a new user account with email, password, and username.\n    \n    - **Email Verification**: If enabled in Supabase, user must verify email before signing in.\n    - **Username**: Must be 3-30 characters, alphanumeric and underscores only.\n    - **Password**: Must be at least 8 characters with uppercase, lowercase, and digit.\n    - **Rate Limit**: 5 requests per minute.",
+        "operationId": "sign_up_auth_signup_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SignUpRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "User created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SignUpResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input or user already exists"
+          },
+          "429": {
+            "description": "Too Many Requests - Rate limit exceeded",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": "Rate limit exceeded"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Failed to connect to Supabase"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/signin": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Sign in a user",
+        "description": "Authenticate a user with email and password.\n    \n    - **Returns**: Access token, refresh token, and token expiration time.\n    - **Email Verification**: User must have verified their email to sign in.\n    - **Rate Limit**: 5 requests per minute.",
+        "operationId": "sign_in_auth_signin_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SignInRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successfully authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SignInResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid credentials or email not verified"
+          },
+          "429": {
+            "description": "Too Many Requests - Rate limit exceeded",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": "Rate limit exceeded"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/resend-verification": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Resend verification email",
+        "description": "Resend the verification email for users who haven't verified their email yet.\n    \n    - **Use Case**: When verification link expires or email was not received.\n    - **Rate Limit**: 3 requests per minute.",
+        "operationId": "resend_verification_auth_resend_verification_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResendVerificationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Verification email sent successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Could not send verification email"
+          },
+          "429": {
+            "description": "Too Many Requests - Rate limit exceeded",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": "Rate limit exceeded"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/documents/": {
+      "get": {
+        "tags": [
+          "Documents"
+        ],
+        "summary": "List all documents",
+        "description": "Return all documents belonging to the authenticated user.",
+        "operationId": "get_all_user_documents_documents__get",
+        "security": [
+          {
+            "Bearer Token": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 50,
+              "title": "Limit",
+              "example": 50
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 0,
+              "title": "Offset",
+              "example": 0
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of documents",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DocumentUploadResponse"
+                  },
+                  "title": "Response Get All User Documents Documents  Get"
+                },
+                "example": [
+                  {
+                    "id": "eb1d48cf-2313-4edb-b2e9-4667f6faf449",
+                    "file_name": "Deped Memo",
+                    "content_type": "application/pdf",
+                    "status": "COMPLETED",
+                    "created_at": "2026-05-08T18:03:03.282234Z"
+                  }
+                ]
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/documents/{document_id}": {
+      "get": {
+        "tags": [
+          "Documents"
+        ],
+        "summary": "Get a document",
+        "description": "Return a single document belonging to the authenticated user.",
+        "operationId": "get_user_document_documents__document_id__get",
+        "security": [
+          {
+            "Bearer Token": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "document_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Document Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Document found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated"
+          },
+          "404": {
+            "description": "Document not found"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/documents/upload": {
+      "post": {
+        "tags": [
+          "Documents"
+        ],
+        "summary": "Upload a document",
+        "description": "Upload a document file for the authenticated user.\n\n    - **Supported types**: PDF, DOCX, DOC, TXT\n    - **Max size**: 10 MB\n    - The file is saved locally and indexed in the database.",
+        "operationId": "upload_document_documents_upload_post",
+        "security": [
+          {
+            "Bearer Token": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "document_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Document Id",
+              "example": "eb1d48cf-2313-4edb-b2e9-4667f6faf449"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_upload_document_documents_upload_post"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Document accepted for processing",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentUploadAcceptedResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Empty file, unsupported type, or file too large"
+          },
+          "401": {
+            "description": "Not authenticated"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/documents/{document_id}/": {
+      "patch": {
+        "tags": [
+          "Documents"
+        ],
+        "summary": "Rename a document",
+        "description": "Update the display name of a document.",
+        "operationId": "rename_document_documents__document_id___patch",
+        "security": [
+          {
+            "Bearer Token": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "document_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Document Id",
+              "example": "eb1d48cf-2313-4edb-b2e9-4667f6faf449"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RenameDocumentRequest"
+              },
+              "example": {
+                "file_name": "DepEd Memorandum No. 028, s. 2026"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Document renamed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentUploadResponse"
+                },
+                "example": {
+                  "id": "eb1d48cf-2313-4edb-b2e9-4667f6faf449",
+                  "file_name": "DepEd Memorandum No. 028, s. 2026",
+                  "content_type": "application/pdf",
+                  "status": "COMPLETED",
+                  "created_at": "2026-05-08T18:03:03.282234Z"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated"
+          },
+          "404": {
+            "description": "Document not found"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/documents/{document_id}/search": {
+      "post": {
+        "tags": [
+          "Retrieval"
+        ],
+        "summary": "Semantic search within a single document",
+        "operationId": "search_document_documents__document_id__search_post",
+        "security": [
+          {
+            "Bearer Token": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "document_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Document Id",
+              "example": "eb1d48cf-2313-4edb-b2e9-4667f6faf449"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SearchRequest"
+              },
+              "example": {
+                "query": "hey what is this for?"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SearchResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/documents/{document_id}/ask": {
+      "post": {
+        "tags": [
+          "Retrieval"
+        ],
+        "summary": "Ask Document",
+        "operationId": "ask_document_documents__document_id__ask_post",
+        "security": [
+          {
+            "Bearer Token": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "document_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Document Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AskRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AskResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/search": {
+      "post": {
+        "tags": [
+          "Retrieval"
+        ],
+        "summary": "Semantic search across all of the user's documents",
+        "operationId": "search_all_search_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SearchRequest"
+              },
+              "example": {
+                "query": "Memo"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GlobalSearchResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer Token": []
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AskRequest": {
+        "properties": {
+          "question": {
+            "type": "string",
+            "title": "Question"
+          }
+        },
+        "type": "object",
+        "required": [
+          "question"
+        ],
+        "title": "AskRequest"
+      },
+      "AskSource": {
+        "properties": {
+          "chunk_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Chunk Id",
+            "description": "Identifier of the source chunk."
+          },
+          "text": {
+            "type": "string",
+            "title": "Text",
+            "description": "Text excerpt from the source chunk."
+          }
+        },
+        "type": "object",
+        "required": [
+          "chunk_id",
+          "text"
+        ],
+        "title": "AskSource"
+      },
+      "AskResponse": {
+        "properties": {
+          "question": {
+            "type": "string",
+            "title": "Question",
+            "description": "The question that was asked."
+          },
+          "answer": {
+            "type": "string",
+            "title": "Answer",
+            "description": "LLM-generated answer based on document content."
+          },
+          "model": {
+            "type": "string",
+            "title": "Model",
+            "description": "The LLM model used to generate the answer."
+          },
+          "citations": {
+            "items": {
+              "$ref": "#/components/schemas/AskCitation"
+            },
+            "type": "array",
+            "title": "Citations",
+            "description": "Source chunks cited in the answer."
+          }
+        },
+        "type": "object",
+        "required": [
+          "question",
+          "answer",
+          "model",
+          "citations"
+        ],
+        "title": "AskResponse"
+      },
+      "AskCitation": {
+        "properties": {
+          "chunk_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Chunk Id",
+            "description": "Identifier of the cited chunk."
+          },
+          "chunk_index": {
+            "type": "integer",
+            "title": "Chunk Index",
+            "description": "Index of the cited chunk."
+          },
+          "score": {
+            "type": "number",
+            "title": "Score",
+            "description": "Relevance score of the citation."
+          }
+        },
+        "type": "object",
+        "required": [
+          "chunk_id",
+          "chunk_index",
+          "score"
+        ],
+        "title": "AskCitation"
+      },
+      "Body_upload_document_documents_upload_post": {
+        "properties": {
+          "file": {
+            "type": "string",
+            "contentMediaType": "application/octet-stream",
+            "title": "File",
+            "description": "The document file to upload (PDF, DOCX, DOC, TXT — max 10 MB)",
+            "example": "[PDF 1]"
+          }
+        },
+        "type": "object",
+        "required": [
+          "file"
+        ],
+        "title": "Body_upload_document_documents_upload_post",
+        "example": {
+          "file": "[PDF 1]"
+        }
+      },
+      "DocumentResponse": {
+        "properties": {
+          "document_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Document Id",
+            "description": "Document identifier.",
+            "example": "eb1d48cf-2313-4edb-b2e9-4667f6faf449"
+          },
+          "file_name": {
+            "type": "string",
+            "title": "File Name",
+            "description": "Name of the uploaded file",
+            "example": "Deped Memo"
+          },
+          "content_type": {
+            "type": "string",
+            "title": "Content Type",
+            "description": "MIME type of the uploaded file",
+            "example": "application/pdf"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "description": "Processing status of the document",
+            "example": "COMPLETED"
+          },
+          "summary": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Summary",
+            "description": "LLM-generated summary",
+            "example": "DepEd Memorandum No. 028, s. 2026, issued by the Department of Education of the Republic of the Philippines on May 6, 2026, provides guidelines for the Basic Education Information System (BEIS) data collection and validation for school year 2025-2026. It directs public and private elementary and secondary schools, including state/local universities and colleges offering basic education, to update school information in BEIS from May 7 to June 15, 2026."
+          },
+          "labels": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Labels",
+            "description": "Document type labels",
+            "example": ["Memorandum", "DepEd Memorandum", "Government Issuance", "Guidelines", "Basic Education Information System", "BEIS", "Data Collection", "Data Validation", "Education"]
+          },
+          "entities": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Entities",
+            "description": "Named entities extracted",
+            "example": [
+              {"type": "ORG", "value": "Department of Education"},
+              {"type": "ORG", "value": "Republic of the Philippines"},
+              {"type": "DATE", "value": "May 6, 2026"},
+              {"type": "DATE", "value": "May 7, 2026"},
+              {"type": "DATE", "value": "June 15, 2026"},
+              {"type": "DATE", "value": "School Year 2025-2026"},
+              {"type": "DATE", "value": "DepEd Order No. 027, s. 2019"},
+              {"type": "DATE", "value": "DepEd Memorandum No. 031, s. 2025"},
+              {"type": "URL", "value": "https://support.lis.deped.gov.ph/support/"},
+              {"type": "URL", "value": "https://support.lis.deped.gov.ph/support/"},
+              {"type": "DOCUMENT_NUMBER", "value": "DepEd Memorandum No. 028, s. 2026"},
+              {"type": "DOCUMENT_NUMBER", "value": "DepEd Order No. 027, s. 2019"},
+              {"type": "DOCUMENT_NUMBER", "value": "DepEd Memorandum No. 031, s. 2025"},
+              {"type": "LOCATION", "value": "DepEd Complex, Meralco Avenue, Pasig City 1600"}
+            ]
+          },
+          "risk_flags": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Risk Flags",
+            "description": "Identified risk flags",
+            "example": [
+              {"clause": "School heads are responsible for ensuring the integrity and accuracy of the data reported by their respective schools. Failure to do so may result in administrative cases being filed against them.", "severity": "medium"}
+            ]
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At",
+            "example": "2026-05-08T18:03:03.282234Z"
+          }
+        },
+        "type": "object",
+        "required": [
+          "document_id",
+          "file_name",
+          "content_type",
+          "status",
+          "created_at"
+        ],
+        "title": "DocumentResponse",
+        "description": "Document detail response with analysis insight.",
+        "example": {
+          "document_id": "eb1d48cf-2313-4edb-b2e9-4667f6faf449",
+          "file_name": "Deped Memo",
+          "content_type": "application/pdf",
+          "status": "COMPLETED",
+          "summary": "DepEd Memorandum No. 028, s. 2026, issued by the Department of Education of the Republic of the Philippines on May 6, 2026, provides guidelines for the Basic Education Information System (BEIS) data collection and validation for school year 2025-2026. It directs public and private elementary and secondary schools, including state/local universities and colleges offering basic education, to update school information in BEIS from May 7 to June 15, 2026.",
+          "labels": ["Memorandum", "DepEd Memorandum", "Government Issuance", "Guidelines", "Basic Education Information System", "BEIS", "Data Collection", "Data Validation", "Education"],
+          "entities": [
+            {"type": "ORG", "value": "Department of Education"},
+            {"type": "ORG", "value": "Republic of the Philippines"},
+            {"type": "DATE", "value": "May 6, 2026"},
+            {"type": "DATE", "value": "May 7, 2026"},
+            {"type": "DATE", "value": "June 15, 2026"},
+            {"type": "DATE", "value": "School Year 2025-2026"},
+            {"type": "DATE", "value": "DepEd Order No. 027, s. 2019"},
+            {"type": "DATE", "value": "DepEd Memorandum No. 031, s. 2025"},
+            {"type": "URL", "value": "https://support.lis.deped.gov.ph/support/"},
+            {"type": "URL", "value": "https://support.lis.deped.gov.ph/support/"},
+            {"type": "DOCUMENT_NUMBER", "value": "DepEd Memorandum No. 028, s. 2026"},
+            {"type": "DOCUMENT_NUMBER", "value": "DepEd Order No. 027, s. 2019"},
+            {"type": "DOCUMENT_NUMBER", "value": "DepEd Memorandum No. 031, s. 2025"},
+            {"type": "LOCATION", "value": "DepEd Complex, Meralco Avenue, Pasig City 1600"}
+          ],
+          "risk_flags": [
+            {"clause": "School heads are responsible for ensuring the integrity and accuracy of the data reported by their respective schools. Failure to do so may result in administrative cases being filed against them.", "severity": "medium"}
+          ],
+          "created_at": "2026-05-08T18:03:03.282234Z"
+        }
+      },
+      "DocumentUploadAcceptedResponse": {
+        "properties": {
+          "document_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Document Id",
+            "description": "Document identifier.",
+            "example": "eb1d48cf-2313-4edb-b2e9-4667f6faf449"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "description": "Current document status after upload.",
+            "example": "QUEUED"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "description": "Human-readable processing state.",
+            "example": "Document accepted for processing"
+          }
+        },
+        "type": "object",
+        "required": [
+          "document_id",
+          "status",
+          "message"
+        ],
+        "title": "DocumentUploadAcceptedResponse",
+        "description": "Response payload returned immediately after upload is accepted.",
+        "example": {
+          "document_id": "eb1d48cf-2313-4edb-b2e9-4667f6faf449",
+          "status": "QUEUED",
+          "message": "Document accepted for processing"
+        }
+      },
+      "DocumentUploadResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id",
+            "description": "Unique identifier of the document.",
+            "example": "eb1d48cf-2313-4edb-b2e9-4667f6faf449"
+          },
+          "file_name": {
+            "type": "string",
+            "title": "File Name",
+            "description": "Name of the uploaded file",
+            "example": "Deped Memo"
+          },
+          "content_type": {
+            "type": "string",
+            "title": "Content Type",
+            "description": "MIME type of the uploaded file",
+            "example": "application/pdf"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "description": "Processing status of the document",
+            "example": "COMPLETED"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At",
+            "description": "When the document was uploaded",
+            "example": "2026-05-08T18:03:03.282234Z"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "file_name",
+          "content_type",
+          "status",
+          "created_at"
+        ],
+        "title": "DocumentUploadResponse",
+        "description": "    \n    ",
+        "example": {
+          "id": "eb1d48cf-2313-4edb-b2e9-4667f6faf449",
+          "file_name": "Deped Memo",
+          "content_type": "application/pdf",
+          "status": "COMPLETED",
+          "created_at": "2026-05-08T18:03:03.282234Z"
+        }
+      },
+      "GlobalSearchHit": {
+        "properties": {
+          "chunk_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Chunk Id",
+            "example": "e720b0c8-f156-40ea-87ab-61accbf85115"
+          },
+          "document_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Document Id",
+            "example": "eb1d48cf-2313-4edb-b2e9-4667f6faf449"
+          },
+          "chunk_index": {
+            "type": "integer",
+            "title": "Chunk Index",
+            "example": 1
+          },
+          "score": {
+            "type": "number",
+            "title": "Score",
+            "example": 0.13627782057887905
+          },
+          "text": {
+            "type": "string",
+            "title": "Text",
+            "description": "Text excerpt of the matched chunk.",
+            "example": "This is an excerpt from the matched document chunk..."
+          }
+        },
+        "type": "object",
+        "required": [
+          "chunk_id",
+          "document_id",
+          "chunk_index",
+          "score",
+          "text"
+        ],
+        "title": "GlobalSearchHit"
+      },
+      "GlobalSearchResponse": {
+        "properties": {
+          "query": {
+            "type": "string",
+            "title": "Query",
+            "example": "Memo"
+          },
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/GlobalSearchHit"
+            },
+            "type": "array",
+            "title": "Results",
+            "example": [
+              {
+                "chunk_id": "e720b0c8-f156-40ea-87ab-61accbf85115",
+                "document_id": "eb1d48cf-2313-4edb-b2e9-4667f6faf449",
+                "chunk_index": 1,
+                "score": 0.13627782057887905
+              },
+              {
+                "chunk_id": "357ce4c4-7d94-4c00-a094-4404761bb05a",
+                "document_id": "eb1d48cf-2313-4edb-b2e9-4667f6faf449",
+                "chunk_index": 2,
+                "score": 0.13627782057887905
+              },
+              {
+                "chunk_id": "4efd1129-db70-4bd3-9b65-6942e6b8ee8f",
+                "document_id": "eb1d48cf-2313-4edb-b2e9-4667f6faf449",
+                "chunk_index": 0,
+                "score": 0.13627782057887905
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "query",
+          "results"
+        ],
+        "title": "GlobalSearchResponse",
+        "example": {
+          "query": "Memo",
+          "results": [
+            {
+              "chunk_id": "e720b0c8-f156-40ea-87ab-61accbf85115",
+              "document_id": "eb1d48cf-2313-4edb-b2e9-4667f6faf449",
+              "chunk_index": 1,
+              "score": 0.13627782057887905
+            },
+            {
+              "chunk_id": "357ce4c4-7d94-4c00-a094-4404761bb05a",
+              "document_id": "eb1d48cf-2313-4edb-b2e9-4667f6faf449",
+              "chunk_index": 2,
+              "score": 0.13627782057887905
+            },
+            {
+              "chunk_id": "4efd1129-db70-4bd3-9b65-6942e6b8ee8f",
+              "document_id": "eb1d48cf-2313-4edb-b2e9-4667f6faf449",
+              "chunk_index": 0,
+              "score": 0.13627782057887905
+            }
+          ]
+        }
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "MessageResponse": {
+        "properties": {
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "description": "Response message",
+            "example": "Verification email sent. Please check your inbox."
+          }
+        },
+        "type": "object",
+        "required": [
+          "message"
+        ],
+        "title": "MessageResponse",
+        "example": {
+          "message": "Verification email sent. Please check your inbox."
+        }
+      },
+      "RenameDocumentRequest": {
+        "properties": {
+          "file_name": {
+            "type": "string",
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "File Name",
+            "description": "New display name for the document.",
+            "example": "DepEd Memorandum No. 028, s. 2026"
+          }
+        },
+        "type": "object",
+        "required": [
+          "file_name"
+        ],
+        "title": "RenameDocumentRequest",
+        "description": "Request payload for renaming a document.",
+        "example": {
+          "file_name": "DepEd Memorandum No. 028, s. 2026"
+        }
+      },
+      "ResendVerificationRequest": {
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "title": "Email",
+            "description": "Email address to resend verification to",
+            "example": "dibopiw438@imashr.com"
+          }
+        },
+        "type": "object",
+        "required": [
+          "email"
+        ],
+        "title": "ResendVerificationRequest",
+        "example": {
+          "email": "dibopiw438@imashr.com"
+        }
+      },
+      "SearchHit": {
+        "properties": {
+          "chunk_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Chunk Id",
+            "example": "e720b0c8-f156-40ea-87ab-61accbf85115"
+          },
+          "chunk_index": {
+            "type": "integer",
+            "title": "Chunk Index",
+            "example": 1
+          },
+          "score": {
+            "type": "number",
+            "title": "Score",
+            "example": 0.03186004784225571
+          },
+          "text": {
+            "type": "string",
+            "title": "Text",
+            "example": "Republic of the Philippines\\nDepartment of Education\\n\\nMAY 06 2026\\nDepEd MEMORANDUM\\n\\nNo. 028, s. 2026\\n\\nGUIDELINES ON THE BASIC EDUCATION INFORMATION SYSTEM..."
+          }
+        },
+        "type": "object",
+        "required": [
+          "chunk_id",
+          "chunk_index",
+          "score",
+          "text"
+        ],
+        "title": "SearchHit"
+      },
+      "SearchRequest": {
+        "properties": {
+          "query": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Query",
+            "example": "Memo"
+          }
+        },
+        "type": "object",
+        "required": [
+          "query"
+        ],
+        "title": "SearchRequest",
+        "example": {
+          "query": "Memo"
+        }
+      },
+      "SearchResponse": {
+        "properties": {
+          "query": {
+            "type": "string",
+            "title": "Query",
+            "example": "hey what is this for?"
+          },
+          "document_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Document Id",
+            "example": "eb1d48cf-2313-4edb-b2e9-4667f6faf449"
+          },
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/SearchHit"
+            },
+            "type": "array",
+            "title": "Results"
+          }
+        },
+        "type": "object",
+        "required": [
+          "query",
+          "document_id",
+          "results"
+        ],
+        "title": "SearchResponse",
+        "example": {
+          "query": "hey what is this for?",
+          "document_id": "eb1d48cf-2313-4edb-b2e9-4667f6faf449",
+          "results": [
+            {
+              "chunk_id": "e720b0c8-f156-40ea-87ab-61accbf85115",
+              "chunk_index": 1,
+              "score": 0.03186004784225571,
+              "text": "Republic of the Philippines\\nDepartment of Education\\n\\nMAY 06 2026\\nDepEd MEMORANDUM\\n\\nNo. 028, s. 2026..."
+            }
+          ]
+        }
+      },
+      "SignInRequest": {
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "title": "Email",
+            "description": "Valid email for this user",
+            "example": "dibopiw438@imashr.com"
+          },
+          "password": {
+            "type": "string",
+            "title": "Password",
+            "description": "Valid password",
+            "example": "@Dibopiw438"
+          }
+        },
+        "type": "object",
+        "required": [
+          "email",
+          "password"
+        ],
+        "title": "SignInRequest",
+        "example": {
+          "email": "dibopiw438@imashr.com",
+          "password": "@Dibopiw438"
+        }
+      },
+      "SignInResponse": {
+        "properties": {
+          "access_token": {
+            "type": "string",
+            "title": "Access Token",
+            "description": "JWT access token for API authentication",
+            "example": "eyJhbGciOiJFUzI1NiIsImtpZCI6IjFmZjdjNGQ2LTliYzYtNGRkMC1hNzQ1LWFmNGUzZWMwZjUxYiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHRwczovL2JsaGVoc29lc3d3c3lpZ2pva2J3LnN1cGFiYXNlLmNvL2F1dGgvdjEiLCJzdWIiOiI1NTdlZmQyNi0wMTQwLTRmMzItYTY3My0zMDczZmZmMzZhZWEiLCJhdWQiOiJhdXRoZW50aWNhdGVkIiwiZXhwIjoxNzc4MjY1OTAxLCJpYXQiOjE3NzgyNjIzMDEsImVtYWlsIjoiZGlib3BpdzQzOEBpbWFzaHIuY29tIiwicGhvbmUiOiIiLCJhcHBfbWV0YWRhdGEiOnsicHJvdmlkZXIiOiJlbWFpbCIsInByb3ZpZGVycyI6WyJlbWFpbCJdfSwidXNlcl9tZXRhZGF0YSI6eyJlbWFpbCI6ImRpYm9waXc0MzhAaW1hc2hyLmNvbSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJwaG9uZV92ZXJpZmllZCI6ZmFsc2UsInN1YiI6IjU1N2VmZDI2LTAxNDAtNGYzMi1hNjczLTMwNzNmZmYzNmFlYSJ9LCJyb2xlIjoiYXV0aGVudGljYXRlZCIsImFhbCI6ImFhbDEiLCJhbXIiOlt7Im1ldGhvZCI6InBhc3N3b3JkIiwidGltZXN0YW1wIjoxNzc4MjYyMzAxfV0sInNlc3Npb25faWQiOiJkMzI4YjRlZi0yZDUzLTQzOTQtOGNmNC1mZjFmODZjMTQ4NGIiLCJpc19hbm9ueW1vdXMiOmZhbHNlfQ.3HKrUxOqd5B4KopRRRtwYAEQCvNxrvJW30ykNDU0LbbbXZS4SXlHlhdX_ad1lMhLTJXGKdbSA1aLOudWWtao4w"
+          },
+          "refresh_token": {
+            "type": "string",
+            "title": "Refresh Token",
+            "description": "Token used to obtain a new access token",
+            "example": "bh3xqvjrm5pm"
+          },
+          "token_type": {
+            "type": "string",
+            "title": "Token Type",
+            "description": "Token type, always 'bearer'",
+            "default": "bearer",
+            "example": "bearer"
+          },
+          "expires_in": {
+            "type": "integer",
+            "title": "Expires In",
+            "description": "Token expiration time in seconds",
+            "example": 3600
+          },
+          "user": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "User",
+            "description": "User information from Supabase",
+            "example": {
+              "id": "da976baa-007f-4f37-a551-f6c4e279c461",
+              "email": "dibopiw438@imashr.com"
+            }
+          }
+        },
+        "type": "object",
+        "required": [
+          "access_token",
+          "refresh_token",
+          "expires_in",
+          "user"
+        ],
+        "title": "SignInResponse",
+        "example": {
+          "access_token": "eyJhbGciOiJFUzI1NiIsImtpZCI6IjFmZjdjNGQ2LTliYzYtNGRkMC1hNzQ1LWFmNGUzZWMwZjUxYiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHRwczovL2JsaGVoc29lc3d3c3lpZ2pva2J3LnN1cGFiYXNlLmNvL2F1dGgvdjEiLCJzdWIiOiI1NTdlZmQyNi0wMTQwLTRmMzItYTY3My0zMDczZmZmMzZhZWEiLCJhdWQiOiJhdXRoZW50aWNhdGVkIiwiZXhwIjoxNzc4MjY1OTAxLCJpYXQiOjE3NzgyNjIzMDEsImVtYWlsIjoiZGlib3BpdzQzOEBpbWFzaHIuY29tIiwicGhvbmUiOiIiLCJhcHBfbWV0YWRhdGEiOnsicHJvdmlkZXIiOiJlbWFpbCIsInByb3ZpZGVycyI6WyJlbWFpbCJdfSwidXNlcl9tZXRhZGF0YSI6eyJlbWFpbCI6ImRpYm9waXc0MzhAaW1hc2hyLmNvbSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJwaG9uZV92ZXJpZmllZCI6ZmFsc2UsInN1YiI6IjU1N2VmZDI2LTAxNDAtNGYzMi1hNjczLTMwNzNmZmYzNmFlYSJ9LCJyb2xlIjoiYXV0aGVudGljYXRlZCIsImFhbCI6ImFhbDEiLCJhbXIiOlt7Im1ldGhvZCI6InBhc3N3b3JkIiwidGltZXN0YW1wIjoxNzc4MjYyMzAxfV0sInNlc3Npb25faWQiOiJkMzI4YjRlZi0yZDUzLTQzOTQtOGNmNC1mZjFmODZjMTQ4NGIiLCJpc19hbm9ueW1vdXMiOmZhbHNlfQ.3HKrUxOqd5B4KopRRRtwYAEQCvNxrvJW30ykNDU0LbbbXZS4SXlHlhdX_ad1lMhLTJXGKdbSA1aLOudWWtao4w",
+          "refresh_token": "bh3xqvjrm5pm",
+          "token_type": "bearer",
+          "expires_in": 3600,
+          "user": {
+            "id": "da976baa-007f-4f37-a551-f6c4e279c461",
+            "email": "dibopiw438@imashr.com"
+          }
+        }
+      },
+      "SignUpRequest": {
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "title": "Email",
+            "description": "Valid email for this user",
+            "example": "dibopiw438@imashr.com"
+          },
+          "password": {
+            "type": "string",
+            "title": "Password",
+            "description": "Valid Password",
+            "example": "@Dibopiw438"
+          },
+          "f_name": {
+            "type": "string",
+            "title": "F Name",
+            "description": "Valid first name",
+            "example": "dibo"
+          },
+          "l_name": {
+            "type": "string",
+            "title": "L Name",
+            "description": "Valid last name",
+            "example": "piwpiw"
+          },
+          "phone_number": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Phone Number",
+            "description": "Valid Phone number",
+            "example": "09090909091"
+          }
+        },
+        "type": "object",
+        "required": [
+          "email",
+          "password",
+          "f_name",
+          "l_name",
+          "phone_number"
+        ],
+        "title": "SignUpRequest",
+        "example": {
+          "email": "dibopiw438@imashr.com",
+          "password": "@Dibopiw438",
+          "f_name": "dibo",
+          "l_name": "piwpiw",
+          "phone_number": "09090909091"
+        }
+      },
+      "SignUpResponse": {
+        "properties": {
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "description": "Message containing what to do next.",
+            "example": "Account created successfully. Please check your email to verify your account."
+          },
+          "user_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "User Id",
+            "description": "Contains the user id the response",
+            "example": "557efd26-0140-4f32-a673-3073fff36aea"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "title": "Email",
+            "description": "Email of this user/response",
+            "example": "dibopiw438@imashr.com"
+          },
+          "requires_email_confirmation": {
+            "type": "boolean",
+            "title": "Requires Email Confirmation",
+            "description": "session will be None until the user verifies their email",
+            "example": true
+          }
+        },
+        "type": "object",
+        "required": [
+          "message",
+          "user_id",
+          "email",
+          "requires_email_confirmation"
+        ],
+        "title": "SignUpResponse",
+        "example": {
+          "message": "Account created successfully. Please check your email to verify your account.",
+          "user_id": "557efd26-0140-4f32-a673-3073fff36aea",
+          "email": "dibopiw438@imashr.com",
+          "requires_email_confirmation": true
+        }
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    },
+    "securitySchemes": {
+      "Bearer Token": {
+        "type": "http",
+        "description": "Enter your Supabase JWT token",
+        "scheme": "bearer"
+      }
+    }
+  }
+}
