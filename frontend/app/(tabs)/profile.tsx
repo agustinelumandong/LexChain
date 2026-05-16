@@ -1,13 +1,14 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useRouter } from 'expo-router';
 import { ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { toast } from 'sonner-native';
 
+import { clearSessionData } from '@/features/auth';
 import {
   getProfileDisplayName,
   getProfileInitials,
   ProfileHeader,
-  ProfileMetricsCard,
   ProfileSummaryCard,
   SettingsListCard,
   useProfileSettingsStore,
@@ -18,7 +19,24 @@ import { styles } from '@/features/profile/profile-screen.styles';
 
 export default function ProfileScreen() {
   const router = useRouter();
+  const [isSigningOut, setIsSigningOut] = useState(false);
   const account = useProfileSettingsStore((state) => state.account);
+
+  const handleSignOut = async () => {
+    if (isSigningOut) {
+      return;
+    }
+
+    setIsSigningOut(true);
+
+    try {
+      await clearSessionData();
+      router.replace('/(auth)/sign-in');
+    } catch {
+      toast.error('Unable to sign out. Please try again.');
+      setIsSigningOut(false);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.screen}>
@@ -35,14 +53,6 @@ export default function ProfileScreen() {
             role={account.role}
             organization={account.organization}
             email={account.email}
-          />
-
-          <ProfileMetricsCard
-            metrics={[
-              { label: 'Documents', value: '124' },
-              { label: 'Active grants', value: '53' },
-              { label: 'Verified rate', value: '98%' },
-            ]}
           />
 
           <SettingsListCard
@@ -89,11 +99,12 @@ export default function ProfileScreen() {
 
           <View style={styles.sessionCard}>
             <Button
-              label="Sign out"
+              label={isSigningOut ? 'Signing out...' : 'Sign out'}
               variant="primary"
               fullWidth
+              loading={isSigningOut}
               leftIconName="logout"
-              onPress={() => router.replace('/(auth)/sign-in')}
+              onPress={handleSignOut}
             />
           </View>
         </ScrollView>

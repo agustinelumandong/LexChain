@@ -1,6 +1,5 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { MaterialIcons } from '@expo/vector-icons';
-import * as DocumentPicker from 'expo-document-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -17,7 +16,7 @@ import {
   SearchDocumentSheet,
 } from '@/features/document';
 import { Button, ErrorState, ScreenHeader, SkeletonBox } from '@/ui';
-import type { PickedUploadFile } from '@/types';
+import type { DocumentPartyRole } from '@/types';
 import {
   useAddDocumentParty,
   useAskDocument,
@@ -27,7 +26,6 @@ import {
   useNotarizeDocument,
   useRenameDocument,
   useRemoveDocumentParty,
-  useUpdateDocumentVersion,
   useUserSearch,
 } from '@/services/query';
 import { useCloseSheetOnBack } from '@/hooks';
@@ -92,22 +90,6 @@ function formatReference(value: string) {
   }
 
   return `${value.slice(0, 8)}...${value.slice(-7)}`;
-}
-
-function formatFileSize(fileSize?: number | null) {
-  if (!fileSize || Number.isNaN(fileSize)) {
-    return undefined;
-  }
-
-  if (fileSize >= 1024 * 1024) {
-    return `${(fileSize / (1024 * 1024)).toFixed(1)} MB`;
-  }
-
-  return `${Math.max(1, Math.round(fileSize / 1024))} KB`;
-}
-
-function isPdfFile(file: PickedUploadFile) {
-  return file.mimeType === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
 }
 
 function getDocumentPdfUri(document: {
@@ -449,7 +431,6 @@ export default function DocumentDetailsScreen() {
   const versionHistoryQuery = useDocumentVersions(documentId);
   const partiesQuery = useDocumentParties(documentId);
   const renameMutation = useRenameDocument();
-  const updateVersionMutation = useUpdateDocumentVersion();
   const notarizeMutation = useNotarizeDocument();
   const addPartyMutation = useAddDocumentParty();
   const removePartyMutation = useRemoveDocumentParty();
@@ -522,61 +503,25 @@ export default function DocumentDetailsScreen() {
   const currentDocumentRole = canManageWhitelist ? 'owner' : 'viewer';
   const canNotarizeDocument = document?.status === 'COMPLETED';
 
-  const handleChooseVersionFile = async () => {
-    try {
-      const result = await DocumentPicker.getDocumentAsync({
-        copyToCacheDirectory: true,
-        multiple: false,
-        type: 'application/pdf',
-      });
-
-      if (result.canceled || !result.assets?.length) {
-        return;
-      }
-
-      const asset = result.assets[0];
-      const selectedFile: PickedUploadFile = {
-        id: `${asset.uri}-${Date.now()}`,
-        name: asset.name,
-        sizeLabel: formatFileSize(asset.size),
-        uri: asset.uri,
-        mimeType: asset.mimeType ?? 'application/pdf',
-        sourceLabel: 'file',
-      };
-
-      if (!isPdfFile(selectedFile)) {
-        toast.warning('LexChain only accepts PDF documents');
-        return;
-      }
-
-      const response = await updateVersionMutation.mutateAsync({
-        documentId,
-        file: selectedFile,
-        fileName: selectedFile.name,
-      });
-
-      toast.success(response.message || 'Document update accepted for processing');
-    } catch (error) {
-      toast.error(parseApiError(error).message);
-    }
-  };
-
   const handleNotarize = async () => {
     if (!canNotarizeDocument) {
-      toast.warning('Document must be completed before notarization');
+      toast.warning('Document must be completed before blockchain anchoring');
       return;
     }
 
     try {
       await notarizeMutation.mutateAsync(documentId);
-      toast.success('Document notarized on-chain');
+      toast.success('Document anchored to blockchain');
       router.push(`/verify/${documentId}`);
     } catch (error) {
       toast.error(parseApiError(error).message);
     }
   };
 
-  const handleAddWhitelistResult = async (resultId: string) => {
+  const handleAddWhitelistResult = async (
+    resultId: string,
+    role: DocumentPartyRole,
+  ) => {
     const result = whitelistData.searchResults.find(
       (entry) => entry.id === resultId,
     );
@@ -590,11 +535,11 @@ export default function DocumentDetailsScreen() {
         documentId,
         payload: {
           email: result.email,
-          role: 'viewer',
+          role,
         },
       });
       setWhitelistSearchQuery('');
-      toast.success(`${result.name} added to document access`);
+      toast.success(`${result.name} added as ${role}`);
     } catch (error) {
       toast.error(parseApiError(error).message);
     }
@@ -675,10 +620,18 @@ export default function DocumentDetailsScreen() {
           title={document?.file_name ?? 'Document details'}
           subtitle="AI summary, verification status, ownership history, risk review, and searchable details."
           leftAccessibilityLabel="Back to documents"
-          rightIconName="edit"
-          rightAccessibilityLabel="Rename document"
+          rightIconName="menu"
+          rightAccessibilityLabel="Open document menu"
           onPressLeft={() => router.back()}
-          onPressRight={() => setIsRenameSheetVisible(true)}
+          onPressRight={() => {
+            router.push({
+              pathname: '/document/menu',
+              params: {
+                documentId,
+                title: document?.file_name ?? 'Document details',
+              },
+            });
+          }}
           onHeightChange={handleHeaderHeightChange}
           includeTopInset
         />
@@ -729,16 +682,7 @@ export default function DocumentDetailsScreen() {
                   onPress={() => setIsSearchSheetVisible(true)}
                 />
                 <Button
-                  label="Update version"
-                  variant="secondary"
-                  size="sm"
-                  leftIconName="upload-file"
-                  style={styles.actionButton}
-                  loading={updateVersionMutation.isPending}
-                  onPress={handleChooseVersionFile}
-                />
-                <Button
-                  label="Notarize"
+                  label="Anchor to Blockchain"
                   variant="secondary"
                   size="sm"
                   leftIconName="verified"

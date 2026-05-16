@@ -30,7 +30,7 @@ export const mockAdminApi = {
       total_documents: 2340,
       total_processed: 2100,
       total_failed: 30,
-      total_notarized: 900,
+      total_on_chain: 900,
       pending_invitations: mockInvitations.filter(
         (invitation) => invitation.status === 'pending',
       ).length,

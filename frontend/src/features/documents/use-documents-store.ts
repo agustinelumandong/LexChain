@@ -22,6 +22,7 @@ type DocumentsStore = {
   isPersisting: boolean;
   hydrationError: string | null;
   completeHydration: (error?: unknown) => void;
+  resetDocumentsStore: () => void;
   addWhitelistResult: (documentId: string, resultId: string) => boolean;
   revokeWhitelistGrant: (documentId: string, grantId: string) => boolean;
 };
@@ -51,6 +52,15 @@ export const useDocumentsStore = create<DocumentsStore>()(
           isHydrating: false,
           hydrationError: error ? 'Failed to load saved whitelist access' : null,
         }));
+      },
+      resetDocumentsStore: () => {
+        set({
+          documents: MOCK_DOCUMENTS,
+          whitelistByDocumentId: {},
+          isHydrating: false,
+          isPersisting: false,
+          hydrationError: null,
+        });
       },
       addWhitelistResult: (documentId, resultId) => {
         const selectedDocument = get().documents.find((document) => document.id === documentId);

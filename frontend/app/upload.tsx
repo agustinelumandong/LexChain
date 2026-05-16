@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import * as DocumentPicker from 'expo-document-picker';
 import * as Haptics from 'expo-haptics';
 import * as Sharing from 'expo-sharing';
-import { useFocusEffect } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -54,6 +53,8 @@ const INITIAL_WHITELIST: ManageWhitelistData = {
   ],
 };
 
+const HEADER_CONTENT_GAP = 12;
+
 export default function UploadScreen() {
   const router = useRouter();
   const [isWhitelistOpen, setIsWhitelistOpen] = useState(false);
@@ -62,6 +63,7 @@ export default function UploadScreen() {
   const [pickedFiles, setPickedFiles] = useState<PickedUploadFile[]>([]);
   const [documentTitle, setDocumentTitle] = useState('');
   const [isPreparingScanPdf, setIsPreparingScanPdf] = useState(false);
+  const [headerHeight, setHeaderHeight] = useState(126);
   const uploadMutation = useUploadDocument();
 
   useFocusEffect(
@@ -346,7 +348,7 @@ export default function UploadScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.screen}>
+    <SafeAreaView style={styles.screen} edges={['left', 'right', 'bottom']}>
       <View style={styles.surface}>
         <ScreenHeader
             eyebrow="UPLOAD DOCUMENT"
@@ -357,9 +359,11 @@ export default function UploadScreen() {
             rightAccessibilityLabel="Open camera scanner"
             onPressLeft={() => router.back()}
             onPressRight={handleOpenCameraCapture}
+            onHeightChange={setHeaderHeight}
+            includeTopInset
           />
         <ScrollView
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[styles.scrollContent, { paddingTop: headerHeight + HEADER_CONTENT_GAP }]}
           showsVerticalScrollIndicator={false}
         >
 
@@ -381,13 +385,6 @@ export default function UploadScreen() {
             onPreviewFile={handlePreviewFile}
             onShareFile={handleShareFile}
             onRemoveFile={handleRemoveFile}
-          />
-
-          <AccessWhitelistCard
-            allowedCountLabel={updateWhitelistCountLabel(whitelistData.grants.length)}
-            helperText="Set document access before upload so authorized users can verify it later."
-            onPressManage={openWhitelist}
-            onPressAdd={openWhitelist}
           />
         </ScrollView>
 
@@ -443,7 +440,6 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 16,
-    paddingBottom: 148,
     gap: 12,
   },
   footer: {

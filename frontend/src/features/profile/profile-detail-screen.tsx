@@ -1,6 +1,6 @@
 import { MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import React from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   Pressable,
   ScrollView,
@@ -14,6 +14,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ScreenHeader } from '@/ui';
 import { APP_COLORS, fonts } from '@/theme';
+
+const HEADER_CONTENT_GAP = 12;
 
 type ProfileDetailScreenProps = {
   title: string;
@@ -63,18 +65,24 @@ export function ProfileDetailScreen({
   footer,
 }: ProfileDetailScreenProps) {
   const router = useRouter();
+  const [headerHeight, setHeaderHeight] = useState(126);
+  const handleHeaderHeightChange = useCallback((nextHeight: number) => {
+    setHeaderHeight((h) => (h === nextHeight ? h : nextHeight));
+  }, []);
 
   return (
-    <SafeAreaView style={styles.screen}>
+    <SafeAreaView style={styles.screen} edges={['left', 'right', 'bottom']}>
       <ScreenHeader
         eyebrow="PROFILE"
         title={title}
         subtitle={subtitle}
         onPressLeft={() => router.back()}
+        onHeightChange={handleHeaderHeightChange}
+        includeTopInset
       />
 
       <ScrollView
-        contentContainerStyle={[styles.content, footer ? styles.contentWithFooter : null]}
+        contentContainerStyle={[styles.content, { paddingTop: headerHeight + HEADER_CONTENT_GAP }, footer ? styles.contentWithFooter : null]}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >

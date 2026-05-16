@@ -66,6 +66,7 @@ export default function RootLayout() {
                 <Stack.Screen name="profile/privacy" options={{ headerShown: false }} />
                 <Stack.Screen name="profile/support" options={{ headerShown: false }} />
                 <Stack.Screen name="document/[id]" options={{ headerShown: false }} />
+                <Stack.Screen name="document/menu" options={{ headerShown: false }} />
                 <Stack.Screen
                   name="document/pdf-viewer"
                   options={{ headerShown: false }}
@@ -84,7 +85,7 @@ export default function RootLayout() {
                 />
                 <Stack.Screen
                   name="modal"
-                  options={{ presentation: "modal", title: "Modal" }}
+                  options={{ presentation: "modal", title: "Modal", headerShown: false }}
                 />
               </Stack>
             </ThemeProvider>

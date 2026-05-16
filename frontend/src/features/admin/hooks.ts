@@ -106,7 +106,7 @@ function mapDashboardStats(stats: AdminDashboardResponse): AdminStats {
     processed_documents: stats.total_processed,
     pending_documents: stats.pending_invitations,
     failed_documents: stats.total_failed,
-    total_verifications: stats.total_notarized,
+    total_verifications: stats.total_on_chain,
     tamper_alerts: stats.total_failed,
   };
 }

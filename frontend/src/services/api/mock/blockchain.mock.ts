@@ -1,12 +1,12 @@
 import type {
-  NotarizeResponse,
   OnChainVerificationResponse,
+  RecordDocumentResponse,
 } from '@/services/api/blockchain.api';
 
 import { mockDelay } from './delay';
 
 export const mockBlockchainApi = {
-  async notarize(documentId: string): Promise<NotarizeResponse> {
+  async notarize(documentId: string): Promise<RecordDocumentResponse> {
     await mockDelay();
 
     return {
