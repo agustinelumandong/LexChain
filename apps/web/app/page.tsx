@@ -306,6 +306,9 @@ export default function Home() {
           <div className="flex gap-5 text-sm font-bold text-[#8ecbff]">
             <Link href="/verify">Verify</Link>
             <Link href="/admin/login">Admin</Link>
+            <Link href="/download">Download</Link>
+            <Link href="/privacy">Privacy</Link>
+            <Link href="/terms">Terms</Link>
           </div>
           <p className="text-xs font-medium text-white/50">
             © {new Date().getFullYear()} LexChain. Blockchain-powered document verification.
