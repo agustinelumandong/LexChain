@@ -1,0 +1,185 @@
+import { StyleSheet } from 'react-native';
+
+import { APP_COLORS, fonts } from '@/theme';
+
+export const captureReviewColors = {
+  bg: APP_COLORS.surfaceSoft,
+  surface: APP_COLORS.white,
+  surfaceSoft: APP_COLORS.surfaceSoft,
+  white: APP_COLORS.white,
+  primary: APP_COLORS.primary,
+  textMuted: APP_COLORS.textMuted,
+  navy: APP_COLORS.navy,
+};
+
+export const captureReviewStyles = StyleSheet.create({
+  screen: {
+    flex: 1,
+    backgroundColor: captureReviewColors.bg,
+  },
+  surface: {
+    flex: 1,
+    backgroundColor: captureReviewColors.bg,
+  },
+  scrollContent: {
+    paddingHorizontal: 18,
+    paddingBottom: 24,
+    gap: 16,
+  },
+  topBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 14,
+    backgroundColor: captureReviewColors.bg,
+  },
+  topBarButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    backgroundColor: captureReviewColors.surfaceSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  topBarCopy: {
+    flex: 1,
+    alignItems: 'center',
+    gap: 2,
+  },
+  topBarEyebrow: {
+    color: captureReviewColors.primary,
+    fontFamily: fonts.regular,
+    fontSize: 10,
+    lineHeight: 12,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  topBarTitle: {
+    color: captureReviewColors.navy,
+    fontFamily: fonts.regular,
+    fontSize: 16,
+    lineHeight: 20,
+    fontWeight: '800',
+  },
+  body: {
+    color: captureReviewColors.textMuted,
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '500',
+    fontFamily: fonts.regular,
+  },
+  grid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  gridCard: {
+    width: '48%',
+    borderRadius: 24,
+    overflow: 'hidden',
+    backgroundColor: captureReviewColors.surface,
+  },
+  gridPreview: {
+    width: '100%',
+    aspectRatio: 0.82,
+  },
+  gridFooter: {
+    padding: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
+  },
+  gridCopy: {
+    flex: 1,
+    gap: 4,
+  },
+  cardTitle: {
+    color: captureReviewColors.navy,
+    fontSize: 14,
+    lineHeight: 18,
+    fontWeight: '800',
+    fontFamily: fonts.regular,
+  },
+  cardMeta: {
+    color: captureReviewColors.textMuted,
+    fontSize: 11,
+    lineHeight: 15,
+    fontWeight: '500',
+    fontFamily: fonts.regular,
+  },
+  removeButton: {
+    width: 28,
+    height: 28,
+    borderRadius: 999,
+    backgroundColor: captureReviewColors.surfaceSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  removeButtonLabel: {
+    color: captureReviewColors.primary,
+    fontSize: 12,
+    lineHeight: 12,
+    fontWeight: '800',
+    fontFamily: fonts.regular,
+  },
+  emptyState: {
+    borderRadius: 24,
+    padding: 20,
+    backgroundColor: captureReviewColors.surface,
+    gap: 8,
+  },
+  emptyTitle: {
+    color: captureReviewColors.navy,
+    fontSize: 16,
+    lineHeight: 20,
+    fontWeight: '800',
+    fontFamily: fonts.regular,
+  },
+  emptyBody: {
+    color: captureReviewColors.textMuted,
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '500',
+    fontFamily: fonts.regular,
+  },
+  footer: {
+    paddingHorizontal: 18,
+    paddingBottom: 24,
+  },
+  previewModal: {
+    flex: 1,
+    backgroundColor: 'rgba(4, 18, 40, 0.92)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  previewBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  previewShell: {
+    width: '100%',
+    aspectRatio: 0.75,
+    borderRadius: 28,
+    overflow: 'hidden',
+    backgroundColor: captureReviewColors.surface,
+  },
+  previewClose: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    zIndex: 2,
+    width: 32,
+    height: 32,
+    borderRadius: 999,
+    backgroundColor: 'rgba(4, 18, 40, 0.6)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  previewModalImage: {
+    width: '100%',
+    height: '100%',
+  },
+});
