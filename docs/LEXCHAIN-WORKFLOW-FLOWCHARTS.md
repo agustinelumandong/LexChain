@@ -43,13 +43,13 @@ flowchart LR
   MobileApp --> MobileDocs[Documents]
   MobileApp --> MobileUpload[Upload / Camera]
   MobileApp --> MobileProcess[Processing]
-  MobileApp --> MobileVerify[Mobile Verify<br/>/verify/[id]]
+  MobileApp --> MobileVerify["Mobile Verify<br/>/verify/id"]
   MobileApp --> MobileProfile[Profile]
 
   WebApp --> Landing[Landing<br/>/]
   WebApp --> PublicVerify[Public Verifier<br/>/verify]
-  WebApp --> PublicCode[Code Verifier<br/>/verify/[code]]
-  WebApp --> Invite[Invite Fallback<br/>/invite/[token]]
+  WebApp --> PublicCode["Code Verifier<br/>/verify/code"]
+  WebApp --> Invite["Invite Fallback<br/>/invite/token"]
   WebApp --> Download[Download<br/>/download]
   WebApp --> AdminPortal[Admin Portal<br/>/admin/*]
   WebApp --> LegalPages[Terms / Privacy]
@@ -94,7 +94,7 @@ flowchart TD
 flowchart TD
   Backend[Backend creates invitation token] --> Email[Send email link<br/>https://lexchain.app/invite/token]
   Email --> Browser[Recipient opens link in browser]
-  Browser --> InvitePage[Next.js Invite Page<br/>/invite/[token]]
+  Browser --> InvitePage["Next.js Invite Page<br/>/invite/token"]
 
   InvitePage --> Choice{User choice}
   Choice --> OpenApp[Open in app]
@@ -150,7 +150,7 @@ flowchart TD
 ```mermaid
 flowchart TD
   List[Documents tab] --> Select[User selects document]
-  Select --> Detail[/document/[id]]
+  Select --> Detail["/document/id"]
   Detail --> Fetch[GET /documents/{document_id}]
   Fetch --> Found{Document found and authorized?}
   Found -- No --> Error[Show not found / access error]
@@ -163,14 +163,14 @@ flowchart TD
   Render --> Blockchain[Show notarization / on-chain status]
   Render --> VerifyAction[Open mobile verifier]
 
-  VerifyAction --> MobileVerify[/verify/[id]]
+  VerifyAction --> MobileVerify["/verify/id"]
 ```
 
 ## 7. Mobile Document Verification Workflow
 
 ```mermaid
 flowchart TD
-  Start([User opens /verify/[id]]) --> FetchDoc[Fetch document verification data]
+  Start(["User opens /verify/id"]) --> FetchDoc[Fetch document verification data]
   FetchDoc --> Authorized{Authorized?}
   Authorized -- No --> AccessError[Show access denied]
   Authorized -- Yes --> HashCheck[Backend checks stored hash]
@@ -217,7 +217,7 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-  Visitor[Public visitor] --> CodeUrl[Open /verify/[code]]
+  Visitor[Public visitor] --> CodeUrl["Open /verify/code"]
   CodeUrl --> BackendSupport{Backend has GET /public/verify/{code}?}
 
   BackendSupport -- Yes --> FetchCode[Fetch code verification]
