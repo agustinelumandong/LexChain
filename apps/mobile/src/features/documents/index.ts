@@ -1,8 +1,12 @@
 export { DocumentResultCard } from './document-result-card';
+export { DocumentSearchResultRow } from './components/document-search-result-row';
 export { DocumentsListSkeleton } from './documents-list-skeleton';
 export { DocumentsFilterControls } from './documents-filter-controls';
 export { DocumentsFilterSheet } from './documents-filter-sheet';
 export { DocumentsHeader } from './documents-header';
 export { DocumentsSearchField } from './documents-search-field';
 export { DocumentsSortSheet } from './documents-sort-sheet';
+export { default as DocumentsScreen } from './screens/documents-screen';
+export { useDocumentSearch } from './hooks/use-document-search';
+export { useDocumentsScreen } from './hooks/use-documents-screen';
 export { useDocumentsStore } from './use-documents-store';
