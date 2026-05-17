@@ -5,6 +5,7 @@ export { DetailSectionsCard } from './detail-sections-card';
 export { DocumentMenuRow } from './details/document-menu-row';
 export { DocumentActionsSheet } from './document-actions-sheet';
 export { DocumentPreviewBottomSheet } from './document-preview-bottom-sheet';
+export { DocumentPdfToolsSheet } from './document-pdf-tools-sheet';
 export { DocumentScreenHeader } from './document-screen-header';
 export { DocumentSearchBar } from './document-search-bar';
 export { DocumentSummaryCard } from './document-summary-card';
