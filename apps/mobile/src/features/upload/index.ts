@@ -10,6 +10,9 @@ export {
 export { UploadTypeBottomSheet } from './upload-type-bottom-sheet';
 export { createPdfFromImages } from './create-pdf-from-images';
 export { default as CaptureReviewScreen } from './screens/capture-review-screen';
+export { CaptureReviewGrid } from './capture-review-grid';
+export { CaptureReviewPreviewModal } from './capture-review-preview-modal';
+export { CaptureReviewTopBar } from './capture-review-top-bar';
 export { default as CameraCaptureScreen } from './screens/camera-capture-screen';
 export { CameraCaptureControls } from './camera-capture-controls';
 export { CameraCaptureFrame } from './camera-capture-frame';
