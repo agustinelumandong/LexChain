@@ -54,6 +54,10 @@ export function useDocumentWhitelistActions({
     resultId: string,
     role: DocumentPartyRole,
   ) => {
+    if (!documentId) {
+      return;
+    }
+
     const result = whitelistData.searchResults.find(
       (entry) => entry.id === resultId,
     );
@@ -78,6 +82,10 @@ export function useDocumentWhitelistActions({
   };
 
   const handleRevokeWhitelistGrant = async (partyUserId: string) => {
+    if (!documentId) {
+      return;
+    }
+
     try {
       await removePartyMutation.mutateAsync({ documentId, partyUserId });
       toast.success('User removed from document access');
