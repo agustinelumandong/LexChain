@@ -7,7 +7,7 @@ export { DocumentsFilterFooter } from './documents-filter-footer';
 export { DocumentsFilterSheet } from './documents-filter-sheet';
 export { DocumentsHeader } from './documents-header';
 export { DocumentsSearchField } from './documents-search-field';
-export { DocumentsSortSheet } from './documents-sort-sheet';
+export { DocumentsSortSheet, type SortOption } from './documents-sort-sheet';
 export { default as DocumentsScreen } from './screens/documents-screen';
 export { useDocumentSearch } from './hooks/use-document-search';
 export { useDocumentsScreen } from './hooks/use-documents-screen';
