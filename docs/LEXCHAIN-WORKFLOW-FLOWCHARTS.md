@@ -151,7 +151,7 @@ flowchart TD
 flowchart TD
   List[Documents tab] --> Select[User selects document]
   Select --> Detail["/document/id"]
-  Detail --> Fetch[GET /documents/{document_id}]
+  Detail --> Fetch["GET /documents/document_id"]
   Fetch --> Found{Document found and authorized?}
   Found -- No --> Error["Show not found / access error"]
   Found -- Yes --> Render[Render detail screen]
@@ -218,7 +218,7 @@ flowchart TD
 ```mermaid
 flowchart TD
   Visitor[Public visitor] --> CodeUrl["Open /verify/code"]
-  CodeUrl --> BackendSupport{Backend has GET /public/verify/{code}?}
+  CodeUrl --> BackendSupport{"Backend has GET /public/verify/code?"}
 
   BackendSupport -- Yes --> FetchCode[Fetch code verification]
   FetchCode --> CodeResult{Result}
