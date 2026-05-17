@@ -41,18 +41,18 @@ flowchart LR
 
   MobileApp --> MobileAuth[Auth Routes]
   MobileApp --> MobileDocs[Documents]
-  MobileApp --> MobileUpload[Upload / Camera]
+  MobileApp --> MobileUpload["Upload / Camera"]
   MobileApp --> MobileProcess[Processing]
   MobileApp --> MobileVerify["Mobile Verify<br/>/verify/id"]
   MobileApp --> MobileProfile[Profile]
 
-  WebApp --> Landing[Landing<br/>/]
-  WebApp --> PublicVerify[Public Verifier<br/>/verify]
+  WebApp --> Landing["Landing<br/>/"]
+  WebApp --> PublicVerify["Public Verifier<br/>/verify"]
   WebApp --> PublicCode["Code Verifier<br/>/verify/code"]
   WebApp --> Invite["Invite Fallback<br/>/invite/token"]
-  WebApp --> Download[Download<br/>/download]
-  WebApp --> AdminPortal[Admin Portal<br/>/admin/*]
-  WebApp --> LegalPages[Terms / Privacy]
+  WebApp --> Download["Download<br/>/download"]
+  WebApp --> AdminPortal["Admin Portal<br/>/admin/*"]
+  WebApp --> LegalPages["Terms / Privacy"]
 
   Packages --> Types[types]
   Packages --> Api[api]
@@ -65,9 +65,9 @@ flowchart LR
 flowchart TD
   Start([User opens mobile app]) --> HasSession{Existing valid session?}
   HasSession -- Yes --> Dashboard[Go to Dashboard]
-  HasSession -- No --> AuthScreen[Show Sign In / Sign Up]
+  HasSession -- No --> AuthScreen["Show Sign In / Sign Up"]
 
-  AuthScreen --> SignIn[User enters email/password]
+  AuthScreen --> SignIn["User enters email/password"]
   SignIn --> Validate[Validate form]
   Validate --> CallSignin[POST /auth/signin]
   CallSignin --> AuthOk{Auth success?}
@@ -101,12 +101,12 @@ flowchart TD
   Choice --> Download[Download app]
   Choice --> ContinueWeb[Continue on website]
 
-  OpenApp --> DeepLink[lexchain://sign-up?token=token]
+  OpenApp --> DeepLink["lexchain://sign-up?token=token"]
   DeepLink --> MobileSignup[Mobile Sign Up receives token]
   MobileSignup --> SubmitSignup[Submit signup with token if backend supports it]
   SubmitSignup --> BackendValidate[Backend validates invitation]
 
-  Download --> DownloadPage[/download]
+  Download --> DownloadPage["/download"]
   ContinueWeb --> AdminOrWeb[Allowed web route]
 
   BackendValidate --> SignupResult{Valid token?}
@@ -120,7 +120,7 @@ flowchart TD
 flowchart TD
   Start([User starts document upload]) --> Source{Upload source}
 
-  Source -- File picker --> PickFile[Select PDF/file]
+  Source -- File picker --> PickFile["Select PDF/file"]
   Source -- Camera --> Camera[Capture document pages]
 
   Camera --> Review[Review captured pages]
@@ -142,7 +142,7 @@ flowchart TD
   Anchor -- Yes --> Blockchain[Write hash proof on-chain]
   Anchor -- No --> SaveStatus[Save processing status]
   Blockchain --> SaveStatus
-  SaveStatus --> DocumentReady[Document appears in list/detail]
+  SaveStatus --> DocumentReady["Document appears in list/detail"]
 ```
 
 ## 6. Document Detail Workflow
@@ -153,13 +153,13 @@ flowchart TD
   Select --> Detail["/document/id"]
   Detail --> Fetch[GET /documents/{document_id}]
   Fetch --> Found{Document found and authorized?}
-  Found -- No --> Error[Show not found / access error]
+  Found -- No --> Error["Show not found / access error"]
   Found -- Yes --> Render[Render detail screen]
 
   Render --> Summary[Show summary and extracted fields]
-  Render --> FileActions[Open PDF / file actions]
+  Render --> FileActions["Open PDF / file actions"]
   Render --> Versions[Show version history]
-  Render --> Permissions[Show parties / whitelist]
+  Render --> Permissions["Show parties / whitelist"]
   Render --> Blockchain[Show notarization / on-chain status]
   Render --> VerifyAction[Open mobile verifier]
 
@@ -178,9 +178,9 @@ flowchart TD
   HashCheck --> ChainCheck[Backend checks blockchain anchor]
   ChainCheck --> Result{Verification result}
 
-  Result -- Match --> Valid[Show valid/authentic]
+  Result -- Match --> Valid["Show valid/authentic"]
   Result -- Mismatch --> Tampered[Show tampered/mismatch warning]
-  Result -- Pending --> Pending[Show pending/not anchored]
+  Result -- Pending --> Pending["Show pending/not anchored"]
   Result -- Missing --> Unknown[Show unknown/no record]
 ```
 
@@ -223,7 +223,7 @@ flowchart TD
   BackendSupport -- Yes --> FetchCode[Fetch code verification]
   FetchCode --> CodeResult{Result}
   CodeResult -- Valid --> ShowValid[Show valid document]
-  CodeResult -- Invalid --> ShowInvalid[Show invalid/expired code]
+  CodeResult -- Invalid --> ShowInvalid["Show invalid/expired code"]
   CodeResult -- Missing --> ShowMissing[Show no record]
 
   BackendSupport -- No --> Limitation[Show clear limitation]
@@ -316,7 +316,7 @@ flowchart TD
   Issues -- Permission problems --> Invitations[Open Invitations & Permissions]
   Issues -- No issue --> Analytics[Review Analytics]
 
-  Processing --> ReviewAction[Investigate / retry later via backend action]
+  Processing --> ReviewAction["Investigate / retry later via backend action"]
   VerificationLogs --> ReviewAction
   BlockchainRecords --> ReviewAction
   Users --> ReviewAction
@@ -417,7 +417,7 @@ sequenceDiagram
 ```mermaid
 flowchart TD
   Repo[GitHub Repository] --> MobileDeploy[Expo EAS Build]
-  Repo --> WebDeploy[Vercel / Netlify Next.js Deploy]
+  Repo --> WebDeploy["Vercel / Netlify Next.js Deploy"]
   Repo --> BackendDeploy[Backend Deploy]
 
   MobileDeploy --> Android[Android Build]
@@ -426,8 +426,8 @@ flowchart TD
   WebDeploy --> Domain[lexchain.app]
   BackendDeploy --> ApiDomain[api.lexchain.app]
 
-  Domain --> WebRoutes[Landing / Verify / Invite / Admin]
-  ApiDomain --> BackendRoutes[Auth / Documents / Admin / Public Verify]
+  Domain --> WebRoutes["Landing / Verify / Invite / Admin"]
+  ApiDomain --> BackendRoutes["Auth / Documents / Admin / Public Verify"]
 
   Android --> AppLinks[Android App Links later]
   IOS --> UniversalLinks[iOS Universal Links later]
@@ -453,7 +453,7 @@ flowchart TB
   subgraph BackendTrusted[Backend Trusted Boundary]
     Auth[Authorization]
     Permissions[Document Permissions]
-    Processing[OCR/NLP Processing]
+    Processing["OCR/NLP Processing"]
     Hashing[Hash Computation]
     AdminRules[Admin Rules]
   end
@@ -500,5 +500,5 @@ flowchart TD
   Remaining --> Env[Production env setup]
   Remaining --> Backend[Real backend endpoint confirmation]
   Remaining --> Deploy[Web and mobile deployment]
-  Remaining --> Links[Universal/App Links]
+  Remaining --> Links["Universal/App Links"]
 ```
