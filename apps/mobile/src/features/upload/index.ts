@@ -10,4 +10,6 @@ export {
 export { UploadTypeBottomSheet } from './upload-type-bottom-sheet';
 export { createPdfFromImages } from './create-pdf-from-images';
 export { default as UploadScreen } from './screens/upload-screen';
+export { default as ProcessingScreen } from './screens/processing-screen';
 export { useUploadFlow } from './hooks/use-upload-flow';
+export { useProcessingProgress } from './hooks/use-processing-progress';
