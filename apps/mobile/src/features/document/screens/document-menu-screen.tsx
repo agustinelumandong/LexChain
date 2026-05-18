@@ -1,6 +1,6 @@
 import React, { useCallback, useState } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { toast } from 'sonner-native';
 
@@ -17,14 +17,14 @@ import {
   useUserSearch,
 } from '@/services/query';
 import { parseApiError } from '@/shared/utils/api-error';
-import { APP_COLORS } from '@/theme';
 
 import { HEADER_CONTENT_GAP } from '../constants/document-details.constants';
-import { DocumentMenuRow } from '../components/details/document-menu-row';
+import { DocumentMenuActionsCard } from '../components/details/document-menu-actions-card';
 import { UpdateDocumentSheet } from '../components/details/update-document-sheet';
 import { useDocumentVersionUpdate } from '../hooks/use-document-version-update';
 import { useDocumentWhitelistActions } from '../hooks/use-document-whitelist-actions';
 import { getStringParam } from '../utils/document-file';
+import { documentMenuScreenStyles } from './document-menu-screen.styles';
 
 export default function DocumentMenuScreen() {
   const router = useRouter();
@@ -106,8 +106,8 @@ export default function DocumentMenuScreen() {
   }, [handleUploadUpdate]);
 
   return (
-    <SafeAreaView style={styles.screen} edges={['left', 'right', 'bottom']}>
-      <View style={styles.surface}>
+    <SafeAreaView style={documentMenuScreenStyles.screen} edges={['left', 'right', 'bottom']}>
+      <View style={documentMenuScreenStyles.surface}>
         <ScreenHeader
           eyebrow="DOCUMENT"
           title="Menu"
@@ -120,33 +120,16 @@ export default function DocumentMenuScreen() {
 
         <ScrollView
           contentContainerStyle={[
-            styles.scrollContent,
+            documentMenuScreenStyles.scrollContent,
             { paddingTop: headerHeight + HEADER_CONTENT_GAP },
           ]}
           showsVerticalScrollIndicator={false}
         >
-          <View style={styles.card}>
-            <DocumentMenuRow
-              iconName="edit"
-              title="Rename"
-              description="Change the document display name."
-              onPress={() => setIsRenameSheetVisible(true)}
-            />
-            <View style={styles.separator} />
-            <DocumentMenuRow
-              iconName="upload-file"
-              title="Update document"
-              description="Select a new PDF, review it, then upload."
-              onPress={() => setIsUpdateSheetVisible(true)}
-            />
-            <View style={styles.separator} />
-            <DocumentMenuRow
-              iconName="groups"
-              title="Manage access"
-              description="Configure viewers, signers, and editors."
-              onPress={() => setIsAccessSheetVisible(true)}
-            />
-          </View>
+          <DocumentMenuActionsCard
+            onPressRename={() => setIsRenameSheetVisible(true)}
+            onPressUpdate={() => setIsUpdateSheetVisible(true)}
+            onPressManageAccess={() => setIsAccessSheetVisible(true)}
+          />
         </ScrollView>
       </View>
 
@@ -189,33 +172,3 @@ export default function DocumentMenuScreen() {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: APP_COLORS.bg,
-  },
-  surface: {
-    flex: 1,
-    backgroundColor: APP_COLORS.bg,
-  },
-  scrollContent: {
-    paddingHorizontal: 16,
-    paddingBottom: 32,
-  },
-  card: {
-    backgroundColor: APP_COLORS.white,
-    borderRadius: 24,
-    paddingVertical: 8,
-    shadowColor: APP_COLORS.navy,
-    shadowOpacity: 0.06,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 4,
-  },
-  separator: {
-    height: 1,
-    marginLeft: 72,
-    backgroundColor: APP_COLORS.borderSoft,
-  },
-});
