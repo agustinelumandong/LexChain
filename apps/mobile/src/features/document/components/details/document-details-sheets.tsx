@@ -1,8 +1,8 @@
 import type { DocumentPartyRole, ManageWhitelistData } from '@/types';
-import { AskDocumentSheet } from '@/features/document/components/ask-document-sheet';
-import { ManageWhitelistBottomSheet } from '@/features/document/components/manage-whitelist-bottom-sheet';
-import { RenameDocumentSheet } from '@/features/document/components/rename-document-sheet';
-import { SearchDocumentSheet } from '@/features/document/components/search-document-sheet';
+import { AskDocumentSheet } from '@/features/document/components/ask/ask-document-sheet';
+import { ManageWhitelistBottomSheet } from '@/features/document/components/whitelist/manage-whitelist-bottom-sheet';
+import { RenameDocumentSheet } from '@/features/document/components/sheets/rename-document-sheet';
+import { SearchDocumentSheet } from '@/features/document/components/sheets/search-document-sheet';
 
 type DocumentDetailsSheetsProps = {
   askAnswer?: string;
