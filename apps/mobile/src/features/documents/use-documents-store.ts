@@ -3,10 +3,10 @@ import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
 import { STORAGE_KEYS } from '@/constants';
-import { applyWhitelistToDocument } from '@/features/document';
+import { applyWhitelistToDocument } from '@/features/document/services/whitelist-storage';
 import type { MockDocument, WhitelistGrant, WhitelistSearchResult } from '@/types';
 
-import { MOCK_DOCUMENTS } from './data/mock-documents';
+import { MOCK_DOCUMENTS } from '@/features/documents/data/mock-documents';
 
 type PersistedWhitelist = {
   grants: WhitelistGrant[];

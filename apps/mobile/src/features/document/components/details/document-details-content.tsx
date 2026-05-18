@@ -1,31 +1,28 @@
 import { StyleSheet, Text } from 'react-native';
 
-import {
-  DetailSectionsCard,
-  DocumentSummaryCard,
-} from '@/features/document';
 import { ErrorState } from '@/ui';
 import { APP_COLORS, fonts } from '@/theme';
-
+import { DetailSectionsCard } from '@/features/document/components/detail-sections-card';
+import { DocumentSummaryCard } from '@/features/document/components/document-summary-card';
 import type {
   DetailBodyBlock,
   DocumentDetailsDocument,
   VersionHistoryItem,
-} from '../../types/document-details.types';
+} from '@/features/document/types/document-details.types';
 import {
   formatContentType,
   formatDate,
   formatReference,
   formatWhitelistCountLabel,
-} from '../../utils/document-details-formatters';
+} from '@/features/document/utils/document-details-formatters';
 import {
   AccessControlCard,
   ConfidenceCard,
   DocumentStatusCard,
   VersionHistoryCard,
-} from './document-detail-cards';
-import { DocumentDetailsActions } from './document-details-actions';
-import { DocumentDetailsSkeleton } from './document-details-skeleton';
+} from '@/features/document/components/details/document-detail-cards';
+import { DocumentDetailsActions } from '@/features/document/components/details/document-details-actions';
+import { DocumentDetailsSkeleton } from '@/features/document/components/details/document-details-skeleton';
 
 type DetailSection = {
   title: string;

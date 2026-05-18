@@ -1,11 +1,8 @@
 import type { DocumentPartyRole, ManageWhitelistData } from '@/types';
-
-import {
-  AskDocumentSheet,
-  ManageWhitelistBottomSheet,
-  RenameDocumentSheet,
-  SearchDocumentSheet,
-} from '@/features/document';
+import { AskDocumentSheet } from '@/features/document/components/ask-document-sheet';
+import { ManageWhitelistBottomSheet } from '@/features/document/components/manage-whitelist-bottom-sheet';
+import { RenameDocumentSheet } from '@/features/document/components/rename-document-sheet';
+import { SearchDocumentSheet } from '@/features/document/components/search-document-sheet';
 
 type DocumentDetailsSheetsProps = {
   askAnswer?: string;
