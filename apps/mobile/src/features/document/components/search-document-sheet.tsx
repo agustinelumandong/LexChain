@@ -3,27 +3,17 @@ import {
   BottomSheetModal,
   BottomSheetScrollView,
 } from '@gorhom/bottom-sheet';
-import { MaterialIcons } from '@expo/vector-icons';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
 
 import { ErrorState } from '@/ui';
 import { useSearchDocument } from '@/services/query';
 import { parseApiError } from '@/shared/utils/api-error';
-import { APP_COLORS, fonts } from '@/theme';
 
 import { DocumentSearchBar } from './document-search-bar';
+import { SearchDocumentEmptyCard } from './search-document-empty-card';
+import { SearchDocumentSheetHeader } from './search-document-sheet-header';
+import { searchDocumentSheetStyles } from './search-document-sheet.styles';
 import { SearchResultsCard } from './search-results-card';
-
-const COLORS = {
-  sheet: APP_COLORS.bg,
-  surface: APP_COLORS.white,
-  surfaceSoft: APP_COLORS.surfaceSoft,
-  primary: APP_COLORS.primary,
-  navy: APP_COLORS.navy,
-  textMuted: APP_COLORS.textMuted,
-  borderSoft: APP_COLORS.borderSoft,
-};
 
 type SearchDocumentSheetProps = {
   visible: boolean;
@@ -104,24 +94,14 @@ export function SearchDocumentSheet({
       keyboardBlurBehavior="restore"
       android_keyboardInputMode="adjustPan"
       backdropComponent={renderBackdrop}
-      backgroundStyle={styles.sheetBackground}
-      handleIndicatorStyle={styles.handleIndicator}
+      backgroundStyle={searchDocumentSheetStyles.sheetBackground}
+      handleIndicatorStyle={searchDocumentSheetStyles.handleIndicator}
     >
-      <View style={styles.header}>
-        <View style={styles.headerIcon}>
-          <MaterialIcons name="search" size={18} color={COLORS.primary} />
-        </View>
-        <View style={styles.headerCopy}>
-          <Text style={styles.title}>Search within document</Text>
-          <Text style={styles.subtitle} numberOfLines={1}>
-            Keyword lookup in {documentTitle || 'this document'}
-          </Text>
-        </View>
-      </View>
+      <SearchDocumentSheetHeader documentTitle={documentTitle} />
 
       <BottomSheetScrollView
-        style={styles.scrollArea}
-        contentContainerStyle={styles.scrollContent}
+        style={searchDocumentSheetStyles.scrollArea}
+        contentContainerStyle={searchDocumentSheetStyles.scrollContent}
         keyboardDismissMode="none"
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
@@ -138,15 +118,7 @@ export function SearchDocumentSheet({
           isLoading={isSearching}
         />
 
-        {!hasSearched ? (
-          <View style={styles.emptyCard}>
-            <MaterialIcons name="manage-search" size={30} color={COLORS.primary} />
-            <Text style={styles.emptyTitle}>Find exact mentions fast</Text>
-            <Text style={styles.emptyBody}>
-              Search names, dates, clauses, document numbers, or locations inside this document.
-            </Text>
-          </View>
-        ) : null}
+        {!hasSearched ? <SearchDocumentEmptyCard /> : null}
 
         {searchMutation.data ? (
           <SearchResultsCard
@@ -168,86 +140,3 @@ export function SearchDocumentSheet({
     </BottomSheetModal>
   );
 }
-
-const styles = StyleSheet.create({
-  sheetBackground: {
-    backgroundColor: COLORS.sheet,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-  },
-  handleIndicator: {
-    backgroundColor: COLORS.borderSoft,
-    width: 40,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    paddingHorizontal: 20,
-    paddingTop: 8,
-    paddingBottom: 16,
-    backgroundColor: COLORS.sheet,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.borderSoft,
-  },
-  headerIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: COLORS.surface,
-  },
-  headerCopy: {
-    flex: 1,
-  },
-  title: {
-    color: COLORS.navy,
-    fontFamily: fonts.regular,
-    fontSize: 18,
-    lineHeight: 22,
-    fontWeight: '800',
-  },
-  subtitle: {
-    color: COLORS.textMuted,
-    fontFamily: fonts.regular,
-    fontSize: 13,
-    lineHeight: 18,
-    fontWeight: '500',
-    marginTop: 2,
-  },
-  scrollArea: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingHorizontal: 20,
-    paddingTop: 18,
-    paddingBottom: 42,
-    gap: 16,
-  },
-  emptyCard: {
-    minHeight: 220,
-    borderRadius: 24,
-    backgroundColor: COLORS.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 10,
-    padding: 24,
-  },
-  emptyTitle: {
-    color: COLORS.navy,
-    fontFamily: fonts.regular,
-    fontSize: 16,
-    lineHeight: 20,
-    fontWeight: '800',
-    textAlign: 'center',
-  },
-  emptyBody: {
-    color: COLORS.textMuted,
-    fontFamily: fonts.regular,
-    fontSize: 13,
-    lineHeight: 19,
-    fontWeight: '500',
-    textAlign: 'center',
-  },
-});
