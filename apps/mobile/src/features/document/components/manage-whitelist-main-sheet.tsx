@@ -1,9 +1,8 @@
 import { BottomSheetBackdrop, BottomSheetModal, BottomSheetScrollView } from '@gorhom/bottom-sheet';
-import { MaterialIcons } from '@expo/vector-icons';
 import React from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { View } from 'react-native';
 
-import { SearchInputWithResults, SkeletonBox } from '@/ui';
+import { SearchInputWithResults } from '@/ui';
 import type {
   DocumentPartyRole,
   ManageWhitelistData,
@@ -11,11 +10,10 @@ import type {
   WhitelistSearchResult,
 } from '@/types';
 
-import {
-  MANAGE_WHITELIST_COLORS as COLORS,
-  manageWhitelistStyles as styles,
-} from './manage-whitelist.styles';
-import { WhitelistGrantRow } from './whitelist-grant-row';
+import { manageWhitelistStyles as styles } from './manage-whitelist.styles';
+import { ManageWhitelistGrantsSection } from './manage-whitelist-grants-section';
+import { ManageWhitelistHeader } from './manage-whitelist-header';
+import { ManageWhitelistTopBar } from './manage-whitelist-top-bar';
 import { WhitelistSearchResultRow } from './whitelist-search-result-row';
 import { getWhitelistAddLabel } from '../utils/manage-whitelist-labels';
 
@@ -88,20 +86,9 @@ export function ManageWhitelistMainSheet({
         ]}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.topBar}>
-          <Pressable style={styles.leftAction} onPress={() => bottomSheetRef.current?.dismiss()}>
-            <MaterialIcons name="chevron-left" size={20} color={COLORS.navy} />
-            <Text style={styles.topBarLabel}>Access</Text>
-          </Pressable>
+        <ManageWhitelistTopBar onBack={() => bottomSheetRef.current?.dismiss()} />
 
-          <MaterialIcons name="groups" size={18} color={COLORS.textMuted} />
-        </View>
-
-        <View style={styles.headerBlock}>
-          <Text style={styles.eyebrow}>WHITELIST ACCESS</Text>
-          <Text style={styles.title}>Manage access</Text>
-          <Text style={styles.description}>Grant or revoke document access.</Text>
-        </View>
+        <ManageWhitelistHeader />
 
         <View style={styles.searchBlock}>
           <SearchInputWithResults
@@ -127,45 +114,12 @@ export function ManageWhitelistMainSheet({
           />
         </View>
 
-        <View style={styles.grantsBlock}>
-          <Text style={styles.grantsTitle}>Current grants</Text>
-
-          {isLoading && grants.length === 0 ? (
-            <View style={styles.skeletonList}>
-              <SkeletonBox height={52} borderRadius={16} />
-              <SkeletonBox height={52} borderRadius={16} />
-              <SkeletonBox height={52} borderRadius={16} />
-            </View>
-          ) : grants.length === 0 ? (
-            <View style={styles.stateCard}>
-              <View style={styles.emptyStateCard}>
-                <MaterialIcons name="shield" size={24} color={COLORS.primary} />
-              </View>
-              <Text style={styles.stateTitle}>No access granted yet</Text>
-              <Text style={styles.stateBody}>
-                Search for a wallet or user above to add the first whitelist entry.
-              </Text>
-              <View style={styles.emptyStateHint}>
-                <MaterialIcons name="person-add-alt-1" size={14} color={COLORS.primary} />
-                <Text style={styles.emptyStateHintText}>Search above to grant first access</Text>
-              </View>
-            </View>
-          ) : (
-            <View style={styles.grantsList}>
-              {grants.map((grant) => (
-                <WhitelistGrantRow
-                  key={grant.id}
-                  name={grant.name}
-                  accessLabel={grant.accessLabel}
-                  onPressMenu={() => {
-                    onPressGrantAction?.(grant.id);
-                    onOpenGrantMenu(grant);
-                  }}
-                />
-              ))}
-            </View>
-          )}
-        </View>
+        <ManageWhitelistGrantsSection
+          grants={grants}
+          isLoading={isLoading}
+          onOpenGrantMenu={onOpenGrantMenu}
+          onPressGrantAction={onPressGrantAction}
+        />
       </BottomSheetScrollView>
     </BottomSheetModal>
   );
