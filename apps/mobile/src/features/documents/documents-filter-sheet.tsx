@@ -3,18 +3,17 @@ import {
   BottomSheetModal,
   BottomSheetScrollView,
 } from '@gorhom/bottom-sheet';
-import { MaterialIcons } from '@expo/vector-icons';
 import React from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { View } from 'react-native';
 
 import { SelectDropdownField } from '@/ui';
 
 import { DocumentsFilterDateSection } from './documents-filter-date-section';
 import { DocumentsFilterFooter } from './documents-filter-footer';
-import {
-  DOCUMENTS_FILTER_COLORS as COLORS,
-  documentsFilterStyles as styles,
-} from './documents-filter-sheet.styles';
+import { DocumentsFilterHeader } from './documents-filter-header';
+import { DocumentsFilterSection } from './documents-filter-section';
+import { documentsFilterStyles as styles } from './documents-filter-sheet.styles';
+import { DocumentsFilterTopBar } from './documents-filter-top-bar';
 import { useDocumentsFilterSheet } from './hooks/use-documents-filter-sheet';
 
 export type FilterOption = {
@@ -88,27 +87,11 @@ export function DocumentsFilterSheet({
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-          <View style={styles.topBar}>
-            <Pressable
-              style={styles.leftAction}
-              onPress={() => filterSheet.bottomSheetRef.current?.dismiss()}
-            >
-              <MaterialIcons name="chevron-left" size={20} color={COLORS.navy} />
-              <Text style={styles.topBarLabel}>Documents</Text>
-            </Pressable>
+          <DocumentsFilterTopBar onBack={() => filterSheet.bottomSheetRef.current?.dismiss()} />
 
-            <MaterialIcons name="filter-list" size={18} color={COLORS.textMuted} />
-          </View>
+          <DocumentsFilterHeader />
 
-          <View style={styles.headerBlock}>
-            <Text style={styles.eyebrow}>DOCUMENT FILTERS</Text>
-            <Text style={styles.title}>Filter documents</Text>
-            <Text style={styles.description}>
-              Narrow your document list by type, status, or date.
-            </Text>
-          </View>
-
-          <View style={[styles.section, filterSheet.isTypeDropdownOpen && styles.sectionActive]}>
+          <DocumentsFilterSection active={filterSheet.isTypeDropdownOpen}>
             <SelectDropdownField
               label="Document type"
               value={filterSheet.selectedTypeLabel}
@@ -122,9 +105,9 @@ export function DocumentsFilterSheet({
                 filterSheet.closeTypeDropdown();
               }}
             />
-          </View>
+          </DocumentsFilterSection>
 
-          <View style={[styles.section, filterSheet.isStatusDropdownOpen && styles.sectionActive]}>
+          <DocumentsFilterSection active={filterSheet.isStatusDropdownOpen}>
             <SelectDropdownField
               label="Status"
               value={filterSheet.selectedStatusLabel}
@@ -138,7 +121,7 @@ export function DocumentsFilterSheet({
                 filterSheet.closeStatusDropdown();
               }}
             />
-          </View>
+          </DocumentsFilterSection>
 
           <DocumentsFilterDateSection
             selectedDate={selectedDate}
