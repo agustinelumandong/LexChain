@@ -29,6 +29,9 @@ export const profileDetailStyles = StyleSheet.create({
   contentWithFooter: {
     paddingBottom: 112,
   },
+  fieldStack: {
+    gap: 12,
+  },
   card: {
     backgroundColor: profileDetailColors.surface,
     borderRadius: 24,
