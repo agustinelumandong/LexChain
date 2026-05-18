@@ -3,21 +3,12 @@ import {
   BottomSheetModal,
   BottomSheetView,
 } from '@gorhom/bottom-sheet';
-import { MaterialIcons } from '@expo/vector-icons';
 import React, { useEffect, useMemo, useRef } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { APP_COLORS, fonts } from '@/theme';
-const COLORS = {
-  backdrop: 'rgba(4, 18, 40, 0.42)',
-  sheet: APP_COLORS.bg,
-  surface: APP_COLORS.white,
-  borderSoft: APP_COLORS.borderSoft,
-  navy: APP_COLORS.navy,
-  textMuted: APP_COLORS.textMuted,
-  primary: APP_COLORS.primary,
-};
+import { DocumentActionItem } from './document-action-item';
+import { documentActionsSheetStyles } from './document-actions-sheet.styles';
 
 type DocumentActionsSheetProps = {
   visible: boolean;
@@ -27,37 +18,6 @@ type DocumentActionsSheetProps = {
   onPressVerify: () => void;
   onPressManageWhitelist: () => void;
 };
-
-type ActionItemProps = {
-  iconName: React.ComponentProps<typeof MaterialIcons>['name'];
-  label: string;
-  description: string;
-  onPress: () => void;
-};
-
-function ActionItem({
-  iconName,
-  label,
-  description,
-  onPress,
-}: ActionItemProps) {
-  return (
-    <Pressable style={styles.actionItem} onPress={onPress}>
-      <View style={styles.actionLead}>
-        <View style={styles.iconWrap}>
-          <MaterialIcons name={iconName} size={18} color={COLORS.primary} />
-        </View>
-
-        <View style={styles.actionCopy}>
-          <Text style={styles.actionLabel}>{label}</Text>
-          <Text style={styles.actionDescription}>{description}</Text>
-        </View>
-      </View>
-
-      <MaterialIcons name="chevron-right" size={18} color={COLORS.textMuted} />
-    </Pressable>
-  );
-}
 
 export function DocumentActionsSheet({
   visible,
@@ -98,7 +58,7 @@ export function DocumentActionsSheet({
       disappearsOnIndex={-1}
       opacity={1}
       pressBehavior="close"
-      style={styles.backdrop}
+      style={documentActionsSheetStyles.backdrop}
     />
   );
 
@@ -110,30 +70,30 @@ export function DocumentActionsSheet({
       onDismiss={onClose}
       enablePanDownToClose
       backdropComponent={renderBackdrop}
-      handleIndicatorStyle={styles.handle}
-      backgroundStyle={styles.sheet}
+      handleIndicatorStyle={documentActionsSheetStyles.handle}
+      backgroundStyle={documentActionsSheetStyles.sheet}
     >
-      <BottomSheetView style={[styles.content, { paddingBottom: Math.max(insets.bottom, 24) }]}>
-        <View style={styles.header}>
-          <Text style={styles.title}>Document actions</Text>
-          {title ? <Text style={styles.subtitle}>{title}</Text> : null}
+      <BottomSheetView style={[documentActionsSheetStyles.content, { paddingBottom: Math.max(insets.bottom, 24) }]}>
+        <View style={documentActionsSheetStyles.header}>
+          <Text style={documentActionsSheetStyles.title}>Document actions</Text>
+          {title ? <Text style={documentActionsSheetStyles.subtitle}>{title}</Text> : null}
         </View>
 
-        <ActionItem
+        <DocumentActionItem
           iconName="description"
           label="Open"
           description="Preview document details and summary."
           onPress={onPressOpen}
         />
 
-        <ActionItem
+        <DocumentActionItem
           iconName="verified-user"
           label="Verify"
           description="Check integrity status and anchor result."
           onPress={onPressVerify}
         />
 
-        <ActionItem
+        <DocumentActionItem
           iconName="shield"
           label="Manage whitelist"
           description="Review and update document access rules."
@@ -143,88 +103,3 @@ export function DocumentActionsSheet({
     </BottomSheetModal>
   );
 }
-
-const styles = StyleSheet.create({
-  backdrop: {
-    backgroundColor: COLORS.backdrop,
-  },
-  sheet: {
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    backgroundColor: COLORS.sheet,
-    borderWidth: 1,
-    borderColor: COLORS.borderSoft,
-  },
-  handle: {
-    alignSelf: 'center',
-    width: 64,
-    height: 6,
-    borderRadius: 999,
-    backgroundColor: COLORS.borderSoft,
-    marginTop: 10,
-    marginBottom: 8,
-  },
-  content: {
-    paddingHorizontal: 18,
-    gap: 14,
-  },
-  header: {
-    gap: 6,
-    marginBottom: 2,
-  },
-  title: {
-    color: COLORS.navy,
-    fontFamily: fonts.regular,
-    fontSize: 18,
-    lineHeight: 22,
-    fontWeight: '800',
-  },
-  subtitle: {
-    color: COLORS.textMuted,
-    fontFamily: fonts.regular,
-    fontSize: 12,
-    lineHeight: 16,
-    fontWeight: '500',
-  },
-  actionItem: {
-    backgroundColor: COLORS.surface,
-    borderRadius: 18,
-    padding: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 12,
-  },
-  actionLead: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  iconWrap: {
-    width: 38,
-    height: 38,
-    borderRadius: 14,
-    backgroundColor: '#F7FBFF',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  actionCopy: {
-    flex: 1,
-    gap: 3,
-  },
-  actionLabel: {
-    color: COLORS.navy,
-    fontFamily: fonts.regular,
-    fontSize: 14,
-    lineHeight: 18,
-    fontWeight: '700',
-  },
-  actionDescription: {
-    color: COLORS.textMuted,
-    fontFamily: fonts.regular,
-    fontSize: 12,
-    lineHeight: 16,
-    fontWeight: '500',
-  },
-});
