@@ -3,7 +3,9 @@ export { UploadDropzoneCard } from './upload-dropzone-card';
 export { UploadDropzoneMetaChip } from './upload-dropzone-meta-chip';
 export { UploadDropzoneSelectedList } from './upload-dropzone-selected-list';
 export { UploadHeader } from './upload-header';
+export { UploadFooter } from './upload-footer';
 export { UploadReferenceField } from './upload-reference-field';
+export { UploadTitleField } from './upload-title-field';
 export {
   consumePendingCapturedFiles,
   getPendingCapturedFiles,
