@@ -14,6 +14,8 @@ export { IntegrityCheckCard } from './integrity-check-card';
 export { LexChainPdfViewer } from './lexchain-pdf-viewer';
 export { ManageWhitelistBottomSheet } from './manage-whitelist-bottom-sheet';
 export { RenameDocumentSheet } from './rename-document-sheet';
+export { SearchDocumentEmptyCard } from './search-document-empty-card';
+export { SearchDocumentSheetHeader } from './search-document-sheet-header';
 export { SearchResultsCard } from './search-results-card';
 export { SearchDocumentSheet } from './search-document-sheet';
 export { UpdateDocumentSheet } from './details/update-document-sheet';
