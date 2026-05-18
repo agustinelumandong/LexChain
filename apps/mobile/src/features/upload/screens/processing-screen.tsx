@@ -4,15 +4,15 @@ import { ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ScreenHeader } from '@/ui';
-import { AiSummaryDraftCard } from '@/features/upload/ai-summary-draft-card';
+import { AiSummaryDraftCard } from '@/features/upload/components/form/ai-summary-draft-card';
 import { HEADER_CONTENT_GAP } from '@/features/upload/constants/processing.constants';
 import { useProcessingDocumentStatus } from '@/features/upload/hooks/use-processing-document-status';
 import { useProcessingProgress } from '@/features/upload/hooks/use-processing-progress';
-import { ProcessingFooter } from '@/features/upload/processing-footer';
-import { ProcessingPendingSummaryCard } from '@/features/upload/processing-pending-summary-card';
-import { ProcessingProgressCard } from '@/features/upload/processing-progress-card';
-import { ProcessingStatusCard } from '@/features/upload/processing-status-card';
-import { processingScreenStyles as styles } from '@/features/upload/processing-screen.styles';
+import { ProcessingFooter } from '@/features/upload/components/processing/processing-footer';
+import { ProcessingPendingSummaryCard } from '@/features/upload/components/processing/processing-pending-summary-card';
+import { ProcessingProgressCard } from '@/features/upload/components/processing/processing-progress-card';
+import { ProcessingStatusCard } from '@/features/upload/components/processing/processing-status-card';
+import { processingScreenStyles as styles } from '@/features/upload/components/processing/processing-screen.styles';
 import { isCompleteStatus } from '@/features/upload/utils/processing-status';
 
 export default function ProcessingScreen() {

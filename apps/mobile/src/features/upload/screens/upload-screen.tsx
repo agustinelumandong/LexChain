@@ -5,9 +5,9 @@ import { useState } from 'react';
 
 import { ScreenHeader } from '@/ui';
 
-import { UploadDropzoneCard } from '../upload-dropzone-card';
-import { UploadFooter } from '../upload-footer';
-import { UploadTitleField } from '../upload-title-field';
+import { UploadDropzoneCard } from '../components/dropzone/upload-dropzone-card';
+import { UploadFooter } from '../components/form/upload-footer';
+import { UploadTitleField } from '../components/form/upload-title-field';
 import { useUploadFlow } from '../hooks/use-upload-flow';
 import { uploadScreenStyles } from './upload-screen.styles';
 

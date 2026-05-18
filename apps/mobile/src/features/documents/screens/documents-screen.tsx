@@ -8,19 +8,19 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import { SearchInputWithResults, BottomNav } from '@/ui';
 import { useProfileSettingsStore } from '@/features/profile';
 import type { DocumentSortKey, DocumentTypeKey } from '@/types';
-import { DocumentResultCard } from '@/features/documents/document-result-card';
-import { DocumentsFilterControls } from '@/features/documents/documents-filter-controls';
-import { DocumentsFilterSheet } from '@/features/documents/documents-filter-sheet';
-import { DocumentsHeader } from '@/features/documents/documents-header';
-import { DocumentsListSkeleton } from '@/features/documents/documents-list-skeleton';
-import { DocumentsSortSheet } from '@/features/documents/documents-sort-sheet';
+import { DocumentResultCard } from '@/features/documents/components/list/document-result-card';
+import { DocumentsFilterControls } from '@/features/documents/components/filter/documents-filter-controls';
+import { DocumentsFilterSheet } from '@/features/documents/components/filter/documents-filter-sheet';
+import { DocumentsHeader } from '@/features/documents/components/list/documents-header';
+import { DocumentsListSkeleton } from '@/features/documents/components/list/documents-list-skeleton';
+import { DocumentsSortSheet } from '@/features/documents/components/sort/documents-sort-sheet';
 import {
   DOCUMENT_SORT_OPTIONS,
   DOCUMENT_STATUS_OPTIONS,
   DOCUMENT_TYPE_OPTIONS,
 } from '@/features/documents/constants/documents-screen.constants';
 import { DocumentSearchResultRow } from '@/features/documents/components/document-search-result-row';
-import { styles } from '@/features/documents/documents-screen.styles';
+import { styles } from '@/features/documents/components/list/documents-screen.styles';
 import { useDocumentsScreen } from '@/features/documents/hooks/use-documents-screen';
 import type {
   DisplayDocument,
