@@ -5,8 +5,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { APP_COLORS, fonts } from '@/theme';
 import { ScreenHeader } from '@/ui';
 
-import { LexChainPdfViewer } from '../components/lexchain-pdf-viewer';
-import { DocumentPdfToolsSheet } from '../components/document-pdf-tools-sheet';
+import { LexChainPdfViewer } from '../components/pdf-viewer/lexchain-pdf-viewer';
+import { DocumentPdfToolsSheet } from '../components/pdf-viewer/document-pdf-tools-sheet';
 import { useDocumentPdfViewer } from '../hooks/use-document-pdf-viewer';
 
 const HEADER_CONTENT_GAP = 12;
