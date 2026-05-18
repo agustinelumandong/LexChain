@@ -10,6 +10,7 @@ export {
   setPendingCapturedFiles,
 } from './upload-session';
 export { UploadTypeBottomSheet } from './upload-type-bottom-sheet';
+export { UploadTypeOptionRow } from './upload-type-option-row';
 export { createPdfFromImages } from './create-pdf-from-images';
 export { default as CaptureReviewScreen } from './screens/capture-review-screen';
 export { CaptureReviewGrid } from './capture-review-grid';
