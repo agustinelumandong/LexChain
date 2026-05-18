@@ -1,0 +1,2537 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "FastAPI",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/auth/signup": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Register a new user",
+        "description": "Create a new user account with email, password, and username.\n    \n    - **Email Verification**: If enabled in Supabase, user must verify email before signing in.\n    - **Username**: Must be 3-30 characters, alphanumeric and underscores only.\n    - **Password**: Must be at least 8 characters with uppercase, lowercase, and digit.\n    - **Rate Limit**: 5 requests per minute.",
+        "operationId": "sign_up_auth_signup_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SignUpRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "User created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SignUpResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input or user already exists"
+          },
+          "429": {
+            "description": "Too Many Requests - Rate limit exceeded",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": "Rate limit exceeded"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Failed to connect to Supabase"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/signin": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Sign in a user",
+        "description": "Authenticate a user with email and password.\n    \n    - **Returns**: Access token, refresh token, and token expiration time.\n    - **Email Verification**: User must have verified their email to sign in.\n    - **Rate Limit**: 5 requests per minute.",
+        "operationId": "sign_in_auth_signin_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SignInRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successfully authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SignInResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid credentials or email not verified"
+          },
+          "429": {
+            "description": "Too Many Requests - Rate limit exceeded",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": "Rate limit exceeded"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/resend-verification": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Resend verification email",
+        "description": "Resend the verification email for users who haven't verified their email yet.\n    \n    - **Use Case**: When verification link expires or email was not received.\n    - **Rate Limit**: 3 requests per minute.",
+        "operationId": "resend_verification_auth_resend_verification_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResendVerificationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Verification email sent successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Could not send verification email"
+          },
+          "429": {
+            "description": "Too Many Requests - Rate limit exceeded",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": "Rate limit exceeded"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/users/search": {
+      "get": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "Search for a user by email",
+        "operationId": "search_user_users_search_get",
+        "security": [
+          {
+            "Bearer Token": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "email",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Email to search for",
+              "title": "Email"
+            },
+            "description": "Email to search for"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserSearchResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/documents/": {
+      "get": {
+        "tags": [
+          "Documents"
+        ],
+        "summary": "List all documents",
+        "description": "Return all latest document versions belonging to or shared with the authenticated user.",
+        "operationId": "get_all_user_documents_documents__get",
+        "security": [
+          {
+            "Bearer Token": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 50,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 0,
+              "title": "Offset"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of documents",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DocumentUploadResponse"
+                  },
+                  "title": "Response Get All User Documents Documents  Get"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated — missing or invalid bearer token"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/documents/{document_id}": {
+      "get": {
+        "tags": [
+          "Documents"
+        ],
+        "summary": "Get a document",
+        "description": "Return a single document if the user owns it or is a whitelisted party.",
+        "operationId": "get_user_document_documents__document_id__get",
+        "security": [
+          {
+            "Bearer Token": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "document_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Document Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Document found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated — missing or invalid bearer token"
+          },
+          "404": {
+            "description": "Document not found or user has no access"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/documents/upload": {
+      "post": {
+        "tags": [
+          "Documents"
+        ],
+        "summary": "Upload a document",
+        "description": "Upload a PDF document. Only lawyers and admins may upload.",
+        "operationId": "upload_document_documents_upload_post",
+        "security": [
+          {
+            "Bearer Token": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "file_name",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "File Name"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_upload_document_documents_upload_post"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Document accepted for processing",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentUploadAcceptedResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Empty file, unsupported file type, or file exceeds size limit"
+          },
+          "401": {
+            "description": "Not authenticated — missing or invalid bearer token"
+          },
+          "403": {
+            "description": "Forbidden — only lawyers may upload documents"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/documents/{document_id}/": {
+      "patch": {
+        "tags": [
+          "Documents"
+        ],
+        "summary": "Rename a document",
+        "description": "Update the display name of a document. Only the document owner (lawyer) may rename.",
+        "operationId": "rename_document_documents__document_id___patch",
+        "security": [
+          {
+            "Bearer Token": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "document_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Document Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RenameDocumentRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Document renamed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentUploadResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated — missing or invalid bearer token"
+          },
+          "403": {
+            "description": "Forbidden — only the document owner may rename"
+          },
+          "404": {
+            "description": "Document not found"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/documents/{document_id}/update": {
+      "post": {
+        "tags": [
+          "Documents"
+        ],
+        "summary": "Update a document (new version)",
+        "description": "Upload a new file as the next version of an existing document. Only the document owner may update.",
+        "operationId": "update_document_documents__document_id__update_post",
+        "security": [
+          {
+            "Bearer Token": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "document_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Document Id"
+            }
+          },
+          {
+            "name": "file_name",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "File Name"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_update_document_documents__document_id__update_post"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Update accepted for processing",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentUploadAcceptedResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Empty file, unsupported file type, or file exceeds size limit"
+          },
+          "401": {
+            "description": "Not authenticated — missing or invalid bearer token"
+          },
+          "403": {
+            "description": "Forbidden — only the document owner may update"
+          },
+          "404": {
+            "description": "Document not found"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/documents/{document_id}/versions": {
+      "get": {
+        "tags": [
+          "Documents"
+        ],
+        "summary": "Get version history",
+        "description": "Return the full version chain for a document (newest → oldest). Accessible by owner or any party.",
+        "operationId": "get_version_history_documents__document_id__versions_get",
+        "security": [
+          {
+            "Bearer Token": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "document_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Document Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Version history",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersionHistoryResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated — missing or invalid bearer token"
+          },
+          "404": {
+            "description": "Document not found or user has no access"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/documents/{document_id}/parties": {
+      "get": {
+        "tags": [
+          "Documents"
+        ],
+        "summary": "List document parties",
+        "description": "Return all whitelisted parties for a document. Accessible by owner or any party.",
+        "operationId": "get_document_parties_documents__document_id__parties_get",
+        "security": [
+          {
+            "Bearer Token": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "document_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Document Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of parties",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentPartyListResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated — missing or invalid bearer token"
+          },
+          "404": {
+            "description": "Document not found or user has no access"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Documents"
+        ],
+        "summary": "Add a party to a document",
+        "description": "Whitelist a user by email to access this document. Only the document owner may add parties.",
+        "operationId": "add_document_party_documents__document_id__parties_post",
+        "security": [
+          {
+            "Bearer Token": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "document_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Document Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddPartyRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Party added",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentPartyResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "User does not exist, or role is invalid for this user"
+          },
+          "401": {
+            "description": "Not authenticated — missing or invalid bearer token"
+          },
+          "403": {
+            "description": "Forbidden — only the document owner may add parties"
+          },
+          "404": {
+            "description": "Document not found"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/documents/{document_id}/parties/{party_user_id}": {
+      "delete": {
+        "tags": [
+          "Documents"
+        ],
+        "summary": "Remove a party from a document",
+        "description": "Revoke a user's access to this document. Only the document owner may remove parties.",
+        "operationId": "remove_document_party_documents__document_id__parties__party_user_id__delete",
+        "security": [
+          {
+            "Bearer Token": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "document_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Document Id"
+            }
+          },
+          {
+            "name": "party_user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Party User Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Party removed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RemovePartyResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated — missing or invalid bearer token"
+          },
+          "403": {
+            "description": "Forbidden — only the document owner may remove parties"
+          },
+          "404": {
+            "description": "Document or party not found"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/documents/{document_id}/search": {
+      "post": {
+        "tags": [
+          "Retrieval"
+        ],
+        "summary": "Semantic search within a single document",
+        "operationId": "search_document_documents__document_id__search_post",
+        "security": [
+          {
+            "Bearer Token": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "document_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Document Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SearchRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SearchResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/documents/{document_id}/ask": {
+      "post": {
+        "tags": [
+          "Retrieval"
+        ],
+        "summary": "Ask Document",
+        "operationId": "ask_document_documents__document_id__ask_post",
+        "security": [
+          {
+            "Bearer Token": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "document_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Document Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AskRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/search": {
+      "post": {
+        "tags": [
+          "Retrieval"
+        ],
+        "summary": "Semantic search across all of the user's documents",
+        "operationId": "search_all_search_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SearchRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GlobalSearchResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer Token": []
+          }
+        ]
+      }
+    },
+    "/blockchain/record/{document_id}": {
+      "post": {
+        "tags": [
+          "Blockchain"
+        ],
+        "summary": "Record a document on-chain",
+        "description": "Store the document hash on the LexChainNotary smart contract.\n    - **Requirement**: Document must be in COMPLETED status.\n    - The document's SHA256 hash is written to the blockchain.",
+        "operationId": "record_document_blockchain_record__document_id__post",
+        "security": [
+          {
+            "Bearer Token": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "document_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Document Id"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Document recorded on-chain",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecordResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Document not ready or already recorded"
+          },
+          "401": {
+            "description": "Not authenticated"
+          },
+          "403": {
+            "description": "Not authorized"
+          },
+          "404": {
+            "description": "Document not found"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/blockchain/verify/{document_id}": {
+      "get": {
+        "tags": [
+          "Blockchain"
+        ],
+        "summary": "Verify a document's on-chain record",
+        "description": "Query the smart contract for the document's stored hash and verify integrity.",
+        "operationId": "verify_document_blockchain_verify__document_id__get",
+        "security": [
+          {
+            "Bearer Token": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "document_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Document Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "On-chain record found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OnChainVerificationResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated"
+          },
+          "404": {
+            "description": "No on-chain record found"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/dashboard": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Admin dashboard overview",
+        "operationId": "get_dashboard_admin_dashboard_get",
+        "responses": {
+          "200": {
+            "description": "Dashboard stats",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminDashboardResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not admin"
+          }
+        },
+        "security": [
+          {
+            "Bearer Token": []
+          }
+        ]
+      }
+    },
+    "/admin/users": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "List all users",
+        "operationId": "get_all_users_admin_users_get",
+        "responses": {
+          "200": {
+            "description": "List of users",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminUserListResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not admin"
+          }
+        },
+        "security": [
+          {
+            "Bearer Token": []
+          }
+        ]
+      }
+    },
+    "/admin/invitations": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "List all invitations",
+        "operationId": "get_invitations_admin_invitations_get",
+        "responses": {
+          "200": {
+            "description": "List of invitations",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvitationListResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not admin"
+          }
+        },
+        "security": [
+          {
+            "Bearer Token": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Create lawyer invitation",
+        "description": "Create a magic-link invitation. Share the link with the lawyer to sign up.",
+        "operationId": "create_invitation_admin_invitations_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateInvitationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Invitation created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvitationResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invitation already exists"
+          },
+          "401": {
+            "description": "Not admin"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer Token": []
+          }
+        ]
+      }
+    },
+    "/admin/invitations/{invitation_id}": {
+      "delete": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Revoke an invitation",
+        "operationId": "revoke_invitation_admin_invitations__invitation_id__delete",
+        "security": [
+          {
+            "Bearer Token": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "invitation_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Invitation Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Revoked"
+          },
+          "401": {
+            "description": "Not admin"
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/public/verify": {
+      "post": {
+        "tags": [
+          "Public"
+        ],
+        "summary": "Public document verifier",
+        "description": "Upload a PDF to verify if it matches a document recorded on-chain in the system.\n    - No authentication required.\n    - Extracts text via OCR, hashes it, and compares against the database.\n    - If no exact text match, falls back to semantic similarity search.\n    - Returns on-chain status (tx hash, notary address, timestamp) when found.",
+        "operationId": "verify_public_public_verify_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_verify_public_public_verify_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Verification result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicVerifyResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AddPartyRequest": {
+        "properties": {
+          "email": {
+            "type": "string",
+            "title": "Email",
+            "description": "Email of the user to whitelist."
+          },
+          "role": {
+            "type": "string",
+            "title": "Role",
+            "description": "Role: viewer | signer | editor",
+            "default": "viewer"
+          }
+        },
+        "type": "object",
+        "required": [
+          "email"
+        ],
+        "title": "AddPartyRequest",
+        "description": "Request to whitelist a user on a document"
+      },
+      "AdminDashboardResponse": {
+        "properties": {
+          "total_users": {
+            "type": "integer",
+            "title": "Total Users"
+          },
+          "total_lawyers": {
+            "type": "integer",
+            "title": "Total Lawyers"
+          },
+          "total_documents": {
+            "type": "integer",
+            "title": "Total Documents"
+          },
+          "total_processed": {
+            "type": "integer",
+            "title": "Total Processed"
+          },
+          "total_failed": {
+            "type": "integer",
+            "title": "Total Failed"
+          },
+          "total_on_chain": {
+            "type": "integer",
+            "title": "Total On Chain"
+          },
+          "pending_invitations": {
+            "type": "integer",
+            "title": "Pending Invitations"
+          }
+        },
+        "type": "object",
+        "required": [
+          "total_users",
+          "total_lawyers",
+          "total_documents",
+          "total_processed",
+          "total_failed",
+          "total_on_chain",
+          "pending_invitations"
+        ],
+        "title": "AdminDashboardResponse"
+      },
+      "AdminUserListResponse": {
+        "properties": {
+          "users": {
+            "items": {
+              "$ref": "#/components/schemas/AdminUserResponse"
+            },
+            "type": "array",
+            "title": "Users"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          }
+        },
+        "type": "object",
+        "required": [
+          "users",
+          "total"
+        ],
+        "title": "AdminUserListResponse"
+      },
+      "AdminUserResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "email": {
+            "type": "string",
+            "title": "Email"
+          },
+          "f_name": {
+            "type": "string",
+            "title": "F Name"
+          },
+          "l_name": {
+            "type": "string",
+            "title": "L Name"
+          },
+          "role": {
+            "type": "string",
+            "title": "Role"
+          },
+          "is_active": {
+            "type": "boolean",
+            "title": "Is Active"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "email",
+          "f_name",
+          "l_name",
+          "role",
+          "is_active",
+          "created_at"
+        ],
+        "title": "AdminUserResponse"
+      },
+      "AskRequest": {
+        "properties": {
+          "question": {
+            "type": "string",
+            "title": "Question"
+          },
+          "history": {
+            "items": {
+              "$ref": "#/components/schemas/ChatMessage"
+            },
+            "type": "array",
+            "title": "History",
+            "description": "Previous conversation turns"
+          }
+        },
+        "type": "object",
+        "required": [
+          "question"
+        ],
+        "title": "AskRequest"
+      },
+      "Body_update_document_documents__document_id__update_post": {
+        "properties": {
+          "file": {
+            "type": "string",
+            "contentMediaType": "application/octet-stream",
+            "title": "File"
+          }
+        },
+        "type": "object",
+        "required": [
+          "file"
+        ],
+        "title": "Body_update_document_documents__document_id__update_post"
+      },
+      "Body_upload_document_documents_upload_post": {
+        "properties": {
+          "file": {
+            "type": "string",
+            "contentMediaType": "application/octet-stream",
+            "title": "File"
+          }
+        },
+        "type": "object",
+        "required": [
+          "file"
+        ],
+        "title": "Body_upload_document_documents_upload_post"
+      },
+      "Body_verify_public_public_verify_post": {
+        "properties": {
+          "file": {
+            "type": "string",
+            "contentMediaType": "application/octet-stream",
+            "title": "File"
+          }
+        },
+        "type": "object",
+        "required": [
+          "file"
+        ],
+        "title": "Body_verify_public_public_verify_post"
+      },
+      "ChatMessage": {
+        "properties": {
+          "role": {
+            "type": "string",
+            "title": "Role",
+            "description": "user or assistant"
+          },
+          "content": {
+            "type": "string",
+            "title": "Content"
+          }
+        },
+        "type": "object",
+        "required": [
+          "role",
+          "content"
+        ],
+        "title": "ChatMessage"
+      },
+      "CreateInvitationRequest": {
+        "properties": {
+          "email": {
+            "type": "string",
+            "title": "Email",
+            "description": "Email to invite"
+          },
+          "role": {
+            "type": "string",
+            "title": "Role",
+            "description": "lawyer | admin",
+            "default": "lawyer"
+          }
+        },
+        "type": "object",
+        "required": [
+          "email"
+        ],
+        "title": "CreateInvitationRequest"
+      },
+      "DocumentPartyListResponse": {
+        "properties": {
+          "document_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Document Id",
+            "description": "Document identifier."
+          },
+          "issuer": {
+            "$ref": "#/components/schemas/DocumentPartyResponse",
+            "description": "The owner/issuer of the document"
+          },
+          "parties": {
+            "items": {
+              "$ref": "#/components/schemas/DocumentPartyResponse"
+            },
+            "type": "array",
+            "title": "Parties"
+          }
+        },
+        "type": "object",
+        "required": [
+          "document_id",
+          "issuer"
+        ],
+        "title": "DocumentPartyListResponse",
+        "description": "List of parties for a document"
+      },
+      "DocumentPartyResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id",
+            "description": "Party record ID."
+          },
+          "user_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "User Id",
+            "description": "User ID"
+          },
+          "email": {
+            "type": "string",
+            "title": "Email",
+            "description": "User's email"
+          },
+          "f_name": {
+            "type": "string",
+            "title": "F Name",
+            "description": "User's first Name"
+          },
+          "l_name": {
+            "type": "string",
+            "title": "L Name",
+            "description": "User's last name"
+          },
+          "role": {
+            "type": "string",
+            "title": "Role",
+            "description": "Role assigned"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "user_id",
+          "email",
+          "f_name",
+          "l_name",
+          "role",
+          "created_at"
+        ],
+        "title": "DocumentPartyResponse",
+        "description": "A single party record on a document"
+      },
+      "DocumentResponse": {
+        "properties": {
+          "document_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Document Id",
+            "description": "Document identifier."
+          },
+          "file_name": {
+            "type": "string",
+            "title": "File Name",
+            "description": "Name of the uploaded file"
+          },
+          "storage_url": {
+            "type": "string",
+            "title": "Storage Url",
+            "description": "Storage Url of the Document"
+          },
+          "content_type": {
+            "type": "string",
+            "title": "Content Type",
+            "description": "MIME type of the uploaded file"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "description": "Processing status of the document"
+          },
+          "on_chain": {
+            "type": "boolean",
+            "title": "On Chain",
+            "description": "Check if document is already recorded on-chain or not"
+          },
+          "is_latest": {
+            "type": "boolean",
+            "title": "Is Latest",
+            "description": "Check if document is the latest one"
+          },
+          "summary": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Summary",
+            "description": "LLM-generated summary"
+          },
+          "labels": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Labels",
+            "description": "Document type labels"
+          },
+          "entities": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Entities",
+            "description": "Named entities extracted"
+          },
+          "risk_flags": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Risk Flags",
+            "description": "Identified risk flags"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "document_id",
+          "file_name",
+          "storage_url",
+          "content_type",
+          "status",
+          "on_chain",
+          "is_latest",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "DocumentResponse",
+        "description": "Document detail response with analysis insight."
+      },
+      "DocumentUploadAcceptedResponse": {
+        "properties": {
+          "document_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Document Id",
+            "description": "Document identifier."
+          },
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "description": "Current document status after upload."
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "description": "Human-readable processing state."
+          }
+        },
+        "type": "object",
+        "required": [
+          "document_id",
+          "status",
+          "message"
+        ],
+        "title": "DocumentUploadAcceptedResponse",
+        "description": "Response payload returned immediately after upload is accepted."
+      },
+      "DocumentUploadResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id",
+            "description": "Unique identifier of the document."
+          },
+          "file_name": {
+            "type": "string",
+            "title": "File Name",
+            "description": "Name of the uploaded file"
+          },
+          "content_type": {
+            "type": "string",
+            "title": "Content Type",
+            "description": "MIME type of the uploaded file"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "description": "Processing status of the document"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At",
+            "description": "When the document was uploaded"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "file_name",
+          "content_type",
+          "status",
+          "created_at"
+        ],
+        "title": "DocumentUploadResponse",
+        "description": "    \n    "
+      },
+      "GlobalSearchHit": {
+        "properties": {
+          "chunk_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Chunk Id"
+          },
+          "document_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Document Id"
+          },
+          "chunk_index": {
+            "type": "integer",
+            "title": "Chunk Index"
+          },
+          "score": {
+            "type": "number",
+            "title": "Score"
+          }
+        },
+        "type": "object",
+        "required": [
+          "chunk_id",
+          "document_id",
+          "chunk_index",
+          "score"
+        ],
+        "title": "GlobalSearchHit"
+      },
+      "GlobalSearchResponse": {
+        "properties": {
+          "query": {
+            "type": "string",
+            "title": "Query"
+          },
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/GlobalSearchHit"
+            },
+            "type": "array",
+            "title": "Results"
+          }
+        },
+        "type": "object",
+        "required": [
+          "query",
+          "results"
+        ],
+        "title": "GlobalSearchResponse"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "InvitationListResponse": {
+        "properties": {
+          "invitations": {
+            "items": {
+              "$ref": "#/components/schemas/InvitationResponse"
+            },
+            "type": "array",
+            "title": "Invitations"
+          }
+        },
+        "type": "object",
+        "required": [
+          "invitations"
+        ],
+        "title": "InvitationListResponse"
+      },
+      "InvitationResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "email": {
+            "type": "string",
+            "title": "Email"
+          },
+          "role": {
+            "type": "string",
+            "title": "Role"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Expires At"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "magic_link": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Magic Link"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "email",
+          "role",
+          "status",
+          "expires_at",
+          "created_at"
+        ],
+        "title": "InvitationResponse"
+      },
+      "MessageResponse": {
+        "properties": {
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "description": "Response message"
+          }
+        },
+        "type": "object",
+        "required": [
+          "message"
+        ],
+        "title": "MessageResponse"
+      },
+      "OnChainVerificationResponse": {
+        "properties": {
+          "document_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Document Id",
+            "description": "Document identifier."
+          },
+          "onchain_document_id": {
+            "type": "string",
+            "title": "Onchain Document Id",
+            "description": "Document ID on-chain."
+          },
+          "data_hash": {
+            "type": "string",
+            "title": "Data Hash",
+            "description": "Hash stored on-chain."
+          },
+          "onchain_timestamp": {
+            "type": "integer",
+            "title": "Onchain Timestamp",
+            "description": "Unix timestamp when strored."
+          },
+          "issued_by": {
+            "type": "string",
+            "title": "Issued By",
+            "description": "Address that issued the transaction."
+          },
+          "verified_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Verified At",
+            "description": "When this verification was performed."
+          }
+        },
+        "type": "object",
+        "required": [
+          "document_id",
+          "onchain_document_id",
+          "data_hash",
+          "onchain_timestamp",
+          "issued_by",
+          "verified_at"
+        ],
+        "title": "OnChainVerificationResponse",
+        "description": "Response returned when verifying an on-chain record."
+      },
+      "PublicVerifyResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "confidence": {
+            "type": "number",
+            "title": "Confidence"
+          },
+          "file_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "File Name"
+          },
+          "storage_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Storage Url"
+          },
+          "recorded_at": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recorded At"
+          },
+          "recorded_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recorded By"
+          },
+          "tx_hash": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tx Hash"
+          },
+          "matched_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Matched At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "confidence",
+          "matched_at"
+        ],
+        "title": "PublicVerifyResponse"
+      },
+      "RecordResponse": {
+        "properties": {
+          "document_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Document Id",
+            "description": "Document identifier."
+          },
+          "tx_hash": {
+            "type": "string",
+            "title": "Tx Hash",
+            "description": "Transaction hash on the blockchain"
+          },
+          "onchain_document_id": {
+            "type": "string",
+            "title": "Onchain Document Id",
+            "description": "Document Id stored on-chain"
+          },
+          "data_hash": {
+            "type": "string",
+            "title": "Data Hash",
+            "description": "SHA256 hash stored on-chain."
+          }
+        },
+        "type": "object",
+        "required": [
+          "document_id",
+          "tx_hash",
+          "onchain_document_id",
+          "data_hash"
+        ],
+        "title": "RecordResponse",
+        "description": "Response returned after recording a document on-chain."
+      },
+      "RemovePartyResponse": {
+        "properties": {
+          "document_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Document Id"
+          },
+          "user_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "User Id"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          }
+        },
+        "type": "object",
+        "required": [
+          "document_id",
+          "user_id",
+          "message"
+        ],
+        "title": "RemovePartyResponse",
+        "description": "Confirmation after removing a party"
+      },
+      "RenameDocumentRequest": {
+        "properties": {
+          "file_name": {
+            "type": "string",
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "File Name",
+            "description": "New display name for the document."
+          }
+        },
+        "type": "object",
+        "required": [
+          "file_name"
+        ],
+        "title": "RenameDocumentRequest",
+        "description": "Request payload for renaming a document."
+      },
+      "ResendVerificationRequest": {
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "title": "Email",
+            "description": "Email address to resend verification to"
+          }
+        },
+        "type": "object",
+        "required": [
+          "email"
+        ],
+        "title": "ResendVerificationRequest"
+      },
+      "SearchHit": {
+        "properties": {
+          "chunk_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Chunk Id"
+          },
+          "chunk_index": {
+            "type": "integer",
+            "title": "Chunk Index"
+          },
+          "score": {
+            "type": "number",
+            "title": "Score"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          }
+        },
+        "type": "object",
+        "required": [
+          "chunk_id",
+          "chunk_index",
+          "score",
+          "text"
+        ],
+        "title": "SearchHit"
+      },
+      "SearchRequest": {
+        "properties": {
+          "query": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Query"
+          }
+        },
+        "type": "object",
+        "required": [
+          "query"
+        ],
+        "title": "SearchRequest"
+      },
+      "SearchResponse": {
+        "properties": {
+          "query": {
+            "type": "string",
+            "title": "Query"
+          },
+          "document_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Document Id"
+          },
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/SearchHit"
+            },
+            "type": "array",
+            "title": "Results"
+          }
+        },
+        "type": "object",
+        "required": [
+          "query",
+          "document_id",
+          "results"
+        ],
+        "title": "SearchResponse"
+      },
+      "SignInRequest": {
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "title": "Email",
+            "description": "Valid email for this user"
+          },
+          "password": {
+            "type": "string",
+            "title": "Password",
+            "description": "Valid password"
+          }
+        },
+        "type": "object",
+        "required": [
+          "email",
+          "password"
+        ],
+        "title": "SignInRequest"
+      },
+      "SignInResponse": {
+        "properties": {
+          "access_token": {
+            "type": "string",
+            "title": "Access Token",
+            "description": "JWT access token for API authentication"
+          },
+          "refresh_token": {
+            "type": "string",
+            "title": "Refresh Token",
+            "description": "Token used to obtain a new access token"
+          },
+          "token_type": {
+            "type": "string",
+            "title": "Token Type",
+            "description": "Token type, always 'bearer'",
+            "default": "bearer"
+          },
+          "expires_in": {
+            "type": "integer",
+            "title": "Expires In",
+            "description": "Token expiration time in seconds"
+          },
+          "user": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "User",
+            "description": "User information from Supabase"
+          }
+        },
+        "type": "object",
+        "required": [
+          "access_token",
+          "refresh_token",
+          "expires_in",
+          "user"
+        ],
+        "title": "SignInResponse"
+      },
+      "SignUpRequest": {
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "title": "Email",
+            "description": "Valid email for this user"
+          },
+          "password": {
+            "type": "string",
+            "title": "Password",
+            "description": "Valid Password"
+          },
+          "f_name": {
+            "type": "string",
+            "title": "F Name",
+            "description": "Valid first name"
+          },
+          "l_name": {
+            "type": "string",
+            "title": "L Name",
+            "description": "Valid last name"
+          },
+          "phone_number": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Phone Number",
+            "description": "Valid Phone number"
+          }
+        },
+        "type": "object",
+        "required": [
+          "email",
+          "password",
+          "f_name",
+          "l_name",
+          "phone_number"
+        ],
+        "title": "SignUpRequest"
+      },
+      "SignUpResponse": {
+        "properties": {
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "description": "Message containing what to do next."
+          },
+          "user_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "User Id",
+            "description": "Contains the user id the response"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "title": "Email",
+            "description": "Email of this user/response"
+          },
+          "requires_email_confirmation": {
+            "type": "boolean",
+            "title": "Requires Email Confirmation",
+            "description": "session will be None until the user verifies their email"
+          }
+        },
+        "type": "object",
+        "required": [
+          "message",
+          "user_id",
+          "email",
+          "requires_email_confirmation"
+        ],
+        "title": "SignUpResponse"
+      },
+      "UserSearchResponse": {
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "User Id",
+            "description": ""
+          },
+          "email": {
+            "type": "string",
+            "title": "Email",
+            "description": ""
+          },
+          "f_name": {
+            "type": "string",
+            "title": "F Name",
+            "description": ""
+          },
+          "l_name": {
+            "type": "string",
+            "title": "L Name",
+            "description": ""
+          }
+        },
+        "type": "object",
+        "required": [
+          "user_id",
+          "email",
+          "f_name",
+          "l_name"
+        ],
+        "title": "UserSearchResponse"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      },
+      "VersionHistoryItem": {
+        "properties": {
+          "document_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Document Id"
+          },
+          "file_name": {
+            "type": "string",
+            "title": "File Name"
+          },
+          "document_hash": {
+            "type": "string",
+            "title": "Document Hash"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "tx_hash": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tx Hash"
+          },
+          "is_latest": {
+            "type": "boolean",
+            "title": "Is Latest"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "document_id",
+          "file_name",
+          "document_hash",
+          "status",
+          "tx_hash",
+          "is_latest",
+          "created_at"
+        ],
+        "title": "VersionHistoryItem",
+        "description": "A single entry ion the document's version chain"
+      },
+      "VersionHistoryResponse": {
+        "properties": {
+          "current_document_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Current Document Id"
+          },
+          "versions": {
+            "items": {
+              "$ref": "#/components/schemas/VersionHistoryItem"
+            },
+            "type": "array",
+            "title": "Versions"
+          },
+          "total_version": {
+            "type": "integer",
+            "title": "Total Version"
+          }
+        },
+        "type": "object",
+        "required": [
+          "current_document_id",
+          "versions",
+          "total_version"
+        ],
+        "title": "VersionHistoryResponse",
+        "description": "The full version chain for a document"
+      }
+    },
+    "securitySchemes": {
+      "Bearer Token": {
+        "type": "http",
+        "description": "Enter your Supabase JWT token",
+        "scheme": "bearer"
+      }
+    }
+  }
+}

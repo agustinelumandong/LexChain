@@ -1,0 +1,14 @@
+import type { components } from "./generated/schema";
+
+export type { components, operations, paths, webhooks } from "./generated/schema";
+
+export type ApiSchema<Name extends keyof components["schemas"]> =
+  components["schemas"][Name];
+
+export type PublicVerifyResponse = ApiSchema<"PublicVerifyResponse">;
+export type AdminDashboardResponse = ApiSchema<"AdminDashboardResponse">;
+export type AdminUserResponse = ApiSchema<"AdminUserResponse">;
+export type AdminUserListResponse = ApiSchema<"AdminUserListResponse">;
+export type CreateInvitationRequest = ApiSchema<"CreateInvitationRequest">;
+export type InvitationResponse = ApiSchema<"InvitationResponse">;
+export type InvitationListResponse = ApiSchema<"InvitationListResponse">;

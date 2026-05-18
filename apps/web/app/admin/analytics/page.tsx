@@ -1,16 +1,23 @@
-import { AdminPlaceholderPage } from "../admin-placeholder-page";
+import { adminAnalytics } from "../admin-demo-data";
+import { AdminResourcePage } from "../admin-resource-page";
 
 export default function AdminAnalyticsPage() {
   return (
-    <AdminPlaceholderPage
+    <AdminResourcePage
       activeHref="/admin/analytics"
       title="Analytics"
       subtitle="Track usage, processing throughput, verification results, and operational trends."
       cards={[
-        { label: "Queries", value: "8,930", detail: "Search and ask-document activity." },
-        { label: "Verifications", value: "5,604", detail: "Public and internal verification attempts." },
-        { label: "OCR accuracy", value: "91%", detail: "Current demo processing health." },
+        { label: "Metrics", value: adminAnalytics.length, detail: "Operational signals." },
+        { label: "Verification", value: "95%", detail: "Success rate." },
+        { label: "OCR/NLP fail", value: "3%", detail: "Current demo failure rate." },
       ]}
+      columns={[
+        { key: "metric", label: "Metric", render: (row) => row.label },
+        { key: "value", label: "Value", render: (row) => row.value },
+        { key: "detail", label: "Detail", render: (row) => row.detail },
+      ]}
+      rows={adminAnalytics}
     />
   );
 }

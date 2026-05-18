@@ -1,0 +1,19 @@
+{
+  "name": "@lexchain/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "lint": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@lexchain/config": "workspace:*",
+    "@lexchain/types": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5"
+  }
+}

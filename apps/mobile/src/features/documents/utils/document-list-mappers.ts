@@ -1,0 +1,70 @@
+import type { DocumentListItem, GlobalSearchResult } from '@/services/api';
+
+import type {
+  DisplayDocument,
+  DocumentFilterStatusKey,
+} from '../types/documents-screen.types';
+
+export function formatDocumentListDate(value: string) {
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return date.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+}
+
+export function mapDocumentStatus(status: string): DocumentFilterStatusKey {
+  const normalizedStatus = status.toLowerCase();
+
+  if (normalizedStatus.includes('verified') || normalizedStatus.includes('complete')) {
+    return 'verified';
+  }
+
+  return 'review-needed';
+}
+
+export function mapDocumentListItem(item: DocumentListItem): DisplayDocument {
+  return {
+    id: item.id,
+    title: item.file_name,
+    summary: '',
+    date: formatDocumentListDate(item.created_at),
+    rawDate: item.created_at,
+    documentType: 'all',
+    status: mapDocumentStatus(item.status),
+  };
+}
+
+export function mapGlobalSearchResult(result: GlobalSearchResult): DisplayDocument {
+  const doc = result.document;
+
+  if (!doc) {
+    return {
+      id: result.document_id,
+      title: 'Unknown Document',
+      summary: 'Unable to load details',
+      date: '',
+      rawDate: '',
+      documentType: 'all',
+      status: 'review-needed',
+      snippet: '',
+    };
+  }
+
+  return {
+    id: doc.document_id,
+    title: doc.file_name,
+    summary: doc.summary ?? doc.labels?.join(', ') ?? 'No summary available',
+    date: formatDocumentListDate(doc.created_at),
+    rawDate: doc.created_at,
+    documentType: 'all',
+    status: mapDocumentStatus(doc.status),
+    snippet: doc.summary ?? '',
+  };
+}
