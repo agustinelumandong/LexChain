@@ -7,6 +7,7 @@ export { DocumentMenuActionsCard } from './details/document-menu-actions-card';
 export { DocumentMenuRow } from './details/document-menu-row';
 export { DocumentActionsSheet } from './document-actions-sheet';
 export { DocumentPreviewBottomSheet } from './document-preview-bottom-sheet';
+export { DocumentPreviewSheetContent } from './document-preview-sheet-content';
 export { DocumentPdfToolsContent } from './document-pdf-tools-content';
 export { DocumentPdfToolsHeader } from './document-pdf-tools-header';
 export { DocumentPdfToolsSheet } from './document-pdf-tools-sheet';
