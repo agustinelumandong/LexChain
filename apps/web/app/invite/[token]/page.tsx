@@ -56,7 +56,7 @@ export default async function InvitePage({ params }: InvitePageProps) {
           </a>
           <Link
             className="rounded-full border border-[#E4EEF9] bg-white px-5 py-3 text-center text-sm font-black text-[#0C2B49] transition hover:bg-[#F5FAFF]"
-            href="/"
+            href="/download"
           >
             Download app
           </Link>
