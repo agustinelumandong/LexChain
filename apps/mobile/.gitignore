@@ -1,16 +1,11 @@
 # Dependencies
 node_modules/
-**/node_modules/
-.pnpm-store/
 
 # Expo
 .expo/
 .expo-shared/
-**/.expo/
-**/.expo-shared/
 expo-env.d.ts
 eas-build/
-**/eas-build/
 
 # Native / Generated
 ios/
@@ -26,21 +21,14 @@ android/
 # Metro / Bundler
 .metro-health-check*
 .metro/
-**/.metro/
 
 # Build outputs & Checks
 dist/
 web-build/
 build/
-.next/
-out/
-.vercel/
 .tmp/
-apps/mobile/dist-*-check/
+frontend/dist-*-check/
 **/dist-*-check/
-**/.next/
-**/out/
-**/coverage/
 
 # App specific
 app-example
@@ -52,7 +40,6 @@ app-example
 
 # TypeScript
 *.tsbuildinfo
-*.buildinfo
 
 # Logs & Debug
 npm-debug.*
@@ -71,8 +58,6 @@ debug.log
 .cache/
 .turbo/
 coverage/
-**/.cache/
-**/.turbo/
 
 # Editor directories (ignore most, allow useful shared files)
 .vscode/
@@ -101,7 +86,9 @@ Thumbs.db
 # docs/
 
 graphify-out
+
 openapi.json
 
-*.pen
-.playwright-mcp
+.claude
+
+.claude/

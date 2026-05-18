@@ -1,0 +1,21 @@
+{
+  "name": "@lexchain/root",
+  "private": true,
+  "packageManager": "pnpm@10.33.0",
+  "scripts": {
+    "mobile": "pnpm --filter @lexchain/mobile start",
+    "mobile:android": "pnpm --filter @lexchain/mobile android",
+    "mobile:ios": "pnpm --filter @lexchain/mobile ios",
+    "mobile:lint": "pnpm --filter @lexchain/mobile lint",
+    "web": "pnpm --filter @lexchain/web dev",
+    "web:build": "pnpm --filter @lexchain/web build",
+    "web:lint": "pnpm --filter @lexchain/web lint",
+    "generate:api-types": "pnpm --filter @lexchain/types generate",
+    "lint": "pnpm -r lint"
+  },
+  "pnpm": {
+    "overrides": {
+      "lightningcss": "1.30.1"
+    }
+  }
+}
