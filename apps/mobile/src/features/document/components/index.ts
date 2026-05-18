@@ -29,5 +29,6 @@ export { SearchDocumentSheet } from './search-document-sheet';
 export { UpdateDocumentSheet } from './details/update-document-sheet';
 export { VerificationStatusCard } from './verification-status-card';
 export { VerifyDocumentBottomSheet } from './verify-document-bottom-sheet';
+export { VerifyDocumentSheetContent } from './verify-document-sheet-content';
 export { WhitelistGrantRow } from './whitelist-grant-row';
 export { WhitelistSearchResultRow } from './whitelist-search-result-row';
