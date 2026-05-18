@@ -83,7 +83,18 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Search for a user by email */
+        /**
+         * Search for a user by email
+         * @description Search for a user by email.
+         *
+         *     Args:
+         *         email: The email address to look up.
+         *         current_user: The authenticated user making the request.
+         *         service: The user management service.
+         *
+         *     Returns:
+         *         `UserSearchResponse` containing the user's id, email, f_name, and l_name.
+         */
         get: operations["search_user_users_search_get"];
         put?: never;
         post?: never;
@@ -518,11 +529,6 @@ export interface components {
         AskRequest: {
             /** Question */
             question: string;
-            /**
-             * History
-             * @description Previous conversation turns
-             */
-            history?: components["schemas"]["ChatMessage"][];
         };
         /** Body_update_document_documents__document_id__update_post */
         Body_update_document_documents__document_id__update_post: {
@@ -538,16 +544,6 @@ export interface components {
         Body_verify_public_public_verify_post: {
             /** File */
             file: string;
-        };
-        /** ChatMessage */
-        ChatMessage: {
-            /**
-             * Role
-             * @description user or assistant
-             */
-            role: string;
-            /** Content */
-            content: string;
         };
         /** CreateInvitationRequest */
         CreateInvitationRequest: {
@@ -1334,13 +1330,34 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Successful Response */
+            /** @description User found successfully */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
                     "application/json": components["schemas"]["UserSearchResponse"];
+                };
+            };
+            /** @description User is not authenticated */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description User not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "User not found"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */
