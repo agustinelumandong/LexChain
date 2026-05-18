@@ -1,22 +1,18 @@
 import {
   BottomSheetBackdrop,
-  BottomSheetFooter,
-  type BottomSheetFooterProps,
   BottomSheetModal,
   BottomSheetScrollView,
+  type BottomSheetFooterProps,
 } from '@gorhom/bottom-sheet';
-import { MaterialIcons } from '@expo/vector-icons';
 import React, { useCallback } from 'react';
-import { Pressable, Text, View } from 'react-native';
 
 import type { WhitelistGrant } from '@/types';
 
-import { MOBILE_USER_ROLES, type MobileUserRoleKey } from '../constants/manage-whitelist.constants';
-import { getMobileRoleLabel } from '../utils/manage-whitelist-labels';
-import {
-  MANAGE_WHITELIST_COLORS as COLORS,
-  manageWhitelistStyles as styles,
-} from './manage-whitelist.styles';
+import { type MobileUserRoleKey } from '../constants/manage-whitelist.constants';
+import { ManageWhitelistGrantFooter } from './manage-whitelist-grant-footer';
+import { ManageWhitelistGrantHeader } from './manage-whitelist-grant-header';
+import { ManageWhitelistRoleDropdown } from './manage-whitelist-role-dropdown';
+import { manageWhitelistStyles as styles } from './manage-whitelist.styles';
 
 type ManageWhitelistGrantActionSheetProps = {
   grantSheetRef: React.RefObject<BottomSheetModal | null>;
@@ -59,33 +55,13 @@ export function ManageWhitelistGrantActionSheet({
 
   const renderGrantFooter = useCallback(
     (props: BottomSheetFooterProps) => (
-      <BottomSheetFooter
-        {...props}
+      <ManageWhitelistGrantFooter
         bottomInset={bottomInset}
-        style={styles.grantFooterContainer}
-      >
-        <View style={styles.grantFooter}>
-          <Pressable
-            accessibilityRole="button"
-            style={[
-              styles.revokeButton,
-              revokeCountdown !== null && revokeCountdown > 0 && styles.revokeButtonWaiting,
-              revokeCountdown === 0 && styles.revokeButtonConfirm,
-            ]}
-            onPress={onPressRevoke}
-          >
-            <Text
-              style={[
-                styles.revokeButtonLabel,
-                revokeCountdown !== null && revokeCountdown > 0 && styles.revokeButtonLabelWaiting,
-                revokeCountdown === 0 && styles.revokeButtonLabelConfirm,
-              ]}
-            >
-              {revokeLabel}
-            </Text>
-          </Pressable>
-        </View>
-      </BottomSheetFooter>
+        footerProps={props}
+        revokeCountdown={revokeCountdown}
+        revokeLabel={revokeLabel}
+        onPressRevoke={onPressRevoke}
+      />
     ),
     [bottomInset, onPressRevoke, revokeCountdown, revokeLabel],
   );
@@ -110,41 +86,14 @@ export function ManageWhitelistGrantActionSheet({
         ]}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.grantActionHeader}>
-          <Text style={styles.grantActionTitle}>{selectedGrant?.name ?? 'Access grant'}</Text>
-          <Text style={styles.grantActionSubtitle}>
-            {selectedGrant?.email ?? 'Manage this user access'}
-          </Text>
-        </View>
+        <ManageWhitelistGrantHeader selectedGrant={selectedGrant} />
 
-        <View style={styles.dropdownBlock}>
-          <Text style={styles.dropdownLabel}>Assign as</Text>
-          <Pressable style={styles.dropdownButton} onPress={onToggleRoleDropdown}>
-            <Text style={styles.dropdownValue}>{getMobileRoleLabel(selectedGrantRole)}</Text>
-            <MaterialIcons
-              name={isGrantRoleDropdownOpen ? 'expand-less' : 'expand-more'}
-              size={20}
-              color={COLORS.textMuted}
-            />
-          </Pressable>
-
-          {isGrantRoleDropdownOpen ? (
-            <View style={styles.dropdownMenu}>
-              {MOBILE_USER_ROLES.map((role) => (
-                <Pressable
-                  key={role.key}
-                  style={styles.dropdownItem}
-                  onPress={() => onSelectGrantRole(role.key)}
-                >
-                  <Text style={styles.dropdownItemLabel}>{role.label}</Text>
-                  {selectedGrantRole === role.key ? (
-                    <MaterialIcons name="check" size={18} color={COLORS.primary} />
-                  ) : null}
-                </Pressable>
-              ))}
-            </View>
-          ) : null}
-        </View>
+        <ManageWhitelistRoleDropdown
+          isOpen={isGrantRoleDropdownOpen}
+          selectedRole={selectedGrantRole}
+          onSelectRole={onSelectGrantRole}
+          onToggle={onToggleRoleDropdown}
+        />
       </BottomSheetScrollView>
     </BottomSheetModal>
   );
