@@ -14,8 +14,8 @@ import {
 } from '@/services/query';
 import { parseApiError } from '@/shared/utils/api-error';
 import { HEADER_CONTENT_GAP } from '@/features/document/constants/document-details.constants';
-import { ManageWhitelistBottomSheet } from '@/features/document/components/manage-whitelist-bottom-sheet';
-import { RenameDocumentSheet } from '@/features/document/components/rename-document-sheet';
+import { ManageWhitelistBottomSheet } from '@/features/document/components/whitelist/manage-whitelist-bottom-sheet';
+import { RenameDocumentSheet } from '@/features/document/components/sheets/rename-document-sheet';
 import { DocumentMenuActionsCard } from '@/features/document/components/details/document-menu-actions-card';
 import { UpdateDocumentSheet } from '@/features/document/components/details/update-document-sheet';
 import { useDocumentVersionUpdate } from '@/features/document/hooks/use-document-version-update';
