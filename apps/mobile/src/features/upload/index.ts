@@ -1,5 +1,7 @@
 export { AiSummaryDraftCard } from './ai-summary-draft-card';
 export { UploadDropzoneCard } from './upload-dropzone-card';
+export { UploadDropzoneMetaChip } from './upload-dropzone-meta-chip';
+export { UploadDropzoneSelectedList } from './upload-dropzone-selected-list';
 export { UploadHeader } from './upload-header';
 export { UploadReferenceField } from './upload-reference-field';
 export {
