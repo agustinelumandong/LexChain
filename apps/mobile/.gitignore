@@ -88,3 +88,7 @@ Thumbs.db
 graphify-out
 
 openapi.json
+
+.claude
+
+.claude/
