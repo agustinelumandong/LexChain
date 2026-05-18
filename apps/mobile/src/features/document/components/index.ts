@@ -2,6 +2,7 @@ export { AccessWhitelistCard } from './access-whitelist-card';
 export { AskDocumentCard } from './ask-document-card';
 export { AskDocumentSheet } from './ask-document-sheet';
 export { DetailSectionsCard } from './detail-sections-card';
+export { DocumentActionItem } from './document-action-item';
 export { DocumentMenuRow } from './details/document-menu-row';
 export { DocumentActionsSheet } from './document-actions-sheet';
 export { DocumentPreviewBottomSheet } from './document-preview-bottom-sheet';
