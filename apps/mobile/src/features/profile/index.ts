@@ -8,6 +8,8 @@ export {
 } from './profile-detail-screen';
 export { ProfileMetricsCard } from './profile-metrics-card';
 export { ProfileSummaryCard, ProfileSummarySkeleton } from './profile-summary-card';
+export { ProfileSummaryInfoRow } from './profile-summary-info-row';
+export { ProfileSummaryStatusChip } from './profile-summary-status-chip';
 export {
   DEFAULT_PROFILE_ACCOUNT,
   getProfileDisplayName,
