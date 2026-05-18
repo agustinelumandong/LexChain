@@ -7,12 +7,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import type { PickedUploadFile } from '@/types';
 
-import { CameraCaptureControls } from '../camera-capture-controls';
-import { CameraCaptureFrame } from '../camera-capture-frame';
-import { CameraCapturePermission } from '../camera-capture-permission';
-import { CameraCapturePreviewActions } from '../camera-capture-preview-actions';
-import { CameraCaptureTopBar } from '../camera-capture-top-bar';
-import { cameraCaptureStyles as styles } from '../camera-capture.styles';
+import { CameraCaptureControls } from '../components/camera/camera-capture-controls';
+import { CameraCaptureFrame } from '../components/camera/camera-capture-frame';
+import { CameraCapturePermission } from '../components/camera/camera-capture-permission';
+import { CameraCapturePreviewActions } from '../components/camera/camera-capture-preview-actions';
+import { CameraCaptureTopBar } from '../components/camera/camera-capture-top-bar';
+import { cameraCaptureStyles as styles } from '../components/camera/camera-capture.styles';
 import { useCameraCaptureFlow } from '../hooks/use-camera-capture-flow';
 import type { CapturedPhoto } from '../types/camera-capture.types';
 

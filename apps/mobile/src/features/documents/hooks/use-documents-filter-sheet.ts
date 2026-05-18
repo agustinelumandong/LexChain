@@ -3,7 +3,7 @@ import type { DateTimePickerEvent } from '@react-native-community/datetimepicker
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import type { FilterOption } from '../documents-filter-sheet';
+import type { FilterOption } from '../components/filter/documents-filter-sheet';
 
 type UseDocumentsFilterSheetParams = {
   visible: boolean;

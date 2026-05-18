@@ -3,11 +3,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button } from '@/ui';
 
-import { CaptureReviewGrid } from '../capture-review-grid';
-import { CaptureReviewPreviewModal } from '../capture-review-preview-modal';
-import { CaptureReviewTopBar } from '../capture-review-top-bar';
+import { CaptureReviewGrid } from '../components/capture-review/capture-review-grid';
+import { CaptureReviewPreviewModal } from '../components/capture-review/capture-review-preview-modal';
+import { CaptureReviewTopBar } from '../components/capture-review/capture-review-top-bar';
 import { useCaptureReviewFlow } from '../hooks/use-capture-review-flow';
-import { captureReviewStyles } from '../capture-review.styles';
+import { captureReviewStyles } from '../components/capture-review/capture-review.styles';
 
 export default function CaptureReviewScreen() {
   const review = useCaptureReviewFlow();
