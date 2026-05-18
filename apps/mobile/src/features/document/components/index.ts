@@ -6,6 +6,8 @@ export { DocumentActionItem } from './document-action-item';
 export { DocumentMenuRow } from './details/document-menu-row';
 export { DocumentActionsSheet } from './document-actions-sheet';
 export { DocumentPreviewBottomSheet } from './document-preview-bottom-sheet';
+export { DocumentPdfToolsContent } from './document-pdf-tools-content';
+export { DocumentPdfToolsHeader } from './document-pdf-tools-header';
 export { DocumentPdfToolsSheet } from './document-pdf-tools-sheet';
 export { DocumentScreenHeader } from './document-screen-header';
 export { DocumentSearchBar } from './document-search-bar';
