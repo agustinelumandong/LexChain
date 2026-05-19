@@ -1,4 +1,4 @@
-import { BottomSheetModal, BottomSheetScrollView } from '@gorhom/bottom-sheet';
+import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   useAnimatedKeyboard,
@@ -31,7 +31,7 @@ export function useAskDocumentSheet({
   onClose,
   onAsk,
 }: UseAskDocumentSheetParams) {
-  const bottomSheetRef = useRef<BottomSheetModal>(null);
+  const bottomSheetRef = useRef<BottomSheet>(null);
   const scrollViewRef = useRef<React.ElementRef<typeof BottomSheetScrollView>>(null);
   const insets = useSafeAreaInsets();
   const [lastAnswer, setLastAnswer] = useState<string | undefined>();
@@ -80,19 +80,9 @@ export function useAskDocumentSheet({
   }, [onAsk, scrollToLatestMessage]);
 
   useEffect(() => {
-    const sheet = bottomSheetRef.current;
-
-    if (!sheet) {
-      return;
-    }
-
     if (visible) {
       setComposerResetKey((currentKey) => currentKey + 1);
-      sheet.present();
-      return;
     }
-
-    sheet.dismiss();
   }, [visible]);
 
   useEffect(() => {
