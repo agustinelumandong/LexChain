@@ -1,10 +1,9 @@
-import {
+import BottomSheet, {
   BottomSheetBackdrop,
-  BottomSheetModal,
   BottomSheetScrollView,
 } from '@gorhom/bottom-sheet';
 import React, { useCallback, useEffect, useMemo, useRef } from 'react';
-import { Animated, Easing, Text, View } from 'react-native';
+import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
 
 import { Button } from '@/ui';
 import type { PickedUploadFile } from '@/types';
@@ -30,7 +29,7 @@ export function UpdateDocumentSheet({
   onPickFile,
   onUpload,
 }: UpdateDocumentSheetProps) {
-  const bottomSheetRef = useRef<BottomSheetModal>(null);
+  const bottomSheetRef = useRef<BottomSheet>(null);
   const progressAnim = useRef(new Animated.Value(0)).current;
   const snapPoints = useMemo(() => ['55%', '80%'], []);
 
@@ -46,21 +45,6 @@ export function UpdateDocumentSheet({
     ),
     [],
   );
-
-  useEffect(() => {
-    const sheet = bottomSheetRef.current;
-
-    if (!sheet) {
-      return;
-    }
-
-    if (visible) {
-      sheet.present();
-      return;
-    }
-
-    sheet.dismiss();
-  }, [visible]);
 
   useEffect(() => {
     if (!isLoading) {
@@ -90,48 +74,54 @@ export function UpdateDocumentSheet({
     outputRange: [-140, 220],
   });
 
+  if (!visible) {
+    return null;
+  }
+
   return (
-    <BottomSheetModal
-      ref={bottomSheetRef}
-      index={0}
-      snapPoints={snapPoints}
-      onDismiss={onClose}
-      enableDynamicSizing={false}
-      enablePanDownToClose
-      backdropComponent={renderBackdrop}
-      backgroundStyle={updateDocumentSheetStyles.sheetBackground}
-      handleIndicatorStyle={updateDocumentSheetStyles.handleIndicator}
-    >
-      <BottomSheetScrollView
-        contentContainerStyle={updateDocumentSheetStyles.updateSheetContent}
-        showsVerticalScrollIndicator={false}
+    <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
+      <BottomSheet
+        ref={bottomSheetRef}
+        index={0}
+        snapPoints={snapPoints}
+        onClose={onClose}
+        enableDynamicSizing={false}
+        enablePanDownToClose
+        backdropComponent={renderBackdrop}
+        backgroundStyle={updateDocumentSheetStyles.sheetBackground}
+        handleIndicatorStyle={updateDocumentSheetStyles.handleIndicator}
       >
-        <View style={updateDocumentSheetStyles.sheetHeader}>
-          <Text style={updateDocumentSheetStyles.sheetTitle}>Update document</Text>
-          <Text style={updateDocumentSheetStyles.sheetSubtitle}>
-            Select a replacement PDF, then confirm upload when ready.
-          </Text>
-        </View>
+        <BottomSheetScrollView
+          contentContainerStyle={updateDocumentSheetStyles.updateSheetContent}
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={updateDocumentSheetStyles.sheetHeader}>
+            <Text style={updateDocumentSheetStyles.sheetTitle}>Update document</Text>
+            <Text style={updateDocumentSheetStyles.sheetSubtitle}>
+              Select a replacement PDF, then confirm upload when ready.
+            </Text>
+          </View>
 
-        <UpdateDocumentFilePicker
-          selectedFile={selectedFile}
-          disabled={isLoading}
-          onPickFile={onPickFile}
-        />
+          <UpdateDocumentFilePicker
+            selectedFile={selectedFile}
+            disabled={isLoading}
+            onPickFile={onPickFile}
+          />
 
-        {isLoading ? (
-          <UpdateDocumentUploadProgress progressTranslateX={progressTranslateX} />
-        ) : null}
+          {isLoading ? (
+            <UpdateDocumentUploadProgress progressTranslateX={progressTranslateX} />
+          ) : null}
 
-        <Button
-          label={isLoading ? 'Updating document...' : 'Upload update'}
-          fullWidth
-          loading={isLoading}
-          disabled={!selectedFile || isLoading}
-          leftIconName="upload-file"
-          onPress={onUpload}
-        />
-      </BottomSheetScrollView>
-    </BottomSheetModal>
+          <Button
+            label={isLoading ? 'Updating document...' : 'Upload update'}
+            fullWidth
+            loading={isLoading}
+            disabled={!selectedFile || isLoading}
+            leftIconName="upload-file"
+            onPress={onUpload}
+          />
+        </BottomSheetScrollView>
+      </BottomSheet>
+    </View>
   );
 }
