@@ -50,4 +50,4 @@ export type {
   VersionHistoryResponse,
 } from './documents.api';
 export type { PublicVerifyResponse } from './public.api';
-export type { UserSearchResponse } from './users.api';
+export type { UserProfileResponse, UserSearchResponse } from './users.api';
