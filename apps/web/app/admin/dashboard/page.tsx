@@ -1,7 +1,10 @@
 import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import { AdminShell } from "../admin-shell";
 import { adminStats } from "../admin-demo-data";
 import { backendUrl } from "@/lib/admin-api";
+
+const useMock = process.env.NEXT_PUBLIC_USE_MOCK_API === "true";
 
 type DashboardData = {
   total_users: number;
@@ -13,51 +16,41 @@ type DashboardData = {
   pending_invitations: number;
 };
 
-async function getDashboard(): Promise<{ data: DashboardData; source: "live" | "demo" }> {
+function getMockDashboard(): DashboardData {
+  return {
+    total_users: adminStats.total_users,
+    total_lawyers: adminStats.total_document_issuers,
+    total_documents: adminStats.total_documents,
+    total_processed: adminStats.processed_documents,
+    total_failed: adminStats.failed_documents,
+    total_on_chain: adminStats.total_documents - adminStats.pending_documents,
+    pending_invitations: adminStats.pending_documents,
+  };
+}
+
+async function getDashboard(): Promise<DashboardData> {
+  if (useMock) return getMockDashboard();
+
   const cookieStore = await cookies();
   const token = cookieStore.get("admin_token")?.value;
-  if (!token) {
-    return {
-      data: {
-        total_users: adminStats.total_users,
-        total_lawyers: adminStats.total_document_issuers,
-        total_documents: adminStats.total_documents,
-        total_processed: adminStats.processed_documents,
-        total_failed: adminStats.failed_documents,
-        total_on_chain: adminStats.total_documents - adminStats.pending_documents,
-        pending_invitations: adminStats.pending_documents,
-      },
-      source: "demo",
-    };
-  }
+  if (!token) redirect("/admin/login");
 
-  try {
-    const res = await fetch(backendUrl("/admin/dashboard"), {
-      headers: { Authorization: `Bearer ${token}` },
-      cache: "no-store",
-    });
-    if (!res.ok) {
-      throw new Error("Dashboard API unavailable.");
-    }
-    return { data: await res.json(), source: "live" };
-  } catch {
-    return {
-      data: {
-        total_users: adminStats.total_users,
-        total_lawyers: adminStats.total_document_issuers,
-        total_documents: adminStats.total_documents,
-        total_processed: adminStats.processed_documents,
-        total_failed: adminStats.failed_documents,
-        total_on_chain: adminStats.total_documents - adminStats.pending_documents,
-        pending_invitations: adminStats.pending_documents,
-      },
-      source: "demo",
-    };
-  }
+  const res = await fetch(backendUrl("/admin/dashboard"), {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "ngrok-skip-browser-warning": "true",
+    },
+    cache: "no-store",
+  });
+
+  if (res.status === 401) redirect("/admin/login");
+  if (!res.ok) throw new Error("Dashboard API unavailable.");
+
+  return res.json();
 }
 
 export default async function AdminDashboardPage() {
-  const { data, source } = await getDashboard();
+  const data = await getDashboard();
 
   const stats = [
     { label: "Total users", value: data.total_users, detail: "Registered accounts", icon: "◉" },
@@ -77,7 +70,7 @@ export default async function AdminDashboardPage() {
 
   return (
     <AdminShell activeHref="/admin/dashboard">
-      <div className="mx-auto max-w-[1180px] space-y-6">
+      <div className="mx-auto space-y-6">
         <header className="space-y-1.5">
           <p className="text-xs font-black uppercase tracking-[0.16em] text-[#0985E7]">
             LexChain Super Admin
@@ -86,11 +79,6 @@ export default async function AdminDashboardPage() {
           <p className="max-w-3xl text-sm font-semibold leading-5 text-[#64748b]">
             Live platform health — document processing, blockchain anchoring, and user activity.
           </p>
-          {source === "demo" ? (
-            <p className="inline-flex rounded-full bg-[#EAF6FF] px-3 py-1 text-xs font-black text-[#0770c4]">
-              Demo fallback data. Sign in and set API_URL for live admin data.
-            </p>
-          ) : null}
         </header>
 
         <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">

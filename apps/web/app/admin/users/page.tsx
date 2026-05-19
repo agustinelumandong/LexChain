@@ -1,7 +1,10 @@
 import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import { AdminShell } from "../admin-shell";
 import { adminUsers } from "../admin-demo-data";
 import { backendUrl } from "@/lib/admin-api";
+
+const useMock = process.env.NEXT_PUBLIC_USE_MOCK_API === "true";
 
 type AdminUser = {
   id: string;
@@ -24,62 +27,48 @@ function formatRole(role: string) {
   return role === "admin" ? "super_admin" : role;
 }
 
-async function getUsers(): Promise<{ data: UsersData; source: "live" | "demo" }> {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("admin_token")?.value;
-  if (!token) {
+async function getUsers(): Promise<UsersData> {
+  if (useMock) {
     return {
-      data: {
-        users: adminUsers.map((user) => ({
-          id: user.id,
-          name: user.name,
-          email: user.email,
-          role: user.role,
-          status: user.status,
-          created_at: user.created_at,
-        })),
-        total: adminUsers.length,
-      },
-      source: "demo",
+      users: adminUsers.map((user) => ({
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        status: user.status,
+        created_at: user.created_at,
+      })),
+      total: adminUsers.length,
     };
   }
 
-  try {
-    const res = await fetch(backendUrl("/admin/users"), {
-      headers: { Authorization: `Bearer ${token}` },
-      cache: "no-store",
-    });
-    if (!res.ok) {
-      throw new Error("Users API unavailable.");
-    }
-    return { data: await res.json(), source: "live" };
-  } catch {
-    return {
-      data: {
-        users: adminUsers.map((user) => ({
-          id: user.id,
-          name: user.name,
-          email: user.email,
-          role: user.role,
-          status: user.status,
-          created_at: user.created_at,
-        })),
-        total: adminUsers.length,
-      },
-      source: "demo",
-    };
-  }
+  const cookieStore = await cookies();
+  const token = cookieStore.get("admin_token")?.value;
+  if (!token) redirect("/admin/login");
+
+  const res = await fetch(backendUrl("/admin/users"), {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "ngrok-skip-browser-warning": "true",
+    },
+    cache: "no-store",
+  });
+
+  if (res.status === 401) redirect("/admin/login");
+  if (!res.ok) throw new Error("Users API unavailable.");
+
+  return res.json();
 }
 
 export default async function AdminUsersPage() {
-  const { data, source } = await getUsers();
+  const data = await getUsers();
 
   const active = data.users.filter((u) => u.is_active ?? u.status === "active").length;
   const admins = data.users.filter((u) => u.role === "admin" || u.role === "super_admin").length;
 
   return (
     <AdminShell activeHref="/admin/users">
-      <div className="mx-auto max-w-[1180px] space-y-6">
+      <div className="mx-auto space-y-6">
         <header className="space-y-1.5">
           <p className="text-xs font-black uppercase tracking-[0.16em] text-[#0985E7]">
             LexChain Super Admin
@@ -88,11 +77,6 @@ export default async function AdminUsersPage() {
           <p className="max-w-3xl text-sm font-semibold leading-5 text-[#64748b]">
             All registered user accounts, roles, and activity state.
           </p>
-          {source === "demo" ? (
-            <p className="inline-flex rounded-full bg-[#EAF6FF] px-3 py-1 text-xs font-black text-[#0770c4]">
-              Demo fallback data. Sign in and set API_URL for live admin data.
-            </p>
-          ) : null}
         </header>
 
         <section className="grid gap-4 md:grid-cols-3">
