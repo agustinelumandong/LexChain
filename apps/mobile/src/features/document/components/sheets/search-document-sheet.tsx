@@ -72,11 +72,12 @@ export function SearchDocumentSheet({
   }
 
   return (
-    <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
+    <View style={[StyleSheet.absoluteFill, searchDocumentSheetStyles.overlay]} pointerEvents="box-none">
       <BottomSheet
         ref={bottomSheetRef}
         index={0}
         snapPoints={snapPoints}
+        containerStyle={searchDocumentSheetStyles.overlay}
         onClose={handleDismiss}
         enableDynamicSizing={false}
         enablePanDownToClose
