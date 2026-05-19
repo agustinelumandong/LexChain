@@ -2,8 +2,8 @@ import BottomSheet, {
   BottomSheetBackdrop,
   BottomSheetScrollView,
 } from '@gorhom/bottom-sheet';
-import React, { useCallback, useMemo, useRef } from 'react';
-import { StyleSheet, View } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useRef } from 'react';
+import { BackHandler, StyleSheet, View } from 'react-native';
 
 import type { DocumentPermission } from '@/types';
 
@@ -41,6 +41,21 @@ export function DocumentPdfToolsSheet({
     ),
     [],
   );
+
+  useEffect(() => {
+    if (!visible) {
+      return;
+    }
+
+    const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+      bottomSheetRef.current?.close();
+      return true;
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, [visible]);
 
   if (!visible) {
     return null;
