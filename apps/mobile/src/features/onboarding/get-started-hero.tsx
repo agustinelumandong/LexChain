@@ -2,7 +2,7 @@ import { Image } from 'expo-image';
 import React, { useEffect, useState } from 'react';
 import { Animated, Easing, StyleSheet, View } from 'react-native';
 
-const heroIllustration = require('../../../assets/images/lexchain-getstarted.svg');
+import heroIllustration from '@/assets/images/lexchain-getstarted.svg';
 
 export function GetStartedHero() {
   const [pulseA] = useState(() => new Animated.Value(0));
