@@ -8,21 +8,17 @@ export function useDashboard() {
   return useMemo(() => {
     const documents = documentsQuery.data ?? [];
     const documentsCount = documents.length;
-    const verifiedCount = documents.filter(
+    const anchoredOnChainCount = documents.filter(
       (doc) => doc.status === 'COMPLETED',
     ).length;
-    const tamperedCount = documents.filter(
-      (doc) => doc.status === 'FAILED',
+    const processingCount = documents.filter(
+      (doc) => doc.status === 'PROCESSING' || doc.status === 'QUEUED',
     ).length;
-    const recentDocuments = [...documents]
-      .sort((left, right) => right.created_at.localeCompare(left.created_at))
-      .slice(0, 3);
-
     return {
       documentsCount,
-      verifiedCount,
-      tamperedCount,
-      recentDocuments,
+      anchoredOnChainCount,
+      processingCount,
+      pendingSharedDocumentsCount: 0,
       isLoading: documentsQuery.isLoading,
     };
   }, [documentsQuery.data, documentsQuery.isLoading]);

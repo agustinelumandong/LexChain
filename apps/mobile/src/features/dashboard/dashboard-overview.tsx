@@ -6,10 +6,39 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import { BottomNav } from '@/ui';
 
 import { DashboardKpiCard, DashboardKpiSkeleton } from './dashboard-kpi-card';
-import { DashboardRecentList, DashboardRecentListSkeleton } from './dashboard-recent-list';
 import { styles } from './dashboard-overview.styles';
 import { useDashboard } from './use-dashboard';
 import { useProfileSettingsStore } from '@/features/profile';
+
+const RECENT_ACTIVITY = [
+  {
+    title: 'Deed of Sale.pdf was anchored',
+    detail: 'Blockchain record confirmed and ready for verification.',
+    time: 'Today, 9:42 AM',
+    status: 'Anchored',
+    tone: 'success',
+  },
+  {
+    title: 'Lease Agreement is still processing',
+    detail: 'OCR extraction and hash preparation are still running.',
+    time: 'Today, 9:18 AM',
+    status: 'Processing',
+    tone: 'warning',
+  },
+  {
+    title: 'Juan Dela Cruz accepted invite',
+    detail: 'Viewer access granted for shared document review.',
+    time: 'Yesterday, 4:05 PM',
+    status: 'Accepted',
+    tone: 'info',
+  },
+] as const;
+
+const ACTIVITY_STATUS_STYLES = {
+  success: styles.activityStatusSuccess,
+  warning: styles.activityStatusWarning,
+  info: styles.activityStatusInfo,
+};
 
 export function DashboardOverview() {
   const router = useRouter();
@@ -24,10 +53,9 @@ export function DashboardOverview() {
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.headerBlock}>
-            <Text style={styles.eyebrow}>USER DASHBOARD</Text>
-            <Text style={styles.title}>Dashboard</Text>
+            <Text style={styles.title}>Good morning, Atty. Reyes</Text>
             <Text style={styles.description}>
-              Track your documents, access grants, and review activity.
+              Manage and verify your legal documents
             </Text>
           </View>
 
@@ -37,7 +65,7 @@ export function DashboardOverview() {
                 <DashboardKpiSkeleton />
               ) : (
                 <DashboardKpiCard
-                  label="Documents"
+                  label="Total Documents"
                   value={`${dashboardStats.documentsCount}`}
                   tone={dashboardStats.documentsCount > 0 ? 'positive' : 'warning'}
                 />
@@ -48,22 +76,70 @@ export function DashboardOverview() {
                 <DashboardKpiSkeleton />
               ) : (
                 <DashboardKpiCard
-                  label="Tampered"
-                  value={`${dashboardStats.tamperedCount}`}
-                  tone={dashboardStats.tamperedCount > 0 ? 'warning' : 'positive'}
+                  label="Processing"
+                  value={`${dashboardStats.processingCount}`}
+                  tone={dashboardStats.processingCount > 0 ? 'warning' : 'positive'}
                 />
               )}
             </Animated.View>
           </View>
 
-          {dashboardStats.isLoading ? (
-            <DashboardRecentListSkeleton />
-          ) : (
-            <DashboardRecentList
-              documents={dashboardStats.recentDocuments}
-              onPressDocument={(documentId) => router.push(`/document/${documentId}`)}
-            />
-          )}
+          <View style={styles.kpiRow}>
+            <Animated.View style={styles.kpiItem} entering={FadeInDown.delay(200).springify()}>
+              {dashboardStats.isLoading ? (
+                <DashboardKpiSkeleton />
+              ) : (
+                <DashboardKpiCard
+                  label="Anchored On-Chain"
+                  value={`${dashboardStats.anchoredOnChainCount}`}
+                  tone={dashboardStats.anchoredOnChainCount > 0 ? 'positive' : 'warning'}
+                />
+              )}
+            </Animated.View>
+            <Animated.View style={styles.kpiItem} entering={FadeInDown.delay(260).springify()}>
+              {dashboardStats.isLoading ? (
+                <DashboardKpiSkeleton />
+              ) : (
+                <DashboardKpiCard
+                  label="Pending Invitations / Shared Documents"
+                  value={`${dashboardStats.pendingSharedDocumentsCount}`}
+                  tone={
+                    dashboardStats.pendingSharedDocumentsCount > 0 ? 'warning' : 'positive'
+                  }
+                />
+              )}
+            </Animated.View>
+          </View>
+
+          <View style={styles.activityGroup}>
+            <Text style={styles.activityHeading}>Recent Activity</Text>
+            {RECENT_ACTIVITY.map((activity) => (
+              <View key={activity.title} style={styles.activityRow}>
+                <View style={styles.activityCopy}>
+                  <View style={styles.activityTopLine}>
+                    <Text style={styles.activityText} numberOfLines={1}>
+                      {activity.title}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.activityStatus,
+                        ACTIVITY_STATUS_STYLES[activity.tone],
+                      ]}
+                      numberOfLines={1}
+                    >
+                      {activity.status}
+                    </Text>
+                  </View>
+                  <Text style={styles.activityDetail} numberOfLines={1}>
+                    {activity.detail}
+                  </Text>
+                  <Text style={styles.activityTime} numberOfLines={1}>
+                    {activity.time}
+                  </Text>
+                </View>
+              </View>
+            ))}
+          </View>
         </ScrollView>
 
         <View style={styles.navWrap}>
