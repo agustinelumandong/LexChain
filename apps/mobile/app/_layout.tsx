@@ -1,6 +1,5 @@
 import { DefaultTheme, ThemeProvider } from "@react-navigation/native";
 import { MaterialIcons } from "@expo/vector-icons";
-import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import "react-native-reanimated";
@@ -46,8 +45,7 @@ export default function RootLayout() {
       <GestureHandlerRootView style={{ flex: 1 }}>
         <SafeAreaProvider>
           {!isOnline ? <OfflineBanner /> : null}
-          <BottomSheetModalProvider>
-            <StatusBar style="auto" />
+          <StatusBar style="auto" />
             <ThemeProvider value={DefaultTheme}>
               <Stack>
                 <Stack.Screen name="index" options={{ headerShown: false }} />
@@ -87,7 +85,6 @@ export default function RootLayout() {
                 />
               </Stack>
             </ThemeProvider>
-          </BottomSheetModalProvider>
           <Toaster
             position="top-center"
             theme="light"
