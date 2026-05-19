@@ -47,11 +47,12 @@ export function DocumentPdfToolsSheet({
   }
 
   return (
-    <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
+    <View style={[StyleSheet.absoluteFill, documentPdfToolsSheetStyles.overlay]} pointerEvents="box-none">
       <BottomSheet
         ref={bottomSheetRef}
         index={0}
         snapPoints={snapPoints}
+        containerStyle={documentPdfToolsSheetStyles.overlay}
         onClose={onClose}
         enableDynamicSizing={false}
         enablePanDownToClose
