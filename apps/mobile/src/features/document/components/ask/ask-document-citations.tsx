@@ -1,7 +1,7 @@
 import { MaterialIcons } from '@expo/vector-icons';
 import { Text, View } from 'react-native';
 
-import type { AskCitation } from '../types/ask-document-card.types';
+import type { AskCitation } from '@/features/document/types/ask-document-card.types';
 import {
   ASK_DOCUMENT_CARD_COLORS as COLORS,
   askDocumentCardStyles as styles,

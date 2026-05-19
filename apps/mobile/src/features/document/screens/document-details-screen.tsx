@@ -19,6 +19,7 @@ import {
 } from '@/services/query';
 import { parseApiError } from '@/shared/utils/api-error';
 import { APP_COLORS } from '@/theme';
+import botQuestionMarkImage from '@/assets/images/lexchain-bot-question-mark.png';
 
 import { HEADER_CONTENT_GAP } from '../constants/document-details.constants';
 import { DocumentDetailsContent } from '../components/details/document-details-content';
@@ -210,7 +211,7 @@ export default function DocumentDetailsScreen() {
           style={styles.footer}
         >
           <Button
-            imageSource={require('../../../../assets/images/lexchain-bot-question-mark.png')}
+            imageSource={botQuestionMarkImage}
             size="md"
             accessibilityLabel="Bot"
             imageSize={32}
