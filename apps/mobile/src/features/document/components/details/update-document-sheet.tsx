@@ -3,7 +3,7 @@ import BottomSheet, {
   BottomSheetScrollView,
 } from '@gorhom/bottom-sheet';
 import React, { useCallback, useEffect, useMemo, useRef } from 'react';
-import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
+import { Animated, BackHandler, Easing, StyleSheet, Text, View } from 'react-native';
 
 import { Button } from '@/ui';
 import type { PickedUploadFile } from '@/types';
@@ -68,6 +68,21 @@ export function UpdateDocumentSheet({
       animation.stop();
     };
   }, [isLoading, progressAnim]);
+
+  useEffect(() => {
+    if (!visible) {
+      return;
+    }
+
+    const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+      bottomSheetRef.current?.close();
+      return true;
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, [visible]);
 
   const progressTranslateX = progressAnim.interpolate({
     inputRange: [0, 1],

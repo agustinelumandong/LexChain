@@ -1,6 +1,7 @@
 import BottomSheet from '@gorhom/bottom-sheet';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  BackHandler,
   Keyboard,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
@@ -94,6 +95,21 @@ export function useRenameDocumentSheet({
       resetState();
     }
   }, [resetState, visible]);
+
+  useEffect(() => {
+    if (!visible) {
+      return;
+    }
+
+    const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+      bottomSheetRef.current?.close();
+      return true;
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, [visible]);
 
   useEffect(() => {
     const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
