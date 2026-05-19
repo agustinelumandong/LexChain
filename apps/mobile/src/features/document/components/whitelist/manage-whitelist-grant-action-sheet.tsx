@@ -47,8 +47,9 @@ export function ManageWhitelistGrantActionSheet({
       {...props}
       appearsOnIndex={0}
       disappearsOnIndex={-1}
-      opacity={0.2}
+      opacity={1}
       pressBehavior="close"
+      style={[styles.backdrop, styles.stackedOverlay]}
     />
   );
 
@@ -70,6 +71,7 @@ export function ManageWhitelistGrantActionSheet({
       ref={grantSheetRef}
       index={0}
       snapPoints={snapPoints}
+      containerStyle={styles.stackedOverlay}
       onClose={onClose}
       enableDynamicSizing={true}
       enablePanDownToClose

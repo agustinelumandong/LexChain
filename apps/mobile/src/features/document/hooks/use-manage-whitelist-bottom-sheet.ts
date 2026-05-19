@@ -29,7 +29,7 @@ export function useManageWhitelistBottomSheet({
   const [isGrantRoleDropdownOpen, setIsGrantRoleDropdownOpen] = useState(false);
   const [revokeCountdown, setRevokeCountdown] = useState<number | null>(null);
   const snapPoints = useMemo(() => ['90%'], []);
-  const grantSnapPoints = useMemo(() => ['38%'], []);
+  const grantSnapPoints = useMemo(() => ['55%'], []);
 
   const normalizedQuery = searchQuery.trim().toLowerCase();
   const grants = data?.grants ?? [];

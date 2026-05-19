@@ -68,6 +68,7 @@ export function ManageWhitelistMainSheet({
       ref={bottomSheetRef}
       index={0}
       snapPoints={snapPoints}
+      containerStyle={styles.overlay}
       onClose={onClose}
       enableDynamicSizing={false}
       enablePanDownToClose
