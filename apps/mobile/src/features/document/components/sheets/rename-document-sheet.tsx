@@ -1,11 +1,10 @@
-import {
+import BottomSheet, {
   BottomSheetBackdrop,
   type BottomSheetFooterProps,
-  BottomSheetModal,
   BottomSheetScrollView,
 } from '@gorhom/bottom-sheet';
 import React, { useCallback } from 'react';
-import { Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
 import { RenameDocumentFooter } from './rename-document-footer';
 import { RenameDocumentInput } from './rename-document-input';
@@ -69,48 +68,54 @@ export function RenameDocumentSheet({
     ],
   );
 
-  return (
-    <BottomSheetModal
-      ref={renameSheet.bottomSheetRef}
-      index={0}
-      snapPoints={renameSheet.snapPoints}
-      onDismiss={renameSheet.handleDismiss}
-      enableDynamicSizing={false}
-      enablePanDownToClose
-      keyboardBehavior="interactive"
-      keyboardBlurBehavior="restore"
-      android_keyboardInputMode="adjustResize"
-      backdropComponent={renderBackdrop}
-      footerComponent={renderFooter}
-      backgroundStyle={styles.sheetBackground}
-      handleIndicatorStyle={styles.handleIndicator}
-    >
-      <View style={[styles.header, renameSheet.headerHasShadow && styles.headerShadow]}>
-        <Text style={styles.title}>Rename Document</Text>
-        <Text style={styles.subtitle}>Enter a new name for your document</Text>
-      </View>
+  if (!visible) {
+    return null;
+  }
 
-      <BottomSheetScrollView
-        style={styles.scrollArea}
-        contentContainerStyle={[
-          styles.scrollContent,
-          { paddingBottom: 170 + renameSheet.keyboardHeight },
-        ]}
-        onScroll={renameSheet.handleScroll}
-        keyboardDismissMode="none"
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
+  return (
+    <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
+      <BottomSheet
+        ref={renameSheet.bottomSheetRef}
+        index={0}
+        snapPoints={renameSheet.snapPoints}
+        onClose={renameSheet.handleDismiss}
+        enableDynamicSizing={false}
+        enablePanDownToClose
+        keyboardBehavior="interactive"
+        keyboardBlurBehavior="restore"
+        android_keyboardInputMode="adjustResize"
+        backdropComponent={renderBackdrop}
+        footerComponent={renderFooter}
+        backgroundStyle={styles.sheetBackground}
+        handleIndicatorStyle={styles.handleIndicator}
       >
-        <RenameDocumentInput
-          value={renameSheet.newName}
-          error={renameSheet.error}
-          isFocused={renameSheet.isInputFocused}
-          onChangeText={renameSheet.handleChangeName}
-          onFocus={renameSheet.handleFocusInput}
-          onBlur={renameSheet.handleBlurInput}
-          onSubmitEditing={renameSheet.handleRename}
-        />
-      </BottomSheetScrollView>
-    </BottomSheetModal>
+        <View style={[styles.header, renameSheet.headerHasShadow && styles.headerShadow]}>
+          <Text style={styles.title}>Rename Document</Text>
+          <Text style={styles.subtitle}>Enter a new name for your document</Text>
+        </View>
+
+        <BottomSheetScrollView
+          style={styles.scrollArea}
+          contentContainerStyle={[
+            styles.scrollContent,
+            { paddingBottom: 170 + renameSheet.keyboardHeight },
+          ]}
+          onScroll={renameSheet.handleScroll}
+          keyboardDismissMode="none"
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <RenameDocumentInput
+            value={renameSheet.newName}
+            error={renameSheet.error}
+            isFocused={renameSheet.isInputFocused}
+            onChangeText={renameSheet.handleChangeName}
+            onFocus={renameSheet.handleFocusInput}
+            onBlur={renameSheet.handleBlurInput}
+            onSubmitEditing={renameSheet.handleRename}
+          />
+        </BottomSheetScrollView>
+      </BottomSheet>
+    </View>
   );
 }
