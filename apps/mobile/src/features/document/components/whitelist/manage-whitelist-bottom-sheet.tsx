@@ -34,7 +34,7 @@ export function ManageWhitelistBottomSheet({
     onPressRevoke,
   });
 
-  if (!data) {
+  if (!visible || !data) {
     return null;
   }
 
@@ -56,20 +56,22 @@ export function ManageWhitelistBottomSheet({
         onOpenGrantMenu={sheet.openGrantMenu}
       />
 
-      <ManageWhitelistGrantActionSheet
-        grantSheetRef={sheet.grantSheetRef}
-        snapPoints={sheet.grantSnapPoints}
-        bottomInset={sheet.insets.bottom}
-        selectedGrant={sheet.selectedGrant}
-        selectedGrantRole={sheet.selectedGrantRole}
-        isGrantRoleDropdownOpen={sheet.isGrantRoleDropdownOpen}
-        revokeCountdown={sheet.revokeCountdown}
-        revokeLabel={sheet.revokeLabel}
-        onClose={sheet.closeGrantMenu}
-        onPressRevoke={sheet.handlePressRevoke}
-        onToggleRoleDropdown={sheet.toggleGrantRoleDropdown}
-        onSelectGrantRole={sheet.selectGrantRole}
-      />
+      {sheet.selectedGrant ? (
+        <ManageWhitelistGrantActionSheet
+          grantSheetRef={sheet.grantSheetRef}
+          snapPoints={sheet.grantSnapPoints}
+          bottomInset={sheet.insets.bottom}
+          selectedGrant={sheet.selectedGrant}
+          selectedGrantRole={sheet.selectedGrantRole}
+          isGrantRoleDropdownOpen={sheet.isGrantRoleDropdownOpen}
+          revokeCountdown={sheet.revokeCountdown}
+          revokeLabel={sheet.revokeLabel}
+          onClose={sheet.closeGrantMenu}
+          onPressRevoke={sheet.handlePressRevoke}
+          onToggleRoleDropdown={sheet.toggleGrantRoleDropdown}
+          onSelectGrantRole={sheet.selectGrantRole}
+        />
+      ) : null}
     </>
   );
 }

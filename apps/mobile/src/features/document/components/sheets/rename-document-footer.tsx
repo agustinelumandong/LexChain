@@ -1,7 +1,6 @@
-import {
+import BottomSheet, {
   BottomSheetFooter,
   type BottomSheetFooterProps,
-  BottomSheetModal,
 } from '@gorhom/bottom-sheet';
 import { RefObject } from 'react';
 import { View } from 'react-native';
@@ -12,7 +11,7 @@ import { renameDocumentStyles as styles } from './rename-document.styles';
 
 type RenameDocumentFooterProps = BottomSheetFooterProps & {
   bottomInset: number;
-  bottomSheetRef: RefObject<BottomSheetModal | null>;
+  bottomSheetRef: RefObject<BottomSheet | null>;
   keyboardHeight: number;
   canRename: boolean;
   isLoading?: boolean;
