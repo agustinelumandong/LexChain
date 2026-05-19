@@ -4,6 +4,7 @@ export { adminApi } from './admin.api';
 export { authApi } from './auth.api';
 export { blockchainApi } from './blockchain.api';
 export { documentsApi } from './documents.api';
+export { notificationsApi } from './notifications.api';
 export { publicApi } from './public.api';
 export { usersApi } from './users.api';
 export type { components, paths } from '@lexchain/types/openapi';
@@ -49,5 +50,12 @@ export type {
   VersionHistoryItem,
   VersionHistoryResponse,
 } from './documents.api';
+export type {
+  ListNotificationsParams,
+  MarkAllReadResponse,
+  NotificationListResponse,
+  NotificationResponse,
+  UnreadCountResponse,
+} from './notifications.api';
 export type { PublicVerifyResponse } from './public.api';
 export type { UserProfileResponse, UserSearchResponse } from './users.api';

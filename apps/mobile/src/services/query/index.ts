@@ -22,5 +22,11 @@ export {
   useUpdateDocumentVersion,
   useUploadDocument,
 } from './use-documents';
+export {
+  useMarkAllNotificationsRead,
+  useMarkNotificationRead,
+  useNotifications,
+  useUnreadNotificationCount,
+} from './use-notifications';
 export { usePublicVerifyDocument } from './use-public';
 export { useUserProfile, useUserSearch } from './use-users';
