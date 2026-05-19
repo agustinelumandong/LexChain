@@ -5,6 +5,9 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "LexChain",
   description: "LexChain web portal for document verification and administration.",
+  icons: {
+    icon: "/lexchain/logo-lexchain.svg",
+  },
 };
 
 export default function RootLayout({
