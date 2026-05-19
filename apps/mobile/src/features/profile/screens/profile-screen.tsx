@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { toast } from 'sonner-native';
 
 import { clearSessionData } from '@/features/auth';
+import { useUserProfile } from '@/services/query';
 import { BottomNav, Button } from '@/ui';
 
 import { ProfileHeader } from '../profile-header';
@@ -21,6 +22,16 @@ export default function ProfileScreen() {
   const router = useRouter();
   const [isSigningOut, setIsSigningOut] = useState(false);
   const account = useProfileSettingsStore((state) => state.account);
+  const userProfileQuery = useUserProfile();
+  const userProfile = userProfileQuery.data;
+  const profileName = userProfile
+    ? [userProfile.f_name, userProfile.l_name].filter(Boolean).join(' ').trim()
+    : '';
+  const profileInitials = userProfile
+    ? `${userProfile.f_name.trim().charAt(0)}${userProfile.l_name.trim().charAt(0)}`.toUpperCase() || 'LC'
+    : getProfileInitials(account);
+  const displayName = profileName || getProfileDisplayName(account);
+  const displayEmail = userProfile?.email ?? account.email;
 
   const handleSignOut = async () => {
     if (isSigningOut) {
@@ -48,11 +59,11 @@ export default function ProfileScreen() {
           <ProfileHeader />
 
           <ProfileSummaryCard
-            initials={getProfileInitials(account)}
-            name={getProfileDisplayName(account)}
+            initials={profileInitials}
+            name={displayName}
             role={account.role}
-            organization={account.organization}
-            email={account.email}
+            email={displayEmail}
+            isLoading={userProfileQuery.isLoading}
           />
 
           <SettingsListCard
