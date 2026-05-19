@@ -1,4 +1,4 @@
-import { BottomSheetModal } from '@gorhom/bottom-sheet';
+import BottomSheet from '@gorhom/bottom-sheet';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Keyboard,
@@ -21,7 +21,7 @@ export function useRenameDocumentSheet({
   onClose,
   onRename,
 }: UseRenameDocumentSheetParams) {
-  const bottomSheetRef = useRef<BottomSheetModal>(null);
+  const bottomSheetRef = useRef<BottomSheet>(null);
   const latestNameRef = useRef(currentName);
   const insets = useSafeAreaInsets();
   const [newName, setNewName] = useState(currentName);
@@ -90,19 +90,9 @@ export function useRenameDocumentSheet({
   };
 
   useEffect(() => {
-    const sheet = bottomSheetRef.current;
-
-    if (!sheet) {
-      return;
-    }
-
     if (visible) {
       resetState();
-      sheet.present();
-      return;
     }
-
-    sheet.dismiss();
   }, [resetState, visible]);
 
   useEffect(() => {
