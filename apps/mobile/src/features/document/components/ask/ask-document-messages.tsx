@@ -1,10 +1,9 @@
 import { Image } from 'expo-image';
 import { Text, View } from 'react-native';
 
-import type { AskDocumentChatMessage } from '../types/ask-document.types';
+import botAvatarImage from '@/assets/images/lexchain-bot.png';
+import type { AskDocumentChatMessage } from '@/features/document/types/ask-document.types';
 import { askDocumentStyles as styles } from './ask-document.styles';
-
-const BOT_AVATAR = require('../../../../assets/images/lexchain-bot.png');
 
 type AskDocumentMessagesProps = {
   messages: AskDocumentChatMessage[];
@@ -17,7 +16,7 @@ export function AskDocumentMessages({ messages, isLoading }: AskDocumentMessages
       {messages.map((message) =>
         message.role === 'assistant' ? (
           <View key={message.id} style={styles.assistantMessageRow}>
-            <Image source={BOT_AVATAR} style={styles.botAvatar} contentFit="contain" />
+            <Image source={botAvatarImage} style={styles.botAvatar} contentFit="contain" />
             <View style={[styles.messageBubble, styles.assistantBubble]}>
               <Text style={[styles.messageText, styles.assistantText]}>
                 {message.text}
@@ -35,7 +34,7 @@ export function AskDocumentMessages({ messages, isLoading }: AskDocumentMessages
 
       {isLoading ? (
         <View style={styles.assistantMessageRow}>
-          <Image source={BOT_AVATAR} style={styles.botAvatar} contentFit="contain" />
+          <Image source={botAvatarImage} style={styles.botAvatar} contentFit="contain" />
           <View style={[styles.messageBubble, styles.assistantBubble]}>
             <Text style={[styles.messageText, styles.assistantText]}>Thinking...</Text>
           </View>
