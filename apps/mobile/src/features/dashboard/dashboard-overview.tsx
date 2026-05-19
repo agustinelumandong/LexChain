@@ -1,38 +1,17 @@
+import { useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { BottomNav } from '@/ui';
+import { queryKeys } from '@/services/query';
+import type { SupabaseUser } from '@/types';
 
 import { DashboardKpiCard, DashboardKpiSkeleton } from './dashboard-kpi-card';
 import { styles } from './dashboard-overview.styles';
 import { useDashboard } from './use-dashboard';
-import { useProfileSettingsStore } from '@/features/profile';
-
-const RECENT_ACTIVITY = [
-  {
-    title: 'Deed of Sale.pdf was anchored',
-    detail: 'Blockchain record confirmed and ready for verification.',
-    time: 'Today, 9:42 AM',
-    status: 'Anchored',
-    tone: 'success',
-  },
-  {
-    title: 'Lease Agreement is still processing',
-    detail: 'OCR extraction and hash preparation are still running.',
-    time: 'Today, 9:18 AM',
-    status: 'Processing',
-    tone: 'warning',
-  },
-  {
-    title: 'Juan Dela Cruz accepted invite',
-    detail: 'Viewer access granted for shared document review.',
-    time: 'Yesterday, 4:05 PM',
-    status: 'Accepted',
-    tone: 'info',
-  },
-] as const;
+import { getProfileDisplayName, useProfileSettingsStore } from '@/features/profile';
 
 const ACTIVITY_STATUS_STYLES = {
   success: styles.activityStatusSuccess,
@@ -42,8 +21,16 @@ const ACTIVITY_STATUS_STYLES = {
 
 export function DashboardOverview() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const account = useProfileSettingsStore((state) => state.account);
+  const currentUser = queryClient.getQueryData<SupabaseUser>(queryKeys.auth.currentUser);
   const dashboardStats = useDashboard();
+  const userMetadata = currentUser?.user_metadata;
+  const authDisplayName = [userMetadata?.f_name, userMetadata?.l_name]
+    .filter(Boolean)
+    .join(' ')
+    .trim();
+  const displayName = authDisplayName || getProfileDisplayName(account);
 
   return (
     <SafeAreaView style={styles.screen}>
@@ -53,7 +40,7 @@ export function DashboardOverview() {
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.headerBlock}>
-            <Text style={styles.title}>Good morning, Atty. Reyes</Text>
+            <Text style={styles.title}>Good morning, {displayName}</Text>
             <Text style={styles.description}>
               Manage and verify your legal documents
             </Text>
@@ -113,32 +100,41 @@ export function DashboardOverview() {
 
           <View style={styles.activityGroup}>
             <Text style={styles.activityHeading}>Recent Activity</Text>
-            {RECENT_ACTIVITY.map((activity) => (
-              <View key={activity.title} style={styles.activityRow}>
-                <View style={styles.activityCopy}>
-                  <View style={styles.activityTopLine}>
-                    <Text style={styles.activityText} numberOfLines={1}>
-                      {activity.title}
+            {dashboardStats.recentActivities.length > 0 ? (
+              dashboardStats.recentActivities.map((activity) => (
+                <View key={activity.id} style={styles.activityRow}>
+                  <View style={styles.activityCopy}>
+                    <View style={styles.activityTopLine}>
+                      <Text style={styles.activityText} numberOfLines={1}>
+                        {activity.title}
+                      </Text>
+                      <Text
+                        style={[
+                          styles.activityStatus,
+                          ACTIVITY_STATUS_STYLES[activity.tone],
+                        ]}
+                        numberOfLines={1}
+                      >
+                        {activity.status}
+                      </Text>
+                    </View>
+                    <Text style={styles.activityDetail} numberOfLines={1}>
+                      {activity.detail}
                     </Text>
-                    <Text
-                      style={[
-                        styles.activityStatus,
-                        ACTIVITY_STATUS_STYLES[activity.tone],
-                      ]}
-                      numberOfLines={1}
-                    >
-                      {activity.status}
+                    <Text style={styles.activityTime} numberOfLines={1}>
+                      {activity.time}
                     </Text>
                   </View>
-                  <Text style={styles.activityDetail} numberOfLines={1}>
-                    {activity.detail}
-                  </Text>
-                  <Text style={styles.activityTime} numberOfLines={1}>
-                    {activity.time}
-                  </Text>
                 </View>
+              ))
+            ) : (
+              <View style={styles.activityRow}>
+                <Text style={styles.activityText}>No recent activity yet</Text>
+                <Text style={styles.activityDetail}>
+                  Upload, share, or anchor a document to see updates here.
+                </Text>
               </View>
-            ))}
+            )}
           </View>
         </ScrollView>
 
