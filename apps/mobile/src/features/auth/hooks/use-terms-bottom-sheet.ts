@@ -1,5 +1,5 @@
-import { BottomSheetModal } from '@gorhom/bottom-sheet';
-import { useEffect, useMemo, useRef } from 'react';
+import BottomSheet from '@gorhom/bottom-sheet';
+import { useMemo, useRef } from 'react';
 import type { NativeScrollEvent, NativeSyntheticEvent } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -14,24 +14,9 @@ export function useTermsBottomSheet({
   hasReachedEnd,
   onReachedEnd,
 }: UseTermsBottomSheetParams) {
-  const bottomSheetRef = useRef<BottomSheetModal>(null);
+  const bottomSheetRef = useRef<BottomSheet>(null);
   const insets = useSafeAreaInsets();
   const snapPoints = useMemo(() => ['90%'], []);
-
-  useEffect(() => {
-    const sheet = bottomSheetRef.current;
-
-    if (!sheet) {
-      return;
-    }
-
-    if (visible) {
-      sheet.present();
-      return;
-    }
-
-    sheet.dismiss();
-  }, [visible]);
 
   const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     if (hasReachedEnd) {
