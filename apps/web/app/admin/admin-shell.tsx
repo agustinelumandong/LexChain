@@ -3,16 +3,7 @@ import Link from "next/link";
 const adminLinks = [
   { label: "Dashboard", href: "/admin/dashboard", icon: "▦" },
   { label: "Users", href: "/admin/users", icon: "◉" },
-  { label: "Document Issuers", href: "/admin/document-issuers", icon: "▣" },
-  { label: "Documents", href: "/admin/documents", icon: "▤" },
-  { label: "Categories", href: "/admin/categories", icon: "◇" },
   { label: "Invitations & Permissions", href: "/admin/invitations-permissions", icon: "◆" },
-  { label: "Verification Logs", href: "/admin/verification-logs", icon: "✓" },
-  { label: "Blockchain Records", href: "/admin/blockchain-records", icon: "⛓" },
-  { label: "OCR / NLP Processing", href: "/admin/ocr-nlp-processing", icon: "▧" },
-  { label: "Analytics", href: "/admin/analytics", icon: "⌁" },
-  { label: "Audit Logs", href: "/admin/audit-logs", icon: "⌕" },
-  { label: "System Settings", href: "/admin/system-settings", icon: "⚙" },
 ];
 
 type AdminShellProps = {
