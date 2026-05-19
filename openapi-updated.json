@@ -179,6 +179,7 @@
           "Users"
         ],
         "summary": "Search for a user by email",
+        "description": "Search for a user by email.\n\nArgs:\n    email: The email address to look up.\n    current_user: The authenticated user making the request.\n    service: The user management service.\n\nReturns:\n    `UserSearchResponse` containing the user's id, email, f_name, and l_name.",
         "operationId": "search_user_users_search_get",
         "security": [
           {
@@ -200,11 +201,24 @@
         ],
         "responses": {
           "200": {
-            "description": "Successful Response",
+            "description": "User found successfully",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/UserSearchResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "User is not authenticated"
+          },
+          "404": {
+            "description": "User not found",
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": "User not found"
                 }
               }
             }
@@ -1448,14 +1462,6 @@
           "question": {
             "type": "string",
             "title": "Question"
-          },
-          "history": {
-            "items": {
-              "$ref": "#/components/schemas/ChatMessage"
-            },
-            "type": "array",
-            "title": "History",
-            "description": "Previous conversation turns"
           }
         },
         "type": "object",
@@ -1505,25 +1511,6 @@
           "file"
         ],
         "title": "Body_verify_public_public_verify_post"
-      },
-      "ChatMessage": {
-        "properties": {
-          "role": {
-            "type": "string",
-            "title": "Role",
-            "description": "user or assistant"
-          },
-          "content": {
-            "type": "string",
-            "title": "Content"
-          }
-        },
-        "type": "object",
-        "required": [
-          "role",
-          "content"
-        ],
-        "title": "ChatMessage"
       },
       "CreateInvitationRequest": {
         "properties": {
