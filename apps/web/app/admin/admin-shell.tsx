@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 
 const adminLinks = [
@@ -16,12 +17,10 @@ export function AdminShell({ activeHref = "/admin/dashboard", children }: AdminS
     <main className="min-h-screen bg-[#F5FAFF] text-[#111827]">
       <div className="flex min-h-screen">
         <aside className="hidden w-[292px] shrink-0 flex-col gap-7 border-r border-[#E8F0F8] bg-white px-[22px] pb-[22px] pt-[26px] lg:flex">
-          <Link className="flex min-h-[52px] items-center gap-3.5" href="/admin/dashboard">
-            <div className="flex h-11 w-11 items-center justify-center rounded-[14px] bg-[#111827] text-xl font-black text-white">
-              ◈
-            </div>
+          <Link className="flex min-h-[52px] items-center" href="/admin/dashboard">
+            <Image src="/lexchain/logo-lexchain.svg" alt="LexChain" width={44} height={44} className="rounded-[14px]" />
             <div>
-              <p className="text-[25px] font-black leading-8">LexChain</p>
+              <p className="text-[25px] font-black leading-8">Lex<span className="text-[#0985E7]">Chain</span></p>
               <p className="text-[11px] font-black uppercase leading-4 text-[#9AA8B8]">
                 Super Admin
               </p>
