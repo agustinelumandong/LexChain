@@ -1,15 +1,20 @@
+import { MaterialIcons } from '@expo/vector-icons';
 import { useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
-import { ScrollView, Text, View } from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { BottomNav } from '@/ui';
-import { queryKeys, useUserProfile } from '@/services/query';
+import {
+  queryKeys,
+  useUnreadNotificationCount,
+  useUserProfile,
+} from '@/services/query';
 import type { SupabaseUser } from '@/types';
 
 import { DashboardKpiCard, DashboardKpiSkeleton } from './dashboard-kpi-card';
-import { styles } from './dashboard-overview.styles';
+import { COLORS, styles } from './dashboard-overview.styles';
 import { useDashboard } from './use-dashboard';
 import { getProfileDisplayName, useProfileSettingsStore } from '@/features/profile';
 
@@ -26,7 +31,9 @@ export function DashboardOverview() {
   const currentUser = queryClient.getQueryData<SupabaseUser>(queryKeys.auth.currentUser);
   const dashboardStats = useDashboard();
   const userProfileQuery = useUserProfile();
+  const unreadNotificationCountQuery = useUnreadNotificationCount();
   const userProfile = userProfileQuery.data;
+  const unreadNotificationCount = unreadNotificationCountQuery.data?.unread ?? 0;
   const userMetadata = currentUser?.user_metadata;
   const authDisplayName = [userMetadata?.f_name, userMetadata?.l_name]
     .filter(Boolean)
@@ -45,10 +52,35 @@ export function DashboardOverview() {
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.headerBlock}>
-            <Text style={styles.title}>Good morning, {displayName}</Text>
-            <Text style={styles.description}>
-              Manage and verify your legal documents
-            </Text>
+            <View style={styles.headerTopLine}>
+              <View style={styles.headerCopy}>
+                <Text style={styles.title} numberOfLines={2}>
+                  Good morning, {displayName}
+                </Text>
+                <Text style={styles.description}>
+                  Manage and verify your legal documents
+                </Text>
+              </View>
+
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Open notifications"
+                onPress={() => router.push('/notifications')}
+                style={({ pressed }) => [
+                  styles.notificationButton,
+                  pressed && styles.notificationButtonPressed,
+                ]}
+              >
+                <MaterialIcons name="notifications-none" size={22} color={COLORS.navy} />
+                {unreadNotificationCount > 0 ? (
+                  <View style={styles.notificationBadge}>
+                    <Text style={styles.notificationBadgeText}>
+                      {unreadNotificationCount > 99 ? '99+' : unreadNotificationCount}
+                    </Text>
+                  </View>
+                ) : null}
+              </Pressable>
+            </View>
           </View>
 
           <View style={styles.kpiRow}>
