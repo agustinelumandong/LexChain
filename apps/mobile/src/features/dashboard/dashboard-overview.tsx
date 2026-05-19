@@ -5,7 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { BottomNav } from '@/ui';
-import { queryKeys } from '@/services/query';
+import { queryKeys, useUserProfile } from '@/services/query';
 import type { SupabaseUser } from '@/types';
 
 import { DashboardKpiCard, DashboardKpiSkeleton } from './dashboard-kpi-card';
@@ -25,12 +25,17 @@ export function DashboardOverview() {
   const account = useProfileSettingsStore((state) => state.account);
   const currentUser = queryClient.getQueryData<SupabaseUser>(queryKeys.auth.currentUser);
   const dashboardStats = useDashboard();
+  const userProfileQuery = useUserProfile();
+  const userProfile = userProfileQuery.data;
   const userMetadata = currentUser?.user_metadata;
   const authDisplayName = [userMetadata?.f_name, userMetadata?.l_name]
     .filter(Boolean)
     .join(' ')
     .trim();
-  const displayName = authDisplayName || getProfileDisplayName(account);
+  const profileDisplayName = userProfile
+    ? [userProfile.f_name, userProfile.l_name].filter(Boolean).join(' ').trim()
+    : '';
+  const displayName = profileDisplayName || authDisplayName || getProfileDisplayName(account);
 
   return (
     <SafeAreaView style={styles.screen}>
