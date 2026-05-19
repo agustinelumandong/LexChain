@@ -57,7 +57,7 @@ async function getDashboard(): Promise<DashboardData> {
       Authorization: `Bearer ${token}`,
       "ngrok-skip-browser-warning": "true",
     },
-    cache: "no-store",
+    next: { revalidate: 60 },
   });
 
   if (res.status === 401) redirect("/admin/login");
@@ -83,7 +83,7 @@ async function getRecentUsers(): Promise<RecentUser[]> {
       Authorization: `Bearer ${token}`,
       "ngrok-skip-browser-warning": "true",
     },
-    cache: "no-store",
+    next: { revalidate: 60 },
   });
 
   if (res.status === 401) redirect("/admin/login");
