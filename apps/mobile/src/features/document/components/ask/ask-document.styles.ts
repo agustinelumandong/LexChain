@@ -18,6 +18,10 @@ export const ASK_DOCUMENT_COLORS = {
 const COLORS = ASK_DOCUMENT_COLORS;
 
 export const askDocumentStyles = StyleSheet.create({
+  overlay: {
+    zIndex: 10000,
+    elevation: 10000,
+  },
   sheetBackground: {
     backgroundColor: COLORS.sheet,
     borderTopLeftRadius: 24,
