@@ -22,6 +22,7 @@ export const queryKeys = {
     verify: (documentId: string) => ['blockchain', 'verify', documentId] as const,
   },
   users: {
+    profile: ['users', 'profile'] as const,
     search: (email: string) => ['users', 'search', email] as const,
   },
 };
