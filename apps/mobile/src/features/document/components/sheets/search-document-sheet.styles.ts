@@ -13,6 +13,10 @@ export const searchDocumentSheetColors = {
 };
 
 export const searchDocumentSheetStyles = StyleSheet.create({
+  overlay: {
+    zIndex: 10000,
+    elevation: 10000,
+  },
   sheetBackground: {
     backgroundColor: searchDocumentSheetColors.sheet,
     borderTopLeftRadius: 24,

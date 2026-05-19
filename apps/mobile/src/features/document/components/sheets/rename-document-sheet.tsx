@@ -73,11 +73,12 @@ export function RenameDocumentSheet({
   }
 
   return (
-    <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
+    <View style={[StyleSheet.absoluteFill, styles.overlay]} pointerEvents="box-none">
       <BottomSheet
         ref={renameSheet.bottomSheetRef}
         index={0}
         snapPoints={renameSheet.snapPoints}
+        containerStyle={styles.overlay}
         onClose={renameSheet.handleDismiss}
         enableDynamicSizing={false}
         enablePanDownToClose
