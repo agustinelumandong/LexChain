@@ -23,4 +23,4 @@ export {
   useUploadDocument,
 } from './use-documents';
 export { usePublicVerifyDocument } from './use-public';
-export { useUserSearch } from './use-users';
+export { useUserProfile, useUserSearch } from './use-users';

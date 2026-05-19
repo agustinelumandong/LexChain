@@ -4,6 +4,14 @@ import { usersApi } from '@/services/api';
 
 import { queryKeys } from './keys';
 
+export function useUserProfile() {
+  return useQuery({
+    queryKey: queryKeys.users.profile,
+    queryFn: usersApi.getProfile,
+    retry: false,
+  });
+}
+
 export function useUserSearch(email: string, enabled = true) {
   const trimmedEmail = email.trim();
 
