@@ -1,17 +1,17 @@
 # PROJECT KNOWLEDGE BASE
 
-**Generated:** 2026-05-14T23:58:00+08:00
-**Commit:** 49bd004c
-**Branch:** dev
-**Expo SDK:** 54.0.33 | React Native: 0.81.5 | React: 19.1.0
+**Generated:** 2026-05-19
+**Commit:** 5714b5e
+**Branch:** lexchain-web/dev
+**Expo SDK:** 54.0.34 | React Native: 0.81.5 | React: 19.1.0
 
 ---
 
 ## OVERVIEW
 
-Expo Router frontend (React Native + web) for LexChain document management. Features: upload documents, AI-powered processing, document verification with ECC cryptography, access whitelisting, and user profiles.
+Expo Router mobile app for LexChain document management. Features: upload documents, AI-powered processing, native document verification with ECC cryptography, access whitelisting, and user profiles. Browser landing/admin/public verifier now live in `../web/`.
 
-**Backend expects:** Python/FastAPI (see `docs/openapi.json` for API contract).
+**Backend expects:** Python/FastAPI (root contract at `../../openapi-updated.json`; local example contract at `openapi-with-examples.json`).
 
 ---
 
@@ -54,20 +54,40 @@ apps/mobile/
 ├── src/
 │   ├── features/                 # Feature modules
 │   │   ├── auth/                 # Auth components + Zod schemas + OAuth callback
-│   │   │   ├── auth-header.tsx
-│   │   │   ├── auth-input.tsx
-│   │   │   ├── auth-screen-shell.tsx
-│   │   │   ├── terms-bottom-sheet.tsx
+│   │   │   ├── callback/         # auth-callback-screen.tsx, auth-callback.params.ts
+│   │   │   ├── hooks/            # sign-up screen and terms sheet hooks
 │   │   │   ├── schemas/          # sign-in.schema.ts, sign-up.schema.ts
-│   │   │   └── callback/         # auth-callback-screen.tsx, auth-callback.params.ts
+│   │   │   ├── screens/          # sign-in, sign-up, forgot-password screens/styles
+│   │   │   └── utils/            # password-strength helpers
 │   │   ├── dashboard/            # Home KPI cards + recent list
 │   │   ├── document/             # Document detail components + services
-│   │   │   ├── components/       # Sheets, cards, PDF viewer, whitelist UI
-│   │   │   └── services/         # whitelist-mappers, whitelist-storage, document-permissions
+│   │   │   ├── components/       # Ask sheet, detail cards, menu, PDF viewer, verification, whitelist UI
+│   │   │   ├── constants/        # document details and whitelist constants
+│   │   │   ├── hooks/            # detail sheets, PDF, rename, whitelist, version update hooks
+│   │   │   ├── screens/          # detail, menu, PDF viewer screens
+│   │   │   ├── services/         # whitelist-mappers, whitelist-storage, document-permissions
+│   │   │   ├── types/            # document detail/ask section types
+│   │   │   └── utils/            # mappers, formatters, document file helpers
 │   │   ├── documents/            # Document list/search/filter
+│   │   │   ├── components/       # list, filter, sort, search result UI
+│   │   │   ├── constants/        # screen constants
+│   │   │   ├── data/             # mock document list data
+│   │   │   ├── hooks/            # screen/search/filter sheet hooks
+│   │   │   ├── screens/          # documents screen
+│   │   │   ├── types/            # documents screen types
+│   │   │   └── utils/            # list mappers and filters
 │   │   ├── onboarding/           # GetStartedHero
+│   │   │   └── screens/          # get started screen/styles
 │   │   ├── profile/              # Profile screens + settings
-│   │   └── upload/               # Upload session, type picker, dropzone
+│   │   │   └── screens/          # account, notifications, privacy, security, support, profile
+│   │   ├── upload/               # Upload session, type picker, dropzone, camera/review/processing
+│   │   │   ├── components/       # camera, capture-review, dropzone, form, processing UI
+│   │   │   ├── constants/        # processing constants
+│   │   │   ├── hooks/            # upload, capture, processing hooks
+│   │   │   ├── screens/          # upload, camera capture, capture review, processing
+│   │   │   ├── types/            # camera capture types
+│   │   │   └── utils/            # upload/camera/processing utilities
+│   │   └── verification/         # Native verifier screen and formatters
 │   ├── shared/
 │   │   ├── components/           # Primitives (ThemedText, Screen, etc.)
 │   │   │   └── ui/               # Button, IconSymbol, QueryStates, OfflineBanner, etc.
@@ -77,16 +97,15 @@ apps/mobile/
 │   │   ├── utils/                # api-error parser, secure-storage, tw utilities
 │   │   └── config/               # Environment config (env.ts)
 │   ├── services/
-│   │   ├── api/                  # API modules + generated schema
+│   │   ├── api/                  # API modules + OpenAPI client
 │   │   │   ├── client.ts         # Base request wrapper with auth interceptors
 │   │   │   ├── auth.api.ts
 │   │   │   ├── documents.api.ts
 │   │   │   ├── public.api.ts     # POST /public/verify (file upload)
 │   │   │   ├── admin.api.ts
 │   │   │   ├── blockchain.api.ts
-│   │   │   ├── users.api.ts
 │   │   │   ├── openapi-client.ts
-│   │   │   ├── generated/        # schema.ts (auto-generated from openapi.json)
+│   │   │   ├── users.api.ts
 │   │   │   └── mock/             # Mock implementations for all APIs
 │   │   └── query/                # React Query hooks
 │   │       ├── use-auth.ts
@@ -97,9 +116,9 @@ apps/mobile/
 │   │       ├── use-users.ts
 │   │       └── keys.ts           # Centralized query key factory
 │   ├── types/                    # auth.types, document.types, upload.types
-│   ├── mocks/                    # Mock data (dev mode)
 │   ├── constants/                # storage-keys constants
-│   └── tw/                       # NativeWind/Tailwind utilities
+│   ├── tw/                       # NativeWind/Tailwind utilities
+│   └── global.css                # NativeWind/Tailwind global CSS
 ├── .agents/                      # LOCAL AGENT SKILLS (do not import in runtime code)
 │   ├── AGENTS.md
 │   ├── rules/
@@ -115,19 +134,30 @@ apps/mobile/
 │   │   ├── expo-ui-jetpack-compose/
 │   │   ├── expo-ui-swiftui/
 │   │   ├── native-data-fetching/
+│   │   ├── react-doctor/
 │   │   ├── ui-ux-pro-max/
 │   │   ├── upgrading-expo/
 │   │   └── use-dom/
 │   └── plugins/marketplace.json
 ├── .agent/                       # User-level agent config (mirrors .agents)
+│   ├── AGENTS.md
 │   ├── rules/expo.md
 │   └── skills/
-├── graphify-out/                 # Knowledge graph output
+├── android/                      # Native Android project files
+├── ios/                          # Native iOS project files
+├── graphify-out/                 # Local graphify cache/chunks (GRAPH_REPORT.md may be absent)
+├── dist*/                        # Generated local check/build output; do not treat as source
+├── scripts/                      # reset-project helper
 ├── docs/                         # Design docs, TODOs, integration notes
-│   ├── openapi.json              # Backend API specification
 │   ├── expo-llms/                # Cached Expo LLM docs (llms.txt, llms-sdk.txt, llms-eas.txt)
 │   └── BACKEND-INTEGRATION.md
-└── assets/images/                # Static images
+├── assets/images/                # Static images and icons
+├── app.json                      # Expo app config
+├── eas.json                      # EAS build config
+├── metro.config.js               # Metro config
+├── postcss.config.mjs            # PostCSS/Tailwind config
+├── openapi-with-examples.json    # Local OpenAPI example contract
+└── package.json                  # @lexchain/mobile scripts/dependencies
 ```
 
 ---
@@ -138,7 +168,7 @@ apps/mobile/
 
 1. **FIRST:** Read `.agents/rules/expo.md` (or `.agent/rules/expo.md`) — enforces Expo LLM docs usage.
 2. **THEN:** Check `AGENTS.md` (this file) for project-level conventions.
-3. **THEN:** Check `graphify-out/GRAPH_REPORT.md` for god nodes and community structure when answering architecture questions.
+3. **THEN:** Check `graphify-out/GRAPH_REPORT.md` for god nodes and community structure when it exists; current checkout may only have `cache/` and `chunks/`.
 4. **THEN:** Check the relevant skill docs listed in **SKILL LOADING REMINDER** before implementation.
 
 ---
@@ -178,10 +208,10 @@ Do not follow generic React Native or Expo advice if it conflicts with this repo
 - If the footer moves above the keyboard, add enough `BottomSheetScrollView` bottom padding so long conversations or forms can still scroll above the raised footer.
 
 ### Package Manager
-- Both `package-lock.json` and `pnpm-lock.yaml` exist. Use `pnpm` for all changes.
+- Root `../../pnpm-lock.yaml` is the lockfile. Use `pnpm` for all changes; do not introduce npm/yarn lockfiles.
 
 ### lightningcss Version
-- **Must stay pinned to `1.30.1`** in both `overrides` and `pnpm.overrides` in `package.json`. Drift to `1.32.0` breaks NativeWind bundling with `failed to deserialize; expected an object-like struct named Specifier`.
+- **Must stay pinned to `1.30.1`** in mobile `devDependencies` and root `pnpm.overrides`. Drift to `1.32.0` breaks NativeWind bundling with `failed to deserialize; expected an object-like struct named Specifier`.
 
 ### Auth Navigation
 - Use `router.replace(...)`, NOT `router.push(...)` for auth toggle buttons ("Create account" ↔ "Sign in"). Prevents screen stacking when spam-tapped.
@@ -237,7 +267,8 @@ Do not follow generic React Native or Expo advice if it conflicts with this repo
 | Secure storage | `src/shared/utils/secure-storage.ts` | Auth token persistence |
 | Types | `src/types/index.ts` | auth, document, upload type exports |
 | Path aliases | `tsconfig.json` | `@/`, `@/ui`, `@/theme`, `@/hooks`, `@/types`, etc. |
-| API contract | `docs/openapi.json` | Backend API specification |
+| API contract | `../../openapi-updated.json` | Root backend OpenAPI 3.x contract |
+| Local API examples | `openapi-with-examples.json` | Mobile-local example OpenAPI contract |
 | Expo LLM docs | `docs/expo-llms/` | Cached: llms.txt, llms-sdk.txt, llms-eas.txt |
 | Design files | `docs/` | Figma exports, TODO lists, integration docs |
 | Auth toggle | Auth screens → `router.replace(...)` NOT `router.push(...)` | Prevents screen stacking |
@@ -283,7 +314,7 @@ These are the most connected abstractions. Changes here ripple widely.
 - **Index exports**: Every feature/service has `index.ts` that re-exports all public members.
 - **ESLint**: `eslint-config-expo/flat`; `dist/*` ignored.
 - **TypeScript strict mode** enabled.
-- **Package manager**: Use `pnpm` (both `package-lock.json` and `pnpm-lock.yaml` exist — avoid drift).
+- **Package manager**: Use `pnpm`; root lockfile is `../../pnpm-lock.yaml`.
 - **Expo docs**: Use official LLM docs at `docs.expo.dev/llms.txt` (enforced by `.agents/rules/expo.md`).
 
 ---
@@ -317,7 +348,7 @@ pnpm run reset-project  # Move app/ → app-example/, reset to blank
 - No test runner configured (`package.json` has no test script).
 - No CI workflow in this frontend directory.
 - Design reference: `DESIGN.md` at repo root (parent of frontend/).
-- API contract: `docs/openapi.json` (OpenAPI 3.x spec for backend).
+- API contract: `../../openapi-updated.json` (OpenAPI 3.x spec for backend); local examples live in `openapi-with-examples.json`.
 - Backend integration: `docs/BACKEND-INTEGRATION.md` has full setup guide.
 
 ---
@@ -342,7 +373,7 @@ pnpm run reset-project  # Move app/ → app-example/, reset to blank
 - Centralize animation behavior in `app/(auth)/_layout.tsx`, not per-screen.
 
 ### Dependencies
-- `lightningcss` **must** stay pinned to `1.30.1` in both `overrides` and `pnpm.overrides`. Drift breaks NativeWind.
+- `lightningcss` **must** stay pinned to `1.30.1` in mobile `devDependencies` and root `pnpm.overrides`. Drift breaks NativeWind.
 - `pnpm` is preferred package manager for all changes.
 
 ### Error Handling
@@ -351,12 +382,12 @@ pnpm run reset-project  # Move app/ → app-example/, reset to blank
 - Error codes: `UNAUTHORIZED`, `FORBIDDEN`, `NOT_FOUND`, `VALIDATION_ERROR`, `NETWORK_ERROR`, `UNKNOWN_ERROR`, `INTERNAL_SERVER_ERROR`.
 
 ### graphify (Knowledge Graph)
-- Graph at `graphify-out/` with 271 nodes, 12 communities.
-- **READ `graphify-out/GRAPH_REPORT.md` before architecture questions.**
-- Use `graphify query "<question>"`, `graphify path "<A>" "<B>"`, `graphify explain "<concept>"` for cross-module relationships.
-- God node `parseApiError()` bridges Community 3 (error handling) with other communities.
-- Exclude `dist-web-check/` and `dist-tailwind-check/` from analysis (noisy single-letter nodes).
-- Run `graphify update .` after code changes (AST-only, no API cost).
+- `graphify-out/` currently contains local cache/chunks; `GRAPH_REPORT.md` may be absent in this checkout.
+- If `graphify-out/GRAPH_REPORT.md` exists, read it before architecture questions.
+- Use `graphify query "<question>"`, `graphify path "<A>" "<B>"`, `graphify explain "<concept>"` for cross-module relationships when graph data is available.
+- Known high-risk nodes from prior reports include `parseApiError()` and `request()`.
+- Exclude `dist-web-check/`, `dist-tailwind-check/`, and other `dist*/` outputs from analysis.
+- Run `graphify update .` after code changes when graphify output must stay current (AST-only, no API cost).
 
 ### Whitelist System
 - `applyWhitelistToDocument()`, `loadWhitelistMap()`, `persistDocumentWhitelist()` handle access control.
@@ -863,7 +894,7 @@ customNavigationService.navigate("SignIn");
 - Keep generated code aligned with the current repository structure.
 - Update exports from `index.ts` files when adding public feature/service members.
 - Avoid touching god nodes such as `parseApiError()` or `request()` unless the task requires it.
-- If a change touches API behavior, check `docs/openapi.json` and existing API modules first.
+- If a change touches API behavior, check `../../openapi-updated.json` and existing API modules first.
 - If a change touches navigation, check `app/_layout.tsx`, route groups, and existing route names first.
 
 ### Do
@@ -893,8 +924,8 @@ Before changing code:
 - Check nearby files for existing patterns.
 - Check whether a shared component, hook, API function, type, or utility already exists.
 - Check route names before editing navigation.
-- Check `docs/openapi.json` before changing API calls.
-- Check `graphify-out/GRAPH_REPORT.md` for god nodes — avoid modifying them unless required.
+- Check `../../openapi-updated.json` before changing API calls.
+- Check `graphify-out/GRAPH_REPORT.md` for god nodes when it exists — avoid modifying them unless required.
 - Check relevant skill docs (e.g., `/native-data-fetching`, `/building-native-ui`) before data or UI work.
 
 ---
