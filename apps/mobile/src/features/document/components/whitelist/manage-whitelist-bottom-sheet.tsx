@@ -1,7 +1,10 @@
+import { StyleSheet, View } from 'react-native';
+
 import type { DocumentPartyRole, ManageWhitelistData } from '@/types';
 
 import { ManageWhitelistGrantActionSheet } from './manage-whitelist-grant-action-sheet';
 import { ManageWhitelistMainSheet } from './manage-whitelist-main-sheet';
+import { manageWhitelistStyles as styles } from './manage-whitelist.styles';
 import { useManageWhitelistBottomSheet } from '../../hooks/use-manage-whitelist-bottom-sheet';
 
 type ManageWhitelistBottomSheetProps = {
@@ -39,7 +42,7 @@ export function ManageWhitelistBottomSheet({
   }
 
   return (
-    <>
+    <View style={[StyleSheet.absoluteFill, styles.overlay]} pointerEvents="box-none">
       <ManageWhitelistMainSheet
         bottomSheetRef={sheet.bottomSheetRef}
         snapPoints={sheet.snapPoints}
@@ -72,6 +75,6 @@ export function ManageWhitelistBottomSheet({
           onSelectGrantRole={sheet.selectGrantRole}
         />
       ) : null}
-    </>
+    </View>
   );
 }

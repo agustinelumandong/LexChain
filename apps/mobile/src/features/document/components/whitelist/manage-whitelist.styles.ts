@@ -16,6 +16,14 @@ export const MANAGE_WHITELIST_COLORS = {
 const COLORS = MANAGE_WHITELIST_COLORS;
 
 export const manageWhitelistStyles = StyleSheet.create({
+  overlay: {
+    zIndex: 10000,
+    elevation: 10000,
+  },
+  stackedOverlay: {
+    zIndex: 11000,
+    elevation: 11000,
+  },
   backdrop: {
     backgroundColor: COLORS.backdrop,
   },
