@@ -18,7 +18,7 @@ export const screenHeaderStyles = StyleSheet.create({
     left: 0,
     right: 0,
     top: 0,
-    zIndex: 999,
+    zIndex: 10,
   },
   header: {
     flexDirection: 'row',
