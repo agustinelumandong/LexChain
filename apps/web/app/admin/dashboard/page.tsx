@@ -183,12 +183,12 @@ export default async function AdminDashboardPage() {
             </p>
 
             <div className="mt-5 flex gap-4">
-              <div className="flex-1 rounded-xl border border-[#E4EEF9] bg-[#F8FBFF] p-3 text-center">
-                <p className="text-2xl font-black text-green-600">{successRate}%</p>
+              <div className="flex-1 rounded-xl border border-[#E4EEF9] bg-[#F8FBFF] p-3 py-9 text-center">
+                <p className="text-5xl font-black text-green-600">{successRate}%</p>
                 <p className="text-[10px] font-bold text-[#64748b]">Success Rate</p>
               </div>
-              <div className="flex-1 rounded-xl border border-[#E4EEF9] bg-[#F8FBFF] p-3 text-center">
-                <p className="text-2xl font-black text-[#0985E7]">{todayThroughput}</p>
+              <div className="flex-1 rounded-xl border border-[#E4EEF9] bg-[#F8FBFF] p-3 py-9 text-center">
+                <p className="text-5xl font-black text-[#0985E7]">{todayThroughput}</p>
                 <p className="text-[10px] font-bold text-[#64748b]">Today&apos;s Throughput</p>
               </div>
             </div>
