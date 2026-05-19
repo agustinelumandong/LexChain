@@ -79,11 +79,12 @@ export function UpdateDocumentSheet({
   }
 
   return (
-    <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
+    <View style={[StyleSheet.absoluteFill, updateDocumentSheetStyles.overlay]} pointerEvents="box-none">
       <BottomSheet
         ref={bottomSheetRef}
         index={0}
         snapPoints={snapPoints}
+        containerStyle={updateDocumentSheetStyles.overlay}
         onClose={onClose}
         enableDynamicSizing={false}
         enablePanDownToClose
