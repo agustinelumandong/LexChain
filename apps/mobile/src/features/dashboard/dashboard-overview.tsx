@@ -138,32 +138,49 @@ export function DashboardOverview() {
           <View style={styles.activityGroup}>
             <Text style={styles.activityHeading}>Recent Activity</Text>
             {dashboardStats.recentActivities.length > 0 ? (
-              dashboardStats.recentActivities.map((activity) => (
-                <View key={activity.id} style={styles.activityRow}>
-                  <View style={styles.activityCopy}>
-                    <View style={styles.activityTopLine}>
-                      <Text style={styles.activityText} numberOfLines={1}>
-                        {activity.title}
+              dashboardStats.recentActivities.map((activity) => {
+                const documentId = activity.id.startsWith('document-')
+                  ? activity.id.replace('document-', '')
+                  : null;
+
+                return (
+                  <Pressable
+                    key={activity.id}
+                    style={({ pressed }) => [
+                      styles.activityRow,
+                      pressed && documentId && { opacity: 0.7 },
+                    ]}
+                    onPress={
+                      documentId
+                        ? () => router.push(`/document/${documentId}`)
+                        : undefined
+                    }
+                  >
+                    <View style={styles.activityCopy}>
+                      <View style={styles.activityTopLine}>
+                        <Text style={styles.activityText} numberOfLines={1}>
+                          {activity.title}
+                        </Text>
+                        <Text
+                          style={[
+                            styles.activityStatus,
+                            ACTIVITY_STATUS_STYLES[activity.tone],
+                          ]}
+                          numberOfLines={1}
+                        >
+                          {activity.status}
+                        </Text>
+                      </View>
+                      <Text style={styles.activityDetail} numberOfLines={1}>
+                        {activity.detail}
                       </Text>
-                      <Text
-                        style={[
-                          styles.activityStatus,
-                          ACTIVITY_STATUS_STYLES[activity.tone],
-                        ]}
-                        numberOfLines={1}
-                      >
-                        {activity.status}
+                      <Text style={styles.activityTime} numberOfLines={1}>
+                        {activity.time}
                       </Text>
                     </View>
-                    <Text style={styles.activityDetail} numberOfLines={1}>
-                      {activity.detail}
-                    </Text>
-                    <Text style={styles.activityTime} numberOfLines={1}>
-                      {activity.time}
-                    </Text>
-                  </View>
-                </View>
-              ))
+                  </Pressable>
+                );
+              })
             ) : (
               <View style={styles.activityRow}>
                 <Text style={styles.activityText}>No recent activity yet</Text>
