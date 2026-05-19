@@ -1,12 +1,11 @@
-import {
+import BottomSheet, {
   BottomSheetBackdrop,
   type BottomSheetFooterProps,
-  BottomSheetModal,
   BottomSheetScrollView,
 } from '@gorhom/bottom-sheet';
 import { MaterialIcons } from '@expo/vector-icons';
 import React, { useCallback } from 'react';
-import { Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
 import { AskDocumentComposer } from './ask-document-composer';
 import { AskDocumentMessages } from './ask-document-messages';
@@ -74,45 +73,51 @@ export function AskDocumentSheet({
     ],
   );
 
-  return (
-    <BottomSheetModal
-      ref={askSheet.bottomSheetRef}
-      index={0}
-      snapPoints={askSheet.snapPoints}
-      onDismiss={askSheet.handleDismiss}
-      enableDynamicSizing={false}
-      enablePanDownToClose
-      keyboardBehavior="interactive"
-      keyboardBlurBehavior="restore"
-      android_keyboardInputMode="adjustPan"
-      backdropComponent={renderBackdrop}
-      footerComponent={renderFooter}
-      backgroundStyle={styles.sheetBackground}
-      handleIndicatorStyle={styles.handleIndicator}
-    >
-      <View style={styles.header}>
-        <View style={styles.headerIcon}>
-          <MaterialIcons name="question-answer" size={18} color={COLORS.primary} />
-        </View>
-        <View style={styles.headerCopy}>
-          <Text style={styles.title}>Chat</Text>
-          <Text style={styles.subtitle} numberOfLines={1}>
-            Ask about {documentTitle || 'this document'}
-          </Text>
-        </View>
-      </View>
+  if (!visible) {
+    return null;
+  }
 
-      <BottomSheetScrollView
-        ref={askSheet.scrollViewRef}
-        style={styles.scrollArea}
-        contentContainerStyle={[styles.scrollContent, { paddingBottom: 420 }]}
-        onContentSizeChange={askSheet.scrollToLatestMessage}
-        keyboardDismissMode="none"
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
+  return (
+    <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
+      <BottomSheet
+        ref={askSheet.bottomSheetRef}
+        index={0}
+        snapPoints={askSheet.snapPoints}
+        onClose={askSheet.handleDismiss}
+        enableDynamicSizing={false}
+        enablePanDownToClose
+        keyboardBehavior="interactive"
+        keyboardBlurBehavior="restore"
+        android_keyboardInputMode="adjustPan"
+        backdropComponent={renderBackdrop}
+        footerComponent={renderFooter}
+        backgroundStyle={styles.sheetBackground}
+        handleIndicatorStyle={styles.handleIndicator}
       >
-        <AskDocumentMessages messages={askSheet.messages} isLoading={isLoading} />
-      </BottomSheetScrollView>
-    </BottomSheetModal>
+        <View style={styles.header}>
+          <View style={styles.headerIcon}>
+            <MaterialIcons name="question-answer" size={18} color={COLORS.primary} />
+          </View>
+          <View style={styles.headerCopy}>
+            <Text style={styles.title}>Chat</Text>
+            <Text style={styles.subtitle} numberOfLines={1}>
+              Ask about {documentTitle || 'this document'}
+            </Text>
+          </View>
+        </View>
+
+        <BottomSheetScrollView
+          ref={askSheet.scrollViewRef}
+          style={styles.scrollArea}
+          contentContainerStyle={[styles.scrollContent, { paddingBottom: 420 }]}
+          onContentSizeChange={askSheet.scrollToLatestMessage}
+          keyboardDismissMode="none"
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <AskDocumentMessages messages={askSheet.messages} isLoading={isLoading} />
+        </BottomSheetScrollView>
+      </BottomSheet>
+    </View>
   );
 }

@@ -1,10 +1,9 @@
-import {
+import BottomSheet, {
   BottomSheetBackdrop,
-  BottomSheetModal,
   BottomSheetView,
 } from '@gorhom/bottom-sheet';
-import React, { useEffect, useMemo, useRef } from 'react';
-import { Text, View } from 'react-native';
+import React, { useMemo, useRef } from 'react';
+import { StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { DocumentActionItem } from './document-action-item';
@@ -27,29 +26,9 @@ export function DocumentActionsSheet({
   onPressVerify,
   onPressManageWhitelist,
 }: DocumentActionsSheetProps) {
-  const bottomSheetRef = useRef<BottomSheetModal>(null);
+  const bottomSheetRef = useRef<BottomSheet>(null);
   const insets = useSafeAreaInsets();
   const snapPoints = useMemo(() => ['36%'], []);
-
-  useEffect(() => {
-    const sheet = bottomSheetRef.current;
-
-    if (!sheet) {
-      return;
-    }
-
-    if (visible) {
-      sheet.present();
-      return () => {
-        sheet.dismiss();
-      };
-    }
-
-    sheet.dismiss();
-    return () => {
-      sheet.dismiss();
-    };
-  }, [visible]);
 
   const renderBackdrop = (props: React.ComponentProps<typeof BottomSheetBackdrop>) => (
     <BottomSheetBackdrop
@@ -62,44 +41,50 @@ export function DocumentActionsSheet({
     />
   );
 
+  if (!visible) {
+    return null;
+  }
+
   return (
-    <BottomSheetModal
-      ref={bottomSheetRef}
-      index={0}
-      snapPoints={snapPoints}
-      onDismiss={onClose}
-      enablePanDownToClose
-      backdropComponent={renderBackdrop}
-      handleIndicatorStyle={documentActionsSheetStyles.handle}
-      backgroundStyle={documentActionsSheetStyles.sheet}
-    >
-      <BottomSheetView style={[documentActionsSheetStyles.content, { paddingBottom: Math.max(insets.bottom, 24) }]}>
-        <View style={documentActionsSheetStyles.header}>
-          <Text style={documentActionsSheetStyles.title}>Document actions</Text>
-          {title ? <Text style={documentActionsSheetStyles.subtitle}>{title}</Text> : null}
-        </View>
+    <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
+      <BottomSheet
+        ref={bottomSheetRef}
+        index={0}
+        snapPoints={snapPoints}
+        onClose={onClose}
+        enablePanDownToClose
+        backdropComponent={renderBackdrop}
+        handleIndicatorStyle={documentActionsSheetStyles.handle}
+        backgroundStyle={documentActionsSheetStyles.sheet}
+      >
+        <BottomSheetView style={[documentActionsSheetStyles.content, { paddingBottom: Math.max(insets.bottom, 24) }]}>
+          <View style={documentActionsSheetStyles.header}>
+            <Text style={documentActionsSheetStyles.title}>Document actions</Text>
+            {title ? <Text style={documentActionsSheetStyles.subtitle}>{title}</Text> : null}
+          </View>
 
-        <DocumentActionItem
-          iconName="description"
-          label="Open"
-          description="Preview document details and summary."
-          onPress={onPressOpen}
-        />
+          <DocumentActionItem
+            iconName="description"
+            label="Open"
+            description="Preview document details and summary."
+            onPress={onPressOpen}
+          />
 
-        <DocumentActionItem
-          iconName="verified-user"
-          label="Verify"
-          description="Check integrity status and anchor result."
-          onPress={onPressVerify}
-        />
+          <DocumentActionItem
+            iconName="verified-user"
+            label="Verify"
+            description="Check integrity status and anchor result."
+            onPress={onPressVerify}
+          />
 
-        <DocumentActionItem
-          iconName="shield"
-          label="Manage whitelist"
-          description="Review and update document access rules."
-          onPress={onPressManageWhitelist}
-        />
-      </BottomSheetView>
-    </BottomSheetModal>
+          <DocumentActionItem
+            iconName="shield"
+            label="Manage whitelist"
+            description="Review and update document access rules."
+            onPress={onPressManageWhitelist}
+          />
+        </BottomSheetView>
+      </BottomSheet>
+    </View>
   );
 }
