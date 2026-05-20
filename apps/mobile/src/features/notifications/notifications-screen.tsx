@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 import { useRouter } from 'expo-router';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { FlatList, Pressable, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { toast } from 'sonner-native';
 
@@ -94,8 +94,10 @@ export default function NotificationsScreen() {
   const markReadMutation = useMarkNotificationRead();
   const markAllReadMutation = useMarkAllNotificationsRead();
   const notifications = notificationsQuery.data?.notifications ?? [];
+  const notificationData = notificationsQuery.isLoading ? [] : notifications;
   const unreadCount = unreadCountQuery.data?.unread ?? 0;
   const hasUnread = unreadCount > 0;
+  const isRefreshing = notificationsQuery.isRefetching || unreadCountQuery.isRefetching;
 
   const handleHeaderHeightChange = useCallback((nextHeight: number) => {
     setHeaderHeight((current) => (current === nextHeight ? current : nextHeight));
@@ -126,6 +128,13 @@ export default function NotificationsScreen() {
     }
   };
 
+  const handleRefresh = useCallback(() => {
+    void Promise.all([
+      notificationsQuery.refetch(),
+      unreadCountQuery.refetch(),
+    ]);
+  }, [notificationsQuery, unreadCountQuery]);
+
   return (
     <SafeAreaView style={styles.screen} edges={['left', 'right', 'bottom']}>
       <ScreenHeader
@@ -137,74 +146,80 @@ export default function NotificationsScreen() {
         includeTopInset
       />
 
-      <ScrollView
+      <FlatList
+        data={notificationData}
+        keyExtractor={(notification) => notification.id}
+        renderItem={({ item }) => (
+          <NotificationRow
+            notification={item}
+            isMarkingRead={markReadMutation.isPending}
+            onPress={handlePressNotification}
+          />
+        )}
         contentContainerStyle={[
           styles.content,
           { paddingTop: headerHeight + HEADER_CONTENT_GAP },
         ]}
+        initialNumToRender={10}
+        maxToRenderPerBatch={10}
+        windowSize={7}
+        removeClippedSubviews
         showsVerticalScrollIndicator={false}
-      >
-        <View style={styles.summaryCard}>
-          <View style={styles.summaryTopLine}>
-            <Text style={styles.summaryTitle}>Unread notifications</Text>
-            <View style={styles.unreadBadge}>
-              <Text style={styles.unreadBadgeText}>
-                {unreadCount > 99 ? '99+' : unreadCount}
-              </Text>
+        refreshing={isRefreshing}
+        onRefresh={handleRefresh}
+        ListHeaderComponent={
+          <View style={styles.summaryCard}>
+            <View style={styles.summaryTopLine}>
+              <Text style={styles.summaryTitle}>Unread notifications</Text>
+              <View style={styles.unreadBadge}>
+                <Text style={styles.unreadBadgeText}>
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </Text>
+              </View>
             </View>
-          </View>
-          <Text style={styles.summaryText}>
-            {hasUnread
-              ? 'Open unread items to mark them as read.'
-              : 'You are caught up on recent LexChain activity.'}
-          </Text>
+            <Text style={styles.summaryText}>
+              {hasUnread
+                ? 'Open unread items to mark them as read.'
+                : 'You are caught up on recent LexChain activity.'}
+            </Text>
 
-          {hasUnread ? (
-            <Pressable
-              accessibilityRole="button"
-              disabled={markAllReadMutation.isPending}
-              onPress={handleMarkAllRead}
-              style={({ pressed }) => [
-                styles.markAllButton,
-                pressed && styles.markAllButtonPressed,
-              ]}
-            >
-              <Text style={styles.markAllText}>
-                {markAllReadMutation.isPending ? 'Marking...' : 'Mark all read'}
-              </Text>
-            </Pressable>
-          ) : null}
-        </View>
-
-        {notificationsQuery.isLoading ? (
-          <LoadingState message="Loading notifications..." />
-        ) : notificationsQuery.error ? (
-          <ErrorState
-            title="Unable to load notifications"
-            message={parseApiError(notificationsQuery.error).message}
-            onRetry={() => {
-              void notificationsQuery.refetch();
-              void unreadCountQuery.refetch();
-            }}
-          />
-        ) : notifications.length === 0 ? (
-          <EmptyState
-            title="No notifications yet"
-            message="Document processing, sharing, and on-chain updates will appear here."
-          />
-        ) : (
-          <View style={styles.list}>
-            {notifications.map((notification) => (
-              <NotificationRow
-                key={notification.id}
-                notification={notification}
-                isMarkingRead={markReadMutation.isPending}
-                onPress={handlePressNotification}
-              />
-            ))}
+            {hasUnread ? (
+              <Pressable
+                accessibilityRole="button"
+                disabled={markAllReadMutation.isPending}
+                onPress={handleMarkAllRead}
+                style={({ pressed }) => [
+                  styles.markAllButton,
+                  pressed && styles.markAllButtonPressed,
+                ]}
+              >
+                <Text style={styles.markAllText}>
+                  {markAllReadMutation.isPending ? 'Marking...' : 'Mark all read'}
+                </Text>
+              </Pressable>
+            ) : null}
           </View>
-        )}
-      </ScrollView>
+        }
+        ListEmptyComponent={
+          notificationsQuery.isLoading ? (
+            <LoadingState message="Loading notifications..." />
+          ) : notificationsQuery.error ? (
+            <ErrorState
+              title="Unable to load notifications"
+              message={parseApiError(notificationsQuery.error).message}
+              onRetry={() => {
+                void notificationsQuery.refetch();
+                void unreadCountQuery.refetch();
+              }}
+            />
+          ) : (
+            <EmptyState
+              title="No notifications yet"
+              message="Document processing, sharing, and on-chain updates will appear here."
+            />
+          )
+        }
+      />
     </SafeAreaView>
   );
 }
