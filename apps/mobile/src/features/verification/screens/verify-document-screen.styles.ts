@@ -18,12 +18,12 @@ export const verifyDocumentScreenStyles = StyleSheet.create({
     backgroundColor: COLORS.bg,
   },
   scrollContent: {
-    paddingHorizontal: 18,
+    paddingHorizontal: 16,
     paddingBottom: 24,
     gap: 20,
   },
   footer: {
-    paddingHorizontal: 18,
+    paddingHorizontal: 16,
     paddingBottom: 24,
   },
 });
