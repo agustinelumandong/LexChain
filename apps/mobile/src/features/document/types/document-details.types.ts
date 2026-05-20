@@ -26,6 +26,7 @@ export type DocumentDetailsDocument = {
   created_at: string;
   updated_at: string;
   status: string;
+  on_chain?: boolean;
   summary?: string | null;
   storage_url?: string | null;
   file_uri?: string | null;

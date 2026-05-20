@@ -88,6 +88,7 @@ export function DocumentDetailsContent({
     <>
       <DocumentDetailsActions
         canNotarizeDocument={canNotarizeDocument}
+        isAnchored={Boolean(document.on_chain)}
         isNotarizing={isNotarizing}
         isViewer={isViewer}
         onPressNotarize={onPressNotarize}
@@ -108,6 +109,7 @@ export function DocumentDetailsContent({
       <DocumentStatusCard
         status={document.status}
         uploadedAt={document.updated_at}
+        onChain={document.on_chain}
       />
 
       <AccessControlCard

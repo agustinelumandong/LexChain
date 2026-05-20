@@ -58,7 +58,8 @@ export default function DocumentDetailsScreen() {
   const canManageWhitelist = true;
   const currentDocumentRole = canManageWhitelist ? 'owner' : 'viewer';
   const isViewer = currentDocumentRole === 'viewer';
-  const canNotarizeDocument = document?.status === 'COMPLETED';
+  const isAnchored = Boolean(document?.on_chain);
+  const canNotarizeDocument = document?.status === 'COMPLETED' && !isAnchored;
   const { pdfUri, versionHistory } = useDocumentFileVersion({
     document,
     versions: versionHistoryQuery.data?.versions,
@@ -88,11 +89,6 @@ export default function DocumentDetailsScreen() {
   }, [askDocument, documentId]);
 
   const handleNotarize = async () => {
-    if (!canNotarizeDocument) {
-      toast.warning('Document must be completed before blockchain anchoring');
-      return;
-    }
-
     try {
       await notarizeMutation.mutateAsync(documentId);
       toast.success('Document anchored to blockchain');
@@ -167,7 +163,7 @@ export default function DocumentDetailsScreen() {
           <DocumentDetailsContent
             allowedCount={whitelistData.grants.length}
             canManageWhitelist={canManageWhitelist}
-            canNotarizeDocument={Boolean(canNotarizeDocument)}
+            canNotarizeDocument={canNotarizeDocument}
             document={document}
             errorMessage={
               documentQuery.error ? parseApiError(documentQuery.error).message : undefined
