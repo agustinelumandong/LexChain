@@ -9,9 +9,11 @@ import { documentDetailCardStyles as styles } from './document-detail-card.style
 export function DocumentStatusCard({
   status,
   uploadedAt,
+  onChain,
 }: {
   status: string;
   uploadedAt: string;
+  onChain?: boolean;
 }) {
   return (
     <View style={styles.statusCard}>
@@ -22,6 +24,15 @@ export function DocumentStatusCard({
       <View style={styles.statusCopy}>
         <Text style={styles.statusTitle}>Verification</Text>
         <Text style={styles.statusBody}>Last updated {formatDate(uploadedAt)}</Text>
+        {onChain ? (
+          <Text style={[styles.statusBody, { color: APP_COLORS.success, fontWeight: '600', marginTop: 2 }]}>
+            ✓ Anchored to Blockchain
+          </Text>
+        ) : (
+          <Text style={[styles.statusBody, { color: APP_COLORS.textMuted, marginTop: 2 }]}>
+            Not yet anchored
+          </Text>
+        )}
       </View>
 
       <Text style={styles.statusPill}>{formatStatusLabel(status)}</Text>
