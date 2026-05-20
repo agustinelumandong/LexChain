@@ -68,6 +68,7 @@ export default function RootLayout() {
                   name="document/pdf-viewer"
                   options={{ headerShown: false }}
                 />
+                <Stack.Screen name="verify/[id]" options={{ headerShown: false }} />
                 <Stack.Screen
                   name="camera-capture"
                   options={{ headerShown: false }}
