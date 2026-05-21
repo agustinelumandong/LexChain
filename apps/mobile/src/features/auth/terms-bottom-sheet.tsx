@@ -91,7 +91,11 @@ export default function TermsBottomSheet({
           showsVerticalScrollIndicator={false}
           onScroll={termsSheet.handleScroll}
         >
-          <TermsContent hasReachedEnd={hasReachedEnd} />
+          <TermsContent
+            acceptedTerms={acceptedTerms}
+            hasReachedEnd={hasReachedEnd}
+            onToggleAcceptedTerms={onToggleAcceptedTerms}
+          />
         </BottomSheetScrollView>
 
         <TermsFooter
@@ -99,7 +103,6 @@ export default function TermsBottomSheet({
           acceptedTerms={acceptedTerms}
           hasReachedEnd={hasReachedEnd}
           isSubmitting={isSubmitting}
-          onToggleAcceptedTerms={onToggleAcceptedTerms}
           onConfirm={onConfirm}
         />
       </BottomSheet>
