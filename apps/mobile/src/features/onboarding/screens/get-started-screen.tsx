@@ -1,6 +1,5 @@
 import BottomSheet, {
   BottomSheetView,
-  useBottomSheetSpringConfigs,
 } from '@gorhom/bottom-sheet';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
@@ -38,11 +37,6 @@ export default function GetStartedScreen() {
   const [isNavigating, setIsNavigating] = useState(false);
   const isCompactHeight = height < 700;
   const sheetSnapPoints = useMemo(() => getSheetSnapPoints(height), [height]);
-  const animationConfigs = useBottomSheetSpringConfigs({
-    damping: 68,
-    overshootClamping: true,
-    stiffness: 380,
-  });
 
   useFocusEffect(
     useCallback(() => {
@@ -115,7 +109,6 @@ export default function GetStartedScreen() {
           enableOverDrag
           enablePanDownToClose={false}
           overDragResistanceFactor={8}
-          animationConfigs={animationConfigs}
           backgroundStyle={styles.content}
           handleIndicatorStyle={styles.handle}
           detached={false}
