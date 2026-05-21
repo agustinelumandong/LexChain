@@ -152,6 +152,7 @@ export default function SignUpScreen() {
             label="Sign up"
             fullWidth
             leftIconName="person-add"
+            loading={signUp.signUpMutation.isPending}
             disabled={signUp.signUpMutation.isPending}
             onPress={signUp.handleOpenTerms}
           />

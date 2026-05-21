@@ -169,6 +169,7 @@ export default function SignInScreen() {
             label="Sign in"
             fullWidth
             leftIconName="login"
+            loading={signInMutation.isPending}
             disabled={signInMutation.isPending}
             onPress={handleSignIn}
           />
