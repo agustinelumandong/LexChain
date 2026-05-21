@@ -4,7 +4,7 @@ import * as Haptics from 'expo-haptics';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { Pressable, Text, View } from 'react-native';
+import { Keyboard, Pressable, Text, View } from 'react-native';
 import { toast } from 'sonner-native';
 
 import {
@@ -104,6 +104,11 @@ export default function SignInScreen() {
     router.replace('/(auth)/forgot-password');
   };
 
+  const handlePressSignIn = () => {
+    Keyboard.dismiss();
+    void handleSignIn();
+  };
+
   return (
     <AuthScreenShell>
       <View style={styles.container}>
@@ -171,7 +176,7 @@ export default function SignInScreen() {
             leftIconName="login"
             loading={signInMutation.isPending}
             disabled={signInMutation.isPending}
-            onPress={handleSignIn}
+            onPress={handlePressSignIn}
           />
 
           <Button
