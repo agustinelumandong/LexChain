@@ -1,63 +1,65 @@
 import { Image } from 'expo-image';
-import React, { useEffect, useState } from 'react';
-import { Animated, Easing, StyleSheet, View } from 'react-native';
+import { useEffect } from 'react';
+import { StyleSheet, View } from 'react-native';
+import Animated, {
+  Easing,
+  interpolate,
+  useAnimatedStyle,
+  useSharedValue,
+  withDelay,
+  withRepeat,
+  withSequence,
+  withTiming,
+} from 'react-native-reanimated';
 
 import heroIllustration from '@/assets/images/lexchain-getstarted.svg';
 
-export function GetStartedHero() {
-  const [pulseA] = useState(() => new Animated.Value(0));
-  const [pulseB] = useState(() => new Animated.Value(0));
-  const [pulseC] = useState(() => new Animated.Value(0));
-  const [shieldPulse] = useState(() => new Animated.Value(0));
+type GetStartedHeroProps = {
+  compact?: boolean;
+};
+
+export function GetStartedHero({ compact = false }: GetStartedHeroProps) {
+  const pulseA = useSharedValue(0);
+  const pulseB = useSharedValue(0);
+  const pulseC = useSharedValue(0);
+  const shieldPulse = useSharedValue(0);
 
   useEffect(() => {
-    const makePulse = (value: Animated.Value, delay: number) =>
-      Animated.loop(
-        Animated.sequence([
-          Animated.delay(delay),
-          Animated.timing(value, {
-            toValue: 1,
-            duration: 1700,
-            easing: Easing.out(Easing.cubic),
-            useNativeDriver: true,
-          }),
-          Animated.timing(value, {
-            toValue: 0,
-            duration: 0,
-            useNativeDriver: true,
-          }),
-        ]),
+    const startPulse = (value: typeof pulseA, delay: number) => {
+      value.value = withDelay(
+        delay,
+        withRepeat(
+          withSequence(
+            withTiming(1, {
+              duration: 1700,
+              easing: Easing.out(Easing.cubic),
+            }),
+            withTiming(0, {
+              duration: 0,
+            }),
+          ),
+          -1,
+        ),
       );
-
-    const animationA = makePulse(pulseA, 0);
-    const animationB = makePulse(pulseB, 520);
-    const animationC = makePulse(pulseC, 1040);
-    const shieldAnimation = makePulse(shieldPulse, 260);
-
-    animationA.start();
-    animationB.start();
-    animationC.start();
-    shieldAnimation.start();
-
-    return () => {
-      animationA.stop();
-      animationB.stop();
-      animationC.stop();
-      shieldAnimation.stop();
     };
+
+    startPulse(pulseA, 0);
+    startPulse(pulseB, 520);
+    startPulse(pulseC, 1040);
+    startPulse(shieldPulse, 260);
   }, [pulseA, pulseB, pulseC, shieldPulse]);
 
-  const pulseStyleA = makePulseStyle(pulseA);
-  const pulseStyleB = makePulseStyle(pulseB);
-  const pulseStyleC = makePulseStyle(pulseC);
-  const shieldPulseStyle = makeShieldPulseStyle(shieldPulse);
+  const pulseStyleA = useAnimatedStyle(() => makePulseStyle(pulseA.value));
+  const pulseStyleB = useAnimatedStyle(() => makePulseStyle(pulseB.value));
+  const pulseStyleC = useAnimatedStyle(() => makePulseStyle(pulseC.value));
+  const shieldPulseStyle = useAnimatedStyle(() => makeShieldPulseStyle(shieldPulse.value));
 
   return (
-    <View style={styles.hero}>
+    <View style={[styles.hero, compact && styles.heroCompact]}>
       <View style={styles.glowOrb} />
       <View style={styles.glowOrbSecondary} />
 
-      <View style={styles.illustrationFrame}>
+      <View style={[styles.illustrationFrame, compact && styles.illustrationFrameCompact]}>
         <Image
           source={heroIllustration}
           style={styles.illustration}
@@ -74,35 +76,27 @@ export function GetStartedHero() {
   );
 }
 
-function makePulseStyle(progress: Animated.Value) {
+function makePulseStyle(progress: number) {
+  'worklet';
+
   return {
-    opacity: progress.interpolate({
-      inputRange: [0, 0.2, 1],
-      outputRange: [0, 0.5, 0],
-    }),
+    opacity: interpolate(progress, [0, 0.2, 1], [0, 0.5, 0]),
     transform: [
       {
-        scale: progress.interpolate({
-          inputRange: [0, 1],
-          outputRange: [0.55, 1.85],
-        }),
+        scale: interpolate(progress, [0, 1], [0.55, 1.85]),
       },
     ],
   };
 }
 
-function makeShieldPulseStyle(progress: Animated.Value) {
+function makeShieldPulseStyle(progress: number) {
+  'worklet';
+
   return {
-    opacity: progress.interpolate({
-      inputRange: [0, 0.18, 1],
-      outputRange: [0, 0.32, 0],
-    }),
+    opacity: interpolate(progress, [0, 0.18, 1], [0, 0.32, 0]),
     transform: [
       {
-        scale: progress.interpolate({
-          inputRange: [0, 1],
-          outputRange: [0.74, 1.28],
-        }),
+        scale: interpolate(progress, [0, 1], [0.74, 1.28]),
       },
     ],
   };
@@ -116,6 +110,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'transparent',
+  },
+  heroCompact: {
+    height: '45%',
   },
   glowOrb: {
     position: 'absolute',
@@ -140,6 +137,11 @@ const styles = StyleSheet.create({
     height: 380,
     marginTop: 120,
     position: 'relative',
+  },
+  illustrationFrameCompact: {
+    width: 360,
+    height: 318,
+    marginTop: 84,
   },
   illustration: {
     width: '100%',

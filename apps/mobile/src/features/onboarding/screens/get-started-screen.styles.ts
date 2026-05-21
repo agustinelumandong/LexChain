@@ -54,7 +54,6 @@ export const getStartedScreenStyles = StyleSheet.create({
     lineHeight: 33,
     fontWeight: '800',
     fontFamily: fonts.regular,
-    letterSpacing: -0.6,
   },
   body: {
     color: GET_STARTED_COLORS.textMuted,

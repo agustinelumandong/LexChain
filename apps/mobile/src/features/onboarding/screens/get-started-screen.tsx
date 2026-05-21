@@ -5,11 +5,11 @@ import BottomSheet, {
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
 import { useFocusEffect, useRouter } from 'expo-router';
-import React, { useCallback, useEffect, useRef } from 'react';
-import { Text, View } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Text, useWindowDimensions, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { Button } from '@/ui';
+import { Button } from '@/shared/components/ui/button';
 
 import { GetStartedHero } from '../get-started-hero';
 import {
@@ -17,13 +17,27 @@ import {
   getStartedScreenStyles as styles,
 } from './get-started-screen.styles';
 
-const SHEET_SNAP_POINTS = ['35%', '36%'];
+function getSheetSnapPoints(height: number) {
+  if (height < 680) {
+    return ['45%', '46%'];
+  }
+
+  if (height < 780) {
+    return ['39%', '40%'];
+  }
+
+  return ['35%', '36%'];
+}
 
 export default function GetStartedScreen() {
-  const router = useRouter();
+  const { push } = useRouter();
+  const { height } = useWindowDimensions();
   const bottomSheetRef = useRef<BottomSheet>(null);
   const navigationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const focusTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [isNavigating, setIsNavigating] = useState(false);
+  const isCompactHeight = height < 700;
+  const sheetSnapPoints = useMemo(() => getSheetSnapPoints(height), [height]);
   const animationConfigs = useBottomSheetSpringConfigs({
     damping: 68,
     overshootClamping: true,
@@ -32,6 +46,8 @@ export default function GetStartedScreen() {
 
   useFocusEffect(
     useCallback(() => {
+      setIsNavigating(false);
+
       if (focusTimeoutRef.current) {
         clearTimeout(focusTimeoutRef.current);
       }
@@ -64,6 +80,11 @@ export default function GetStartedScreen() {
   }, []);
 
   const navigateFromLanding = (href: '/(auth)/sign-in' | '/(auth)/sign-up') => {
+    if (isNavigating) {
+      return;
+    }
+
+    setIsNavigating(true);
     bottomSheetRef.current?.close();
 
     if (navigationTimeoutRef.current) {
@@ -71,7 +92,7 @@ export default function GetStartedScreen() {
     }
 
     navigationTimeoutRef.current = setTimeout(() => {
-      router.push(href);
+      push(href);
     }, 220);
   };
 
@@ -84,11 +105,11 @@ export default function GetStartedScreen() {
         end={{ x: 0, y: 1 }}
         style={styles.surface}
       >
-        <GetStartedHero />
+        <GetStartedHero compact={isCompactHeight} />
         <BottomSheet
           ref={bottomSheetRef}
           index={0}
-          snapPoints={SHEET_SNAP_POINTS}
+          snapPoints={sheetSnapPoints}
           animateOnMount
           enableDynamicSizing={false}
           enableOverDrag
@@ -114,6 +135,7 @@ export default function GetStartedScreen() {
               <Button
                 label="Get started"
                 fullWidth
+                disabled={isNavigating}
                 onPress={() => navigateFromLanding('/(auth)/sign-up')}
                 rightIconName="arrow-forward"
               />
@@ -122,6 +144,7 @@ export default function GetStartedScreen() {
                 label="I already have an account"
                 variant="ghost"
                 fullWidth
+                disabled={isNavigating}
                 onPress={() => navigateFromLanding('/(auth)/sign-in')}
               />
             </View>
