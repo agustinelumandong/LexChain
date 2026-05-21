@@ -1,10 +1,7 @@
 import { MaterialIcons } from '@expo/vector-icons';
-import { Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 
-import {
-  TERMS_BOTTOM_SHEET_COLORS as COLORS,
-  termsBottomSheetStyles as styles,
-} from './terms-bottom-sheet.styles';
+import { termsBottomSheetStyles as styles } from './terms-bottom-sheet.styles';
 
 const TERMS_SECTIONS = [
   {
@@ -30,33 +27,49 @@ const TERMS_SECTIONS = [
 ];
 
 type TermsContentProps = {
+  acceptedTerms: boolean;
   hasReachedEnd: boolean;
+  onToggleAcceptedTerms: () => void;
 };
 
-export function TermsContent({ hasReachedEnd }: TermsContentProps) {
+export function TermsContent({
+  acceptedTerms,
+  hasReachedEnd,
+  onToggleAcceptedTerms,
+}: TermsContentProps) {
   return (
     <>
       {TERMS_SECTIONS.map((section) => (
         <TermsSection key={section.title} title={section.title} body={section.body} />
       ))}
 
-      <View style={styles.reachedRow}>
-        <MaterialIcons
-          name={hasReachedEnd ? 'check-circle' : 'south'}
-          size={18}
-          color={hasReachedEnd ? COLORS.success : COLORS.primary}
-        />
-        <Text
+      <Pressable
+        style={[
+          styles.checkboxRow,
+          styles.acceptanceRow,
+          !hasReachedEnd && styles.checkboxRowDisabled,
+        ]}
+        onPress={hasReachedEnd ? onToggleAcceptedTerms : undefined}
+      >
+        <View
           style={[
-            styles.reachedText,
-            hasReachedEnd && styles.reachedTextDone,
+            styles.checkbox,
+            acceptedTerms && styles.checkboxChecked,
+            !hasReachedEnd && styles.checkboxDisabled,
           ]}
         >
-          {hasReachedEnd
-            ? 'You reached end of terms.'
-            : 'Scroll to end to unlock acceptance.'}
+          {acceptedTerms ? <MaterialIcons name="check" size={16} color="#FFFFFF" /> : null}
+        </View>
+
+        <Text
+          style={[
+            styles.checkboxLabel,
+            !hasReachedEnd && styles.checkboxLabelDisabled,
+          ]}
+        >
+          I accept Terms of Service and Privacy Policy
         </Text>
-      </View>
+      </Pressable>
     </>
   );
 }
