@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 
 import type { DocumentListItem, InvitationResponse } from '@/services/api';
 import { useAdminInvitationsApi, useDocuments } from '@/services/query';
@@ -85,6 +85,9 @@ function getInvitationActivity(invitation: InvitationResponse): DashboardRecentA
 export function useDashboard() {
   const documentsQuery = useDocuments();
   const invitationsQuery = useAdminInvitationsApi();
+  const refetch = useCallback(async () => {
+    await Promise.all([documentsQuery.refetch(), invitationsQuery.refetch()]);
+  }, [documentsQuery, invitationsQuery]);
 
   return useMemo(() => {
     const documents = documentsQuery.data ?? [];
@@ -113,11 +116,16 @@ export function useDashboard() {
       pendingSharedDocumentsCount: pendingInvitationCount,
       recentActivities,
       isLoading: documentsQuery.isLoading || invitationsQuery.isLoading,
+      isRefetching: documentsQuery.isRefetching || invitationsQuery.isRefetching,
+      refetch,
     };
   }, [
     documentsQuery.data,
     documentsQuery.isLoading,
+    documentsQuery.isRefetching,
     invitationsQuery.data,
     invitationsQuery.isLoading,
+    invitationsQuery.isRefetching,
+    refetch,
   ]);
 }
