@@ -1,6 +1,7 @@
 import { DefaultTheme, ThemeProvider } from "@react-navigation/native";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { Stack } from "expo-router";
+import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import "react-native-reanimated";
 import "@/global.css";
@@ -20,11 +21,14 @@ export const unstable_settings = {
   anchor: "(tabs)",
 };
 
+void SplashScreen.preventAutoHideAsync();
+
 export default function RootLayout() {
   const { isOnline } = useNetwork();
-  const [fontsLoaded] = useFonts({
+  const [fontsLoaded, fontError] = useFonts({
     ...MaterialIcons.font,
   });
+  const appReady = fontsLoaded || Boolean(fontError);
 
   useEffect(() => {
     if (Platform.OS === "android") {
@@ -36,7 +40,13 @@ export default function RootLayout() {
     return setupQueryFocusListener();
   }, []);
 
-  if (!fontsLoaded) {
+  useEffect(() => {
+    if (appReady) {
+      void SplashScreen.hideAsync();
+    }
+  }, [appReady]);
+
+  if (!appReady) {
     return null;
   }
 
