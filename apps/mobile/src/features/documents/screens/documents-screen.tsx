@@ -1,7 +1,7 @@
 import React, { useCallback, useRef } from 'react';
 import { useFocusEffect, useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
-import { FlatList, Text, View } from 'react-native';
+import { FlatList, RefreshControl, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
@@ -22,6 +22,7 @@ import {
 import { DocumentSearchResultRow } from '@/features/documents/components/document-search-result-row';
 import { styles } from '@/features/documents/components/list/documents-screen.styles';
 import { useDocumentsScreen } from '@/features/documents/hooks/use-documents-screen';
+import { APP_COLORS } from '@/theme';
 import type {
   DisplayDocument,
   DocumentFilterStatusKey,
@@ -94,10 +95,17 @@ export default function DocumentsScreen() {
           windowSize={7}
           removeClippedSubviews
           showsVerticalScrollIndicator={false}
-          refreshing={screen.documentsQuery.isRefetching}
-          onRefresh={() => {
-            void screen.documentsQuery.refetch();
-          }}
+          refreshControl={
+            <RefreshControl
+              refreshing={screen.documentsQuery.isRefetching}
+              onRefresh={() => {
+                void screen.documentsQuery.refetch();
+              }}
+              tintColor={APP_COLORS.primary}
+              colors={[APP_COLORS.primary]}
+              progressBackgroundColor={APP_COLORS.white}
+            />
+          }
           ListHeaderComponent={
             <>
               <DocumentsHeader />
