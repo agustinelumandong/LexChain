@@ -1,7 +1,7 @@
 import { MaterialIcons } from '@expo/vector-icons';
 import { useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
@@ -50,6 +50,17 @@ export function DashboardOverview() {
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={dashboardStats.isRefetching}
+              onRefresh={() => {
+                void dashboardStats.refetch();
+              }}
+              tintColor={COLORS.primary}
+              colors={[COLORS.primary]}
+              progressBackgroundColor={COLORS.surface}
+            />
+          }
         >
           <View style={styles.headerBlock}>
             <View style={styles.headerTopLine}>
