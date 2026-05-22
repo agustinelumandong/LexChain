@@ -4,6 +4,7 @@ import type { paths } from '@lexchain/types/openapi';
 
 import { env, requireApiUrl } from '@/shared/config';
 import { authTokenStorage } from '@/shared/utils/secure-storage';
+import { handleExpiredSession } from '@/features/auth/session-expiration';
 
 const baseUrl = env.useMockApi ? '' : requireApiUrl().replace(/\/$/, '');
 
@@ -16,6 +17,13 @@ const authMiddleware: Middleware = {
     }
 
     return request;
+  },
+  async onResponse({ response }) {
+    if (response.status === 401) {
+      await handleExpiredSession();
+    }
+
+    return response;
   },
 };
 
