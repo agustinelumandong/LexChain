@@ -4,7 +4,7 @@ import BottomSheet, {
   BottomSheetScrollView,
 } from '@gorhom/bottom-sheet';
 import { MaterialIcons } from '@expo/vector-icons';
-import React, { useCallback } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { AskDocumentComposer } from './ask-document-composer';
@@ -31,7 +31,21 @@ export function AskDocumentSheet({
   onClose,
   onAsk,
 }: AskDocumentSheetProps) {
-  const askSheet = useAskDocumentSheet({
+  const {
+    bottomSheetRef,
+    scrollViewRef,
+    insets,
+    messages,
+    snapPoints,
+    composerResetKey,
+    composerAnimatedStyle,
+    scrollBottomPadding,
+    handleDismiss,
+    handleComposerLayout,
+    handleFocusComposer,
+    handleSubmitQuestion,
+    scrollToLatestMessage,
+  } = useAskDocumentSheet({
     visible,
     answer,
     isLoading,
@@ -39,6 +53,13 @@ export function AskDocumentSheet({
     onClose,
     onAsk,
   });
+  const scrollContentContainerStyle = useMemo(
+    () => [
+      styles.scrollContent,
+      { paddingBottom: scrollBottomPadding },
+    ],
+    [scrollBottomPadding],
+  );
 
   const renderBackdrop = useCallback(
     (props: React.ComponentProps<typeof BottomSheetBackdrop>) => (
@@ -57,21 +78,21 @@ export function AskDocumentSheet({
     (props: BottomSheetFooterProps) => (
       <AskDocumentComposer
         {...props}
-        bottomInset={askSheet.insets.bottom}
-        resetKey={askSheet.composerResetKey}
-        onSubmit={askSheet.handleSubmitQuestion}
-        onFocusComposer={askSheet.handleFocusComposer}
-        onLayoutComposer={askSheet.handleComposerLayout}
-        animatedStyle={askSheet.composerAnimatedStyle}
+        bottomInset={insets.bottom}
+        resetKey={composerResetKey}
+        onSubmit={handleSubmitQuestion}
+        onFocusComposer={handleFocusComposer}
+        onLayoutComposer={handleComposerLayout}
+        animatedStyle={composerAnimatedStyle}
       />
     ),
     [
-      askSheet.composerAnimatedStyle,
-      askSheet.composerResetKey,
-      askSheet.handleComposerLayout,
-      askSheet.handleFocusComposer,
-      askSheet.handleSubmitQuestion,
-      askSheet.insets.bottom,
+      composerAnimatedStyle,
+      composerResetKey,
+      handleComposerLayout,
+      handleFocusComposer,
+      handleSubmitQuestion,
+      insets.bottom,
     ],
   );
 
@@ -82,11 +103,11 @@ export function AskDocumentSheet({
   return (
     <View style={[StyleSheet.absoluteFill, styles.overlay]} pointerEvents="box-none">
       <BottomSheet
-        ref={askSheet.bottomSheetRef}
+        ref={bottomSheetRef}
         index={0}
-        snapPoints={askSheet.snapPoints}
+        snapPoints={snapPoints}
         containerStyle={styles.overlay}
-        onClose={askSheet.handleDismiss}
+        onClose={handleDismiss}
         enableDynamicSizing={false}
         enablePanDownToClose
         keyboardBehavior="interactive"
@@ -110,18 +131,15 @@ export function AskDocumentSheet({
         </View>
 
         <BottomSheetScrollView
-          ref={askSheet.scrollViewRef}
+          ref={scrollViewRef}
           style={styles.scrollArea}
-          contentContainerStyle={[
-            styles.scrollContent,
-            { paddingBottom: askSheet.scrollBottomPadding },
-          ]}
-          onContentSizeChange={askSheet.scrollToLatestMessage}
+          contentContainerStyle={scrollContentContainerStyle}
+          onContentSizeChange={scrollToLatestMessage}
           keyboardDismissMode="none"
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <AskDocumentMessages messages={askSheet.messages} isLoading={isLoading} />
+          <AskDocumentMessages messages={messages} isLoading={isLoading} />
         </BottomSheetScrollView>
       </BottomSheet>
     </View>
