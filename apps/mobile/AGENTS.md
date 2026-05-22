@@ -411,6 +411,13 @@ pnpm run reset-project  # Move app/ → app-example/, reset to blank
 - `src/services/query/keys.ts` centralizes all React Query key factories — use it before defining inline keys.
 - Separate query hooks per domain: `use-auth`, `use-documents`, `use-admin`, `use-blockchain`, `use-public`, `use-users`.
 
+### Roles
+- User position roles are `user` and `lawyer`; `admin` is a privileged system role, not a normal user position.
+- Account roles returned by `GET /admin/users` may include `admin`, `user`, and `lawyer`.
+- Invitation creation accepts `lawyer` and `admin` roles in the current OpenAPI contract.
+- Document whitelist roles are separate from account roles: `viewer`, `signer`, and `editor`.
+- Mobile document permission roles are UI/runtime access roles: `owner`, `editor`, `viewer`, and `verifier`.
+
 ---
 
 ## SKILL LOADING REMINDER
