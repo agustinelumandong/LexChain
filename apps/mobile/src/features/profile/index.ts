@@ -18,6 +18,8 @@ export { ProfileSummaryInfoRow } from './profile-summary-info-row';
 export { ProfileSummaryStatusChip } from './profile-summary-status-chip';
 export {
   DEFAULT_PROFILE_ACCOUNT,
+  canProfileUploadDocuments,
+  canRoleUploadDocuments,
   getProfileDisplayName,
   getProfileInitials,
   useProfileSettingsStore,

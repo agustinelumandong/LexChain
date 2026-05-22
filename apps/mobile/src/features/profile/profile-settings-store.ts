@@ -37,7 +37,7 @@ type ProfileSettingsStore = {
 export const DEFAULT_PROFILE_ACCOUNT: ProfileAccount = {
   firstName: 'Carl',
   lastName: 'Shan',
-  role: 'Authorized user',
+  role: 'lawyer',
   email: 'carl.shan@lexchain.app',
 };
 
@@ -64,6 +64,12 @@ export const getProfileInitials = (account: ProfileAccount) => {
 
   return initials || 'LC';
 };
+
+export const canRoleUploadDocuments = (role?: string) =>
+  role?.trim().toLowerCase() === 'lawyer';
+
+export const canProfileUploadDocuments = (account: ProfileAccount) =>
+  canRoleUploadDocuments(account.role);
 
 export const useProfileSettingsStore = create<ProfileSettingsStore>()(
   persist(

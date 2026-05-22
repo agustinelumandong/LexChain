@@ -11,6 +11,7 @@ import { BottomNav, Button } from '@/ui';
 import { ProfileHeader } from '../profile-header';
 import { styles } from '../profile-screen.styles';
 import {
+  canRoleUploadDocuments,
   getProfileDisplayName,
   getProfileInitials,
   useProfileSettingsStore,
@@ -32,6 +33,7 @@ export default function ProfileScreen() {
     : getProfileInitials(account);
   const displayName = profileName || getProfileDisplayName(account);
   const displayEmail = userProfile?.email ?? account.email;
+  const displayRole = userProfile?.role ?? account.role;
 
   const handleSignOut = async () => {
     if (isSigningOut) {
@@ -61,7 +63,7 @@ export default function ProfileScreen() {
           <ProfileSummaryCard
             initials={profileInitials}
             name={displayName}
-            role={account.role}
+            role={displayRole}
             email={displayEmail}
             isLoading={userProfileQuery.isLoading}
           />
@@ -127,7 +129,7 @@ export default function ProfileScreen() {
             onPressDocuments={() => router.push('/(tabs)/documents')}
             onPressProfile={() => {}}
             onPressUpload={() => router.push('/upload')}
-            showUpload={account.role.toLowerCase() !== 'viewer'}
+            showUpload={canRoleUploadDocuments(userProfile?.role)}
           />
         </View>
       </View>
