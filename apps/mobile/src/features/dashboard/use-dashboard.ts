@@ -82,16 +82,28 @@ function getInvitationActivity(invitation: InvitationResponse): DashboardRecentA
   };
 }
 
-export function useDashboard() {
+type UseDashboardOptions = {
+  includeInvitations?: boolean;
+};
+
+export function useDashboard({ includeInvitations = false }: UseDashboardOptions = {}) {
   const documentsQuery = useDocuments();
-  const invitationsQuery = useAdminInvitationsApi();
+  const invitationsQuery = useAdminInvitationsApi({ enabled: includeInvitations });
   const refetch = useCallback(async () => {
-    await Promise.all([documentsQuery.refetch(), invitationsQuery.refetch()]);
-  }, [documentsQuery, invitationsQuery]);
+    const refetches: Promise<unknown>[] = [documentsQuery.refetch()];
+
+    if (includeInvitations) {
+      refetches.push(invitationsQuery.refetch());
+    }
+
+    await Promise.all(refetches);
+  }, [documentsQuery, includeInvitations, invitationsQuery]);
 
   return useMemo(() => {
     const documents = documentsQuery.data ?? [];
-    const invitations = invitationsQuery.data?.invitations ?? [];
+    const invitations = includeInvitations
+      ? invitationsQuery.data?.invitations ?? []
+      : [];
     const documentsCount = documents.length;
     const anchoredOnChainCount = documents.filter(
       (doc) => doc.status === 'COMPLETED',
@@ -115,14 +127,19 @@ export function useDashboard() {
       processingCount,
       pendingSharedDocumentsCount: pendingInvitationCount,
       recentActivities,
-      isLoading: documentsQuery.isLoading || invitationsQuery.isLoading,
-      isRefetching: documentsQuery.isRefetching || invitationsQuery.isRefetching,
+      isLoading:
+        documentsQuery.isLoading ||
+        (includeInvitations && invitationsQuery.isLoading),
+      isRefetching:
+        documentsQuery.isRefetching ||
+        (includeInvitations && invitationsQuery.isRefetching),
       refetch,
     };
   }, [
     documentsQuery.data,
     documentsQuery.isLoading,
     documentsQuery.isRefetching,
+    includeInvitations,
     invitationsQuery.data,
     invitationsQuery.isLoading,
     invitationsQuery.isRefetching,
