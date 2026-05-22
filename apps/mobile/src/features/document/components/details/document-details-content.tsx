@@ -31,12 +31,14 @@ type DetailSection = {
 
 type DocumentDetailsContentProps = {
   allowedCount: number;
+  anchoredAt?: number;
   canManageWhitelist: boolean;
   canNotarizeDocument: boolean;
   document?: DocumentDetailsDocument;
   errorMessage?: string;
   extractedSections: DetailSection[];
   isLoading: boolean;
+  isAnchorTimeLoading: boolean;
   isNotarizing: boolean;
   isViewer: boolean;
   partyNames: string[];
@@ -51,12 +53,14 @@ type DocumentDetailsContentProps = {
 
 export function DocumentDetailsContent({
   allowedCount,
+  anchoredAt,
   canManageWhitelist,
   canNotarizeDocument,
   document,
   errorMessage,
   extractedSections,
   isLoading,
+  isAnchorTimeLoading,
   isNotarizing,
   isViewer,
   partyNames,
@@ -109,8 +113,8 @@ export function DocumentDetailsContent({
       />
 
       <DocumentStatusCard
-        status={document.status}
-        uploadedAt={document.updated_at}
+        anchoredAt={anchoredAt}
+        isAnchorTimeLoading={isAnchorTimeLoading}
         onChain={document.on_chain}
       />
 
