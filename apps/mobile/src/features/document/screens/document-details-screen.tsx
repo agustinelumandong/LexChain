@@ -60,7 +60,7 @@ export default function DocumentDetailsScreen() {
   const qaMutation = useAskDocument();
   const { mutate: askDocument } = qaMutation;
   const canManageWhitelist = canRoleUploadDocuments(userProfileQuery.data?.role);
-  const canUseDocumentAssistant = canManageWhitelist;
+  const canUseDocumentAssistant = Boolean(documentId);
   const currentDocumentRole = canManageWhitelist ? 'owner' : 'viewer';
   const isViewer = currentDocumentRole === 'viewer';
   const isAnchored = Boolean(document?.on_chain);
