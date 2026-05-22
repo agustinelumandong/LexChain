@@ -17,6 +17,7 @@ import {
   useRemoveDocumentParty,
   useUserProfile,
   useUserSearch,
+  useVerifyOnChainDocument,
 } from '@/services/query';
 import { parseApiError } from '@/shared/utils/api-error';
 import { APP_COLORS } from '@/theme';
@@ -63,6 +64,7 @@ export default function DocumentDetailsScreen() {
   const currentDocumentRole = canManageWhitelist ? 'owner' : 'viewer';
   const isViewer = currentDocumentRole === 'viewer';
   const isAnchored = Boolean(document?.on_chain);
+  const onChainQuery = useVerifyOnChainDocument(documentId, isAnchored);
   const canNotarizeDocument =
     canManageWhitelist && document?.status === 'COMPLETED' && !isAnchored;
   const { pdfUri, versionHistory } = useDocumentFileVersion({
@@ -167,6 +169,7 @@ export default function DocumentDetailsScreen() {
         >
           <DocumentDetailsContent
             allowedCount={whitelistData.grants.length}
+            anchoredAt={onChainQuery.data?.onchain_timestamp}
             canManageWhitelist={canManageWhitelist}
             canNotarizeDocument={canNotarizeDocument}
             document={document}
@@ -174,6 +177,7 @@ export default function DocumentDetailsScreen() {
               documentQuery.error ? parseApiError(documentQuery.error).message : undefined
             }
             extractedSections={extractedSections}
+            isAnchorTimeLoading={isAnchored && onChainQuery.isLoading}
             isLoading={documentQuery.isLoading}
             isNotarizing={notarizeMutation.isPending}
             isViewer={isViewer}
