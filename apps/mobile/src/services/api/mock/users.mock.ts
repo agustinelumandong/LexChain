@@ -32,6 +32,7 @@ export const mockUsersApi = {
       f_name: 'Atty.',
       l_name: 'Reyes',
       avatar: 'icon-1',
+      role: 'lawyer',
     };
   },
 

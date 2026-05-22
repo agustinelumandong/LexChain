@@ -12,9 +12,12 @@ export type {
   AdminDashboardResponse,
   AdminUserListResponse,
   AdminUserResponse,
+  AccountRole,
   CreateInvitationRequest,
+  InvitationRole,
   InvitationListResponse,
   InvitationResponse,
+  UserPositionRole,
 } from './admin.api';
 export type {
   OnChainVerificationResponse,
