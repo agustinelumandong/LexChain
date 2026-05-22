@@ -1,6 +1,7 @@
 import { env, requireApiUrl } from '@/shared/config';
 import { authTokenStorage } from '@/shared/utils/secure-storage';
 import { parseApiError } from '@/shared/utils/api-error';
+import { handleExpiredSession } from '@/features/auth/session-expiration';
 
 type RequestOptions = RequestInit & {
   auth?: boolean;
@@ -59,6 +60,10 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
   const data = await parseResponse(response);
 
   if (!response.ok) {
+    if (response.status === 401 && options.auth !== false) {
+      await handleExpiredSession();
+    }
+
     throw parseApiError({
       response: {
         status: response.status,
