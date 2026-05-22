@@ -1237,6 +1237,11 @@ export interface components {
              * @default icon1
              */
             avatar: string;
+            /**
+             * Role
+             * @description User role
+             */
+            role: string;
         };
         /** UserSearchResponse */
         UserSearchResponse: {
