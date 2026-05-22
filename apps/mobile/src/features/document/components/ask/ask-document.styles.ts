@@ -72,6 +72,8 @@ export const askDocumentStyles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 18,
     gap: 12,
+    flexGrow: 1,
+    justifyContent: 'flex-end',
   },
   assistantMessageRow: {
     flexDirection: 'row',
