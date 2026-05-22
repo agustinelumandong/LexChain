@@ -8,6 +8,16 @@ import { handleExpiredSession } from '@/features/auth/session-expiration';
 
 const baseUrl = env.useMockApi ? '' : requireApiUrl().replace(/\/$/, '');
 
+function getBearerToken(request: Request) {
+  const authorization = request.headers.get('Authorization');
+
+  if (!authorization?.startsWith('Bearer ')) {
+    return null;
+  }
+
+  return authorization.slice('Bearer '.length);
+}
+
 const authMiddleware: Middleware = {
   async onRequest({ request }) {
     const token = await authTokenStorage.get();
@@ -18,9 +28,9 @@ const authMiddleware: Middleware = {
 
     return request;
   },
-  async onResponse({ response }) {
+  async onResponse({ request, response }) {
     if (response.status === 401) {
-      await handleExpiredSession();
+      await handleExpiredSession(getBearerToken(request));
     }
 
     return response;
