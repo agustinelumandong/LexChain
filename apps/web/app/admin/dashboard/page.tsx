@@ -37,7 +37,7 @@ async function getDashboard(): Promise<DashboardData> {
   if (useMock) {
     return {
       total_users: adminStats.total_users,
-      total_lawyers: adminStats.total_document_issuers,
+      total_lawyers: adminStats.total_lawyers,
       total_documents: adminStats.total_documents,
       total_processed: adminStats.processed_documents,
       total_failed: adminStats.failed_documents,
