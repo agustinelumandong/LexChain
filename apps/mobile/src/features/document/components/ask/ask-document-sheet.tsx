@@ -61,12 +61,14 @@ export function AskDocumentSheet({
         resetKey={askSheet.composerResetKey}
         onSubmit={askSheet.handleSubmitQuestion}
         onFocusComposer={askSheet.handleFocusComposer}
+        onLayoutComposer={askSheet.handleComposerLayout}
         animatedStyle={askSheet.composerAnimatedStyle}
       />
     ),
     [
       askSheet.composerAnimatedStyle,
       askSheet.composerResetKey,
+      askSheet.handleComposerLayout,
       askSheet.handleFocusComposer,
       askSheet.handleSubmitQuestion,
       askSheet.insets.bottom,
@@ -110,7 +112,10 @@ export function AskDocumentSheet({
         <BottomSheetScrollView
           ref={askSheet.scrollViewRef}
           style={styles.scrollArea}
-          contentContainerStyle={[styles.scrollContent, { paddingBottom: 420 }]}
+          contentContainerStyle={[
+            styles.scrollContent,
+            { paddingBottom: askSheet.scrollBottomPadding },
+          ]}
           onContentSizeChange={askSheet.scrollToLatestMessage}
           keyboardDismissMode="none"
           keyboardShouldPersistTaps="handled"

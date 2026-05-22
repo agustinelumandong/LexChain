@@ -1,5 +1,6 @@
 import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Keyboard, Platform } from 'react-native';
 import {
   useAnimatedKeyboard,
   useAnimatedStyle,
@@ -36,9 +37,12 @@ export function useAskDocumentSheet({
   const insets = useSafeAreaInsets();
   const [lastAnswer, setLastAnswer] = useState<string | undefined>();
   const [composerResetKey, setComposerResetKey] = useState(0);
+  const [composerHeight, setComposerHeight] = useState(104);
+  const [keyboardLift, setKeyboardLift] = useState(0);
   const [messages, setMessages] = useState<AskDocumentChatMessage[]>([WELCOME_MESSAGE]);
 
-  const snapPoints = useMemo(() => ['70%', '95%'], []);
+  const snapPoints = useMemo(() => ['95%'], []);
+  const scrollBottomPadding = composerHeight + keyboardLift + 20;
   const keyboard = useAnimatedKeyboard();
   const composerAnimatedStyle = useAnimatedStyle(() => ({
     transform: [
@@ -53,8 +57,14 @@ export function useAskDocumentSheet({
     onClose();
   }, [onClose]);
 
+  const handleComposerLayout = useCallback((nextHeight: number) => {
+    setComposerHeight((currentHeight) =>
+      currentHeight === nextHeight ? currentHeight : nextHeight,
+    );
+  }, []);
+
   const handleFocusComposer = useCallback(() => {
-    bottomSheetRef.current?.snapToIndex(1);
+    bottomSheetRef.current?.snapToIndex(0);
   }, []);
 
   const scrollToLatestMessage = useCallback(() => {
@@ -124,6 +134,29 @@ export function useAskDocumentSheet({
     }
   }, [isLoading, scrollToLatestMessage]);
 
+  useEffect(() => {
+    if (visible) {
+      scrollToLatestMessage();
+    }
+  }, [keyboardLift, scrollToLatestMessage, visible]);
+
+  useEffect(() => {
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+
+    const showSubscription = Keyboard.addListener(showEvent, (event) => {
+      setKeyboardLift(Math.max(0, event.endCoordinates.height - insets.bottom));
+    });
+    const hideSubscription = Keyboard.addListener(hideEvent, () => {
+      setKeyboardLift(0);
+    });
+
+    return () => {
+      showSubscription.remove();
+      hideSubscription.remove();
+    };
+  }, [insets.bottom]);
+
   return {
     bottomSheetRef,
     scrollViewRef,
@@ -132,7 +165,9 @@ export function useAskDocumentSheet({
     snapPoints,
     composerResetKey,
     composerAnimatedStyle,
+    scrollBottomPadding,
     handleDismiss,
+    handleComposerLayout,
     handleFocusComposer,
     handleSubmitQuestion,
     scrollToLatestMessage,
