@@ -6,7 +6,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { SearchInputWithResults, BottomNav } from '@/ui';
-import { useProfileSettingsStore } from '@/features/profile';
+import { canRoleUploadDocuments } from '@/features/profile';
+import { useUserProfile } from '@/services/query';
 import type { DocumentSortKey, DocumentTypeKey } from '@/types';
 import { DocumentResultCard } from '@/features/documents/components/list/document-result-card';
 import { DocumentsFilterControls } from '@/features/documents/components/filter/documents-filter-controls';
@@ -30,7 +31,8 @@ import type {
 
 export default function DocumentsScreen() {
   const router = useRouter();
-  const account = useProfileSettingsStore((state) => state.account);
+  const userProfileQuery = useUserProfile();
+  const userProfile = userProfileQuery.data;
   const isOpeningDocumentRef = useRef(false);
   const screen = useDocumentsScreen();
 
@@ -152,7 +154,7 @@ export default function DocumentsScreen() {
             onPressDocuments={() => {}}
             onPressProfile={() => router.push('/(tabs)/profile')}
             onPressUpload={() => router.push('/upload')}
-            showUpload={account.role.toLowerCase() !== 'viewer'}
+            showUpload={canRoleUploadDocuments(userProfile?.role)}
           />
         </View>
       </View>
