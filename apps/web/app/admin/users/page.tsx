@@ -39,12 +39,12 @@ export default async function AdminUsersPage() {
   const data = await getUsers();
 
   const active = data.users.filter((u) => u.is_active ?? u.status === "active").length;
-  const admins = data.users.filter((u) => u.role === "admin" || u.role === "super_admin").length;
+  const admins = data.users.filter((u) => u.role === "admin").length;
 
   const stats: StatCardData[] = [
     { label: "Total Users", value: data.total, detail: "Registered accounts", icon: <PeopleIcon fontSize="small" />, color: "blue" },
     { label: "Active Users", value: active, detail: "Currently active", icon: <CheckCircleIcon fontSize="small" />, color: "green" },
-    { label: "Super Admins", value: admins, detail: "Privileged accounts", icon: <ShieldIcon fontSize="small" />, color: "purple" },
+    { label: "Admins", value: admins, detail: "Privileged system accounts", icon: <ShieldIcon fontSize="small" />, color: "purple" },
   ];
 
   return (

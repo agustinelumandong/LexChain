@@ -21,19 +21,16 @@ type AdminUser = {
 
 function formatRole(role: string) {
   switch (role) {
-    case "admin":
-    case "super_admin": return "Super Admin";
-    case "document_issuer": return "Document Issuer";
-    case "public_verifier": return "Verifier";
-    case "witness": return "Witness";
+    case "admin": return "Admin";
+    case "lawyer": return "Lawyer";
+    case "user": return "User";
     default: return role;
   }
 }
 
 function getRoleBadgeClass(role: string) {
   switch (role) {
-    case "admin":
-    case "super_admin": return "bg-[#f5f3ff] text-[#7c3aed]";
+    case "admin": return "bg-[#f5f3ff] text-[#7c3aed]";
     case "lawyer": return "bg-[#dbeafe] text-[#2563eb]";
     case "user": return "bg-[#f0f9ff] text-[#0284c7]";
     default: return "bg-[#f1f5f9] text-[#64748b]";
