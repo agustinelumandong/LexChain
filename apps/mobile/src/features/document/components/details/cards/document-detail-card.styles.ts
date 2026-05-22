@@ -42,6 +42,24 @@ export const documentDetailCardStyles = StyleSheet.create({
     fontWeight: '800',
     marginTop: 2,
   },
+  partyNameList: {
+    gap: 4,
+    marginTop: 8,
+  },
+  partyName: {
+    color: APP_COLORS.navy,
+    fontFamily: fonts.regular,
+    fontSize: 13,
+    lineHeight: 17,
+    fontWeight: '700',
+  },
+  partyNameMuted: {
+    color: APP_COLORS.textMuted,
+    fontFamily: fonts.regular,
+    fontSize: 12,
+    lineHeight: 16,
+    fontWeight: '700',
+  },
   accessAction: {
     minWidth: 104,
   },
