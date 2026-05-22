@@ -16,7 +16,11 @@ import type { SupabaseUser } from '@/types';
 import { DashboardKpiCard, DashboardKpiSkeleton } from './dashboard-kpi-card';
 import { COLORS, styles } from './dashboard-overview.styles';
 import { useDashboard } from './use-dashboard';
-import { getProfileDisplayName, useProfileSettingsStore } from '@/features/profile';
+import {
+  canRoleUploadDocuments,
+  getProfileDisplayName,
+  useProfileSettingsStore,
+} from '@/features/profile';
 
 const ACTIVITY_STATUS_STYLES = {
   success: styles.activityStatusSuccess,
@@ -29,10 +33,11 @@ export function DashboardOverview() {
   const queryClient = useQueryClient();
   const account = useProfileSettingsStore((state) => state.account);
   const currentUser = queryClient.getQueryData<SupabaseUser>(queryKeys.auth.currentUser);
-  const dashboardStats = useDashboard();
   const userProfileQuery = useUserProfile();
-  const unreadNotificationCountQuery = useUnreadNotificationCount();
   const userProfile = userProfileQuery.data;
+  const isLawyer = canRoleUploadDocuments(userProfile?.role);
+  const dashboardStats = useDashboard({ includeInvitations: isLawyer });
+  const unreadNotificationCountQuery = useUnreadNotificationCount();
   const unreadNotificationCount = unreadNotificationCountQuery.data?.unread ?? 0;
   const userMetadata = currentUser?.user_metadata;
   const authDisplayName = [userMetadata?.f_name, userMetadata?.l_name]
@@ -43,6 +48,25 @@ export function DashboardOverview() {
     ? [userProfile.f_name, userProfile.l_name].filter(Boolean).join(' ').trim()
     : '';
   const displayName = profileDisplayName || authDisplayName || getProfileDisplayName(account);
+  const dashboardCopy = isLawyer
+    ? {
+        description: 'Manage and verify your legal documents',
+        firstMetric: 'Total Documents',
+        secondMetric: 'Processing',
+        thirdMetric: 'Anchored On-Chain',
+        fourthMetric: 'Pending Invitations',
+        activityHeading: 'Recent Activity',
+        emptyActivity: 'Upload, share, or anchor a document to see updates here.',
+      }
+    : {
+        description: 'View shared documents and verification activity',
+        firstMetric: 'Shared Documents',
+        secondMetric: 'Owned Documents',
+        thirdMetric: 'Verified Documents',
+        fourthMetric: 'Recent Access',
+        activityHeading: 'Shared Document Activity',
+        emptyActivity: 'Shared documents and verification updates will appear here.',
+      };
 
   return (
     <SafeAreaView style={styles.screen}>
@@ -69,7 +93,7 @@ export function DashboardOverview() {
                   Good morning, {displayName}
                 </Text>
                 <Text style={styles.description}>
-                  Manage and verify your legal documents
+                  {dashboardCopy.description}
                 </Text>
               </View>
 
@@ -100,7 +124,7 @@ export function DashboardOverview() {
                 <DashboardKpiSkeleton />
               ) : (
                 <DashboardKpiCard
-                  label="Total Documents"
+                  label={dashboardCopy.firstMetric}
                   value={`${dashboardStats.documentsCount}`}
                   tone={dashboardStats.documentsCount > 0 ? 'positive' : 'warning'}
                 />
@@ -111,7 +135,7 @@ export function DashboardOverview() {
                 <DashboardKpiSkeleton />
               ) : (
                 <DashboardKpiCard
-                  label="Processing"
+                  label={dashboardCopy.secondMetric}
                   value={`${dashboardStats.processingCount}`}
                   tone={dashboardStats.processingCount > 0 ? 'warning' : 'positive'}
                 />
@@ -125,7 +149,7 @@ export function DashboardOverview() {
                 <DashboardKpiSkeleton />
               ) : (
                 <DashboardKpiCard
-                  label="Anchored On-Chain"
+                  label={dashboardCopy.thirdMetric}
                   value={`${dashboardStats.anchoredOnChainCount}`}
                   tone={dashboardStats.anchoredOnChainCount > 0 ? 'positive' : 'warning'}
                 />
@@ -136,10 +160,16 @@ export function DashboardOverview() {
                 <DashboardKpiSkeleton />
               ) : (
                 <DashboardKpiCard
-                  label="Pending Invitations / Shared Documents"
-                  value={`${dashboardStats.pendingSharedDocumentsCount}`}
+                  label={dashboardCopy.fourthMetric}
+                  value={
+                    isLawyer
+                      ? `${dashboardStats.pendingSharedDocumentsCount}`
+                      : `${dashboardStats.recentActivities.length}`
+                  }
                   tone={
-                    dashboardStats.pendingSharedDocumentsCount > 0 ? 'warning' : 'positive'
+                    isLawyer && dashboardStats.pendingSharedDocumentsCount > 0
+                      ? 'warning'
+                      : 'positive'
                   }
                 />
               )}
@@ -147,7 +177,7 @@ export function DashboardOverview() {
           </View>
 
           <View style={styles.activityGroup}>
-            <Text style={styles.activityHeading}>Recent Activity</Text>
+            <Text style={styles.activityHeading}>{dashboardCopy.activityHeading}</Text>
             {dashboardStats.recentActivities.length > 0 ? (
               dashboardStats.recentActivities.map((activity) => {
                 const documentId = activity.id.startsWith('document-')
@@ -196,7 +226,7 @@ export function DashboardOverview() {
               <View style={styles.activityRow}>
                 <Text style={styles.activityText}>No recent activity yet</Text>
                 <Text style={styles.activityDetail}>
-                  Upload, share, or anchor a document to see updates here.
+                  {dashboardCopy.emptyActivity}
                 </Text>
               </View>
             )}
@@ -210,7 +240,7 @@ export function DashboardOverview() {
             onPressDocuments={() => router.push('/(tabs)/documents')}
             onPressProfile={() => router.push('/(tabs)/profile')}
             onPressUpload={() => router.push('/upload')}
-            showUpload={account.role.toLowerCase() !== 'viewer'}
+            showUpload={isLawyer}
           />
         </View>
       </View>
