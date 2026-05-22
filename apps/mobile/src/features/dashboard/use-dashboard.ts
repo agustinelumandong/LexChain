@@ -1,7 +1,7 @@
 import { useCallback, useMemo } from 'react';
 
-import type { DocumentListItem, InvitationResponse } from '@/services/api';
-import { useAdminInvitationsApi, useDocuments } from '@/services/query';
+import type { DocumentListItem } from '@/services/api';
+import { useDocuments } from '@/services/query';
 
 export type DashboardRecentActivity = {
   id: string;
@@ -12,6 +12,21 @@ export type DashboardRecentActivity = {
   status: string;
   tone: 'success' | 'warning' | 'info';
 };
+
+const MOCK_DOCUMENT_PARTICIPANT_INVITES = [
+  {
+    id: 'mock-participant-invite-1',
+    documentTitle: 'Service Agreement.pdf',
+    participantName: 'Maria Santos',
+    invitedAt: '2026-05-22T08:30:00.000Z',
+  },
+  {
+    id: 'mock-participant-invite-2',
+    documentTitle: 'Lease Contract.pdf',
+    participantName: 'Juan Dela Cruz',
+    invitedAt: '2026-05-21T14:15:00.000Z',
+  },
+];
 
 function formatActivityTime(value: string) {
   const date = new Date(value);
@@ -66,44 +81,20 @@ function getDocumentActivity(document: DocumentListItem): DashboardRecentActivit
   };
 }
 
-function getInvitationActivity(invitation: InvitationResponse): DashboardRecentActivity {
-  const normalizedStatus = invitation.status.toLowerCase();
-  const isAccepted = normalizedStatus === 'accepted';
-  const isPending = normalizedStatus === 'pending';
-
-  return {
-    id: `invitation-${invitation.id}`,
-    title: `${invitation.email} ${isAccepted ? 'accepted invite' : 'invite updated'}`,
-    detail: `${invitation.role} invitation is ${invitation.status}.`,
-    time: formatActivityTime(invitation.created_at),
-    timestamp: invitation.created_at,
-    status: isAccepted ? 'Accepted' : isPending ? 'Pending' : invitation.status,
-    tone: isAccepted ? 'info' : isPending ? 'warning' : 'success',
-  };
-}
-
 type UseDashboardOptions = {
-  includeInvitations?: boolean;
+  includeMockParticipantInvites?: boolean;
 };
 
-export function useDashboard({ includeInvitations = false }: UseDashboardOptions = {}) {
+export function useDashboard({
+  includeMockParticipantInvites = false,
+}: UseDashboardOptions = {}) {
   const documentsQuery = useDocuments();
-  const invitationsQuery = useAdminInvitationsApi({ enabled: includeInvitations });
   const refetch = useCallback(async () => {
-    const refetches: Promise<unknown>[] = [documentsQuery.refetch()];
-
-    if (includeInvitations) {
-      refetches.push(invitationsQuery.refetch());
-    }
-
-    await Promise.all(refetches);
-  }, [documentsQuery, includeInvitations, invitationsQuery]);
+    await documentsQuery.refetch();
+  }, [documentsQuery]);
 
   return useMemo(() => {
     const documents = documentsQuery.data ?? [];
-    const invitations = includeInvitations
-      ? invitationsQuery.data?.invitations ?? []
-      : [];
     const documentsCount = documents.length;
     const anchoredOnChainCount = documents.filter(
       (doc) => doc.status === 'COMPLETED',
@@ -111,38 +102,41 @@ export function useDashboard({ includeInvitations = false }: UseDashboardOptions
     const processingCount = documents.filter(
       (doc) => doc.status === 'PROCESSING' || doc.status === 'QUEUED',
     ).length;
-    const pendingInvitationCount = invitations.filter(
-      (invitation) => invitation.status.toLowerCase() === 'pending',
-    ).length;
-    const recentActivities = [
-      ...documents.map(getDocumentActivity),
-      ...invitations.map(getInvitationActivity),
-    ]
+    const recentActivities = documents
+      .map(getDocumentActivity)
+      .concat(
+        includeMockParticipantInvites
+          ? MOCK_DOCUMENT_PARTICIPANT_INVITES.map((invite) => ({
+              id: invite.id,
+              title: `${invite.participantName} invited to participate`,
+              detail: invite.documentTitle,
+              time: formatActivityTime(invite.invitedAt),
+              timestamp: invite.invitedAt,
+              status: 'Invite',
+              tone: 'info' as const,
+            }))
+          : [],
+      )
       .sort((left, right) => right.timestamp.localeCompare(left.timestamp))
       .slice(0, 3);
 
     return {
       documentsCount,
       anchoredOnChainCount,
+      pendingParticipantInvitesCount: includeMockParticipantInvites
+        ? MOCK_DOCUMENT_PARTICIPANT_INVITES.length
+        : 0,
       processingCount,
-      pendingSharedDocumentsCount: pendingInvitationCount,
       recentActivities,
-      isLoading:
-        documentsQuery.isLoading ||
-        (includeInvitations && invitationsQuery.isLoading),
-      isRefetching:
-        documentsQuery.isRefetching ||
-        (includeInvitations && invitationsQuery.isRefetching),
+      isLoading: documentsQuery.isLoading,
+      isRefetching: documentsQuery.isRefetching,
       refetch,
     };
   }, [
     documentsQuery.data,
     documentsQuery.isLoading,
     documentsQuery.isRefetching,
-    includeInvitations,
-    invitationsQuery.data,
-    invitationsQuery.isLoading,
-    invitationsQuery.isRefetching,
+    includeMockParticipantInvites,
     refetch,
   ]);
 }

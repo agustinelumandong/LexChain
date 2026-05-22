@@ -36,7 +36,7 @@ export function DashboardOverview() {
   const userProfileQuery = useUserProfile();
   const userProfile = userProfileQuery.data;
   const isLawyer = canRoleUploadDocuments(userProfile?.role);
-  const dashboardStats = useDashboard({ includeInvitations: isLawyer });
+  const dashboardStats = useDashboard({ includeMockParticipantInvites: isLawyer });
   const unreadNotificationCountQuery = useUnreadNotificationCount();
   const unreadNotificationCount = unreadNotificationCountQuery.data?.unread ?? 0;
   const userMetadata = currentUser?.user_metadata;
@@ -54,7 +54,7 @@ export function DashboardOverview() {
         firstMetric: 'Total Documents',
         secondMetric: 'Processing',
         thirdMetric: 'Anchored On-Chain',
-        fourthMetric: 'Pending Invitations',
+        fourthMetric: 'Pending Invites',
         activityHeading: 'Recent Activity',
         emptyActivity: 'Upload, share, or anchor a document to see updates here.',
       }
@@ -163,11 +163,11 @@ export function DashboardOverview() {
                   label={dashboardCopy.fourthMetric}
                   value={
                     isLawyer
-                      ? `${dashboardStats.pendingSharedDocumentsCount}`
+                      ? `${dashboardStats.pendingParticipantInvitesCount}`
                       : `${dashboardStats.recentActivities.length}`
                   }
                   tone={
-                    isLawyer && dashboardStats.pendingSharedDocumentsCount > 0
+                    isLawyer && dashboardStats.pendingParticipantInvitesCount > 0
                       ? 'warning'
                       : 'positive'
                   }
