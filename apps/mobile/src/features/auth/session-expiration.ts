@@ -1,12 +1,24 @@
 import { router } from 'expo-router';
 import { toast } from 'sonner-native';
 
+import { authTokenStorage } from '@/shared/utils/secure-storage';
+
 import { clearSessionData } from './session-cleanup';
 
 let isHandlingExpiredSession = false;
 
-export async function handleExpiredSession() {
+export async function handleExpiredSession(requestToken?: string | null) {
   if (isHandlingExpiredSession) {
+    return;
+  }
+
+  if (!requestToken) {
+    return;
+  }
+
+  const currentToken = await authTokenStorage.get();
+
+  if (currentToken !== requestToken) {
     return;
   }
 
