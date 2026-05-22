@@ -15,11 +15,13 @@ import {
   useNotarizeDocument,
   useRenameDocument,
   useRemoveDocumentParty,
+  useUserProfile,
   useUserSearch,
 } from '@/services/query';
 import { parseApiError } from '@/shared/utils/api-error';
 import { APP_COLORS } from '@/theme';
 import botQuestionMarkImage from '@/assets/images/lexchain-bot-question-mark.png';
+import { canRoleUploadDocuments } from '@/features/profile';
 
 import { HEADER_CONTENT_GAP } from '../constants/document-details.constants';
 import { DocumentDetailsContent } from '../components/details/document-details-content';
@@ -45,6 +47,7 @@ export default function DocumentDetailsScreen() {
   const addPartyMutation = useAddDocumentParty();
   const removePartyMutation = useRemoveDocumentParty();
   const document = documentQuery.data as DocumentDetailsDocument | undefined;
+  const userProfileQuery = useUserProfile();
 
   const [headerHeight, setHeaderHeight] = useState(126);
   const sheets = useDocumentDetailsSheets();
@@ -55,11 +58,13 @@ export default function DocumentDetailsScreen() {
   );
   const qaMutation = useAskDocument();
   const { mutate: askDocument } = qaMutation;
-  const canManageWhitelist = true;
+  const canManageWhitelist = canRoleUploadDocuments(userProfileQuery.data?.role);
+  const canUseDocumentAssistant = canManageWhitelist;
   const currentDocumentRole = canManageWhitelist ? 'owner' : 'viewer';
   const isViewer = currentDocumentRole === 'viewer';
   const isAnchored = Boolean(document?.on_chain);
-  const canNotarizeDocument = document?.status === 'COMPLETED' && !isAnchored;
+  const canNotarizeDocument =
+    canManageWhitelist && document?.status === 'COMPLETED' && !isAnchored;
   const { pdfUri, versionHistory } = useDocumentFileVersion({
     document,
     versions: versionHistoryQuery.data?.versions,
@@ -138,8 +143,8 @@ export default function DocumentDetailsScreen() {
           title={document?.file_name ?? 'Document details'}
           subtitle="AI summary, verification status, ownership history, risk review, and searchable details."
           leftAccessibilityLabel="Back to documents"
-          rightIconName="menu"
-          rightAccessibilityLabel="Open document menu"
+          rightIconName={isViewer ? undefined : 'menu'}
+          rightAccessibilityLabel={isViewer ? undefined : 'Open document menu'}
           onPressLeft={() => router.back()}
           onPressRight={isViewer ? undefined : () => {
             router.push({
@@ -172,6 +177,7 @@ export default function DocumentDetailsScreen() {
             isLoading={documentQuery.isLoading}
             isNotarizing={notarizeMutation.isPending}
             isViewer={isViewer}
+            partyNames={whitelistData.grants.map((grant) => grant.name)}
             riskSections={riskSections}
             versionHistory={versionHistory}
             onPressManageWhitelist={() => sheets.setIsWhitelistSheetVisible(true)}
@@ -198,24 +204,26 @@ export default function DocumentDetailsScreen() {
           />
         </ScrollView>
 
-        <LinearGradient
-          colors={[
-            'rgba(243, 248, 255, 0)',
-            APP_COLORS.borderSoft,
-          ]}
-          pointerEvents="box-none"
-          style={styles.footer}
-        >
-          <Button
-            imageSource={botQuestionMarkImage}
-            size="md"
-            accessibilityLabel="Bot"
-            imageSize={32}
-            fullRound
-            hugWidth
-            onPress={() => sheets.setIsAskSheetVisible(true)}
-          />
-        </LinearGradient>
+        {canUseDocumentAssistant ? (
+          <LinearGradient
+            colors={[
+              'rgba(243, 248, 255, 0)',
+              APP_COLORS.borderSoft,
+            ]}
+            pointerEvents="box-none"
+            style={styles.footer}
+          >
+            <Button
+              imageSource={botQuestionMarkImage}
+              size="md"
+              accessibilityLabel="Bot"
+              imageSize={32}
+              fullRound
+              hugWidth
+              onPress={() => sheets.setIsAskSheetVisible(true)}
+            />
+          </LinearGradient>
+        ) : null}
       </View>
 
       <DocumentDetailsSheets
@@ -228,7 +236,7 @@ export default function DocumentDetailsScreen() {
         documentTitle={document?.file_name ?? 'this document'}
         isAddPartyPending={addPartyMutation.isPending}
         isAskLoading={qaMutation.isPending}
-        isAskSheetVisible={sheets.isAskSheetVisible}
+        isAskSheetVisible={canUseDocumentAssistant && sheets.isAskSheetVisible}
         isPartiesLoading={partiesQuery.isLoading}
         isRemovePartyPending={removePartyMutation.isPending}
         isRenameLoading={renameMutation.isPending}

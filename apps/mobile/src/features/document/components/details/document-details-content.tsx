@@ -39,6 +39,7 @@ type DocumentDetailsContentProps = {
   isLoading: boolean;
   isNotarizing: boolean;
   isViewer: boolean;
+  partyNames: string[];
   riskSections: DetailSection[];
   versionHistory: VersionHistoryItem[];
   onPressManageWhitelist: () => void;
@@ -58,6 +59,7 @@ export function DocumentDetailsContent({
   isLoading,
   isNotarizing,
   isViewer,
+  partyNames,
   riskSections,
   versionHistory,
   onPressManageWhitelist,
@@ -115,6 +117,7 @@ export function DocumentDetailsContent({
       <AccessControlCard
         allowedCountLabel={formatWhitelistCountLabel(allowedCount)}
         canManageWhitelist={canManageWhitelist}
+        partyNames={partyNames}
         onPressManage={onPressManageWhitelist}
       />
 

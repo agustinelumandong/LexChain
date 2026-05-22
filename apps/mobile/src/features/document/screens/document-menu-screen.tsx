@@ -4,15 +4,17 @@ import { ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { toast } from 'sonner-native';
 
-import { ScreenHeader } from '@/ui';
+import { ErrorState, ScreenHeader } from '@/ui';
 import {
   useAddDocumentParty,
   useDocumentParties,
   useRenameDocument,
   useRemoveDocumentParty,
+  useUserProfile,
   useUserSearch,
 } from '@/services/query';
 import { parseApiError } from '@/shared/utils/api-error';
+import { canRoleUploadDocuments } from '@/features/profile';
 import { HEADER_CONTENT_GAP } from '@/features/document/constants/document-details.constants';
 import { ManageWhitelistBottomSheet } from '@/features/document/components/whitelist/manage-whitelist-bottom-sheet';
 import { RenameDocumentSheet } from '@/features/document/components/sheets/rename-document-sheet';
@@ -31,6 +33,8 @@ export default function DocumentMenuScreen() {
   }>();
   const documentId = getStringParam(params.documentId);
   const title = getStringParam(params.title) ?? 'Document';
+  const userProfileQuery = useUserProfile();
+  const canManageDocument = canRoleUploadDocuments(userProfileQuery.data?.role);
   const [headerHeight, setHeaderHeight] = useState(126);
   const [isRenameSheetVisible, setIsRenameSheetVisible] = useState(false);
   const [isUpdateSheetVisible, setIsUpdateSheetVisible] = useState(false);
@@ -122,11 +126,18 @@ export default function DocumentMenuScreen() {
           ]}
           showsVerticalScrollIndicator={false}
         >
-          <DocumentMenuActionsCard
-            onPressRename={() => setIsRenameSheetVisible(true)}
-            onPressUpdate={() => setIsUpdateSheetVisible(true)}
-            onPressManageAccess={() => setIsAccessSheetVisible(true)}
-          />
+          {canManageDocument ? (
+            <DocumentMenuActionsCard
+              onPressRename={() => setIsRenameSheetVisible(true)}
+              onPressUpdate={() => setIsUpdateSheetVisible(true)}
+              onPressManageAccess={() => setIsAccessSheetVisible(true)}
+            />
+          ) : (
+            <ErrorState
+              title="Document menu unavailable"
+              message="Only lawyers can rename, update, anchor, or manage access for documents."
+            />
+          )}
         </ScrollView>
       </View>
 
