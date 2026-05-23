@@ -31,7 +31,12 @@ export function useDocumentFileVersion({
     return buildVersionHistory({
       createdAt: document.created_at,
       status: document.status,
-    });
+    }).map((version) => ({
+      ...version,
+      documentId: document.document_id,
+      fileName: document.file_name,
+      uri: getDocumentPdfUri(document),
+    }));
   }, [document, versions]);
 
   const pdfUri = useMemo(() => {

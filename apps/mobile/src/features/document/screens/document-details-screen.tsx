@@ -1,12 +1,14 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useQueryClient } from '@tanstack/react-query';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { toast } from 'sonner-native';
 
 import { Button, ScreenHeader } from '@/ui';
 import {
+  queryKeys,
   useAddDocumentParty,
   useAskDocument,
   useDocument,
@@ -19,6 +21,7 @@ import {
   useUserSearch,
   useVerifyOnChainDocument,
 } from '@/services/query';
+import { documentsApi } from '@/services/api';
 import { parseApiError } from '@/shared/utils/api-error';
 import { APP_COLORS } from '@/theme';
 import botQuestionMarkImage from '@/assets/images/lexchain-bot-question-mark.png';
@@ -30,14 +33,19 @@ import { DocumentDetailsSheets } from '../components/details/document-details-sh
 import { useDocumentDetailsSheets } from '../hooks/use-document-details-sheets';
 import { useDocumentFileVersion } from '../hooks/use-document-file-version';
 import { useDocumentWhitelistActions } from '../hooks/use-document-whitelist-actions';
-import type { DocumentDetailsDocument } from '../types/document-details.types';
+import type {
+  DocumentDetailsDocument,
+  VersionHistoryItem,
+} from '../types/document-details.types';
 import {
   formatEntities,
   formatRiskFlags,
+  getDocumentPdfUri,
 } from '../utils/document-details-formatters';
 
 export default function DocumentDetailsScreen() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { id } = useLocalSearchParams<{ id: string }>();
   const documentId = Array.isArray(id) ? id[0] : id;
   const documentQuery = useDocument(documentId);
@@ -104,6 +112,46 @@ export default function DocumentDetailsScreen() {
       toast.error(parseApiError(error).message);
     }
   };
+
+  const handleOpenVersion = useCallback(async (version: VersionHistoryItem) => {
+    const versionDocumentId = version.documentId ?? version.id;
+
+    if (!versionDocumentId) {
+      return;
+    }
+
+    try {
+      let versionUri = version.uri ?? undefined;
+      let versionTitle = version.fileName ?? version.label;
+
+      if (version.isCurrent && document) {
+        versionUri = versionUri ?? pdfUri;
+        versionTitle = document.file_name;
+      }
+
+      if (!versionUri) {
+        const versionDocument = await queryClient.fetchQuery({
+          queryKey: queryKeys.documents.detail(versionDocumentId),
+          queryFn: () => documentsApi.getById(versionDocumentId),
+        });
+
+        versionUri = getDocumentPdfUri(versionDocument);
+        versionTitle = versionDocument.file_name;
+      }
+
+      router.push({
+        pathname: './pdf-viewer',
+        params: {
+          documentId: versionDocumentId,
+          title: version.isCurrent ? `${versionTitle} (Current)` : versionTitle,
+          uri: versionUri,
+          role: currentDocumentRole,
+        },
+      });
+    } catch (error) {
+      toast.error(parseApiError(error).message);
+    }
+  }, [currentDocumentRole, document, pdfUri, queryClient, router]);
 
   const riskSections = useMemo(() => {
     if (!document) {
@@ -202,6 +250,7 @@ export default function DocumentDetailsScreen() {
               });
             }}
             onPressSearch={() => sheets.setIsSearchSheetVisible(true)}
+            onPressVersion={handleOpenVersion}
             onRetry={() => {
               void documentQuery.refetch();
             }}
