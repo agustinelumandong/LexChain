@@ -127,6 +127,11 @@ export const documentDetailCardStyles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'stretch',
     gap: 12,
+    borderRadius: 16,
+    paddingRight: 4,
+  },
+  timelineRowPressed: {
+    backgroundColor: APP_COLORS.surfaceSoft,
   },
   timelineDateColumn: {
     width: 82,
@@ -202,6 +207,9 @@ export const documentDetailCardStyles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 17,
     fontWeight: '600',
+  },
+  versionViewIcon: {
+    alignSelf: 'center',
   },
   confidenceCard: {
     backgroundColor: APP_COLORS.white,
