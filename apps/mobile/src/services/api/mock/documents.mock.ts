@@ -1,5 +1,7 @@
 import {
   MOCK_DOCUMENT_DETAIL,
+  MOCK_DOCUMENT_DETAIL_VERSION_1,
+  MOCK_DOCUMENT_DETAIL_VERSION_2,
   MOCK_DOCUMENT_DETAIL_PROCESSING,
   MOCK_DOCUMENT_PARTIES_RESPONSE,
   MOCK_DOCUMENT_LIST,
@@ -35,6 +37,8 @@ import { mockDelay } from './delay';
 let mockDocumentList = [...MOCK_DOCUMENT_LIST];
 let mockDocumentDetails: Record<string, DocumentDetail> = {
   [MOCK_DOCUMENT_DETAIL.document_id]: MOCK_DOCUMENT_DETAIL,
+  [MOCK_DOCUMENT_DETAIL_VERSION_1.document_id]: MOCK_DOCUMENT_DETAIL_VERSION_1,
+  [MOCK_DOCUMENT_DETAIL_VERSION_2.document_id]: MOCK_DOCUMENT_DETAIL_VERSION_2,
   [MOCK_DOCUMENT_DETAIL_PROCESSING.document_id]: MOCK_DOCUMENT_DETAIL_PROCESSING,
 };
 
@@ -168,6 +172,11 @@ export const mockDocumentsApi = {
     await mockDelay();
 
     const detail = mockDocumentDetails[documentId] ?? buildFallbackDocumentDetail(documentId);
+    const isPrimaryMockDocument = documentId === MOCK_VERSION_HISTORY_RESPONSE.current_document_id;
+
+    if (isPrimaryMockDocument) {
+      return MOCK_VERSION_HISTORY_RESPONSE;
+    }
 
     return {
       ...MOCK_VERSION_HISTORY_RESPONSE,

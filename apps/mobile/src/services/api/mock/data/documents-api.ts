@@ -78,6 +78,32 @@ export const MOCK_DOCUMENT_DETAIL: DocumentDetail = {
   updated_at: '2026-05-08T18:03:03.282234Z',
 };
 
+export const MOCK_DOCUMENT_DETAIL_VERSION_2: DocumentDetail = {
+  ...MOCK_DOCUMENT_DETAIL,
+  document_id: 'eb1d48cf-2313-4edb-b2e9-4667f6faf448',
+  file_name: 'DepEd Memorandum No. 028, s. 2026 - Legal Review Draft.pdf',
+  storage_url: 'mock://documents/deped-memorandum-028-2026-v2.pdf',
+  on_chain: false,
+  is_latest: false,
+  summary:
+    'Second draft of DepEd Memorandum No. 028, s. 2026 with legal review notes before the final published version.',
+  created_at: '2026-05-07T16:20:00.000Z',
+  updated_at: '2026-05-07T16:20:00.000Z',
+};
+
+export const MOCK_DOCUMENT_DETAIL_VERSION_1: DocumentDetail = {
+  ...MOCK_DOCUMENT_DETAIL,
+  document_id: 'eb1d48cf-2313-4edb-b2e9-4667f6faf447',
+  file_name: 'DepEd Memorandum No. 028, s. 2026 - Initial Upload.pdf',
+  storage_url: 'mock://documents/deped-memorandum-028-2026-v1.pdf',
+  on_chain: false,
+  is_latest: false,
+  summary:
+    'Initial upload of DepEd Memorandum No. 028, s. 2026 before validation and final anchoring.',
+  created_at: '2026-05-06T09:45:00.000Z',
+  updated_at: '2026-05-06T09:45:00.000Z',
+};
+
 export const MOCK_DOCUMENT_DETAIL_PROCESSING: DocumentDetail = {
   document_id: '550e8400-e29b-41d4-a716-446655440003',
   file_name: 'Power of Attorney - Martinez Family.pdf',
@@ -126,16 +152,34 @@ export const MOCK_RENAME_RESPONSE: RenameDocumentResponse = {
 
 export const MOCK_VERSION_HISTORY_RESPONSE: VersionHistoryResponse = {
   current_document_id: 'eb1d48cf-2313-4edb-b2e9-4667f6faf449',
-  total_version: 1,
+  total_version: 3,
   versions: [
     {
       document_id: 'eb1d48cf-2313-4edb-b2e9-4667f6faf449',
       file_name: 'DepEd Memorandum No. 028, s. 2026',
       document_hash: 'mock-document-hash',
       status: 'COMPLETED',
-      tx_hash: null,
+      tx_hash: '0xmockfinalanchor20260508',
       is_latest: true,
       created_at: '2026-05-08T18:03:03.282234Z',
+    },
+    {
+      document_id: 'eb1d48cf-2313-4edb-b2e9-4667f6faf448',
+      file_name: 'DepEd Memorandum No. 028, s. 2026 - Legal Review Draft.pdf',
+      document_hash: 'mock-document-hash-v2',
+      status: 'COMPLETED',
+      tx_hash: null,
+      is_latest: false,
+      created_at: '2026-05-07T16:20:00.000Z',
+    },
+    {
+      document_id: 'eb1d48cf-2313-4edb-b2e9-4667f6faf447',
+      file_name: 'DepEd Memorandum No. 028, s. 2026 - Initial Upload.pdf',
+      document_hash: 'mock-document-hash-v1',
+      status: 'COMPLETED',
+      tx_hash: null,
+      is_latest: false,
+      created_at: '2026-05-06T09:45:00.000Z',
     },
   ],
 };
