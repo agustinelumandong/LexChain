@@ -48,6 +48,7 @@ type DocumentDetailsContentProps = {
   onPressNotarize: () => void;
   onPressPdf: () => void;
   onPressSearch: () => void;
+  onPressVersion: (version: VersionHistoryItem) => void;
   onRetry: () => void;
 };
 
@@ -70,6 +71,7 @@ export function DocumentDetailsContent({
   onPressNotarize,
   onPressPdf,
   onPressSearch,
+  onPressVersion,
   onRetry,
 }: DocumentDetailsContentProps) {
   if (isLoading) {
@@ -125,7 +127,7 @@ export function DocumentDetailsContent({
         onPressManage={onPressManageWhitelist}
       />
 
-      <VersionHistoryCard items={versionHistory} />
+      <VersionHistoryCard items={versionHistory} onPressVersion={onPressVersion} />
 
       <Text style={styles.insightsEyebrow}>DOCUMENT INSIGHTS</Text>
 
