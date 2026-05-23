@@ -1,10 +1,13 @@
 export type VersionHistoryItem = {
   id: string;
+  documentId?: string;
   date: string;
+  fileName?: string;
   label: string;
   statusLabel?: string;
   description: string;
   isCurrent?: boolean;
+  uri?: string | null;
 };
 
 export type DetailBodyBlock =
@@ -42,4 +45,5 @@ export type DocumentDetailsVersion = {
   status: string;
   is_latest: boolean;
   created_at: string;
+  storage_url?: string | null;
 };
