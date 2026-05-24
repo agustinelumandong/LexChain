@@ -812,10 +812,7 @@ export interface components {
              */
             message: string;
         };
-        /**
-         * DocumentUploadResponse
-         * @description
-         */
+        /** DocumentUploadResponse */
         DocumentUploadResponse: {
             /**
              * Id
