@@ -39,6 +39,14 @@ function formatNotificationType(value: NotificationResponse['type']) {
   return value.replaceAll('_', ' ');
 }
 
+function getNotificationDocumentId(notification: NotificationResponse) {
+  const documentId = notification.event_metadata?.document_id;
+
+  return typeof documentId === 'string' && documentId.trim()
+    ? documentId.trim()
+    : null;
+}
+
 type NotificationRowProps = {
   notification: NotificationResponse;
   isMarkingRead: boolean;
@@ -89,7 +97,7 @@ function NotificationRow({
 export default function NotificationsScreen() {
   const router = useRouter();
   const [headerHeight, setHeaderHeight] = useState(126);
-  const notificationsQuery = useNotifications({ limit: 30 });
+  const notificationsQuery = useNotifications({ limit: 50, offset: 0, unreadOnly: false });
   const unreadCountQuery = useUnreadNotificationCount();
   const markReadMutation = useMarkNotificationRead();
   const markAllReadMutation = useMarkAllNotificationsRead();
@@ -104,12 +112,16 @@ export default function NotificationsScreen() {
   }, []);
 
   const handlePressNotification = async (notification: NotificationResponse) => {
-    if (notification.is_read) {
-      return;
-    }
+    const documentId = getNotificationDocumentId(notification);
 
     try {
-      await markReadMutation.mutateAsync(notification.id);
+      if (!notification.is_read) {
+        await markReadMutation.mutateAsync(notification.id);
+      }
+
+      if (documentId) {
+        router.push(`/document/${documentId}`);
+      }
     } catch (error) {
       toast.error(parseApiError(error).message);
     }
