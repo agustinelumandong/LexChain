@@ -1,5 +1,10 @@
 import { AdminShell } from "../admin-shell";
 import { adminStats, adminUsers } from "../admin-demo-data";
+import {
+  PipelineBarChart,
+  StatusDonutChart,
+  ThroughputAreaChart,
+} from "../components/charts";
 import { adminFetch } from "../components/admin-fetch";
 import { PageHeader } from "../components/page-header";
 import { StatCard, StatCardData } from "../components/stat-card";
@@ -10,7 +15,6 @@ import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import LinkIcon from "@mui/icons-material/Link";
 import ErrorIcon from "@mui/icons-material/Error";
 import MailIcon from "@mui/icons-material/Mail";
-import TrendingUpIcon from "@mui/icons-material/TrendingUp";
 import PersonAddIcon from "@mui/icons-material/PersonAdd";
 
 const useMock = process.env.NEXT_PUBLIC_USE_MOCK_API === "true";
@@ -87,14 +91,28 @@ export default async function AdminDashboardPage() {
     { label: "Pending invites", value: data.pending_invitations, detail: "Awaiting onboarding", icon: <MailIcon />, color: "amber" },
   ];
 
-  const bars = [
-    { label: "Processed", value: data.total_processed, total: data.total_documents, color: "bg-green-500" },
-    { label: "On-chain", value: data.total_on_chain, total: data.total_documents, color: "bg-[#0985E7]" },
-    { label: "Failed", value: data.total_failed, total: data.total_documents, color: "bg-red-500" },
+  const pipelineData = [
+    { label: "Processed", value: data.total_processed, color: "#22C55E" },
+    { label: "On-chain", value: data.total_on_chain, color: "#0985E7" },
+    { label: "Failed", value: data.total_failed, color: "#EF4444" },
   ];
 
   const successRate = data.total_documents > 0 ? Math.round(((data.total_documents - data.total_failed) / data.total_documents) * 100) : 0;
-  const todayThroughput = Math.round(data.total_processed * 0.12);
+  const pendingDocuments = Math.max(0, data.total_documents - data.total_processed - data.total_failed);
+  const statusData = [
+    { label: "Processed", value: data.total_processed, color: "#22C55E" },
+    { label: "Pending", value: pendingDocuments, color: "#F59E0B" },
+    { label: "Failed", value: data.total_failed, color: "#EF4444" },
+  ];
+  const trendData = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((label, index) => {
+    const progress = (index + 1) / 6;
+
+    return {
+      label,
+      processed: Math.round(data.total_processed * (0.52 + progress * 0.48)),
+      anchored: Math.round(data.total_on_chain * (0.46 + progress * 0.54)),
+    };
+  });
 
   return (
     <AdminShell activeHref="/admin/dashboard">
@@ -109,43 +127,17 @@ export default async function AdminDashboardPage() {
           ))}
         </section>
 
-        <section className="grid grid-cols-2 gap-5">
-          <article className="rounded-2xl border border-[#E4EEF9] bg-white p-6 shadow-sm">
-            <div className="flex items-center gap-3">
-              <TrendingUpIcon className="text-[#0985E7]" />
-              <h2 className="text-lg font-black text-[#0C2B49]">Processing Overview</h2>
-            </div>
-            <p className="mt-1 text-sm font-semibold text-[#64748b]">Document pipeline health based on live data.</p>
+        <section className="grid grid-cols-1 gap-5 xl:grid-cols-[1.1fr_0.9fr]">
+          <PipelineBarChart data={pipelineData} total={data.total_documents} />
+          <StatusDonutChart
+            centerLabel="Success rate"
+            centerValue={`${successRate}%`}
+            data={statusData}
+          />
+        </section>
 
-            <div className="mt-5 flex gap-4">
-              <div className="flex-1 rounded-xl border border-[#E4EEF9] bg-[#F8FBFF] p-3 py-9 text-center">
-                <p className="text-5xl font-black text-green-600">{successRate}%</p>
-                <p className="text-[10px] font-bold text-[#64748b]">Success Rate</p>
-              </div>
-              <div className="flex-1 rounded-xl border border-[#E4EEF9] bg-[#F8FBFF] p-3 py-9 text-center">
-                <p className="text-5xl font-black text-[#0985E7]">{todayThroughput}</p>
-                <p className="text-[10px] font-bold text-[#64748b]">Today&apos;s Throughput</p>
-              </div>
-            </div>
-
-            <div className="mt-5 space-y-4">
-              {bars.map(({ label, value, total, color }) => {
-                const pct = total > 0 ? Math.round((value / total) * 100) : 0;
-                return (
-                  <div key={label}>
-                    <div className="flex justify-between text-sm font-black">
-                      <span>{label}</span>
-                      <span>{value.toLocaleString()} ({pct}%)</span>
-                    </div>
-                    <div className="mt-2 h-2 rounded-full bg-[#EEF4FB]">
-                      <div className={`h-2 rounded-full ${color}`} style={{ width: `${pct}%` }} />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </article>
-
+        <section className="grid grid-cols-1 gap-5 xl:grid-cols-[1.1fr_0.9fr]">
+          <ThroughputAreaChart data={trendData} />
           <article className="rounded-2xl border border-[#E4EEF9] bg-white p-6 shadow-sm">
             <div className="flex items-center gap-3">
               <PersonAddIcon className="text-[#0985E7]" />
