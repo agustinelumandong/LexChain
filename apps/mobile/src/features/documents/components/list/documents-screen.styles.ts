@@ -26,6 +26,7 @@ export const styles = StyleSheet.create({
   },
   searchWrap: {
     zIndex: 20,
+    marginTop: 12,
   },
   resultRow: {
     backgroundColor: COLORS.surface,

@@ -3,6 +3,7 @@ import { StyleSheet } from 'react-native';
 import { APP_COLORS, fonts } from '@/theme';
 
 export const documentResultCardColors = {
+  danger: APP_COLORS.danger,
   primary: APP_COLORS.primary,
   navy: APP_COLORS.navy,
   textMuted: APP_COLORS.textMuted,
@@ -48,6 +49,9 @@ export const documentResultCardStyles = StyleSheet.create({
     backgroundColor: documentResultCardColors.surfaceSoft,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  moreButtonDanger: {
+    backgroundColor: '#FDECEF',
   },
   metaRow: {
     flexDirection: 'row',
