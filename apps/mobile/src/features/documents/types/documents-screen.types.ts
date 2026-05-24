@@ -11,6 +11,7 @@ export type DisplayDocument = {
   date: string;
   rawDate: string;
   documentType: DocumentTypeKey;
+  onChain?: boolean;
   status: DocumentFilterStatusKey;
   snippet?: string;
 };
