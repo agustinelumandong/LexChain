@@ -64,6 +64,7 @@ export default function DocumentsScreen() {
         <DocumentResultCard
           title={document.title}
           date={document.date}
+          onChain={document.onChain}
           onPressCard={() => openDocument(document.id)}
           onPressOpen={() => openDocument(document.id)}
         />
