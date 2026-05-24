@@ -15,6 +15,9 @@ export function useNotifications(params?: ListNotificationsParams) {
   return useQuery({
     queryKey: queryKeys.notifications.list(params),
     queryFn: () => notificationsApi.list(params),
+    staleTime: 0,
+    refetchOnMount: 'always',
+    refetchInterval: 30 * 1000,
   });
 }
 
@@ -22,6 +25,9 @@ export function useUnreadNotificationCount() {
   return useQuery({
     queryKey: queryKeys.notifications.unreadCount,
     queryFn: notificationsApi.getUnreadCount,
+    staleTime: 0,
+    refetchOnMount: 'always',
+    refetchInterval: 30 * 1000,
   });
 }
 
