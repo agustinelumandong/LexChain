@@ -18,15 +18,10 @@ export const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: 16,
     paddingTop: 12,
-    paddingBottom: 24,
+    paddingBottom: 128,
     gap: 20,
   },
   sessionCard: {
     borderRadius: 24,
-  },
-  navWrap: {
-    width: '100%',
-    paddingHorizontal: 16,
-    paddingBottom: 24,
   },
 });

@@ -6,12 +6,11 @@ import { toast } from 'sonner-native';
 
 import { clearSessionData } from '@/features/auth';
 import { useUserProfile } from '@/services/query';
-import { BottomNav, Button } from '@/ui';
+import { Button } from '@/ui';
 
 import { ProfileHeader } from '../profile-header';
 import { styles } from '../profile-screen.styles';
 import {
-  canRoleUploadDocuments,
   getProfileDisplayName,
   getProfileInitials,
   useProfileSettingsStore,
@@ -122,16 +121,6 @@ export default function ProfileScreen() {
           </View>
         </ScrollView>
 
-        <View style={styles.navWrap}>
-          <BottomNav
-            activeTab="profile"
-            onPressHome={() => router.push('/(tabs)')}
-            onPressDocuments={() => router.push('/(tabs)/documents')}
-            onPressProfile={() => {}}
-            onPressUpload={() => router.push('/upload')}
-            showUpload={canRoleUploadDocuments(userProfile?.role)}
-          />
-        </View>
       </View>
     </SafeAreaView>
   );
