@@ -5,7 +5,6 @@ import { Pressable, RefreshControl, ScrollView, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
-import { BottomNav } from '@/ui';
 import {
   queryKeys,
   useUnreadNotificationCount,
@@ -233,16 +232,6 @@ export function DashboardOverview() {
           </View>
         </ScrollView>
 
-        <View style={styles.navWrap}>
-          <BottomNav
-            activeTab="home"
-            onPressHome={() => {}}
-            onPressDocuments={() => router.push('/(tabs)/documents')}
-            onPressProfile={() => router.push('/(tabs)/profile')}
-            onPressUpload={() => router.push('/upload')}
-            showUpload={isLawyer}
-          />
-        </View>
       </View>
     </SafeAreaView>
   );
