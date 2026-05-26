@@ -1,6 +1,7 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useQueryClient } from '@tanstack/react-query';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { useCallback } from 'react';
 import { Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
@@ -52,6 +53,7 @@ export function DashboardOverview() {
   const userProfile = userProfileQuery.data;
   const isLawyer = canRoleUploadDocuments(userProfile?.role);
   const dashboardStats = useDashboard();
+  const { isLoading: isDashboardLoading, refetch: refetchDashboard } = dashboardStats;
   const unreadNotificationCountQuery = useUnreadNotificationCount();
   const unreadNotificationCount = unreadNotificationCountQuery.data?.unread ?? 0;
   const userMetadata = currentUser?.user_metadata;
@@ -63,6 +65,15 @@ export function DashboardOverview() {
     ? [userProfile.f_name, userProfile.l_name].filter(Boolean).join(' ').trim()
     : '';
   const displayName = profileDisplayName || authDisplayName || getProfileDisplayName(account);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!isDashboardLoading) {
+        void refetchDashboard();
+      }
+    }, [isDashboardLoading, refetchDashboard]),
+  );
+
   const dashboardCopy = isLawyer
     ? {
         description: 'Manage and verify your legal documents',
