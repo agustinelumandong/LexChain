@@ -205,7 +205,7 @@ export function DashboardOverview() {
               </Pressable>
             </View>
             {dashboardStats.isLoading ? (
-              Array.from({ length: 3 }).map((_, index) => (
+              Array.from({ length: 5 }).map((_, index) => (
                 <DashboardActivitySkeleton key={`activity-skeleton-${index}`} />
               ))
             ) : dashboardStats.recentActivities.length > 0 ? (
