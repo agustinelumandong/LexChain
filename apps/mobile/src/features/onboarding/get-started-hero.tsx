@@ -1,121 +1,46 @@
 import { Image } from 'expo-image';
-import React, { useEffect, useState } from 'react';
-import { Animated, Easing, StyleSheet, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
-const heroIllustration = require('../../../assets/images/lexchain-getstarted.svg');
+import heroIllustration from '@/assets/images/lexchain-getstarted-transparent.png';
+import { APP_COLORS, fonts } from '@/theme';
 
-export function GetStartedHero() {
-  const [pulseA] = useState(() => new Animated.Value(0));
-  const [pulseB] = useState(() => new Animated.Value(0));
-  const [pulseC] = useState(() => new Animated.Value(0));
-  const [shieldPulse] = useState(() => new Animated.Value(0));
+type GetStartedHeroProps = {
+  compact?: boolean;
+};
 
-  useEffect(() => {
-    const makePulse = (value: Animated.Value, delay: number) =>
-      Animated.loop(
-        Animated.sequence([
-          Animated.delay(delay),
-          Animated.timing(value, {
-            toValue: 1,
-            duration: 1700,
-            easing: Easing.out(Easing.cubic),
-            useNativeDriver: true,
-          }),
-          Animated.timing(value, {
-            toValue: 0,
-            duration: 0,
-            useNativeDriver: true,
-          }),
-        ]),
-      );
-
-    const animationA = makePulse(pulseA, 0);
-    const animationB = makePulse(pulseB, 520);
-    const animationC = makePulse(pulseC, 1040);
-    const shieldAnimation = makePulse(shieldPulse, 260);
-
-    animationA.start();
-    animationB.start();
-    animationC.start();
-    shieldAnimation.start();
-
-    return () => {
-      animationA.stop();
-      animationB.stop();
-      animationC.stop();
-      shieldAnimation.stop();
-    };
-  }, [pulseA, pulseB, pulseC, shieldPulse]);
-
-  const pulseStyleA = makePulseStyle(pulseA);
-  const pulseStyleB = makePulseStyle(pulseB);
-  const pulseStyleC = makePulseStyle(pulseC);
-  const shieldPulseStyle = makeShieldPulseStyle(shieldPulse);
-
+export function GetStartedHero({ compact = false }: GetStartedHeroProps) {
   return (
-    <View style={styles.hero}>
+    <View style={[styles.hero, compact && styles.heroCompact]}>
       <View style={styles.glowOrb} />
       <View style={styles.glowOrbSecondary} />
 
-      <View style={styles.illustrationFrame}>
+      <View style={[styles.illustrationFrame, compact && styles.illustrationFrameCompact]}>
         <Image
           source={heroIllustration}
           style={styles.illustration}
           contentFit="contain"
           accessibilityLabel="LexChain secure legal document and blockchain illustration"
         />
-
-        <Animated.View style={[styles.nativePulse, styles.pulseTopLeft, pulseStyleA]} />
-        <Animated.View style={[styles.nativePulse, styles.pulseTopRight, pulseStyleB]} />
-        <Animated.View style={[styles.nativePulse, styles.pulseBottomRight, pulseStyleC]} />
-        <Animated.View style={[styles.shieldPulse, shieldPulseStyle]} />
       </View>
+
+      <Text style={styles.brandText} accessibilityRole="header">
+        <Text style={styles.brandTextDark}>Lex</Text>
+        <Text style={styles.brandTextBlue}>Chain</Text>
+      </Text>
     </View>
   );
-}
-
-function makePulseStyle(progress: Animated.Value) {
-  return {
-    opacity: progress.interpolate({
-      inputRange: [0, 0.2, 1],
-      outputRange: [0, 0.5, 0],
-    }),
-    transform: [
-      {
-        scale: progress.interpolate({
-          inputRange: [0, 1],
-          outputRange: [0.55, 1.85],
-        }),
-      },
-    ],
-  };
-}
-
-function makeShieldPulseStyle(progress: Animated.Value) {
-  return {
-    opacity: progress.interpolate({
-      inputRange: [0, 0.18, 1],
-      outputRange: [0, 0.32, 0],
-    }),
-    transform: [
-      {
-        scale: progress.interpolate({
-          inputRange: [0, 1],
-          outputRange: [0.74, 1.28],
-        }),
-      },
-    ],
-  };
 }
 
 const styles = StyleSheet.create({
   hero: {
     height: '50%',
-    overflow: 'hidden',
     position: 'relative',
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'transparent',
+  },
+  heroCompact: {
+    height: '45%',
   },
   glowOrb: {
     position: 'absolute',
@@ -141,40 +66,31 @@ const styles = StyleSheet.create({
     marginTop: 120,
     position: 'relative',
   },
+  illustrationFrameCompact: {
+    width: 360,
+    height: 318,
+    marginTop: 84,
+  },
   illustration: {
     width: '100%',
     height: '100%',
   },
-  nativePulse: {
-    position: 'absolute',
-    width: 36,
-    height: 36,
-    borderRadius: 999,
-    borderWidth: 3,
-    borderColor: 'rgba(255,255,255,0.9)',
-    backgroundColor: 'rgba(22,137,245,0.16)',
+  brandText: {
+    marginTop: -28,
+    color: APP_COLORS.navy,
+    fontSize: 42,
+    lineHeight: 48,
+    fontWeight: '900',
+    fontFamily: fonts.brandBlack,
   },
-  pulseTopLeft: {
-    left: 74,
-    top: 101,
+  brandTextDark: {
+    color: APP_COLORS.navy,
+    fontFamily: fonts.brandBlack,
+    fontWeight: '900',
   },
-  pulseTopRight: {
-    right: 66,
-    top: 80,
-  },
-  pulseBottomRight: {
-    right: 92,
-    bottom: 78,
-  },
-  shieldPulse: {
-    position: 'absolute',
-    width: 106,
-    height: 118,
-    borderRadius: 48,
-    right: 72,
-    top: 126,
-    borderWidth: 4,
-    borderColor: 'rgba(255,255,255,0.86)',
-    backgroundColor: 'rgba(22,137,245,0.22)',
+  brandTextBlue: {
+    color: APP_COLORS.primary,
+    fontFamily: fonts.brandBlack,
+    fontWeight: '900',
   },
 });

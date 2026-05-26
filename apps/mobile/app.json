@@ -20,7 +20,8 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.cshan.lexchain"
+      "package": "com.cshan.lexchain",
+      "softwareKeyboardLayoutMode": "resize"
     },
     "web": {
       "output": "static",

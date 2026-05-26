@@ -19,6 +19,24 @@ export function formatDate(value?: string) {
   });
 }
 
+export function formatUnixTimestamp(value?: number) {
+  if (!value) {
+    return 'Unknown';
+  }
+
+  const date = new Date(value * 1000);
+
+  if (Number.isNaN(date.getTime())) {
+    return 'Unknown';
+  }
+
+  return date.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+}
+
 export function formatContentType(value: string) {
   if (value === 'application/pdf') {
     return 'PDF';

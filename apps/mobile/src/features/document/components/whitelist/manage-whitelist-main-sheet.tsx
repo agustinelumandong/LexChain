@@ -1,4 +1,4 @@
-import { BottomSheetBackdrop, BottomSheetModal, BottomSheetScrollView } from '@gorhom/bottom-sheet';
+import BottomSheet, { BottomSheetBackdrop, BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import React from 'react';
 import { View } from 'react-native';
 
@@ -18,7 +18,7 @@ import { WhitelistSearchResultRow } from './whitelist-search-result-row';
 import { getWhitelistAddLabel } from '../../utils/manage-whitelist-labels';
 
 type ManageWhitelistMainSheetProps = {
-  bottomSheetRef: React.RefObject<BottomSheetModal | null>;
+  bottomSheetRef: React.RefObject<BottomSheet | null>;
   snapPoints: string[];
   bottomInset: number;
   data: ManageWhitelistData;
@@ -64,11 +64,12 @@ export function ManageWhitelistMainSheet({
   );
 
   return (
-    <BottomSheetModal
+    <BottomSheet
       ref={bottomSheetRef}
       index={0}
       snapPoints={snapPoints}
-      onDismiss={onClose}
+      containerStyle={styles.overlay}
+      onClose={onClose}
       enableDynamicSizing={false}
       enablePanDownToClose
       keyboardBehavior="interactive"
@@ -86,7 +87,7 @@ export function ManageWhitelistMainSheet({
         ]}
         showsVerticalScrollIndicator={false}
       >
-        <ManageWhitelistTopBar onBack={() => bottomSheetRef.current?.dismiss()} />
+        <ManageWhitelistTopBar onBack={() => bottomSheetRef.current?.close()} />
 
         <ManageWhitelistHeader />
 
@@ -121,6 +122,6 @@ export function ManageWhitelistMainSheet({
           onPressGrantAction={onPressGrantAction}
         />
       </BottomSheetScrollView>
-    </BottomSheetModal>
+    </BottomSheet>
   );
 }

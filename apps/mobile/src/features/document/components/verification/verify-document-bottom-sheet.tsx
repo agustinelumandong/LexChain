@@ -1,10 +1,9 @@
-import {
+import BottomSheet, {
   BottomSheetBackdrop,
-  BottomSheetModal,
   BottomSheetScrollView,
 } from '@gorhom/bottom-sheet';
-import React, { useEffect, useMemo, useRef } from 'react';
-import { View } from 'react-native';
+import React, { useMemo, useRef } from 'react';
+import { StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/ui';
@@ -26,29 +25,9 @@ export function VerifyDocumentBottomSheet({
   onClose,
   onBackToDetails,
 }: VerifyDocumentBottomSheetProps) {
-  const bottomSheetRef = useRef<BottomSheetModal>(null);
+  const bottomSheetRef = useRef<BottomSheet>(null);
   const insets = useSafeAreaInsets();
   const snapPoints = useMemo(() => ['88%'], []);
-
-  useEffect(() => {
-    const sheet = bottomSheetRef.current;
-
-    if (!sheet) {
-      return;
-    }
-
-    if (visible && document) {
-      sheet.present();
-      return () => {
-        sheet.dismiss();
-      };
-    }
-
-    sheet.dismiss();
-    return () => {
-      sheet.dismiss();
-    };
-  }, [document, visible]);
 
   const renderBackdrop = (props: React.ComponentProps<typeof BottomSheetBackdrop>) => (
     <BottomSheetBackdrop
@@ -61,40 +40,42 @@ export function VerifyDocumentBottomSheet({
     />
   );
 
-  if (!document) {
+  if (!visible || !document) {
     return null;
   }
 
   return (
-    <BottomSheetModal
-      ref={bottomSheetRef}
-      index={0}
-      snapPoints={snapPoints}
-      onDismiss={onClose}
-      enablePanDownToClose
-      backdropComponent={renderBackdrop}
-      handleIndicatorStyle={verifyDocumentBottomSheetStyles.handle}
-      backgroundStyle={verifyDocumentBottomSheetStyles.sheet}
-    >
-      <BottomSheetScrollView
-        style={verifyDocumentBottomSheetStyles.scrollArea}
-        contentContainerStyle={verifyDocumentBottomSheetStyles.scrollContent}
-        showsVerticalScrollIndicator={false}
+    <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
+      <BottomSheet
+        ref={bottomSheetRef}
+        index={0}
+        snapPoints={snapPoints}
+        onClose={onClose}
+        enablePanDownToClose
+        backdropComponent={renderBackdrop}
+        handleIndicatorStyle={verifyDocumentBottomSheetStyles.handle}
+        backgroundStyle={verifyDocumentBottomSheetStyles.sheet}
       >
-        <VerifyDocumentSheetContent
-          document={document}
-          onPressBack={() => bottomSheetRef.current?.dismiss()}
-        />
-      </BottomSheetScrollView>
+        <BottomSheetScrollView
+          style={verifyDocumentBottomSheetStyles.scrollArea}
+          contentContainerStyle={verifyDocumentBottomSheetStyles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          <VerifyDocumentSheetContent
+            document={document}
+            onPressBack={onClose}
+          />
+        </BottomSheetScrollView>
 
-      <View style={[verifyDocumentBottomSheetStyles.footer, { paddingBottom: Math.max(insets.bottom, 24) }]}>
-        <Button
-          label="Close"
-          variant="secondary"
-          fullWidth
-          onPress={onClose}
-        />
-      </View>
-    </BottomSheetModal>
+        <View style={[verifyDocumentBottomSheetStyles.footer, { paddingBottom: Math.max(insets.bottom, 24) }]}>
+          <Button
+            label="Close"
+            variant="secondary"
+            fullWidth
+            onPress={onClose}
+          />
+        </View>
+      </BottomSheet>
+    </View>
   );
 }

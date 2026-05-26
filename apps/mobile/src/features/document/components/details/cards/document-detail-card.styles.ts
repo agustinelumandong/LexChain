@@ -42,6 +42,24 @@ export const documentDetailCardStyles = StyleSheet.create({
     fontWeight: '800',
     marginTop: 2,
   },
+  partyNameList: {
+    gap: 4,
+    marginTop: 8,
+  },
+  partyName: {
+    color: APP_COLORS.navy,
+    fontFamily: fonts.regular,
+    fontSize: 13,
+    lineHeight: 17,
+    fontWeight: '700',
+  },
+  partyNameMuted: {
+    color: APP_COLORS.textMuted,
+    fontFamily: fonts.regular,
+    fontSize: 12,
+    lineHeight: 16,
+    fontWeight: '700',
+  },
   accessAction: {
     minWidth: 104,
   },
@@ -109,6 +127,11 @@ export const documentDetailCardStyles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'stretch',
     gap: 12,
+    borderRadius: 16,
+    paddingRight: 4,
+  },
+  timelineRowPressed: {
+    backgroundColor: APP_COLORS.surfaceSoft,
   },
   timelineDateColumn: {
     width: 82,
@@ -184,6 +207,9 @@ export const documentDetailCardStyles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 17,
     fontWeight: '600',
+  },
+  versionViewIcon: {
+    alignSelf: 'center',
   },
   confidenceCard: {
     backgroundColor: APP_COLORS.white,

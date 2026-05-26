@@ -1,42 +1,53 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useMutation } from "@tanstack/react-query";
+import { loginFormSchema, type LoginFormData } from "@/lib/schemas/auth";
+
+async function signIn(data: LoginFormData) {
+  const res = await fetch("/api/admin/auth", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+    credentials: "same-origin",
+  });
+
+  const payload = await res.json().catch(() => null);
+
+  if (!res.ok) {
+    throw new Error(payload?.message ?? "Login failed. Check your credentials.");
+  }
+
+  return payload;
+}
 
 export default function AdminLoginPage() {
-  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [validationError, setValidationError] = useState<string | null>(null);
 
-  async function handleSubmit(e: React.FormEvent) {
+  const mutation = useMutation({
+    mutationFn: signIn,
+    onSuccess: () => {
+      window.location.href = "/admin/dashboard";
+    },
+  });
+
+  function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setError(null);
-    setLoading(true);
+    setValidationError(null);
 
-    try {
-      const res = await fetch("/api/admin/auth", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
-
-      const data = await res.json().catch(() => null);
-
-      if (!res.ok) {
-        setError(data?.message ?? "Login failed. Check your credentials.");
-        return;
-      }
-
-      router.push("/admin/dashboard");
-    } catch {
-      setError("Unable to reach the server. Try again.");
-    } finally {
-      setLoading(false);
+    const result = loginFormSchema.safeParse({ email, password });
+    if (!result.success) {
+      setValidationError(result.error.issues[0].message);
+      return;
     }
+
+    mutation.mutate(result.data);
   }
+
+  const error = validationError ?? (mutation.error?.message || null);
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-[#F5FAFF] p-5 text-[#111827]">
@@ -81,10 +92,10 @@ export default function AdminLoginPage() {
 
           <button
             type="submit"
-            disabled={loading}
+            disabled={mutation.isPending}
             className="mt-2 flex min-h-[52px] w-full items-center justify-center rounded-full bg-[#0985E7] px-5 py-3.5 text-[15px] font-black text-white transition hover:bg-[#0770c4] disabled:opacity-60"
           >
-            {loading ? "Signing in…" : "Sign in"}
+            {mutation.isPending ? "Signing in…" : "Sign in"}
           </button>
         </form>
 

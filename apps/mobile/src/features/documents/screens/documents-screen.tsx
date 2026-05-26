@@ -1,12 +1,11 @@
 import React, { useCallback, useRef } from 'react';
 import { useFocusEffect, useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
-import { FlatList, Text, View } from 'react-native';
+import { FlatList, RefreshControl, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
-import { SearchInputWithResults, BottomNav } from '@/ui';
-import { useProfileSettingsStore } from '@/features/profile';
+import { SearchInputWithResults } from '@/ui';
 import type { DocumentSortKey, DocumentTypeKey } from '@/types';
 import { DocumentResultCard } from '@/features/documents/components/list/document-result-card';
 import { DocumentsFilterControls } from '@/features/documents/components/filter/documents-filter-controls';
@@ -22,6 +21,7 @@ import {
 import { DocumentSearchResultRow } from '@/features/documents/components/document-search-result-row';
 import { styles } from '@/features/documents/components/list/documents-screen.styles';
 import { useDocumentsScreen } from '@/features/documents/hooks/use-documents-screen';
+import { APP_COLORS } from '@/theme';
 import type {
   DisplayDocument,
   DocumentFilterStatusKey,
@@ -29,7 +29,6 @@ import type {
 
 export default function DocumentsScreen() {
   const router = useRouter();
-  const account = useProfileSettingsStore((state) => state.account);
   const isOpeningDocumentRef = useRef(false);
   const screen = useDocumentsScreen();
 
@@ -61,6 +60,7 @@ export default function DocumentsScreen() {
         <DocumentResultCard
           title={document.title}
           date={document.date}
+          onChain={document.onChain}
           onPressCard={() => openDocument(document.id)}
           onPressOpen={() => openDocument(document.id)}
         />
@@ -94,10 +94,17 @@ export default function DocumentsScreen() {
           windowSize={7}
           removeClippedSubviews
           showsVerticalScrollIndicator={false}
-          refreshing={screen.documentsQuery.isRefetching}
-          onRefresh={() => {
-            void screen.documentsQuery.refetch();
-          }}
+          refreshControl={
+            <RefreshControl
+              refreshing={screen.documentsQuery.isRefetching}
+              onRefresh={() => {
+                void screen.documentsQuery.refetch();
+              }}
+              tintColor={APP_COLORS.primary}
+              colors={[APP_COLORS.primary]}
+              progressBackgroundColor={APP_COLORS.white}
+            />
+          }
           ListHeaderComponent={
             <>
               <DocumentsHeader />
@@ -137,16 +144,6 @@ export default function DocumentsScreen() {
           }
         />
 
-        <View style={styles.navWrap}>
-          <BottomNav
-            activeTab="documents"
-            onPressHome={() => router.push('/(tabs)')}
-            onPressDocuments={() => {}}
-            onPressProfile={() => router.push('/(tabs)/profile')}
-            onPressUpload={() => router.push('/upload')}
-            showUpload={account.role.toLowerCase() !== 'viewer'}
-          />
-        </View>
       </View>
 
       <DocumentsFilterSheet

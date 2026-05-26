@@ -1,6 +1,7 @@
 import { env, requireApiUrl } from '@/shared/config';
 import { authTokenStorage } from '@/shared/utils/secure-storage';
 import { parseApiError } from '@/shared/utils/api-error';
+import { handleExpiredSession } from '@/features/auth/session-expiration';
 
 type RequestOptions = RequestInit & {
   auth?: boolean;
@@ -14,6 +15,16 @@ function buildUrl(path: string) {
 
 function isFormDataBody(body: RequestInit['body']) {
   return typeof FormData !== 'undefined' && body instanceof FormData;
+}
+
+function getBearerToken(headers: Headers) {
+  const authorization = headers.get('Authorization');
+
+  if (!authorization?.startsWith('Bearer ')) {
+    return null;
+  }
+
+  return authorization.slice('Bearer '.length);
 }
 
 async function parseResponse(response: Response) {
@@ -59,6 +70,10 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
   const data = await parseResponse(response);
 
   if (!response.ok) {
+    if (response.status === 401 && options.auth !== false) {
+      await handleExpiredSession(getBearerToken(headers));
+    }
+
     throw parseApiError({
       response: {
         status: response.status,

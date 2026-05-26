@@ -104,6 +104,34 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/users/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get user profile
+         * @description Search for a user by email.
+         *
+         *     Args:
+         *         email: The email address to look up.
+         *         current_user: The authenticated user making the request.
+         *         service: The user management service.
+         *
+         *     Returns:
+         *         `UserSearchResponse` containing the user's id, email, f_name, and l_name.
+         */
+        get: operations["get_user_profile_users__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/documents/": {
         parameters: {
             query?: never;
@@ -457,6 +485,74 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/notifications/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List notifications for current user */
+        get: operations["list_notifications_notifications__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/notifications/unread-count": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get unread notification count */
+        get: operations["get_unread_count_notifications_unread_count_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/notifications/{notification_id}/read": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Mark notification as read */
+        patch: operations["mark_read_notifications__notification_id__read_patch"];
+        trace?: never;
+    };
+    "/notifications/read-all": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Mark all notifications as read */
+        patch: operations["mark_all_read_notifications_read_all_patch"];
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -716,10 +812,7 @@ export interface components {
              */
             message: string;
         };
-        /**
-         * DocumentUploadResponse
-         * @description
-         */
+        /** DocumentUploadResponse */
         DocumentUploadResponse: {
             /**
              * Id
@@ -809,6 +902,11 @@ export interface components {
             /** Magic Link */
             magic_link?: string | null;
         };
+        /** MarkAllReadResponse */
+        MarkAllReadResponse: {
+            /** Marked Read */
+            marked_read: number;
+        };
         /** MessageResponse */
         MessageResponse: {
             /**
@@ -817,6 +915,42 @@ export interface components {
              */
             message: string;
         };
+        /** NotificationListResponse */
+        NotificationListResponse: {
+            /** Notifications */
+            notifications: components["schemas"]["NotificationResponse"][];
+            /** Total */
+            total: number;
+        };
+        /** NotificationResponse */
+        NotificationResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            type: components["schemas"]["NotificationType"];
+            /** Title */
+            title: string;
+            /** Body */
+            body: string;
+            /** Is Read */
+            is_read: boolean;
+            /** Event Metadata */
+            event_metadata: {
+                [key: string]: unknown;
+            };
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /**
+         * NotificationType
+         * @enum {string}
+         */
+        NotificationType: "party_added" | "party_removed" | "document_recorded" | "document_processed" | "document_failed";
         /**
          * OnChainVerificationResponse
          * @description Response returned when verifying an on-chain record.
@@ -1071,6 +1205,40 @@ export interface components {
              * @description session will be None until the user verifies their email
              */
             requires_email_confirmation: boolean;
+        };
+        /** UnreadCountResponse */
+        UnreadCountResponse: {
+            /** Unread */
+            unread: number;
+        };
+        /** UserProfileResponse */
+        UserProfileResponse: {
+            /**
+             * Email
+             * @description User's email address
+             */
+            email: string;
+            /**
+             * F Name
+             * @description Valid first name
+             */
+            f_name: string;
+            /**
+             * L Name
+             * @description Valid last name
+             */
+            l_name: string;
+            /**
+             * Avatar
+             * @description User Avatar
+             * @default icon1
+             */
+            avatar: string;
+            /**
+             * Role
+             * @description User role
+             */
+            role: string;
         };
         /** UserSearchResponse */
         UserSearchResponse: {
@@ -1367,6 +1535,47 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_user_profile_users__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description User found successfully */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserProfileResponse"];
+                };
+            };
+            /** @description User is not authenticated */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description User not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "User not found"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
             };
         };
@@ -2246,6 +2455,143 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
+            };
+        };
+    };
+    list_notifications_notifications__get: {
+        parameters: {
+            query?: {
+                limit?: number;
+                offset?: number;
+                unread_only?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Notifications retrieved */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotificationListResponse"];
+                };
+            };
+            /** @description Not authenticated */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_unread_count_notifications_unread_count_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Unread count */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnreadCountResponse"];
+                };
+            };
+            /** @description Not authenticated */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    mark_read_notifications__notification_id__read_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                notification_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Marked as read */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not authenticated */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not found or not yours */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    mark_all_read_notifications_read_all_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description All marked read */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MarkAllReadResponse"];
+                };
+            };
+            /** @description Not authenticated */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

@@ -10,17 +10,21 @@ type ProfileSummaryCardProps = {
   initials: string;
   name: string;
   role: string;
-  organization: string;
   email: string;
+  isLoading?: boolean;
 };
 
 export function ProfileSummaryCard({
   initials,
   name,
   role,
-  organization,
   email,
+  isLoading,
 }: ProfileSummaryCardProps) {
+  if (isLoading) {
+    return <ProfileSummarySkeleton />;
+  }
+
   return (
     <View style={profileSummaryCardStyles.card}>
       <View style={profileSummaryCardStyles.topRow}>
@@ -33,8 +37,6 @@ export function ProfileSummaryCard({
           <Text style={profileSummaryCardStyles.role}>{role}</Text>
         </View>
       </View>
-
-      <ProfileSummaryInfoRow iconName="business" value={organization} />
 
       <ProfileSummaryInfoRow iconName="mail-outline" value={email} />
 

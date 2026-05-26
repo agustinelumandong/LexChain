@@ -1,12 +1,11 @@
-import {
+import BottomSheet, {
   BottomSheetBackdrop,
-  BottomSheetModal,
   BottomSheetScrollView,
 } from '@gorhom/bottom-sheet';
 import { MaterialIcons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 import React from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { TermsContent } from './terms-content';
 import { TermsFooter } from './terms-footer';
@@ -54,15 +53,19 @@ export default function TermsBottomSheet({
     />
   );
 
-  return (
-    <>
-      {visible ? <StatusBar style="light" translucent backgroundColor="transparent" /> : null}
+  if (!visible) {
+    return null;
+  }
 
-      <BottomSheetModal
+  return (
+    <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
+      <StatusBar style="light" translucent backgroundColor="transparent" />
+
+      <BottomSheet
         ref={termsSheet.bottomSheetRef}
         index={0}
         snapPoints={termsSheet.snapPoints}
-        onDismiss={onClose}
+        onClose={onClose}
         enablePanDownToClose
         backdropComponent={renderBackdrop}
         handleIndicatorStyle={styles.handle}
@@ -77,7 +80,7 @@ export default function TermsBottomSheet({
             </Text>
           </View>
 
-          <Pressable style={styles.closeButton} onPress={() => termsSheet.bottomSheetRef.current?.dismiss()}>
+          <Pressable style={styles.closeButton} onPress={onClose}>
             <MaterialIcons name="close" size={20} color={COLORS.navy} />
           </Pressable>
         </View>
@@ -88,7 +91,11 @@ export default function TermsBottomSheet({
           showsVerticalScrollIndicator={false}
           onScroll={termsSheet.handleScroll}
         >
-          <TermsContent hasReachedEnd={hasReachedEnd} />
+          <TermsContent
+            acceptedTerms={acceptedTerms}
+            hasReachedEnd={hasReachedEnd}
+            onToggleAcceptedTerms={onToggleAcceptedTerms}
+          />
         </BottomSheetScrollView>
 
         <TermsFooter
@@ -96,10 +103,9 @@ export default function TermsBottomSheet({
           acceptedTerms={acceptedTerms}
           hasReachedEnd={hasReachedEnd}
           isSubmitting={isSubmitting}
-          onToggleAcceptedTerms={onToggleAcceptedTerms}
           onConfirm={onConfirm}
         />
-      </BottomSheetModal>
-    </>
+      </BottomSheet>
+    </View>
   );
 }

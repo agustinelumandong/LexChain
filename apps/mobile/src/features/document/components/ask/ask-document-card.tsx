@@ -2,7 +2,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
-import type { AskCitation } from '../types/ask-document-card.types';
+import type { AskCitation } from '@/features/document/types/ask-document-card.types';
 import { AskDocumentAnswer } from './ask-document-answer';
 import { AskDocumentCitations } from './ask-document-citations';
 import { AskDocumentQuestionInput } from './ask-document-question-input';

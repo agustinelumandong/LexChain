@@ -22,6 +22,10 @@ export const getStartedScreenStyles = StyleSheet.create({
     overflow: 'hidden',
   },
   content: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
     borderTopRightRadius: 32,
     borderTopLeftRadius: 32,
     borderWidth: 1,
@@ -34,16 +38,9 @@ export const getStartedScreenStyles = StyleSheet.create({
   },
   sheetBody: {
     paddingHorizontal: 20,
-    paddingTop: 6,
+    paddingTop: 22,
     paddingBottom: 28,
     gap: 20,
-  },
-  handle: {
-    alignSelf: 'center',
-    width: 64,
-    height: 6,
-    borderRadius: 999,
-    backgroundColor: GET_STARTED_COLORS.borderSoft,
   },
   copyBlock: {
     gap: 10,
@@ -54,7 +51,6 @@ export const getStartedScreenStyles = StyleSheet.create({
     lineHeight: 33,
     fontWeight: '800',
     fontFamily: fonts.regular,
-    letterSpacing: -0.6,
   },
   body: {
     color: GET_STARTED_COLORS.textMuted,

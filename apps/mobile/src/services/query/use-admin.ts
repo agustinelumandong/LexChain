@@ -21,10 +21,11 @@ export function useAdminUsersApi() {
   });
 }
 
-export function useAdminInvitationsApi() {
+export function useAdminInvitationsApi(options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: queryKeys.admin.invitations,
     queryFn: adminApi.getInvitations,
+    enabled: options?.enabled ?? true,
   });
 }
 

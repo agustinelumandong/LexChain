@@ -8,7 +8,7 @@
     "./openapi": "./src/generated/schema.ts"
   },
   "scripts": {
-    "generate": "openapi-typescript ../../openapi-updated.json -o ./src/generated/schema.ts",
+    "generate": "node ../../scripts/fetch-openapi.mjs && openapi-typescript ../../openapi-updated.json -o ./src/generated/schema.ts || test $? -eq 2",
     "lint": "tsc --noEmit"
   },
   "devDependencies": {

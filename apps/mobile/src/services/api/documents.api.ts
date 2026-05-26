@@ -11,6 +11,7 @@ type ApiSchema<Name extends keyof components['schemas']> =
   components['schemas'][Name];
 
 export type DocumentListItem = ApiSchema<'DocumentUploadResponse'> & {
+  on_chain?: boolean;
   status: DocumentStatusKey;
 };
 

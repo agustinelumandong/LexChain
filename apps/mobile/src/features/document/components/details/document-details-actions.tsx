@@ -4,6 +4,7 @@ import { Button } from '@/ui';
 
 type DocumentDetailsActionsProps = {
   canNotarizeDocument: boolean;
+  isAnchored: boolean;
   isNotarizing: boolean;
   isViewer: boolean;
   onPressPdf: () => void;
@@ -13,6 +14,7 @@ type DocumentDetailsActionsProps = {
 
 export function DocumentDetailsActions({
   canNotarizeDocument,
+  isAnchored,
   isNotarizing,
   isViewer,
   onPressPdf,
@@ -37,7 +39,7 @@ export function DocumentDetailsActions({
         style={styles.actionButton}
         onPress={onPressSearch}
       />
-      {!isViewer && (
+      {!isViewer && !isAnchored && (
         <Button
           label="Anchor to Blockchain"
           variant="secondary"

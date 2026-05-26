@@ -5,7 +5,7 @@ import {
   Pressable,
   View,
 } from 'react-native';
-import { MaterialIcons } from '@expo/vector-icons';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { Image } from 'expo-image';
 
 import { ThemedText } from '@/shared/components/themed-text';
