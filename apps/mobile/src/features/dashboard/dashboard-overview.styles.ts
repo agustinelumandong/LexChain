@@ -100,6 +100,9 @@ export const styles = StyleSheet.create({
     fontWeight: '500',
     fontFamily: fonts.regular,
   },
+  kpiGroup: {
+    gap: 12,
+  },
   kpiRow: {
     flexDirection: 'row',
     gap: 12,
