@@ -32,11 +32,18 @@ export function DashboardKpiCard({
       </View>
 
       <View style={styles.copy}>
-        <Text style={styles.label}>{label}</Text>
+        <Text
+          style={styles.label}
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.78}
+        >
+          {label}
+        </Text>
         <Text style={styles.value}>{value}</Text>
       </View>
 
-      <MaterialIcons name="chevron-right" size={16} color="#6B8AB3" />
+      <MaterialIcons name="chevron-right" size={14} color="#6B8AB3" />
     </View>
   );
 }
@@ -79,11 +86,11 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     borderWidth: 1,
     borderColor: COLORS.borderSoft,
-    paddingHorizontal: 14,
+    paddingHorizontal: 12,
     paddingVertical: 14,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 8,
     shadowColor: APP_COLORS.navy,
     shadowOpacity: 0.08,
     shadowRadius: 14,
@@ -91,8 +98,8 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   iconBubble: {
-    width: 32,
-    height: 32,
+    width: 30,
+    height: 30,
     borderRadius: 999,
     alignItems: 'center',
     justifyContent: 'center',
