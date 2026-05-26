@@ -68,9 +68,10 @@ function getDocumentActivity(document: DocumentListItem): DashboardRecentActivit
 
 export function useDashboard() {
   const documentsQuery = useDocuments();
+  const { refetch: refetchDocuments } = documentsQuery;
   const refetch = useCallback(async () => {
-    await documentsQuery.refetch();
-  }, [documentsQuery]);
+    await refetchDocuments();
+  }, [refetchDocuments]);
 
   return useMemo(() => {
     const documents = documentsQuery.data ?? [];
