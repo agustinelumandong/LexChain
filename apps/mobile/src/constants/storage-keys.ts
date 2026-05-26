@@ -4,4 +4,6 @@ export const STORAGE_KEYS = {
   profileSettings: 'lexchain:profile-settings',
   authToken: 'lexchain.auth-token',
   refreshToken: 'lexchain.refresh-token',
+  rememberedSignInEmail: 'lexchain:remembered-sign-in-email',
+  rememberSignInEmail: 'lexchain:remember-sign-in-email',
 } as const;
