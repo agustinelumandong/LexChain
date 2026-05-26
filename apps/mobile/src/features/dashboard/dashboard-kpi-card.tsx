@@ -54,6 +54,23 @@ export function DashboardKpiSkeleton() {
   );
 }
 
+export function DashboardActivitySkeleton() {
+  return (
+    <View style={styles.activitySkeletonRow}>
+      <SkeletonBox width={42} height={42} borderRadius={8} />
+      <View style={styles.activitySkeletonCopy}>
+        <View style={styles.activitySkeletonTopLine}>
+          <SkeletonBox width="58%" height={14} borderRadius={999} />
+          <SkeletonBox width={76} height={20} borderRadius={999} />
+        </View>
+        <SkeletonBox width="78%" height={12} borderRadius={999} />
+        <SkeletonBox width="34%" height={12} borderRadius={999} />
+      </View>
+      <SkeletonBox width={18} height={18} borderRadius={999} />
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   card: {
     flex: 1,
@@ -100,5 +117,28 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     fontFamily: fonts.regular,
     fontVariant: ['tabular-nums'],
+  },
+  activitySkeletonRow: {
+    minHeight: 72,
+    backgroundColor: COLORS.surface,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: COLORS.borderSoft,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  activitySkeletonCopy: {
+    flex: 1,
+    minWidth: 0,
+    gap: 7,
+  },
+  activitySkeletonTopLine: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
   },
 });

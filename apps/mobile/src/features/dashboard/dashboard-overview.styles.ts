@@ -142,6 +142,7 @@ export const styles = StyleSheet.create({
     fontFamily: fonts.regular,
   },
   activityRow: {
+    minHeight: 72,
     backgroundColor: COLORS.surface,
     borderRadius: 18,
     borderWidth: 1,
