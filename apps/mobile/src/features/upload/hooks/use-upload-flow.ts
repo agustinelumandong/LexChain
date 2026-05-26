@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { useFocusEffect, useRouter } from 'expo-router';
 import * as DocumentPicker from 'expo-document-picker';
 import * as Haptics from 'expo-haptics';
@@ -10,7 +10,14 @@ import { parseApiError } from '@/shared/utils/api-error';
 import type { PickedUploadFile } from '@/types';
 
 import { createPdfFromImages } from '../create-pdf-from-images';
-import { consumePendingCapturedFiles } from '../upload-session';
+import {
+  consumePendingCapturedFiles,
+  setPendingCapturedFiles,
+} from '../upload-session';
+import {
+  NativeDocumentScanCancelledError,
+  scanDocumentsWithNativeScanner,
+} from '../native-document-scanner';
 import { formatUploadFileSize, isPdfFile } from '../utils/upload-file';
 
 export function useUploadFlow() {
@@ -20,35 +27,41 @@ export function useUploadFlow() {
   const [isPreparingScanPdf, setIsPreparingScanPdf] = useState(false);
   const uploadMutation = useUploadDocument();
 
+  const convertCapturedFilesToPdf = useCallback((capturedFiles: PickedUploadFile[]) => {
+    if (capturedFiles.length === 0) {
+      return;
+    }
+
+    setIsPreparingScanPdf(true);
+
+    void createPdfFromImages(capturedFiles)
+      .then((scanPdf) => {
+        setPickedFiles([scanPdf]);
+        setDocumentTitle((currentTitle) =>
+          currentTitle.trim() ? currentTitle : scanPdf.name,
+        );
+        toast.success(
+          capturedFiles.length === 1
+            ? 'Captured page converted to PDF'
+            : `${capturedFiles.length} captured pages converted to PDF`,
+        );
+      })
+      .catch((error) => {
+        console.error('Failed to create PDF from captured pages', error);
+        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        toast.error('Failed to convert scan to PDF');
+      })
+      .finally(() => {
+        setIsPreparingScanPdf(false);
+      });
+  }, []);
+
   useFocusEffect(
     React.useCallback(() => {
       const pendingCapturedFiles = consumePendingCapturedFiles();
 
-      if (pendingCapturedFiles.length > 0) {
-        setIsPreparingScanPdf(true);
-
-        void createPdfFromImages(pendingCapturedFiles)
-          .then((scanPdf) => {
-            setPickedFiles([scanPdf]);
-            setDocumentTitle((currentTitle) =>
-              currentTitle.trim() ? currentTitle : scanPdf.name,
-            );
-            toast.success(
-              pendingCapturedFiles.length === 1
-                ? 'Captured page converted to PDF'
-                : `${pendingCapturedFiles.length} captured pages converted to PDF`,
-            );
-          })
-          .catch((error) => {
-            console.error('Failed to create PDF from captured pages', error);
-            void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-            toast.error('Failed to convert scan to PDF');
-          })
-          .finally(() => {
-            setIsPreparingScanPdf(false);
-          });
-      }
-    }, []),
+      convertCapturedFilesToPdf(pendingCapturedFiles);
+    }, [convertCapturedFilesToPdf]),
   );
 
   const handleChooseFile = async () => {
@@ -100,9 +113,33 @@ export function useUploadFlow() {
     }
   };
 
-  const handleOpenCameraCapture = () => {
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  const handleOpenManualCameraCapture = useCallback(() => {
     router.push('/camera-capture');
+  }, [router]);
+
+  const handleOpenCameraCapture = async () => {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+
+    if (process.env.EXPO_OS !== 'android') {
+      handleOpenManualCameraCapture();
+      return;
+    }
+
+    try {
+      const scannedFiles = await scanDocumentsWithNativeScanner();
+
+      setPendingCapturedFiles(scannedFiles);
+      convertCapturedFilesToPdf(consumePendingCapturedFiles());
+    } catch (error) {
+      if (error instanceof NativeDocumentScanCancelledError) {
+        return;
+      }
+
+      console.error('Native document scanner unavailable', error);
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      toast.error('Scanner unavailable. Opening manual camera.');
+      handleOpenManualCameraCapture();
+    }
   };
 
   const handlePreviewFile = (file: PickedUploadFile) => {
