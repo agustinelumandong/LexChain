@@ -24,10 +24,10 @@ export default function UploadScreen() {
         <ScreenHeader
           eyebrow="UPLOAD DOCUMENT"
           title="Upload document"
-          subtitle="Choose a PDF or scan pages into one PDF."
+          subtitle="Choose a PDF or scan documents into one PDF."
           leftAccessibilityLabel="Back"
           rightIconName="photo-camera"
-          rightAccessibilityLabel="Open camera scanner"
+          rightAccessibilityLabel="Scan document"
           onPressLeft={() => router.back()}
           onPressRight={upload.handleOpenCameraCapture}
           onHeightChange={setHeaderHeight}

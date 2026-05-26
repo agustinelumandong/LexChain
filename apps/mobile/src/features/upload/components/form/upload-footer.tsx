@@ -34,6 +34,7 @@ export function UploadFooter({
 
         <Pressable
           accessibilityRole="button"
+          accessibilityLabel="Scan document"
           onPress={onOpenCamera}
           style={uploadScreenStyles.cameraFab}
         >
