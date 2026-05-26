@@ -1,7 +1,23 @@
-import { cookies } from "next/headers";
 import { AdminShell } from "../admin-shell";
-import { adminStats } from "../admin-demo-data";
-import { backendUrl } from "@/lib/admin-api";
+import { adminStats, adminUsers } from "../admin-demo-data";
+import {
+  PipelineBarChart,
+  StatusDonutChart,
+  ThroughputAreaChart,
+} from "../components/charts";
+import { adminFetch } from "../components/admin-fetch";
+import { PageHeader } from "../components/page-header";
+import { StatCard, StatCardData } from "../components/stat-card";
+import PeopleIcon from "@mui/icons-material/People";
+import GavelIcon from "@mui/icons-material/Gavel";
+import DescriptionIcon from "@mui/icons-material/Description";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import LinkIcon from "@mui/icons-material/Link";
+import ErrorIcon from "@mui/icons-material/Error";
+import MailIcon from "@mui/icons-material/Mail";
+import PersonAddIcon from "@mui/icons-material/PersonAdd";
+
+const useMock = process.env.NEXT_PUBLIC_USE_MOCK_API === "true";
 
 type DashboardData = {
   total_users: number;
@@ -13,151 +29,141 @@ type DashboardData = {
   pending_invitations: number;
 };
 
-async function getDashboard(): Promise<{ data: DashboardData; source: "live" | "demo" }> {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("admin_token")?.value;
-  if (!token) {
+type RecentUser = {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  created_at: string;
+};
+
+async function getDashboard(): Promise<DashboardData> {
+  if (useMock) {
     return {
-      data: {
-        total_users: adminStats.total_users,
-        total_lawyers: adminStats.total_document_issuers,
-        total_documents: adminStats.total_documents,
-        total_processed: adminStats.processed_documents,
-        total_failed: adminStats.failed_documents,
-        total_on_chain: adminStats.total_documents - adminStats.pending_documents,
-        pending_invitations: adminStats.pending_documents,
-      },
-      source: "demo",
+      total_users: adminStats.total_users,
+      total_lawyers: adminStats.total_lawyers,
+      total_documents: adminStats.total_documents,
+      total_processed: adminStats.processed_documents,
+      total_failed: adminStats.failed_documents,
+      total_on_chain: adminStats.total_documents - adminStats.pending_documents,
+      pending_invitations: adminStats.pending_documents,
     };
+  }
+  return adminFetch<DashboardData>("/admin/dashboard");
+}
+
+async function getRecentUsers(): Promise<RecentUser[]> {
+  if (useMock) {
+    return adminUsers
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+      .slice(0, 4)
+      .map((u) => ({ id: u.id, name: u.name, email: u.email, role: u.role, created_at: u.created_at }));
   }
 
   try {
-    const res = await fetch(backendUrl("/admin/dashboard"), {
-      headers: { Authorization: `Bearer ${token}` },
-      cache: "no-store",
-    });
-    if (!res.ok) {
-      throw new Error("Dashboard API unavailable.");
-    }
-    return { data: await res.json(), source: "live" };
+    const { users } = await adminFetch<{ users: Array<{ id: string; name?: string; f_name?: string; l_name?: string; email: string; role: string; created_at: string }> }>("/admin/users");
+    return users
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+      .slice(0, 4)
+      .map((u) => ({
+        id: u.id,
+        name: u.name ?? `${u.f_name ?? ""} ${u.l_name ?? ""}`.trim(),
+        email: u.email,
+        role: u.role,
+        created_at: u.created_at,
+      }));
   } catch {
-    return {
-      data: {
-        total_users: adminStats.total_users,
-        total_lawyers: adminStats.total_document_issuers,
-        total_documents: adminStats.total_documents,
-        total_processed: adminStats.processed_documents,
-        total_failed: adminStats.failed_documents,
-        total_on_chain: adminStats.total_documents - adminStats.pending_documents,
-        pending_invitations: adminStats.pending_documents,
-      },
-      source: "demo",
-    };
+    return [];
   }
 }
 
 export default async function AdminDashboardPage() {
-  const { data, source } = await getDashboard();
+  const data = await getDashboard();
+  const recentUsers = await getRecentUsers();
 
-  const stats = [
-    { label: "Total users", value: data.total_users, detail: "Registered accounts", icon: "◉" },
-    { label: "Lawyers", value: data.total_lawyers, detail: "Lawyer accounts", icon: "▣" },
-    { label: "Documents", value: data.total_documents, detail: "Total uploaded", icon: "▤" },
-    { label: "Processed", value: data.total_processed, detail: "OCR/NLP completed", icon: "✓" },
-    { label: "On-chain", value: data.total_on_chain, detail: "Blockchain anchored", icon: "⛓" },
-    { label: "Failed", value: data.total_failed, detail: "Needs review", icon: "!" },
-    { label: "Pending invites", value: data.pending_invitations, detail: "Awaiting onboarding", icon: "◆" },
+  const stats: StatCardData[] = [
+    { label: "Total users", value: data.total_users, detail: "Registered accounts", icon: <PeopleIcon />, color: "blue" },
+    { label: "Lawyers", value: data.total_lawyers, detail: "Lawyer accounts", icon: <GavelIcon />, color: "purple" },
+    { label: "Documents", value: data.total_documents, detail: "Total uploaded", icon: <DescriptionIcon />, color: "indigo" },
+    { label: "Processed", value: data.total_processed, detail: "OCR/NLP completed", icon: <CheckCircleIcon />, color: "green" },
+    { label: "On-chain", value: data.total_on_chain, detail: "Blockchain anchored", icon: <LinkIcon />, color: "teal" },
+    { label: "Failed", value: data.total_failed, detail: "Needs review", icon: <ErrorIcon />, color: "red" },
+    { label: "Pending invites", value: data.pending_invitations, detail: "Awaiting onboarding", icon: <MailIcon />, color: "amber" },
   ];
 
-  const bars = [
-    { label: "Processed", value: data.total_processed, total: data.total_documents },
-    { label: "On-chain", value: data.total_on_chain, total: data.total_documents },
-    { label: "Failed", value: data.total_failed, total: data.total_documents },
+  const pipelineData = [
+    { label: "Processed", value: data.total_processed, color: "#22C55E" },
+    { label: "On-chain", value: data.total_on_chain, color: "#0985E7" },
+    { label: "Failed", value: data.total_failed, color: "#EF4444" },
   ];
+
+  const successRate = data.total_documents > 0 ? Math.round(((data.total_documents - data.total_failed) / data.total_documents) * 100) : 0;
+  const pendingDocuments = Math.max(0, data.total_documents - data.total_processed - data.total_failed);
+  const statusData = [
+    { label: "Processed", value: data.total_processed, color: "#22C55E" },
+    { label: "Pending", value: pendingDocuments, color: "#F59E0B" },
+    { label: "Failed", value: data.total_failed, color: "#EF4444" },
+  ];
+  const trendData = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((label, index) => {
+    const progress = (index + 1) / 6;
+
+    return {
+      label,
+      processed: Math.round(data.total_processed * (0.52 + progress * 0.48)),
+      anchored: Math.round(data.total_on_chain * (0.46 + progress * 0.54)),
+    };
+  });
 
   return (
     <AdminShell activeHref="/admin/dashboard">
-      <div className="mx-auto max-w-[1180px] space-y-6">
-        <header className="space-y-1.5">
-          <p className="text-xs font-black uppercase tracking-[0.16em] text-[#0985E7]">
-            LexChain Super Admin
-          </p>
-          <h1 className="text-[32px] font-black leading-[38px] text-[#0C2B49]">Dashboard</h1>
-          <p className="max-w-3xl text-sm font-semibold leading-5 text-[#64748b]">
-            Live platform health — document processing, blockchain anchoring, and user activity.
-          </p>
-          {source === "demo" ? (
-            <p className="inline-flex rounded-full bg-[#EAF6FF] px-3 py-1 text-xs font-black text-[#0770c4]">
-              Demo fallback data. Sign in and set API_URL for live admin data.
-            </p>
-          ) : null}
-        </header>
+      <div className="flex h-full w-full flex-col gap-6">
+        <PageHeader title="Dashboard" description="Live platform health — document processing, blockchain anchoring, and user activity." />
 
-        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          {stats.map((card) => (
-            <article
-              key={card.label}
-              className="flex gap-4 rounded-2xl border border-[#E4EEF9] bg-white p-5 shadow-[0_1px_3px_rgba(12,43,73,0.03)]"
-            >
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[14px] bg-[#0985E7]/10 text-xl font-black text-[#0985E7]">
-                {card.icon}
-              </div>
-              <div>
-                <p className="text-xs font-black uppercase tracking-[0.12em] text-[#64748b]">
-                  {card.label}
-                </p>
-                <p className="mt-1 text-3xl font-black text-[#0C2B49]">
-                  {card.value.toLocaleString()}
-                </p>
-                <p className="mt-1 text-xs font-bold text-[#64748b]">{card.detail}</p>
-              </div>
-            </article>
+        <section className="grid grid-cols-12 gap-4">
+          {stats.map((card, i) => (
+            <div key={card.label} className={i < 4 ? "col-span-3" : "col-span-4"}>
+              <StatCard {...card} />
+            </div>
           ))}
         </section>
 
-        <section className="grid gap-5 xl:grid-cols-[1.6fr_0.9fr]">
-          <article className="rounded-2xl border border-[#E4EEF9] bg-white p-6 shadow-sm">
-            <h2 className="text-lg font-black text-[#0C2B49]">Processing Overview</h2>
-            <p className="mt-1 text-sm font-semibold text-[#64748b]">
-              Document pipeline health based on live data.
-            </p>
-            <div className="mt-6 space-y-5">
-              {bars.map(({ label, value, total }) => {
-                const pct = total > 0 ? Math.round((value / total) * 100) : 0;
-                return (
-                  <div key={label}>
-                    <div className="flex justify-between text-sm font-black">
-                      <span>{label}</span>
-                      <span>
-                        {value.toLocaleString()} ({pct}%)
-                      </span>
-                    </div>
-                    <div className="mt-2 h-2 rounded-full bg-[#EEF4FB]">
-                      <div
-                        className="h-2 rounded-full bg-[#0985E7]"
-                        style={{ width: `${pct}%` }}
-                      />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </article>
+        <section className="grid grid-cols-1 gap-5 xl:grid-cols-[1.1fr_0.9fr]">
+          <PipelineBarChart data={pipelineData} total={data.total_documents} />
+          <StatusDonutChart
+            centerLabel="Success rate"
+            centerValue={`${successRate}%`}
+            data={statusData}
+          />
+        </section>
 
-          <article className="rounded-2xl bg-[#0985E7] p-6 text-white shadow-[0_18px_48px_rgba(9,133,231,0.24)]">
-            <div className="flex items-center justify-between">
-              <p className="text-xs font-black uppercase tracking-[0.16em] text-white/70">
-                Super Admin scope
-              </p>
-              <span className="text-2xl">◈</span>
+        <section className="grid grid-cols-1 gap-5 xl:grid-cols-[1.1fr_0.9fr]">
+          <ThroughputAreaChart data={trendData} />
+          <article className="rounded-2xl border border-[#E4EEF9] bg-white p-6 shadow-sm">
+            <div className="flex items-center gap-3">
+              <PersonAddIcon className="text-[#0985E7]" />
+              <h2 className="text-lg font-black text-[#0C2B49]">Recent Registrations</h2>
             </div>
-            <p className="mt-8 text-sm font-semibold leading-6 text-white/85">
-              Monitor system activity, users, document metadata, processing status, and blockchain
-              records.
-            </p>
-            <div className="mt-10">
-              <p className="text-5xl font-black">{data.total_failed.toLocaleString()}</p>
-              <p className="text-sm font-black text-white/70">failed documents need review</p>
+            <p className="mt-1 text-sm font-semibold text-[#64748b]">Latest users who joined the platform.</p>
+            <div className="mt-4 space-y-3">
+              {recentUsers.map((user) => (
+                <div key={user.id} className="flex items-center gap-3 rounded-xl border border-[#E4EEF9] bg-[#F8FBFF] p-3">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#0985E7]/10 text-sm font-black text-[#0985E7]">
+                    {user.name.charAt(0)}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-black text-[#0C2B49]">{user.name}</p>
+                    <p className="truncate text-xs font-semibold text-[#64748b]">{user.email}</p>
+                  </div>
+                  <div className="shrink-0 text-right">
+                    <span className="rounded-full bg-[#EEF4FB] px-2 py-0.5 text-[10px] font-black capitalize text-[#0985E7]">
+                      {user.role.replace("_", " ")}
+                    </span>
+                    <p className="mt-1 text-[10px] font-semibold text-[#94a3b8]">
+                      {new Date(user.created_at).toLocaleDateString()}
+                    </p>
+                  </div>
+                </div>
+              ))}
             </div>
           </article>
         </section>

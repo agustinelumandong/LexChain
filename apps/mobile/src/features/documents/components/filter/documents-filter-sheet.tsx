@@ -1,10 +1,9 @@
-import {
+import BottomSheet, {
   BottomSheetBackdrop,
-  BottomSheetModal,
   BottomSheetScrollView,
 } from '@gorhom/bottom-sheet';
 import React from 'react';
-import { View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import { SelectDropdownField } from '@/ui';
 
@@ -69,76 +68,82 @@ export function DocumentsFilterSheet({
     />
   );
 
+  if (!visible) {
+    return null;
+  }
+
   return (
-    <BottomSheetModal
-      ref={filterSheet.bottomSheetRef}
-      index={0}
-      snapPoints={filterSheet.snapPoints}
-      onDismiss={onClose}
-      enableDynamicSizing={false}
-      enablePanDownToClose
-      backdropComponent={renderBackdrop}
-      handleIndicatorStyle={styles.handle}
-      backgroundStyle={styles.sheet}
-    >
-      <View style={styles.contentWrap}>
-        <BottomSheetScrollView
-          style={styles.scrollArea}
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-        >
-          <DocumentsFilterTopBar onBack={() => filterSheet.bottomSheetRef.current?.dismiss()} />
+    <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
+      <BottomSheet
+        ref={filterSheet.bottomSheetRef}
+        index={0}
+        snapPoints={filterSheet.snapPoints}
+        onClose={onClose}
+        enableDynamicSizing={false}
+        enablePanDownToClose
+        backdropComponent={renderBackdrop}
+        handleIndicatorStyle={styles.handle}
+        backgroundStyle={styles.sheet}
+      >
+        <View style={styles.contentWrap}>
+          <BottomSheetScrollView
+            style={styles.scrollArea}
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+          >
+            <DocumentsFilterTopBar onBack={onClose} />
 
-          <DocumentsFilterHeader />
+            <DocumentsFilterHeader />
 
-          <DocumentsFilterSection active={filterSheet.isTypeDropdownOpen}>
-            <SelectDropdownField
-              label="Document type"
-              value={filterSheet.selectedTypeLabel}
-              selectedOption={selectedType}
-              options={typeOptions}
-              isOpen={filterSheet.isTypeDropdownOpen}
-              onPress={filterSheet.toggleTypeDropdown}
-              onOutsidePress={filterSheet.closeDropdowns}
-              onSelect={(value) => {
-                onChangeType(value);
-                filterSheet.closeTypeDropdown();
-              }}
+            <DocumentsFilterSection active={filterSheet.isTypeDropdownOpen}>
+              <SelectDropdownField
+                label="Document type"
+                value={filterSheet.selectedTypeLabel}
+                selectedOption={selectedType}
+                options={typeOptions}
+                isOpen={filterSheet.isTypeDropdownOpen}
+                onPress={filterSheet.toggleTypeDropdown}
+                onOutsidePress={filterSheet.closeDropdowns}
+                onSelect={(value) => {
+                  onChangeType(value);
+                  filterSheet.closeTypeDropdown();
+                }}
+              />
+            </DocumentsFilterSection>
+
+            <DocumentsFilterSection active={filterSheet.isStatusDropdownOpen}>
+              <SelectDropdownField
+                label="Status"
+                value={filterSheet.selectedStatusLabel}
+                selectedOption={selectedStatus}
+                options={statusOptions}
+                isOpen={filterSheet.isStatusDropdownOpen}
+                onPress={filterSheet.toggleStatusDropdown}
+                onOutsidePress={filterSheet.closeDropdowns}
+                onSelect={(value) => {
+                  onChangeStatus(value);
+                  filterSheet.closeStatusDropdown();
+                }}
+              />
+            </DocumentsFilterSection>
+
+            <DocumentsFilterDateSection
+              selectedDate={selectedDate}
+              selectedDateLabel={filterSheet.selectedDateLabel}
+              isDatePickerOpen={filterSheet.isDatePickerOpen}
+              onOpenDatePicker={filterSheet.openDatePicker}
+              onChangeDate={onChangeDate}
+              onDatePickerChange={filterSheet.handleDateChange}
             />
-          </DocumentsFilterSection>
+          </BottomSheetScrollView>
 
-          <DocumentsFilterSection active={filterSheet.isStatusDropdownOpen}>
-            <SelectDropdownField
-              label="Status"
-              value={filterSheet.selectedStatusLabel}
-              selectedOption={selectedStatus}
-              options={statusOptions}
-              isOpen={filterSheet.isStatusDropdownOpen}
-              onPress={filterSheet.toggleStatusDropdown}
-              onOutsidePress={filterSheet.closeDropdowns}
-              onSelect={(value) => {
-                onChangeStatus(value);
-                filterSheet.closeStatusDropdown();
-              }}
-            />
-          </DocumentsFilterSection>
-
-          <DocumentsFilterDateSection
-            selectedDate={selectedDate}
-            selectedDateLabel={filterSheet.selectedDateLabel}
-            isDatePickerOpen={filterSheet.isDatePickerOpen}
-            onOpenDatePicker={filterSheet.openDatePicker}
-            onChangeDate={onChangeDate}
-            onDatePickerChange={filterSheet.handleDateChange}
+          <DocumentsFilterFooter
+            bottomInset={filterSheet.insets.bottom}
+            onClear={onClear}
+            onDone={onClose}
           />
-        </BottomSheetScrollView>
-
-        <DocumentsFilterFooter
-          bottomInset={filterSheet.insets.bottom}
-          onClear={onClear}
-          onDone={() => filterSheet.bottomSheetRef.current?.dismiss()}
-        />
-      </View>
-    </BottomSheetModal>
+        </View>
+      </BottomSheet>
+    </View>
   );
 }

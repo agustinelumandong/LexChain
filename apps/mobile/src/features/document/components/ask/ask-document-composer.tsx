@@ -1,7 +1,7 @@
 import { BottomSheetFooter, type BottomSheetFooterProps } from '@gorhom/bottom-sheet';
 import { MaterialIcons } from '@expo/vector-icons';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Pressable, TextInput } from 'react-native';
+import { Pressable, TextInput, type LayoutChangeEvent } from 'react-native';
 import Animated from 'react-native-reanimated';
 
 import { ASK_DOCUMENT_COLORS as COLORS, askDocumentStyles as styles } from './ask-document.styles';
@@ -11,6 +11,7 @@ type AskDocumentComposerProps = BottomSheetFooterProps & {
   resetKey: number;
   onSubmit: (question: string) => void;
   onFocusComposer: () => void;
+  onLayoutComposer: (height: number) => void;
   animatedStyle: React.ComponentProps<typeof Animated.View>['style'];
 };
 
@@ -19,6 +20,7 @@ export const AskDocumentComposer = React.memo(function AskDocumentComposer({
   resetKey,
   onSubmit,
   onFocusComposer,
+  onLayoutComposer,
   animatedStyle,
   ...footerProps
 }: AskDocumentComposerProps) {
@@ -55,13 +57,20 @@ export const AskDocumentComposer = React.memo(function AskDocumentComposer({
     setIsFocused(false);
   }, [resetKey]);
 
+  const handleComposerLayout = useCallback(
+    (event: LayoutChangeEvent) => {
+      onLayoutComposer(Math.ceil(event.nativeEvent.layout.height));
+    },
+    [onLayoutComposer],
+  );
+
   return (
     <BottomSheetFooter
       {...footerProps}
       bottomInset={bottomInset}
       style={styles.footerContainer}
     >
-      <Animated.View style={[styles.composer, animatedStyle]}>
+      <Animated.View style={[styles.composer, animatedStyle]} onLayout={handleComposerLayout}>
         <Pressable
           style={styles.inputShell}
           onPress={() => {

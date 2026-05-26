@@ -1,9 +1,9 @@
-import {
+import BottomSheet, {
   BottomSheetBackdrop,
-  BottomSheetModal,
   BottomSheetScrollView,
 } from '@gorhom/bottom-sheet';
 import React, { useCallback, useEffect, useMemo, useRef } from 'react';
+import { BackHandler, StyleSheet, View } from 'react-native';
 
 import type { DocumentPermission } from '@/types';
 
@@ -26,12 +26,8 @@ export function DocumentPdfToolsSheet({
   permissions,
   onClose,
 }: DocumentPdfToolsSheetProps) {
-  const bottomSheetRef = useRef<BottomSheetModal>(null);
+  const bottomSheetRef = useRef<BottomSheet>(null);
   const snapPoints = useMemo(() => ['42%', '85%'], []);
-
-  const handleDismiss = useCallback(() => {
-    onClose();
-  }, [onClose]);
 
   const renderBackdrop = useCallback(
     (props: React.ComponentProps<typeof BottomSheetBackdrop>) => (
@@ -47,40 +43,47 @@ export function DocumentPdfToolsSheet({
   );
 
   useEffect(() => {
-    const sheet = bottomSheetRef.current;
-
-    if (!sheet) {
+    if (!visible) {
       return;
     }
 
-    if (visible) {
-      sheet.present();
-      return;
-    }
+    const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+      bottomSheetRef.current?.close();
+      return true;
+    });
 
-    sheet.dismiss();
+    return () => {
+      subscription.remove();
+    };
   }, [visible]);
 
-  return (
-    <BottomSheetModal
-      ref={bottomSheetRef}
-      index={0}
-      snapPoints={snapPoints}
-      onDismiss={handleDismiss}
-      enableDynamicSizing={false}
-      enablePanDownToClose
-      backdropComponent={renderBackdrop}
-      backgroundStyle={documentPdfToolsSheetStyles.sheetBackground}
-      handleIndicatorStyle={documentPdfToolsSheetStyles.handleIndicator}
-    >
-      <DocumentPdfToolsHeader title={title} />
+  if (!visible) {
+    return null;
+  }
 
-      <BottomSheetScrollView
-        contentContainerStyle={documentPdfToolsSheetStyles.sheetContent}
-        showsVerticalScrollIndicator={false}
+  return (
+    <View style={[StyleSheet.absoluteFill, documentPdfToolsSheetStyles.overlay]} pointerEvents="box-none">
+      <BottomSheet
+        ref={bottomSheetRef}
+        index={0}
+        snapPoints={snapPoints}
+        containerStyle={documentPdfToolsSheetStyles.overlay}
+        onClose={onClose}
+        enableDynamicSizing={false}
+        enablePanDownToClose
+        backdropComponent={renderBackdrop}
+        backgroundStyle={documentPdfToolsSheetStyles.sheetBackground}
+        handleIndicatorStyle={documentPdfToolsSheetStyles.handleIndicator}
       >
-        <DocumentPdfToolsContent documentId={documentId} permissions={permissions} />
-      </BottomSheetScrollView>
-    </BottomSheetModal>
+        <DocumentPdfToolsHeader title={title} />
+
+        <BottomSheetScrollView
+          contentContainerStyle={documentPdfToolsSheetStyles.sheetContent}
+          showsVerticalScrollIndicator={false}
+        >
+          <DocumentPdfToolsContent documentId={documentId} permissions={permissions} />
+        </BottomSheetScrollView>
+      </BottomSheet>
+    </View>
   );
 }

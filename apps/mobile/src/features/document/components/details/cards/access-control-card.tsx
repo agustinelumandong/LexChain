@@ -9,12 +9,17 @@ import { documentDetailCardStyles as styles } from './document-detail-card.style
 export function AccessControlCard({
   allowedCountLabel,
   canManageWhitelist,
+  partyNames,
   onPressManage,
 }: {
   allowedCountLabel: string;
   canManageWhitelist: boolean;
+  partyNames?: string[];
   onPressManage: () => void;
 }) {
+  const visiblePartyNames = partyNames?.filter(Boolean).slice(0, 4) ?? [];
+  const hiddenPartyCount = Math.max((partyNames?.length ?? 0) - visiblePartyNames.length, 0);
+
   return (
     <View style={styles.accessCard}>
       <View style={styles.cardIconBubble}>
@@ -29,6 +34,20 @@ export function AccessControlCard({
             : 'Whitelist access is managed by the document issuer.'}
         </Text>
         <Text style={styles.accessCount}>{allowedCountLabel}</Text>
+        {!canManageWhitelist && visiblePartyNames.length > 0 ? (
+          <View style={styles.partyNameList}>
+            {visiblePartyNames.map((name) => (
+              <Text key={name} style={styles.partyName} numberOfLines={1}>
+                {name}
+              </Text>
+            ))}
+            {hiddenPartyCount > 0 ? (
+              <Text style={styles.partyNameMuted}>
+                +{hiddenPartyCount} more
+              </Text>
+            ) : null}
+          </View>
+        ) : null}
       </View>
 
       {canManageWhitelist ? (

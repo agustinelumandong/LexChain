@@ -5,7 +5,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { toast } from 'sonner-native';
 
 import { clearSessionData } from '@/features/auth';
-import { BottomNav, Button } from '@/ui';
+import { useUserProfile } from '@/services/query';
+import { Button } from '@/ui';
 
 import { ProfileHeader } from '../profile-header';
 import { styles } from '../profile-screen.styles';
@@ -21,6 +22,17 @@ export default function ProfileScreen() {
   const router = useRouter();
   const [isSigningOut, setIsSigningOut] = useState(false);
   const account = useProfileSettingsStore((state) => state.account);
+  const userProfileQuery = useUserProfile();
+  const userProfile = userProfileQuery.data;
+  const profileName = userProfile
+    ? [userProfile.f_name, userProfile.l_name].filter(Boolean).join(' ').trim()
+    : '';
+  const profileInitials = userProfile
+    ? `${userProfile.f_name.trim().charAt(0)}${userProfile.l_name.trim().charAt(0)}`.toUpperCase() || 'LC'
+    : getProfileInitials(account);
+  const displayName = profileName || getProfileDisplayName(account);
+  const displayEmail = userProfile?.email ?? account.email;
+  const displayRole = userProfile?.role ?? account.role;
 
   const handleSignOut = async () => {
     if (isSigningOut) {
@@ -48,11 +60,11 @@ export default function ProfileScreen() {
           <ProfileHeader />
 
           <ProfileSummaryCard
-            initials={getProfileInitials(account)}
-            name={getProfileDisplayName(account)}
-            role={account.role}
-            organization={account.organization}
-            email={account.email}
+            initials={profileInitials}
+            name={displayName}
+            role={displayRole}
+            email={displayEmail}
+            isLoading={userProfileQuery.isLoading}
           />
 
           <SettingsListCard
@@ -109,16 +121,6 @@ export default function ProfileScreen() {
           </View>
         </ScrollView>
 
-        <View style={styles.navWrap}>
-          <BottomNav
-            activeTab="profile"
-            onPressHome={() => router.push('/(tabs)')}
-            onPressDocuments={() => router.push('/(tabs)/documents')}
-            onPressProfile={() => {}}
-            onPressUpload={() => router.push('/upload')}
-            showUpload={account.role.toLowerCase() !== 'viewer'}
-          />
-        </View>
       </View>
     </SafeAreaView>
   );

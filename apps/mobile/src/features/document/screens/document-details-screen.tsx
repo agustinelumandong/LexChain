@@ -1,12 +1,14 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useQueryClient } from '@tanstack/react-query';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { toast } from 'sonner-native';
 
 import { Button, ScreenHeader } from '@/ui';
 import {
+  queryKeys,
   useAddDocumentParty,
   useAskDocument,
   useDocument,
@@ -15,10 +17,15 @@ import {
   useNotarizeDocument,
   useRenameDocument,
   useRemoveDocumentParty,
+  useUserProfile,
   useUserSearch,
+  useVerifyOnChainDocument,
 } from '@/services/query';
+import { documentsApi } from '@/services/api';
 import { parseApiError } from '@/shared/utils/api-error';
 import { APP_COLORS } from '@/theme';
+import botQuestionMarkImage from '@/assets/images/lexchain-bot-question-mark.png';
+import { canRoleUploadDocuments } from '@/features/profile';
 
 import { HEADER_CONTENT_GAP } from '../constants/document-details.constants';
 import { DocumentDetailsContent } from '../components/details/document-details-content';
@@ -26,14 +33,19 @@ import { DocumentDetailsSheets } from '../components/details/document-details-sh
 import { useDocumentDetailsSheets } from '../hooks/use-document-details-sheets';
 import { useDocumentFileVersion } from '../hooks/use-document-file-version';
 import { useDocumentWhitelistActions } from '../hooks/use-document-whitelist-actions';
-import type { DocumentDetailsDocument } from '../types/document-details.types';
+import type {
+  DocumentDetailsDocument,
+  VersionHistoryItem,
+} from '../types/document-details.types';
 import {
   formatEntities,
   formatRiskFlags,
+  getDocumentPdfUri,
 } from '../utils/document-details-formatters';
 
 export default function DocumentDetailsScreen() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { id } = useLocalSearchParams<{ id: string }>();
   const documentId = Array.isArray(id) ? id[0] : id;
   const documentQuery = useDocument(documentId);
@@ -44,6 +56,7 @@ export default function DocumentDetailsScreen() {
   const addPartyMutation = useAddDocumentParty();
   const removePartyMutation = useRemoveDocumentParty();
   const document = documentQuery.data as DocumentDetailsDocument | undefined;
+  const userProfileQuery = useUserProfile();
 
   const [headerHeight, setHeaderHeight] = useState(126);
   const sheets = useDocumentDetailsSheets();
@@ -54,10 +67,14 @@ export default function DocumentDetailsScreen() {
   );
   const qaMutation = useAskDocument();
   const { mutate: askDocument } = qaMutation;
-  const canManageWhitelist = true;
+  const canManageWhitelist = canRoleUploadDocuments(userProfileQuery.data?.role);
+  const canUseDocumentAssistant = Boolean(documentId);
   const currentDocumentRole = canManageWhitelist ? 'owner' : 'viewer';
   const isViewer = currentDocumentRole === 'viewer';
-  const canNotarizeDocument = document?.status === 'COMPLETED';
+  const isAnchored = Boolean(document?.on_chain);
+  const onChainQuery = useVerifyOnChainDocument(documentId, isAnchored);
+  const canNotarizeDocument =
+    canManageWhitelist && document?.status === 'COMPLETED' && !isAnchored;
   const { pdfUri, versionHistory } = useDocumentFileVersion({
     document,
     versions: versionHistoryQuery.data?.versions,
@@ -87,11 +104,6 @@ export default function DocumentDetailsScreen() {
   }, [askDocument, documentId]);
 
   const handleNotarize = async () => {
-    if (!canNotarizeDocument) {
-      toast.warning('Document must be completed before blockchain anchoring');
-      return;
-    }
-
     try {
       await notarizeMutation.mutateAsync(documentId);
       toast.success('Document anchored to blockchain');
@@ -100,6 +112,46 @@ export default function DocumentDetailsScreen() {
       toast.error(parseApiError(error).message);
     }
   };
+
+  const handleOpenVersion = useCallback(async (version: VersionHistoryItem) => {
+    const versionDocumentId = version.documentId ?? version.id;
+
+    if (!versionDocumentId) {
+      return;
+    }
+
+    try {
+      let versionUri = version.uri ?? undefined;
+      let versionTitle = version.fileName ?? version.label;
+
+      if (version.isCurrent && document) {
+        versionUri = versionUri ?? pdfUri;
+        versionTitle = document.file_name;
+      }
+
+      if (!versionUri) {
+        const versionDocument = await queryClient.fetchQuery({
+          queryKey: queryKeys.documents.detail(versionDocumentId),
+          queryFn: () => documentsApi.getById(versionDocumentId),
+        });
+
+        versionUri = getDocumentPdfUri(versionDocument);
+        versionTitle = versionDocument.file_name;
+      }
+
+      router.push({
+        pathname: './pdf-viewer',
+        params: {
+          documentId: versionDocumentId,
+          title: version.isCurrent ? `${versionTitle} (Current)` : versionTitle,
+          uri: versionUri,
+          role: currentDocumentRole,
+        },
+      });
+    } catch (error) {
+      toast.error(parseApiError(error).message);
+    }
+  }, [currentDocumentRole, document, pdfUri, queryClient, router]);
 
   const riskSections = useMemo(() => {
     if (!document) {
@@ -141,8 +193,8 @@ export default function DocumentDetailsScreen() {
           title={document?.file_name ?? 'Document details'}
           subtitle="AI summary, verification status, ownership history, risk review, and searchable details."
           leftAccessibilityLabel="Back to documents"
-          rightIconName="menu"
-          rightAccessibilityLabel="Open document menu"
+          rightIconName={isViewer ? undefined : 'menu'}
+          rightAccessibilityLabel={isViewer ? undefined : 'Open document menu'}
           onPressLeft={() => router.back()}
           onPressRight={isViewer ? undefined : () => {
             router.push({
@@ -165,16 +217,19 @@ export default function DocumentDetailsScreen() {
         >
           <DocumentDetailsContent
             allowedCount={whitelistData.grants.length}
+            anchoredAt={onChainQuery.data?.onchain_timestamp}
             canManageWhitelist={canManageWhitelist}
-            canNotarizeDocument={Boolean(canNotarizeDocument)}
+            canNotarizeDocument={canNotarizeDocument}
             document={document}
             errorMessage={
               documentQuery.error ? parseApiError(documentQuery.error).message : undefined
             }
             extractedSections={extractedSections}
+            isAnchorTimeLoading={isAnchored && onChainQuery.isLoading}
             isLoading={documentQuery.isLoading}
             isNotarizing={notarizeMutation.isPending}
             isViewer={isViewer}
+            partyNames={whitelistData.grants.map((grant) => grant.name)}
             riskSections={riskSections}
             versionHistory={versionHistory}
             onPressManageWhitelist={() => sheets.setIsWhitelistSheetVisible(true)}
@@ -195,30 +250,33 @@ export default function DocumentDetailsScreen() {
               });
             }}
             onPressSearch={() => sheets.setIsSearchSheetVisible(true)}
+            onPressVersion={handleOpenVersion}
             onRetry={() => {
               void documentQuery.refetch();
             }}
           />
         </ScrollView>
 
-        <LinearGradient
-          colors={[
-            'rgba(243, 248, 255, 0)',
-            APP_COLORS.borderSoft,
-          ]}
-          pointerEvents="box-none"
-          style={styles.footer}
-        >
-          <Button
-            imageSource={require('../../../../assets/images/lexchain-bot-question-mark.png')}
-            size="md"
-            accessibilityLabel="Bot"
-            imageSize={32}
-            fullRound
-            hugWidth
-            onPress={() => sheets.setIsAskSheetVisible(true)}
-          />
-        </LinearGradient>
+        {canUseDocumentAssistant ? (
+          <LinearGradient
+            colors={[
+              'rgba(243, 248, 255, 0)',
+              APP_COLORS.borderSoft,
+            ]}
+            pointerEvents="box-none"
+            style={styles.footer}
+          >
+            <Button
+              imageSource={botQuestionMarkImage}
+              size="md"
+              accessibilityLabel="Bot"
+              imageSize={32}
+              fullRound
+              hugWidth
+              onPress={() => sheets.setIsAskSheetVisible(true)}
+            />
+          </LinearGradient>
+        ) : null}
       </View>
 
       <DocumentDetailsSheets
@@ -231,7 +289,7 @@ export default function DocumentDetailsScreen() {
         documentTitle={document?.file_name ?? 'this document'}
         isAddPartyPending={addPartyMutation.isPending}
         isAskLoading={qaMutation.isPending}
-        isAskSheetVisible={sheets.isAskSheetVisible}
+        isAskSheetVisible={canUseDocumentAssistant && sheets.isAskSheetVisible}
         isPartiesLoading={partiesQuery.isLoading}
         isRemovePartyPending={removePartyMutation.isPending}
         isRenameLoading={renameMutation.isPending}

@@ -1,4 +1,4 @@
-import { BottomSheetModal } from '@gorhom/bottom-sheet';
+import BottomSheet from '@gorhom/bottom-sheet';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { BackHandler } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -20,8 +20,8 @@ export function useManageWhitelistBottomSheet({
   searchQuery,
   onPressRevoke,
 }: UseManageWhitelistBottomSheetParams) {
-  const bottomSheetRef = useRef<BottomSheetModal>(null);
-  const grantSheetRef = useRef<BottomSheetModal>(null);
+  const bottomSheetRef = useRef<BottomSheet>(null);
+  const grantSheetRef = useRef<BottomSheet>(null);
   const insets = useSafeAreaInsets();
   const [selectedGrantId, setSelectedGrantId] = useState<string | null>(null);
   const [selectedGrantRole, setSelectedGrantRole] =
@@ -29,7 +29,7 @@ export function useManageWhitelistBottomSheet({
   const [isGrantRoleDropdownOpen, setIsGrantRoleDropdownOpen] = useState(false);
   const [revokeCountdown, setRevokeCountdown] = useState<number | null>(null);
   const snapPoints = useMemo(() => ['90%'], []);
-  const grantSnapPoints = useMemo(() => ['38%'], []);
+  const grantSnapPoints = useMemo(() => ['55%'], []);
 
   const normalizedQuery = searchQuery.trim().toLowerCase();
   const grants = data?.grants ?? [];
@@ -46,21 +46,6 @@ export function useManageWhitelistBottomSheet({
   const selectedGrant = grants.find((grant) => grant.id === selectedGrantId);
 
   useEffect(() => {
-    const sheet = bottomSheetRef.current;
-
-    if (!sheet) {
-      return;
-    }
-
-    if (visible && data) {
-      sheet.present();
-      return;
-    }
-
-    sheet.dismiss();
-  }, [data, visible]);
-
-  useEffect(() => {
     if (!visible) {
       setSelectedGrantId(null);
       setIsGrantRoleDropdownOpen(false);
@@ -70,11 +55,11 @@ export function useManageWhitelistBottomSheet({
 
     const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
       if (selectedGrantId) {
-        grantSheetRef.current?.dismiss();
+        grantSheetRef.current?.close();
         return true;
       }
 
-      bottomSheetRef.current?.dismiss();
+      bottomSheetRef.current?.close();
       return true;
     });
 
@@ -82,21 +67,6 @@ export function useManageWhitelistBottomSheet({
       subscription.remove();
     };
   }, [selectedGrantId, visible]);
-
-  useEffect(() => {
-    const sheet = grantSheetRef.current;
-
-    if (!sheet) {
-      return;
-    }
-
-    if (selectedGrantId) {
-      sheet.present();
-      return;
-    }
-
-    sheet.dismiss();
-  }, [selectedGrantId]);
 
   useEffect(() => {
     if (revokeCountdown === null || revokeCountdown <= 0) {

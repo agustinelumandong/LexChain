@@ -1,6 +1,5 @@
-import {
+import BottomSheet, {
   BottomSheetBackdrop,
-  BottomSheetModal,
   BottomSheetScrollView,
   type BottomSheetFooterProps,
 } from '@gorhom/bottom-sheet';
@@ -15,7 +14,7 @@ import { ManageWhitelistRoleDropdown } from './manage-whitelist-role-dropdown';
 import { manageWhitelistStyles as styles } from './manage-whitelist.styles';
 
 type ManageWhitelistGrantActionSheetProps = {
-  grantSheetRef: React.RefObject<BottomSheetModal | null>;
+  grantSheetRef: React.RefObject<BottomSheet | null>;
   snapPoints: string[];
   bottomInset: number;
   selectedGrant?: WhitelistGrant;
@@ -48,8 +47,9 @@ export function ManageWhitelistGrantActionSheet({
       {...props}
       appearsOnIndex={0}
       disappearsOnIndex={-1}
-      opacity={0.2}
+      opacity={1}
       pressBehavior="close"
+      style={[styles.backdrop, styles.stackedOverlay]}
     />
   );
 
@@ -67,11 +67,12 @@ export function ManageWhitelistGrantActionSheet({
   );
 
   return (
-    <BottomSheetModal
+    <BottomSheet
       ref={grantSheetRef}
       index={0}
       snapPoints={snapPoints}
-      onDismiss={onClose}
+      containerStyle={styles.stackedOverlay}
+      onClose={onClose}
       enableDynamicSizing={true}
       enablePanDownToClose
       backdropComponent={renderGrantBackdrop}
@@ -95,6 +96,6 @@ export function ManageWhitelistGrantActionSheet({
           onToggle={onToggleRoleDropdown}
         />
       </BottomSheetScrollView>
-    </BottomSheetModal>
+    </BottomSheet>
   );
 }

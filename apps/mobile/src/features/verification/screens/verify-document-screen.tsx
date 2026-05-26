@@ -4,7 +4,6 @@ import { ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import {
-  DocumentSummaryCard,
   IntegrityCheckCard,
   VerificationStatusCard,
 } from '@/features/document';
@@ -12,11 +11,6 @@ import { useDocument, useVerifyOnChainDocument } from '@/services/query';
 import { parseApiError } from '@/shared/utils/api-error';
 import { Button, ErrorState, ScreenHeader } from '@/ui';
 
-import {
-  formatVerificationContentType,
-  formatVerificationDate,
-  formatVerificationReference,
-} from '../utils/verify-document-formatters';
 import {
   VERIFY_DOCUMENT_HEADER_CONTENT_GAP,
   verifyDocumentScreenStyles as styles,
@@ -41,12 +35,12 @@ export default function VerifyDocumentScreen() {
   }, []);
 
   return (
-    <SafeAreaView style={styles.screen}>
+    <SafeAreaView style={styles.screen} edges={['left', 'right', 'bottom']}>
       <View style={styles.surface}>
         <ScreenHeader
-          eyebrow="VERIFYING DOCS STATUS"
-          title="Verifying Docs"
-          subtitle="Summary and checks in progress."
+          eyebrow="DOCUMENT VERIFY"
+          title="Verification"
+          subtitle="Check summary, integrity, and on-chain status."
           leftAccessibilityLabel="Back"
           onPressLeft={() => router.back()}
           onHeightChange={handleHeaderHeightChange}
@@ -82,20 +76,6 @@ export default function VerifyDocumentScreen() {
                 status: onChainRecord ? 'done' : onChainQuery.isLoading ? 'verifying' : 'pending',
               },
             ]}
-          />
-
-          <DocumentSummaryCard
-            title={document?.file_name ?? `Document #${documentId ?? 'unknown'}`}
-            rows={[
-              { label: 'Reference', value: formatVerificationReference(document?.document_id) },
-              { label: 'Type', value: formatVerificationContentType(document?.content_type) },
-              { label: 'Uploaded', value: formatVerificationDate(document?.created_at) },
-              { label: 'Verified', value: formatVerificationDate(onChainRecord?.verified_at) },
-            ]}
-            summary={
-              document?.summary ??
-              'Verification compares the document record against the on-chain anchor when available.'
-            }
           />
 
           <IntegrityCheckCard

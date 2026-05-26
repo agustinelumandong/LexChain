@@ -4,11 +4,11 @@ import { blockchainApi } from '@/services/api';
 
 import { queryKeys } from './keys';
 
-export function useVerifyOnChainDocument(documentId?: string) {
+export function useVerifyOnChainDocument(documentId?: string, enabled = true) {
   return useQuery({
     queryKey: queryKeys.blockchain.verify(documentId ?? ''),
     queryFn: () => blockchainApi.verify(documentId ?? ''),
-    enabled: Boolean(documentId),
+    enabled: enabled && Boolean(documentId),
   });
 }
 

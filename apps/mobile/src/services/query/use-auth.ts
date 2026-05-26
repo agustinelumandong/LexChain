@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
+import { clearSessionData } from '@/features/auth/session-cleanup';
 import { authApi, type SignInPayload, type SignUpPayload } from '@/services/api';
 import { authTokenStorage, refreshTokenStorage } from '@/shared/utils/secure-storage';
 
@@ -9,7 +10,11 @@ export function useSignIn() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (payload: SignInPayload) => authApi.signIn(payload),
+    mutationFn: async (payload: SignInPayload) => {
+      await clearSessionData();
+
+      return authApi.signIn(payload);
+    },
     onSuccess: async (data) => {
       await authTokenStorage.set(data.access_token);
       await refreshTokenStorage.set(data.refresh_token);

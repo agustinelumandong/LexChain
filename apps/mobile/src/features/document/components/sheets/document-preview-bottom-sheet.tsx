@@ -1,10 +1,9 @@
-import {
+import BottomSheet, {
   BottomSheetBackdrop,
-  BottomSheetModal,
   BottomSheetScrollView,
 } from '@gorhom/bottom-sheet';
-import React, { useEffect, useMemo, useRef } from 'react';
-import { View } from 'react-native';
+import React, { useMemo, useRef } from 'react';
+import { StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/ui';
@@ -30,29 +29,9 @@ export function DocumentPreviewBottomSheet({
   onManageWhitelist,
   onAddWhitelist,
 }: DocumentPreviewBottomSheetProps) {
-  const bottomSheetRef = useRef<BottomSheetModal>(null);
+  const bottomSheetRef = useRef<BottomSheet>(null);
   const insets = useSafeAreaInsets();
   const snapPoints = useMemo(() => ['90%'], []);
-
-  useEffect(() => {
-    const sheet = bottomSheetRef.current;
-
-    if (!sheet) {
-      return;
-    }
-
-    if (visible && document) {
-      sheet.present();
-      return () => {
-        sheet.dismiss();
-      };
-    }
-
-    sheet.dismiss();
-    return () => {
-      sheet.dismiss();
-    };
-  }, [document, visible]);
 
   const renderBackdrop = (props: React.ComponentProps<typeof BottomSheetBackdrop>) => (
     <BottomSheetBackdrop
@@ -65,42 +44,44 @@ export function DocumentPreviewBottomSheet({
     />
   );
 
-  if (!document) {
+  if (!visible || !document) {
     return null;
   }
 
   return (
-    <BottomSheetModal
-      ref={bottomSheetRef}
-      index={0}
-      snapPoints={snapPoints}
-      onDismiss={onClose}
-      enablePanDownToClose
-      backdropComponent={renderBackdrop}
-      handleIndicatorStyle={documentPreviewBottomSheetStyles.handle}
-      backgroundStyle={documentPreviewBottomSheetStyles.sheet}
-    >
-      <BottomSheetScrollView
-        style={documentPreviewBottomSheetStyles.scrollArea}
-        contentContainerStyle={documentPreviewBottomSheetStyles.scrollContent}
-        showsVerticalScrollIndicator={false}
+    <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
+      <BottomSheet
+        ref={bottomSheetRef}
+        index={0}
+        snapPoints={snapPoints}
+        onClose={onClose}
+        enablePanDownToClose
+        backdropComponent={renderBackdrop}
+        handleIndicatorStyle={documentPreviewBottomSheetStyles.handle}
+        backgroundStyle={documentPreviewBottomSheetStyles.sheet}
       >
-        <DocumentPreviewSheetContent
-          document={document}
-          onAddWhitelist={onAddWhitelist}
-          onManageWhitelist={onManageWhitelist}
-          onPressBack={() => bottomSheetRef.current?.dismiss()}
-        />
-      </BottomSheetScrollView>
+        <BottomSheetScrollView
+          style={documentPreviewBottomSheetStyles.scrollArea}
+          contentContainerStyle={documentPreviewBottomSheetStyles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          <DocumentPreviewSheetContent
+            document={document}
+            onAddWhitelist={onAddWhitelist}
+            onManageWhitelist={onManageWhitelist}
+            onPressBack={onClose}
+          />
+        </BottomSheetScrollView>
 
-      <View style={[documentPreviewBottomSheetStyles.footer, { paddingBottom: Math.max(insets.bottom, 24) }]}>
-        <Button
-          label="Verify this document"
-          fullWidth
-          rightIconName="verified-user"
-          onPress={onVerify}
-        />
-      </View>
-    </BottomSheetModal>
+        <View style={[documentPreviewBottomSheetStyles.footer, { paddingBottom: Math.max(insets.bottom, 24) }]}>
+          <Button
+            label="Verify this document"
+            fullWidth
+            rightIconName="verified-user"
+            onPress={onVerify}
+          />
+        </View>
+      </BottomSheet>
+    </View>
   );
 }

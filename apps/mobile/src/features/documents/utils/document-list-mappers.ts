@@ -37,6 +37,7 @@ export function mapDocumentListItem(item: DocumentListItem): DisplayDocument {
     date: formatDocumentListDate(item.created_at),
     rawDate: item.created_at,
     documentType: 'all',
+    onChain: item.on_chain,
     status: mapDocumentStatus(item.status),
   };
 }
@@ -52,6 +53,7 @@ export function mapGlobalSearchResult(result: GlobalSearchResult): DisplayDocume
       date: '',
       rawDate: '',
       documentType: 'all',
+      onChain: false,
       status: 'review-needed',
       snippet: '',
     };
@@ -64,6 +66,7 @@ export function mapGlobalSearchResult(result: GlobalSearchResult): DisplayDocume
     date: formatDocumentListDate(doc.created_at),
     rawDate: doc.created_at,
     documentType: 'all',
+    onChain: doc.on_chain,
     status: mapDocumentStatus(doc.status),
     snippet: doc.summary ?? '',
   };

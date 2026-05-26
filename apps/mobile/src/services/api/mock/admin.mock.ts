@@ -1,5 +1,6 @@
 import type {
   AdminDashboardResponse,
+  AdminUserResponse,
   AdminUserListResponse,
   CreateInvitationRequest,
   InvitationListResponse,
@@ -40,15 +41,24 @@ export const mockAdminApi = {
   async getUsers(): Promise<AdminUserListResponse> {
     await mockDelay();
 
-    const users = [
+    const users: AdminUserResponse[] = [
       {
         id: 'ec0a534a-693b-46c2-bde1-fd46c599f501',
-        email: 'viewer@example.com',
+        email: 'user@example.com',
         f_name: 'Demo',
-        l_name: 'Viewer',
-        role: 'viewer',
+        l_name: 'User',
+        role: 'user',
         is_active: true,
         created_at: '2026-05-01T00:00:00Z',
+      },
+      {
+        id: 'b35c550f-0fb2-4f4c-85ea-2f24f37a4a5a',
+        email: 'admin@example.com',
+        f_name: 'Demo',
+        l_name: 'Admin',
+        role: 'admin',
+        is_active: true,
+        created_at: '2026-05-01T12:00:00Z',
       },
       {
         id: 'a79d44a5-53f3-4734-8309-7a9c861adf9b',

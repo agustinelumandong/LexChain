@@ -8,17 +8,35 @@ import { mockAdminApi } from './mock';
 type ApiSchema<Name extends keyof components['schemas']> =
   components['schemas'][Name];
 
+export type UserPositionRole = 'user' | 'lawyer';
+export type AccountRole = 'admin' | UserPositionRole;
+export type InvitationRole = 'admin' | 'lawyer';
+
 export type AdminDashboardResponse = ApiSchema<'AdminDashboardResponse'>;
-export type AdminUserResponse = ApiSchema<'AdminUserResponse'>;
-export type AdminUserListResponse = ApiSchema<'AdminUserListResponse'>;
+export type AdminUserResponse = Omit<ApiSchema<'AdminUserResponse'>, 'role'> & {
+  role: AccountRole;
+};
+export type AdminUserListResponse = Omit<
+  ApiSchema<'AdminUserListResponse'>,
+  'users'
+> & {
+  users: AdminUserResponse[];
+};
 export type CreateInvitationRequest = Omit<
   ApiSchema<'CreateInvitationRequest'>,
   'role'
 > & {
-  role?: ApiSchema<'CreateInvitationRequest'>['role'];
+  role?: InvitationRole;
 };
-export type InvitationResponse = ApiSchema<'InvitationResponse'>;
-export type InvitationListResponse = ApiSchema<'InvitationListResponse'>;
+export type InvitationResponse = Omit<ApiSchema<'InvitationResponse'>, 'role'> & {
+  role: InvitationRole;
+};
+export type InvitationListResponse = Omit<
+  ApiSchema<'InvitationListResponse'>,
+  'invitations'
+> & {
+  invitations: InvitationResponse[];
+};
 
 const encodeId = (value: string, label: string) => {
   const trimmed = value.trim();

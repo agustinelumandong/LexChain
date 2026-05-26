@@ -12,6 +12,10 @@ export const documentPdfToolsSheetColors = {
 };
 
 export const documentPdfToolsSheetStyles = StyleSheet.create({
+  overlay: {
+    zIndex: 10000,
+    elevation: 10000,
+  },
   sheetBackground: {
     backgroundColor: documentPdfToolsSheetColors.surface,
     borderTopLeftRadius: 28,

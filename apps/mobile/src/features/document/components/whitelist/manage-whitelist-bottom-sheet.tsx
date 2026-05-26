@@ -1,7 +1,10 @@
+import { StyleSheet, View } from 'react-native';
+
 import type { DocumentPartyRole, ManageWhitelistData } from '@/types';
 
 import { ManageWhitelistGrantActionSheet } from './manage-whitelist-grant-action-sheet';
 import { ManageWhitelistMainSheet } from './manage-whitelist-main-sheet';
+import { manageWhitelistStyles as styles } from './manage-whitelist.styles';
 import { useManageWhitelistBottomSheet } from '../../hooks/use-manage-whitelist-bottom-sheet';
 
 type ManageWhitelistBottomSheetProps = {
@@ -34,12 +37,12 @@ export function ManageWhitelistBottomSheet({
     onPressRevoke,
   });
 
-  if (!data) {
+  if (!visible || !data) {
     return null;
   }
 
   return (
-    <>
+    <View style={[StyleSheet.absoluteFill, styles.overlay]} pointerEvents="box-none">
       <ManageWhitelistMainSheet
         bottomSheetRef={sheet.bottomSheetRef}
         snapPoints={sheet.snapPoints}
@@ -56,20 +59,22 @@ export function ManageWhitelistBottomSheet({
         onOpenGrantMenu={sheet.openGrantMenu}
       />
 
-      <ManageWhitelistGrantActionSheet
-        grantSheetRef={sheet.grantSheetRef}
-        snapPoints={sheet.grantSnapPoints}
-        bottomInset={sheet.insets.bottom}
-        selectedGrant={sheet.selectedGrant}
-        selectedGrantRole={sheet.selectedGrantRole}
-        isGrantRoleDropdownOpen={sheet.isGrantRoleDropdownOpen}
-        revokeCountdown={sheet.revokeCountdown}
-        revokeLabel={sheet.revokeLabel}
-        onClose={sheet.closeGrantMenu}
-        onPressRevoke={sheet.handlePressRevoke}
-        onToggleRoleDropdown={sheet.toggleGrantRoleDropdown}
-        onSelectGrantRole={sheet.selectGrantRole}
-      />
-    </>
+      {sheet.selectedGrant ? (
+        <ManageWhitelistGrantActionSheet
+          grantSheetRef={sheet.grantSheetRef}
+          snapPoints={sheet.grantSnapPoints}
+          bottomInset={sheet.insets.bottom}
+          selectedGrant={sheet.selectedGrant}
+          selectedGrantRole={sheet.selectedGrantRole}
+          isGrantRoleDropdownOpen={sheet.isGrantRoleDropdownOpen}
+          revokeCountdown={sheet.revokeCountdown}
+          revokeLabel={sheet.revokeLabel}
+          onClose={sheet.closeGrantMenu}
+          onPressRevoke={sheet.handlePressRevoke}
+          onToggleRoleDropdown={sheet.toggleGrantRoleDropdown}
+          onSelectGrantRole={sheet.selectGrantRole}
+        />
+      ) : null}
+    </View>
   );
 }

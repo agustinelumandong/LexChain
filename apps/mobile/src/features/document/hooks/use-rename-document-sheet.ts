@@ -1,6 +1,7 @@
-import { BottomSheetModal } from '@gorhom/bottom-sheet';
+import BottomSheet from '@gorhom/bottom-sheet';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  BackHandler,
   Keyboard,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
@@ -21,7 +22,7 @@ export function useRenameDocumentSheet({
   onClose,
   onRename,
 }: UseRenameDocumentSheetParams) {
-  const bottomSheetRef = useRef<BottomSheetModal>(null);
+  const bottomSheetRef = useRef<BottomSheet>(null);
   const latestNameRef = useRef(currentName);
   const insets = useSafeAreaInsets();
   const [newName, setNewName] = useState(currentName);
@@ -90,20 +91,25 @@ export function useRenameDocumentSheet({
   };
 
   useEffect(() => {
-    const sheet = bottomSheetRef.current;
-
-    if (!sheet) {
-      return;
-    }
-
     if (visible) {
       resetState();
-      sheet.present();
+    }
+  }, [resetState, visible]);
+
+  useEffect(() => {
+    if (!visible) {
       return;
     }
 
-    sheet.dismiss();
-  }, [resetState, visible]);
+    const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+      bottomSheetRef.current?.close();
+      return true;
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, [visible]);
 
   useEffect(() => {
     const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';

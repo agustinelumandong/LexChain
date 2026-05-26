@@ -3,6 +3,10 @@ import { StyleSheet } from 'react-native';
 import { APP_COLORS, fonts } from '@/theme';
 
 export const updateDocumentSheetStyles = StyleSheet.create({
+  overlay: {
+    zIndex: 10000,
+    elevation: 10000,
+  },
   menuRowPressed: {
     opacity: 0.72,
   },

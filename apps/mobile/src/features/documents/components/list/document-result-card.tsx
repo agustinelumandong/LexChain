@@ -7,6 +7,7 @@ import { documentResultCardColors, documentResultCardStyles } from './document-r
 type DocumentResultCardProps = {
   title: string;
   date: string;
+  onChain?: boolean;
   onPressCard?: () => void;
   onPressOpen?: () => void;
   onPressMore?: () => void;
@@ -15,10 +16,18 @@ type DocumentResultCardProps = {
 export const DocumentResultCard = memo(function DocumentResultCard({
   title,
   date,
+  onChain,
   onPressCard,
   onPressOpen,
   onPressMore,
 }: DocumentResultCardProps) {
+  const shieldColor = onChain
+    ? documentResultCardColors.primary
+    : documentResultCardColors.danger;
+  const shieldBubbleStyle = onChain
+    ? documentResultCardStyles.moreButton
+    : [documentResultCardStyles.moreButton, documentResultCardStyles.moreButtonDanger];
+
   return (
     <Pressable
       accessibilityRole="button"
@@ -34,9 +43,9 @@ export const DocumentResultCard = memo(function DocumentResultCard({
         <Pressable
           accessibilityRole="button"
           onPress={onPressMore}
-          style={documentResultCardStyles.moreButton}
+          style={shieldBubbleStyle}
         >
-          <MaterialIcons name="shield" size={18} color={documentResultCardColors.primary} />
+          <MaterialIcons name="shield" size={18} color={shieldColor} />
         </Pressable>
       </View>
 

@@ -139,6 +139,13 @@ export const termsBottomSheetStyles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
   },
+  acceptanceRow: {
+    padding: 16,
+    borderRadius: 18,
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.borderSoft,
+  },
   checkboxRowDisabled: {
     opacity: 0.58,
   },

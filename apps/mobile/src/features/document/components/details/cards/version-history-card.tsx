@@ -1,19 +1,25 @@
 import { MaterialIcons } from '@expo/vector-icons';
-import { Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 
 import { APP_COLORS } from '@/theme';
 
 import type { VersionHistoryItem } from '../../../types/document-details.types';
 import { documentDetailCardStyles as styles } from './document-detail-card.styles';
 
-export function VersionHistoryCard({ items }: { items: VersionHistoryItem[] }) {
+export function VersionHistoryCard({
+  items,
+  onPressVersion,
+}: {
+  items: VersionHistoryItem[];
+  onPressVersion?: (item: VersionHistoryItem) => void;
+}) {
   return (
     <View style={styles.versionCard}>
       <View style={styles.versionHeader}>
         <View style={styles.cardIconBubble}>
           <MaterialIcons name="history" size={24} color={APP_COLORS.primary} />
         </View>
-        <Text style={styles.versionTitle}>Document updates</Text>
+        <Text style={styles.versionTitle}>Version history</Text>
       </View>
 
       <View style={styles.timeline}>
@@ -21,7 +27,16 @@ export function VersionHistoryCard({ items }: { items: VersionHistoryItem[] }) {
           const isLast = index === items.length - 1;
 
           return (
-            <View key={item.id} style={styles.timelineRow}>
+            <Pressable
+              key={item.id}
+              accessibilityRole="button"
+              accessibilityLabel={`Open ${item.label}`}
+              onPress={onPressVersion ? () => onPressVersion(item) : undefined}
+              style={({ pressed }) => [
+                styles.timelineRow,
+                pressed && onPressVersion && styles.timelineRowPressed,
+              ]}
+            >
               <View style={styles.timelineDateColumn}>
                 <Text
                   style={[
@@ -59,7 +74,15 @@ export function VersionHistoryCard({ items }: { items: VersionHistoryItem[] }) {
                 </View>
                 <Text style={styles.timelineDescription}>{item.description}</Text>
               </View>
-            </View>
+              {onPressVersion ? (
+                <MaterialIcons
+                  name="chevron-right"
+                  size={20}
+                  color={APP_COLORS.textMuted}
+                  style={styles.versionViewIcon}
+                />
+              ) : null}
+            </Pressable>
           );
         })}
       </View>

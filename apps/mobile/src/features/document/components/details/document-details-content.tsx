@@ -31,39 +31,47 @@ type DetailSection = {
 
 type DocumentDetailsContentProps = {
   allowedCount: number;
+  anchoredAt?: number;
   canManageWhitelist: boolean;
   canNotarizeDocument: boolean;
   document?: DocumentDetailsDocument;
   errorMessage?: string;
   extractedSections: DetailSection[];
   isLoading: boolean;
+  isAnchorTimeLoading: boolean;
   isNotarizing: boolean;
   isViewer: boolean;
+  partyNames: string[];
   riskSections: DetailSection[];
   versionHistory: VersionHistoryItem[];
   onPressManageWhitelist: () => void;
   onPressNotarize: () => void;
   onPressPdf: () => void;
   onPressSearch: () => void;
+  onPressVersion: (version: VersionHistoryItem) => void;
   onRetry: () => void;
 };
 
 export function DocumentDetailsContent({
   allowedCount,
+  anchoredAt,
   canManageWhitelist,
   canNotarizeDocument,
   document,
   errorMessage,
   extractedSections,
   isLoading,
+  isAnchorTimeLoading,
   isNotarizing,
   isViewer,
+  partyNames,
   riskSections,
   versionHistory,
   onPressManageWhitelist,
   onPressNotarize,
   onPressPdf,
   onPressSearch,
+  onPressVersion,
   onRetry,
 }: DocumentDetailsContentProps) {
   if (isLoading) {
@@ -88,6 +96,7 @@ export function DocumentDetailsContent({
     <>
       <DocumentDetailsActions
         canNotarizeDocument={canNotarizeDocument}
+        isAnchored={Boolean(document.on_chain)}
         isNotarizing={isNotarizing}
         isViewer={isViewer}
         onPressNotarize={onPressNotarize}
@@ -106,17 +115,19 @@ export function DocumentDetailsContent({
       />
 
       <DocumentStatusCard
-        status={document.status}
-        uploadedAt={document.updated_at}
+        anchoredAt={anchoredAt}
+        isAnchorTimeLoading={isAnchorTimeLoading}
+        onChain={document.on_chain}
       />
 
       <AccessControlCard
         allowedCountLabel={formatWhitelistCountLabel(allowedCount)}
         canManageWhitelist={canManageWhitelist}
+        partyNames={partyNames}
         onPressManage={onPressManageWhitelist}
       />
 
-      <VersionHistoryCard items={versionHistory} />
+      <VersionHistoryCard items={versionHistory} onPressVersion={onPressVersion} />
 
       <Text style={styles.insightsEyebrow}>DOCUMENT INSIGHTS</Text>
 
