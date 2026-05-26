@@ -52,7 +52,7 @@ export function DashboardOverview() {
         description: 'Manage and verify your legal documents',
         firstMetric: 'Total Documents',
         secondMetric: 'Processing',
-        thirdMetric: 'Anchored On-Chain',
+        thirdMetric: 'On Chain Records',
         fourthMetric: 'Pending Invites',
         activityHeading: 'Recent Activity',
         emptyActivity: 'Upload, share, or anchor a document to see updates here.',
@@ -61,7 +61,7 @@ export function DashboardOverview() {
         description: 'View shared documents and verification activity',
         firstMetric: 'Shared Documents',
         secondMetric: 'Owned Documents',
-        thirdMetric: 'Verified Documents',
+        thirdMetric: 'On Chain Documents',
         fourthMetric: 'Recent Access',
         activityHeading: 'Shared Document Activity',
         emptyActivity: 'Shared documents and verification updates will appear here.',
@@ -117,62 +117,59 @@ export function DashboardOverview() {
             </View>
           </View>
 
-          <View style={styles.kpiRow}>
-            <Animated.View style={styles.kpiItem} entering={FadeInDown.delay(80).springify()}>
-              {dashboardStats.isLoading ? (
-                <DashboardKpiSkeleton />
-              ) : (
-                <DashboardKpiCard
-                  label={dashboardCopy.firstMetric}
-                  value={`${dashboardStats.documentsCount}`}
-                  tone={dashboardStats.documentsCount > 0 ? 'positive' : 'warning'}
-                />
-              )}
-            </Animated.View>
-            <Animated.View style={styles.kpiItem} entering={FadeInDown.delay(140).springify()}>
-              {dashboardStats.isLoading ? (
-                <DashboardKpiSkeleton />
-              ) : (
-                <DashboardKpiCard
-                  label={dashboardCopy.secondMetric}
-                  value={`${dashboardStats.processingCount}`}
-                  tone={dashboardStats.processingCount > 0 ? 'warning' : 'positive'}
-                />
-              )}
-            </Animated.View>
-          </View>
-
-          <View style={styles.kpiRow}>
-            <Animated.View style={styles.kpiItem} entering={FadeInDown.delay(200).springify()}>
-              {dashboardStats.isLoading ? (
-                <DashboardKpiSkeleton />
-              ) : (
-                <DashboardKpiCard
-                  label={dashboardCopy.thirdMetric}
-                  value={`${dashboardStats.anchoredOnChainCount}`}
-                  tone={dashboardStats.anchoredOnChainCount > 0 ? 'positive' : 'warning'}
-                />
-              )}
-            </Animated.View>
-            <Animated.View style={styles.kpiItem} entering={FadeInDown.delay(260).springify()}>
-              {dashboardStats.isLoading ? (
-                <DashboardKpiSkeleton />
-              ) : (
-                <DashboardKpiCard
-                  label={dashboardCopy.fourthMetric}
-                  value={
-                    isLawyer
-                      ? `${dashboardStats.pendingParticipantInvitesCount}`
-                      : `${dashboardStats.recentActivities.length}`
-                  }
-                  tone={
-                    isLawyer && dashboardStats.pendingParticipantInvitesCount > 0
-                      ? 'warning'
-                      : 'positive'
-                  }
-                />
-              )}
-            </Animated.View>
+          <View style={styles.kpiGroup}>
+            <View style={styles.kpiRow}>
+              <Animated.View style={styles.kpiItem} entering={FadeInDown.delay(80).springify()}>
+                {dashboardStats.isLoading ? (
+                  <DashboardKpiSkeleton />
+                ) : (
+                  <DashboardKpiCard
+                    label={dashboardCopy.firstMetric}
+                    value={`${dashboardStats.documentsCount}`}
+                    iconName="description"
+                  />
+                )}
+              </Animated.View>
+              <Animated.View style={styles.kpiItem} entering={FadeInDown.delay(140).springify()}>
+                {dashboardStats.isLoading ? (
+                  <DashboardKpiSkeleton />
+                ) : (
+                  <DashboardKpiCard
+                    label={dashboardCopy.secondMetric}
+                    value={`${dashboardStats.processingCount}`}
+                    iconName="schedule"
+                  />
+                )}
+              </Animated.View>
+            </View>
+            <View style={styles.kpiRow}>
+              <Animated.View style={styles.kpiItem} entering={FadeInDown.delay(200).springify()}>
+                {dashboardStats.isLoading ? (
+                  <DashboardKpiSkeleton />
+                ) : (
+                  <DashboardKpiCard
+                    label={dashboardCopy.thirdMetric}
+                    value={`${dashboardStats.anchoredOnChainCount}`}
+                    iconName="verified-user"
+                  />
+                )}
+              </Animated.View>
+              <Animated.View style={styles.kpiItem} entering={FadeInDown.delay(260).springify()}>
+                {dashboardStats.isLoading ? (
+                  <DashboardKpiSkeleton />
+                ) : (
+                  <DashboardKpiCard
+                    label={dashboardCopy.fourthMetric}
+                    value={
+                      isLawyer
+                        ? `${dashboardStats.pendingParticipantInvitesCount}`
+                        : `${dashboardStats.recentActivities.length}`
+                    }
+                    iconName="groups"
+                  />
+                )}
+              </Animated.View>
+            </View>
           </View>
 
           <View style={styles.activityGroup}>

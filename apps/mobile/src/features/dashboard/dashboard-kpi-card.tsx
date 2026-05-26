@@ -1,51 +1,42 @@
+import { MaterialIcons } from '@expo/vector-icons';
+import type { ComponentProps } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+
 import { APP_COLORS, fonts } from '@/theme';
 import { SkeletonBox } from '@/ui';
 
 const COLORS = {
   surface: APP_COLORS.white,
-  surfaceSuccess: '#EAF8F0',
-  surfaceWarning: '#FFF4DD',
+  iconSurface: '#EEF6FF',
   primary: APP_COLORS.primary,
   navy: APP_COLORS.navy,
   textMuted: APP_COLORS.textMuted,
+  borderSoft: APP_COLORS.borderSoft,
 };
 
 type DashboardKpiCardProps = {
   label: string;
   value: string;
-  meta?: string;
-  tone?: 'positive' | 'warning';
+  iconName: ComponentProps<typeof MaterialIcons>['name'];
 };
 
 export function DashboardKpiCard({
   label,
   value,
-  meta,
-  tone = 'positive',
+  iconName,
 }: DashboardKpiCardProps) {
-  if (!meta) {
-    return (
-      <View style={styles.card}>
+  return (
+    <View style={styles.card}>
+      <View style={styles.iconBubble}>
+        <MaterialIcons name={iconName} size={16} color={COLORS.primary} />
+      </View>
+
+      <View style={styles.copy}>
         <Text style={styles.label}>{label}</Text>
         <Text style={styles.value}>{value}</Text>
       </View>
-    );
-  }
 
-  return (
-    <View style={styles.card}>
-      <Text style={styles.label}>{label}</Text>
-      <Text style={styles.value}>{value}</Text>
-      <View style={styles.metaRow}>
-        <View
-          style={[
-            styles.metaDot,
-            tone === 'warning' ? styles.metaDotWarning : styles.metaDotPositive,
-          ]}
-        />
-        <Text style={styles.meta}>{meta}</Text>
-      </View>
+      <MaterialIcons name="chevron-right" size={16} color="#6B8AB3" />
     </View>
   );
 }
@@ -53,12 +44,12 @@ export function DashboardKpiCard({
 export function DashboardKpiSkeleton() {
   return (
     <View style={styles.card}>
-      <SkeletonBox width="60%" height={14} borderRadius={999} />
-      <SkeletonBox width="42%" height={30} borderRadius={999} />
-      <View style={styles.metaRow}>
-        <SkeletonBox width={10} height={10} borderRadius={999} />
-        <SkeletonBox width="70%" height={14} borderRadius={999} />
+      <SkeletonBox width={32} height={32} borderRadius={999} />
+      <View style={styles.copy}>
+        <SkeletonBox width="76%" height={12} borderRadius={999} />
+        <SkeletonBox width={32} height={32} borderRadius={18} />
       </View>
+      <SkeletonBox width={16} height={16} borderRadius={999} />
     </View>
   );
 }
@@ -66,52 +57,48 @@ export function DashboardKpiSkeleton() {
 const styles = StyleSheet.create({
   card: {
     flex: 1,
+    minHeight: 48,
     backgroundColor: COLORS.surface,
-    borderRadius: 24,
-    padding: 16,
-    gap: 8,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: COLORS.borderSoft,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
     shadowColor: APP_COLORS.navy,
-    shadowOpacity: 0.06,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 4,
+    shadowOpacity: 0.08,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 5 },
+    elevation: 3,
+  },
+  iconBubble: {
+    width: 32,
+    height: 32,
+    borderRadius: 999,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.iconSurface,
+  },
+  copy: {
+    flex: 1,
+    minWidth: 0,
+    gap: 5,
   },
   label: {
     color: COLORS.textMuted,
-    fontSize: 12,
-    lineHeight: 14,
-    fontWeight: '700',
+    fontSize: 10,
+    lineHeight: 12,
+    fontWeight: '800',
     fontFamily: fonts.regular,
   },
   value: {
     color: COLORS.navy,
-    fontSize: 28,
-    lineHeight: 30,
-    fontWeight: '800',
+    fontSize: 26,
+    lineHeight: 28,
+    fontWeight: '900',
     fontFamily: fonts.regular,
-  },
-  metaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  metaDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 999,
-  },
-  metaDotPositive: {
-    backgroundColor: COLORS.surfaceSuccess,
-  },
-  metaDotWarning: {
-    backgroundColor: COLORS.surfaceWarning,
-  },
-  meta: {
-    color: COLORS.primary,
-    flex: 1,
-    fontSize: 12,
-    lineHeight: 14,
-    fontWeight: '700',
-    fontFamily: fonts.regular,
+    fontVariant: ['tabular-nums'],
   },
 });
