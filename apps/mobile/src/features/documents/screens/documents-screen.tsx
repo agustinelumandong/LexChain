@@ -31,11 +31,19 @@ export default function DocumentsScreen() {
   const router = useRouter();
   const isOpeningDocumentRef = useRef(false);
   const screen = useDocumentsScreen();
+  const { clearSearch, documentsQuery } = screen;
+  const { isLoading: isLoadingDocumentsQuery, refetch: refetchDocuments } = documentsQuery;
 
   useFocusEffect(
     useCallback(() => {
+      if (isOpeningDocumentRef.current) {
+        clearSearch();
+      }
       isOpeningDocumentRef.current = false;
-    }, []),
+      if (!isLoadingDocumentsQuery) {
+        void refetchDocuments();
+      }
+    }, [clearSearch, isLoadingDocumentsQuery, refetchDocuments]),
   );
 
   const openDocument = useCallback(
