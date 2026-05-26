@@ -84,7 +84,7 @@ export function useDashboard() {
     const recentActivities = documents
       .map(getDocumentActivity)
       .sort((left, right) => right.timestamp.localeCompare(left.timestamp))
-      .slice(0, 3);
+      .slice(0, 5);
 
     return {
       documentsCount,
