@@ -98,6 +98,7 @@ export const mockDocumentsApi = {
       file_name: fileName,
       content_type: file.mimeType ?? 'application/pdf',
       status: 'QUEUED',
+      on_chain: false,
       created_at: createdAt,
     };
 
