@@ -14,7 +14,6 @@ type UploadDropzoneCardProps = {
   files?: PickedUploadFile[];
   onChooseFile?: () => void;
   onPreviewFile?: (file: PickedUploadFile) => void;
-  onShareFile?: (file: PickedUploadFile) => void;
   onRemoveFile?: (fileId: string) => void;
 };
 
@@ -23,7 +22,6 @@ export function UploadDropzoneCard({
   files = [],
   onChooseFile,
   onPreviewFile,
-  onShareFile,
   onRemoveFile,
 }: UploadDropzoneCardProps) {
   const isSelected = mode === 'selected';
@@ -55,7 +53,6 @@ export function UploadDropzoneCard({
           <UploadDropzoneSelectedList
             files={files}
             onPreviewFile={onPreviewFile}
-            onShareFile={onShareFile}
             onRemoveFile={onRemoveFile}
           />
         ) : null}

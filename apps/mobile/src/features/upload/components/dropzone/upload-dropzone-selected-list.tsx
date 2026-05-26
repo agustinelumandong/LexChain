@@ -8,14 +8,12 @@ import { uploadDropzoneColors, uploadDropzoneStyles } from './upload-dropzone-ca
 type UploadDropzoneSelectedListProps = {
   files: PickedUploadFile[];
   onPreviewFile?: (file: PickedUploadFile) => void;
-  onShareFile?: (file: PickedUploadFile) => void;
   onRemoveFile?: (fileId: string) => void;
 };
 
 export function UploadDropzoneSelectedList({
   files,
   onPreviewFile,
-  onShareFile,
   onRemoveFile,
 }: UploadDropzoneSelectedListProps) {
   return (
@@ -37,14 +35,6 @@ export function UploadDropzoneSelectedList({
             style={uploadDropzoneStyles.fileActionButton}
           >
             <MaterialIcons name="visibility" size={16} color={uploadDropzoneColors.primary} />
-          </Pressable>
-
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => onShareFile?.(file)}
-            style={uploadDropzoneStyles.fileActionButton}
-          >
-            <MaterialIcons name="file-download" size={16} color={uploadDropzoneColors.primary} />
           </Pressable>
 
           <Pressable style={uploadDropzoneStyles.removeButton} onPress={() => onRemoveFile?.(file.id)}>
