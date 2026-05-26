@@ -150,6 +150,7 @@ export const MOCK_RENAME_RESPONSE: RenameDocumentResponse = {
   file_name: 'DepEd Memorandum No. 028, s. 2026',
   content_type: 'application/pdf',
   status: 'COMPLETED',
+  on_chain: false,
   created_at: '2026-05-08T18:03:03.282234Z',
 };
 
