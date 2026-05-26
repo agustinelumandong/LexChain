@@ -113,6 +113,13 @@ export const styles = StyleSheet.create({
   activityGroup: {
     gap: 12,
   },
+  activityHeaderRow: {
+    minHeight: 24,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
   activityHeading: {
     color: COLORS.navy,
     fontSize: 16,
@@ -120,16 +127,55 @@ export const styles = StyleSheet.create({
     fontWeight: '800',
     fontFamily: fonts.regular,
   },
+  viewAllButton: {
+    paddingHorizontal: 4,
+    paddingVertical: 4,
+  },
+  viewAllButtonPressed: {
+    opacity: 0.7,
+  },
+  viewAllText: {
+    color: COLORS.primary,
+    fontSize: 12,
+    lineHeight: 15,
+    fontWeight: '800',
+    fontFamily: fonts.regular,
+  },
   activityRow: {
     backgroundColor: COLORS.surface,
-    borderRadius: 20,
+    borderRadius: 18,
     borderWidth: 1,
     borderColor: COLORS.borderSoft,
-    paddingVertical: 14,
-    paddingHorizontal: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    shadowColor: COLORS.navy,
+    shadowOpacity: 0.05,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 2,
+  },
+  activityIconBubble: {
+    width: 42,
+    height: 42,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  activityIconSuccess: {
+    backgroundColor: '#EEF6FF',
+  },
+  activityIconWarning: {
+    backgroundColor: '#FFF4DD',
+  },
+  activityIconInfo: {
+    backgroundColor: '#F5EAFE',
   },
   activityCopy: {
-    gap: 8,
+    flex: 1,
+    gap: 4,
     minWidth: 0,
   },
   activityTopLine: {
@@ -156,8 +202,8 @@ export const styles = StyleSheet.create({
   activityStatus: {
     borderRadius: 999,
     overflow: 'hidden',
-    paddingVertical: 5,
-    paddingHorizontal: 9,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
     fontSize: 10,
     lineHeight: 12,
     fontWeight: '800',

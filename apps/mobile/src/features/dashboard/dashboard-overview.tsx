@@ -27,6 +27,18 @@ const ACTIVITY_STATUS_STYLES = {
   info: styles.activityStatusInfo,
 };
 
+const ACTIVITY_ICON_STYLES = {
+  success: styles.activityIconSuccess,
+  warning: styles.activityIconWarning,
+  info: styles.activityIconInfo,
+};
+
+const ACTIVITY_ICON_NAMES = {
+  success: 'description',
+  warning: 'schedule',
+  info: 'person-add-alt',
+} as const;
+
 export function DashboardOverview() {
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -35,7 +47,7 @@ export function DashboardOverview() {
   const userProfileQuery = useUserProfile();
   const userProfile = userProfileQuery.data;
   const isLawyer = canRoleUploadDocuments(userProfile?.role);
-  const dashboardStats = useDashboard({ includeMockParticipantInvites: isLawyer });
+  const dashboardStats = useDashboard();
   const unreadNotificationCountQuery = useUnreadNotificationCount();
   const unreadNotificationCount = unreadNotificationCountQuery.data?.unread ?? 0;
   const userMetadata = currentUser?.user_metadata;
@@ -173,7 +185,21 @@ export function DashboardOverview() {
           </View>
 
           <View style={styles.activityGroup}>
-            <Text style={styles.activityHeading}>{dashboardCopy.activityHeading}</Text>
+            <View style={styles.activityHeaderRow}>
+              <Text style={styles.activityHeading}>{dashboardCopy.activityHeading}</Text>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="View all recent activity"
+                hitSlop={8}
+                style={({ pressed }) => [
+                  styles.viewAllButton,
+                  pressed && styles.viewAllButtonPressed,
+                ]}
+                onPress={() => router.push('/(tabs)/documents')}
+              >
+                <Text style={styles.viewAllText}>View all</Text>
+              </Pressable>
+            </View>
             {dashboardStats.recentActivities.length > 0 ? (
               dashboardStats.recentActivities.map((activity) => {
                 const documentId = activity.id.startsWith('document-')
@@ -193,6 +219,13 @@ export function DashboardOverview() {
                         : undefined
                     }
                   >
+                    <View style={[styles.activityIconBubble, ACTIVITY_ICON_STYLES[activity.tone]]}>
+                      <MaterialIcons
+                        name={ACTIVITY_ICON_NAMES[activity.tone]}
+                        size={21}
+                        color={COLORS.primary}
+                      />
+                    </View>
                     <View style={styles.activityCopy}>
                       <View style={styles.activityTopLine}>
                         <Text style={styles.activityText} numberOfLines={1}>
@@ -215,6 +248,7 @@ export function DashboardOverview() {
                         {activity.time}
                       </Text>
                     </View>
+                    <MaterialIcons name="chevron-right" size={23} color="#6B8AB3" />
                   </Pressable>
                 );
               })
