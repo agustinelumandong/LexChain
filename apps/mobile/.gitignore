@@ -92,3 +92,5 @@ openapi.json
 .claude
 
 .claude/
+
+*.apk
