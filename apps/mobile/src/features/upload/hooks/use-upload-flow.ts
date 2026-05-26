@@ -2,7 +2,6 @@ import React, { useCallback, useState } from 'react';
 import { useFocusEffect, useRouter } from 'expo-router';
 import * as DocumentPicker from 'expo-document-picker';
 import * as Haptics from 'expo-haptics';
-import * as Sharing from 'expo-sharing';
 import { toast } from 'sonner-native';
 
 import { useUploadDocument } from '@/services/query';
@@ -160,33 +159,6 @@ export function useUploadFlow() {
     });
   };
 
-  const handleShareFile = async (file: PickedUploadFile) => {
-    if (!isPdfFile(file)) {
-      toast.warning('Only PDF documents can be saved');
-      return;
-    }
-
-    const isSharingAvailable = await Sharing.isAvailableAsync();
-
-    if (!isSharingAvailable) {
-      toast.error('Saving this PDF is not available on this device');
-      return;
-    }
-
-    try {
-      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      await Sharing.shareAsync(file.uri, {
-        mimeType: 'application/pdf',
-        dialogTitle: 'Save scanned PDF',
-        UTI: 'com.adobe.pdf',
-      });
-    } catch (error) {
-      console.error('Failed to share upload PDF', error);
-      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      toast.error('Failed to open save options');
-    }
-  };
-
   const handleContinueToProcessing = async () => {
     if (pickedFiles.length === 0) {
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
@@ -246,7 +218,6 @@ export function useUploadFlow() {
     handleOpenCameraCapture,
     handlePreviewFile,
     handleRemoveFile,
-    handleShareFile,
     isPreparingScanPdf,
     isUploadingDocument: uploadMutation.isPending,
     pickedFiles,

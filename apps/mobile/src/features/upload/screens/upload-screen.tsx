@@ -50,7 +50,6 @@ export default function UploadScreen() {
             files={upload.pickedFiles}
             onChooseFile={upload.handleChooseFile}
             onPreviewFile={upload.handlePreviewFile}
-            onShareFile={upload.handleShareFile}
             onRemoveFile={upload.handleRemoveFile}
           />
         </ScrollView>
