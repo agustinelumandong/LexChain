@@ -1,5 +1,5 @@
 import { BottomSheetFooter, type BottomSheetFooterProps } from '@gorhom/bottom-sheet';
-import { MaterialIcons } from '@expo/vector-icons';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Pressable, TextInput, type LayoutChangeEvent } from 'react-native';
 import Animated from 'react-native-reanimated';
