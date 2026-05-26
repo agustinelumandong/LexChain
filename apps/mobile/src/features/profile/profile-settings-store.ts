@@ -7,10 +7,8 @@ import { STORAGE_KEYS } from '@/constants';
 export type ProfileAccount = {
   firstName: string;
   lastName: string;
-  organization: string;
   role: string;
   email: string;
-  phone: string;
 };
 
 export type NotificationSettings = {
@@ -39,10 +37,8 @@ type ProfileSettingsStore = {
 export const DEFAULT_PROFILE_ACCOUNT: ProfileAccount = {
   firstName: 'Carl',
   lastName: 'Shan',
-  organization: 'LexChain Legal Office',
-  role: 'Authorized user',
+  role: 'lawyer',
   email: 'carl.shan@lexchain.app',
-  phone: '+63 912 345 6789',
 };
 
 const DEFAULT_NOTIFICATIONS: NotificationSettings = {
@@ -68,6 +64,12 @@ export const getProfileInitials = (account: ProfileAccount) => {
 
   return initials || 'LC';
 };
+
+export const canRoleUploadDocuments = (role?: string) =>
+  role?.trim().toLowerCase() === 'lawyer';
+
+export const canProfileUploadDocuments = (account: ProfileAccount) =>
+  canRoleUploadDocuments(account.role);
 
 export const useProfileSettingsStore = create<ProfileSettingsStore>()(
   persist(

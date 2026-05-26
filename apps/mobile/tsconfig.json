@@ -10,6 +10,9 @@
       "@/shared/*": [
         "./src/shared/*"
       ],
+      "@/assets/*": [
+        "./assets/*"
+      ],
       "@/theme": [
         "./src/shared/theme/theme.ts"
       ],

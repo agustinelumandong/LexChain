@@ -1,7 +1,8 @@
 import { DefaultTheme, ThemeProvider } from "@react-navigation/native";
-import { MaterialIcons } from "@expo/vector-icons";
-import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
+import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+import { Montserrat_900Black } from "@expo-google-fonts/montserrat";
 import { Stack } from "expo-router";
+import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import "react-native-reanimated";
 import "@/global.css";
@@ -21,11 +22,15 @@ export const unstable_settings = {
   anchor: "(tabs)",
 };
 
+void SplashScreen.preventAutoHideAsync();
+
 export default function RootLayout() {
   const { isOnline } = useNetwork();
-  const [fontsLoaded] = useFonts({
+  const [fontsLoaded, fontError] = useFonts({
     ...MaterialIcons.font,
+    Montserrat_900Black,
   });
+  const appReady = fontsLoaded || Boolean(fontError);
 
   useEffect(() => {
     if (Platform.OS === "android") {
@@ -37,7 +42,13 @@ export default function RootLayout() {
     return setupQueryFocusListener();
   }, []);
 
-  if (!fontsLoaded) {
+  useEffect(() => {
+    if (appReady) {
+      void SplashScreen.hideAsync();
+    }
+  }, [appReady]);
+
+  if (!appReady) {
     return null;
   }
 
@@ -46,16 +57,14 @@ export default function RootLayout() {
       <GestureHandlerRootView style={{ flex: 1 }}>
         <SafeAreaProvider>
           {!isOnline ? <OfflineBanner /> : null}
-          <BottomSheetModalProvider>
-            <StatusBar style="auto" />
+          <StatusBar style="auto" />
             <ThemeProvider value={DefaultTheme}>
               <Stack>
                 <Stack.Screen name="index" options={{ headerShown: false }} />
                 <Stack.Screen name="(auth)" options={{ headerShown: false }} />
                 <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-                <Stack.Screen name="admin" options={{ headerShown: false }} />
-                <Stack.Screen name="public" options={{ headerShown: false }} />
                 <Stack.Screen name="auth/callback" options={{ headerShown: false }} />
+                <Stack.Screen name="notifications" options={{ headerShown: false }} />
                 <Stack.Screen name="upload" options={{ headerShown: false }} />
                 <Stack.Screen name="profile/account" options={{ headerShown: false }} />
                 <Stack.Screen
@@ -71,6 +80,7 @@ export default function RootLayout() {
                   name="document/pdf-viewer"
                   options={{ headerShown: false }}
                 />
+                <Stack.Screen name="verify/[id]" options={{ headerShown: false }} />
                 <Stack.Screen
                   name="camera-capture"
                   options={{ headerShown: false }}
@@ -89,7 +99,6 @@ export default function RootLayout() {
                 />
               </Stack>
             </ThemeProvider>
-          </BottomSheetModalProvider>
           <Toaster
             position="top-center"
             theme="light"

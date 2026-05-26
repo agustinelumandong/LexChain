@@ -33,10 +33,8 @@ export default function AccountDetailsScreen() {
     updateAccount({
       firstName: draft.firstName.trim(),
       lastName: draft.lastName.trim(),
-      organization: draft.organization.trim(),
       role: draft.role.trim(),
       email: draft.email.trim(),
-      phone: draft.phone.trim(),
     });
     toast.success('Account details saved');
   };
@@ -65,12 +63,6 @@ export default function AccountDetailsScreen() {
             autoCapitalize="words"
           />
           <ProfileTextField
-            label="Organization"
-            value={draft.organization}
-            onChangeText={(value) => updateDraft('organization', value)}
-            autoCapitalize="words"
-          />
-          <ProfileTextField
             label="Role / title"
             value={draft.role}
             onChangeText={(value) => updateDraft('role', value)}
@@ -81,7 +73,7 @@ export default function AccountDetailsScreen() {
 
       <SettingsCard
         title="Contact"
-        description="Contact fields stay local until backend profile persistence is available."
+        description="Email stays local until backend profile persistence is available."
       >
         <View style={profileDetailStyles.fieldStack}>
           <ProfileTextField
@@ -90,12 +82,6 @@ export default function AccountDetailsScreen() {
             onChangeText={(value) => updateDraft('email', value)}
             autoCapitalize="none"
             keyboardType="email-address"
-          />
-          <ProfileTextField
-            label="Phone"
-            value={draft.phone}
-            onChangeText={(value) => updateDraft('phone', value)}
-            keyboardType="phone-pad"
           />
         </View>
       </SettingsCard>

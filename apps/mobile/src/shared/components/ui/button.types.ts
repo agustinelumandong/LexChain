@@ -1,4 +1,4 @@
-import type { MaterialIcons } from '@expo/vector-icons';
+import type MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import type { Image } from 'expo-image';
 import type React from 'react';
 import type { StyleProp, ViewStyle } from 'react-native';

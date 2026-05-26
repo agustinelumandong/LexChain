@@ -1,6 +1,6 @@
 import { Pressable, Text, View } from 'react-native';
 
-import { styles } from '../documents-screen.styles';
+import { styles } from './list/documents-screen.styles';
 
 type DocumentSearchResultRowProps = {
   title: string;

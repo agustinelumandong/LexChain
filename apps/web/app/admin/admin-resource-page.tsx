@@ -50,7 +50,7 @@ export function AdminResourcePage<Row>({
 }: AdminResourcePageProps<Row>) {
   return (
     <AdminShell activeHref={activeHref}>
-      <div className="mx-auto max-w-[1180px] space-y-6">
+      <div className="mx-auto space-y-6">
         <header className="space-y-1.5">
           <p className="text-xs font-black uppercase tracking-[0.16em] text-[#0985E7]">
             LexChain Super Admin

@@ -9,8 +9,17 @@ type ApiSchema<Name extends keyof components['schemas']> =
   components['schemas'][Name];
 
 export type UserSearchResponse = ApiSchema<'UserSearchResponse'>;
+export type UserProfileResponse = ApiSchema<'UserProfileResponse'>;
 
 export const usersApi = {
+  getProfile: () => {
+    if (env.useMockApi) {
+      return mockUsersApi.getProfile();
+    }
+
+    return apiClient.get<UserProfileResponse>('/users/');
+  },
+
   searchByEmail: (email: string) => {
     const trimmedEmail = email.trim();
 

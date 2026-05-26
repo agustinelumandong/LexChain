@@ -1,9 +1,9 @@
-import { BottomSheetModal } from '@gorhom/bottom-sheet';
+import BottomSheet from '@gorhom/bottom-sheet';
 import type { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import type { FilterOption } from '../documents-filter-sheet';
+import type { FilterOption } from '../components/filter/documents-filter-sheet';
 
 type UseDocumentsFilterSheetParams = {
   visible: boolean;
@@ -24,27 +24,12 @@ export function useDocumentsFilterSheet({
   selectedDate,
   onChangeDate,
 }: UseDocumentsFilterSheetParams) {
-  const bottomSheetRef = useRef<BottomSheetModal>(null);
+  const bottomSheetRef = useRef<BottomSheet>(null);
   const insets = useSafeAreaInsets();
   const snapPoints = useMemo(() => ['88%'], []);
   const [isTypeDropdownOpen, setIsTypeDropdownOpen] = useState(false);
   const [isStatusDropdownOpen, setIsStatusDropdownOpen] = useState(false);
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
-
-  useEffect(() => {
-    const sheet = bottomSheetRef.current;
-
-    if (!sheet) {
-      return;
-    }
-
-    if (visible) {
-      sheet.present();
-      return;
-    }
-
-    sheet.dismiss();
-  }, [visible]);
 
   useEffect(() => {
     if (!visible) {

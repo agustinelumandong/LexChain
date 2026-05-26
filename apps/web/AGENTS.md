@@ -5,6 +5,10 @@
 **Branch:** feat/monorepo-restructuring
 **Stack:** Next.js 16.2.6 | React 19.2 | TypeScript 5 | Tailwind v4
 
+## Next.js: ALWAYS read docs before coding
+
+Before any Next.js work, find and read the relevant doc in `node_modules/next/dist/docs/`. Your training data is outdated — the docs are the source of truth.
+
 ## OVERVIEW
 
 Next.js web app for LexChain: public document verifier, admin panel, marketing landing, and API route handlers proxying to Python/FastAPI backend.

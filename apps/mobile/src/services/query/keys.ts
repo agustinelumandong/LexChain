@@ -21,7 +21,13 @@ export const queryKeys = {
   blockchain: {
     verify: (documentId: string) => ['blockchain', 'verify', documentId] as const,
   },
+  notifications: {
+    list: (params?: { limit?: number; offset?: number; unreadOnly?: boolean }) =>
+      ['notifications', 'list', params ?? {}] as const,
+    unreadCount: ['notifications', 'unread-count'] as const,
+  },
   users: {
+    profile: ['users', 'profile'] as const,
     search: (email: string) => ['users', 'search', email] as const,
   },
 };

@@ -13,6 +13,7 @@ export async function adminFetch(path: string, token: string, init?: RequestInit
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${token}`,
+      "ngrok-skip-browser-warning": "true",
       ...init?.headers,
     },
   });

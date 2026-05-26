@@ -1,0 +1,297 @@
+import { StyleSheet } from 'react-native';
+
+import { APP_COLORS, fonts } from '@/theme';
+
+export const MANAGE_WHITELIST_COLORS = {
+  backdrop: 'rgba(4, 18, 40, 0.42)',
+  sheet: APP_COLORS.bg,
+  surface: APP_COLORS.white,
+  primary: APP_COLORS.primary,
+  navy: APP_COLORS.navy,
+  textMuted: APP_COLORS.textMuted,
+  borderSoft: APP_COLORS.borderSoft,
+  surfaceSoft: APP_COLORS.bg,
+};
+
+const COLORS = MANAGE_WHITELIST_COLORS;
+
+export const manageWhitelistStyles = StyleSheet.create({
+  overlay: {
+    zIndex: 10000,
+    elevation: 10000,
+  },
+  stackedOverlay: {
+    zIndex: 11000,
+    elevation: 11000,
+  },
+  backdrop: {
+    backgroundColor: COLORS.backdrop,
+  },
+  sheet: {
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    backgroundColor: COLORS.sheet,
+    borderWidth: 1,
+    borderColor: COLORS.borderSoft,
+  },
+  handle: {
+    alignSelf: 'center',
+    width: 64,
+    height: 6,
+    borderRadius: 999,
+    backgroundColor: COLORS.borderSoft,
+    marginTop: 10,
+    marginBottom: 8,
+  },
+  scrollArea: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingHorizontal: 18,
+    gap: 20,
+  },
+  topBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 2,
+  },
+  leftAction: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  topBarLabel: {
+    color: COLORS.navy,
+    fontFamily: fonts.regular,
+    fontSize: 14,
+    lineHeight: 18,
+    fontWeight: '800',
+  },
+  headerBlock: {
+    gap: 12,
+  },
+  eyebrow: {
+    color: COLORS.primary,
+    fontFamily: fonts.regular,
+    fontSize: 12,
+    lineHeight: 14,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+  },
+  title: {
+    color: COLORS.navy,
+    fontFamily: fonts.regular,
+    fontSize: 24,
+    lineHeight: 26,
+    fontWeight: '800',
+  },
+  description: {
+    color: COLORS.textMuted,
+    fontFamily: fonts.regular,
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '500',
+  },
+  searchBlock: {
+    position: 'relative',
+    gap: 8,
+    zIndex: 10,
+  },
+  grantsBlock: {
+    gap: 10,
+  },
+  grantsTitle: {
+    color: COLORS.navy,
+    fontFamily: fonts.regular,
+    fontSize: 16,
+    lineHeight: 20,
+    fontWeight: '800',
+  },
+  grantsList: {
+    gap: 10,
+  },
+  grantActionContent: {
+    paddingHorizontal: 18,
+    gap: 18,
+  },
+  grantActionHeader: {
+    gap: 6,
+  },
+  grantActionTitle: {
+    color: COLORS.navy,
+    fontFamily: fonts.regular,
+    fontSize: 20,
+    lineHeight: 24,
+    fontWeight: '800',
+  },
+  grantActionSubtitle: {
+    color: COLORS.textMuted,
+    fontFamily: fonts.regular,
+    fontSize: 12,
+    lineHeight: 16,
+    fontWeight: '600',
+  },
+  dropdownBlock: {
+    gap: 8,
+  },
+  dropdownLabel: {
+    color: COLORS.navy,
+    fontFamily: fonts.regular,
+    fontSize: 13,
+    lineHeight: 17,
+    fontWeight: '800',
+  },
+  dropdownButton: {
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.borderSoft,
+    borderRadius: 16,
+    paddingVertical: 13,
+    paddingHorizontal: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  dropdownValue: {
+    color: COLORS.navy,
+    fontFamily: fonts.regular,
+    fontSize: 14,
+    lineHeight: 18,
+    fontWeight: '800',
+  },
+  dropdownMenu: {
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.borderSoft,
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  dropdownItem: {
+    minHeight: 46,
+    paddingHorizontal: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  dropdownItemLabel: {
+    color: COLORS.navy,
+    fontFamily: fonts.regular,
+    fontSize: 13,
+    lineHeight: 17,
+    fontWeight: '700',
+  },
+  grantFooterContainer: {
+    backgroundColor: 'transparent',
+  },
+  grantFooter: {
+    paddingHorizontal: 18,
+    paddingTop: 12,
+    paddingBottom: 14,
+    backgroundColor: COLORS.sheet,
+  },
+  revokeButton: {
+    borderRadius: 999,
+    backgroundColor: '#FFECEF',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+  },
+  revokeButtonWaiting: {
+    backgroundColor: COLORS.borderSoft,
+  },
+  revokeButtonConfirm: {
+    backgroundColor: '#D8627B',
+  },
+  revokeButtonLabel: {
+    color: '#D8627B',
+    fontFamily: fonts.regular,
+    fontSize: 13,
+    lineHeight: 17,
+    fontWeight: '800',
+  },
+  revokeButtonLabelWaiting: {
+    color: COLORS.textMuted,
+  },
+  revokeButtonLabelConfirm: {
+    color: COLORS.surface,
+  },
+  skeletonList: {
+    gap: 10,
+  },
+  stateCard: {
+    borderRadius: 20,
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.borderSoft,
+    paddingVertical: 18,
+    paddingHorizontal: 16,
+    gap: 6,
+  },
+  stateTitle: {
+    color: COLORS.navy,
+    fontFamily: fonts.regular,
+    fontSize: 14,
+    lineHeight: 18,
+    fontWeight: '800',
+  },
+  stateBody: {
+    color: COLORS.textMuted,
+    fontFamily: fonts.regular,
+    fontSize: 12,
+    lineHeight: 17,
+    fontWeight: '500',
+  },
+  emptyStateCard: {
+    borderRadius: 24,
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.borderSoft,
+    paddingVertical: 24,
+    paddingHorizontal: 18,
+    alignItems: 'center',
+    gap: 12,
+  },
+  emptyStateIconWrap: {
+    width: 56,
+    height: 56,
+    borderRadius: 999,
+    backgroundColor: COLORS.surfaceSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyStateTitle: {
+    color: COLORS.navy,
+    fontFamily: fonts.regular,
+    fontSize: 15,
+    lineHeight: 19,
+    fontWeight: '800',
+    textAlign: 'center',
+  },
+  emptyStateBody: {
+    color: COLORS.textMuted,
+    fontFamily: fonts.regular,
+    fontSize: 13,
+    lineHeight: 19,
+    fontWeight: '500',
+    textAlign: 'center',
+  },
+  emptyStateHint: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    borderRadius: 999,
+    backgroundColor: COLORS.surfaceSoft,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+  },
+  emptyStateHintText: {
+    color: COLORS.primary,
+    fontFamily: fonts.regular,
+    fontSize: 12,
+    lineHeight: 14,
+    fontWeight: '700',
+  },
+});

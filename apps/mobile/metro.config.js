@@ -9,6 +9,7 @@ const isProduction = process.env.NODE_ENV === "production";
 const aliases = [
   { find: "@/features/", replacement: "src/features/", prefix: true },
   { find: "@/shared/", replacement: "src/shared/", prefix: true },
+  { find: "@/assets/", replacement: "assets/", prefix: true },
   { find: "@/mocks/", replacement: "src/mocks/", prefix: true },
   { find: "@/theme", replacement: "src/shared/theme/theme.ts" },
   { find: "@/hooks", replacement: "src/shared/hooks/index.ts" },

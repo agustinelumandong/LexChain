@@ -22,10 +22,11 @@ export const APP_COLORS = {
 } as const;
 
 export const fonts = {
-  regular: 'Inter',
-  medium: 'Inter',
-  bold: 'Inter',
-  extraBold: 'Inter',
+  regular: 'Inter_400Regular',
+  medium: 'Inter_500Medium',
+  bold: 'Inter_700Bold',
+  extraBold: 'Inter_800ExtraBold',
+  brandBlack: 'Montserrat_900Black',
 } as const;
 
 export const Colors = {

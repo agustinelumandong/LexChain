@@ -1,4 +1,4 @@
-import type { UserSearchResponse } from '../users.api';
+import type { UserProfileResponse, UserSearchResponse } from '../users.api';
 
 import { mockDelay } from './delay';
 
@@ -24,6 +24,18 @@ const MOCK_USERS: UserSearchResponse[] = [
 ];
 
 export const mockUsersApi = {
+  async getProfile(): Promise<UserProfileResponse> {
+    await mockDelay();
+
+    return {
+      email: 'atty.reyes@lexchain.app',
+      f_name: 'Atty.',
+      l_name: 'Reyes',
+      avatar: 'icon-1',
+      role: 'lawyer',
+    };
+  },
+
   async searchByEmail(email: string): Promise<UserSearchResponse> {
     await mockDelay();
 

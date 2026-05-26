@@ -4,8 +4,19 @@ import type { paths } from '@lexchain/types/openapi';
 
 import { env, requireApiUrl } from '@/shared/config';
 import { authTokenStorage } from '@/shared/utils/secure-storage';
+import { handleExpiredSession } from '@/features/auth/session-expiration';
 
 const baseUrl = env.useMockApi ? '' : requireApiUrl().replace(/\/$/, '');
+
+function getBearerToken(request: Request) {
+  const authorization = request.headers.get('Authorization');
+
+  if (!authorization?.startsWith('Bearer ')) {
+    return null;
+  }
+
+  return authorization.slice('Bearer '.length);
+}
 
 const authMiddleware: Middleware = {
   async onRequest({ request }) {
@@ -16,6 +27,13 @@ const authMiddleware: Middleware = {
     }
 
     return request;
+  },
+  async onResponse({ request, response }) {
+    if (response.status === 401) {
+      await handleExpiredSession(getBearerToken(request));
+    }
+
+    return response;
   },
 };
 

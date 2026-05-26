@@ -1,31 +1,28 @@
 import { StyleSheet, Text } from 'react-native';
 
-import {
-  DetailSectionsCard,
-  DocumentSummaryCard,
-} from '@/features/document';
 import { ErrorState } from '@/ui';
 import { APP_COLORS, fonts } from '@/theme';
-
+import { DetailSectionsCard } from '@/features/document/components/detail-sections-card';
+import { DocumentSummaryCard } from '@/features/document/components/document-summary-card';
 import type {
   DetailBodyBlock,
   DocumentDetailsDocument,
   VersionHistoryItem,
-} from '../../types/document-details.types';
+} from '@/features/document/types/document-details.types';
 import {
   formatContentType,
   formatDate,
   formatReference,
   formatWhitelistCountLabel,
-} from '../../utils/document-details-formatters';
+} from '@/features/document/utils/document-details-formatters';
 import {
   AccessControlCard,
   ConfidenceCard,
   DocumentStatusCard,
   VersionHistoryCard,
-} from './document-detail-cards';
-import { DocumentDetailsActions } from './document-details-actions';
-import { DocumentDetailsSkeleton } from './document-details-skeleton';
+} from '@/features/document/components/details/document-detail-cards';
+import { DocumentDetailsActions } from '@/features/document/components/details/document-details-actions';
+import { DocumentDetailsSkeleton } from '@/features/document/components/details/document-details-skeleton';
 
 type DetailSection = {
   title: string;
@@ -34,39 +31,47 @@ type DetailSection = {
 
 type DocumentDetailsContentProps = {
   allowedCount: number;
+  anchoredAt?: number;
   canManageWhitelist: boolean;
   canNotarizeDocument: boolean;
   document?: DocumentDetailsDocument;
   errorMessage?: string;
   extractedSections: DetailSection[];
   isLoading: boolean;
+  isAnchorTimeLoading: boolean;
   isNotarizing: boolean;
   isViewer: boolean;
+  partyNames: string[];
   riskSections: DetailSection[];
   versionHistory: VersionHistoryItem[];
   onPressManageWhitelist: () => void;
   onPressNotarize: () => void;
   onPressPdf: () => void;
   onPressSearch: () => void;
+  onPressVersion: (version: VersionHistoryItem) => void;
   onRetry: () => void;
 };
 
 export function DocumentDetailsContent({
   allowedCount,
+  anchoredAt,
   canManageWhitelist,
   canNotarizeDocument,
   document,
   errorMessage,
   extractedSections,
   isLoading,
+  isAnchorTimeLoading,
   isNotarizing,
   isViewer,
+  partyNames,
   riskSections,
   versionHistory,
   onPressManageWhitelist,
   onPressNotarize,
   onPressPdf,
   onPressSearch,
+  onPressVersion,
   onRetry,
 }: DocumentDetailsContentProps) {
   if (isLoading) {
@@ -91,6 +96,7 @@ export function DocumentDetailsContent({
     <>
       <DocumentDetailsActions
         canNotarizeDocument={canNotarizeDocument}
+        isAnchored={Boolean(document.on_chain)}
         isNotarizing={isNotarizing}
         isViewer={isViewer}
         onPressNotarize={onPressNotarize}
@@ -109,17 +115,19 @@ export function DocumentDetailsContent({
       />
 
       <DocumentStatusCard
-        status={document.status}
-        uploadedAt={document.updated_at}
+        anchoredAt={anchoredAt}
+        isAnchorTimeLoading={isAnchorTimeLoading}
+        onChain={document.on_chain}
       />
 
       <AccessControlCard
         allowedCountLabel={formatWhitelistCountLabel(allowedCount)}
         canManageWhitelist={canManageWhitelist}
+        partyNames={partyNames}
         onPressManage={onPressManageWhitelist}
       />
 
-      <VersionHistoryCard items={versionHistory} />
+      <VersionHistoryCard items={versionHistory} onPressVersion={onPressVersion} />
 
       <Text style={styles.insightsEyebrow}>DOCUMENT INSIGHTS</Text>
 
