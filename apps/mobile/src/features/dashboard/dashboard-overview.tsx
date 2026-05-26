@@ -12,7 +12,11 @@ import {
 } from '@/services/query';
 import type { SupabaseUser } from '@/types';
 
-import { DashboardKpiCard, DashboardKpiSkeleton } from './dashboard-kpi-card';
+import {
+  DashboardActivitySkeleton,
+  DashboardKpiCard,
+  DashboardKpiSkeleton,
+} from './dashboard-kpi-card';
 import { COLORS, styles } from './dashboard-overview.styles';
 import { useDashboard } from './use-dashboard';
 import {
@@ -200,7 +204,11 @@ export function DashboardOverview() {
                 <Text style={styles.viewAllText}>View all</Text>
               </Pressable>
             </View>
-            {dashboardStats.recentActivities.length > 0 ? (
+            {dashboardStats.isLoading ? (
+              Array.from({ length: 3 }).map((_, index) => (
+                <DashboardActivitySkeleton key={`activity-skeleton-${index}`} />
+              ))
+            ) : dashboardStats.recentActivities.length > 0 ? (
               dashboardStats.recentActivities.map((activity) => {
                 const documentId = activity.id.startsWith('document-')
                   ? activity.id.replace('document-', '')
