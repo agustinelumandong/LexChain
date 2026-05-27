@@ -272,9 +272,9 @@ export function DashboardOverview() {
                 );
               })
             ) : (
-              <View style={styles.activityRow}>
-                <Text style={styles.activityText}>No recent activity yet</Text>
-                <Text style={styles.activityDetail}>
+              <View style={styles.activityEmptyRow}>
+                <Text style={styles.activityEmptyTitle}>No recent activity yet</Text>
+                <Text style={styles.activityEmptyDetail}>
                   {dashboardCopy.emptyActivity}
                 </Text>
               </View>
