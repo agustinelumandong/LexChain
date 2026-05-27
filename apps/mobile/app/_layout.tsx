@@ -10,12 +10,11 @@ import { useFonts } from "expo-font";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import * as NavigationBar from "expo-navigation-bar";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Platform } from "react-native";
 import { toast, Toaster } from "sonner-native";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient, setupQueryFocusListener } from "@/shared/providers";
-import { OfflineBanner } from "@/ui";
 import { useNetwork } from "@/hooks";
 import { AppLockDialog } from "@/features/auth/components/app-lock-dialog";
 import { AppLockGate } from "@/features/auth/components/app-lock-gate";
@@ -32,6 +31,8 @@ export const unstable_settings = {
   anchor: "(tabs)",
 };
 
+const OFFLINE_TOAST_ID = 'network-offline';
+
 void SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
@@ -40,6 +41,8 @@ export default function RootLayout() {
   const [isAppLocked, setIsAppLocked] = useState(false);
   const [isUnlocking, setIsUnlocking] = useState(false);
   const [appLockMessage, setAppLockMessage] = useState<string | undefined>();
+  const hasSeenNetworkStateRef = useRef(false);
+  const previousOnlineRef = useRef(isOnline);
   const [fontsLoaded, fontError] = useFonts({
     ...MaterialIcons.font,
     Montserrat_900Black,
@@ -67,6 +70,41 @@ export default function RootLayout() {
       void SplashScreen.hideAsync();
     }
   }, [appReady]);
+
+  useEffect(() => {
+    if (!hasSeenNetworkStateRef.current) {
+      hasSeenNetworkStateRef.current = true;
+      previousOnlineRef.current = isOnline;
+
+      if (!isOnline) {
+        toast.warning('You are offline', {
+          id: OFFLINE_TOAST_ID,
+          duration: Infinity,
+          dismissible: false,
+        });
+      }
+
+      return;
+    }
+
+    if (previousOnlineRef.current === isOnline) {
+      return;
+    }
+
+    previousOnlineRef.current = isOnline;
+
+    if (isOnline) {
+      toast.dismiss(OFFLINE_TOAST_ID);
+      toast.success('Back online');
+      return;
+    }
+
+    toast.warning('You are offline', {
+      id: OFFLINE_TOAST_ID,
+      duration: Infinity,
+      dismissible: false,
+    });
+  }, [isOnline]);
 
   const unlockApp = useCallback(async () => {
     setIsUnlocking(true);
@@ -128,7 +166,6 @@ export default function RootLayout() {
     <QueryClientProvider client={queryClient}>
       <GestureHandlerRootView style={{ flex: 1 }}>
         <SafeAreaProvider>
-          {!isOnline ? <OfflineBanner /> : null}
           <StatusBar style="auto" />
           {isAppLocked ? (
             <AppLockGate
