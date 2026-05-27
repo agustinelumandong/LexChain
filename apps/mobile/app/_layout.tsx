@@ -10,13 +10,23 @@ import { useFonts } from "expo-font";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import * as NavigationBar from "expo-navigation-bar";
-import { useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Platform } from "react-native";
-import { Toaster } from "sonner-native";
+import { toast, Toaster } from "sonner-native";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient, setupQueryFocusListener } from "@/shared/providers";
 import { OfflineBanner } from "@/ui";
 import { useNetwork } from "@/hooks";
+import { AppLockDialog } from "@/features/auth/components/app-lock-dialog";
+import { AppLockGate } from "@/features/auth/components/app-lock-gate";
+import {
+  authenticateWithDeviceLock,
+  getAppLockEnabled,
+  setAppLockEnabled,
+} from "@/features/auth/app-lock";
+import { authTokenStorage } from "@/shared/utils/secure-storage";
+import { queryKeys } from "@/services/query";
+import type { SupabaseUser } from "@/types";
 
 export const unstable_settings = {
   anchor: "(tabs)",
@@ -26,11 +36,21 @@ void SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   const { isOnline } = useNetwork();
+  const [isCheckingAppLock, setIsCheckingAppLock] = useState(true);
+  const [isAppLocked, setIsAppLocked] = useState(false);
+  const [isUnlocking, setIsUnlocking] = useState(false);
+  const [appLockMessage, setAppLockMessage] = useState<string | undefined>();
   const [fontsLoaded, fontError] = useFonts({
     ...MaterialIcons.font,
     Montserrat_900Black,
   });
   const appReady = fontsLoaded || Boolean(fontError);
+  const currentUser = queryClient.getQueryData<SupabaseUser>(queryKeys.auth.currentUser);
+  const userMetadata = currentUser?.user_metadata;
+  const lockDisplayName = [userMetadata?.f_name, userMetadata?.l_name]
+    .filter(Boolean)
+    .join(' ')
+    .trim();
 
   useEffect(() => {
     if (Platform.OS === "android") {
@@ -48,7 +68,59 @@ export default function RootLayout() {
     }
   }, [appReady]);
 
-  if (!appReady) {
+  const unlockApp = useCallback(async () => {
+    setIsUnlocking(true);
+    setAppLockMessage(undefined);
+
+    try {
+      const result = await authenticateWithDeviceLock();
+
+      if (result.status === 'success') {
+        setIsAppLocked(false);
+        return;
+      }
+
+      if (result.status === 'unavailable') {
+        await setAppLockEnabled(false);
+        setIsAppLocked(false);
+        setAppLockMessage(undefined);
+        toast.warning(result.message ?? 'Device lock is not available on this phone.');
+        return;
+      }
+
+      setIsAppLocked(true);
+      setAppLockMessage(result.message ?? 'Unlock was cancelled. Try again to continue.');
+    } finally {
+      setIsUnlocking(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!appReady) {
+      return;
+    }
+
+    async function checkAppLock() {
+      const [token, appLockEnabled] = await Promise.all([
+        authTokenStorage.get(),
+        getAppLockEnabled(),
+      ]);
+
+      if (!token || !appLockEnabled) {
+        setIsAppLocked(false);
+        setIsCheckingAppLock(false);
+        return;
+      }
+
+      setIsAppLocked(true);
+      setIsCheckingAppLock(false);
+      await unlockApp();
+    }
+
+    void checkAppLock();
+  }, [appReady, unlockApp]);
+
+  if (!appReady || isCheckingAppLock) {
     return null;
   }
 
@@ -58,6 +130,14 @@ export default function RootLayout() {
         <SafeAreaProvider>
           {!isOnline ? <OfflineBanner /> : null}
           <StatusBar style="auto" />
+          {isAppLocked ? (
+            <AppLockGate
+              displayName={lockDisplayName}
+              isUnlocking={isUnlocking}
+              message={appLockMessage}
+              onUnlock={unlockApp}
+            />
+          ) : (
             <ThemeProvider value={DefaultTheme}>
               <Stack>
                 <Stack.Screen name="index" options={{ headerShown: false }} />
@@ -102,6 +182,8 @@ export default function RootLayout() {
                 />
               </Stack>
             </ThemeProvider>
+          )}
+          <AppLockDialog />
           <Toaster
             position="top-center"
             theme="light"

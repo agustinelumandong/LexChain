@@ -7,6 +7,7 @@ import { queryClient } from '@/shared/providers';
 import { authTokenStorage, refreshTokenStorage } from '@/shared/utils/secure-storage';
 
 const SESSION_STORAGE_KEYS = [
+  STORAGE_KEYS.appLockEnabled,
   STORAGE_KEYS.documentWhitelist,
   STORAGE_KEYS.documentsStore,
   STORAGE_KEYS.profileSettings,

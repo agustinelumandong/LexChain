@@ -12,6 +12,7 @@ import {
   getInvitationRouteParams,
   normalizeAuthCallbackParams,
 } from '@/features/auth/callback/auth-callback.params';
+import { promptToEnableAppLock } from '@/features/auth/app-lock-prompt';
 import { STORAGE_KEYS } from '@/constants';
 import { useSignIn } from '@/services/query';
 import { parseApiError } from '@/shared/utils/api-error';
@@ -112,6 +113,8 @@ export default function SignInScreen() {
         }
 
         toast.success('Signed in successfully');
+        await promptToEnableAppLock();
+
         if (authRouteParams.document_id) {
           router.replace({
             pathname: '/document/[id]',
