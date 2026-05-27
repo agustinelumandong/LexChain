@@ -4,8 +4,8 @@ import React, { useEffect } from 'react';
 import * as NavigationBar from "expo-navigation-bar";
 
 import { HapticTab } from '@/shared/components/haptic-tab';
-import { BottomNav, IconSymbol, OfflineBanner } from '@/ui';
-import { useColorScheme, useNetwork } from '@/hooks';
+import { BottomNav, IconSymbol } from '@/ui';
+import { useColorScheme } from '@/hooks';
 import { Colors } from '@/theme';
 import { StatusBar } from 'expo-status-bar';
 import { Platform, StyleSheet, View } from 'react-native';
@@ -16,7 +16,6 @@ export default function TabLayout() {
   const pathname = usePathname();
   const router = useRouter();
   const colorScheme = useColorScheme();
-  const { isOnline } = useNetwork();
   const userProfileQuery = useUserProfile();
   const canUpload = canRoleUploadDocuments(userProfileQuery.data?.role);
   const activeTab = pathname.includes('/documents')
@@ -34,7 +33,6 @@ export default function TabLayout() {
   return (
     <View style={styles.screen}>
       <StatusBar style="dark" />
-      {!isOnline ? <OfflineBanner /> : null}
       <Tabs
           screenOptions={{
             tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
