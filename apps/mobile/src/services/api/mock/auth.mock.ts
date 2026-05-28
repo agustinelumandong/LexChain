@@ -13,23 +13,26 @@ import type {
 } from '../auth.api';
 
 import { mockDelay } from './delay';
+import { createMockAccessToken, findMockAccountByEmail } from './accounts';
 
 export const mockAuthApi = {
   async signIn(payload: SignInPayload): Promise<SignInResponse> {
     await mockDelay();
 
+    const account = findMockAccountByEmail(payload.email);
+
     return {
-      access_token: `mock-access-token-${Date.now()}`,
+      access_token: createMockAccessToken(account),
       refresh_token: `mock-refresh-token-${Date.now()}`,
       token_type: 'bearer',
       expires_in: 3600,
       user: {
-        id: 'mock-user-1',
-        email: payload.email,
+        id: account.id,
+        email: account.email,
         role: 'authenticated',
         user_metadata: {
-          f_name: 'LexChain',
-          l_name: 'User',
+          f_name: account.f_name,
+          l_name: account.l_name,
         },
       },
     };
