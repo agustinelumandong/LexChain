@@ -7,6 +7,8 @@ import { useRouter } from "next/navigation";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import PeopleIcon from "@mui/icons-material/People";
 import MailIcon from "@mui/icons-material/Mail";
+import HistoryIcon from "@mui/icons-material/History";
+import SettingsIcon from "@mui/icons-material/Settings";
 import LogoutIcon from "@mui/icons-material/Logout";
 import MenuIcon from "@mui/icons-material/Menu";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
@@ -15,6 +17,8 @@ const adminLinks = [
   { label: "Dashboard", href: "/admin/dashboard", icon: <DashboardIcon fontSize="small" /> },
   { label: "Users", href: "/admin/users", icon: <PeopleIcon fontSize="small" /> },
   { label: "Invitations & Permissions", href: "/admin/invitations-permissions", icon: <MailIcon fontSize="small" /> },
+  { label: "Audit Logs", href: "/admin/audit-logs", icon: <HistoryIcon fontSize="small" /> },
+  { label: "System Settings", href: "/admin/system-settings", icon: <SettingsIcon fontSize="small" /> },
 ];
 
 type AdminShellProps = {
