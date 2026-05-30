@@ -8,9 +8,10 @@ import AddIcon from "@mui/icons-material/Add";
 type CreateInvitationModalProps = {
   label?: string;
   className?: string;
+  onCreate?: (invite: { email: string; role: string }) => void;
 };
 
-export function CreateInvitationModal({ label = "Create Invitation", className }: CreateInvitationModalProps) {
+export function CreateInvitationModal({ label = "Create Invitation", className, onCreate }: CreateInvitationModalProps) {
   const [open, setOpen] = useState(false);
   const [email, setEmail] = useState("");
   const [role, setRole] = useState("lawyer");
@@ -20,15 +21,19 @@ export function CreateInvitationModal({ label = "Create Invitation", className }
     e.preventDefault();
     setLoading(true);
     try {
-      await fetch("/api/admin/invitations", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, role }),
-      });
+      if (onCreate) {
+        onCreate({ email, role });
+      } else {
+        await fetch("/api/admin/invitations", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, role }),
+        });
+        window.location.reload();
+      }
       setEmail("");
       setRole("lawyer");
       setOpen(false);
-      window.location.reload();
     } finally {
       setLoading(false);
     }
