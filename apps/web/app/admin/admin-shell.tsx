@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import PeopleIcon from "@mui/icons-material/People";
 import MailIcon from "@mui/icons-material/Mail";
+import AdminPanelSettingsIcon from "@mui/icons-material/AdminPanelSettings";
 import AssessmentIcon from "@mui/icons-material/Assessment";
 import HistoryIcon from "@mui/icons-material/History";
 import SettingsIcon from "@mui/icons-material/Settings";
@@ -14,10 +15,12 @@ import LogoutIcon from "@mui/icons-material/Logout";
 import MenuIcon from "@mui/icons-material/Menu";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
+import { MockToastProvider } from "./components/mock-ui";
 
 const adminLinks = [
   { label: "Dashboard", href: "/admin/dashboard", icon: <DashboardIcon fontSize="small" /> },
   { label: "Users", href: "/admin/users", icon: <PeopleIcon fontSize="small" /> },
+  { label: "Roles & Permissions", href: "/admin/roles-permissions", icon: <AdminPanelSettingsIcon fontSize="small" /> },
   { label: "Invitations & Permissions", href: "/admin/invitations-permissions", icon: <MailIcon fontSize="small" /> },
   { label: "Generated Reports", href: "/admin/generated-reports", icon: <AssessmentIcon fontSize="small" /> },
   { label: "Audit Logs", href: "/admin/audit-logs", icon: <HistoryIcon fontSize="small" /> },
@@ -166,9 +169,11 @@ export function AdminShell({ activeHref = "/admin/dashboard", children }: AdminS
           </div>
         </aside>
 
-        <section className="flex min-w-0 flex-1 flex-col px-5 py-6 sm:px-7">
-          {children}
-        </section>
+        <MockToastProvider>
+          <section className="flex min-w-0 flex-1 flex-col px-5 py-6 sm:px-7">
+            {children}
+          </section>
+        </MockToastProvider>
       </div>
     </main>
   );
