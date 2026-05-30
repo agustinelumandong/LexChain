@@ -19,6 +19,7 @@ import CachedIcon from "@mui/icons-material/Cached";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import SettingsIcon from "@mui/icons-material/Settings";
 import { Dropdown } from "../components/dropdown";
+import { Field, MockModal, exportMockRows, inputClassName, useMockToast } from "../components/mock-ui";
 
 type GeneratedReport = {
   id: string;
@@ -156,7 +157,7 @@ function FormatBadge({ format }: { format: ReportRow["format"] }) {
   );
 }
 
-function ActionsMenu({ report }: { report: ReportRow }) {
+function ActionsMenu({ report, onView, onDownload, onRegenerate, onArchive }: { report: ReportRow; onView: () => void; onDownload: () => void; onRegenerate: () => void; onArchive: () => void }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -170,15 +171,15 @@ function ActionsMenu({ report }: { report: ReportRow }) {
 
   return (
     <div ref={ref} className="relative flex items-center justify-end gap-2">
-      <button type="button" aria-label={`View ${report.title}`} className="rounded-lg p-1.5 text-[#4B6382] transition hover:bg-[#EEF4FB] hover:text-[#0985E7]"><VisibilityIcon sx={{ fontSize: 18 }} /></button>
-      <button type="button" aria-label={`Download ${report.title}`} className="rounded-lg p-1.5 text-[#4B6382] transition hover:bg-[#EEF4FB] hover:text-[#0985E7]"><DownloadIcon sx={{ fontSize: 18 }} /></button>
-      <button type="button" aria-label={`Regenerate ${report.title}`} className="rounded-lg p-1.5 text-[#4B6382] transition hover:bg-[#EEF4FB] hover:text-[#0985E7]"><CachedIcon sx={{ fontSize: 18 }} /></button>
+      <button type="button" onClick={onView} aria-label={`View ${report.title}`} className="rounded-lg p-1.5 text-[#4B6382] transition hover:bg-[#EEF4FB] hover:text-[#0985E7]"><VisibilityIcon sx={{ fontSize: 18 }} /></button>
+      <button type="button" onClick={onDownload} aria-label={`Download ${report.title}`} className="rounded-lg p-1.5 text-[#4B6382] transition hover:bg-[#EEF4FB] hover:text-[#0985E7]"><DownloadIcon sx={{ fontSize: 18 }} /></button>
+      <button type="button" onClick={onRegenerate} aria-label={`Regenerate ${report.title}`} className="rounded-lg p-1.5 text-[#4B6382] transition hover:bg-[#EEF4FB] hover:text-[#0985E7]"><CachedIcon sx={{ fontSize: 18 }} /></button>
       <button type="button" aria-label={`More actions for ${report.title}`} onClick={() => setOpen((value) => !value)} className="rounded-lg p-1.5 text-[#4B6382] transition hover:bg-[#EEF4FB] hover:text-[#0985E7]"><MoreVertIcon sx={{ fontSize: 18 }} /></button>
       {open ? (
         <div className="absolute right-0 top-full z-50 mt-1 w-40 overflow-hidden rounded-xl border border-[#E4EEF9] bg-white shadow-xl shadow-[#183B6B]/10">
-          {["Share report", "Schedule refresh", "Archive"].map((action) => (
-            <button key={action} type="button" onClick={() => setOpen(false)} className="block w-full px-4 py-2.5 text-left text-sm font-bold text-[#0C2B49] transition hover:bg-[#EEF4FB]">{action}</button>
-          ))}
+          <button type="button" onClick={() => { setOpen(false); onView(); }} className="block w-full px-4 py-2.5 text-left text-sm font-bold text-[#0C2B49] transition hover:bg-[#EEF4FB]">Open details</button>
+          <button type="button" onClick={() => { setOpen(false); onRegenerate(); }} className="block w-full px-4 py-2.5 text-left text-sm font-bold text-[#0C2B49] transition hover:bg-[#EEF4FB]">Schedule refresh</button>
+          <button type="button" onClick={() => { setOpen(false); onArchive(); }} className="block w-full px-4 py-2.5 text-left text-sm font-bold text-red-600 transition hover:bg-red-50">Archive</button>
         </div>
       ) : null}
     </div>
@@ -252,6 +253,8 @@ function ActivityPanel() {
 }
 
 export function GeneratedReportsManagementView({ reports }: { reports: GeneratedReport[] }) {
+  const { showToast } = useMockToast();
+  const [reportRows, setReportRows] = useState(reports);
   const [headerSearch, setHeaderSearch] = useState("");
   const [tableSearch, setTableSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
@@ -260,8 +263,19 @@ export function GeneratedReportsManagementView({ reports }: { reports: Generated
   const [pageSize, setPageSize] = useState("10");
   const [page, setPage] = useState(0);
   const [moreFiltersOpen, setMoreFiltersOpen] = useState(false);
+  const [modalMode, setModalMode] = useState<"create" | "view" | "archive" | null>(null);
+  const [selectedReport, setSelectedReport] = useState<ReportRow | null>(null);
+  const [draftReport, setDraftReport] = useState<GeneratedReport>({
+    id: "rpt_draft",
+    title: "",
+    type: "NLP Summary",
+    source: "",
+    status: "queued",
+    generated_by: "LexChain Admin",
+    generated_at: new Date().toISOString(),
+  });
 
-  const rows = useMemo(() => reports.map(enrichReport), [reports]);
+  const rows = useMemo(() => reportRows.map(enrichReport), [reportRows]);
   const typeOptions = useMemo(() => [...new Set(rows.map((report) => report.typeLabel))], [rows]);
   const totalDisplay = Math.max(rows.length, 248);
   const categories = {
@@ -311,15 +325,18 @@ export function GeneratedReportsManagementView({ reports }: { reports: Generated
             <SearchIcon fontSize="small" className="text-[#4B6382]" />
             <input value={headerSearch} onChange={(event) => setHeaderSearch(event.target.value)} placeholder="Search reports by type, document, or issuer..." className="w-full bg-transparent text-sm font-semibold text-[#0C2B49] outline-none placeholder:text-[#9AAAC0]" />
           </label>
-          <button type="button" onClick={() => setMoreFiltersOpen((value) => !value)} className="inline-flex items-center gap-2 rounded-xl border border-[#E4EEF9] bg-white px-4 py-3 text-sm font-black text-[#0C2B49] shadow-sm shadow-[#DDEAF7]/35 transition hover:border-[#0985E7]">
+          <button type="button" onClick={() => { setMoreFiltersOpen((value) => !value); showToast({ title: "Filters toggled", detail: "Use the report filters below.", tone: "info" }); }} className="inline-flex items-center gap-2 rounded-xl border border-[#E4EEF9] bg-white px-4 py-3 text-sm font-black text-[#0C2B49] shadow-sm shadow-[#DDEAF7]/35 transition hover:border-[#0985E7]">
             <FilterListIcon fontSize="small" />
             Filter
           </button>
-          <button type="button" className="inline-flex items-center gap-2 rounded-xl border border-[#E4EEF9] bg-white px-4 py-3 text-sm font-black text-[#0C2B49] shadow-sm shadow-[#DDEAF7]/35 transition hover:border-[#0985E7]">
+          <button type="button" onClick={() => { exportMockRows("lexchain-generated-reports", filtered, "csv"); showToast({ title: "Reports exported", detail: `${filtered.length} reports downloaded.` }); }} className="inline-flex items-center gap-2 rounded-xl border border-[#E4EEF9] bg-white px-4 py-3 text-sm font-black text-[#0C2B49] shadow-sm shadow-[#DDEAF7]/35 transition hover:border-[#0985E7]">
             <DownloadIcon fontSize="small" />
             Export
           </button>
-          <button type="button" className="inline-flex items-center gap-2 rounded-xl bg-[#0985E7] px-5 py-3 text-sm font-black text-white shadow-sm shadow-[#0985E7]/25 transition hover:bg-[#0770C4]">
+          <button type="button" onClick={() => {
+            setDraftReport({ id: `rpt_${Date.now()}`, title: "", type: "NLP Summary", source: "", status: "queued", generated_by: "LexChain Admin", generated_at: new Date().toISOString() });
+            setModalMode("create");
+          }} className="inline-flex items-center gap-2 rounded-xl bg-[#0985E7] px-5 py-3 text-sm font-black text-white shadow-sm shadow-[#0985E7]/25 transition hover:bg-[#0770C4]">
             <AddIcon fontSize="small" />
             Generate Report
           </button>
@@ -387,7 +404,18 @@ export function GeneratedReportsManagementView({ reports }: { reports: Generated
                     <td className="px-5 py-3"><StatusBadge status={report.statusLabel} /></td>
                     <td className="px-5 py-3 font-semibold text-[#0C2B49]">{report.createdLabel}</td>
                     <td className="px-5 py-3"><FormatBadge format={report.format} /></td>
-                    <td className="px-5 py-3"><ActionsMenu report={report} /></td>
+                    <td className="px-5 py-3">
+                      <ActionsMenu
+                        report={report}
+                        onView={() => { setSelectedReport(report); setModalMode("view"); }}
+                        onDownload={() => { exportMockRows(`report-${report.id}`, [report], "json"); showToast({ title: "Report downloaded", detail: report.title }); }}
+                        onRegenerate={() => {
+                          setReportRows((current) => current.map((row) => row.id === report.id ? { ...row, status: "ready", generated_at: new Date().toISOString() } : row));
+                          showToast({ title: "Report regenerated", detail: report.title });
+                        }}
+                        onArchive={() => { setSelectedReport(report); setModalMode("archive"); }}
+                      />
+                    </td>
                   </tr>
                 ))}
                 {visibleReports.length === 0 ? (
@@ -420,6 +448,35 @@ export function GeneratedReportsManagementView({ reports }: { reports: Generated
           <ActivityPanel />
         </aside>
       </section>
+      <MockModal
+        open={modalMode === "create"}
+        onClose={() => setModalMode(null)}
+        title="Generate Report"
+        description="Creates a session-only mock report."
+        footer={
+          <div className="flex gap-3">
+            <button type="button" onClick={() => setModalMode(null)} className="flex-1 rounded-xl border border-[#E4EEF9] px-5 py-3 text-sm font-black text-[#0C2B49]">Cancel</button>
+            <button type="button" onClick={() => {
+              if (!draftReport.title.trim()) return;
+              setReportRows((current) => [draftReport, ...current]);
+              showToast({ title: "Report generated", detail: draftReport.title });
+              setModalMode(null);
+            }} className="flex-1 rounded-xl bg-[#0985E7] px-5 py-3 text-sm font-black text-white">Generate</button>
+          </div>
+        }
+      >
+        <div className="grid gap-4">
+          <Field label="Report name"><input className={inputClassName} value={draftReport.title} onChange={(event) => setDraftReport((draft) => ({ ...draft, title: event.target.value }))} placeholder="Contract Summary Report" /></Field>
+          <Field label="Source document"><input className={inputClassName} value={draftReport.source} onChange={(event) => setDraftReport((draft) => ({ ...draft, source: event.target.value }))} placeholder="Contract_Review.pdf" /></Field>
+          <Field label="Type"><select className={inputClassName} value={draftReport.type} onChange={(event) => setDraftReport((draft) => ({ ...draft, type: event.target.value }))}><option>NLP Summary</option><option>OCR Extraction</option><option>Verification Report</option><option>Blockchain Export</option></select></Field>
+        </div>
+      </MockModal>
+      <MockModal open={modalMode === "view"} onClose={() => setModalMode(null)} title={selectedReport?.title ?? "Report details"} description="Mock generated report metadata." footer={<button type="button" onClick={() => setModalMode(null)} className="w-full rounded-xl bg-[#0985E7] px-5 py-3 text-sm font-black text-white">Done</button>}>
+        {selectedReport ? <div className="space-y-3 text-sm font-semibold text-[#4B6382]"><p><strong className="text-[#071B33]">Type:</strong> {selectedReport.typeLabel}</p><p><strong className="text-[#071B33]">Source:</strong> {selectedReport.source}</p><p><strong className="text-[#071B33]">Generated by:</strong> {selectedReport.generated_by}</p><p><strong className="text-[#071B33]">Status:</strong> {selectedReport.statusLabel}</p></div> : null}
+      </MockModal>
+      <MockModal open={modalMode === "archive"} onClose={() => setModalMode(null)} title={`Archive ${selectedReport?.title ?? "report"}?`} description="Removes the report from this mock session." footer={<div className="flex gap-3"><button type="button" onClick={() => setModalMode(null)} className="flex-1 rounded-xl border border-[#E4EEF9] px-5 py-3 text-sm font-black text-[#0C2B49]">Cancel</button><button type="button" onClick={() => { if (!selectedReport) return; setReportRows((current) => current.filter((row) => row.id !== selectedReport.id)); showToast({ title: "Report archived", detail: selectedReport.title, tone: "warning" }); setModalMode(null); }} className="flex-1 rounded-xl bg-red-600 px-5 py-3 text-sm font-black text-white">Archive</button></div>}>
+        <p className="text-sm font-semibold text-[#5B6F8A]">Refresh to restore demo data.</p>
+      </MockModal>
     </div>
   );
 }
