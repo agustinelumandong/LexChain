@@ -17,6 +17,7 @@ import ReplayIcon from "@mui/icons-material/Replay";
 import EditIcon from "@mui/icons-material/Edit";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import { Dropdown } from "../components/dropdown";
+import { MockModal, exportMockRows, useMockToast } from "../components/mock-ui";
 import { CreateInvitationModal } from "./create-invitation-modal";
 
 type Invitation = {
@@ -158,7 +159,7 @@ function StatusPill({ status }: { status: DirectoryInvitation["statusLabel"] }) 
   );
 }
 
-function ActionsMenu({ invite }: { invite: DirectoryInvitation }) {
+function ActionsMenu({ invite, onView, onResend, onEdit, onRevoke }: { invite: DirectoryInvitation; onView: () => void; onResend: () => void; onEdit: () => void; onRevoke: () => void }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -172,13 +173,13 @@ function ActionsMenu({ invite }: { invite: DirectoryInvitation }) {
 
   return (
     <div ref={ref} className="relative flex items-center justify-end gap-1">
-      <button type="button" aria-label={`View ${invite.email}`} className="rounded-lg border border-[#E4EEF9] p-1.5 text-[#4B6382] transition hover:bg-[#EEF4FB] hover:text-[#0985E7]">
+      <button type="button" onClick={onView} aria-label={`View ${invite.email}`} className="rounded-lg border border-[#E4EEF9] p-1.5 text-[#4B6382] transition hover:bg-[#EEF4FB] hover:text-[#0985E7]">
         <VisibilityIcon sx={{ fontSize: 17 }} />
       </button>
-      <button type="button" aria-label={`Resend ${invite.email}`} className="rounded-lg border border-[#E4EEF9] p-1.5 text-[#4B6382] transition hover:bg-[#EEF4FB] hover:text-[#0985E7]">
+      <button type="button" onClick={onResend} aria-label={`Resend ${invite.email}`} className="rounded-lg border border-[#E4EEF9] p-1.5 text-[#4B6382] transition hover:bg-[#EEF4FB] hover:text-[#0985E7]">
         <ReplayIcon sx={{ fontSize: 17 }} />
       </button>
-      <button type="button" aria-label={`Edit ${invite.email}`} className="rounded-lg border border-[#E4EEF9] p-1.5 text-[#4B6382] transition hover:bg-[#EEF4FB] hover:text-[#0985E7]">
+      <button type="button" onClick={onEdit} aria-label={`Edit ${invite.email}`} className="rounded-lg border border-[#E4EEF9] p-1.5 text-[#4B6382] transition hover:bg-[#EEF4FB] hover:text-[#0985E7]">
         <EditIcon sx={{ fontSize: 17 }} />
       </button>
       <button type="button" aria-label={`More actions for ${invite.email}`} onClick={() => setOpen((value) => !value)} className="rounded-lg border border-[#E4EEF9] p-1.5 text-[#4B6382] transition hover:bg-[#EEF4FB] hover:text-[#0985E7]">
@@ -186,11 +187,9 @@ function ActionsMenu({ invite }: { invite: DirectoryInvitation }) {
       </button>
       {open ? (
         <div className="absolute right-0 top-full z-50 mt-1 w-40 overflow-hidden rounded-xl border border-[#E4EEF9] bg-white shadow-xl shadow-[#183B6B]/10">
-          {["Copy invite link", "Change permissions", "Revoke access"].map((action) => (
-            <button key={action} type="button" onClick={() => setOpen(false)} className="block w-full px-4 py-2.5 text-left text-sm font-bold text-[#0C2B49] transition hover:bg-[#EEF4FB]">
-              {action}
-            </button>
-          ))}
+          <button type="button" onClick={() => { setOpen(false); onResend(); }} className="block w-full px-4 py-2.5 text-left text-sm font-bold text-[#0C2B49] transition hover:bg-[#EEF4FB]">Copy invite link</button>
+          <button type="button" onClick={() => { setOpen(false); onEdit(); }} className="block w-full px-4 py-2.5 text-left text-sm font-bold text-[#0C2B49] transition hover:bg-[#EEF4FB]">Change permissions</button>
+          <button type="button" onClick={() => { setOpen(false); onRevoke(); }} className="block w-full px-4 py-2.5 text-left text-sm font-bold text-red-600 transition hover:bg-red-50">Revoke access</button>
         </div>
       ) : null}
     </div>
@@ -265,6 +264,8 @@ function ActivityPanel() {
 }
 
 export function InvitationsManagementView({ invitations }: { invitations: Invitation[] }) {
+  const { showToast } = useMockToast();
+  const [inviteRows, setInviteRows] = useState(invitations);
   const [headerSearch, setHeaderSearch] = useState("");
   const [tableSearch, setTableSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -273,8 +274,10 @@ export function InvitationsManagementView({ invitations }: { invitations: Invita
   const [pageSize, setPageSize] = useState("10");
   const [page, setPage] = useState(0);
   const [moreFiltersOpen, setMoreFiltersOpen] = useState(false);
+  const [selectedInvite, setSelectedInvite] = useState<DirectoryInvitation | null>(null);
+  const [modalMode, setModalMode] = useState<"view" | "revoke" | null>(null);
 
-  const directoryInvites = useMemo(() => invitations.map(enrichInvitation), [invitations]);
+  const directoryInvites = useMemo(() => inviteRows.map(enrichInvitation), [inviteRows]);
   const roleOptions = useMemo(() => [...new Set(directoryInvites.map((invite) => invite.roleLabel))], [directoryInvites]);
   const permissionOptions = useMemo(() => [...new Set(directoryInvites.map((invite) => invite.permissionLabel))], [directoryInvites]);
 
@@ -317,15 +320,32 @@ export function InvitationsManagementView({ invitations }: { invitations: Invita
             <SearchIcon fontSize="small" className="text-[#4B6382]" />
             <input value={headerSearch} onChange={(event) => setHeaderSearch(event.target.value)} placeholder="Search by email or organization..." className="w-full bg-transparent text-sm font-semibold text-[#0C2B49] outline-none placeholder:text-[#9AAAC0]" />
           </label>
-          <button type="button" onClick={() => setMoreFiltersOpen((value) => !value)} className="inline-flex items-center gap-2 rounded-xl border border-[#E4EEF9] bg-white px-4 py-3 text-sm font-black text-[#0C2B49] shadow-sm shadow-[#DDEAF7]/35 transition hover:border-[#0985E7]">
+          <button type="button" onClick={() => { setMoreFiltersOpen((value) => !value); showToast({ title: "Filters toggled", detail: "Use the invitation filters below.", tone: "info" }); }} className="inline-flex items-center gap-2 rounded-xl border border-[#E4EEF9] bg-white px-4 py-3 text-sm font-black text-[#0C2B49] shadow-sm shadow-[#DDEAF7]/35 transition hover:border-[#0985E7]">
             <FilterListIcon fontSize="small" />
             Filter
           </button>
-          <button type="button" className="inline-flex items-center gap-2 rounded-xl border border-[#E4EEF9] bg-white px-4 py-3 text-sm font-black text-[#0C2B49] shadow-sm shadow-[#DDEAF7]/35 transition hover:border-[#0985E7]">
+          <button type="button" onClick={() => { exportMockRows("lexchain-invitations", filtered, "csv"); showToast({ title: "Invitations exported", detail: `${filtered.length} invitations downloaded.` }); }} className="inline-flex items-center gap-2 rounded-xl border border-[#E4EEF9] bg-white px-4 py-3 text-sm font-black text-[#0C2B49] shadow-sm shadow-[#DDEAF7]/35 transition hover:border-[#0985E7]">
             <DownloadIcon fontSize="small" />
             Export
           </button>
-          <CreateInvitationModal label="New Invitation" className="inline-flex items-center gap-2 rounded-xl bg-[#0985E7] px-5 py-3 text-sm font-black text-white shadow-sm shadow-[#0985E7]/25 transition hover:bg-[#0770C4]" />
+          <CreateInvitationModal
+            label="New Invitation"
+            className="inline-flex items-center gap-2 rounded-xl bg-[#0985E7] px-5 py-3 text-sm font-black text-white shadow-sm shadow-[#0985E7]/25 transition hover:bg-[#0770C4]"
+            onCreate={(invite) => {
+              setInviteRows((current) => [{
+                id: `demo-${Date.now()}`,
+                email: invite.email,
+                role: invite.role,
+                status: "sent",
+                expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+                created_at: new Date().toISOString(),
+                magic_link: null,
+                organization: "New issuer account",
+                permission_type: "standard_issuer",
+              }, ...current]);
+              showToast({ title: "Invitation created", detail: invite.email });
+            }}
+          />
         </div>
       </header>
 
@@ -384,7 +404,15 @@ export function InvitationsManagementView({ invitations }: { invitations: Invita
                     <td className="px-5 py-3"><StatusPill status={invite.statusLabel} /></td>
                     <td className="px-5 py-3 font-semibold text-[#0C2B49]">{invite.sentLabel}</td>
                     <td className={cn("px-5 py-3 font-semibold", invite.expiresLabel === "expired" ? "text-[#EF4444]" : "text-[#0C2B49]")}>{invite.expiresLabel}</td>
-                    <td className="px-5 py-3"><ActionsMenu invite={invite} /></td>
+                    <td className="px-5 py-3">
+                      <ActionsMenu
+                        invite={invite}
+                        onView={() => { setSelectedInvite(invite); setModalMode("view"); }}
+                        onResend={() => showToast({ title: "Invitation link copied", detail: invite.email })}
+                        onEdit={() => showToast({ title: "Permission changed", detail: invite.email })}
+                        onRevoke={() => { setSelectedInvite(invite); setModalMode("revoke"); }}
+                      />
+                    </td>
                   </tr>
                 ))}
                 {visibleInvites.length === 0 ? (
@@ -417,6 +445,12 @@ export function InvitationsManagementView({ invitations }: { invitations: Invita
           <ActivityPanel />
         </aside>
       </section>
+      <MockModal open={modalMode === "view"} onClose={() => setModalMode(null)} title={selectedInvite?.invitee ?? "Invitation details"} description="Mock invitation record." footer={<button type="button" onClick={() => setModalMode(null)} className="w-full rounded-xl bg-[#0985E7] px-5 py-3 text-sm font-black text-white">Done</button>}>
+        {selectedInvite ? <div className="space-y-3 text-sm font-semibold text-[#4B6382]"><p><strong className="text-[#071B33]">Email:</strong> {selectedInvite.email}</p><p><strong className="text-[#071B33]">Organization:</strong> {selectedInvite.organizationName}</p><p><strong className="text-[#071B33]">Permission:</strong> {selectedInvite.permissionLabel}</p><p><strong className="text-[#071B33]">Status:</strong> {selectedInvite.statusLabel}</p></div> : null}
+      </MockModal>
+      <MockModal open={modalMode === "revoke"} onClose={() => setModalMode(null)} title={`Revoke ${selectedInvite?.email ?? "invitation"}?`} description="This updates only the current mock session." footer={<div className="flex gap-3"><button type="button" onClick={() => setModalMode(null)} className="flex-1 rounded-xl border border-[#E4EEF9] px-5 py-3 text-sm font-black text-[#0C2B49]">Cancel</button><button type="button" onClick={() => { if (!selectedInvite) return; setInviteRows((current) => current.map((row) => row.id === selectedInvite.id ? { ...row, status: "revoked" } : row)); showToast({ title: "Invitation revoked", detail: selectedInvite.email, tone: "warning" }); setModalMode(null); }} className="flex-1 rounded-xl bg-red-600 px-5 py-3 text-sm font-black text-white">Revoke</button></div>}>
+        <p className="text-sm font-semibold text-[#5B6F8A]">Access will show as revoked until refresh.</p>
+      </MockModal>
     </div>
   );
 }
