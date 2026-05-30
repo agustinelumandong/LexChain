@@ -38,3 +38,26 @@ button:not(:disabled),
 .dashboard-hidden-scroll::-webkit-scrollbar {
   display: none;
 }
+
+.admin-table-scroll {
+  scrollbar-color: #c7dbef transparent;
+  scrollbar-width: thin;
+}
+
+.admin-table-scroll::-webkit-scrollbar {
+  height: 8px;
+  width: 8px;
+}
+
+.admin-table-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.admin-table-scroll::-webkit-scrollbar-thumb {
+  background: #c7dbef;
+  border-radius: 999px;
+}
+
+.admin-table-scroll::-webkit-scrollbar-thumb:hover {
+  background: #98b7d8;
+}
