@@ -7,10 +7,6 @@ import { useRouter } from "next/navigation";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import PeopleIcon from "@mui/icons-material/People";
 import MailIcon from "@mui/icons-material/Mail";
-import DescriptionIcon from "@mui/icons-material/Description";
-import VerifiedIcon from "@mui/icons-material/Verified";
-import LinkIcon from "@mui/icons-material/Link";
-import ManageSearchIcon from "@mui/icons-material/ManageSearch";
 import AssessmentIcon from "@mui/icons-material/Assessment";
 import HistoryIcon from "@mui/icons-material/History";
 import SettingsIcon from "@mui/icons-material/Settings";
@@ -23,10 +19,6 @@ const adminLinks = [
   { label: "Dashboard", href: "/admin/dashboard", icon: <DashboardIcon fontSize="small" /> },
   { label: "Users", href: "/admin/users", icon: <PeopleIcon fontSize="small" /> },
   { label: "Invitations & Permissions", href: "/admin/invitations-permissions", icon: <MailIcon fontSize="small" /> },
-  { label: "Documents", href: "/admin/documents", icon: <DescriptionIcon fontSize="small" /> },
-  { label: "Verification Logs", href: "/admin/verification-logs", icon: <VerifiedIcon fontSize="small" /> },
-  { label: "Blockchain Records", href: "/admin/blockchain-records", icon: <LinkIcon fontSize="small" /> },
-  { label: "OCR / NLP Processing", href: "/admin/ocr-nlp-processing", icon: <ManageSearchIcon fontSize="small" /> },
   { label: "Generated Reports", href: "/admin/generated-reports", icon: <AssessmentIcon fontSize="small" /> },
   { label: "Audit Logs", href: "/admin/audit-logs", icon: <HistoryIcon fontSize="small" /> },
 ];
