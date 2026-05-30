@@ -253,7 +253,7 @@ function RoleDistribution({ users }: { users: DirectoryUser[] }) {
     <article className="rounded-2xl border border-[#E4EEF9] bg-white p-5 shadow-sm shadow-[#DDEAF7]/35">
       <div className="mb-4 flex items-center justify-between">
         <h2 className="text-lg font-black text-[#071B33]">Role Distribution</h2>
-        <button type="button" className="text-xs font-black text-[#0985E7] hover:text-[#0767B9]">View all</button>
+        <Link href="/admin/invitations-permissions" className="text-xs font-black text-[#0985E7] hover:text-[#0767B9]">Manage roles</Link>
       </div>
       <div className="grid items-center gap-5 sm:grid-cols-[160px_1fr] xl:grid-cols-1 2xl:grid-cols-[160px_1fr]">
         <div className="relative mx-auto size-36 rounded-full" style={{ background: `conic-gradient(${gradient})` }}>
@@ -309,35 +309,6 @@ function PendingInvitationsPanel() {
         <Link href="/admin/invitations-permissions" className="block rounded-xl py-2 text-center text-sm font-black text-[#0985E7] transition hover:bg-[#F8FBFF]">
           +3 more invitations
         </Link>
-      </div>
-    </article>
-  );
-}
-
-function AccessPanel() {
-  const items = [
-    ["Role-based access control", "Granular permissions by role"],
-    ["Document-level permissions", "Control access to sensitive documents"],
-    ["Invitation management", "Secure onboarding with role assignment"],
-    ["Audit-ready user logs", "Track user activity and access history"],
-  ];
-
-  return (
-    <article className="rounded-2xl border border-[#E4EEF9] bg-white p-5 shadow-sm shadow-[#DDEAF7]/35">
-      <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-lg font-black text-[#071B33]">Access & Permissions</h2>
-        <Link href="/admin/invitations-permissions" className="text-xs font-black text-[#0985E7] hover:text-[#0767B9]">Manage roles</Link>
-      </div>
-      <div className="space-y-3">
-        {items.map(([title, detail]) => (
-          <div key={title} className="flex gap-3">
-            <CheckCircleIcon fontSize="small" className="mt-0.5 text-[#16A34A]" />
-            <div>
-              <p className="text-sm font-black text-[#071B33]">{title}</p>
-              <p className="text-xs font-semibold text-[#5B6F8A]">{detail}</p>
-            </div>
-          </div>
-        ))}
       </div>
     </article>
   );
@@ -554,7 +525,6 @@ export function UsersManagementView({ users, total }: { users: AdminUser[]; tota
         <aside className="space-y-4">
           <RoleDistribution users={directoryUsers} />
           <PendingInvitationsPanel />
-          <AccessPanel />
         </aside>
       </section>
     </div>
