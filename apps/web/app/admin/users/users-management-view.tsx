@@ -316,7 +316,6 @@ function PendingInvitationsPanel() {
 
 export function UsersManagementView({ users, total }: { users: AdminUser[]; total: number }) {
   const { showToast } = useMockToast();
-  const [userRows, setUserRows] = useState(users);
   const [headerSearch, setHeaderSearch] = useState("");
   const [tableSearch, setTableSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
@@ -329,7 +328,7 @@ export function UsersManagementView({ users, total }: { users: AdminUser[]; tota
   const [selectedUser, setSelectedUser] = useState<DirectoryUser | null>(null);
   const [userDraft, setUserDraft] = useState<AdminUser | null>(null);
 
-  const directoryUsers = useMemo(() => userRows.map(enrichUser), [userRows]);
+  const directoryUsers = useMemo(() => users.map(enrichUser), [users]);
   const roleOptions = useMemo(() => [...new Set(directoryUsers.map((user) => user.roleLabel))], [directoryUsers]);
 
   const filtered = useMemo(() => {
@@ -540,14 +539,13 @@ export function UsersManagementView({ users, total }: { users: AdminUser[]; tota
         open={modalMode === "edit"}
         onClose={() => setModalMode(null)}
         title="Edit User"
-        description="Session-only mock edit."
+        description="User details come from the admin users backend response."
         footer={
           <div className="flex gap-3">
             <button type="button" onClick={() => setModalMode(null)} className="flex-1 rounded-xl border border-[#E4EEF9] px-5 py-3 text-sm font-black text-[#0C2B49]">Cancel</button>
             <button type="button" onClick={() => {
               if (!userDraft) return;
-              setUserRows((current) => current.map((row) => row.id === userDraft.id ? userDraft : row));
-              showToast({ title: "User updated", detail: userDraft.name ?? userDraft.email });
+              showToast({ title: "Backend endpoint needed", detail: "User update is not changed locally.", tone: "info" });
               setModalMode(null);
             }} className="flex-1 rounded-xl bg-[#0985E7] px-5 py-3 text-sm font-black text-white">Save</button>
           </div>
@@ -565,20 +563,19 @@ export function UsersManagementView({ users, total }: { users: AdminUser[]; tota
         open={modalMode === "suspend"}
         onClose={() => setModalMode(null)}
         title={`Suspend ${selectedUser?.displayName ?? "user"}?`}
-        description="This changes only the current mock session."
+        description="User status is controlled by the backend users response."
         footer={
           <div className="flex gap-3">
             <button type="button" onClick={() => setModalMode(null)} className="flex-1 rounded-xl border border-[#E4EEF9] px-5 py-3 text-sm font-black text-[#0C2B49]">Cancel</button>
             <button type="button" onClick={() => {
               if (!selectedUser) return;
-              setUserRows((current) => current.map((row) => row.id === selectedUser.id ? { ...row, status: "suspended", is_active: false } : row));
-              showToast({ title: "User suspended", detail: selectedUser.displayName, tone: "warning" });
+              showToast({ title: "Backend endpoint needed", detail: `${selectedUser.displayName} was not changed locally.`, tone: "warning" });
               setModalMode(null);
             }} className="flex-1 rounded-xl bg-red-600 px-5 py-3 text-sm font-black text-white">Suspend</button>
           </div>
         }
       >
-        <p className="text-sm font-semibold text-[#5B6F8A]">The account will show as suspended until refresh.</p>
+        <p className="text-sm font-semibold text-[#5B6F8A]">No local fake mutation is applied here. Add a backend user status endpoint to enable this action.</p>
       </MockModal>
     </div>
   );
