@@ -265,7 +265,6 @@ function ActivityPanel() {
 
 export function InvitationsManagementView({ invitations }: { invitations: Invitation[] }) {
   const { showToast } = useMockToast();
-  const [inviteRows, setInviteRows] = useState(invitations);
   const [headerSearch, setHeaderSearch] = useState("");
   const [tableSearch, setTableSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -277,7 +276,7 @@ export function InvitationsManagementView({ invitations }: { invitations: Invita
   const [selectedInvite, setSelectedInvite] = useState<DirectoryInvitation | null>(null);
   const [modalMode, setModalMode] = useState<"view" | "revoke" | null>(null);
 
-  const directoryInvites = useMemo(() => inviteRows.map(enrichInvitation), [inviteRows]);
+  const directoryInvites = useMemo(() => invitations.map(enrichInvitation), [invitations]);
   const roleOptions = useMemo(() => [...new Set(directoryInvites.map((invite) => invite.roleLabel))], [directoryInvites]);
   const permissionOptions = useMemo(() => [...new Set(directoryInvites.map((invite) => invite.permissionLabel))], [directoryInvites]);
 
@@ -331,20 +330,6 @@ export function InvitationsManagementView({ invitations }: { invitations: Invita
           <CreateInvitationModal
             label="New Invitation"
             className="inline-flex items-center gap-2 rounded-xl bg-[#0985E7] px-5 py-3 text-sm font-black text-white shadow-sm shadow-[#0985E7]/25 transition hover:bg-[#0770C4]"
-            onCreate={(invite) => {
-              setInviteRows((current) => [{
-                id: `demo-${Date.now()}`,
-                email: invite.email,
-                role: invite.role,
-                status: "sent",
-                expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-                created_at: new Date().toISOString(),
-                magic_link: null,
-                organization: "New issuer account",
-                permission_type: "standard_issuer",
-              }, ...current]);
-              showToast({ title: "Invitation created", detail: invite.email });
-            }}
           />
         </div>
       </header>
@@ -409,7 +394,7 @@ export function InvitationsManagementView({ invitations }: { invitations: Invita
                         invite={invite}
                         onView={() => { setSelectedInvite(invite); setModalMode("view"); }}
                         onResend={() => showToast({ title: "Invitation link copied", detail: invite.email })}
-                        onEdit={() => showToast({ title: "Permission changed", detail: invite.email })}
+                        onEdit={() => showToast({ title: "Backend endpoint needed", detail: `Permission was not changed for ${invite.email}.`, tone: "info" })}
                         onRevoke={() => { setSelectedInvite(invite); setModalMode("revoke"); }}
                       />
                     </td>
@@ -445,11 +430,11 @@ export function InvitationsManagementView({ invitations }: { invitations: Invita
           <ActivityPanel />
         </aside>
       </section>
-      <MockModal open={modalMode === "view"} onClose={() => setModalMode(null)} title={selectedInvite?.invitee ?? "Invitation details"} description="Mock invitation record." footer={<button type="button" onClick={() => setModalMode(null)} className="w-full rounded-xl bg-[#0985E7] px-5 py-3 text-sm font-black text-white">Done</button>}>
+      <MockModal open={modalMode === "view"} onClose={() => setModalMode(null)} title={selectedInvite?.invitee ?? "Invitation details"} description="Invitation details from the backend response." footer={<button type="button" onClick={() => setModalMode(null)} className="w-full rounded-xl bg-[#0985E7] px-5 py-3 text-sm font-black text-white">Done</button>}>
         {selectedInvite ? <div className="space-y-3 text-sm font-semibold text-[#4B6382]"><p><strong className="text-[#071B33]">Email:</strong> {selectedInvite.email}</p><p><strong className="text-[#071B33]">Organization:</strong> {selectedInvite.organizationName}</p><p><strong className="text-[#071B33]">Permission:</strong> {selectedInvite.permissionLabel}</p><p><strong className="text-[#071B33]">Status:</strong> {selectedInvite.statusLabel}</p></div> : null}
       </MockModal>
-      <MockModal open={modalMode === "revoke"} onClose={() => setModalMode(null)} title={`Revoke ${selectedInvite?.email ?? "invitation"}?`} description="This updates only the current mock session." footer={<div className="flex gap-3"><button type="button" onClick={() => setModalMode(null)} className="flex-1 rounded-xl border border-[#E4EEF9] px-5 py-3 text-sm font-black text-[#0C2B49]">Cancel</button><button type="button" onClick={() => { if (!selectedInvite) return; setInviteRows((current) => current.map((row) => row.id === selectedInvite.id ? { ...row, status: "revoked" } : row)); showToast({ title: "Invitation revoked", detail: selectedInvite.email, tone: "warning" }); setModalMode(null); }} className="flex-1 rounded-xl bg-red-600 px-5 py-3 text-sm font-black text-white">Revoke</button></div>}>
-        <p className="text-sm font-semibold text-[#5B6F8A]">Access will show as revoked until refresh.</p>
+      <MockModal open={modalMode === "revoke"} onClose={() => setModalMode(null)} title={`Revoke ${selectedInvite?.email ?? "invitation"}?`} description="This sends a revoke request to the invitations backend." footer={<div className="flex gap-3"><button type="button" onClick={() => setModalMode(null)} className="flex-1 rounded-xl border border-[#E4EEF9] px-5 py-3 text-sm font-black text-[#0C2B49]">Cancel</button><button type="button" onClick={async () => { if (!selectedInvite) return; const response = await fetch(`/api/admin/invitations/${encodeURIComponent(selectedInvite.id)}`, { method: "DELETE" }); if (!response.ok) { showToast({ title: "Revoke failed", detail: selectedInvite.email, tone: "error" }); return; } showToast({ title: "Invitation revoked", detail: selectedInvite.email, tone: "warning" }); setModalMode(null); window.location.reload(); }} className="flex-1 rounded-xl bg-red-600 px-5 py-3 text-sm font-black text-white">Revoke</button></div>}>
+        <p className="text-sm font-semibold text-[#5B6F8A]">After revoke succeeds, this page reloads from the backend response.</p>
       </MockModal>
     </div>
   );

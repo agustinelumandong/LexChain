@@ -16,24 +16,32 @@ export function CreateInvitationModal({ label = "Create Invitation", className, 
   const [email, setEmail] = useState("");
   const [role, setRole] = useState("lawyer");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
+    setError("");
     try {
       if (onCreate) {
         onCreate({ email, role });
       } else {
-        await fetch("/api/admin/invitations", {
+        const response = await fetch("/api/admin/invitations", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ email, role }),
         });
+        if (!response.ok) {
+          const payload = await response.json().catch(() => null);
+          throw new Error(payload?.message ?? "Failed to create invitation.");
+        }
         window.location.reload();
       }
       setEmail("");
       setRole("lawyer");
       setOpen(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to create invitation.");
     } finally {
       setLoading(false);
     }
@@ -54,6 +62,11 @@ export function CreateInvitationModal({ label = "Create Invitation", className, 
           Send a magic-link invitation to a lawyer to join the platform.
         </p>
         <form onSubmit={handleSubmit} className="mt-4 space-y-4">
+          {error ? (
+            <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">
+              {error}
+            </p>
+          ) : null}
           <div>
             <label className="block text-xs font-black uppercase tracking-[0.1em] text-[#64748b] mb-1.5">
               Email
