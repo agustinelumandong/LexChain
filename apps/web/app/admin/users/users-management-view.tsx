@@ -274,12 +274,12 @@ function RoleDistribution({ users }: { users: DirectoryUser[] }) {
 
 function PendingInvitationsPanel() {
   return (
-    <article className="rounded-2xl border border-[#E4EEF9] bg-white p-5 shadow-sm shadow-[#DDEAF7]/35">
-      <div className="mb-4 flex items-center justify-between">
+    <article className="flex min-h-[240px] flex-col rounded-2xl border border-[#E4EEF9] bg-white p-5 shadow-sm shadow-[#DDEAF7]/35">
+      <div className="mb-4 flex shrink-0 items-center justify-between">
         <h2 className="text-lg font-black text-[#071B33]">Pending Invitations</h2>
         <Link href="/admin/invitations-permissions" className="text-xs font-black text-[#0985E7] hover:text-[#0767B9]">View all invites</Link>
       </div>
-      <div className="space-y-3">
+      <div className="admin-table-scroll min-h-0 flex-1 space-y-3 overflow-auto pr-1">
         {pendingInvitations.map((invite, index) => (
           <div key={invite.email} className="grid grid-cols-[36px_1fr_auto] items-center gap-3 rounded-xl p-1.5 transition hover:bg-[#F8FBFF]">
             <div className={cn("flex size-9 items-center justify-center rounded-xl text-xs font-black", index === 1 ? "bg-[#FFF4DF] text-[#D97706]" : "bg-[#EAF3FF] text-[#0879D8]")}>
@@ -414,7 +414,7 @@ export function UsersManagementView({ users, total }: { users: AdminUser[]; tota
             </div>
           </div>
 
-          <div className="dashboard-hidden-scroll min-h-0 flex-1 overflow-auto">
+          <div className="admin-table-scroll min-h-0 flex-1 overflow-auto">
             <table className="w-full min-w-[920px] text-sm">
               <thead>
                 <tr className="border-b border-[#D9E5F0] bg-[#F8FBFF] text-left text-xs font-black uppercase tracking-[0.08em] text-[#4B6382]">
