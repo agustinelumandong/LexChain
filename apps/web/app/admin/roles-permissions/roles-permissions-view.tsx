@@ -18,6 +18,7 @@ import EditIcon from "@mui/icons-material/Edit";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import { Dropdown } from "../components/dropdown";
+import { Field, MockModal, exportMockRows, inputClassName, useMockToast } from "../components/mock-ui";
 
 type RoleRow = {
   id: string;
@@ -125,7 +126,7 @@ function StatusPill({ status }: { status: RoleRow["status"] | PermissionRow["sta
   );
 }
 
-function RowActions({ name }: { name: string }) {
+function RowActions({ name, onView, onEdit, onArchive }: { name: string; onView: () => void; onEdit: () => void; onArchive: () => void }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -139,14 +140,14 @@ function RowActions({ name }: { name: string }) {
 
   return (
     <div ref={ref} className="relative flex items-center justify-end gap-2">
-      <button type="button" aria-label={`View ${name}`} className="rounded-lg p-1.5 text-[#4B6382] transition hover:bg-[#EEF4FB] hover:text-[#0985E7]"><VisibilityIcon sx={{ fontSize: 18 }} /></button>
-      <button type="button" aria-label={`Edit ${name}`} className="rounded-lg p-1.5 text-[#4B6382] transition hover:bg-[#EEF4FB] hover:text-[#0985E7]"><EditIcon sx={{ fontSize: 18 }} /></button>
+      <button type="button" onClick={onView} aria-label={`View ${name}`} className="rounded-lg p-1.5 text-[#4B6382] transition hover:bg-[#EEF4FB] hover:text-[#0985E7]"><VisibilityIcon sx={{ fontSize: 18 }} /></button>
+      <button type="button" onClick={onEdit} aria-label={`Edit ${name}`} className="rounded-lg p-1.5 text-[#4B6382] transition hover:bg-[#EEF4FB] hover:text-[#0985E7]"><EditIcon sx={{ fontSize: 18 }} /></button>
       <button type="button" aria-label={`More actions for ${name}`} onClick={() => setOpen((value) => !value)} className="rounded-lg p-1.5 text-[#4B6382] transition hover:bg-[#EEF4FB] hover:text-[#0985E7]"><MoreVertIcon sx={{ fontSize: 18 }} /></button>
       {open ? (
         <div className="absolute right-0 top-full z-50 mt-1 w-44 overflow-hidden rounded-xl border border-[#E4EEF9] bg-white shadow-xl shadow-[#183B6B]/10">
-          {["Duplicate role", "Review members", "Archive role"].map((action) => (
-            <button key={action} type="button" onClick={() => setOpen(false)} className="block w-full px-4 py-2.5 text-left text-sm font-bold text-[#0C2B49] transition hover:bg-[#EEF4FB]">{action}</button>
-          ))}
+          <button type="button" onClick={() => { setOpen(false); onEdit(); }} className="block w-full px-4 py-2.5 text-left text-sm font-bold text-[#0C2B49] transition hover:bg-[#EEF4FB]">Duplicate</button>
+          <button type="button" onClick={() => { setOpen(false); onView(); }} className="block w-full px-4 py-2.5 text-left text-sm font-bold text-[#0C2B49] transition hover:bg-[#EEF4FB]">Review details</button>
+          <button type="button" onClick={() => { setOpen(false); onArchive(); }} className="block w-full px-4 py-2.5 text-left text-sm font-bold text-red-600 transition hover:bg-red-50">Archive</button>
         </div>
       ) : null}
     </div>
@@ -222,6 +223,9 @@ function RecentRoleActivity() {
 }
 
 export function RolesPermissionsView() {
+  const { showToast } = useMockToast();
+  const [roleRows, setRoleRows] = useState<RoleRow[]>(roles);
+  const [permissionRows, setPermissionRows] = useState<PermissionRow[]>(permissions);
   const [headerSearch, setHeaderSearch] = useState("");
   const [tableSearch, setTableSearch] = useState("");
   const [activeView, setActiveView] = useState<"roles" | "permissions">("roles");
@@ -229,34 +233,39 @@ export function RolesPermissionsView() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [groupFilter, setGroupFilter] = useState("all");
   const [moreFiltersOpen, setMoreFiltersOpen] = useState(false);
+  const [modalMode, setModalMode] = useState<"create" | "edit" | "view" | "confirm" | null>(null);
+  const [selectedRole, setSelectedRole] = useState<RoleRow | null>(null);
+  const [selectedPermission, setSelectedPermission] = useState<PermissionRow | null>(null);
+  const [roleDraft, setRoleDraft] = useState<RoleRow>(roles[0]);
+  const [permissionDraft, setPermissionDraft] = useState<PermissionRow>(permissions[0]);
 
-  const accessOptions = useMemo(() => [...new Set(roles.map((role) => role.access))], []);
+  const accessOptions = useMemo(() => [...new Set(roleRows.map((role) => role.access))], [roleRows]);
   const roleFiltered = useMemo(() => {
     const query = `${headerSearch} ${tableSearch}`.trim().toLowerCase();
-    return roles.filter((role) => {
+    return roleRows.filter((role) => {
       const matchesSearch = !query || role.name.toLowerCase().includes(query) || role.permissions.toLowerCase().includes(query) || role.scope.toLowerCase().includes(query);
       const matchesAccess = accessFilter === "all" || role.access === accessFilter;
       const matchesStatus = statusFilter === "all" || role.status === statusFilter;
       const matchesGroup = groupFilter === "all" || role.category === groupFilter;
       return matchesSearch && matchesAccess && matchesStatus && matchesGroup;
     });
-  }, [accessFilter, groupFilter, headerSearch, statusFilter, tableSearch]);
+  }, [accessFilter, groupFilter, headerSearch, roleRows, statusFilter, tableSearch]);
 
   const permissionFiltered = useMemo(() => {
     const query = `${headerSearch} ${tableSearch}`.trim().toLowerCase();
-    return permissions.filter((permission) => {
+    return permissionRows.filter((permission) => {
       const matchesSearch = !query || permission.name.toLowerCase().includes(query) || permission.group.toLowerCase().includes(query) || permission.scope.toLowerCase().includes(query) || permission.assignedRoles.toLowerCase().includes(query) || permission.rule.toLowerCase().includes(query);
       const matchesAccess = accessFilter === "all" || permission.assignedRoles.includes(accessFilter) || permission.group === accessFilter;
       const matchesStatus = statusFilter === "all" || permission.status === statusFilter;
       const matchesGroup = groupFilter === "all" || permission.group.toLowerCase() === groupFilter;
       return matchesSearch && matchesAccess && matchesStatus && matchesGroup;
     });
-  }, [accessFilter, groupFilter, headerSearch, statusFilter, tableSearch]);
+  }, [accessFilter, groupFilter, headerSearch, permissionRows, statusFilter, tableSearch]);
 
   const visibleCount = activeView === "roles" ? roleFiltered.length : permissionFiltered.length;
 
   const metrics = [
-    { label: "Total Roles", value: roles.length, detail: "System-defined roles", icon: <ShieldIcon fontSize="small" />, tone: "blue" as const },
+    { label: "Total Roles", value: roleRows.length, detail: "System-defined roles", icon: <ShieldIcon fontSize="small" />, tone: "blue" as const },
     { label: "Admins", value: 18, detail: "Administrative accounts", icon: <ManageAccountsIcon fontSize="small" />, tone: "green" as const },
     { label: "Document Issuers", value: 40, detail: "Active issuer accounts", icon: <DescriptionIcon fontSize="small" />, tone: "purple" as const },
     { label: "Participants", value: 96, detail: "Shared-access users", icon: <GroupsIcon fontSize="small" />, tone: "orange" as const },
@@ -264,6 +273,61 @@ export function RolesPermissionsView() {
     { label: "Custom Permissions", value: 24, detail: "Granular access rules", icon: <TuneIcon fontSize="small" />, tone: "blue" as const },
     { label: "Pending Changes", value: 9, detail: "Awaiting approval", icon: <ScheduleIcon fontSize="small" />, tone: "red" as const },
   ];
+
+  function openCreate() {
+    if (activeView === "roles") {
+      setRoleDraft({
+        id: `role_${Date.now()}`,
+        name: "",
+        users: 0,
+        scope: "System",
+        permissions: "",
+        status: "Active",
+        updated: "Now",
+        category: "issuer",
+        access: "Issuer",
+      });
+    } else {
+      setPermissionDraft({
+        id: `perm_${Date.now()}`,
+        name: "",
+        group: "Documents",
+        scope: "Owned documents",
+        assignedRoles: "Document Issuer",
+        rule: "",
+        status: "Active",
+        updated: "Now",
+      });
+    }
+    setSelectedRole(null);
+    setSelectedPermission(null);
+    setModalMode("create");
+  }
+
+  function saveCurrent() {
+    if (activeView === "roles") {
+      if (!roleDraft.name.trim()) return;
+      setRoleRows((current) => modalMode === "edit" ? current.map((role) => role.id === roleDraft.id ? roleDraft : role) : [roleDraft, ...current]);
+      showToast({ title: modalMode === "edit" ? "Role updated" : "Role created", detail: roleDraft.name });
+    } else {
+      if (!permissionDraft.name.trim()) return;
+      setPermissionRows((current) => modalMode === "edit" ? current.map((permission) => permission.id === permissionDraft.id ? permissionDraft : permission) : [permissionDraft, ...current]);
+      showToast({ title: modalMode === "edit" ? "Permission updated" : "Permission created", detail: permissionDraft.name });
+    }
+    setModalMode(null);
+  }
+
+  function archiveCurrent() {
+    if (selectedRole) {
+      setRoleRows((current) => current.filter((role) => role.id !== selectedRole.id));
+      showToast({ title: "Role archived", detail: selectedRole.name, tone: "warning" });
+    }
+    if (selectedPermission) {
+      setPermissionRows((current) => current.filter((permission) => permission.id !== selectedPermission.id));
+      showToast({ title: "Permission archived", detail: selectedPermission.name, tone: "warning" });
+    }
+    setModalMode(null);
+  }
 
   return (
     <div className="flex min-h-[calc(100vh-48px)] w-full flex-col gap-5 xl:h-[calc(100vh-48px)] xl:overflow-hidden">
@@ -282,13 +346,16 @@ export function RolesPermissionsView() {
             <FilterListIcon fontSize="small" />
             Filter
           </button>
-          <button type="button" className="inline-flex items-center gap-2 rounded-xl border border-[#E4EEF9] bg-white px-4 py-3 text-sm font-black text-[#0C2B49] shadow-sm shadow-[#DDEAF7]/35 transition hover:border-[#0985E7]">
+          <button type="button" onClick={() => {
+            exportMockRows(activeView === "roles" ? "lexchain-roles" : "lexchain-permissions", activeView === "roles" ? roleFiltered : permissionFiltered, "csv");
+            showToast({ title: "Export ready", detail: `${visibleCount} ${activeView === "roles" ? "roles" : "permissions"} exported.` });
+          }} className="inline-flex items-center gap-2 rounded-xl border border-[#E4EEF9] bg-white px-4 py-3 text-sm font-black text-[#0C2B49] shadow-sm shadow-[#DDEAF7]/35 transition hover:border-[#0985E7]">
             <DownloadIcon fontSize="small" />
             Export
           </button>
-          <button type="button" className="inline-flex items-center gap-2 rounded-xl bg-[#0985E7] px-5 py-3 text-sm font-black text-white shadow-sm shadow-[#0985E7]/25 transition hover:bg-[#0770C4]">
+          <button type="button" onClick={openCreate} className="inline-flex items-center gap-2 rounded-xl bg-[#0985E7] px-5 py-3 text-sm font-black text-white shadow-sm shadow-[#0985E7]/25 transition hover:bg-[#0770C4]">
             <AddIcon fontSize="small" />
-            Create Role
+            {activeView === "roles" ? "Create Role" : "Create Permission"}
           </button>
         </div>
       </header>
@@ -374,7 +441,14 @@ export function RolesPermissionsView() {
                       <td className="px-5 py-3 font-semibold text-[#0C2B49]">{role.permissions}</td>
                       <td className="px-5 py-3"><StatusPill status={role.status} /></td>
                       <td className="px-5 py-3 font-semibold text-[#0C2B49]">{role.updated}</td>
-                      <td className="px-5 py-3"><RowActions name={role.name} /></td>
+                      <td className="px-5 py-3">
+                        <RowActions
+                          name={role.name}
+                          onView={() => { setSelectedRole(role); setSelectedPermission(null); setModalMode("view"); }}
+                          onEdit={() => { setSelectedRole(role); setSelectedPermission(null); setRoleDraft(role); setModalMode("edit"); }}
+                          onArchive={() => { setSelectedRole(role); setSelectedPermission(null); setModalMode("confirm"); }}
+                        />
+                      </td>
                     </tr>
                   ))}
                   {roleFiltered.length === 0 ? (
@@ -413,7 +487,14 @@ export function RolesPermissionsView() {
                       <td className="px-5 py-3 font-semibold text-[#0C2B49]">{permission.rule}</td>
                       <td className="px-5 py-3"><StatusPill status={permission.status} /></td>
                       <td className="px-5 py-3 font-semibold text-[#0C2B49]">{permission.updated}</td>
-                      <td className="px-5 py-3"><RowActions name={permission.name} /></td>
+                      <td className="px-5 py-3">
+                        <RowActions
+                          name={permission.name}
+                          onView={() => { setSelectedPermission(permission); setSelectedRole(null); setModalMode("view"); }}
+                          onEdit={() => { setSelectedPermission(permission); setSelectedRole(null); setPermissionDraft(permission); setModalMode("edit"); }}
+                          onArchive={() => { setSelectedPermission(permission); setSelectedRole(null); setModalMode("confirm"); }}
+                        />
+                      </td>
                     </tr>
                   ))}
                   {permissionFiltered.length === 0 ? (
@@ -437,10 +518,78 @@ export function RolesPermissionsView() {
         </article>
 
         <aside className="grid min-h-0 gap-4 xl:h-full xl:grid-rows-[auto_minmax(0,1fr)]">
-          <PermissionDistribution rows={roles} />
+          <PermissionDistribution rows={roleRows} />
           <RecentRoleActivity />
         </aside>
       </section>
+      <MockModal
+        open={modalMode === "view"}
+        onClose={() => setModalMode(null)}
+        title={selectedRole?.name ?? selectedPermission?.name ?? "Details"}
+        description={activeView === "roles" ? "Role details and access coverage." : "Permission rule details."}
+        footer={<button type="button" onClick={() => setModalMode(null)} className="w-full rounded-xl bg-[#0985E7] px-5 py-3 text-sm font-black text-white">Done</button>}
+      >
+        <div className="space-y-3 text-sm font-semibold text-[#4B6382]">
+          {selectedRole ? (
+            <>
+              <p><strong className="text-[#071B33]">Scope:</strong> {selectedRole.scope}</p>
+              <p><strong className="text-[#071B33]">Core permissions:</strong> {selectedRole.permissions}</p>
+              <p><strong className="text-[#071B33]">Assigned users:</strong> {selectedRole.users}</p>
+              <p><strong className="text-[#071B33]">Status:</strong> {selectedRole.status}</p>
+            </>
+          ) : selectedPermission ? (
+            <>
+              <p><strong className="text-[#071B33]">Group:</strong> {selectedPermission.group}</p>
+              <p><strong className="text-[#071B33]">Scope:</strong> {selectedPermission.scope}</p>
+              <p><strong className="text-[#071B33]">Assigned roles:</strong> {selectedPermission.assignedRoles}</p>
+              <p><strong className="text-[#071B33]">Rule:</strong> {selectedPermission.rule}</p>
+            </>
+          ) : null}
+        </div>
+      </MockModal>
+
+      <MockModal
+        open={modalMode === "create" || modalMode === "edit"}
+        onClose={() => setModalMode(null)}
+        title={`${modalMode === "edit" ? "Edit" : "Create"} ${activeView === "roles" ? "Role" : "Permission"}`}
+        description="Session-only mock changes reset on refresh."
+        footer={
+          <div className="flex gap-3">
+            <button type="button" onClick={() => setModalMode(null)} className="flex-1 rounded-xl border border-[#E4EEF9] px-5 py-3 text-sm font-black text-[#0C2B49]">Cancel</button>
+            <button type="button" onClick={saveCurrent} className="flex-1 rounded-xl bg-[#0985E7] px-5 py-3 text-sm font-black text-white">Save</button>
+          </div>
+        }
+      >
+        {activeView === "roles" ? (
+          <div className="grid gap-4">
+            <Field label="Role name"><input className={inputClassName} value={roleDraft.name} onChange={(event) => setRoleDraft((draft) => ({ ...draft, name: event.target.value }))} placeholder="Document Reviewer" /></Field>
+            <Field label="Access scope"><input className={inputClassName} value={roleDraft.scope} onChange={(event) => setRoleDraft((draft) => ({ ...draft, scope: event.target.value }))} /></Field>
+            <Field label="Core permissions"><input className={inputClassName} value={roleDraft.permissions} onChange={(event) => setRoleDraft((draft) => ({ ...draft, permissions: event.target.value }))} /></Field>
+          </div>
+        ) : (
+          <div className="grid gap-4">
+            <Field label="Permission name"><input className={inputClassName} value={permissionDraft.name} onChange={(event) => setPermissionDraft((draft) => ({ ...draft, name: event.target.value }))} placeholder="Approve document access" /></Field>
+            <Field label="Group"><select className={inputClassName} value={permissionDraft.group} onChange={(event) => setPermissionDraft((draft) => ({ ...draft, group: event.target.value as PermissionRow["group"] }))}>{["Documents", "Users", "Reports", "Audit", "Invitations", "System"].map((group) => <option key={group}>{group}</option>)}</select></Field>
+            <Field label="Assigned roles"><input className={inputClassName} value={permissionDraft.assignedRoles} onChange={(event) => setPermissionDraft((draft) => ({ ...draft, assignedRoles: event.target.value }))} /></Field>
+            <Field label="Rule"><input className={inputClassName} value={permissionDraft.rule} onChange={(event) => setPermissionDraft((draft) => ({ ...draft, rule: event.target.value }))} /></Field>
+          </div>
+        )}
+      </MockModal>
+
+      <MockModal
+        open={modalMode === "confirm"}
+        onClose={() => setModalMode(null)}
+        title={`Archive ${selectedRole?.name ?? selectedPermission?.name ?? "item"}?`}
+        description="This only removes the row from the current mock session."
+        footer={
+          <div className="flex gap-3">
+            <button type="button" onClick={() => setModalMode(null)} className="flex-1 rounded-xl border border-[#E4EEF9] px-5 py-3 text-sm font-black text-[#0C2B49]">Cancel</button>
+            <button type="button" onClick={archiveCurrent} className="flex-1 rounded-xl bg-red-600 px-5 py-3 text-sm font-black text-white">Archive</button>
+          </div>
+        }
+      >
+        <p className="text-sm font-semibold text-[#5B6F8A]">You can refresh the page to restore the original demo data.</p>
+      </MockModal>
     </div>
   );
 }

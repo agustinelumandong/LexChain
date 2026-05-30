@@ -3,7 +3,7 @@ import { RolesPermissionsView } from "./roles-permissions-view";
 
 export default function AdminRolesPermissionsPage() {
   return (
-    <AdminShell activeHref="/admin/users">
+    <AdminShell activeHref="/admin/roles-permissions">
       <RolesPermissionsView />
     </AdminShell>
   );
