@@ -1,3 +1,5 @@
+"use client";
+
 import { adminCategories } from "../admin-demo-data";
 import { AdminBadge, AdminResourcePage } from "../admin-resource-page";
 
