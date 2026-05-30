@@ -21,6 +21,7 @@ import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import { Dropdown } from "../components/dropdown";
+import { Field, MockModal, exportMockRows, inputClassName, useMockToast } from "../components/mock-ui";
 
 type AdminUser = {
   id: string;
@@ -167,7 +168,7 @@ function StatusPill({ status }: { status: DirectoryUser["statusLabel"] }) {
   );
 }
 
-function ActionsMenu({ user }: { user: DirectoryUser }) {
+function ActionsMenu({ user, onView, onEdit, onSuspend }: { user: DirectoryUser; onView: () => void; onEdit: () => void; onSuspend: () => void }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -181,10 +182,10 @@ function ActionsMenu({ user }: { user: DirectoryUser }) {
 
   return (
     <div ref={ref} className="relative flex items-center justify-end gap-1">
-      <button type="button" aria-label={`View ${user.displayName}`} className="rounded-lg p-1.5 text-[#7C8DA5] transition hover:bg-[#EEF4FB] hover:text-[#0985E7]">
+      <button type="button" onClick={onView} aria-label={`View ${user.displayName}`} className="rounded-lg p-1.5 text-[#7C8DA5] transition hover:bg-[#EEF4FB] hover:text-[#0985E7]">
         <VisibilityIcon fontSize="small" />
       </button>
-      <button type="button" aria-label={`Edit ${user.displayName}`} className="rounded-lg p-1.5 text-[#7C8DA5] transition hover:bg-[#EEF4FB] hover:text-[#0985E7]">
+      <button type="button" onClick={onEdit} aria-label={`Edit ${user.displayName}`} className="rounded-lg p-1.5 text-[#7C8DA5] transition hover:bg-[#EEF4FB] hover:text-[#0985E7]">
         <EditIcon fontSize="small" />
       </button>
       <button
@@ -197,7 +198,7 @@ function ActionsMenu({ user }: { user: DirectoryUser }) {
       </button>
       {open && (
         <div className="absolute right-0 top-full z-50 mt-1 w-40 overflow-hidden rounded-xl border border-[#E4EEF9] bg-white shadow-xl shadow-[#183B6B]/10">
-          {["Reset password", "Change role", "Suspend user"].map((action) => (
+          {["Reset password", "Change role"].map((action) => (
             <button
               key={action}
               type="button"
@@ -207,6 +208,13 @@ function ActionsMenu({ user }: { user: DirectoryUser }) {
               {action}
             </button>
           ))}
+          <button
+            type="button"
+            onClick={() => { setOpen(false); onSuspend(); }}
+            className="block w-full px-4 py-2.5 text-left text-sm font-bold text-red-600 transition hover:bg-red-50"
+          >
+            Suspend user
+          </button>
         </div>
       )}
     </div>
@@ -307,6 +315,8 @@ function PendingInvitationsPanel() {
 }
 
 export function UsersManagementView({ users, total }: { users: AdminUser[]; total: number }) {
+  const { showToast } = useMockToast();
+  const [userRows, setUserRows] = useState(users);
   const [headerSearch, setHeaderSearch] = useState("");
   const [tableSearch, setTableSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
@@ -315,8 +325,11 @@ export function UsersManagementView({ users, total }: { users: AdminUser[]; tota
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState("6");
   const [moreFiltersOpen, setMoreFiltersOpen] = useState(false);
+  const [modalMode, setModalMode] = useState<"view" | "edit" | "suspend" | null>(null);
+  const [selectedUser, setSelectedUser] = useState<DirectoryUser | null>(null);
+  const [userDraft, setUserDraft] = useState<AdminUser | null>(null);
 
-  const directoryUsers = useMemo(() => users.map(enrichUser), [users]);
+  const directoryUsers = useMemo(() => userRows.map(enrichUser), [userRows]);
   const roleOptions = useMemo(() => [...new Set(directoryUsers.map((user) => user.roleLabel))], [directoryUsers]);
 
   const filtered = useMemo(() => {
@@ -363,11 +376,11 @@ export function UsersManagementView({ users, total }: { users: AdminUser[]; tota
               className="w-full bg-transparent text-sm font-semibold text-[#0C2B49] outline-none placeholder:text-[#9AAAC0]"
             />
           </label>
-          <button type="button" onClick={() => setMoreFiltersOpen((value) => !value)} className="inline-flex items-center gap-2 rounded-xl border border-[#E4EEF9] bg-white px-4 py-3 text-sm font-black text-[#0C2B49] shadow-sm shadow-[#DDEAF7]/35 transition hover:border-[#0985E7]">
+          <button type="button" onClick={() => { setMoreFiltersOpen((value) => !value); showToast({ title: "Filters toggled", detail: "Use the table filters below to refine users.", tone: "info" }); }} className="inline-flex items-center gap-2 rounded-xl border border-[#E4EEF9] bg-white px-4 py-3 text-sm font-black text-[#0C2B49] shadow-sm shadow-[#DDEAF7]/35 transition hover:border-[#0985E7]">
             <FilterListIcon fontSize="small" />
             Filter
           </button>
-          <button type="button" className="inline-flex items-center gap-2 rounded-xl border border-[#E4EEF9] bg-white px-4 py-3 text-sm font-black text-[#0C2B49] shadow-sm shadow-[#DDEAF7]/35 transition hover:border-[#0985E7]">
+          <button type="button" onClick={() => { exportMockRows("lexchain-users", filtered, "csv"); showToast({ title: "Users exported", detail: `${filtered.length} users downloaded.` }); }} className="inline-flex items-center gap-2 rounded-xl border border-[#E4EEF9] bg-white px-4 py-3 text-sm font-black text-[#0C2B49] shadow-sm shadow-[#DDEAF7]/35 transition hover:border-[#0985E7]">
             <DownloadIcon fontSize="small" />
             Export
           </button>
@@ -452,7 +465,14 @@ export function UsersManagementView({ users, total }: { users: AdminUser[]; tota
                     </td>
                     <td className="px-5 py-3 text-center font-bold text-[#0C2B49]">{user.documents}</td>
                     <td className="px-5 py-3 font-semibold text-[#0C2B49]">{user.lastActive}</td>
-                    <td className="px-5 py-3"><ActionsMenu user={user} /></td>
+                    <td className="px-5 py-3">
+                      <ActionsMenu
+                        user={user}
+                        onView={() => { setSelectedUser(user); setUserDraft(null); setModalMode("view"); }}
+                        onEdit={() => { setSelectedUser(user); setUserDraft(user); setModalMode("edit"); }}
+                        onSuspend={() => { setSelectedUser(user); setUserDraft(user); setModalMode("suspend"); }}
+                      />
+                    </td>
                   </tr>
                 ))}
                 {visibleUsers.length === 0 && (
@@ -500,6 +520,66 @@ export function UsersManagementView({ users, total }: { users: AdminUser[]; tota
           <PendingInvitationsPanel />
         </aside>
       </section>
+      <MockModal
+        open={modalMode === "view"}
+        onClose={() => setModalMode(null)}
+        title={selectedUser?.displayName ?? "User details"}
+        description="Mock user profile details."
+        footer={<button type="button" onClick={() => setModalMode(null)} className="w-full rounded-xl bg-[#0985E7] px-5 py-3 text-sm font-black text-white">Done</button>}
+      >
+        {selectedUser ? (
+          <div className="space-y-3 text-sm font-semibold text-[#4B6382]">
+            <p><strong className="text-[#071B33]">Email:</strong> {selectedUser.email}</p>
+            <p><strong className="text-[#071B33]">Role:</strong> {selectedUser.roleLabel}</p>
+            <p><strong className="text-[#071B33]">Status:</strong> {selectedUser.statusLabel}</p>
+            <p><strong className="text-[#071B33]">Documents:</strong> {selectedUser.documents}</p>
+          </div>
+        ) : null}
+      </MockModal>
+      <MockModal
+        open={modalMode === "edit"}
+        onClose={() => setModalMode(null)}
+        title="Edit User"
+        description="Session-only mock edit."
+        footer={
+          <div className="flex gap-3">
+            <button type="button" onClick={() => setModalMode(null)} className="flex-1 rounded-xl border border-[#E4EEF9] px-5 py-3 text-sm font-black text-[#0C2B49]">Cancel</button>
+            <button type="button" onClick={() => {
+              if (!userDraft) return;
+              setUserRows((current) => current.map((row) => row.id === userDraft.id ? userDraft : row));
+              showToast({ title: "User updated", detail: userDraft.name ?? userDraft.email });
+              setModalMode(null);
+            }} className="flex-1 rounded-xl bg-[#0985E7] px-5 py-3 text-sm font-black text-white">Save</button>
+          </div>
+        }
+      >
+        {userDraft ? (
+          <div className="grid gap-4">
+            <Field label="Name"><input className={inputClassName} value={userDraft.name ?? ""} onChange={(event) => setUserDraft((draft) => draft ? { ...draft, name: event.target.value } : draft)} /></Field>
+            <Field label="Email"><input className={inputClassName} value={userDraft.email} onChange={(event) => setUserDraft((draft) => draft ? { ...draft, email: event.target.value } : draft)} /></Field>
+            <Field label="Role"><select className={inputClassName} value={userDraft.role} onChange={(event) => setUserDraft((draft) => draft ? { ...draft, role: event.target.value } : draft)}><option value="admin">Admin</option><option value="lawyer">Lawyer</option><option value="user">User</option></select></Field>
+          </div>
+        ) : null}
+      </MockModal>
+      <MockModal
+        open={modalMode === "suspend"}
+        onClose={() => setModalMode(null)}
+        title={`Suspend ${selectedUser?.displayName ?? "user"}?`}
+        description="This changes only the current mock session."
+        footer={
+          <div className="flex gap-3">
+            <button type="button" onClick={() => setModalMode(null)} className="flex-1 rounded-xl border border-[#E4EEF9] px-5 py-3 text-sm font-black text-[#0C2B49]">Cancel</button>
+            <button type="button" onClick={() => {
+              if (!selectedUser) return;
+              setUserRows((current) => current.map((row) => row.id === selectedUser.id ? { ...row, status: "suspended", is_active: false } : row));
+              showToast({ title: "User suspended", detail: selectedUser.displayName, tone: "warning" });
+              setModalMode(null);
+            }} className="flex-1 rounded-xl bg-red-600 px-5 py-3 text-sm font-black text-white">Suspend</button>
+          </div>
+        }
+      >
+        <p className="text-sm font-semibold text-[#5B6F8A]">The account will show as suspended until refresh.</p>
+      </MockModal>
     </div>
   );
 }
