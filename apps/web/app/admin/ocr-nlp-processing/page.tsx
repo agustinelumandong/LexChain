@@ -1,3 +1,5 @@
+"use client";
+
 import { adminProcessingLogs } from "../admin-demo-data";
 import { AdminBadge, AdminResourcePage } from "../admin-resource-page";
 

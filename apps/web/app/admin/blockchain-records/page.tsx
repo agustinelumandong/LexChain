@@ -1,3 +1,5 @@
+"use client";
+
 import { adminBlockchainRecords } from "../admin-demo-data";
 import { AdminBadge, AdminResourcePage, formatAdminDate } from "../admin-resource-page";
 

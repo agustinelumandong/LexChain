@@ -1,3 +1,5 @@
+"use client";
+
 import { adminAnalytics } from "../admin-demo-data";
 import { AdminResourcePage } from "../admin-resource-page";
 
