@@ -48,14 +48,6 @@ type DirectoryUser = AdminUser & {
   lastActive: string;
 };
 
-const tabs = [
-  { label: "All Users", value: "all" },
-  { label: "Document Issuers", value: "issuer" },
-  { label: "Lawyers", value: "lawyer" },
-  { label: "Public Verifiers", value: "verifier" },
-  { label: "Admins", value: "admin" },
-];
-
 const pendingInvitations = [
   { name: "Nathan Park", email: "nathan.park@lawgroup.com", role: "Lawyer", status: "Sent", ago: "2d ago" },
   { name: "Laura Chen", email: "laura.chen@corp-legal.com", role: "Document Issuer", status: "Pending", ago: "3d ago" },
@@ -250,12 +242,12 @@ function RoleDistribution({ users }: { users: DirectoryUser[] }) {
     .join(", ");
 
   return (
-    <article className="rounded-2xl border border-[#E4EEF9] bg-white p-5 shadow-sm shadow-[#DDEAF7]/35">
+    <article className="flex h-full flex-col rounded-2xl border border-[#E4EEF9] bg-white p-5 shadow-sm shadow-[#DDEAF7]/35">
       <div className="mb-4 flex items-center justify-between">
         <h2 className="text-lg font-black text-[#071B33]">Role Distribution</h2>
         <Link href="/admin/invitations-permissions" className="text-xs font-black text-[#0985E7] hover:text-[#0767B9]">Manage roles</Link>
       </div>
-      <div className="grid items-center gap-5 sm:grid-cols-[160px_1fr] xl:grid-cols-1 2xl:grid-cols-[160px_1fr]">
+      <div className="grid flex-1 items-center gap-5 sm:grid-cols-[160px_1fr] xl:grid-cols-1 2xl:grid-cols-[160px_1fr]">
         <div className="relative mx-auto size-36 rounded-full" style={{ background: `conic-gradient(${gradient})` }}>
           <div className="absolute inset-6 flex flex-col items-center justify-center rounded-full bg-white text-center">
             <strong className="text-2xl font-black text-[#071B33]">{total}</strong>
@@ -317,7 +309,6 @@ function PendingInvitationsPanel() {
 export function UsersManagementView({ users, total }: { users: AdminUser[]; total: number }) {
   const [headerSearch, setHeaderSearch] = useState("");
   const [tableSearch, setTableSearch] = useState("");
-  const [activeTab, setActiveTab] = useState("all");
   const [roleFilter, setRoleFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [verificationFilter, setVerificationFilter] = useState("all");
@@ -332,13 +323,12 @@ export function UsersManagementView({ users, total }: { users: AdminUser[]; tota
     const query = `${headerSearch} ${tableSearch}`.trim().toLowerCase();
     return directoryUsers.filter((user) => {
       const matchesSearch = !query || user.displayName.toLowerCase().includes(query) || user.email.toLowerCase().includes(query);
-      const matchesTab = activeTab === "all" || user.category === activeTab;
       const matchesRole = roleFilter === "all" || user.roleLabel === roleFilter;
       const matchesStatus = statusFilter === "all" || user.statusLabel === statusFilter;
       const matchesVerification = verificationFilter === "all" || user.verificationLabel === verificationFilter;
-      return matchesSearch && matchesTab && matchesRole && matchesStatus && matchesVerification;
+      return matchesSearch && matchesRole && matchesStatus && matchesVerification;
     });
-  }, [activeTab, directoryUsers, headerSearch, roleFilter, statusFilter, tableSearch, verificationFilter]);
+  }, [directoryUsers, headerSearch, roleFilter, statusFilter, tableSearch, verificationFilter]);
 
   const perPage = Number(pageSize);
   const totalPages = Math.max(1, Math.ceil(filtered.length / perPage));
@@ -356,7 +346,7 @@ export function UsersManagementView({ users, total }: { users: AdminUser[]; tota
   ];
 
   return (
-    <div className="flex h-full w-full flex-col gap-5">
+    <div className="flex min-h-[calc(100vh-48px)] w-full flex-col gap-5">
       <header className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
         <div>
           <p className="text-xs font-black uppercase tracking-[0.22em] text-[#0879D8]">LexChain Super Admin</p>
@@ -392,27 +382,10 @@ export function UsersManagementView({ users, total }: { users: AdminUser[]; tota
         {metrics.map((metric) => <UserMetricCard key={metric.label} {...metric} />)}
       </section>
 
-      <section className="grid min-h-0 gap-4 xl:grid-cols-[minmax(0,1fr)_420px]">
-        <article className="min-w-0 overflow-hidden rounded-2xl border border-[#E4EEF9] bg-white shadow-sm shadow-[#DDEAF7]/35">
+      <section className="grid min-h-0 flex-1 gap-4 xl:grid-cols-[minmax(0,1fr)_420px]">
+        <article className="flex min-h-[520px] min-w-0 flex-col overflow-hidden rounded-2xl border border-[#E4EEF9] bg-white shadow-sm shadow-[#DDEAF7]/35 xl:min-h-0">
           <div className="border-b border-[#E4EEF9] p-5">
             <h2 className="text-lg font-black text-[#071B33]">User Directory</h2>
-            <div className="mt-4 overflow-x-auto pb-1">
-              <div className="inline-flex min-w-max rounded-xl border border-[#D9E6F4] bg-[#F8FBFF] p-1">
-                {tabs.map((tab) => (
-                  <button
-                    key={tab.value}
-                    type="button"
-                    onClick={() => setActiveTab(tab.value)}
-                    className={cn(
-                      "min-w-[132px] rounded-lg px-4 py-2 text-sm font-black transition",
-                      activeTab === tab.value ? "bg-[#EAF3FF] text-[#0879D8] shadow-sm" : "text-[#4B6382] hover:bg-white",
-                    )}
-                  >
-                    {tab.label}
-                  </button>
-                ))}
-              </div>
-            </div>
             <div className="mt-4 flex flex-wrap items-center gap-3">
               <label className="flex min-w-[240px] flex-1 items-center gap-2 rounded-xl border border-[#E4EEF9] bg-white px-4 py-2.5 focus-within:border-[#0985E7]">
                 <SearchIcon fontSize="small" className="text-[#4B6382]" />
@@ -441,7 +414,7 @@ export function UsersManagementView({ users, total }: { users: AdminUser[]; tota
             </div>
           </div>
 
-          <div className="overflow-x-auto">
+          <div className="dashboard-hidden-scroll min-h-0 flex-1 overflow-auto">
             <table className="w-full min-w-[920px] text-sm">
               <thead>
                 <tr className="border-b border-[#D9E5F0] bg-[#F8FBFF] text-left text-xs font-black uppercase tracking-[0.08em] text-[#4B6382]">
@@ -522,7 +495,7 @@ export function UsersManagementView({ users, total }: { users: AdminUser[]; tota
           </div>
         </article>
 
-        <aside className="space-y-4">
+        <aside className="grid min-h-0 gap-4 xl:h-full xl:grid-rows-[minmax(0,1fr)_auto]">
           <RoleDistribution users={directoryUsers} />
           <PendingInvitationsPanel />
         </aside>
