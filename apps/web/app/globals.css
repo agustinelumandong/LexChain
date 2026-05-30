@@ -24,3 +24,17 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+a[href],
+button:not(:disabled),
+[role="button"] {
+  cursor: pointer;
+}
+
+.dashboard-hidden-scroll {
+  scrollbar-width: none;
+}
+
+.dashboard-hidden-scroll::-webkit-scrollbar {
+  display: none;
+}
