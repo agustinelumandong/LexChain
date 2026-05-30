@@ -5,7 +5,12 @@ import { Modal } from "../components/modal";
 import { Dropdown } from "../components/dropdown";
 import AddIcon from "@mui/icons-material/Add";
 
-export function CreateInvitationModal() {
+type CreateInvitationModalProps = {
+  label?: string;
+  className?: string;
+};
+
+export function CreateInvitationModal({ label = "Create Invitation", className }: CreateInvitationModalProps) {
   const [open, setOpen] = useState(false);
   const [email, setEmail] = useState("");
   const [role, setRole] = useState("lawyer");
@@ -34,10 +39,10 @@ export function CreateInvitationModal() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="flex cursor-pointer items-center gap-2 rounded-lg bg-[#0985E7] px-4 py-2.5 text-sm font-black text-white shadow-sm transition hover:bg-[#0770c4]"
+        className={className ?? "flex cursor-pointer items-center gap-2 rounded-lg bg-[#0985E7] px-4 py-2.5 text-sm font-black text-white shadow-sm transition hover:bg-[#0770c4]"}
       >
         <AddIcon fontSize="small" />
-        Create Invitation
+        {label}
       </button>
       <Modal open={open} onClose={() => setOpen(false)} title="Create Invitation">
         <p className="text-sm font-semibold text-[#64748b]">
