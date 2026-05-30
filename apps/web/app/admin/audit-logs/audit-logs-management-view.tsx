@@ -21,6 +21,7 @@ import Inventory2Icon from "@mui/icons-material/Inventory2";
 import GroupsIcon from "@mui/icons-material/Groups";
 import LockIcon from "@mui/icons-material/Lock";
 import { Dropdown } from "../components/dropdown";
+import { MockModal, exportMockRows, useMockToast } from "../components/mock-ui";
 
 type AuditLog = {
   actor: string;
@@ -185,7 +186,7 @@ function EventIcon({ category }: { category: AuditRow["eventCategory"] }) {
   return <span className={styles[category]}>{icons[category]}</span>;
 }
 
-function RowActions({ row }: { row: AuditRow }) {
+function RowActions({ row, onView, onExport, onReview }: { row: AuditRow; onView: () => void; onExport: () => void; onReview: () => void }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -199,14 +200,14 @@ function RowActions({ row }: { row: AuditRow }) {
 
   return (
     <div ref={ref} className="relative flex items-center justify-end gap-2">
-      <button type="button" aria-label={`View audit event ${row.id}`} className="rounded-lg p-1.5 text-[#4B6382] transition hover:bg-[#EEF4FB] hover:text-[#0985E7]"><VisibilityIcon sx={{ fontSize: 18 }} /></button>
-      <button type="button" aria-label={`Export audit event ${row.id}`} className="rounded-lg p-1.5 text-[#4B6382] transition hover:bg-[#EEF4FB] hover:text-[#0985E7]"><DownloadIcon sx={{ fontSize: 18 }} /></button>
+      <button type="button" onClick={onView} aria-label={`View audit event ${row.id}`} className="rounded-lg p-1.5 text-[#4B6382] transition hover:bg-[#EEF4FB] hover:text-[#0985E7]"><VisibilityIcon sx={{ fontSize: 18 }} /></button>
+      <button type="button" onClick={onExport} aria-label={`Export audit event ${row.id}`} className="rounded-lg p-1.5 text-[#4B6382] transition hover:bg-[#EEF4FB] hover:text-[#0985E7]"><DownloadIcon sx={{ fontSize: 18 }} /></button>
       <button type="button" aria-label={`More actions for audit event ${row.id}`} onClick={() => setOpen((value) => !value)} className="rounded-lg p-1.5 text-[#4B6382] transition hover:bg-[#EEF4FB] hover:text-[#0985E7]"><MoreVertIcon sx={{ fontSize: 18 }} /></button>
       {open ? (
         <div className="absolute right-0 top-full z-50 mt-1 w-40 overflow-hidden rounded-xl border border-[#E4EEF9] bg-white shadow-xl shadow-[#183B6B]/10">
-          {["Open details", "Copy event ID", "Mark reviewed"].map((action) => (
-            <button key={action} type="button" onClick={() => setOpen(false)} className="block w-full px-4 py-2.5 text-left text-sm font-bold text-[#0C2B49] transition hover:bg-[#EEF4FB]">{action}</button>
-          ))}
+          <button type="button" onClick={() => { setOpen(false); onView(); }} className="block w-full px-4 py-2.5 text-left text-sm font-bold text-[#0C2B49] transition hover:bg-[#EEF4FB]">Open details</button>
+          <button type="button" onClick={() => { setOpen(false); onExport(); }} className="block w-full px-4 py-2.5 text-left text-sm font-bold text-[#0C2B49] transition hover:bg-[#EEF4FB]">Copy event ID</button>
+          <button type="button" onClick={() => { setOpen(false); onReview(); }} className="block w-full px-4 py-2.5 text-left text-sm font-bold text-[#0C2B49] transition hover:bg-[#EEF4FB]">Mark reviewed</button>
         </div>
       ) : null}
     </div>
@@ -280,6 +281,8 @@ function CriticalActivityPanel() {
 }
 
 export function AuditLogsManagementView({ logs }: { logs: AuditLog[] }) {
+  const { showToast } = useMockToast();
+  const [logRows, setLogRows] = useState(logs);
   const [headerSearch, setHeaderSearch] = useState("");
   const [tableSearch, setTableSearch] = useState("");
   const [severityFilter, setSeverityFilter] = useState("all");
@@ -288,8 +291,10 @@ export function AuditLogsManagementView({ logs }: { logs: AuditLog[] }) {
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState("10");
   const [moreFiltersOpen, setMoreFiltersOpen] = useState(false);
+  const [selectedRow, setSelectedRow] = useState<AuditRow | null>(null);
+  const [modalMode, setModalMode] = useState<"view" | "report" | null>(null);
 
-  const rows = useMemo(() => logs.map(enrichLog), [logs]);
+  const rows = useMemo(() => logRows.map(enrichLog), [logRows]);
   const actorTypes = useMemo(() => [...new Set(rows.map((row) => row.actorType))], [rows]);
   const totalDisplay = Math.max(rows.length, 12480);
   const metricCounts = {
@@ -339,15 +344,15 @@ export function AuditLogsManagementView({ logs }: { logs: AuditLog[] }) {
             <SearchIcon fontSize="small" className="text-[#4B6382]" />
             <input value={headerSearch} onChange={(event) => setHeaderSearch(event.target.value)} placeholder="Search logs by user, action, document, or IP..." className="w-full bg-transparent text-sm font-semibold text-[#0C2B49] outline-none placeholder:text-[#9AAAC0]" />
           </label>
-          <button type="button" onClick={() => setMoreFiltersOpen((value) => !value)} className="inline-flex items-center gap-2 rounded-xl border border-[#E4EEF9] bg-white px-4 py-3 text-sm font-black text-[#0C2B49] shadow-sm shadow-[#DDEAF7]/35 transition hover:border-[#0985E7]">
+          <button type="button" onClick={() => { setMoreFiltersOpen((value) => !value); showToast({ title: "Filters toggled", detail: "Use audit trail filters below.", tone: "info" }); }} className="inline-flex items-center gap-2 rounded-xl border border-[#E4EEF9] bg-white px-4 py-3 text-sm font-black text-[#0C2B49] shadow-sm shadow-[#DDEAF7]/35 transition hover:border-[#0985E7]">
             <FilterListIcon fontSize="small" />
             Filter
           </button>
-          <button type="button" className="inline-flex items-center gap-2 rounded-xl border border-[#E4EEF9] bg-white px-4 py-3 text-sm font-black text-[#0C2B49] shadow-sm shadow-[#DDEAF7]/35 transition hover:border-[#0985E7]">
+          <button type="button" onClick={() => { exportMockRows("lexchain-audit-logs", filtered, "csv"); showToast({ title: "Audit logs exported", detail: `${filtered.length} events downloaded.` }); }} className="inline-flex items-center gap-2 rounded-xl border border-[#E4EEF9] bg-white px-4 py-3 text-sm font-black text-[#0C2B49] shadow-sm shadow-[#DDEAF7]/35 transition hover:border-[#0985E7]">
             <DownloadIcon fontSize="small" />
             Export
           </button>
-          <button type="button" className="inline-flex items-center gap-2 rounded-xl bg-[#0985E7] px-5 py-3 text-sm font-black text-white shadow-sm shadow-[#0985E7]/25 transition hover:bg-[#0770C4]">
+          <button type="button" onClick={() => setModalMode("report")} className="inline-flex items-center gap-2 rounded-xl bg-[#0985E7] px-5 py-3 text-sm font-black text-white shadow-sm shadow-[#0985E7]/25 transition hover:bg-[#0770C4]">
             <ArticleIcon fontSize="small" />
             Advanced Audit Report
           </button>
@@ -414,7 +419,17 @@ export function AuditLogsManagementView({ logs }: { logs: AuditLog[] }) {
                     <td className="px-5 py-3 font-semibold text-[#4B6382]">{row.ipDevice}</td>
                     <td className="px-5 py-3"><SeverityPill severity={row.severityLabel} /></td>
                     <td className="px-5 py-3"><StatusPill status={row.statusLabel} /></td>
-                    <td className="px-5 py-3"><RowActions row={row} /></td>
+                    <td className="px-5 py-3">
+                      <RowActions
+                        row={row}
+                        onView={() => { setSelectedRow(row); setModalMode("view"); }}
+                        onExport={() => { exportMockRows(`audit-event-${row.id}`, [row], "json"); showToast({ title: "Audit event exported", detail: row.eventLabel }); }}
+                        onReview={() => {
+                          setLogRows((current) => current.map((log) => `${log.actor}-${log.action}-${log.target}-${log.created_at}` === row.id ? { ...log, severity: "info" } : log));
+                          showToast({ title: "Audit event marked reviewed", detail: row.eventLabel });
+                        }}
+                      />
+                    </td>
                   </tr>
                 ))}
                 {visibleRows.length === 0 ? (
@@ -447,6 +462,12 @@ export function AuditLogsManagementView({ logs }: { logs: AuditLog[] }) {
           <CriticalActivityPanel />
         </aside>
       </section>
+      <MockModal open={modalMode === "view"} onClose={() => setModalMode(null)} title={selectedRow?.eventLabel ?? "Audit event"} description="Mock audit event detail." footer={<button type="button" onClick={() => setModalMode(null)} className="w-full rounded-xl bg-[#0985E7] px-5 py-3 text-sm font-black text-white">Done</button>}>
+        {selectedRow ? <div className="space-y-3 text-sm font-semibold text-[#4B6382]"><p><strong className="text-[#071B33]">Actor:</strong> {selectedRow.actorName}</p><p><strong className="text-[#071B33]">Target:</strong> {selectedRow.target}</p><p><strong className="text-[#071B33]">IP / Device:</strong> {selectedRow.ipDevice}</p><p><strong className="text-[#071B33]">Severity:</strong> {selectedRow.severityLabel}</p></div> : null}
+      </MockModal>
+      <MockModal open={modalMode === "report"} onClose={() => setModalMode(null)} title="Advanced Audit Report" description="Generates a mock compliance export for current filters." footer={<div className="flex gap-3"><button type="button" onClick={() => setModalMode(null)} className="flex-1 rounded-xl border border-[#E4EEF9] px-5 py-3 text-sm font-black text-[#0C2B49]">Cancel</button><button type="button" onClick={() => { exportMockRows("lexchain-advanced-audit-report", filtered, "json"); showToast({ title: "Advanced audit report generated", detail: `${filtered.length} events included.` }); setModalMode(null); }} className="flex-1 rounded-xl bg-[#0985E7] px-5 py-3 text-sm font-black text-white">Generate</button></div>}>
+        <p className="text-sm font-semibold text-[#5B6F8A]">The report includes filtered events, actor history, severity summary, and traceability metadata.</p>
+      </MockModal>
     </div>
   );
 }
