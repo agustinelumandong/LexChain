@@ -58,7 +58,7 @@ function ActionsMenu({ userId }: { userId: string }) {
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        aria-label="User actions"
+        aria-label={`User actions for ${userId}`}
         className="cursor-pointer rounded-lg p-1.5 text-[#64748b] transition hover:bg-[#EEF4FB] hover:text-[#0C2B49]"
       >
         <MoreHorizIcon fontSize="small" />
