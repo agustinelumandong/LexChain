@@ -1,4 +1,4 @@
-import React, { useCallback, useRef } from 'react';
+import React, { useCallback, useEffect, useRef } from 'react';
 import { useFocusEffect, useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { FlatList, RefreshControl, Text, View } from 'react-native';
@@ -22,6 +22,7 @@ import { DocumentSearchResultRow } from '@/features/documents/components/documen
 import { styles } from '@/features/documents/components/list/documents-screen.styles';
 import { useDocumentsScreen } from '@/features/documents/hooks/use-documents-screen';
 import { APP_COLORS } from '@/theme';
+import { useUiShellStore } from '@/shared/stores/ui-shell-store';
 import type {
   DisplayDocument,
   DocumentFilterStatusKey,
@@ -31,6 +32,7 @@ export default function DocumentsScreen() {
   const router = useRouter();
   const isOpeningDocumentRef = useRef(false);
   const screen = useDocumentsScreen();
+  const setBottomNavHidden = useUiShellStore((state) => state.setBottomNavHidden);
   const { clearSearch, documentsQuery } = screen;
   const { isLoading: isLoadingDocumentsQuery, refetch: refetchDocuments } = documentsQuery;
 
@@ -45,6 +47,14 @@ export default function DocumentsScreen() {
       }
     }, [clearSearch, isLoadingDocumentsQuery, refetchDocuments]),
   );
+
+  useEffect(() => {
+    const shouldHideBottomNav = screen.isFilterSheetOpen || screen.isSortSheetOpen;
+
+    setBottomNavHidden(shouldHideBottomNav);
+
+    return () => setBottomNavHidden(false);
+  }, [screen.isFilterSheetOpen, screen.isSortSheetOpen, setBottomNavHidden]);
 
   const openDocument = useCallback(
     (documentId: string) => {
