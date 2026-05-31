@@ -11,12 +11,14 @@ import { StatusBar } from 'expo-status-bar';
 import { Platform, StyleSheet, View } from 'react-native';
 import { canRoleUploadDocuments } from '@/features/profile';
 import { useUserProfile } from '@/services/query';
+import { useUiShellStore } from '@/shared/stores/ui-shell-store';
 
 export default function TabLayout() {
   const pathname = usePathname();
   const router = useRouter();
   const colorScheme = useColorScheme();
   const userProfileQuery = useUserProfile();
+  const isBottomNavHidden = useUiShellStore((state) => state.isBottomNavHidden);
   const canUpload = canRoleUploadDocuments(userProfileQuery.data?.role);
   const activeTab = pathname.includes('/documents')
     ? 'documents'
@@ -66,35 +68,37 @@ export default function TabLayout() {
           }}
         />
         </Tabs>
-      <LinearGradient
-        colors={[
-          'rgba(243, 248, 255, 0)',
-          'rgba(215, 235, 255, 0.9)',
-        ]}
-        pointerEvents="box-none"
-        style={styles.footer}
-      >
-        <BottomNav
-          activeTab={activeTab}
-          onPressHome={() => {
-            if (activeTab !== 'home') {
-              router.push('/(tabs)');
-            }
-          }}
-          onPressDocuments={() => {
-            if (activeTab !== 'documents') {
-              router.push('/(tabs)/documents');
-            }
-          }}
-          onPressProfile={() => {
-            if (activeTab !== 'profile') {
-              router.push('/(tabs)/profile');
-            }
-          }}
-          onPressUpload={() => router.push('/upload')}
-          showUpload={canUpload}
-        />
-      </LinearGradient>
+      {!isBottomNavHidden ? (
+        <LinearGradient
+          colors={[
+            'rgba(243, 248, 255, 0)',
+            'rgba(215, 235, 255, 0.9)',
+          ]}
+          pointerEvents="box-none"
+          style={styles.footer}
+        >
+          <BottomNav
+            activeTab={activeTab}
+            onPressHome={() => {
+              if (activeTab !== 'home') {
+                router.push('/(tabs)');
+              }
+            }}
+            onPressDocuments={() => {
+              if (activeTab !== 'documents') {
+                router.push('/(tabs)/documents');
+              }
+            }}
+            onPressProfile={() => {
+              if (activeTab !== 'profile') {
+                router.push('/(tabs)/profile');
+              }
+            }}
+            onPressUpload={() => router.push('/upload')}
+            showUpload={canUpload}
+          />
+        </LinearGradient>
+      ) : null}
     </View>
   );
 }
