@@ -19,17 +19,18 @@ async function fetchNotifications(): Promise<{ notifications: Notification[]; to
 
 async function markAllRead() {
   const res = await fetch('/api/portal/proxy-post?path=%2Fnotifications%2Fread-all', {
-    method: 'POST',
+    method: 'PATCH',
     credentials: 'same-origin',
   });
   if (!res.ok) throw new Error('Failed');
 }
 
 async function markOneRead(id: string) {
-  await fetch(`/api/portal/proxy-post?path=${encodeURIComponent(`/notifications/${id}/read`)}`, {
-    method: 'POST',
+  const res = await fetch(`/api/portal/proxy-post?path=${encodeURIComponent(`/notifications/${id}/read`)}`, {
+    method: 'PATCH',
     credentials: 'same-origin',
   });
+  if (!res.ok) throw new Error('Failed');
 }
 
 function formatDate(iso: string) {

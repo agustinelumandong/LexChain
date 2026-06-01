@@ -19,10 +19,6 @@ interface Document {
   created_at: string;
 }
 
-interface Notification {
-  unread: number;
-}
-
 async function fetchJson<T>(path: string): Promise<T> {
   const res = await fetch(`/api/portal/proxy?path=${encodeURIComponent(path)}`, { credentials: 'same-origin' });
   if (!res.ok) throw new Error('Failed to fetch');
