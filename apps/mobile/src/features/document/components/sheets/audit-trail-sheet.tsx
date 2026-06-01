@@ -14,6 +14,7 @@ import {
   formatAuditAction,
   formatAuditDetails,
   formatAuditTime,
+  formatIdOrHash,
   sortAuditLogsNewestFirst,
 } from '@/features/document/utils/audit-log-formatters';
 
@@ -115,7 +116,7 @@ export function AuditTrailSheet({
                       <Text style={styles.action}>{formatAuditAction(log.action)}</Text>
                       <Text style={styles.meta}>
                         {formatAuditTime(log.created_at)}
-                        {log.user_id ? ` • Actor ${log.user_id.slice(0, 8)}` : ''}
+                        {log.user_id ? ` • Actor ${formatIdOrHash(log.user_id)}` : ''}
                       </Text>
                       {detailsText ? (
                         <Text style={styles.details}>{detailsText}</Text>
