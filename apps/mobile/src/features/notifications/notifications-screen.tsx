@@ -182,34 +182,27 @@ export default function NotificationsScreen() {
         ListHeaderComponent={
           <View style={styles.summaryCard}>
             <View style={styles.summaryTopLine}>
-              <Text style={styles.summaryTitle}>Unread notifications</Text>
               <View style={styles.unreadBadge}>
                 <Text style={styles.unreadBadgeText}>
                   {unreadCount > 99 ? '99+' : unreadCount}
                 </Text>
               </View>
+              {hasUnread ? (
+                <Pressable
+                  accessibilityRole="button"
+                  disabled={markAllReadMutation.isPending}
+                  onPress={handleMarkAllRead}
+                  style={({ pressed }) => [
+                    styles.markAllButton,
+                    pressed && styles.markAllButtonPressed,
+                  ]}
+                >
+                  <Text style={styles.markAllText}>
+                    {markAllReadMutation.isPending ? 'Marking...' : 'Mark all read'}
+                  </Text>
+                </Pressable>
+              ) : null}
             </View>
-            <Text style={styles.summaryText}>
-              {hasUnread
-                ? 'Open unread items to mark them as read.'
-                : 'You are caught up on recent LexChain activity.'}
-            </Text>
-
-            {hasUnread ? (
-              <Pressable
-                accessibilityRole="button"
-                disabled={markAllReadMutation.isPending}
-                onPress={handleMarkAllRead}
-                style={({ pressed }) => [
-                  styles.markAllButton,
-                  pressed && styles.markAllButtonPressed,
-                ]}
-              >
-                <Text style={styles.markAllText}>
-                  {markAllReadMutation.isPending ? 'Marking...' : 'Mark all read'}
-                </Text>
-              </Pressable>
-            ) : null}
           </View>
         }
         ListEmptyComponent={

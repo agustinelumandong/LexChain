@@ -1,4 +1,4 @@
-import { MaterialIcons } from '@expo/vector-icons';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { Pressable, View } from 'react-native';
 
 import { Button } from '@/ui';
@@ -34,6 +34,7 @@ export function UploadFooter({
 
         <Pressable
           accessibilityRole="button"
+          accessibilityLabel="Scan document"
           onPress={onOpenCamera}
           style={uploadScreenStyles.cameraFab}
         >

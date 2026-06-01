@@ -12,6 +12,7 @@ import {
   useAddDocumentParty,
   useAskDocument,
   useDocument,
+  useDocumentAuditLogs,
   useDocumentParties,
   useDocumentVersions,
   useNotarizeDocument,
@@ -26,6 +27,7 @@ import { parseApiError } from '@/shared/utils/api-error';
 import { APP_COLORS } from '@/theme';
 import botQuestionMarkImage from '@/assets/images/lexchain-bot-question-mark.png';
 import { canRoleUploadDocuments } from '@/features/profile';
+import { authenticateWithDeviceLock } from '@/features/auth/app-lock';
 
 import { HEADER_CONTENT_GAP } from '../constants/document-details.constants';
 import { DocumentDetailsContent } from '../components/details/document-details-content';
@@ -50,6 +52,7 @@ export default function DocumentDetailsScreen() {
   const documentId = Array.isArray(id) ? id[0] : id;
   const documentQuery = useDocument(documentId);
   const versionHistoryQuery = useDocumentVersions(documentId);
+  const auditLogsQuery = useDocumentAuditLogs(documentId);
   const partiesQuery = useDocumentParties(documentId);
   const renameMutation = useRenameDocument();
   const notarizeMutation = useNotarizeDocument();
@@ -104,8 +107,20 @@ export default function DocumentDetailsScreen() {
   }, [askDocument, documentId]);
 
   const handleNotarize = async () => {
+    const authResult = await authenticateWithDeviceLock('Confirm blockchain anchor');
+
+    if (authResult.status === 'cancelled') {
+      return;
+    }
+
+    if (authResult.status !== 'success') {
+      toast.error(authResult.message ?? 'Device confirmation failed');
+      return;
+    }
+
     try {
       await notarizeMutation.mutateAsync(documentId);
+      sheets.setIsAnchorConfirmSheetVisible(false);
       toast.success('Document anchored to blockchain');
       router.push(`/verify/${documentId}`);
     } catch (error) {
@@ -232,8 +247,10 @@ export default function DocumentDetailsScreen() {
             partyNames={whitelistData.grants.map((grant) => grant.name)}
             riskSections={riskSections}
             versionHistory={versionHistory}
+            auditLogCount={auditLogsQuery.data?.length}
+            onPressAuditTrail={() => sheets.setIsAuditSheetVisible(true)}
             onPressManageWhitelist={() => sheets.setIsWhitelistSheetVisible(true)}
-            onPressNotarize={handleNotarize}
+            onPressNotarize={() => sheets.setIsAnchorConfirmSheetVisible(true)}
             onPressPdf={() => {
               if (!document || !pdfUri) {
                 return;
@@ -284,11 +301,19 @@ export default function DocumentDetailsScreen() {
         askErrorMessage={
           qaMutation.isError ? parseApiError(qaMutation.error).message : undefined
         }
+        auditErrorMessage={
+          auditLogsQuery.error ? parseApiError(auditLogsQuery.error).message : undefined
+        }
+        auditLogs={auditLogsQuery.data ?? []}
         currentName={document?.file_name ?? ''}
         documentId={documentId}
         documentTitle={document?.file_name ?? 'this document'}
         isAddPartyPending={addPartyMutation.isPending}
+        isAnchorConfirmLoading={notarizeMutation.isPending}
+        isAnchorConfirmSheetVisible={sheets.isAnchorConfirmSheetVisible}
         isAskLoading={qaMutation.isPending}
+        isAuditLoading={auditLogsQuery.isLoading}
+        isAuditSheetVisible={sheets.isAuditSheetVisible}
         isAskSheetVisible={canUseDocumentAssistant && sheets.isAskSheetVisible}
         isPartiesLoading={partiesQuery.isLoading}
         isRemovePartyPending={removePartyMutation.isPending}
@@ -301,6 +326,8 @@ export default function DocumentDetailsScreen() {
         whitelistData={whitelistData}
         onAsk={handleAsk}
         onChangeSearchQuery={sheets.setWhitelistSearchQuery}
+        onCloseAnchorConfirm={() => sheets.setIsAnchorConfirmSheetVisible(false)}
+        onCloseAudit={() => sheets.setIsAuditSheetVisible(false)}
         onCloseAsk={() => sheets.setIsAskSheetVisible(false)}
         onCloseRename={() => sheets.setIsRenameSheetVisible(false)}
         onCloseSearch={() => sheets.setIsSearchSheetVisible(false)}
@@ -309,9 +336,13 @@ export default function DocumentDetailsScreen() {
           sheets.setWhitelistSearchQuery('');
         }}
         onPressAddResult={handleAddWhitelistResult}
+        onPressConfirmAnchor={handleNotarize}
         onPressRevoke={handleRevokeWhitelistGrant}
         onPressSearchMatch={(chunkId) => {
           toast(`Section: ${chunkId}`);
+        }}
+        onRetryAudit={() => {
+          void auditLogsQuery.refetch();
         }}
         onRename={handleRename}
       />

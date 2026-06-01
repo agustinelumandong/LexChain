@@ -5,12 +5,13 @@ import {
   type AddPartyRequest,
   type AskResponse,
   type GlobalSearchPayload,
+  type ListDocumentsParams,
 } from '@/services/api';
 import type { PickedUploadFile } from '@/types';
 
 import { queryKeys } from './keys';
 
-export function useDocuments(params?: { limit?: number; offset?: number }) {
+export function useDocuments(params?: ListDocumentsParams) {
   return useQuery({
     queryKey: queryKeys.documents.list(params),
     queryFn: () => documentsApi.list(params),
@@ -29,8 +30,15 @@ export function useUploadDocument() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ file, fileName }: { file: PickedUploadFile; fileName: string }) =>
-      documentsApi.upload(file, fileName),
+    mutationFn: ({
+      bookId,
+      file,
+      fileName,
+    }: {
+      bookId: string;
+      file: PickedUploadFile;
+      fileName: string;
+    }) => documentsApi.upload(file, fileName, bookId),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.documents.all });
     },
@@ -62,6 +70,14 @@ export function useDocumentVersions(documentId?: string) {
   return useQuery({
     queryKey: queryKeys.documents.versions(documentId ?? ''),
     queryFn: () => documentsApi.getVersions(documentId ?? ''),
+    enabled: Boolean(documentId),
+  });
+}
+
+export function useDocumentAuditLogs(documentId?: string) {
+  return useQuery({
+    queryKey: queryKeys.documents.auditLogs(documentId ?? ''),
+    queryFn: () => documentsApi.getAuditLogs(documentId ?? ''),
     enabled: Boolean(documentId),
   });
 }

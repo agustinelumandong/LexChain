@@ -7,11 +7,13 @@ export {
   useRevokeAdminInvitation,
 } from './use-admin';
 export { useResendVerification, useSignIn, useSignUp } from './use-auth';
+export { useBook, useBooks, useCreateBook } from './use-books';
 export { useNotarizeDocument, useVerifyOnChainDocument } from './use-blockchain';
 export {
   useAddDocumentParty,
   useAskDocument,
   useDocument,
+  useDocumentAuditLogs,
   useDocumentParties,
   useDocumentVersions,
   useDocuments,
