@@ -37,8 +37,8 @@ export const documentSummaryCardStyles = StyleSheet.create({
   title: {
     color: documentSummaryCardColors.navy,
     fontFamily: fonts.regular,
-    fontSize: 18,
-    lineHeight: 22,
+    fontSize: 15,
+    lineHeight: 18,
     fontWeight: '800',
   },
   row: {
