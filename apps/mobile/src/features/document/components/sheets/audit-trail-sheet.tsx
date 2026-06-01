@@ -10,6 +10,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { AuditLogResponse } from '@/services/api';
 import { EmptyState, ErrorState, LoadingState } from '@/ui';
 import { APP_COLORS, fonts } from '@/theme';
+import {
+  formatAuditAction,
+  formatAuditDetails,
+  formatAuditTime,
+  sortAuditLogsNewestFirst,
+} from '@/features/document/utils/audit-log-formatters';
 
 type AuditTrailSheetProps = {
   errorMessage?: string;
@@ -18,36 +24,6 @@ type AuditTrailSheetProps = {
   visible: boolean;
   onClose: () => void;
   onRetry: () => void;
-};
-
-const formatAuditAction = (action: string) =>
-  action
-    .replaceAll('_', ' ')
-    .replace(/\b\w/g, (letter) => letter.toUpperCase());
-
-const formatAuditTime = (value: string) => {
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return 'Recently';
-  }
-
-  return date.toLocaleString(undefined, {
-    month: 'short',
-    day: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-  });
-};
-
-const formatDetails = (details: AuditLogResponse['details']) => {
-  if (!details || typeof details !== 'object') {
-    return undefined;
-  }
-
-  return Object.entries(details)
-    .map(([key, value]) => `${formatAuditAction(key)}: ${String(value)}`)
-    .join(' • ');
 };
 
 export function AuditTrailSheet({
@@ -61,14 +37,7 @@ export function AuditTrailSheet({
   const bottomSheetRef = useRef<BottomSheet>(null);
   const insets = useSafeAreaInsets();
   const snapPoints = useMemo(() => ['68%'], []);
-  const sortedLogs = useMemo(
-    () =>
-      [...logs].sort(
-        (a, b) =>
-          new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
-      ),
-    [logs],
-  );
+  const sortedLogs = useMemo(() => sortAuditLogsNewestFirst(logs), [logs]);
 
   const renderBackdrop = (props: React.ComponentProps<typeof BottomSheetBackdrop>) => (
     <BottomSheetBackdrop
@@ -131,7 +100,7 @@ export function AuditTrailSheet({
             <View style={styles.timeline}>
               {sortedLogs.map((log, index) => {
                 const isLast = index === sortedLogs.length - 1;
-                const detailsText = formatDetails(log.details);
+                const detailsText = formatAuditDetails(log.details);
 
                 return (
                   <View key={log.id} style={styles.row}>
