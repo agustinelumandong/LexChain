@@ -149,6 +149,9 @@ export const mockDocumentsApi = {
       status: 'QUEUED',
       on_chain: false,
       book_id: bookId,
+      book_number: 0,
+      page_number: 0,
+      series: 0,
       created_at: createdAt,
     };
 
