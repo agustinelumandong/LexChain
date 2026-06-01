@@ -1,5 +1,6 @@
 "use client";
 
+import Image from 'next/image';
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -36,7 +37,10 @@ export default function ForgotPasswordPage() {
     <main className="flex min-h-screen items-center justify-center bg-[#F5FAFF] p-5 text-[#111827]">
       <section className="w-full max-w-[440px] rounded-[24px] border border-[#E4EEF9] bg-white p-7 shadow-[0_10px_24px_rgba(12,43,73,0.08)]">
         <div className="space-y-2">
-          <p className="text-sm font-black uppercase leading-5 text-[#0985E7]">LexChain</p>
+          <div className="flex items-center gap-2 mb-1">
+            <Image src="/lexchain/logo-lexchain.svg" alt="LexChain" width={36} height={36} className="rounded-[10px]" />
+            <span className="text-lg font-black text-[#0C2B49]">Lex<span className="text-[#0985E7]">Chain</span></span>
+          </div>
           <h1 className="text-3xl font-black leading-9 text-[#0C2B49]">Forgot password?</h1>
           <p className="text-sm font-semibold leading-5 text-[#64748b]">
             Enter account email and we will send reset instructions.
