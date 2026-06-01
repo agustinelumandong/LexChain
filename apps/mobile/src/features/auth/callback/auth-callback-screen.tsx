@@ -7,6 +7,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/services/query/keys';
 import { authTokenStorage, refreshTokenStorage } from '@/shared/utils/secure-storage';
 import { APP_COLORS, fonts } from '@/theme';
+import { promptToEnableAppLock } from '../app-lock-prompt';
 
 import {
   getInvitationRouteParams,
@@ -44,6 +45,7 @@ export function AuthCallbackScreen() {
         await authTokenStorage.set(accessToken);
         await refreshTokenStorage.set(refreshToken);
         queryClient.invalidateQueries({ queryKey: queryKeys.auth.currentUser });
+        await promptToEnableAppLock();
         router.replace('/(tabs)');
         return;
       }
@@ -106,4 +108,3 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 });
-

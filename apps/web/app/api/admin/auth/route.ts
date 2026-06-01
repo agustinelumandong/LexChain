@@ -1,9 +1,34 @@
 import { NextResponse } from "next/server";
 import { backendUrl } from "@/lib/admin-api";
 
+const useMock = process.env.NEXT_PUBLIC_USE_MOCK_API === "true";
+const mockPassword = "Password123";
+const mockAccounts = [
+  { id: "mock-admin", email: "admin@example.com", role: "admin", name: "LexChain Admin" },
+  { id: "mock-lawyer", email: "lawyer@example.com", role: "lawyer", name: "LexChain Lawyer" },
+  { id: "mock-user", email: "user@example.com", role: "user", name: "LexChain User" },
+  { id: "mock-owner", email: "owner@lexchain.local", role: "admin", name: "LexChain Owner" },
+] as const;
+
+function createSessionResponse(token: string, maxAge: number, user: unknown) {
+  const response = NextResponse.json({ ok: true, user });
+
+  response.cookies.set({
+    name: "admin_token",
+    value: token,
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    maxAge,
+    path: "/",
+  });
+
+  return response;
+}
+
 export async function POST(request: Request) {
   const apiBase = process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL;
-  if (!apiBase) {
+  if (!apiBase && !useMock) {
     return NextResponse.json({ message: "Missing API_URL." }, { status: 500 });
   }
 
@@ -12,6 +37,23 @@ export async function POST(request: Request) {
     body = await request.json();
   } catch {
     return NextResponse.json({ message: "Invalid request body." }, { status: 400 });
+  }
+
+  if (useMock) {
+    const credentials = body as { email?: unknown; password?: unknown };
+    const email = typeof credentials.email === "string" ? credentials.email.toLowerCase() : "";
+    const password = typeof credentials.password === "string" ? credentials.password : "";
+    const account = mockAccounts.find((mockAccount) => mockAccount.email === email);
+
+    if (!account || password !== mockPassword) {
+      return NextResponse.json({ message: "Invalid mock credentials." }, { status: 401 });
+    }
+
+    return createSessionResponse(
+      `mock-admin-token:${account.id}`,
+      60 * 60 * 24,
+      account,
+    );
   }
 
   let upstream: Response;
@@ -48,17 +90,5 @@ export async function POST(request: Request) {
 
   const maxAge = payload?.expires_in ?? 60 * 60 * 24;
 
-  const response = NextResponse.json({ ok: true, user: payload?.user ?? null });
-
-  response.cookies.set({
-    name: "admin_token",
-    value: token,
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    maxAge,
-    path: "/",
-  });
-
-  return response;
+  return createSessionResponse(token, maxAge, payload?.user ?? null);
 }

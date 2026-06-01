@@ -19,6 +19,7 @@ import {
 import type {
   AskResponse,
   AddPartyRequest,
+  AuditLogResponse,
   DocumentDetail,
   DocumentListItem,
   DocumentPartyListResponse,
@@ -26,6 +27,7 @@ import type {
   DocumentUploadAcceptedResponse,
   GlobalSearchPayload,
   GlobalSearchResponse,
+  ListDocumentsParams,
   RemovePartyResponse,
   RenameDocumentResponse,
   SearchResponse,
@@ -61,6 +63,7 @@ function buildFallbackDocumentDetail(documentId: string): DocumentDetail {
   return {
     ...MOCK_DOCUMENT_DETAIL,
     document_id: listItem.id,
+    book_id: listItem.book_id,
     file_name: listItem.file_name,
     content_type: listItem.content_type,
     status: listItem.status,
@@ -68,14 +71,44 @@ function buildFallbackDocumentDetail(documentId: string): DocumentDetail {
   };
 }
 
+const MOCK_AUDIT_LOGS: AuditLogResponse[] = [
+  {
+    id: '8a4af968-2798-4a5e-8b56-4411246f2f22',
+    document_id: MOCK_DOCUMENT_DETAIL.document_id,
+    user_id: 'mock-lawyer-user',
+    action: 'document_uploaded',
+    details: { file_name: MOCK_DOCUMENT_DETAIL.file_name },
+    created_at: '2026-05-20T08:45:00.000Z',
+  },
+  {
+    id: '020b5a1d-0f3e-4de1-9d9e-cd61b3841914',
+    document_id: MOCK_DOCUMENT_DETAIL.document_id,
+    user_id: 'mock-lawyer-user',
+    action: 'party_added',
+    details: { role: 'viewer', party: 'Maria Santos' },
+    created_at: '2026-05-20T09:15:00.000Z',
+  },
+  {
+    id: 'c013838f-9f3a-4a23-903d-79f4e59d7f18',
+    document_id: MOCK_DOCUMENT_DETAIL.document_id,
+    user_id: null,
+    action: 'document_recorded',
+    details: { network: 'local-chain' },
+    created_at: '2026-05-21T11:30:00.000Z',
+  },
+];
+
 export const mockDocumentsApi = {
-  async list(params?: { limit?: number; offset?: number }) {
+  async list(params?: ListDocumentsParams) {
     await mockDelay();
 
     const offset = params?.offset ?? 0;
-    const limit = params?.limit ?? mockDocumentList.length;
+    const filteredDocuments = params?.bookId
+      ? mockDocumentList.filter((document) => document.book_id === params.bookId)
+      : mockDocumentList;
+    const limit = params?.limit ?? filteredDocuments.length;
 
-    return mockDocumentList.slice(offset, offset + limit);
+    return filteredDocuments.slice(offset, offset + limit);
   },
 
   async getById(documentId: string): Promise<DocumentDetail> {
@@ -87,17 +120,22 @@ export const mockDocumentsApi = {
   async upload(
     file: PickedUploadFile,
     fileName: string,
+    bookId: string,
   ): Promise<DocumentUploadAcceptedResponse> {
     await mockDelay();
 
     const documentId = `mock-document-${Date.now()}`;
     const createdAt = new Date().toISOString();
+    const documentNumber = mockDocumentList.length + 1;
 
     const listItem: DocumentListItem = {
       id: documentId,
+      document_number: documentNumber,
       file_name: fileName,
       content_type: file.mimeType ?? 'application/pdf',
       status: 'QUEUED',
+      on_chain: false,
+      book_id: bookId,
       created_at: createdAt,
     };
 
@@ -107,10 +145,12 @@ export const mockDocumentsApi = {
       [documentId]: {
         ...MOCK_DOCUMENT_DETAIL,
         document_id: documentId,
+        document_number: documentNumber,
         file_name: fileName,
         storage_url: `mock://documents/${documentId}`,
         content_type: listItem.content_type,
         status: 'QUEUED',
+        book_id: bookId,
         is_latest: true,
         created_at: createdAt,
         updated_at: createdAt,
@@ -229,8 +269,32 @@ export const mockDocumentsApi = {
       file_name: fileName,
       content_type: currentDetail.content_type,
       status: currentDetail.status,
+      on_chain: Boolean(currentDetail.on_chain),
       created_at: currentDetail.created_at,
     };
+  },
+
+  async getAuditLogs(documentId: string): Promise<AuditLogResponse[]> {
+    await mockDelay();
+
+    const logs = MOCK_AUDIT_LOGS.filter((log) => log.document_id === documentId);
+
+    if (logs.length > 0) {
+      return logs;
+    }
+
+    const detail = mockDocumentDetails[documentId] ?? buildFallbackDocumentDetail(documentId);
+
+    return [
+      {
+        id: `mock-audit-${documentId}`,
+        document_id: documentId,
+        user_id: null,
+        action: 'document_uploaded',
+        details: { file_name: detail.file_name },
+        created_at: detail.created_at,
+      },
+    ];
   },
 
   async search(documentId: string, query: string): Promise<SearchResponse> {

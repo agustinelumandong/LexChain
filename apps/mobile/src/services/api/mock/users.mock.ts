@@ -1,38 +1,36 @@
 import type { UserProfileResponse, UserSearchResponse } from '../users.api';
 
+import { authTokenStorage } from '@/shared/utils/secure-storage';
+
+import {
+  findMockAccountById,
+  getMockAccountIdFromToken,
+  MOCK_ACCOUNTS,
+} from './accounts';
 import { mockDelay } from './delay';
 
 const MOCK_USERS: UserSearchResponse[] = [
-  {
-    user_id: 'ec0a534a-693b-46c2-bde1-fd46c599f501',
-    email: 'viewer@example.com',
-    f_name: 'Demo',
-    l_name: 'Viewer',
-  },
-  {
-    user_id: 'a79d44a5-53f3-4734-8309-7a9c861adf9b',
-    email: 'records@deped.gov.ph',
-    f_name: 'DepEd',
-    l_name: 'Records',
-  },
-  {
-    user_id: 'bbba7496-a0f2-4510-aaac-9c234a52101c',
-    email: 'legal@lexchain.app',
-    f_name: 'Legal',
-    l_name: 'Review',
-  },
+  ...MOCK_ACCOUNTS.map((account) => ({
+    user_id: account.id,
+    email: account.email,
+    f_name: account.f_name,
+    l_name: account.l_name,
+  })),
 ];
 
 export const mockUsersApi = {
   async getProfile(): Promise<UserProfileResponse> {
     await mockDelay();
 
+    const token = await authTokenStorage.get();
+    const account = findMockAccountById(getMockAccountIdFromToken(token));
+
     return {
-      email: 'atty.reyes@lexchain.app',
-      f_name: 'Atty.',
-      l_name: 'Reyes',
-      avatar: 'icon-1',
-      role: 'lawyer',
+      email: account.email,
+      f_name: account.f_name,
+      l_name: account.l_name,
+      avatar: account.avatar,
+      role: account.role,
     };
   },
 

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import * as Haptics from 'expo-haptics';
 import { toast } from 'sonner-native';
 
@@ -39,6 +39,11 @@ export function useDocumentsScreen() {
 
     return () => clearTimeout(timeout);
   }, [searchQuery]);
+
+  const clearSearch = useCallback(() => {
+    setSearchQuery('');
+    setDebouncedSearchQuery('');
+  }, []);
 
   const isBackendSearchActive = debouncedSearchQuery.length > 0;
   const searchQueryResult = useDocumentSearch(
@@ -124,6 +129,7 @@ export function useDocumentsScreen() {
     isSortSheetOpen,
     searchQuery,
     sortKey,
+    clearSearch,
     sortLabel,
     setDocumentDateFilter,
     setDocumentStatusFilter,

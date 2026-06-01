@@ -1,6 +1,7 @@
-import { MaterialIcons } from '@expo/vector-icons';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useQueryClient } from '@tanstack/react-query';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { useCallback } from 'react';
 import { Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
@@ -12,7 +13,11 @@ import {
 } from '@/services/query';
 import type { SupabaseUser } from '@/types';
 
-import { DashboardKpiCard, DashboardKpiSkeleton } from './dashboard-kpi-card';
+import {
+  DashboardActivitySkeleton,
+  DashboardKpiCard,
+  DashboardKpiSkeleton,
+} from './dashboard-kpi-card';
 import { COLORS, styles } from './dashboard-overview.styles';
 import { useDashboard } from './use-dashboard';
 import {
@@ -27,6 +32,18 @@ const ACTIVITY_STATUS_STYLES = {
   info: styles.activityStatusInfo,
 };
 
+const ACTIVITY_ICON_STYLES = {
+  success: styles.activityIconSuccess,
+  warning: styles.activityIconWarning,
+  info: styles.activityIconInfo,
+};
+
+const ACTIVITY_ICON_NAMES = {
+  success: 'description',
+  warning: 'schedule',
+  info: 'person-add-alt',
+} as const;
+
 export function DashboardOverview() {
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -35,7 +52,8 @@ export function DashboardOverview() {
   const userProfileQuery = useUserProfile();
   const userProfile = userProfileQuery.data;
   const isLawyer = canRoleUploadDocuments(userProfile?.role);
-  const dashboardStats = useDashboard({ includeMockParticipantInvites: isLawyer });
+  const dashboardStats = useDashboard();
+  const { isLoading: isDashboardLoading, refetch: refetchDashboard } = dashboardStats;
   const unreadNotificationCountQuery = useUnreadNotificationCount();
   const unreadNotificationCount = unreadNotificationCountQuery.data?.unread ?? 0;
   const userMetadata = currentUser?.user_metadata;
@@ -47,12 +65,21 @@ export function DashboardOverview() {
     ? [userProfile.f_name, userProfile.l_name].filter(Boolean).join(' ').trim()
     : '';
   const displayName = profileDisplayName || authDisplayName || getProfileDisplayName(account);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!isDashboardLoading) {
+        void refetchDashboard();
+      }
+    }, [isDashboardLoading, refetchDashboard]),
+  );
+
   const dashboardCopy = isLawyer
     ? {
         description: 'Manage and verify your legal documents',
         firstMetric: 'Total Documents',
         secondMetric: 'Processing',
-        thirdMetric: 'Anchored On-Chain',
+        thirdMetric: 'On Chain Records',
         fourthMetric: 'Pending Invites',
         activityHeading: 'Recent Activity',
         emptyActivity: 'Upload, share, or anchor a document to see updates here.',
@@ -61,7 +88,7 @@ export function DashboardOverview() {
         description: 'View shared documents and verification activity',
         firstMetric: 'Shared Documents',
         secondMetric: 'Owned Documents',
-        thirdMetric: 'Verified Documents',
+        thirdMetric: 'On Chain Documents',
         fourthMetric: 'Recent Access',
         activityHeading: 'Shared Document Activity',
         emptyActivity: 'Shared documents and verification updates will appear here.',
@@ -117,67 +144,82 @@ export function DashboardOverview() {
             </View>
           </View>
 
-          <View style={styles.kpiRow}>
-            <Animated.View style={styles.kpiItem} entering={FadeInDown.delay(80).springify()}>
-              {dashboardStats.isLoading ? (
-                <DashboardKpiSkeleton />
-              ) : (
-                <DashboardKpiCard
-                  label={dashboardCopy.firstMetric}
-                  value={`${dashboardStats.documentsCount}`}
-                  tone={dashboardStats.documentsCount > 0 ? 'positive' : 'warning'}
-                />
-              )}
-            </Animated.View>
-            <Animated.View style={styles.kpiItem} entering={FadeInDown.delay(140).springify()}>
-              {dashboardStats.isLoading ? (
-                <DashboardKpiSkeleton />
-              ) : (
-                <DashboardKpiCard
-                  label={dashboardCopy.secondMetric}
-                  value={`${dashboardStats.processingCount}`}
-                  tone={dashboardStats.processingCount > 0 ? 'warning' : 'positive'}
-                />
-              )}
-            </Animated.View>
-          </View>
-
-          <View style={styles.kpiRow}>
-            <Animated.View style={styles.kpiItem} entering={FadeInDown.delay(200).springify()}>
-              {dashboardStats.isLoading ? (
-                <DashboardKpiSkeleton />
-              ) : (
-                <DashboardKpiCard
-                  label={dashboardCopy.thirdMetric}
-                  value={`${dashboardStats.anchoredOnChainCount}`}
-                  tone={dashboardStats.anchoredOnChainCount > 0 ? 'positive' : 'warning'}
-                />
-              )}
-            </Animated.View>
-            <Animated.View style={styles.kpiItem} entering={FadeInDown.delay(260).springify()}>
-              {dashboardStats.isLoading ? (
-                <DashboardKpiSkeleton />
-              ) : (
-                <DashboardKpiCard
-                  label={dashboardCopy.fourthMetric}
-                  value={
-                    isLawyer
-                      ? `${dashboardStats.pendingParticipantInvitesCount}`
-                      : `${dashboardStats.recentActivities.length}`
-                  }
-                  tone={
-                    isLawyer && dashboardStats.pendingParticipantInvitesCount > 0
-                      ? 'warning'
-                      : 'positive'
-                  }
-                />
-              )}
-            </Animated.View>
+          <View style={styles.kpiGroup}>
+            <View style={styles.kpiRow}>
+              <Animated.View style={styles.kpiItem} entering={FadeInDown.delay(80).springify()}>
+                {dashboardStats.isLoading ? (
+                  <DashboardKpiSkeleton />
+                ) : (
+                  <DashboardKpiCard
+                    label={dashboardCopy.firstMetric}
+                    value={`${dashboardStats.documentsCount}`}
+                    iconName="description"
+                  />
+                )}
+              </Animated.View>
+              <Animated.View style={styles.kpiItem} entering={FadeInDown.delay(140).springify()}>
+                {dashboardStats.isLoading ? (
+                  <DashboardKpiSkeleton />
+                ) : (
+                  <DashboardKpiCard
+                    label={dashboardCopy.secondMetric}
+                    value={`${dashboardStats.processingCount}`}
+                    iconName="schedule"
+                  />
+                )}
+              </Animated.View>
+            </View>
+            <View style={styles.kpiRow}>
+              <Animated.View style={styles.kpiItem} entering={FadeInDown.delay(200).springify()}>
+                {dashboardStats.isLoading ? (
+                  <DashboardKpiSkeleton />
+                ) : (
+                  <DashboardKpiCard
+                    label={dashboardCopy.thirdMetric}
+                    value={`${dashboardStats.anchoredOnChainCount}`}
+                    iconName="verified-user"
+                  />
+                )}
+              </Animated.View>
+              <Animated.View style={styles.kpiItem} entering={FadeInDown.delay(260).springify()}>
+                {dashboardStats.isLoading ? (
+                  <DashboardKpiSkeleton />
+                ) : (
+                  <DashboardKpiCard
+                    label={dashboardCopy.fourthMetric}
+                    value={
+                      isLawyer
+                        ? `${dashboardStats.pendingParticipantInvitesCount}`
+                        : `${dashboardStats.recentActivities.length}`
+                    }
+                    iconName="groups"
+                  />
+                )}
+              </Animated.View>
+            </View>
           </View>
 
           <View style={styles.activityGroup}>
-            <Text style={styles.activityHeading}>{dashboardCopy.activityHeading}</Text>
-            {dashboardStats.recentActivities.length > 0 ? (
+            <View style={styles.activityHeaderRow}>
+              <Text style={styles.activityHeading}>{dashboardCopy.activityHeading}</Text>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="View all recent activity"
+                hitSlop={8}
+                style={({ pressed }) => [
+                  styles.viewAllButton,
+                  pressed && styles.viewAllButtonPressed,
+                ]}
+                onPress={() => router.push('/(tabs)/documents')}
+              >
+                <Text style={styles.viewAllText}>View all</Text>
+              </Pressable>
+            </View>
+            {dashboardStats.isLoading ? (
+              Array.from({ length: 5 }).map((_, index) => (
+                <DashboardActivitySkeleton key={`activity-skeleton-${index}`} />
+              ))
+            ) : dashboardStats.recentActivities.length > 0 ? (
               dashboardStats.recentActivities.map((activity) => {
                 const documentId = activity.id.startsWith('document-')
                   ? activity.id.replace('document-', '')
@@ -196,6 +238,13 @@ export function DashboardOverview() {
                         : undefined
                     }
                   >
+                    <View style={[styles.activityIconBubble, ACTIVITY_ICON_STYLES[activity.tone]]}>
+                      <MaterialIcons
+                        name={ACTIVITY_ICON_NAMES[activity.tone]}
+                        size={21}
+                        color={COLORS.primary}
+                      />
+                    </View>
                     <View style={styles.activityCopy}>
                       <View style={styles.activityTopLine}>
                         <Text style={styles.activityText} numberOfLines={1}>
@@ -218,13 +267,14 @@ export function DashboardOverview() {
                         {activity.time}
                       </Text>
                     </View>
+                    <MaterialIcons name="chevron-right" size={23} color="#6B8AB3" />
                   </Pressable>
                 );
               })
             ) : (
-              <View style={styles.activityRow}>
-                <Text style={styles.activityText}>No recent activity yet</Text>
-                <Text style={styles.activityDetail}>
+              <View style={styles.activityEmptyRow}>
+                <Text style={styles.activityEmptyTitle}>No recent activity yet</Text>
+                <Text style={styles.activityEmptyDetail}>
                   {dashboardCopy.emptyActivity}
                 </Text>
               </View>
