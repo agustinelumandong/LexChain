@@ -10,11 +10,9 @@ import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import HourglassTopIcon from "@mui/icons-material/HourglassTop";
 import GppBadIcon from "@mui/icons-material/GppBad";
-import PermIdentityIcon from "@mui/icons-material/PermIdentity";
 import TuneIcon from "@mui/icons-material/Tune";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import ReplayIcon from "@mui/icons-material/Replay";
-import EditIcon from "@mui/icons-material/Edit";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import { Dropdown } from "../components/dropdown";
 import { MockModal, exportMockRows, useMockToast } from "../components/mock-ui";
@@ -28,29 +26,16 @@ type Invitation = {
   expires_at: string;
   created_at: string;
   magic_link?: string | null;
-  organization?: string;
-  permission_type?: string;
-  document_name?: string;
 };
 
 type DirectoryInvitation = Invitation & {
   invitee: string;
   initials: string;
-  organizationName: string;
   roleLabel: string;
-  permissionLabel: string;
   statusLabel: "Pending" | "Accepted" | "Expired" | "Revoked";
-  sentLabel: string;
+  createdLabel: string;
   expiresLabel: string;
 };
-
-const activity = [
-  { label: "Invitation sent — Andrea Dizon", time: "12m ago", icon: <EmailIcon fontSize="small" />, color: "text-[#0879D8]" },
-  { label: "Invitation accepted — Sofia Tan", time: "25m ago", icon: <CheckCircleIcon fontSize="small" />, color: "text-[#16A34A]" },
-  { label: "Permission updated — Mark Villanueva", time: "1h ago", icon: <EditIcon fontSize="small" />, color: "text-[#0879D8]" },
-  { label: "Invite expired — Joanna Lim", time: "3h ago", icon: <HourglassTopIcon fontSize="small" />, color: "text-[#F97316]" },
-  { label: "Access revoked — Daniel Flores", time: "5h ago", icon: <GppBadIcon fontSize="small" />, color: "text-[#EF4444]" },
-];
 
 function cn(...classes: Array<string | false | undefined>) {
   return classes.filter(Boolean).join(" ");
@@ -84,40 +69,30 @@ function getStatus(status: string): DirectoryInvitation["statusLabel"] {
   return "Pending";
 }
 
-function formatRelativeDate(value: string, fallbackIndex: number) {
-  const timestamp = new Date(value).getTime();
-  if (Number.isNaN(timestamp)) return `${fallbackIndex + 1}h ago`;
-  const diff = Date.now() - timestamp;
-  const minute = 60 * 1000;
-  const hour = 60 * minute;
-  const day = 24 * hour;
-  if (diff < hour) return `${Math.max(1, Math.round(diff / minute))}m ago`;
-  if (diff < day) return `${Math.round(diff / hour)}h ago`;
-  return `${Math.round(diff / day)}d ago`;
+function formatDate(value: string) {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? value : date.toLocaleDateString();
 }
 
-function formatExpires(invitation: Invitation, index: number) {
+function formatExpires(invitation: Invitation) {
   const status = getStatus(invitation.status);
   if (status === "Accepted" || status === "Revoked") return "—";
-  if (status === "Expired") return "expired";
+  if (status === "Expired") return "Expired";
   const timestamp = new Date(invitation.expires_at).getTime();
-  if (Number.isNaN(timestamp)) return `in ${index + 3} days`;
-  const days = Math.ceil((timestamp - Date.now()) / (24 * 60 * 60 * 1000));
-  return days > 0 ? `in ${days} days` : "expired";
+  if (Number.isNaN(timestamp)) return invitation.expires_at;
+  return formatDate(invitation.expires_at);
 }
 
-function enrichInvitation(invitation: Invitation, index: number): DirectoryInvitation {
+function enrichInvitation(invitation: Invitation): DirectoryInvitation {
   const invitee = getNameFromEmail(invitation.email);
   return {
     ...invitation,
     invitee,
     initials: getInitials(invitee),
-    organizationName: invitation.organization ?? ["Dizon & Cruz Law Office", "Panabo Legal Services", "NorthMind Contracts Office", "BrightPath Consultancy"][index % 4],
     roleLabel: invitation.role === "document_issuer" ? "Document Issuer" : toTitle(invitation.role),
-    permissionLabel: invitation.permission_type ? toTitle(invitation.permission_type).replace("View Download", "Full Access").replace("View Only", "Standard Issuer").replace("Verify Only", "Verification Only") : ["Standard Issuer", "Full Access", "Restricted Upload", "Verification Only"][index % 4],
     statusLabel: getStatus(invitation.status),
-    sentLabel: formatRelativeDate(invitation.created_at, index),
-    expiresLabel: formatExpires(invitation, index),
+    createdLabel: formatDate(invitation.created_at),
+    expiresLabel: formatExpires(invitation),
   };
 }
 
@@ -159,7 +134,7 @@ function StatusPill({ status }: { status: DirectoryInvitation["statusLabel"] }) 
   );
 }
 
-function ActionsMenu({ invite, onView, onResend, onEdit, onRevoke }: { invite: DirectoryInvitation; onView: () => void; onResend: () => void; onEdit: () => void; onRevoke: () => void }) {
+function ActionsMenu({ invite, onView, onCopyLink, onRevoke }: { invite: DirectoryInvitation; onView: () => void; onCopyLink: () => void; onRevoke: () => void }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -176,19 +151,15 @@ function ActionsMenu({ invite, onView, onResend, onEdit, onRevoke }: { invite: D
       <button type="button" onClick={onView} aria-label={`View ${invite.email}`} className="rounded-lg border border-[#E4EEF9] p-1.5 text-[#4B6382] transition hover:bg-[#EEF4FB] hover:text-[#0985E7]">
         <VisibilityIcon sx={{ fontSize: 17 }} />
       </button>
-      <button type="button" onClick={onResend} aria-label={`Resend ${invite.email}`} className="rounded-lg border border-[#E4EEF9] p-1.5 text-[#4B6382] transition hover:bg-[#EEF4FB] hover:text-[#0985E7]">
+      <button type="button" onClick={onCopyLink} aria-label={`Copy invite link for ${invite.email}`} className="rounded-lg border border-[#E4EEF9] p-1.5 text-[#4B6382] transition hover:bg-[#EEF4FB] hover:text-[#0985E7]">
         <ReplayIcon sx={{ fontSize: 17 }} />
-      </button>
-      <button type="button" onClick={onEdit} aria-label={`Edit ${invite.email}`} className="rounded-lg border border-[#E4EEF9] p-1.5 text-[#4B6382] transition hover:bg-[#EEF4FB] hover:text-[#0985E7]">
-        <EditIcon sx={{ fontSize: 17 }} />
       </button>
       <button type="button" aria-label={`More actions for ${invite.email}`} onClick={() => setOpen((value) => !value)} className="rounded-lg border border-[#E4EEF9] p-1.5 text-[#4B6382] transition hover:bg-[#EEF4FB] hover:text-[#0985E7]">
         <MoreVertIcon sx={{ fontSize: 17 }} />
       </button>
       {open ? (
         <div className="absolute right-0 top-full z-50 mt-1 w-40 overflow-hidden rounded-xl border border-[#E4EEF9] bg-white shadow-xl shadow-[#183B6B]/10">
-          <button type="button" onClick={() => { setOpen(false); onResend(); }} className="block w-full px-4 py-2.5 text-left text-sm font-bold text-[#0C2B49] transition hover:bg-[#EEF4FB]">Copy invite link</button>
-          <button type="button" onClick={() => { setOpen(false); onEdit(); }} className="block w-full px-4 py-2.5 text-left text-sm font-bold text-[#0C2B49] transition hover:bg-[#EEF4FB]">Change permissions</button>
+          <button type="button" onClick={() => { setOpen(false); onCopyLink(); }} className="block w-full px-4 py-2.5 text-left text-sm font-bold text-[#0C2B49] transition hover:bg-[#EEF4FB]">Copy invite link</button>
           <button type="button" onClick={() => { setOpen(false); onRevoke(); }} className="block w-full px-4 py-2.5 text-left text-sm font-bold text-red-600 transition hover:bg-red-50">Revoke access</button>
         </div>
       ) : null}
@@ -243,7 +214,14 @@ function StatusDistribution({ invitations }: { invitations: DirectoryInvitation[
   );
 }
 
-function ActivityPanel() {
+function ActivityPanel({ invitations, mockMode }: { invitations: DirectoryInvitation[]; mockMode: boolean }) {
+  const activity = invitations.slice(0, 5).map((invite) => ({
+    label: `${invite.statusLabel} — ${invite.email}`,
+    time: invite.createdLabel,
+    icon: invite.statusLabel === "Accepted" ? <CheckCircleIcon fontSize="small" /> : invite.statusLabel === "Expired" ? <HourglassTopIcon fontSize="small" /> : invite.statusLabel === "Revoked" ? <GppBadIcon fontSize="small" /> : <EmailIcon fontSize="small" />,
+    color: invite.statusLabel === "Accepted" ? "text-[#16A34A]" : invite.statusLabel === "Expired" ? "text-[#F97316]" : invite.statusLabel === "Revoked" ? "text-[#EF4444]" : "text-[#0879D8]",
+  }));
+
   return (
     <article className="flex min-h-[240px] flex-col rounded-2xl border border-[#E4EEF9] bg-white p-5 shadow-sm shadow-[#DDEAF7]/35">
       <div className="mb-4 flex shrink-0 items-center justify-between">
@@ -258,18 +236,18 @@ function ActivityPanel() {
             <span className="text-xs font-semibold text-[#5B6F8A]">{item.time}</span>
           </div>
         ))}
+        {activity.length === 0 ? <p className="text-sm font-semibold text-[#5B6F8A]">{mockMode ? "No mock invitation activity." : "No invitation activity returned by the API."}</p> : null}
       </div>
     </article>
   );
 }
 
-export function InvitationsManagementView({ invitations }: { invitations: Invitation[] }) {
+export function InvitationsManagementView({ invitations, mockMode = false }: { invitations: Invitation[]; mockMode?: boolean }) {
   const { showToast } = useMockToast();
   const [headerSearch, setHeaderSearch] = useState("");
   const [tableSearch, setTableSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [roleFilter, setRoleFilter] = useState("all");
-  const [permissionFilter, setPermissionFilter] = useState("all");
   const [pageSize, setPageSize] = useState("10");
   const [page, setPage] = useState(0);
   const [moreFiltersOpen, setMoreFiltersOpen] = useState(false);
@@ -278,18 +256,16 @@ export function InvitationsManagementView({ invitations }: { invitations: Invita
 
   const directoryInvites = useMemo(() => invitations.map(enrichInvitation), [invitations]);
   const roleOptions = useMemo(() => [...new Set(directoryInvites.map((invite) => invite.roleLabel))], [directoryInvites]);
-  const permissionOptions = useMemo(() => [...new Set(directoryInvites.map((invite) => invite.permissionLabel))], [directoryInvites]);
 
   const filtered = useMemo(() => {
     const query = `${headerSearch} ${tableSearch}`.trim().toLowerCase();
     return directoryInvites.filter((invite) => {
-      const matchesSearch = !query || invite.email.toLowerCase().includes(query) || invite.organizationName.toLowerCase().includes(query) || invite.invitee.toLowerCase().includes(query);
+      const matchesSearch = !query || invite.email.toLowerCase().includes(query) || invite.invitee.toLowerCase().includes(query) || invite.roleLabel.toLowerCase().includes(query);
       const matchesStatus = statusFilter === "all" || invite.statusLabel === statusFilter;
       const matchesRole = roleFilter === "all" || invite.roleLabel === roleFilter;
-      const matchesPermission = permissionFilter === "all" || invite.permissionLabel === permissionFilter;
-      return matchesSearch && matchesStatus && matchesRole && matchesPermission;
+      return matchesSearch && matchesStatus && matchesRole;
     });
-  }, [directoryInvites, headerSearch, permissionFilter, roleFilter, statusFilter, tableSearch]);
+  }, [directoryInvites, headerSearch, roleFilter, statusFilter, tableSearch]);
 
   const perPage = Number(pageSize);
   const totalPages = Math.max(1, Math.ceil(filtered.length / perPage));
@@ -303,7 +279,6 @@ export function InvitationsManagementView({ invitations }: { invitations: Invita
     { label: "Accepted", value: directoryInvites.filter((invite) => invite.statusLabel === "Accepted").length, detail: "Activated accounts", icon: <CheckCircleIcon fontSize="small" />, tone: "green" as const },
     { label: "Expired", value: directoryInvites.filter((invite) => invite.statusLabel === "Expired").length, detail: "Resend required", icon: <HourglassTopIcon fontSize="small" />, tone: "orange" as const },
     { label: "Revoked", value: directoryInvites.filter((invite) => invite.statusLabel === "Revoked").length, detail: "Access withdrawn", icon: <GppBadIcon fontSize="small" />, tone: "red" as const },
-    { label: "Document Issuers", value: Math.max(0, directoryInvites.length - pendingCount), detail: "Active issuer accounts", icon: <PermIdentityIcon fontSize="small" />, tone: "purple" as const },
   ];
 
   return (
@@ -312,12 +287,12 @@ export function InvitationsManagementView({ invitations }: { invitations: Invita
         <div>
           <p className="text-xs font-black uppercase tracking-[0.22em] text-[#0879D8]">LexChain Super Admin</p>
           <h1 className="mt-1 text-3xl font-black leading-tight text-[#071B33]">Invitations & Permissions</h1>
-          <p className="mt-1 text-sm font-semibold text-[#4B6382]">Manage document issuer invitations — create new invites, assign permissions, and revoke access.</p>
+          <p className="mt-1 text-sm font-semibold text-[#4B6382]">Manage admin invitations from the backend invitation response.</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <label className="flex min-w-[300px] items-center gap-2 rounded-xl border border-[#E4EEF9] bg-white px-4 py-3 shadow-sm shadow-[#DDEAF7]/35 focus-within:border-[#0985E7]">
             <SearchIcon fontSize="small" className="text-[#4B6382]" />
-            <input value={headerSearch} onChange={(event) => setHeaderSearch(event.target.value)} placeholder="Search by email or organization..." className="w-full bg-transparent text-sm font-semibold text-[#0C2B49] outline-none placeholder:text-[#9AAAC0]" />
+            <input value={headerSearch} onChange={(event) => setHeaderSearch(event.target.value)} placeholder="Search by email or role..." className="w-full bg-transparent text-sm font-semibold text-[#0C2B49] outline-none placeholder:text-[#9AAAC0]" />
           </label>
           <button type="button" onClick={() => { setMoreFiltersOpen((value) => !value); showToast({ title: "Filters toggled", detail: "Use the invitation filters below.", tone: "info" }); }} className="inline-flex items-center gap-2 rounded-xl border border-[#E4EEF9] bg-white px-4 py-3 text-sm font-black text-[#0C2B49] shadow-sm shadow-[#DDEAF7]/35 transition hover:border-[#0985E7]">
             <FilterListIcon fontSize="small" />
@@ -349,7 +324,6 @@ export function InvitationsManagementView({ invitations }: { invitations: Invita
               </label>
               <Dropdown value={roleFilter} onChange={setRoleFilter} options={[{ label: "Role", value: "all" }, ...roleOptions.map((role) => ({ label: role, value: role }))]} />
               <Dropdown value={statusFilter} onChange={setStatusFilter} options={[{ label: "Status", value: "all" }, { label: "Pending", value: "Pending" }, { label: "Accepted", value: "Accepted" }, { label: "Expired", value: "Expired" }, { label: "Revoked", value: "Revoked" }]} />
-              <Dropdown value={permissionFilter} onChange={setPermissionFilter} options={[{ label: "Permission Set", value: "all" }, ...permissionOptions.map((permission) => ({ label: permission, value: permission }))]} />
               <button type="button" onClick={() => setMoreFiltersOpen((value) => !value)} className={cn("ml-auto inline-flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-black transition", moreFiltersOpen ? "border-[#0985E7] bg-[#EAF3FF] text-[#0879D8]" : "border-[#E4EEF9] bg-white text-[#0C2B49] hover:border-[#0985E7]")}>
                 <TuneIcon fontSize="small" />
                 More Filters
@@ -362,11 +336,9 @@ export function InvitationsManagementView({ invitations }: { invitations: Invita
               <thead>
                 <tr className="border-b border-[#D9E5F0] bg-[#F8FBFF] text-left text-xs font-black uppercase tracking-[0.08em] text-[#4B6382]">
                   <th className="px-5 py-3">Invitee</th>
-                  <th className="px-5 py-3">Organization</th>
                   <th className="px-5 py-3">Role</th>
-                  <th className="px-5 py-3">Permission Set</th>
                   <th className="px-5 py-3">Status</th>
-                  <th className="px-5 py-3">Sent</th>
+                  <th className="px-5 py-3">Created</th>
                   <th className="px-5 py-3">Expires</th>
                   <th className="px-5 py-3 text-right">Actions</th>
                 </tr>
@@ -383,18 +355,15 @@ export function InvitationsManagementView({ invitations }: { invitations: Invita
                         </div>
                       </div>
                     </td>
-                    <td className="px-5 py-3 font-bold text-[#0C2B49]">{invite.organizationName}</td>
                     <td className="px-5 py-3 font-semibold text-[#0C2B49]">{invite.roleLabel}</td>
-                    <td className="px-5 py-3 font-semibold text-[#0C2B49]">{invite.permissionLabel}</td>
                     <td className="px-5 py-3"><StatusPill status={invite.statusLabel} /></td>
-                    <td className="px-5 py-3 font-semibold text-[#0C2B49]">{invite.sentLabel}</td>
-                    <td className={cn("px-5 py-3 font-semibold", invite.expiresLabel === "expired" ? "text-[#EF4444]" : "text-[#0C2B49]")}>{invite.expiresLabel}</td>
+                    <td className="px-5 py-3 font-semibold text-[#0C2B49]">{invite.createdLabel}</td>
+                    <td className={cn("px-5 py-3 font-semibold", invite.expiresLabel === "Expired" ? "text-[#EF4444]" : "text-[#0C2B49]")}>{invite.expiresLabel}</td>
                     <td className="px-5 py-3">
                       <ActionsMenu
                         invite={invite}
                         onView={() => { setSelectedInvite(invite); setModalMode("view"); }}
-                        onResend={() => showToast({ title: "Invitation link copied", detail: invite.email })}
-                        onEdit={() => showToast({ title: "Backend endpoint needed", detail: `Permission was not changed for ${invite.email}.`, tone: "info" })}
+                        onCopyLink={() => showToast({ title: invite.magic_link ? "Invitation link copied" : "No magic link returned", detail: invite.email, tone: invite.magic_link ? "success" : "info" })}
                         onRevoke={() => { setSelectedInvite(invite); setModalMode("revoke"); }}
                       />
                     </td>
@@ -402,7 +371,7 @@ export function InvitationsManagementView({ invitations }: { invitations: Invita
                 ))}
                 {visibleInvites.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="px-5 py-10 text-center text-sm font-semibold text-[#5B6F8A]">No invitations match the current filters.</td>
+                    <td colSpan={6} className="px-5 py-10 text-center text-sm font-semibold text-[#5B6F8A]">No invitations match the current filters.</td>
                   </tr>
                 ) : null}
               </tbody>
@@ -427,11 +396,11 @@ export function InvitationsManagementView({ invitations }: { invitations: Invita
 
         <aside className="grid min-h-0 gap-4 xl:h-full xl:grid-rows-[auto_minmax(0,1fr)]">
           <StatusDistribution invitations={directoryInvites} />
-          <ActivityPanel />
+          <ActivityPanel invitations={directoryInvites} mockMode={mockMode} />
         </aside>
       </section>
       <MockModal open={modalMode === "view"} onClose={() => setModalMode(null)} title={selectedInvite?.invitee ?? "Invitation details"} description="Invitation details from the backend response." footer={<button type="button" onClick={() => setModalMode(null)} className="w-full rounded-xl bg-[#0985E7] px-5 py-3 text-sm font-black text-white">Done</button>}>
-        {selectedInvite ? <div className="space-y-3 text-sm font-semibold text-[#4B6382]"><p><strong className="text-[#071B33]">Email:</strong> {selectedInvite.email}</p><p><strong className="text-[#071B33]">Organization:</strong> {selectedInvite.organizationName}</p><p><strong className="text-[#071B33]">Permission:</strong> {selectedInvite.permissionLabel}</p><p><strong className="text-[#071B33]">Status:</strong> {selectedInvite.statusLabel}</p></div> : null}
+        {selectedInvite ? <div className="space-y-3 text-sm font-semibold text-[#4B6382]"><p><strong className="text-[#071B33]">Email:</strong> {selectedInvite.email}</p><p><strong className="text-[#071B33]">Role:</strong> {selectedInvite.roleLabel}</p><p><strong className="text-[#071B33]">Status:</strong> {selectedInvite.statusLabel}</p><p><strong className="text-[#071B33]">Magic link:</strong> {selectedInvite.magic_link ?? "Not returned"}</p></div> : null}
       </MockModal>
       <MockModal open={modalMode === "revoke"} onClose={() => setModalMode(null)} title={`Revoke ${selectedInvite?.email ?? "invitation"}?`} description="This sends a revoke request to the invitations backend." footer={<div className="flex gap-3"><button type="button" onClick={() => setModalMode(null)} className="flex-1 rounded-xl border border-[#E4EEF9] px-5 py-3 text-sm font-black text-[#0C2B49]">Cancel</button><button type="button" onClick={async () => { if (!selectedInvite) return; const response = await fetch(`/api/admin/invitations/${encodeURIComponent(selectedInvite.id)}`, { method: "DELETE" }); if (!response.ok) { showToast({ title: "Revoke failed", detail: selectedInvite.email, tone: "error" }); return; } showToast({ title: "Invitation revoked", detail: selectedInvite.email, tone: "warning" }); setModalMode(null); window.location.reload(); }} className="flex-1 rounded-xl bg-red-600 px-5 py-3 text-sm font-black text-white">Revoke</button></div>}>
         <p className="text-sm font-semibold text-[#5B6F8A]">After revoke succeeds, this page reloads from the backend response.</p>
