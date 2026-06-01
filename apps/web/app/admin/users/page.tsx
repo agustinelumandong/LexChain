@@ -12,9 +12,6 @@ type AdminUser = {
   role: string;
   is_active?: boolean;
   created_at: string;
-  uploaded_documents?: number;
-  verification_attempts?: number;
-  last_login_at?: string | null;
 };
 
 type UsersData = { users: AdminUser[]; total: number };
@@ -31,9 +28,6 @@ async function getUsers(): Promise<UsersData> {
         role: u.role,
         is_active: u.status === "active",
         created_at: u.created_at,
-        uploaded_documents: u.uploaded_documents,
-        verification_attempts: u.verification_attempts,
-        last_login_at: u.last_login_at,
       })),
       total: adminUsers.length,
     };
