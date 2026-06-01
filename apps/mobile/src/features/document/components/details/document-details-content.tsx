@@ -127,6 +127,13 @@ export function DocumentDetailsContent({
         anchoredAt={anchoredAt}
         isAnchorTimeLoading={isAnchorTimeLoading}
         onChain={document.on_chain}
+        onPress={
+          document.on_chain
+            ? onPressBlockchainStatus
+            : isViewer
+              ? onPressBlockchainStatus
+              : onPressNotarize
+        }
       />
 
       <AccessControlCard

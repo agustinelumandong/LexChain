@@ -1,13 +1,13 @@
 import { StyleSheet, View } from 'react-native';
-
 import { Button } from '@/ui';
+import { APP_COLORS } from '@/theme';
 
 type DocumentDetailsActionsProps = {
   canNotarizeDocument: boolean;
   isAnchored: boolean;
   isNotarizing: boolean;
   isViewer: boolean;
-  onPressBlockchainStatus: () => void;
+  onPressBlockchainStatus?: () => void;
   onPressPdf: () => void;
   onPressNotarize: () => void;
 };
@@ -28,28 +28,58 @@ export function DocumentDetailsActions({
         variant="secondary"
         size="sm"
         leftIconName="picture-as-pdf"
-        style={styles.actionButton}
+        style={[
+          styles.actionButton,
+          {
+            backgroundColor: '#FDECEF',
+            borderWidth: 1.5,
+            borderColor: APP_COLORS.danger,
+          },
+        ]}
+        textColor={APP_COLORS.danger}
+        iconColor={APP_COLORS.danger}
         onPress={onPressPdf}
       />
-      <Button
-        label="Blockchain Status"
-        variant="secondary"
-        size="sm"
-        leftIconName="account-balance"
-        style={styles.actionButton}
-        onPress={onPressBlockchainStatus}
-      />
-      {!isViewer && !isAnchored && (
-        <Button
-          label="Anchor to Blockchain"
-          variant="secondary"
-          size="sm"
-          leftIconName="verified"
-          style={styles.actionButton}
-          disabled={!canNotarizeDocument}
-          loading={isNotarizing}
-          onPress={onPressNotarize}
-        />
+      {!isViewer && (
+        isAnchored ? (
+          <Button
+            label="Verify Document"
+            variant="secondary"
+            size="sm"
+            leftIconName="verified"
+            style={[
+              styles.actionButton,
+              {
+                backgroundColor: APP_COLORS.surfaceSoft,
+                borderWidth: 1.5,
+                borderColor: APP_COLORS.primary,
+              },
+            ]}
+            textColor={APP_COLORS.primary}
+            iconColor={APP_COLORS.primary}
+            onPress={onPressBlockchainStatus}
+          />
+        ) : (
+          <Button
+            label="Anchor to Blockchain"
+            variant="secondary"
+            size="sm"
+            leftIconName="verified"
+            style={[
+              styles.actionButton,
+              {
+                backgroundColor: APP_COLORS.surfaceSoft,
+                borderWidth: 1.5,
+                borderColor: APP_COLORS.primary,
+              },
+            ]}
+            textColor={APP_COLORS.primary}
+            iconColor={APP_COLORS.primary}
+            disabled={!canNotarizeDocument}
+            loading={isNotarizing}
+            onPress={onPressNotarize}
+          />
+        )
       )}
     </View>
   );
