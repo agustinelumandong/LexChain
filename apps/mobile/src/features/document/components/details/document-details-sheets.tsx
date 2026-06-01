@@ -5,7 +5,7 @@ import { AuditTrailSheet } from '@/features/document/components/sheets/audit-tra
 import { ConfirmAnchorSheet } from '@/features/document/components/sheets/confirm-anchor-sheet';
 import { RenameDocumentSheet } from '@/features/document/components/sheets/rename-document-sheet';
 import { SearchDocumentSheet } from '@/features/document/components/sheets/search-document-sheet';
-import type { AuditLogResponse } from '@/services/api';
+import type { AskChatMessage, AuditLogResponse } from '@/services/api';
 
 type DocumentDetailsSheetsProps = {
   askAnswer?: string;
@@ -31,7 +31,7 @@ type DocumentDetailsSheetsProps = {
   isWhitelistSheetVisible: boolean;
   searchQuery: string;
   whitelistData: ManageWhitelistData;
-  onAsk: (question: string) => void;
+  onAsk: (question: string, history: AskChatMessage[]) => void;
   onChangeSearchQuery: (value: string) => void;
   onCloseAnchorConfirm: () => void;
   onCloseAudit: () => void;

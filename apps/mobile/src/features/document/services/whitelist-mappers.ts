@@ -42,14 +42,15 @@ function getDisplayName(user: {
   f_name?: string | null;
   l_name?: string | null;
   email?: string | null;
-  user_id: string;
+  user_id?: string | null;
+  id?: string | null;
 }) {
   const name = [user.f_name, user.l_name]
     .map((part) => part?.trim())
     .filter(Boolean)
     .join(' ');
 
-  return name || user.email || `User ${formatReference(user.user_id)}`;
+  return name || user.email || `User ${formatReference(user.user_id ?? user.id ?? 'unknown')}`;
 }
 
 export function mapUserSearchToWhitelistResult(
@@ -78,7 +79,7 @@ export function mapPartiesToWhitelistData(
       const roleLabel = getAssignedRoleLabel(assignedAs);
 
       return {
-        id: party.user_id,
+        id: party.user_id ?? party.id,
         name: getDisplayName(party),
         email: party.email,
         assignedAs,
