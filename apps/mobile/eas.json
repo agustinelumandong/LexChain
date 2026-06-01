@@ -15,6 +15,9 @@
     "preview": {
       "distribution": "internal",
       "autoIncrement": true,
+      "env": {
+        "EXPO_PUBLIC_USE_MOCK_API": "true"
+      },
       "android": {
         "buildType": "apk"
       },
