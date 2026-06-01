@@ -68,7 +68,7 @@ export default function VerifyDocumentScreen() {
             steps={[
               { label: 'Document loaded', status: document ? 'done' : 'verifying' },
               {
-                label: 'AI processing',
+                label: 'Processing',
                 status: document?.summary ? 'done' : document ? 'verifying' : 'pending',
               },
               {
@@ -89,7 +89,7 @@ export default function VerifyDocumentScreen() {
         <View style={styles.footer}>
           <Button
             label="Back to documents"
-            variant="secondary"
+            variant="primary"
             fullWidth
             leftIconName="arrow-back"
             onPress={() => router.push('/(tabs)/documents')}

@@ -73,4 +73,12 @@ export const uploadScreenStyles = StyleSheet.create({
     fontSize: 16,
     color: uploadScreenColors.navy,
   },
+  titleInputError: {
+    borderColor: APP_COLORS.danger,
+  },
+  titleInputErrorText: {
+    color: APP_COLORS.danger,
+    fontSize: 12,
+    fontWeight: '700',
+  },
 });

@@ -1,4 +1,4 @@
-import { MaterialIcons } from '@expo/vector-icons';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import type { CameraType } from 'expo-camera';
 import { Dispatch, SetStateAction } from 'react';
 import { Pressable, Text, View } from 'react-native';

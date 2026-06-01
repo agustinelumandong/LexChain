@@ -8,6 +8,7 @@ import type {
 } from '../admin.api';
 
 import { mockDelay } from './delay';
+import { MOCK_ACCOUNTS } from './accounts';
 
 let mockInvitations: InvitationResponse[] = [
   {
@@ -41,35 +42,15 @@ export const mockAdminApi = {
   async getUsers(): Promise<AdminUserListResponse> {
     await mockDelay();
 
-    const users: AdminUserResponse[] = [
-      {
-        id: 'ec0a534a-693b-46c2-bde1-fd46c599f501',
-        email: 'user@example.com',
-        f_name: 'Demo',
-        l_name: 'User',
-        role: 'user',
-        is_active: true,
-        created_at: '2026-05-01T00:00:00Z',
-      },
-      {
-        id: 'b35c550f-0fb2-4f4c-85ea-2f24f37a4a5a',
-        email: 'admin@example.com',
-        f_name: 'Demo',
-        l_name: 'Admin',
-        role: 'admin',
-        is_active: true,
-        created_at: '2026-05-01T12:00:00Z',
-      },
-      {
-        id: 'a79d44a5-53f3-4734-8309-7a9c861adf9b',
-        email: 'records@deped.gov.ph',
-        f_name: 'DepEd',
-        l_name: 'Records',
-        role: 'lawyer',
-        is_active: true,
-        created_at: '2026-05-02T00:00:00Z',
-      },
-    ];
+    const users: AdminUserResponse[] = MOCK_ACCOUNTS.map((account, index) => ({
+      id: account.id,
+      email: account.email,
+      f_name: account.f_name,
+      l_name: account.l_name,
+      role: account.role,
+      is_active: true,
+      created_at: `2026-05-0${index + 1}T00:00:00Z`,
+    }));
 
     return {
       users,

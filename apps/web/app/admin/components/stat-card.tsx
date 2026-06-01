@@ -4,7 +4,7 @@ export type StatColor = "blue" | "green" | "purple" | "yellow" | "red" | "indigo
 
 export type StatCardData = {
   label: string;
-  value: number;
+  value: string | number;
   detail: string;
   icon: ReactNode;
   color: StatColor;
@@ -30,7 +30,9 @@ export function StatCard({ label, value, detail, icon, color }: StatCardData) {
         </span>
         <p className="text-xs font-black uppercase tracking-[0.12em] text-[#64748b]">{label}</p>
       </div>
-      <p className="mt-3 text-3xl font-black text-[#0C2B49]">{value.toLocaleString()}</p>
+      <p className="mt-3 text-3xl font-black text-[#0C2B49]">
+        {typeof value === "number" ? value.toLocaleString() : value}
+      </p>
       <p className="mt-1 text-xs font-bold text-[#64748b]">{detail}</p>
     </article>
   );

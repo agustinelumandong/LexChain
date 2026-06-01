@@ -1,5 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { MaterialIcons } from '@expo/vector-icons';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
@@ -11,6 +12,8 @@ import {
   getInvitationRouteParams,
   normalizeAuthCallbackParams,
 } from '@/features/auth/callback/auth-callback.params';
+import { promptToEnableAppLock } from '@/features/auth/app-lock-prompt';
+import { STORAGE_KEYS } from '@/constants';
 import { useSignIn } from '@/services/query';
 import { parseApiError } from '@/shared/utils/api-error';
 import { APP_COLORS } from '@/theme';
@@ -36,6 +39,7 @@ export default function SignInScreen() {
   const {
     control,
     handleSubmit,
+    setValue,
     formState: { errors },
   } = useForm<SignInFormValues>({
     resolver: zodResolver(signInSchema),
@@ -46,12 +50,31 @@ export default function SignInScreen() {
   });
 
   useEffect(() => {
+    async function loadRememberedEmail() {
+      const [shouldRemember, rememberedEmail] = await Promise.all([
+        AsyncStorage.getItem(STORAGE_KEYS.rememberSignInEmail),
+        AsyncStorage.getItem(STORAGE_KEYS.rememberedSignInEmail),
+      ]);
+
+      if (shouldRemember !== 'true' || !rememberedEmail) {
+        return;
+      }
+
+      setRememberMe(true);
+
+      if (!inviteEmail) {
+        setValue('email', rememberedEmail);
+      }
+    }
+
+    void loadRememberedEmail();
+
     return () => {
       if (transitionTimeoutRef.current) {
         clearTimeout(transitionTimeoutRef.current);
       }
     };
-  }, []);
+  }, [inviteEmail, setValue]);
 
   const navigateToSignUp = () => {
     if (isSwitchingScreen) {
@@ -77,7 +100,21 @@ export default function SignInScreen() {
           password: values.password,
         });
 
+        if (rememberMe) {
+          await AsyncStorage.multiSet([
+            [STORAGE_KEYS.rememberSignInEmail, 'true'],
+            [STORAGE_KEYS.rememberedSignInEmail, values.email.trim()],
+          ]);
+        } else {
+          await AsyncStorage.multiRemove([
+            STORAGE_KEYS.rememberSignInEmail,
+            STORAGE_KEYS.rememberedSignInEmail,
+          ]);
+        }
+
         toast.success('Signed in successfully');
+        await promptToEnableAppLock();
+
         if (authRouteParams.document_id) {
           router.replace({
             pathname: '/document/[id]',

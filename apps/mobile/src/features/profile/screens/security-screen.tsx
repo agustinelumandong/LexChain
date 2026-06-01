@@ -1,6 +1,11 @@
 import React from 'react';
 import { toast } from 'sonner-native';
 
+import {
+  authenticateWithDeviceLock,
+  getAppLockEnabled,
+  setAppLockEnabled,
+} from '@/features/auth/app-lock';
 import { Button } from '@/ui';
 
 import { ProfileDetailScreen } from '../profile-detail-screen';
@@ -21,12 +26,6 @@ type SecurityToggleItem = {
 
 const SECURITY_ITEMS: SecurityToggleItem[] = [
   {
-    key: 'biometricUnlock',
-    iconName: 'fingerprint',
-    title: 'Biometric unlock preference',
-    description: 'Store your preference for biometric unlock when native auth is connected.',
-  },
-  {
     key: 'fasterSignIn',
     iconName: 'bolt',
     title: 'Faster sign-in preference',
@@ -41,8 +40,59 @@ const SECURITY_ITEMS: SecurityToggleItem[] = [
 ];
 
 export default function SecurityScreen() {
+  const [appLockEnabled, setAppLockEnabledState] = React.useState(false);
+  const [isUpdatingAppLock, setIsUpdatingAppLock] = React.useState(false);
   const security = useProfileSettingsStore((state) => state.security);
   const updateSecurity = useProfileSettingsStore((state) => state.updateSecurity);
+
+  React.useEffect(() => {
+    void getAppLockEnabled().then((enabled) => {
+      setAppLockEnabledState(enabled);
+      updateSecurity('biometricUnlock', enabled);
+    });
+  }, [updateSecurity]);
+
+  const handleAppLockChange = async (value: boolean) => {
+    if (isUpdatingAppLock) {
+      return;
+    }
+
+    setIsUpdatingAppLock(true);
+
+    try {
+      if (!value) {
+        await setAppLockEnabled(false);
+        setAppLockEnabledState(false);
+        updateSecurity('biometricUnlock', false);
+        toast.success('App Lock disabled');
+        return;
+      }
+
+      const result = await authenticateWithDeviceLock();
+
+      if (result.status !== 'success') {
+        if (result.status === 'unavailable') {
+          toast.warning(result.message ?? 'Device lock is not available on this phone.');
+          return;
+        }
+
+        if (result.status === 'failed') {
+          toast.error(result.message ?? 'Device unlock failed');
+          return;
+        }
+
+        toast.warning('App Lock was not enabled');
+        return;
+      }
+
+      await setAppLockEnabled(true);
+      setAppLockEnabledState(true);
+      updateSecurity('biometricUnlock', true);
+      toast.success('App Lock enabled');
+    } finally {
+      setIsUpdatingAppLock(false);
+    }
+  };
 
   const handleChange = (key: keyof SecuritySettings, value: boolean) => {
     updateSecurity(key, value);
@@ -78,8 +128,16 @@ export default function SecurityScreen() {
 
       <SettingsCard
         title="Local preferences"
-        description="These toggles are visual preferences only and do not change authentication."
+        description="App Lock protects LexChain on this device with your phone unlock method."
       >
+        <SettingToggleRow
+          iconName="fingerprint"
+          title="App Lock"
+          description="Require fingerprint, face unlock, PIN, pattern, or passcode on cold app open."
+          value={appLockEnabled}
+          onValueChange={handleAppLockChange}
+        />
+
         {SECURITY_ITEMS.map((item) => (
           <SettingToggleRow
             key={item.key}

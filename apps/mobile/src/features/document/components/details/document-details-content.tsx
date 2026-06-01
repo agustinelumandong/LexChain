@@ -16,6 +16,7 @@ import {
   formatWhitelistCountLabel,
 } from '@/features/document/utils/document-details-formatters';
 import {
+  AuditTrailCard,
   AccessControlCard,
   ConfidenceCard,
   DocumentStatusCard,
@@ -44,6 +45,8 @@ type DocumentDetailsContentProps = {
   partyNames: string[];
   riskSections: DetailSection[];
   versionHistory: VersionHistoryItem[];
+  auditLogCount?: number;
+  onPressAuditTrail: () => void;
   onPressManageWhitelist: () => void;
   onPressNotarize: () => void;
   onPressPdf: () => void;
@@ -67,6 +70,8 @@ export function DocumentDetailsContent({
   partyNames,
   riskSections,
   versionHistory,
+  auditLogCount,
+  onPressAuditTrail,
   onPressManageWhitelist,
   onPressNotarize,
   onPressPdf,
@@ -128,6 +133,8 @@ export function DocumentDetailsContent({
       />
 
       <VersionHistoryCard items={versionHistory} onPressVersion={onPressVersion} />
+
+      <AuditTrailCard count={auditLogCount} onPress={onPressAuditTrail} />
 
       <Text style={styles.insightsEyebrow}>DOCUMENT INSIGHTS</Text>
 

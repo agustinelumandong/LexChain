@@ -1,11 +1,12 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
 import { useFocusEffect, useRouter } from 'expo-router';
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Text, useWindowDimensions, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button } from '@/shared/components/ui/button';
+import { authTokenStorage } from '@/shared/utils/secure-storage';
 
 import { GetStartedHero } from '../get-started-hero';
 import {
@@ -14,10 +15,26 @@ import {
 } from './get-started-screen.styles';
 
 export default function GetStartedScreen() {
-  const { push } = useRouter();
+  const router = useRouter();
   const { height } = useWindowDimensions();
   const [isNavigating, setIsNavigating] = useState(false);
+  const [isChecking, setIsChecking] = useState(true);
   const isCompactHeight = height < 700;
+
+  useEffect(() => {
+    async function checkAuth() {
+      const token = await authTokenStorage.get();
+
+      if (token) {
+        router.replace('/(tabs)');
+        return;
+      }
+
+      setIsChecking(false);
+    }
+
+    void checkAuth();
+  }, [router]);
 
   useFocusEffect(
     useCallback(() => {
@@ -25,13 +42,17 @@ export default function GetStartedScreen() {
     }, []),
   );
 
+  if (isChecking) {
+    return null;
+  }
+
   const navigateFromLanding = (href: '/(auth)/sign-in' | '/(auth)/sign-up') => {
     if (isNavigating) {
       return;
     }
 
     setIsNavigating(true);
-    push(href);
+    router.push(href);
   };
 
   return (

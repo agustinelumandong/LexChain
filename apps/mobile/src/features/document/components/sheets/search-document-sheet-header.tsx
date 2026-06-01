@@ -1,4 +1,4 @@
-import { MaterialIcons } from '@expo/vector-icons';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { Text, View } from 'react-native';
 
 import { searchDocumentSheetColors, searchDocumentSheetStyles } from './search-document-sheet.styles';
