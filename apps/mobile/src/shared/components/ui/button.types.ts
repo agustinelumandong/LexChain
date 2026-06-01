@@ -25,4 +25,6 @@ export type ButtonProps = {
   imageSize?: number;
   imageStyle?: React.ComponentProps<typeof Image>['style'];
   style?: StyleProp<ViewStyle>;
+  textColor?: string;
+  iconColor?: string;
 };

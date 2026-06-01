@@ -51,6 +51,8 @@ export function Button({
   imageSize,
   imageStyle,
   style,
+  textColor,
+  iconColor,
 }: ButtonProps) {
   const isInactive = disabled || loading;
   const hasLabel = Boolean(label);
@@ -122,14 +124,14 @@ export function Button({
               <MaterialIcons
                 name={iconOnlyName}
                 size={iconSizeStyles[size]}
-                color={isInactive ? disabledIconColor[variant] : variantIconColor[variant]}
+                color={isInactive ? disabledIconColor[variant] : (iconColor ?? variantIconColor[variant])}
               />
             ) : null}
             {hasLabel && leftIconName && !iconName && !imageSource ?
               <MaterialIcons
                 name={leftIconName}
                 size={iconSizeStyles[size]}
-                color={isInactive ? disabledIconColor[variant] : variantIconColor[variant]}
+                color={isInactive ? disabledIconColor[variant] : (iconColor ?? variantIconColor[variant])}
               /> :null}
             {hasLabel ? (
               <ThemedText
@@ -138,6 +140,7 @@ export function Button({
                   labelStyles[variant],
                   labelSizeStyles[size],
                   isInactive && disabledLabelStyles[variant],
+                  !isInactive && textColor ? { color: textColor } : null,
                 ]}
               >
                 {label}
@@ -147,7 +150,7 @@ export function Button({
               <MaterialIcons
                 name={rightIconName}
                 size={iconSizeStyles[size]}
-                color={isInactive ? disabledIconColor[variant] : variantIconColor[variant]}
+                color={isInactive ? disabledIconColor[variant] : (iconColor ?? variantIconColor[variant])}
               /> : null}
           </View>
         )}
