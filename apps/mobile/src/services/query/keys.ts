@@ -12,6 +12,7 @@ export const queryKeys = {
     list: (params?: { bookId?: string; limit?: number; offset?: number }) =>
       ['documents', 'list', params ?? {}] as const,
     detail: (documentId: string) => ['documents', documentId] as const,
+    invitations: ['documents', 'invitations'] as const,
     versions: (documentId: string) => ['documents', documentId, 'versions'] as const,
     auditLogs: (documentId: string) => ['documents', documentId, 'audit-logs'] as const,
     parties: (documentId: string) => ['documents', documentId, 'parties'] as const,

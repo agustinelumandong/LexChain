@@ -55,6 +55,10 @@ export type AskCitation = {
   score: number;
 };
 
+export type AskChatMessage = ApiSchema<'ChatMessage'>;
+
+export type AskRequest = ApiSchema<'AskRequest'>;
+
 export type AskResponse = {
   question: string;
   answer: string;
@@ -76,6 +80,7 @@ export type DocumentPartyListResponse = ApiSchema<'DocumentPartyListResponse'>;
 
 export type RemovePartyResponse = ApiSchema<'RemovePartyResponse'>;
 export type AuditLogResponse = ApiSchema<'AuditLogResponse'>;
+export type DocumentInvitationResponse = ApiSchema<'DocumentInvitationResponse'>;
 
 export type ListDocumentsParams = {
   bookId?: string;
@@ -261,16 +266,52 @@ export const documentsApi = {
     );
   },
 
-  ask: (documentId: string, question: string) => {
+  ask: (documentId: string, question: string, history: AskChatMessage[] = []) => {
     const encodedDocumentId = encodeDocumentId(documentId);
+    const payload: AskRequest = {
+      question,
+      history,
+    };
 
     if (env.useMockApi) {
-      return mockDocumentsApi.ask(documentId, question);
+      return mockDocumentsApi.ask(documentId, payload);
     }
 
     return apiClient.post<AskResponse>(
       `/documents/${encodedDocumentId}/ask`,
-      { question },
+      payload,
+    );
+  },
+
+  getPendingInvitations: () => {
+    if (env.useMockApi) {
+      return mockDocumentsApi.getPendingInvitations();
+    }
+
+    return apiClient.get<DocumentInvitationResponse[]>('/documents/invitations');
+  },
+
+  acceptInvitation: (documentId: string) => {
+    const encodedDocumentId = encodeDocumentId(documentId);
+
+    if (env.useMockApi) {
+      return mockDocumentsApi.acceptInvitation(documentId);
+    }
+
+    return apiClient.post<Record<string, unknown>>(
+      `/documents/${encodedDocumentId}/parties/accept`,
+    );
+  },
+
+  rejectInvitation: (documentId: string) => {
+    const encodedDocumentId = encodeDocumentId(documentId);
+
+    if (env.useMockApi) {
+      return mockDocumentsApi.rejectInvitation(documentId);
+    }
+
+    return apiClient.post<Record<string, unknown>>(
+      `/documents/${encodedDocumentId}/parties/reject`,
     );
   },
 
