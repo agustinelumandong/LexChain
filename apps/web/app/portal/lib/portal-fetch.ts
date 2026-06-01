@@ -1,5 +1,3 @@
-import { backendUrl } from '@/lib/admin-api';
-
 export async function portalFetch<T>(path: string): Promise<T> {
   // Client-side: pass credentials so cookies are sent
   const res = await fetch(`/api/portal/proxy?path=${encodeURIComponent(path)}`, {

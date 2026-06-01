@@ -2,6 +2,7 @@
 
 import './portal.css';
 import { useEffect, useRef, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -9,6 +10,7 @@ import HomeIcon from "@mui/icons-material/Home";
 import DescriptionIcon from "@mui/icons-material/Description";
 import HistoryIcon from "@mui/icons-material/History";
 import PersonIcon from "@mui/icons-material/Person";
+import SearchIcon from "@mui/icons-material/Search";
 import SettingsIcon from "@mui/icons-material/Settings";
 import LogoutIcon from "@mui/icons-material/Logout";
 import MenuIcon from "@mui/icons-material/Menu";
@@ -16,10 +18,14 @@ import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import VerifiedUserIcon from "@mui/icons-material/VerifiedUser";
 import { Toaster } from 'sonner';
+import type { ApiSchema } from "@lexchain/types";
+
+type UserProfile = ApiSchema<'UserProfileResponse'>;
 
 const portalLinks = [
   { label: "Home", href: "/portal/dashboard", icon: <HomeIcon fontSize="small" /> },
   { label: "Documents", href: "/portal/documents", icon: <DescriptionIcon fontSize="small" /> },
+  { label: "Search", href: "/portal/search", icon: <SearchIcon fontSize="small" /> },
   { label: "Activity", href: "/portal/notifications", icon: <HistoryIcon fontSize="small" /> },
   { label: "Profile", href: "/portal/profile", icon: <PersonIcon fontSize="small" /> },
 ];
@@ -30,6 +36,17 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
   const [collapsed, setCollapsed] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const profileMenuRef = useRef<HTMLDivElement>(null);
+  const { data: profile } = useQuery<UserProfile | null>({
+    queryKey: ['portal-profile'],
+    queryFn: async () => {
+      const res = await fetch('/api/portal/proxy?path=%2Fusers%2F', { credentials: 'same-origin' });
+      return res.ok ? res.json() : null;
+    },
+  });
+
+  const initials = `${profile?.f_name?.[0] ?? ''}${profile?.l_name?.[0] ?? ''}`.toUpperCase() || '?';
+  const fullName = profile ? `${profile.f_name} ${profile.l_name}` : '...';
+  const email = profile?.email ?? '...';
 
   useEffect(() => {
     function handleClick(event: MouseEvent) {
@@ -114,13 +131,13 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
           <div ref={profileMenuRef} className="relative border-t border-[#E8F0F8] pt-4">
             <div className={`flex min-h-[58px] items-center gap-3 rounded-2xl bg-[#F8FBFF] px-3 py-2 ${collapsed ? "justify-center" : ""}`}>
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#0985E7] text-sm font-black text-white">
-                AR
+                {initials}
               </div>
               {!collapsed && (
                 <>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-black leading-5 text-[#0C2B49]">Atty. Reyes</p>
-                    <p className="truncate text-xs font-semibold leading-4 text-[#64748b]">Attorney</p>
+                    <p className="truncate text-sm font-black leading-5 text-[#0C2B49]">{fullName}</p>
+                    <p className="truncate text-xs font-semibold leading-4 text-[#64748b]">{email}</p>
                   </div>
                   <button
                     type="button"
