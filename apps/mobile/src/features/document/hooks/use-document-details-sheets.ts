@@ -6,6 +6,8 @@ export function useDocumentDetailsSheets() {
   const [isRenameSheetVisible, setIsRenameSheetVisible] = useState(false);
   const [isAskSheetVisible, setIsAskSheetVisible] = useState(false);
   const [isSearchSheetVisible, setIsSearchSheetVisible] = useState(false);
+  const [isAuditSheetVisible, setIsAuditSheetVisible] = useState(false);
+  const [isAnchorConfirmSheetVisible, setIsAnchorConfirmSheetVisible] = useState(false);
   const [isWhitelistSheetVisible, setIsWhitelistSheetVisible] = useState(false);
   const [whitelistSearchQuery, setWhitelistSearchQuery] = useState('');
 
@@ -13,6 +15,8 @@ export function useDocumentDetailsSheets() {
     isRenameSheetVisible ||
     isAskSheetVisible ||
     isSearchSheetVisible ||
+    isAuditSheetVisible ||
+    isAnchorConfirmSheetVisible ||
     isWhitelistSheetVisible;
 
   const closeVisibleSheet = useCallback(() => {
@@ -23,6 +27,16 @@ export function useDocumentDetailsSheets() {
 
     if (isSearchSheetVisible) {
       setIsSearchSheetVisible(false);
+      return;
+    }
+
+    if (isAuditSheetVisible) {
+      setIsAuditSheetVisible(false);
+      return;
+    }
+
+    if (isAnchorConfirmSheetVisible) {
+      setIsAnchorConfirmSheetVisible(false);
       return;
     }
 
@@ -37,6 +51,8 @@ export function useDocumentDetailsSheets() {
     }
   }, [
     isAskSheetVisible,
+    isAnchorConfirmSheetVisible,
+    isAuditSheetVisible,
     isRenameSheetVisible,
     isSearchSheetVisible,
     isWhitelistSheetVisible,
@@ -48,11 +64,15 @@ export function useDocumentDetailsSheets() {
     isRenameSheetVisible,
     isAskSheetVisible,
     isSearchSheetVisible,
+    isAuditSheetVisible,
+    isAnchorConfirmSheetVisible,
     isWhitelistSheetVisible,
     whitelistSearchQuery,
     setIsRenameSheetVisible,
     setIsAskSheetVisible,
     setIsSearchSheetVisible,
+    setIsAuditSheetVisible,
+    setIsAnchorConfirmSheetVisible,
     setIsWhitelistSheetVisible,
     setWhitelistSearchQuery,
   };
