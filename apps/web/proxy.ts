@@ -1,22 +1,34 @@
 import { NextRequest, NextResponse } from "next/server";
 
+const ADMIN_ROLES = new Set(["admin", "super_admin", "superadmin", "owner"]);
+
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const token = request.cookies.get("portal_token")?.value ?? request.cookies.get("admin_token")?.value;
+  const role = request.cookies.get("user_role")?.value ?? "";
+  const isAdmin = ADMIN_ROLES.has(role.toLowerCase());
 
-  // Portal routes: redirect to /login if not authenticated
-  if (pathname.startsWith("/portal") && !token) {
-    return NextResponse.redirect(new URL("/login", request.url));
-  }
-
-  // Admin routes: redirect to /login if not authenticated
-  if (pathname.startsWith("/admin") && pathname !== "/admin/login" && !token) {
-    return NextResponse.redirect(new URL("/login", request.url));
-  }
-
-  // Legacy /admin/login: redirect to unified /login
+  // Legacy /admin/login → unified /login
   if (pathname === "/admin/login") {
     return NextResponse.redirect(new URL("/login", request.url));
+  }
+
+  // Unauthenticated: redirect to /login
+  if (!token) {
+    if (pathname.startsWith("/portal") || (pathname.startsWith("/admin") && pathname !== "/admin/login")) {
+      return NextResponse.redirect(new URL("/login", request.url));
+    }
+    return NextResponse.next();
+  }
+
+  // Admin trying to access portal → redirect to admin dashboard
+  if (isAdmin && pathname.startsWith("/portal")) {
+    return NextResponse.redirect(new URL("/admin/dashboard", request.url));
+  }
+
+  // Non-admin trying to access admin → redirect to portal dashboard
+  if (!isAdmin && pathname.startsWith("/admin")) {
+    return NextResponse.redirect(new URL("/portal/dashboard", request.url));
   }
 
   return NextResponse.next();

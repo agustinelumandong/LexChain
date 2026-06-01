@@ -10,27 +10,21 @@ const mockAccounts = [
   { id: "mock-owner", email: "owner@lexchain.local", role: "admin", name: "LexChain Owner" },
 ] as const;
 
-function createSessionResponse(token: string, maxAge: number, user: unknown) {
+function createSessionResponse(token: string, maxAge: number, user: { role?: string; email?: string; name?: string; id?: string }) {
   const response = NextResponse.json({ ok: true, user });
 
-  response.cookies.set({
-    name: "admin_token",
-    value: token,
+  const cookieOpts = {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
+    sameSite: "lax" as const,
     maxAge,
     path: "/",
-  });
-  response.cookies.set({
-    name: "portal_token",
-    value: token,
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    maxAge,
-    path: "/",
-  });
+  };
+
+  response.cookies.set({ name: "admin_token", value: token, ...cookieOpts });
+  response.cookies.set({ name: "portal_token", value: token, ...cookieOpts });
+  // Non-httpOnly so middleware can read it for RBAC
+  response.cookies.set({ name: "user_role", value: user.role ?? "", httpOnly: false, secure: cookieOpts.secure, sameSite: cookieOpts.sameSite, maxAge, path: "/" });
 
   return response;
 }
@@ -95,6 +89,34 @@ export async function POST(request: Request) {
   }
 
   const maxAge = payload?.expires_in ?? 60 * 60 * 24;
-  const user = payload?.user ?? payload;
+  const rawUser = payload?.user ?? {};
+
+  // Fetch the actual user profile to get the real app role
+  let appRole = "";
+  try {
+    const meRes = await fetch(backendUrl("/users/"), {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "ngrok-skip-browser-warning": "true",
+      },
+      cache: "no-store",
+    });
+    if (meRes.ok) {
+      const me = await meRes.json();
+      appRole = me?.role ?? "";
+    }
+  } catch { /* ignore */ }
+
+  const name = rawUser.user_metadata?.full_name
+    ?? rawUser.user_metadata?.name
+    ?? (`${rawUser.user_metadata?.f_name ?? ""} ${rawUser.user_metadata?.l_name ?? ""}`.trim() || rawUser.email);
+
+  const user = {
+    id: rawUser.id ?? rawUser.sub,
+    email: rawUser.email,
+    name,
+    role: appRole || rawUser.role || "",
+  };
+
   return createSessionResponse(token, maxAge, user);
 }
