@@ -46,12 +46,31 @@ export const documentDetailCardStyles = StyleSheet.create({
     gap: 4,
     marginTop: 8,
   },
+  partyRoleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   partyName: {
+    flex: 1,
     color: APP_COLORS.navy,
     fontFamily: fonts.regular,
     fontSize: 13,
     lineHeight: 17,
     fontWeight: '700',
+  },
+  partyRolePill: {
+    overflow: 'hidden',
+    borderRadius: 999,
+    backgroundColor: APP_COLORS.surfaceSoft,
+    color: APP_COLORS.primary,
+    fontFamily: fonts.regular,
+    fontSize: 11,
+    lineHeight: 14,
+    fontWeight: '800',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    maxWidth: 96,
   },
   partyNameMuted: {
     color: APP_COLORS.textMuted,
@@ -111,6 +130,13 @@ export const documentDetailCardStyles = StyleSheet.create({
   versionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 14,
+  },
+  versionHeaderCopy: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 14,
   },
   versionTitle: {
@@ -118,6 +144,22 @@ export const documentDetailCardStyles = StyleSheet.create({
     fontFamily: fonts.regular,
     fontSize: 18,
     lineHeight: 22,
+    fontWeight: '800',
+  },
+  headerAction: {
+    borderRadius: 999,
+    backgroundColor: APP_COLORS.surfaceSoft,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  headerActionPressed: {
+    opacity: 0.75,
+  },
+  headerActionText: {
+    color: APP_COLORS.primary,
+    fontFamily: fonts.regular,
+    fontSize: 12,
+    lineHeight: 14,
     fontWeight: '800',
   },
   timeline: {
@@ -206,6 +248,13 @@ export const documentDetailCardStyles = StyleSheet.create({
     fontFamily: fonts.regular,
     fontSize: 12,
     lineHeight: 17,
+    fontWeight: '600',
+  },
+  emptyTimelineText: {
+    color: APP_COLORS.textMuted,
+    fontFamily: fonts.regular,
+    fontSize: 13,
+    lineHeight: 18,
     fontWeight: '600',
   },
   versionViewIcon: {
