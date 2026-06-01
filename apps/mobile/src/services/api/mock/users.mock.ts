@@ -31,6 +31,7 @@ export const mockUsersApi = {
       l_name: account.l_name,
       avatar: account.avatar,
       role: account.role,
+      mfa_enabled: false,
     };
   },
 

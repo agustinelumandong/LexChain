@@ -123,10 +123,11 @@ export function useAskDocument() {
   });
 }
 
-export function usePendingDocumentInvitations() {
+export function usePendingDocumentInvitations(enabled = true) {
   return useQuery({
     queryKey: queryKeys.documents.invitations,
     queryFn: documentsApi.getPendingInvitations,
+    enabled,
   });
 }
 
