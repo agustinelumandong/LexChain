@@ -50,6 +50,10 @@ export default function BookDetailsScreen() {
         <DocumentResultCard
           title={document.title}
           date={document.date}
+          documentNumber={document.documentNumber}
+          bookNumber={document.bookNumber}
+          pageNumber={document.pageNumber}
+          series={document.series}
           onChain={document.onChain}
           onPressCard={() => openDocument(document.id)}
           onPressOpen={() => openDocument(document.id)}

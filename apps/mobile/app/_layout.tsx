@@ -186,6 +186,7 @@ export default function RootLayout() {
                 />
                 <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
                 <Stack.Screen name="auth/callback" options={{ headerShown: false }} />
+                <Stack.Screen name="invitations" options={{ headerShown: false }} />
                 <Stack.Screen name="notifications" options={{ headerShown: false }} />
                 <Stack.Screen name="books/index" options={{ headerShown: false }} />
                 <Stack.Screen name="books/[id]" options={{ headerShown: false }} />
@@ -199,7 +200,15 @@ export default function RootLayout() {
                 <Stack.Screen name="profile/privacy" options={{ headerShown: false }} />
                 <Stack.Screen name="profile/support" options={{ headerShown: false }} />
                 <Stack.Screen name="document/[id]" options={{ headerShown: false }} />
+                <Stack.Screen
+                  name="document/audit-trail"
+                  options={{ headerShown: false }}
+                />
                 <Stack.Screen name="document/menu" options={{ headerShown: false }} />
+                <Stack.Screen
+                  name="document/version-history"
+                  options={{ headerShown: false }}
+                />
                 <Stack.Screen
                   name="document/pdf-viewer"
                   options={{ headerShown: false }}

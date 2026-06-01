@@ -10,6 +10,7 @@ import {
   useDisableMfa,
   useEnableMfa,
   useSetupMfa,
+  useUserProfile,
 } from '@/services/query';
 import { parseApiError } from '@/shared/utils/api-error';
 import { Button } from '@/ui';
@@ -59,6 +60,7 @@ export default function SecurityScreen() {
   const [mfaEnabledThisSession, setMfaEnabledThisSession] = React.useState(false);
   const security = useProfileSettingsStore((state) => state.security);
   const updateSecurity = useProfileSettingsStore((state) => state.updateSecurity);
+  const userProfileQuery = useUserProfile();
   const setupMfaMutation = useSetupMfa();
   const enableMfaMutation = useEnableMfa();
   const disableMfaMutation = useDisableMfa();
@@ -139,6 +141,7 @@ export default function SecurityScreen() {
 
     try {
       await enableMfaMutation.mutateAsync({ code });
+      void userProfileQuery.refetch();
       setMfaSetup(null);
       setMfaCode('');
       setMfaEnabledThisSession(true);
@@ -158,6 +161,7 @@ export default function SecurityScreen() {
 
     try {
       await disableMfaMutation.mutateAsync({ code });
+      void userProfileQuery.refetch();
       setMfaDisableCode('');
       setMfaEnabledThisSession(false);
       toast.success('MFA disabled');
@@ -184,8 +188,8 @@ export default function SecurityScreen() {
           iconName="admin-panel-settings"
           title="Multi-factor authentication"
           body={
-            mfaEnabledThisSession
-              ? 'MFA was enabled in this session. Backend profile status is not exposed yet.'
+            userProfileQuery.data?.mfa_enabled || mfaEnabledThisSession
+              ? 'MFA is enabled for this account.'
               : 'Use an authenticator app to protect sign-in with a 6-digit code.'
           }
         />
