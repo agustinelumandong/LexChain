@@ -9,7 +9,9 @@ type InvitePageProps = {
 
 export default async function InvitePage({ params }: InvitePageProps) {
   const { token } = await params;
-  const appLink = `lexchain://sign-up?token=${encodeURIComponent(token)}`;
+  const encodedToken = encodeURIComponent(token);
+  const appLink = `lexchain://sign-up?token=${encodedToken}`;
+  const webSignUpLink = `/register?token=${encodedToken}`;
 
   return (
     <main className="flex min-h-dvh items-center justify-center bg-[#F5FAFF] px-5 py-14 text-[#102033]">
@@ -31,21 +33,12 @@ export default async function InvitePage({ params }: InvitePageProps) {
         </div>
 
         <h1 className="mt-7 text-3xl font-black leading-9 text-[#0C2B49]">
-          Continue your LexChain invite
+          You are invited to LexChain as a lawyer (document issuer)
         </h1>
         <p className="mt-3 text-sm font-semibold leading-6 text-[#64748b]">
-          Use this page when an email invitation opens in a browser. You can open
-          the mobile app, download it, or continue to the web portal when allowed.
+          Open the mobile app to accept your invitation, download the app, or
+          continue sign-up on the web with your invitation token preserved.
         </p>
-
-        <div className="mt-6 rounded-2xl bg-[#F5FAFF] p-4">
-          <p className="text-xs font-black uppercase tracking-[0.14em] text-[#64748b]">
-            Invite token
-          </p>
-          <p className="mt-2 break-all font-mono text-sm font-black text-[#0C2B49]">
-            {token}
-          </p>
-        </div>
 
         <div className="mt-8 grid gap-3 sm:grid-cols-3">
           <a
@@ -62,7 +55,7 @@ export default async function InvitePage({ params }: InvitePageProps) {
           </Link>
           <Link
             className="rounded-full border border-[#E4EEF9] bg-white px-5 py-3 text-center text-sm font-black text-[#0C2B49] transition hover:bg-[#F5FAFF]"
-            href="/admin/login"
+            href={webSignUpLink}
           >
             Continue on website
           </Link>
