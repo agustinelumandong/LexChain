@@ -24,6 +24,7 @@ import {
   setAppLockEnabled,
 } from "@/features/auth/app-lock";
 import { authTokenStorage } from "@/shared/utils/secure-storage";
+import { ScreenCaptureGuard } from "@/shared/components/screen-capture-guard";
 import { queryKeys } from "@/services/query";
 import type { SupabaseUser } from "@/types";
 
@@ -167,6 +168,7 @@ export default function RootLayout() {
       <GestureHandlerRootView style={{ flex: 1 }}>
         <SafeAreaProvider>
           <StatusBar style="auto" />
+          <ScreenCaptureGuard />
           {isAppLocked ? (
             <AppLockGate
               displayName={lockDisplayName}
@@ -185,6 +187,8 @@ export default function RootLayout() {
                 <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
                 <Stack.Screen name="auth/callback" options={{ headerShown: false }} />
                 <Stack.Screen name="notifications" options={{ headerShown: false }} />
+                <Stack.Screen name="books/index" options={{ headerShown: false }} />
+                <Stack.Screen name="books/[id]" options={{ headerShown: false }} />
                 <Stack.Screen name="upload" options={{ headerShown: false }} />
                 <Stack.Screen name="profile/account" options={{ headerShown: false }} />
                 <Stack.Screen

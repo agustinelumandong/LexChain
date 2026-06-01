@@ -37,7 +37,9 @@ export async function canUseDeviceLock(): Promise<DeviceLockResult> {
   return { status: 'success' };
 }
 
-export async function authenticateWithDeviceLock(): Promise<DeviceLockResult> {
+export async function authenticateWithDeviceLock(
+  promptMessage = 'Unlock LexChain',
+): Promise<DeviceLockResult> {
   const availability = await canUseDeviceLock();
 
   if (availability.status !== 'success') {
@@ -45,7 +47,7 @@ export async function authenticateWithDeviceLock(): Promise<DeviceLockResult> {
   }
 
   const result = await LocalAuthentication.authenticateAsync({
-    promptMessage: 'Unlock LexChain',
+    promptMessage,
     fallbackLabel: 'Use passcode',
     cancelLabel: 'Cancel',
     disableDeviceFallback: false,
