@@ -22,7 +22,6 @@ const portalLinks = [
   { label: "Documents", href: "/portal/documents", icon: <DescriptionIcon fontSize="small" /> },
   { label: "Activity", href: "/portal/notifications", icon: <HistoryIcon fontSize="small" /> },
   { label: "Profile", href: "/portal/profile", icon: <PersonIcon fontSize="small" /> },
-  { label: "Settings", href: "/portal/profile/security", icon: <SettingsIcon fontSize="small" /> },
 ];
 
 export default function PortalLayout({ children }: { children: React.ReactNode }) {
