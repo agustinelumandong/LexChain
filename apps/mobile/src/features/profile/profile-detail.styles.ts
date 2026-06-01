@@ -82,6 +82,10 @@ export const profileDetailStyles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
   },
+  mfaReadOnlyInput: {
+    minHeight: 76,
+    textAlignVertical: 'top',
+  },
   toggleRow: {
     flexDirection: 'row',
     alignItems: 'center',
