@@ -26,7 +26,7 @@ export function VersionHistoryCard({
           <View style={styles.cardIconBubble}>
             <MaterialIcons name="history" size={24} color={APP_COLORS.primary} />
           </View>
-          <Text style={styles.versionTitle}>Version history</Text>
+          <Text style={styles.versionTitle}>Document versions</Text>
         </View>
         {onPressViewHistory ? (
           <Pressable

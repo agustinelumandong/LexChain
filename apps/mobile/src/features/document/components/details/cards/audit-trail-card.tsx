@@ -7,6 +7,7 @@ import {
   formatAuditAction,
   formatAuditDetails,
   formatAuditTime,
+  formatIdOrHash,
   sortAuditLogsNewestFirst,
 } from '@/features/document/utils/audit-log-formatters';
 
@@ -76,7 +77,7 @@ export function AuditTrailCard({
                     {formatAuditAction(log.action)}
                   </Text>
                   <Text style={styles.timelineDescription}>
-                    {log.user_id ? `Actor ${log.user_id.slice(0, 8)}` : 'System event'}
+                    {log.user_id ? `Actor ${formatIdOrHash(log.user_id)}` : 'System event'}
                     {detailsText ? ` • ${detailsText}` : ''}
                   </Text>
                 </View>
