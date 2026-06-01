@@ -17,14 +17,23 @@ async function signIn(data: { email: string; password: string }) {
   return payload;
 }
 
-function getRedirectPath(user: Record<string, unknown> | null): string {
-  if (!user) return "/portal/dashboard";
-  // Check multiple possible locations for role
+function decodeJwtRole(token?: string): string {
+  if (!token) return "";
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    return String(payload.role ?? payload.user_role ?? payload.user_metadata?.role ?? payload.app_metadata?.role ?? "");
+  } catch { return ""; }
+}
+
+function getRedirectPath(data: Record<string, unknown> | null): string {
+  if (!data) return "/portal/dashboard";
+  const user = (data.user as Record<string, unknown>) ?? data;
   const role = String(
     user.role ??
     (user.user_metadata as Record<string, unknown> | undefined)?.role ??
     (user.app_metadata as Record<string, unknown> | undefined)?.role ??
     user.user_role ??
+    decodeJwtRole(data.access_token as string) ??
     ""
   ).toLowerCase();
   if (role === "admin" || role === "super_admin" || role === "superadmin" || role === "owner") {
@@ -42,7 +51,7 @@ export default function LoginPage() {
     mutationFn: signIn,
     onSuccess: (data) => {
       toast.success("Signed in successfully");
-      window.location.href = getRedirectPath(data?.user);
+      window.location.href = getRedirectPath(data);
     },
     onError: (error: Error) => {
       toast.error(error.message);
