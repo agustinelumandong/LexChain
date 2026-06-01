@@ -10,24 +10,30 @@ import type {
 export const MOCK_DOCUMENT_LIST: DocumentListItem[] = [
   {
     id: 'eb1d48cf-2313-4edb-b2e9-4667f6faf449',
+    document_number: 28,
     file_name: 'DepEd Memorandum No. 028, s. 2026',
     content_type: 'application/pdf',
+    book_id: '3e45fef9-d9dd-4f98-9bf3-e5a77a4a8c11',
     on_chain: true,
     status: 'COMPLETED',
     created_at: '2026-05-08T18:03:03.282234Z',
   },
   {
     id: '550e8400-e29b-41d4-a716-446655440002',
+    document_number: 29,
     file_name: 'Lease Agreement - Rivera Holdings.pdf',
     content_type: 'application/pdf',
+    book_id: '3e45fef9-d9dd-4f98-9bf3-e5a77a4a8c11',
     on_chain: false,
     status: 'COMPLETED',
     created_at: '2026-05-22T09:15:00Z',
   },
   {
     id: '550e8400-e29b-41d4-a716-446655440003',
+    document_number: 30,
     file_name: 'Power of Attorney - Martinez Family.pdf',
     content_type: 'application/pdf',
+    book_id: '3e45fef9-d9dd-4f98-9bf3-e5a77a4a8c11',
     on_chain: false,
     status: 'PROCESSING',
     created_at: '2026-04-15T11:00:00Z',
@@ -36,9 +42,11 @@ export const MOCK_DOCUMENT_LIST: DocumentListItem[] = [
 
 export const MOCK_DOCUMENT_DETAIL: DocumentDetail = {
   document_id: 'eb1d48cf-2313-4edb-b2e9-4667f6faf449',
+  document_number: 28,
   file_name: 'DepEd Memorandum No. 028, s. 2026',
   storage_url: 'mock://documents/deped-memorandum-028-2026.pdf',
   content_type: 'application/pdf',
+  book_id: '3e45fef9-d9dd-4f98-9bf3-e5a77a4a8c11',
   status: 'COMPLETED',
   on_chain: true,
   is_latest: true,
@@ -109,6 +117,7 @@ export const MOCK_DOCUMENT_DETAIL_VERSION_1: DocumentDetail = {
 
 export const MOCK_DOCUMENT_DETAIL_PROCESSING: DocumentDetail = {
   document_id: '550e8400-e29b-41d4-a716-446655440003',
+  document_number: 30,
   file_name: 'Power of Attorney - Martinez Family.pdf',
   storage_url: 'mock://documents/power-of-attorney-martinez.pdf',
   content_type: 'application/pdf',
@@ -125,6 +134,7 @@ export const MOCK_DOCUMENT_DETAIL_PROCESSING: DocumentDetail = {
 
 export const MOCK_DOCUMENT_DETAIL_QUEUED: DocumentDetail = {
   document_id: '550e8400-e29b-41d4-a716-446655440099',
+  document_number: 31,
   file_name: 'New Document.pdf',
   storage_url: 'mock://documents/new-document.pdf',
   content_type: 'application/pdf',
@@ -147,6 +157,7 @@ export const MOCK_UPLOAD_ACCEPTED: DocumentUploadAcceptedResponse = {
 
 export const MOCK_RENAME_RESPONSE: RenameDocumentResponse = {
   id: 'eb1d48cf-2313-4edb-b2e9-4667f6faf449',
+  document_number: 28,
   file_name: 'DepEd Memorandum No. 028, s. 2026',
   content_type: 'application/pdf',
   status: 'COMPLETED',
@@ -160,6 +171,7 @@ export const MOCK_VERSION_HISTORY_RESPONSE: VersionHistoryResponse = {
   versions: [
     {
       document_id: 'eb1d48cf-2313-4edb-b2e9-4667f6faf449',
+      document_number: 28,
       file_name: 'DepEd Memorandum No. 028, s. 2026',
       document_hash: 'mock-document-hash',
       status: 'COMPLETED',
@@ -169,6 +181,7 @@ export const MOCK_VERSION_HISTORY_RESPONSE: VersionHistoryResponse = {
     },
     {
       document_id: 'eb1d48cf-2313-4edb-b2e9-4667f6faf448',
+      document_number: 27,
       file_name: 'DepEd Memorandum No. 028, s. 2026 - Legal Review Draft.pdf',
       document_hash: 'mock-document-hash-v2',
       status: 'COMPLETED',
@@ -178,6 +191,7 @@ export const MOCK_VERSION_HISTORY_RESPONSE: VersionHistoryResponse = {
     },
     {
       document_id: 'eb1d48cf-2313-4edb-b2e9-4667f6faf447',
+      document_number: 26,
       file_name: 'DepEd Memorandum No. 028, s. 2026 - Initial Upload.pdf',
       document_hash: 'mock-document-hash-v1',
       status: 'COMPLETED',
