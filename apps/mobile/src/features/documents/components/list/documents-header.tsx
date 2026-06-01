@@ -14,6 +14,8 @@ type DocumentsHeaderProps = {
   title?: string;
   description?: string;
   onPressBooks?: () => void;
+  onPressInvitations?: () => void;
+  pendingInvitationCount?: number;
 };
 
 export function DocumentsHeader({
@@ -21,6 +23,8 @@ export function DocumentsHeader({
   title = 'Documents',
   description = 'Find by title, date, or keyword.',
   onPressBooks,
+  onPressInvitations,
+  pendingInvitationCount = 0,
 }: DocumentsHeaderProps) {
   return (
     <View style={styles.wrap}>
@@ -29,20 +33,43 @@ export function DocumentsHeader({
           <Text style={styles.eyebrow}>{eyebrow}</Text>
           <Text style={styles.title}>{title}</Text>
         </View>
-        {onPressBooks ? (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Open register books"
-            onPress={onPressBooks}
-            style={({ pressed }) => [
-              styles.booksButton,
-              pressed && styles.booksButtonPressed,
-            ]}
-          >
-            <MaterialIcons name="library-books" size={17} color={COLORS.primary} />
-            <Text style={styles.booksText}>Books</Text>
-          </Pressable>
-        ) : null}
+        <View style={styles.actions}>
+          {onPressInvitations ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Open pending invitations"
+              onPress={onPressInvitations}
+              style={({ pressed }) => [
+                styles.iconButton,
+                pressed && styles.headerButtonPressed,
+              ]}
+            >
+              <MaterialIcons name="mail-outline" size={22} color={COLORS.navy} />
+              {pendingInvitationCount > 0 ? (
+                <View style={styles.badge}>
+                  <Text style={styles.badgeText}>
+                    {pendingInvitationCount > 99 ? '99+' : pendingInvitationCount}
+                  </Text>
+                </View>
+              ) : null}
+            </Pressable>
+          ) : null}
+
+          {onPressBooks ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Open register books"
+              onPress={onPressBooks}
+              style={({ pressed }) => [
+                styles.booksButton,
+                pressed && styles.headerButtonPressed,
+              ]}
+            >
+              <MaterialIcons name="library-books" size={20} color={COLORS.navy} />
+              <Text style={styles.booksText}>Books</Text>
+            </Pressable>
+          ) : null}
+        </View>
       </View>
       <Text style={styles.description}>{description}</Text>
     </View>
@@ -85,22 +112,57 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     fontFamily: fonts.regular,
   },
-  booksButton: {
-    minHeight: 38,
+  actions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  iconButton: {
+    width: 44,
+    height: 44,
     borderRadius: 999,
     borderWidth: 1,
     borderColor: APP_COLORS.borderSoft,
     backgroundColor: APP_COLORS.white,
-    paddingHorizontal: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  booksButton: {
+    minHeight: 44,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: APP_COLORS.borderSoft,
+    backgroundColor: APP_COLORS.white,
+    paddingHorizontal: 14,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
   },
-  booksButtonPressed: {
-    opacity: 0.72,
+  headerButtonPressed: {
+    opacity: 0.78,
+    transform: [{ scale: 0.98 }],
+  },
+  badge: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    minWidth: 20,
+    height: 20,
+    borderRadius: 999,
+    backgroundColor: COLORS.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 5,
+  },
+  badgeText: {
+    color: APP_COLORS.white,
+    fontSize: 10,
+    lineHeight: 12,
+    fontWeight: '900',
+    fontFamily: fonts.regular,
   },
   booksText: {
-    color: COLORS.primary,
+    color: COLORS.navy,
     fontSize: 12,
     lineHeight: 14,
     fontWeight: '800',
