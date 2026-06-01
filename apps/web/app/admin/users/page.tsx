@@ -1,5 +1,4 @@
 import { AdminShell } from "../admin-shell";
-import { adminUsers } from "../admin-demo-data";
 import { adminFetch } from "../components/admin-fetch";
 import { UsersManagementView } from "./users-management-view";
 
@@ -10,10 +9,8 @@ type AdminUser = {
   email: string;
   f_name?: string;
   l_name?: string;
-  name?: string;
   role: string;
   is_active?: boolean;
-  status?: string;
   created_at: string;
   uploaded_documents?: number;
   verification_attempts?: number;
@@ -24,13 +21,15 @@ type UsersData = { users: AdminUser[]; total: number };
 
 async function getUsers(): Promise<UsersData> {
   if (useMock) {
+    const { adminUsers } = await import("../admin-demo-data");
     return {
       users: adminUsers.map((u) => ({
         id: u.id,
-        name: u.name,
+        f_name: u.name.split(" ")[0] ?? "",
+        l_name: u.name.split(" ").slice(1).join(" "),
         email: u.email,
         role: u.role,
-        status: u.status,
+        is_active: u.status === "active",
         created_at: u.created_at,
         uploaded_documents: u.uploaded_documents,
         verification_attempts: u.verification_attempts,
