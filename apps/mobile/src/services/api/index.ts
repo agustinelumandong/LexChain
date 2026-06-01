@@ -30,6 +30,9 @@ export type {
   ListBooksParams,
 } from './books.api';
 export type {
+  MFALoginVerifyPayload,
+  MFASetupResponse,
+  MFAVerifyPayload,
   MessageResponse,
   ResendVerificationPayload,
   SignInPayload,
@@ -51,10 +54,13 @@ export type {
   RenameDocumentResponse,
   SearchHit,
   SearchResponse,
+  AskChatMessage,
   AskCitation,
+  AskRequest,
   AskResponse,
   AuditLogResponse,
   AddPartyRequest,
+  DocumentInvitationResponse,
   DocumentPartyListResponse,
   DocumentPartyResponse,
   RemovePartyResponse,
