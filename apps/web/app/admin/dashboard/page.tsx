@@ -1,9 +1,4 @@
 import { AdminShell } from "../admin-shell";
-import {
-  PipelineBarChart,
-  StatusDonutChart,
-  ThroughputAreaChart,
-} from "../components/charts";
 import { adminFetch } from "../components/admin-fetch";
 import { PageHeader } from "../components/page-header";
 import { StatCardData } from "../components/stat-card";
