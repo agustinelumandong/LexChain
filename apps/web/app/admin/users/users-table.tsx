@@ -12,10 +12,8 @@ type AdminUser = {
   email: string;
   f_name?: string;
   l_name?: string;
-  name?: string;
   role: string;
   is_active?: boolean;
-  status?: string;
   created_at: string;
 };
 
@@ -38,7 +36,7 @@ function getRoleBadgeClass(role: string) {
 }
 
 function getUserStatus(user: AdminUser) {
-  return user.is_active ?? user.status === "active";
+  return user.is_active !== false;
 }
 
 function ActionsMenu({ userId }: { userId: string }) {
@@ -91,7 +89,7 @@ export function UsersTable({ users }: { users: AdminUser[] }) {
 
   const filtered = users
     .filter((user) => {
-      const name = (user.name ?? `${user.f_name ?? ""} ${user.l_name ?? ""}`.trim()).toLowerCase();
+      const name = `${user.f_name ?? ""} ${user.l_name ?? ""}`.trim().toLowerCase();
       const matchesSearch = name.includes(search.toLowerCase()) || user.email.toLowerCase().includes(search.toLowerCase());
       const matchesRole = roleFilter === "all" || formatRole(user.role) === roleFilter;
       const matchesStatus = statusFilter === "all" || (statusFilter === "active" ? getUserStatus(user) : !getUserStatus(user));
@@ -144,7 +142,7 @@ export function UsersTable({ users }: { users: AdminUser[] }) {
       </div>
       <Table
         columns={[
-          { key: "name", label: "Name", render: (user) => <span className="font-semibold text-[#0C2B49]">{user.name ?? `${user.f_name ?? ""} ${user.l_name ?? ""}`.trim()}</span> },
+          { key: "name", label: "Name", render: (user) => <span className="font-semibold text-[#0C2B49]">{`${user.f_name ?? ""} ${user.l_name ?? ""}`.trim() || user.email}</span> },
           { key: "email", label: "Email", render: (user) => <span className="text-[#64748b]">{user.email}</span> },
           { key: "role", label: "Role", render: (user) => <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${getRoleBadgeClass(user.role)}`}>{formatRole(user.role)}</span> },
           { key: "status", label: "Status", render: (user) => <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${getUserStatus(user) ? "bg-green-50 text-green-700" : "bg-red-50 text-red-600"}`}>{getUserStatus(user) ? "Active" : "Inactive"}</span> },

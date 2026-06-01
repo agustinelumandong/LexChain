@@ -107,3 +107,9 @@ openapi.json
 .playwright-mcp
 
 *.drawio
+*.md
+*.py
+*.pyc
+*.txt
+*.code-workspace
+*.md

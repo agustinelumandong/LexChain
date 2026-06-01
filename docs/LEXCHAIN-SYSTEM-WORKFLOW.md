@@ -449,19 +449,20 @@ Can monitor:
 - system settings
 ```
 
-The frontend uses the label:
+The user position roles are:
 
 ```txt
-super_admin
+user
+lawyer
 ```
 
-The backend may use:
+The privileged system role is:
 
 ```txt
 admin
 ```
 
-The UI should keep the user-facing label as `super_admin` where appropriate.
+Do not treat `admin` as a normal user position. Use it only for admin-console/system privileges.
 
 ## 6. Main Workflow Overview
 

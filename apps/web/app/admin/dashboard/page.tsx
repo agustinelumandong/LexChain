@@ -1,5 +1,4 @@
 import { AdminShell } from "../admin-shell";
-import { adminStats, adminUsers } from "../admin-demo-data";
 import { adminFetch } from "../components/admin-fetch";
 import { PageHeader } from "../components/page-header";
 import { StatCardData } from "../components/stat-card";
@@ -343,6 +342,7 @@ function ProcessingSummary({ data, className = "" }: { data: DashboardData; clas
 
 async function getDashboard(): Promise<DashboardData> {
   if (useMock) {
+    const { adminStats } = await import("../admin-demo-data");
     return {
       total_users: adminStats.total_users,
       total_lawyers: adminStats.total_lawyers,
@@ -358,6 +358,7 @@ async function getDashboard(): Promise<DashboardData> {
 
 async function getRecentUsers(): Promise<RecentUser[]> {
   if (useMock) {
+    const { adminUsers } = await import("../admin-demo-data");
     return adminUsers
       .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
       .slice(0, 4)
@@ -365,13 +366,13 @@ async function getRecentUsers(): Promise<RecentUser[]> {
   }
 
   try {
-    const { users } = await adminFetch<{ users: Array<{ id: string; name?: string; f_name?: string; l_name?: string; email: string; role: string; created_at: string }> }>("/admin/users");
+    const { users } = await adminFetch<{ users: Array<{ id: string; f_name?: string; l_name?: string; email: string; role: string; created_at: string }> }>("/admin/users");
     return users
       .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
       .slice(0, 4)
       .map((u) => ({
         id: u.id,
-        name: u.name ?? `${u.f_name ?? ""} ${u.l_name ?? ""}`.trim(),
+        name: `${u.f_name ?? ""} ${u.l_name ?? ""}`.trim() || u.email,
         email: u.email,
         role: u.role,
         created_at: u.created_at,
