@@ -38,6 +38,20 @@ function getAssignedRoleLabel(value: 'participant' | 'owner' | 'lawyer') {
   return 'Witness/Participant';
 }
 
+function formatPartyRoleLabel(value: string) {
+  const normalizedRole = value.trim().toLowerCase();
+
+  if (normalizedRole === 'issuer') {
+    return 'Owner';
+  }
+
+  if (!normalizedRole) {
+    return 'Viewer';
+  }
+
+  return normalizedRole.replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
 function getDisplayName(user: {
   f_name?: string | null;
   l_name?: string | null;
@@ -76,7 +90,7 @@ export function mapPartiesToWhitelistData(
   return {
     grants: parties.map((party) => {
       const assignedAs = getAssignedRole(party.role);
-      const roleLabel = getAssignedRoleLabel(assignedAs);
+      const roleLabel = formatPartyRoleLabel(party.role);
 
       return {
         id: party.user_id ?? party.id,
@@ -84,7 +98,7 @@ export function mapPartiesToWhitelistData(
         email: party.email,
         assignedAs,
         accessLabel: roleLabel,
-        actionLabel: roleLabel || 'View',
+        actionLabel: getAssignedRoleLabel(assignedAs),
       };
     }),
     searchResults,

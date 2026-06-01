@@ -244,11 +244,17 @@ export default function DocumentDetailsScreen() {
             isLoading={documentQuery.isLoading}
             isNotarizing={notarizeMutation.isPending}
             isViewer={isViewer}
-            partyNames={whitelistData.grants.map((grant) => grant.name)}
+            grants={whitelistData.grants}
             riskSections={riskSections}
             versionHistory={versionHistory}
-            auditLogCount={auditLogsQuery.data?.length}
-            onPressAuditTrail={() => sheets.setIsAuditSheetVisible(true)}
+            auditLogs={auditLogsQuery.data ?? []}
+            onPressAuditTrail={() => {
+              router.push({
+                pathname: '/document/audit-trail',
+                params: { documentId, title: document?.file_name ?? 'Audit trail' },
+              });
+            }}
+            onPressBlockchainStatus={() => router.push(`/verify/${documentId}`)}
             onPressManageWhitelist={() => sheets.setIsWhitelistSheetVisible(true)}
             onPressNotarize={() => sheets.setIsAnchorConfirmSheetVisible(true)}
             onPressPdf={() => {
@@ -266,8 +272,17 @@ export default function DocumentDetailsScreen() {
                 },
               });
             }}
-            onPressSearch={() => sheets.setIsSearchSheetVisible(true)}
             onPressVersion={handleOpenVersion}
+            onPressVersionHistory={() => {
+              router.push({
+                pathname: '/document/version-history',
+                params: {
+                  documentId,
+                  role: currentDocumentRole,
+                  title: document?.file_name ?? 'Version history',
+                },
+              });
+            }}
             onRetry={() => {
               void documentQuery.refetch();
             }}
@@ -301,25 +316,17 @@ export default function DocumentDetailsScreen() {
         askErrorMessage={
           qaMutation.isError ? parseApiError(qaMutation.error).message : undefined
         }
-        auditErrorMessage={
-          auditLogsQuery.error ? parseApiError(auditLogsQuery.error).message : undefined
-        }
-        auditLogs={auditLogsQuery.data ?? []}
         currentName={document?.file_name ?? ''}
-        documentId={documentId}
         documentTitle={document?.file_name ?? 'this document'}
         isAddPartyPending={addPartyMutation.isPending}
         isAnchorConfirmLoading={notarizeMutation.isPending}
         isAnchorConfirmSheetVisible={sheets.isAnchorConfirmSheetVisible}
         isAskLoading={qaMutation.isPending}
-        isAuditLoading={auditLogsQuery.isLoading}
-        isAuditSheetVisible={sheets.isAuditSheetVisible}
         isAskSheetVisible={canUseDocumentAssistant && sheets.isAskSheetVisible}
         isPartiesLoading={partiesQuery.isLoading}
         isRemovePartyPending={removePartyMutation.isPending}
         isRenameLoading={renameMutation.isPending}
         isRenameSheetVisible={sheets.isRenameSheetVisible}
-        isSearchSheetVisible={sheets.isSearchSheetVisible}
         isUserSearchFetching={userSearchQuery.isFetching}
         isWhitelistSheetVisible={sheets.isWhitelistSheetVisible}
         searchQuery={sheets.whitelistSearchQuery}
@@ -327,10 +334,8 @@ export default function DocumentDetailsScreen() {
         onAsk={handleAsk}
         onChangeSearchQuery={sheets.setWhitelistSearchQuery}
         onCloseAnchorConfirm={() => sheets.setIsAnchorConfirmSheetVisible(false)}
-        onCloseAudit={() => sheets.setIsAuditSheetVisible(false)}
         onCloseAsk={() => sheets.setIsAskSheetVisible(false)}
         onCloseRename={() => sheets.setIsRenameSheetVisible(false)}
-        onCloseSearch={() => sheets.setIsSearchSheetVisible(false)}
         onCloseWhitelist={() => {
           sheets.setIsWhitelistSheetVisible(false);
           sheets.setWhitelistSearchQuery('');
@@ -338,12 +343,6 @@ export default function DocumentDetailsScreen() {
         onPressAddResult={handleAddWhitelistResult}
         onPressConfirmAnchor={handleNotarize}
         onPressRevoke={handleRevokeWhitelistGrant}
-        onPressSearchMatch={(chunkId) => {
-          toast(`Section: ${chunkId}`);
-        }}
-        onRetryAudit={() => {
-          void auditLogsQuery.refetch();
-        }}
         onRename={handleRename}
       />
     </SafeAreaView>

@@ -5,8 +5,6 @@ import { useCloseSheetOnBack } from '@/hooks';
 export function useDocumentDetailsSheets() {
   const [isRenameSheetVisible, setIsRenameSheetVisible] = useState(false);
   const [isAskSheetVisible, setIsAskSheetVisible] = useState(false);
-  const [isSearchSheetVisible, setIsSearchSheetVisible] = useState(false);
-  const [isAuditSheetVisible, setIsAuditSheetVisible] = useState(false);
   const [isAnchorConfirmSheetVisible, setIsAnchorConfirmSheetVisible] = useState(false);
   const [isWhitelistSheetVisible, setIsWhitelistSheetVisible] = useState(false);
   const [whitelistSearchQuery, setWhitelistSearchQuery] = useState('');
@@ -14,24 +12,12 @@ export function useDocumentDetailsSheets() {
   const isAnySheetVisible =
     isRenameSheetVisible ||
     isAskSheetVisible ||
-    isSearchSheetVisible ||
-    isAuditSheetVisible ||
     isAnchorConfirmSheetVisible ||
     isWhitelistSheetVisible;
 
   const closeVisibleSheet = useCallback(() => {
     if (isAskSheetVisible) {
       setIsAskSheetVisible(false);
-      return;
-    }
-
-    if (isSearchSheetVisible) {
-      setIsSearchSheetVisible(false);
-      return;
-    }
-
-    if (isAuditSheetVisible) {
-      setIsAuditSheetVisible(false);
       return;
     }
 
@@ -52,9 +38,7 @@ export function useDocumentDetailsSheets() {
   }, [
     isAskSheetVisible,
     isAnchorConfirmSheetVisible,
-    isAuditSheetVisible,
     isRenameSheetVisible,
-    isSearchSheetVisible,
     isWhitelistSheetVisible,
   ]);
 
@@ -63,15 +47,11 @@ export function useDocumentDetailsSheets() {
   return {
     isRenameSheetVisible,
     isAskSheetVisible,
-    isSearchSheetVisible,
-    isAuditSheetVisible,
     isAnchorConfirmSheetVisible,
     isWhitelistSheetVisible,
     whitelistSearchQuery,
     setIsRenameSheetVisible,
     setIsAskSheetVisible,
-    setIsSearchSheetVisible,
-    setIsAuditSheetVisible,
     setIsAnchorConfirmSheetVisible,
     setIsWhitelistSheetVisible,
     setWhitelistSearchQuery,

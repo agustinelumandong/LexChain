@@ -7,8 +7,8 @@ type DocumentDetailsActionsProps = {
   isAnchored: boolean;
   isNotarizing: boolean;
   isViewer: boolean;
+  onPressBlockchainStatus: () => void;
   onPressPdf: () => void;
-  onPressSearch: () => void;
   onPressNotarize: () => void;
 };
 
@@ -17,8 +17,8 @@ export function DocumentDetailsActions({
   isAnchored,
   isNotarizing,
   isViewer,
+  onPressBlockchainStatus,
   onPressPdf,
-  onPressSearch,
   onPressNotarize,
 }: DocumentDetailsActionsProps) {
   return (
@@ -32,12 +32,12 @@ export function DocumentDetailsActions({
         onPress={onPressPdf}
       />
       <Button
-        label="Search within document"
+        label="Blockchain Status"
         variant="secondary"
         size="sm"
-        leftIconName="search"
+        leftIconName="account-balance"
         style={styles.actionButton}
-        onPress={onPressSearch}
+        onPress={onPressBlockchainStatus}
       />
       {!isViewer && !isAnchored && (
         <Button
