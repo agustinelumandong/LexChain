@@ -1,8 +1,8 @@
 # PROJECT KNOWLEDGE BASE — LexChain
 
-**Generated:** 2026-05-17
-**Commit:** f149e9f
-**Branch:** feat/monorepo-restructuring
+**Generated:** 2026-05-19
+**Commit:** 5714b5e
+**Branch:** lexchain-web/dev
 **Monorepo:** pnpm workspaces | 2 apps + 3 packages
 
 ## OVERVIEW
@@ -13,16 +13,39 @@ LexChain is a document verification platform with ECC cryptography. Monorepo wit
 
 ```
 LexChain/
+├── .agents/              # Root agent support docs/config
+├── .claude/              # Claude-side plans and notes
+├── .codex/               # Codex-side workspace config
 ├── apps/
 │   ├── mobile/           # Expo RN app (React Native 0.81, SDK 54) — see apps/mobile/AGENTS.md
+│   │   ├── app/          # Expo Router routes: auth, tabs, document, profile, upload/camera, verify
+│   │   ├── src/          # features, services, shared components/hooks/theme/utils, tw, types
+│   │   ├── assets/       # Mobile images/icons
+│   │   ├── docs/         # Mobile integration notes, TODOs, Expo LLM docs
+│   │   ├── android/      # Native Android project
+│   │   ├── ios/          # Native iOS project
+│   │   ├── scripts/      # Mobile helper scripts
+│   │   ├── graphify-out/ # Local graphify cache/chunks
+│   │   ├── dist*/        # Generated local build/check output; do not treat as source
+│   │   ├── app.json      # Expo app config
+│   │   ├── eas.json      # EAS build config
+│   │   └── package.json  # @lexchain/mobile scripts/dependencies
 │   └── web/              # Next.js 16 app — see apps/web/AGENTS.md
+│       ├── app/          # App Router: landing, admin, verifier, invite, download, terms/privacy, API routes
+│       ├── lib/          # Web API helpers and schemas
+│       ├── public/       # Static web assets, including public/lexchain brand assets
+│       ├── proxy.ts      # Next proxy/middleware entrypoint
+│       ├── next.config.ts
+│       └── package.json  # @lexchain/web scripts/dependencies
 ├── packages/
-│   ├── types/            # @lexchain/types — OpenAPI-generated types + exports
-│   ├── api/              # @lexchain/api — shared API client utilities
-│   └── config/           # @lexchain/config — shared configuration
+│   ├── types/            # @lexchain/types — src/index.ts exports generated/shared types
+│   ├── api/              # @lexchain/api — src/index.ts shared API utilities
+│   └── config/           # @lexchain/config — src/index.ts shared configuration
 ├── docs/                 # System docs: architecture, workflow, audit reports
+├── todo-with-web.md      # Root planning/TODO note for web work
 ├── openapi-updated.json  # Backend API contract (OpenAPI 3.x)
 ├── pnpm-workspace.yaml   # Workspace definition
+├── pnpm-lock.yaml        # pnpm lockfile
 └── package.json          # Root scripts: pnpm -r, filter commands
 ```
 
@@ -33,22 +56,35 @@ LexChain/
 | Mobile app guidance | `apps/mobile/AGENTS.md` | 925 lines — Expo conventions, anti-patterns, god nodes |
 | Web app guidance | `apps/web/AGENTS.md` | Next.js 16 routes, API handlers, env |
 | Type generation | `packages/types/` | `pnpm run generate:api-types` → `openapi-typescript` |
+| Root API contract | `openapi-updated.json` | Backend OpenAPI 3.x contract used by shared types |
 | System architecture | `docs/LEXCHAIN-SYSTEM-UNDERSTANDING.md` | High-level system doc |
 | Workflow docs | `docs/LEXCHAIN-SYSTEM-WORKFLOW.md`, `docs/LEXCHAIN-WORKFLOW-FLOWCHARTS.md` | Process flows |
 | Mobile audit | `docs/LEXCHAIN-MOBILE-MAINTAINABILITY-AUDIT.md` | Code quality report |
-| CI workflow | `.github/workflows/react-doctor.yml` | React health checks |
+| Web admin pages | `apps/web/app/admin/` | Dashboard, users, invitations/permissions, logs, categories, settings |
+| Web API handlers | `apps/web/app/api/` | Route handlers for admin/public proxying |
+| Web helpers | `apps/web/lib/` | Admin/public verifier API helpers and schemas |
+| Mobile feature code | `apps/mobile/src/features/` | Auth, dashboard, document, documents, onboarding, profile, upload, verification |
+| Mobile API/query layer | `apps/mobile/src/services/` | API modules, mocks, React Query hooks, query keys |
+| Mobile shared layer | `apps/mobile/src/shared/` | UI primitives, hooks, providers, config, theme, utils |
+| Mobile native projects | `apps/mobile/android/`, `apps/mobile/ios/` | Generated/native project files; change only when native config requires it |
 
 ## CROSS-APP BOUNDARIES
 
 | Responsibility | Owner | Notes |
 |----------------|-------|-------|
 | Public document verifier (browser) | `apps/web/app/verify/` | Next.js owns this route |
+| Public verification API proxy | `apps/web/app/api/public/verify/` | Next.js route handler proxies browser upload/verify work |
 | Admin panel | `apps/web/app/admin/` | Next.js only — mobile must NOT import admin screens |
+| Admin API proxy/routes | `apps/web/app/api/admin/` | Next.js route handlers for admin backend calls |
+| Invite/download/legal pages | `apps/web/app/invite/`, `apps/web/app/download/`, `apps/web/app/terms/`, `apps/web/app/privacy/` | Next.js owns browser fallback/support pages |
 | Landing/marketing page | `apps/web/app/page.tsx` | Next.js owns |
 | Mobile-native upload/camera | `apps/mobile/app/upload.tsx`, `camera-capture.tsx` | Expo owns |
 | Mobile-native document detail | `apps/mobile/app/document/[id].tsx` | Expo owns |
+| Mobile-native profile/account screens | `apps/mobile/app/profile/`, `apps/mobile/src/features/profile/` | Expo owns |
+| Mobile-native document verification | `apps/mobile/app/verify/[id].tsx`, `apps/mobile/src/features/verification/` | Expo owns internal/native verification |
 | Shared types | `packages/types/` | Generated from `openapi-updated.json` |
 | Shared API client | `packages/api/` | Used by both apps |
+| Shared config | `packages/config/` | Used by workspace packages/apps |
 
 ## CONVENTIONS
 
@@ -77,9 +113,9 @@ pnpm run web:build              # Build web for production
 pnpm run generate:api-types     # Regenerate types from OpenAPI spec
 
 # Per-workspace
-pnpm --filter mobile lint       # Mobile ESLint
-pnpm --filter web lint          # Web ESLint
-pnpm --filter web build         # Web production build
+pnpm --filter @lexchain/mobile lint       # Mobile ESLint
+pnpm --filter @lexchain/web lint          # Web ESLint
+pnpm --filter @lexchain/web build         # Web production build
 pnpm --filter @lexchain/types generate  # Regenerate schema.ts
 ```
 

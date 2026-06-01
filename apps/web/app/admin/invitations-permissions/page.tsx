@@ -1,5 +1,4 @@
 import { AdminShell } from "../admin-shell";
-import { adminInvitations } from "../admin-demo-data";
 import { adminFetch } from "../components/admin-fetch";
 import { InvitationsManagementView } from "./invitations-management-view";
 
@@ -13,15 +12,13 @@ type Invitation = {
   expires_at: string;
   created_at: string;
   magic_link?: string | null;
-  organization?: string;
-  permission_type?: string;
-  document_name?: string;
 };
 
 type InvitationsData = { invitations: Invitation[] };
 
 async function getInvitations(): Promise<InvitationsData> {
   if (useMock) {
+    const { adminInvitations } = await import("../admin-demo-data");
     return {
       invitations: adminInvitations.map((inv, i) => ({
         id: `demo-${i}`,
@@ -31,9 +28,6 @@ async function getInvitations(): Promise<InvitationsData> {
         expires_at: inv.sent_at,
         created_at: inv.sent_at,
         magic_link: null,
-        organization: inv.issuer,
-        permission_type: inv.permission_type,
-        document_name: inv.document_name,
       })),
     };
   }
@@ -45,7 +39,7 @@ export default async function AdminInvitationsPermissionsPage() {
 
   return (
     <AdminShell activeHref="/admin/invitations-permissions">
-      <InvitationsManagementView invitations={data.invitations} />
+      <InvitationsManagementView invitations={data.invitations} mockMode={useMock} />
     </AdminShell>
   );
 }

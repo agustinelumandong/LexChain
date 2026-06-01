@@ -1,0 +1,98 @@
+'use client';
+import { useState, useRef, useEffect } from 'react';
+import ChatIcon from '@mui/icons-material/Chat';
+import CloseIcon from '@mui/icons-material/Close';
+import SendIcon from '@mui/icons-material/Send';
+
+const mockResponses = [
+  'Based on the document, the contract term is 12 months with automatic renewal.',
+  'The key parties involved are LexChain Corp and Acme Inc.',
+  'There are 2 risk flags identified: auto-renewal without notice and unlimited liability.',
+  'The monthly payment obligation is $5,000 due by the 15th of each month.',
+];
+
+type Message = { from: 'bot' | 'user'; text: string };
+
+export default function PortalChatbot() {
+  const [open, setOpen] = useState(false);
+  const [messages, setMessages] = useState<Message[]>([
+    { from: 'bot', text: 'Hi! Ask me anything about this document.' },
+  ]);
+  const [input, setInput] = useState('');
+  const bottomRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  const send = () => {
+    const text = input.trim();
+    if (!text) return;
+    setMessages((m) => [...m, { from: 'user', text }]);
+    setInput('');
+    setTimeout(() => {
+      setMessages((m) => [
+        ...m,
+        { from: 'bot', text: mockResponses[Math.floor(Math.random() * mockResponses.length)] },
+      ]);
+    }, 1000);
+  };
+
+  if (!open) {
+    return (
+      <button
+        onClick={() => setOpen(true)}
+        className="fixed bottom-24 right-4 z-50 w-14 h-14 flex items-center justify-center rounded-full bg-[#1689F5] text-white shadow-[0_8px_20px_rgba(22,137,245,0.2)] hover:opacity-90 transition-opacity cursor-pointer"
+      >
+        <ChatIcon />
+      </button>
+    );
+  }
+
+  return (
+    <div className="fixed bottom-24 right-4 left-4 sm:left-auto sm:right-4 z-50 sm:w-[360px] h-[480px] flex flex-col bg-white rounded-[18px] border border-[var(--portal-border-soft)] shadow-[0_10px_40px_rgba(19,59,115,0.12)]">
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--portal-border-soft)]">
+        <span className="font-bold text-[var(--portal-navy)]">Ask Document</span>
+        <button onClick={() => setOpen(false)} className="text-[var(--portal-navy)] opacity-60 hover:opacity-100">
+          <CloseIcon fontSize="small" />
+        </button>
+      </div>
+
+      {/* Messages */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-3">
+        {messages.map((msg, i) => (
+          <div key={i} className={msg.from === 'user' ? 'flex justify-end' : 'flex justify-start'}>
+            <div
+              className={
+                msg.from === 'user'
+                  ? 'bg-[#1689F5] text-white rounded-[14px] rounded-br-sm p-3 text-sm max-w-[80%]'
+                  : 'bg-[#EAF4FF] text-[var(--portal-navy)] rounded-[14px] rounded-bl-sm p-3 text-sm max-w-[80%]'
+              }
+            >
+              {msg.text}
+            </div>
+          </div>
+        ))}
+        <div ref={bottomRef} />
+      </div>
+
+      {/* Input */}
+      <div className="flex items-center gap-2 px-4 py-3 border-t border-[var(--portal-border-soft)]">
+        <input
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && send()}
+          placeholder="Type a question..."
+          className="flex-1 rounded-full border border-[var(--portal-border-soft)] px-4 py-2.5 text-sm outline-none"
+        />
+        <button
+          onClick={send}
+          className="w-9 h-9 flex items-center justify-center rounded-full bg-[#1689F5] text-white"
+        >
+          <SendIcon fontSize="small" />
+        </button>
+      </div>
+    </div>
+  );
+}
