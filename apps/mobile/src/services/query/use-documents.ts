@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import {
+  type AskChatMessage,
   documentsApi,
   type AddPartyRequest,
   type AskResponse,
@@ -115,9 +116,43 @@ export function useAskDocument() {
   return useMutation<
     AskResponse,
     Error,
-    { documentId: string; question: string }
+    { documentId: string; question: string; history?: AskChatMessage[] }
   >({
-    mutationFn: ({ documentId, question }) => documentsApi.ask(documentId, question),
+    mutationFn: ({ documentId, question, history }) =>
+      documentsApi.ask(documentId, question, history),
+  });
+}
+
+export function usePendingDocumentInvitations() {
+  return useQuery({
+    queryKey: queryKeys.documents.invitations,
+    queryFn: documentsApi.getPendingInvitations,
+  });
+}
+
+export function useAcceptDocumentInvitation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ documentId }: { documentId: string }) =>
+      documentsApi.acceptInvitation(documentId),
+    onSuccess: (_, { documentId }) => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.documents.invitations });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.documents.detail(documentId) });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.documents.all });
+    },
+  });
+}
+
+export function useRejectDocumentInvitation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ documentId }: { documentId: string }) =>
+      documentsApi.rejectInvitation(documentId),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.documents.invitations });
+    },
   });
 }
 

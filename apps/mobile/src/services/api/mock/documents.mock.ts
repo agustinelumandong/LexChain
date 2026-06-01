@@ -17,10 +17,12 @@ import {
 } from './data/search';
 
 import type {
+  AskRequest,
   AskResponse,
   AddPartyRequest,
   AuditLogResponse,
   DocumentDetail,
+  DocumentInvitationResponse,
   DocumentListItem,
   DocumentPartyListResponse,
   DocumentPartyResponse,
@@ -43,6 +45,17 @@ let mockDocumentDetails: Record<string, DocumentDetail> = {
   [MOCK_DOCUMENT_DETAIL_VERSION_2.document_id]: MOCK_DOCUMENT_DETAIL_VERSION_2,
   [MOCK_DOCUMENT_DETAIL_PROCESSING.document_id]: MOCK_DOCUMENT_DETAIL_PROCESSING,
 };
+
+let mockDocumentInvitations: DocumentInvitationResponse[] = [
+  {
+    id: 'mock-party-invite-1',
+    document_id: '550e8400-e29b-41d4-a716-446655440002',
+    document_title: 'Lease Agreement - Rivera Holdings.pdf',
+    role: 'viewer',
+    status: 'pending',
+    created_at: '2026-05-31T08:00:00.000Z',
+  },
+];
 
 function buildFallbackDocumentDetail(documentId: string): DocumentDetail {
   const listItem = mockDocumentList.find((document) => document.id === documentId);
@@ -307,13 +320,15 @@ export const mockDocumentsApi = {
     };
   },
 
-  async ask(documentId: string, question: string): Promise<AskResponse> {
+  async ask(documentId: string, payload: AskRequest): Promise<AskResponse> {
     await mockDelay();
 
     return {
-      question,
+      question: payload.question,
       answer:
-        'Mock answer: this document looks like a legal or administrative record with extracted summary, entities, and searchable text. Backend Q&A can replace this when the FastAPI service is online.',
+        payload.history.length > 0
+          ? 'Mock answer: using your previous chat context, this document still looks like a legal or administrative record with extracted summary, entities, and searchable text.'
+          : 'Mock answer: this document looks like a legal or administrative record with extracted summary, entities, and searchable text. Backend Q&A can replace this when the FastAPI service is online.',
       model: 'mock-local',
       citations: [
         {
@@ -322,6 +337,40 @@ export const mockDocumentsApi = {
           score: 0.98,
         },
       ],
+    };
+  },
+
+  async getPendingInvitations(): Promise<DocumentInvitationResponse[]> {
+    await mockDelay();
+
+    return mockDocumentInvitations;
+  },
+
+  async acceptInvitation(documentId: string): Promise<Record<string, unknown>> {
+    await mockDelay();
+
+    mockDocumentInvitations = mockDocumentInvitations.filter(
+      (invitation) => invitation.document_id !== documentId,
+    );
+
+    return {
+      document_id: documentId,
+      status: 'accepted',
+      message: 'Mock invitation accepted',
+    };
+  },
+
+  async rejectInvitation(documentId: string): Promise<Record<string, unknown>> {
+    await mockDelay();
+
+    mockDocumentInvitations = mockDocumentInvitations.filter(
+      (invitation) => invitation.document_id !== documentId,
+    );
+
+    return {
+      document_id: documentId,
+      status: 'rejected',
+      message: 'Mock invitation rejected',
     };
   },
 
@@ -347,6 +396,7 @@ export const mockDocumentsApi = {
       f_name: 'Invited',
       l_name: 'User',
       role: payload.role ?? 'viewer',
+      status: 'pending',
       created_at: new Date().toISOString(),
     };
   },

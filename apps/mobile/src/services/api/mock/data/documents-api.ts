@@ -211,6 +211,7 @@ export const MOCK_DOCUMENT_PARTIES_RESPONSE: DocumentPartyListResponse = {
     f_name: 'DepEd',
     l_name: 'Records',
     role: 'issuer',
+    status: 'accepted',
     created_at: '2026-05-08T18:03:03.282234Z',
   },
   parties: [
@@ -221,6 +222,7 @@ export const MOCK_DOCUMENT_PARTIES_RESPONSE: DocumentPartyListResponse = {
       f_name: 'Demo',
       l_name: 'Viewer',
       role: 'viewer',
+      status: 'accepted',
       created_at: '2026-05-09T10:00:00Z',
     },
   ],
