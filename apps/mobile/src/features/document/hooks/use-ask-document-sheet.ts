@@ -8,6 +8,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import type { AskDocumentChatMessage } from '../types/ask-document.types';
+import type { AskChatMessage } from '@/services/api';
 
 type UseAskDocumentSheetParams = {
   visible: boolean;
@@ -15,7 +16,7 @@ type UseAskDocumentSheetParams = {
   isLoading?: boolean;
   errorMessage?: string;
   onClose: () => void;
-  onAsk: (question: string) => void;
+  onAsk: (question: string, history: AskChatMessage[]) => void;
 };
 
 const WELCOME_MESSAGE: AskDocumentChatMessage = {
@@ -77,6 +78,13 @@ export function useAskDocumentSheet({
   }, []);
 
   const handleSubmitQuestion = useCallback((trimmedQuestion: string) => {
+    const history = messages
+      .filter((message) => message.id !== WELCOME_MESSAGE.id)
+      .map((message) => ({
+        role: message.role,
+        content: message.text,
+      }));
+
     setMessages((currentMessages) => [
       ...currentMessages,
       {
@@ -86,8 +94,8 @@ export function useAskDocumentSheet({
       },
     ]);
     scrollToLatestMessage();
-    onAsk(trimmedQuestion);
-  }, [onAsk, scrollToLatestMessage]);
+    onAsk(trimmedQuestion, history);
+  }, [messages, onAsk, scrollToLatestMessage]);
 
   useEffect(() => {
     if (visible) {
