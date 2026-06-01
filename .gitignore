@@ -112,3 +112,4 @@ openapi.json
 *.pyc
 *.txt
 *.code-workspace
+*.md
