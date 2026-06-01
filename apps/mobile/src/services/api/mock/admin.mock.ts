@@ -18,7 +18,7 @@ let mockInvitations: InvitationResponse[] = [
     status: 'pending',
     expires_at: '2026-05-21T00:00:00Z',
     created_at: '2026-05-14T00:00:00Z',
-    magic_link: 'https://lexchain.local/signup?token=mock-lawyer',
+    magic_link: 'https://lexchain.local/invite/mock-lawyer',
   },
 ];
 
@@ -71,14 +71,15 @@ export const mockAdminApi = {
   ): Promise<InvitationResponse> {
     await mockDelay();
 
+    const invitationId = `mock-invitation-${Date.now()}`;
     const invitation: InvitationResponse = {
-      id: `mock-invitation-${Date.now()}`,
+      id: invitationId,
       email: payload.email,
       role: payload.role ?? 'lawyer',
       status: 'pending',
       expires_at: '2026-05-21T00:00:00Z',
       created_at: new Date().toISOString(),
-      magic_link: `https://lexchain.local/signup?email=${encodeURIComponent(payload.email)}`,
+      magic_link: `https://lexchain.local/invite/${encodeURIComponent(invitationId)}`,
     };
 
     mockInvitations = [invitation, ...mockInvitations];
