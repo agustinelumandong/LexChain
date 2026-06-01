@@ -20,6 +20,7 @@ export function useNotarizeDocument() {
     onSuccess: (_, documentId) => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.blockchain.verify(documentId) });
       void queryClient.invalidateQueries({ queryKey: queryKeys.documents.detail(documentId) });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.documents.all });
     },
   });
 }

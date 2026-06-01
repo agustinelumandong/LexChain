@@ -836,6 +836,11 @@ export interface components {
              */
             status: string;
             /**
+             * On Chain
+             * @description Check if doc is on chain
+             */
+            on_chain: boolean;
+            /**
              * Created At
              * Format: date-time
              * @description When the document was uploaded

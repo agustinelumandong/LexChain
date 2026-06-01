@@ -5,6 +5,8 @@ import { useState } from 'react';
 
 import { ScreenHeader } from '@/ui';
 
+import { UploadBookBottomSheet } from '../components/form/upload-book-bottom-sheet';
+import { UploadBookSelector } from '../components/form/upload-book-selector';
 import { UploadDropzoneCard } from '../components/dropzone/upload-dropzone-card';
 import { UploadFooter } from '../components/form/upload-footer';
 import { UploadTitleField } from '../components/form/upload-title-field';
@@ -16,6 +18,7 @@ const HEADER_CONTENT_GAP = 12;
 export default function UploadScreen() {
   const router = useRouter();
   const [headerHeight, setHeaderHeight] = useState(126);
+  const [isBookSheetVisible, setIsBookSheetVisible] = useState(false);
   const upload = useUploadFlow();
 
   return (
@@ -24,10 +27,10 @@ export default function UploadScreen() {
         <ScreenHeader
           eyebrow="UPLOAD DOCUMENT"
           title="Upload document"
-          subtitle="Choose a PDF or scan pages into one PDF."
+          subtitle="Choose a PDF or scan documents into one PDF."
           leftAccessibilityLabel="Back"
           rightIconName="photo-camera"
-          rightAccessibilityLabel="Open camera scanner"
+          rightAccessibilityLabel="Scan document"
           onPressLeft={() => router.back()}
           onPressRight={upload.handleOpenCameraCapture}
           onHeightChange={setHeaderHeight}
@@ -42,7 +45,14 @@ export default function UploadScreen() {
         >
           <UploadTitleField
             value={upload.documentTitle}
-            onChangeText={upload.setDocumentTitle}
+            errorText={upload.documentTitleError}
+            onChangeText={upload.handleChangeDocumentTitle}
+          />
+
+          <UploadBookSelector
+            selectedBook={upload.selectedBook}
+            disabled={upload.isLoadingBooks}
+            onPress={() => setIsBookSheetVisible(true)}
           />
 
           <UploadDropzoneCard
@@ -50,7 +60,6 @@ export default function UploadScreen() {
             files={upload.pickedFiles}
             onChooseFile={upload.handleChooseFile}
             onPreviewFile={upload.handlePreviewFile}
-            onShareFile={upload.handleShareFile}
             onRemoveFile={upload.handleRemoveFile}
           />
         </ScrollView>
@@ -58,6 +67,8 @@ export default function UploadScreen() {
         <UploadFooter
           disabled={
             upload.pickedFiles.length === 0 ||
+            !upload.documentTitle.trim() ||
+            !upload.selectedBookId ||
             upload.isPreparingScanPdf ||
             upload.isUploadingDocument
           }
@@ -66,6 +77,22 @@ export default function UploadScreen() {
           onUpload={upload.handleContinueToProcessing}
         />
       </View>
+
+      <UploadBookBottomSheet
+        visible={isBookSheetVisible}
+        books={upload.books}
+        isLoading={upload.isLoadingBooks}
+        selectedBookId={upload.selectedBookId}
+        onClose={() => setIsBookSheetVisible(false)}
+        onCreateBook={() => {
+          setIsBookSheetVisible(false);
+          router.push('/books');
+        }}
+        onSelect={(bookId) => {
+          upload.setSelectedBookId(bookId);
+          setIsBookSheetVisible(false);
+        }}
+      />
     </SafeAreaView>
   );
 }
