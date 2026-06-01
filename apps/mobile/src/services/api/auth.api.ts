@@ -12,8 +12,14 @@ type ApiSchema<Name extends keyof components['schemas']> =
 export type SignInPayload = ApiSchema<'SignInRequest'>;
 
 export type SignInResponse = Omit<ApiSchema<'SignInResponse'>, 'user'> & {
-  user: SupabaseUser;
+  user?: SupabaseUser | null;
 };
+
+export type MFALoginVerifyPayload = ApiSchema<'MFALoginVerifyRequest'>;
+
+export type MFAVerifyPayload = ApiSchema<'MFAVerifyRequest'>;
+
+export type MFASetupResponse = ApiSchema<'MFASetupResponse'>;
 
 export type SignUpPayload = ApiSchema<'SignUpRequest'> & {
   token?: string;
@@ -48,5 +54,39 @@ export const authApi = {
     }
 
     return apiClient.post<MessageResponse>('/auth/resend-verification', payload, { auth: false });
+  },
+
+  setupMfa: () => {
+    if (env.useMockApi) {
+      return mockAuthApi.setupMfa();
+    }
+
+    return apiClient.post<MFASetupResponse>('/auth/mfa/setup');
+  },
+
+  enableMfa: (payload: MFAVerifyPayload) => {
+    if (env.useMockApi) {
+      return mockAuthApi.enableMfa(payload);
+    }
+
+    return apiClient.post<MessageResponse>('/auth/mfa/verify-enable', payload);
+  },
+
+  disableMfa: (payload: MFAVerifyPayload) => {
+    if (env.useMockApi) {
+      return mockAuthApi.disableMfa(payload);
+    }
+
+    return apiClient.post<MessageResponse>('/auth/mfa/disable', payload);
+  },
+
+  verifyMfaSignIn: (payload: MFALoginVerifyPayload) => {
+    if (env.useMockApi) {
+      return mockAuthApi.verifyMfaSignIn(payload);
+    }
+
+    return apiClient.post<SignInResponse>('/auth/mfa/verify-signin', payload, {
+      auth: false,
+    });
   },
 };
