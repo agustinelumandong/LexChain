@@ -1,26 +1,43 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { backendUrl } from '@/lib/admin-api';
 
-export async function POST(request: NextRequest) {
+async function handler(request: NextRequest, method: 'POST' | 'PATCH') {
   const token = request.cookies.get('portal_token')?.value;
   if (!token) return NextResponse.json({ message: 'Not authenticated' }, { status: 401 });
 
   const path = request.nextUrl.searchParams.get('path');
   if (!path) return NextResponse.json({ message: 'Missing path' }, { status: 400 });
 
-  const body = await request.text().catch(() => '');
+  const contentType = request.headers.get('content-type') ?? '';
+  let body: BodyInit | undefined;
+  const headers: Record<string, string> = {
+    Authorization: `Bearer ${token}`,
+    'ngrok-skip-browser-warning': 'true',
+  };
+
+  if (contentType.includes('multipart/form-data')) {
+    body = await request.blob();
+    headers['content-type'] = contentType;
+  } else {
+    const text = await request.text().catch(() => '');
+    if (text) {
+      body = text;
+      headers['content-type'] = 'application/json';
+    }
+  }
 
   const upstream = await fetch(backendUrl(path), {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
-      'ngrok-skip-browser-warning': 'true',
-    },
-    body: body || undefined,
+    method,
+    headers,
+    body,
     cache: 'no-store',
   });
+
+  if (upstream.status === 204) return new NextResponse(null, { status: 204 });
 
   const data = await upstream.json().catch(() => null);
   return NextResponse.json(data ?? {}, { status: upstream.status });
 }
+
+export const POST = (request: NextRequest) => handler(request, 'POST');
+export const PATCH = (request: NextRequest) => handler(request, 'PATCH');
