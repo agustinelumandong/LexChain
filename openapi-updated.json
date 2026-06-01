@@ -173,6 +173,169 @@
         }
       }
     },
+    "/auth/mfa/setup": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Initiate Google Authenticator MFA setup",
+        "description": "Generates a new TOTP secret key and provisioning URI for Google Authenticator setup.",
+        "operationId": "mfa_setup_auth_mfa_setup_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MFASetupResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer Token": []
+          }
+        ]
+      }
+    },
+    "/auth/mfa/verify-enable": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Verify code and enable MFA",
+        "description": "Validates a 6-digit TOTP code and activates MFA for the user.",
+        "operationId": "mfa_enable_auth_mfa_verify_enable_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MFAVerifyRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer Token": []
+          }
+        ]
+      }
+    },
+    "/auth/mfa/disable": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Disable MFA",
+        "description": "Validates a 6-digit TOTP code and deactivates MFA for the user.",
+        "operationId": "mfa_disable_auth_mfa_disable_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MFAVerifyRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer Token": []
+          }
+        ]
+      }
+    },
+    "/auth/mfa/verify-signin": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Complete sign-in by verifying MFA code",
+        "description": "Authenticates the user using a temporary MFA login token and a 6-digit TOTP code.",
+        "operationId": "mfa_verify_signin_auth_mfa_verify_signin_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MFALoginVerifyRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SignInResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/users/search": {
       "get": {
         "tags": [
@@ -297,8 +460,7 @@
             "schema": {
               "anyOf": [
                 {
-                  "type": "string",
-                  "format": "uuid"
+                  "type": "string"
                 },
                 {
                   "type": "null"
@@ -357,6 +519,40 @@
             }
           }
         }
+      }
+    },
+    "/documents/invitations": {
+      "get": {
+        "tags": [
+          "Documents"
+        ],
+        "summary": "List pending invitations",
+        "description": "Return all pending document collaboration invitations for the authenticated user.",
+        "operationId": "get_pending_invitations_documents_invitations_get",
+        "responses": {
+          "200": {
+            "description": "Invitations retrieved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/DocumentInvitationResponse"
+                  },
+                  "type": "array",
+                  "title": "Response Get Pending Invitations Documents Invitations Get"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated — missing or invalid bearer token"
+          }
+        },
+        "security": [
+          {
+            "Bearer Token": []
+          }
+        ]
       }
     },
     "/documents/{document_id}": {
@@ -870,6 +1066,120 @@
           },
           "404": {
             "description": "Document or party not found"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/documents/{document_id}/parties/accept": {
+      "post": {
+        "tags": [
+          "Documents"
+        ],
+        "summary": "Accept a document invitation",
+        "description": "Accept a pending collaboration invitation for the specified document.",
+        "operationId": "accept_document_invitation_documents__document_id__parties_accept_post",
+        "security": [
+          {
+            "Bearer Token": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "document_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Document Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Invitation accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Accept Document Invitation Documents  Document Id  Parties Accept Post"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated — missing or invalid bearer token"
+          },
+          "404": {
+            "description": "Pending invitation not found"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/documents/{document_id}/parties/reject": {
+      "post": {
+        "tags": [
+          "Documents"
+        ],
+        "summary": "Reject a document invitation",
+        "description": "Reject/decline a pending collaboration invitation for the specified document.",
+        "operationId": "reject_document_invitation_documents__document_id__parties_reject_post",
+        "security": [
+          {
+            "Bearer Token": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "document_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Document Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Invitation rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Reject Document Invitation Documents  Document Id  Parties Reject Post"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated — missing or invalid bearer token"
+          },
+          "404": {
+            "description": "Pending invitation not found"
           },
           "422": {
             "description": "Validation Error",
@@ -2051,6 +2361,14 @@
           "question": {
             "type": "string",
             "title": "Question"
+          },
+          "history": {
+            "items": {
+              "$ref": "#/components/schemas/ChatMessage"
+            },
+            "type": "array",
+            "title": "History",
+            "default": []
           }
         },
         "type": "object",
@@ -2237,6 +2555,24 @@
         ],
         "title": "BookResponse"
       },
+      "ChatMessage": {
+        "properties": {
+          "role": {
+            "type": "string",
+            "title": "Role"
+          },
+          "content": {
+            "type": "string",
+            "title": "Content"
+          }
+        },
+        "type": "object",
+        "required": [
+          "role",
+          "content"
+        ],
+        "title": "ChatMessage"
+      },
       "CreateInvitationRequest": {
         "properties": {
           "email": {
@@ -2256,6 +2592,53 @@
           "email"
         ],
         "title": "CreateInvitationRequest"
+      },
+      "DocumentInvitationResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id",
+            "description": "Invitation/Party record ID."
+          },
+          "document_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Document Id",
+            "description": "Document ID."
+          },
+          "document_title": {
+            "type": "string",
+            "title": "Document Title",
+            "description": "Document file name."
+          },
+          "role": {
+            "type": "string",
+            "title": "Role",
+            "description": "Role assigned."
+          },
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "description": "Invitation status."
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "document_id",
+          "document_title",
+          "role",
+          "status",
+          "created_at"
+        ],
+        "title": "DocumentInvitationResponse",
+        "description": "A pending invitation representation for a user"
       },
       "DocumentPartyListResponse": {
         "properties": {
@@ -2294,8 +2677,15 @@
             "description": "Party record ID."
           },
           "user_id": {
-            "type": "string",
-            "format": "uuid",
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "User Id",
             "description": "User ID"
           },
@@ -2319,6 +2709,12 @@
             "title": "Role",
             "description": "Role assigned"
           },
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "description": "Status: pending | accepted | rejected",
+            "default": "pending"
+          },
           "created_at": {
             "type": "string",
             "format": "date-time",
@@ -2328,7 +2724,6 @@
         "type": "object",
         "required": [
           "id",
-          "user_id",
           "email",
           "f_name",
           "l_name",
@@ -2512,6 +2907,42 @@
             "format": "date-time",
             "title": "Created At",
             "description": "When the document was uploaded"
+          },
+          "book_number": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Book Number",
+            "description": "The book number of the associated book."
+          },
+          "page_number": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Page Number",
+            "description": "The page number of the document within the book."
+          },
+          "series": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Series",
+            "description": "The series year of the associated book."
           }
         },
         "type": "object",
@@ -2663,6 +3094,64 @@
           "created_at"
         ],
         "title": "InvitationResponse"
+      },
+      "MFALoginVerifyRequest": {
+        "properties": {
+          "mfa_token": {
+            "type": "string",
+            "title": "Mfa Token",
+            "description": "The temporary MFA token returned during sign-in."
+          },
+          "code": {
+            "type": "string",
+            "maxLength": 6,
+            "minLength": 6,
+            "title": "Code",
+            "description": "6-digit TOTP verification code."
+          }
+        },
+        "type": "object",
+        "required": [
+          "mfa_token",
+          "code"
+        ],
+        "title": "MFALoginVerifyRequest"
+      },
+      "MFASetupResponse": {
+        "properties": {
+          "secret": {
+            "type": "string",
+            "title": "Secret",
+            "description": "The TOTP secret key for manual entry."
+          },
+          "provisioning_uri": {
+            "type": "string",
+            "title": "Provisioning Uri",
+            "description": "The provisioning URI for scanning as a QR code."
+          }
+        },
+        "type": "object",
+        "required": [
+          "secret",
+          "provisioning_uri"
+        ],
+        "title": "MFASetupResponse"
+      },
+      "MFAVerifyRequest": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "maxLength": 6,
+            "minLength": 6,
+            "title": "Code",
+            "description": "6-digit TOTP verification code."
+          }
+        },
+        "type": "object",
+        "required": [
+          "code"
+        ],
+        "title": "MFAVerifyRequest"
       },
       "MarkAllReadResponse": {
         "properties": {
@@ -3080,12 +3569,26 @@
       "SignInResponse": {
         "properties": {
           "access_token": {
-            "type": "string",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Access Token",
             "description": "JWT access token for API authentication"
           },
           "refresh_token": {
-            "type": "string",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Refresh Token",
             "description": "Token used to obtain a new access token"
           },
@@ -3096,24 +3599,50 @@
             "default": "bearer"
           },
           "expires_in": {
-            "type": "integer",
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Expires In",
             "description": "Token expiration time in seconds"
           },
           "user": {
-            "additionalProperties": true,
-            "type": "object",
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "User",
             "description": "User information from Supabase"
+          },
+          "mfa_required": {
+            "type": "boolean",
+            "title": "Mfa Required",
+            "description": "True if MFA is enabled for this user",
+            "default": false
+          },
+          "mfa_token": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mfa Token",
+            "description": "Temporary token used to complete MFA verification"
           }
         },
         "type": "object",
-        "required": [
-          "access_token",
-          "refresh_token",
-          "expires_in",
-          "user"
-        ],
         "title": "SignInResponse"
       },
       "SignUpRequest": {
@@ -3363,6 +3892,11 @@
             "type": "string",
             "title": "Role",
             "description": "User role"
+          },
+          "mfa_enabled": {
+            "type": "boolean",
+            "title": "Mfa Enabled",
+            "description": "Check if mfa is enable"
           }
         },
         "type": "object",
@@ -3370,7 +3904,8 @@
           "email",
           "f_name",
           "l_name",
-          "role"
+          "role",
+          "mfa_enabled"
         ],
         "title": "UserProfileResponse"
       },
