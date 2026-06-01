@@ -23,6 +23,9 @@ export const notificationScreenStyles = StyleSheet.create({
     paddingBottom: 28,
     gap: 14,
   },
+  headerStack: {
+    gap: 14,
+  },
   summaryCard: {
     borderRadius: 20,
     borderWidth: 1,
@@ -34,6 +37,12 @@ export const notificationScreenStyles = StyleSheet.create({
   summaryTopLine: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  summaryHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
     justifyContent: 'space-between',
     gap: 12,
   },
@@ -102,6 +111,50 @@ export const notificationScreenStyles = StyleSheet.create({
   },
   rowPressed: {
     opacity: 0.82,
+  },
+  invitationRow: {
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: notificationScreenColors.borderSoft,
+    backgroundColor: '#F7FBFF',
+    padding: 12,
+    gap: 12,
+  },
+  invitationActions: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  invitationButton: {
+    flex: 1,
+    minHeight: 38,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 999,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+  },
+  invitationAcceptButton: {
+    borderColor: notificationScreenColors.primary,
+    backgroundColor: notificationScreenColors.primary,
+  },
+  invitationRejectButton: {
+    borderColor: notificationScreenColors.borderSoft,
+    backgroundColor: notificationScreenColors.surface,
+  },
+  invitationButtonDisabled: {
+    opacity: 0.55,
+  },
+  invitationButtonText: {
+    fontFamily: fonts.regular,
+    fontSize: 12,
+    fontWeight: '900',
+    lineHeight: 14,
+  },
+  invitationAcceptText: {
+    color: notificationScreenColors.surface,
+  },
+  invitationRejectText: {
+    color: notificationScreenColors.navy,
   },
   rowTopLine: {
     flexDirection: 'row',
