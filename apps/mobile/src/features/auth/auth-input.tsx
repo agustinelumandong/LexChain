@@ -6,7 +6,7 @@ import {
   Pressable,
   TextInputProps,
 } from 'react-native';
-import { MaterialIcons } from '@expo/vector-icons';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 
 import { ThemedText } from '@/shared/components/themed-text';
 import { APP_COLORS, fonts } from '@/theme';

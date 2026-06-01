@@ -1,36 +1,37 @@
 import type { DocumentPartyRole, ManageWhitelistData } from '@/types';
 import { AskDocumentSheet } from '@/features/document/components/ask/ask-document-sheet';
 import { ManageWhitelistBottomSheet } from '@/features/document/components/whitelist/manage-whitelist-bottom-sheet';
+import { ConfirmAnchorSheet } from '@/features/document/components/sheets/confirm-anchor-sheet';
 import { RenameDocumentSheet } from '@/features/document/components/sheets/rename-document-sheet';
-import { SearchDocumentSheet } from '@/features/document/components/sheets/search-document-sheet';
+import type { AskChatMessage } from '@/services/api';
 
 type DocumentDetailsSheetsProps = {
   askAnswer?: string;
   askErrorMessage?: string;
   currentName: string;
-  documentId: string;
   documentTitle: string;
   isAddPartyPending: boolean;
+  isAnchorConfirmLoading: boolean;
+  isAnchorConfirmSheetVisible: boolean;
   isAskLoading: boolean;
   isAskSheetVisible: boolean;
   isPartiesLoading: boolean;
   isRemovePartyPending: boolean;
   isRenameLoading: boolean;
   isRenameSheetVisible: boolean;
-  isSearchSheetVisible: boolean;
   isUserSearchFetching: boolean;
   isWhitelistSheetVisible: boolean;
   searchQuery: string;
   whitelistData: ManageWhitelistData;
-  onAsk: (question: string) => void;
+  onAsk: (question: string, history: AskChatMessage[]) => void;
   onChangeSearchQuery: (value: string) => void;
+  onCloseAnchorConfirm: () => void;
   onCloseAsk: () => void;
   onCloseRename: () => void;
-  onCloseSearch: () => void;
   onCloseWhitelist: () => void;
   onPressAddResult: (resultId: string, role: DocumentPartyRole) => void;
+  onPressConfirmAnchor: () => void;
   onPressRevoke: (partyUserId: string) => void;
-  onPressSearchMatch: (chunkId: string) => void;
   onRename: (newName: string) => void;
 };
 
@@ -38,29 +39,29 @@ export function DocumentDetailsSheets({
   askAnswer,
   askErrorMessage,
   currentName,
-  documentId,
   documentTitle,
   isAddPartyPending,
+  isAnchorConfirmLoading,
+  isAnchorConfirmSheetVisible,
   isAskLoading,
   isAskSheetVisible,
   isPartiesLoading,
   isRemovePartyPending,
   isRenameLoading,
   isRenameSheetVisible,
-  isSearchSheetVisible,
   isUserSearchFetching,
   isWhitelistSheetVisible,
   searchQuery,
   whitelistData,
   onAsk,
   onChangeSearchQuery,
+  onCloseAnchorConfirm,
   onCloseAsk,
   onCloseRename,
-  onCloseSearch,
   onCloseWhitelist,
   onPressAddResult,
+  onPressConfirmAnchor,
   onPressRevoke,
-  onPressSearchMatch,
   onRename,
 }: DocumentDetailsSheetsProps) {
   return (
@@ -83,12 +84,12 @@ export function DocumentDetailsSheets({
         onAsk={onAsk}
       />
 
-      <SearchDocumentSheet
-        visible={isSearchSheetVisible}
-        documentId={documentId}
+      <ConfirmAnchorSheet
+        visible={isAnchorConfirmSheetVisible}
         documentTitle={documentTitle}
-        onClose={onCloseSearch}
-        onPressMatch={onPressSearchMatch}
+        isLoading={isAnchorConfirmLoading}
+        onCancel={onCloseAnchorConfirm}
+        onConfirm={onPressConfirmAnchor}
       />
 
       <ManageWhitelistBottomSheet

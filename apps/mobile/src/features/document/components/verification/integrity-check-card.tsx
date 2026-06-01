@@ -4,12 +4,14 @@ import { StyleSheet, Text, View } from 'react-native';
 import { Button } from '@/ui';
 
 import { APP_COLORS, fonts } from '@/theme';
+import { formatReference } from '../../utils/document-details-formatters';
+
 const COLORS = {
   primary: APP_COLORS.primary,
   navy: APP_COLORS.navy,
   textMuted: APP_COLORS.textMuted,
   surfaceSoft: '#F7FBFF',
-  successSoft: '#EAF8F0',
+  primarySoft: '#EAF4FF',
 };
 
 type IntegrityCheckCardProps = {
@@ -18,6 +20,16 @@ type IntegrityCheckCardProps = {
   status: string;
   onPressViewAnchor?: () => void;
 };
+
+function formatHashPreview(value: string) {
+  const normalized = value.trim().toLowerCase();
+
+  if (!normalized || normalized === 'pending' || normalized === 'not anchored yet') {
+    return value;
+  }
+
+  return formatReference(value);
+}
 
 export function IntegrityCheckCard({
   offChainHash,
@@ -31,12 +43,16 @@ export function IntegrityCheckCard({
 
       <View style={styles.row}>
         <Text style={styles.rowLabel}>Off-chain hash</Text>
-        <Text style={styles.rowValue}>{offChainHash}</Text>
+        <Text style={styles.rowValue} selectable>
+          {formatHashPreview(offChainHash)}
+        </Text>
       </View>
 
       <View style={styles.row}>
         <Text style={styles.rowLabel}>On-chain hash</Text>
-        <Text style={styles.rowValue}>{onChainHash}</Text>
+        <Text style={styles.rowValue} selectable>
+          {formatHashPreview(onChainHash)}
+        </Text>
       </View>
 
       <View style={styles.statusCard}>
@@ -46,7 +62,7 @@ export function IntegrityCheckCard({
 
       <Button
         label="View anchor tx"
-        variant="secondary"
+        variant="primary"
         fullWidth
         onPress={onPressViewAnchor}
       />
@@ -89,7 +105,7 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   statusCard: {
-    backgroundColor: COLORS.successSoft,
+    backgroundColor: COLORS.primarySoft,
     borderRadius: 18,
     paddingVertical: 12,
     paddingHorizontal: 14,

@@ -1,5 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { MaterialIcons } from '@expo/vector-icons';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
@@ -11,7 +12,9 @@ import {
   getInvitationRouteParams,
   normalizeAuthCallbackParams,
 } from '@/features/auth/callback/auth-callback.params';
-import { useSignIn } from '@/services/query';
+import { promptToEnableAppLock } from '@/features/auth/app-lock-prompt';
+import { STORAGE_KEYS } from '@/constants';
+import { useSignIn, useVerifyMfaSignIn } from '@/services/query';
 import { parseApiError } from '@/shared/utils/api-error';
 import { APP_COLORS } from '@/theme';
 import { Button } from '@/ui';
@@ -31,11 +34,16 @@ export default function SignInScreen() {
 
   const [isSwitchingScreen, setIsSwitchingScreen] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
+  const [mfaToken, setMfaToken] = useState<string | null>(null);
+  const [mfaEmail, setMfaEmail] = useState('');
+  const [mfaCode, setMfaCode] = useState('');
   const signInMutation = useSignIn();
+  const verifyMfaMutation = useVerifyMfaSignIn();
 
   const {
     control,
     handleSubmit,
+    setValue,
     formState: { errors },
   } = useForm<SignInFormValues>({
     resolver: zodResolver(signInSchema),
@@ -46,12 +54,31 @@ export default function SignInScreen() {
   });
 
   useEffect(() => {
+    async function loadRememberedEmail() {
+      const [shouldRemember, rememberedEmail] = await Promise.all([
+        AsyncStorage.getItem(STORAGE_KEYS.rememberSignInEmail),
+        AsyncStorage.getItem(STORAGE_KEYS.rememberedSignInEmail),
+      ]);
+
+      if (shouldRemember !== 'true' || !rememberedEmail) {
+        return;
+      }
+
+      setRememberMe(true);
+
+      if (!inviteEmail) {
+        setValue('email', rememberedEmail);
+      }
+    }
+
+    void loadRememberedEmail();
+
     return () => {
       if (transitionTimeoutRef.current) {
         clearTimeout(transitionTimeoutRef.current);
       }
     };
-  }, []);
+  }, [inviteEmail, setValue]);
 
   const navigateToSignUp = () => {
     if (isSwitchingScreen) {
@@ -69,24 +96,62 @@ export default function SignInScreen() {
     }, 420);
   };
 
+  const completeSignIn = async (email: string) => {
+    if (rememberMe) {
+      await AsyncStorage.multiSet([
+        [STORAGE_KEYS.rememberSignInEmail, 'true'],
+        [STORAGE_KEYS.rememberedSignInEmail, email],
+      ]);
+    } else {
+      await AsyncStorage.multiRemove([
+        STORAGE_KEYS.rememberSignInEmail,
+        STORAGE_KEYS.rememberedSignInEmail,
+      ]);
+    }
+
+    toast.success('Signed in successfully');
+    await promptToEnableAppLock();
+
+    if (authRouteParams.document_id) {
+      router.replace({
+        pathname: '/document/[id]',
+        params: { id: authRouteParams.document_id },
+      });
+      return;
+    }
+
+    router.replace('/(tabs)');
+  };
+
   const handleSignIn = handleSubmit(
     async (values) => {
+      const email = values.email.trim();
+
       try {
-        await signInMutation.mutateAsync({
-          email: values.email.trim(),
+        const response = await signInMutation.mutateAsync({
+          email,
           password: values.password,
         });
 
-        toast.success('Signed in successfully');
-        if (authRouteParams.document_id) {
-          router.replace({
-            pathname: '/document/[id]',
-            params: { id: authRouteParams.document_id },
-          });
+        if (response.mfa_required) {
+          if (!response.mfa_token) {
+            toast.error('MFA verification token missing');
+            return;
+          }
+
+          setMfaToken(response.mfa_token);
+          setMfaEmail(email);
+          setMfaCode('');
+          toast.info('Enter your authenticator code');
           return;
         }
 
-        router.replace('/(tabs)');
+        if (!response.access_token || !response.refresh_token || !response.user) {
+          toast.error('Sign in did not return a session');
+          return;
+        }
+
+        await completeSignIn(email);
       } catch (error) {
         const appError = parseApiError(error);
 
@@ -107,6 +172,49 @@ export default function SignInScreen() {
   const handlePressSignIn = () => {
     Keyboard.dismiss();
     void handleSignIn();
+  };
+
+  const handlePressVerifyMfa = async () => {
+    Keyboard.dismiss();
+
+    if (!mfaToken) {
+      toast.error('Sign in again to verify MFA');
+      return;
+    }
+
+    const code = mfaCode.trim();
+
+    if (!/^\d{6}$/.test(code)) {
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      toast.warning('Enter a 6-digit authenticator code');
+      return;
+    }
+
+    try {
+      const response = await verifyMfaMutation.mutateAsync({
+        mfa_token: mfaToken,
+        code,
+      });
+
+      if (
+        response.mfa_required ||
+        !response.access_token ||
+        !response.refresh_token ||
+        !response.user
+      ) {
+        toast.error('MFA verification did not return a session');
+        return;
+      }
+
+      setMfaToken(null);
+      setMfaCode('');
+      await completeSignIn(mfaEmail);
+    } catch (error) {
+      const appError = parseApiError(error);
+
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      toast.error(appError.message);
+    }
   };
 
   return (
@@ -149,6 +257,17 @@ export default function SignInScreen() {
               />
             )}
           />
+
+          {mfaToken ? (
+            <AuthInput
+              label="Authenticator code"
+              placeholder="123456"
+              value={mfaCode}
+              onChangeText={(value) => setMfaCode(value.replace(/\D/g, '').slice(0, 6))}
+              iconName="verified-user"
+              keyboardType="number-pad"
+            />
+          ) : null}
         </View>
 
         <View style={styles.utilityRow}>
@@ -171,12 +290,12 @@ export default function SignInScreen() {
 
         <View style={styles.actions}>
           <Button
-            label="Sign in"
+            label={mfaToken ? 'Verify code' : 'Sign in'}
             fullWidth
-            leftIconName="login"
-            loading={signInMutation.isPending}
-            disabled={signInMutation.isPending}
-            onPress={handlePressSignIn}
+            leftIconName={mfaToken ? 'verified-user' : 'login'}
+            loading={signInMutation.isPending || verifyMfaMutation.isPending}
+            disabled={signInMutation.isPending || verifyMfaMutation.isPending}
+            onPress={mfaToken ? handlePressVerifyMfa : handlePressSignIn}
           />
 
           <Button

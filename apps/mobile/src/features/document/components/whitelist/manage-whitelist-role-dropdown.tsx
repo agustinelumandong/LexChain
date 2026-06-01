@@ -1,4 +1,4 @@
-import { MaterialIcons } from '@expo/vector-icons';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { Pressable, Text, View } from 'react-native';
 
 import { MOBILE_USER_ROLES, type MobileUserRoleKey } from '../../constants/manage-whitelist.constants';

@@ -13,21 +13,6 @@ export type DashboardRecentActivity = {
   tone: 'success' | 'warning' | 'info';
 };
 
-const MOCK_DOCUMENT_PARTICIPANT_INVITES = [
-  {
-    id: 'mock-participant-invite-1',
-    documentTitle: 'Service Agreement.pdf',
-    participantName: 'Maria Santos',
-    invitedAt: '2026-05-22T08:30:00.000Z',
-  },
-  {
-    id: 'mock-participant-invite-2',
-    documentTitle: 'Lease Contract.pdf',
-    participantName: 'Juan Dela Cruz',
-    invitedAt: '2026-05-21T14:15:00.000Z',
-  },
-];
-
 function formatActivityTime(value: string) {
   const date = new Date(value);
 
@@ -81,17 +66,12 @@ function getDocumentActivity(document: DocumentListItem): DashboardRecentActivit
   };
 }
 
-type UseDashboardOptions = {
-  includeMockParticipantInvites?: boolean;
-};
-
-export function useDashboard({
-  includeMockParticipantInvites = false,
-}: UseDashboardOptions = {}) {
+export function useDashboard() {
   const documentsQuery = useDocuments();
+  const { refetch: refetchDocuments } = documentsQuery;
   const refetch = useCallback(async () => {
-    await documentsQuery.refetch();
-  }, [documentsQuery]);
+    await refetchDocuments();
+  }, [refetchDocuments]);
 
   return useMemo(() => {
     const documents = documentsQuery.data ?? [];
@@ -104,28 +84,13 @@ export function useDashboard({
     ).length;
     const recentActivities = documents
       .map(getDocumentActivity)
-      .concat(
-        includeMockParticipantInvites
-          ? MOCK_DOCUMENT_PARTICIPANT_INVITES.map((invite) => ({
-              id: invite.id,
-              title: `${invite.participantName} invited to participate`,
-              detail: invite.documentTitle,
-              time: formatActivityTime(invite.invitedAt),
-              timestamp: invite.invitedAt,
-              status: 'Invite',
-              tone: 'info' as const,
-            }))
-          : [],
-      )
       .sort((left, right) => right.timestamp.localeCompare(left.timestamp))
-      .slice(0, 3);
+      .slice(0, 5);
 
     return {
       documentsCount,
       anchoredOnChainCount,
-      pendingParticipantInvitesCount: includeMockParticipantInvites
-        ? MOCK_DOCUMENT_PARTICIPANT_INVITES.length
-        : 0,
+      pendingParticipantInvitesCount: 0,
       processingCount,
       recentActivities,
       isLoading: documentsQuery.isLoading,
@@ -136,7 +101,6 @@ export function useDashboard({
     documentsQuery.data,
     documentsQuery.isLoading,
     documentsQuery.isRefetching,
-    includeMockParticipantInvites,
     refetch,
   ]);
 }

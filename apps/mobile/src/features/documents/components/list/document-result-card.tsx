@@ -1,4 +1,4 @@
-import { MaterialIcons } from '@expo/vector-icons';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import React, { memo } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
@@ -7,6 +7,10 @@ import { documentResultCardColors, documentResultCardStyles } from './document-r
 type DocumentResultCardProps = {
   title: string;
   date: string;
+  documentNumber?: number;
+  bookNumber?: number;
+  pageNumber?: number;
+  series?: number;
   onChain?: boolean;
   onPressCard?: () => void;
   onPressOpen?: () => void;
@@ -16,6 +20,10 @@ type DocumentResultCardProps = {
 export const DocumentResultCard = memo(function DocumentResultCard({
   title,
   date,
+  documentNumber = 0,
+  bookNumber = 0,
+  pageNumber = 0,
+  series = 0,
   onChain,
   onPressCard,
   onPressOpen,
@@ -52,6 +60,20 @@ export const DocumentResultCard = memo(function DocumentResultCard({
       <View style={documentResultCardStyles.metaRow}>
         <View style={documentResultCardStyles.metaWrap}>
           <Text style={documentResultCardStyles.meta}>Date: {date}</Text>
+          <View style={documentResultCardStyles.registryRow}>
+            <Text style={documentResultCardStyles.registryPill}>
+              Doc {documentNumber}
+            </Text>
+            <Text style={documentResultCardStyles.registryPill}>
+              Book {bookNumber}
+            </Text>
+            <Text style={documentResultCardStyles.registryPill}>
+              Page {pageNumber}
+            </Text>
+            <Text style={documentResultCardStyles.registryPill}>
+              Series {series}
+            </Text>
+          </View>
         </View>
 
         <Pressable style={[documentResultCardStyles.actionButton, documentResultCardStyles.primaryButton]} onPress={onPressOpen}>

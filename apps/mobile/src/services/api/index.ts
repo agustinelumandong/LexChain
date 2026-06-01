@@ -2,6 +2,7 @@ export { apiClient } from './client';
 export { openApiClient } from './openapi-client';
 export { adminApi } from './admin.api';
 export { authApi } from './auth.api';
+export { booksApi } from './books.api';
 export { blockchainApi } from './blockchain.api';
 export { documentsApi } from './documents.api';
 export { notificationsApi } from './notifications.api';
@@ -24,6 +25,14 @@ export type {
   RecordDocumentResponse,
 } from './blockchain.api';
 export type {
+  BookCreateRequest,
+  BookResponse,
+  ListBooksParams,
+} from './books.api';
+export type {
+  MFALoginVerifyPayload,
+  MFASetupResponse,
+  MFAVerifyPayload,
   MessageResponse,
   ResendVerificationPayload,
   SignInPayload,
@@ -40,13 +49,18 @@ export type {
   GlobalSearchPayload,
   GlobalSearchResponse,
   GlobalSearchResult,
+  ListDocumentsParams,
   RenameDocumentRequest,
   RenameDocumentResponse,
   SearchHit,
   SearchResponse,
+  AskChatMessage,
   AskCitation,
+  AskRequest,
   AskResponse,
+  AuditLogResponse,
   AddPartyRequest,
+  DocumentInvitationResponse,
   DocumentPartyListResponse,
   DocumentPartyResponse,
   RemovePartyResponse,

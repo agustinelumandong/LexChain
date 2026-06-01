@@ -1,4 +1,4 @@
-import { MaterialIcons } from '@expo/vector-icons';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { Pressable, Text, View } from 'react-native';
 
 import { APP_COLORS } from '@/theme';
@@ -9,22 +9,43 @@ import { documentDetailCardStyles as styles } from './document-detail-card.style
 export function VersionHistoryCard({
   items,
   onPressVersion,
+  onPressViewHistory,
+  showAll = false,
 }: {
   items: VersionHistoryItem[];
   onPressVersion?: (item: VersionHistoryItem) => void;
+  onPressViewHistory?: () => void;
+  showAll?: boolean;
 }) {
+  const visibleItems = showAll ? items : items.slice(0, 3);
+
   return (
     <View style={styles.versionCard}>
       <View style={styles.versionHeader}>
-        <View style={styles.cardIconBubble}>
-          <MaterialIcons name="history" size={24} color={APP_COLORS.primary} />
+        <View style={styles.versionHeaderCopy}>
+          <View style={styles.cardIconBubble}>
+            <MaterialIcons name="history" size={24} color={APP_COLORS.primary} />
+          </View>
+          <Text style={styles.versionTitle}>Version history</Text>
         </View>
-        <Text style={styles.versionTitle}>Version history</Text>
+        {onPressViewHistory ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="View full version history"
+            onPress={onPressViewHistory}
+            style={({ pressed }) => [
+              styles.headerAction,
+              pressed && styles.headerActionPressed,
+            ]}
+          >
+            <Text style={styles.headerActionText}>View history</Text>
+          </Pressable>
+        ) : null}
       </View>
 
       <View style={styles.timeline}>
-        {items.map((item, index) => {
-          const isLast = index === items.length - 1;
+        {visibleItems.map((item, index) => {
+          const isLast = index === visibleItems.length - 1;
 
           return (
             <Pressable

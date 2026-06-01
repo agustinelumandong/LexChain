@@ -1,16 +1,18 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import {
+  type AskChatMessage,
   documentsApi,
   type AddPartyRequest,
   type AskResponse,
   type GlobalSearchPayload,
+  type ListDocumentsParams,
 } from '@/services/api';
 import type { PickedUploadFile } from '@/types';
 
 import { queryKeys } from './keys';
 
-export function useDocuments(params?: { limit?: number; offset?: number }) {
+export function useDocuments(params?: ListDocumentsParams) {
   return useQuery({
     queryKey: queryKeys.documents.list(params),
     queryFn: () => documentsApi.list(params),
@@ -29,8 +31,15 @@ export function useUploadDocument() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ file, fileName }: { file: PickedUploadFile; fileName: string }) =>
-      documentsApi.upload(file, fileName),
+    mutationFn: ({
+      bookId,
+      file,
+      fileName,
+    }: {
+      bookId: string;
+      file: PickedUploadFile;
+      fileName: string;
+    }) => documentsApi.upload(file, fileName, bookId),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.documents.all });
     },
@@ -62,6 +71,14 @@ export function useDocumentVersions(documentId?: string) {
   return useQuery({
     queryKey: queryKeys.documents.versions(documentId ?? ''),
     queryFn: () => documentsApi.getVersions(documentId ?? ''),
+    enabled: Boolean(documentId),
+  });
+}
+
+export function useDocumentAuditLogs(documentId?: string) {
+  return useQuery({
+    queryKey: queryKeys.documents.auditLogs(documentId ?? ''),
+    queryFn: () => documentsApi.getAuditLogs(documentId ?? ''),
     enabled: Boolean(documentId),
   });
 }
@@ -99,9 +116,44 @@ export function useAskDocument() {
   return useMutation<
     AskResponse,
     Error,
-    { documentId: string; question: string }
+    { documentId: string; question: string; history?: AskChatMessage[] }
   >({
-    mutationFn: ({ documentId, question }) => documentsApi.ask(documentId, question),
+    mutationFn: ({ documentId, question, history }) =>
+      documentsApi.ask(documentId, question, history),
+  });
+}
+
+export function usePendingDocumentInvitations(enabled = true) {
+  return useQuery({
+    queryKey: queryKeys.documents.invitations,
+    queryFn: documentsApi.getPendingInvitations,
+    enabled,
+  });
+}
+
+export function useAcceptDocumentInvitation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ documentId }: { documentId: string }) =>
+      documentsApi.acceptInvitation(documentId),
+    onSuccess: (_, { documentId }) => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.documents.invitations });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.documents.detail(documentId) });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.documents.all });
+    },
+  });
+}
+
+export function useRejectDocumentInvitation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ documentId }: { documentId: string }) =>
+      documentsApi.rejectInvitation(documentId),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.documents.invitations });
+    },
   });
 }
 

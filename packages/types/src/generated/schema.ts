@@ -76,6 +76,86 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/auth/mfa/setup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Initiate Google Authenticator MFA setup
+         * @description Generates a new TOTP secret key and provisioning URI for Google Authenticator setup.
+         */
+        post: operations["mfa_setup_auth_mfa_setup_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/mfa/verify-enable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Verify code and enable MFA
+         * @description Validates a 6-digit TOTP code and activates MFA for the user.
+         */
+        post: operations["mfa_enable_auth_mfa_verify_enable_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/mfa/disable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Disable MFA
+         * @description Validates a 6-digit TOTP code and deactivates MFA for the user.
+         */
+        post: operations["mfa_disable_auth_mfa_disable_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/mfa/verify-signin": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Complete sign-in by verifying MFA code
+         * @description Authenticates the user using a temporary MFA login token and a 6-digit TOTP code.
+         */
+        post: operations["mfa_verify_signin_auth_mfa_verify_signin_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/users/search": {
         parameters: {
             query?: never;
@@ -152,6 +232,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/documents/invitations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List pending invitations
+         * @description Return all pending document collaboration invitations for the authenticated user.
+         */
+        get: operations["get_pending_invitations_documents_invitations_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/documents/{document_id}": {
         parameters: {
             query?: never;
@@ -169,7 +269,11 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
-        patch?: never;
+        /**
+         * Rename a document
+         * @description Update the display name of a document. Only the document owner (lawyer) may rename.
+         */
+        patch: operations["rename_document_documents__document_id__patch"];
         trace?: never;
     };
     "/documents/upload": {
@@ -190,26 +294,6 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
-        trace?: never;
-    };
-    "/documents/{document_id}/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        /**
-         * Rename a document
-         * @description Update the display name of a document. Only the document owner (lawyer) may rename.
-         */
-        patch: operations["rename_document_documents__document_id___patch"];
         trace?: never;
     };
     "/documents/{document_id}/update": {
@@ -291,6 +375,66 @@ export interface paths {
          * @description Revoke a user's access to this document. Only the document owner may remove parties.
          */
         delete: operations["remove_document_party_documents__document_id__parties__party_user_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/documents/{document_id}/parties/accept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Accept a document invitation
+         * @description Accept a pending collaboration invitation for the specified document.
+         */
+        post: operations["accept_document_invitation_documents__document_id__parties_accept_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/documents/{document_id}/parties/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reject a document invitation
+         * @description Reject/decline a pending collaboration invitation for the specified document.
+         */
+        post: operations["reject_document_invitation_documents__document_id__parties_reject_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/documents/{document_id}/audit-logs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get document audit trail
+         * @description Return the complete history of actions performed on this document. Only accessible by owner or parties.
+         */
+        get: operations["get_document_audit_logs_documents__document_id__audit_logs_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -461,6 +605,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/audit-logs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get system-wide audit logs */
+        get: operations["get_system_audit_logs_admin_audit_logs_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/public/verify": {
         parameters: {
             query?: never;
@@ -553,6 +714,54 @@ export interface paths {
         patch: operations["mark_all_read_notifications_read_all_patch"];
         trace?: never;
     };
+    "/books/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List all books
+         * @description Return all books belonging to the authenticated lawyer.
+         */
+        get: operations["get_all_books_books__get"];
+        put?: never;
+        /**
+         * Create a book
+         * @description Create a new physical register book for the authenticated lawyer.
+         */
+        post: operations["create_book_books__post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/books/{book_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get a book
+         * @description Return a single book by ID. Only the owner may access it.
+         */
+        get: operations["get_book_books__book_id__get"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete a book
+         * @description Delete a book and all its documents. Only the owner may delete.
+         */
+        delete: operations["delete_book_books__book_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -625,6 +834,40 @@ export interface components {
         AskRequest: {
             /** Question */
             question: string;
+            /**
+             * History
+             * @default []
+             */
+            history: components["schemas"]["ChatMessage"][];
+        };
+        /**
+         * AuditLogResponse
+         * @description Response payload for a single document audit log entry.
+         */
+        AuditLogResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Document Id
+             * Format: uuid
+             */
+            document_id: string;
+            /** User Id */
+            user_id?: string | null;
+            /** Action */
+            action: string;
+            /** Details */
+            details?: {
+                [key: string]: unknown;
+            } | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
         };
         /** Body_update_document_documents__document_id__update_post */
         Body_update_document_documents__document_id__update_post: {
@@ -641,6 +884,51 @@ export interface components {
             /** File */
             file: string;
         };
+        /** BookCreateRequest */
+        BookCreateRequest: {
+            /**
+             * Book Number
+             * @description The sequential volume number of the physical register.
+             */
+            book_number: number;
+            /**
+             * Series Year
+             * @description The year this book belongs to.
+             */
+            series_year: number;
+        };
+        /** BookResponse */
+        BookResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Book Number */
+            book_number: number;
+            /** Series Year */
+            series_year: number;
+            /** Document Count */
+            document_count: number;
+            /** Page Count */
+            page_count: number;
+            /** Is Full */
+            is_full: boolean;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Updated At */
+            updated_at?: string | null;
+        };
+        /** ChatMessage */
+        ChatMessage: {
+            /** Role */
+            role: string;
+            /** Content */
+            content: string;
+        };
         /** CreateInvitationRequest */
         CreateInvitationRequest: {
             /**
@@ -654,6 +942,44 @@ export interface components {
              * @default lawyer
              */
             role: string;
+        };
+        /**
+         * DocumentInvitationResponse
+         * @description A pending invitation representation for a user
+         */
+        DocumentInvitationResponse: {
+            /**
+             * Id
+             * Format: uuid
+             * @description Invitation/Party record ID.
+             */
+            id: string;
+            /**
+             * Document Id
+             * Format: uuid
+             * @description Document ID.
+             */
+            document_id: string;
+            /**
+             * Document Title
+             * @description Document file name.
+             */
+            document_title: string;
+            /**
+             * Role
+             * @description Role assigned.
+             */
+            role: string;
+            /**
+             * Status
+             * @description Invitation status.
+             */
+            status: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
         };
         /**
          * DocumentPartyListResponse
@@ -684,10 +1010,9 @@ export interface components {
             id: string;
             /**
              * User Id
-             * Format: uuid
              * @description User ID
              */
-            user_id: string;
+            user_id?: string | null;
             /**
              * Email
              * @description User's email
@@ -709,6 +1034,12 @@ export interface components {
              */
             role: string;
             /**
+             * Status
+             * @description Status: pending | accepted | rejected
+             * @default pending
+             */
+            status: string;
+            /**
              * Created At
              * Format: date-time
              */
@@ -725,6 +1056,11 @@ export interface components {
              * @description Document identifier.
              */
             document_id: string;
+            /**
+             * Document Number
+             * @description Sequential document number.
+             */
+            document_number: number;
             /**
              * File Name
              * @description Name of the uploaded file
@@ -821,6 +1157,11 @@ export interface components {
              */
             id: string;
             /**
+             * Document Number
+             * @description Sequential document number.
+             */
+            document_number: number;
+            /**
              * File Name
              * @description Name of the uploaded file
              */
@@ -836,11 +1177,31 @@ export interface components {
              */
             status: string;
             /**
+             * On Chain
+             * @description Check if doc is on chain
+             */
+            on_chain: boolean;
+            /**
              * Created At
              * Format: date-time
              * @description When the document was uploaded
              */
             created_at: string;
+            /**
+             * Book Number
+             * @description The book number of the associated book.
+             */
+            book_number?: number | null;
+            /**
+             * Page Number
+             * @description The page number of the document within the book.
+             */
+            page_number?: number | null;
+            /**
+             * Series
+             * @description The series year of the associated book.
+             */
+            series?: number | null;
         };
         /** GlobalSearchHit */
         GlobalSearchHit: {
@@ -858,6 +1219,8 @@ export interface components {
             chunk_index: number;
             /** Score */
             score: number;
+            /** Text */
+            text: string;
         };
         /** GlobalSearchResponse */
         GlobalSearchResponse: {
@@ -901,6 +1264,40 @@ export interface components {
             created_at: string;
             /** Magic Link */
             magic_link?: string | null;
+        };
+        /** MFALoginVerifyRequest */
+        MFALoginVerifyRequest: {
+            /**
+             * Mfa Token
+             * @description The temporary MFA token returned during sign-in.
+             */
+            mfa_token: string;
+            /**
+             * Code
+             * @description 6-digit TOTP verification code.
+             */
+            code: string;
+        };
+        /** MFASetupResponse */
+        MFASetupResponse: {
+            /**
+             * Secret
+             * @description The TOTP secret key for manual entry.
+             */
+            secret: string;
+            /**
+             * Provisioning Uri
+             * @description The provisioning URI for scanning as a QR code.
+             */
+            provisioning_uri: string;
+        };
+        /** MFAVerifyRequest */
+        MFAVerifyRequest: {
+            /**
+             * Code
+             * @description 6-digit TOTP verification code.
+             */
+            code: string;
         };
         /** MarkAllReadResponse */
         MarkAllReadResponse: {
@@ -1127,12 +1524,12 @@ export interface components {
              * Access Token
              * @description JWT access token for API authentication
              */
-            access_token: string;
+            access_token?: string | null;
             /**
              * Refresh Token
              * @description Token used to obtain a new access token
              */
-            refresh_token: string;
+            refresh_token?: string | null;
             /**
              * Token Type
              * @description Token type, always 'bearer'
@@ -1143,14 +1540,25 @@ export interface components {
              * Expires In
              * @description Token expiration time in seconds
              */
-            expires_in: number;
+            expires_in?: number | null;
             /**
              * User
              * @description User information from Supabase
              */
-            user: {
+            user?: {
                 [key: string]: unknown;
-            };
+            } | null;
+            /**
+             * Mfa Required
+             * @description True if MFA is enabled for this user
+             * @default false
+             */
+            mfa_required: boolean;
+            /**
+             * Mfa Token
+             * @description Temporary token used to complete MFA verification
+             */
+            mfa_token?: string | null;
         };
         /** SignUpRequest */
         SignUpRequest: {
@@ -1206,6 +1614,42 @@ export interface components {
              */
             requires_email_confirmation: boolean;
         };
+        /** SystemAuditLogListResponse */
+        SystemAuditLogListResponse: {
+            /** Logs */
+            logs: components["schemas"]["SystemAuditLogResponse"][];
+            /** Total */
+            total: number;
+        };
+        /** SystemAuditLogResponse */
+        SystemAuditLogResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** User Id */
+            user_id: string | null;
+            /** Action */
+            action: string;
+            /** Target Type */
+            target_type: string | null;
+            /** Target Id */
+            target_id: string | null;
+            /** Details */
+            details: {
+                [key: string]: unknown;
+            } | null;
+            /** Ip Address */
+            ip_address: string | null;
+            /** User Agent */
+            user_agent: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
         /** UnreadCountResponse */
         UnreadCountResponse: {
             /** Unread */
@@ -1233,12 +1677,17 @@ export interface components {
              * @description User Avatar
              * @default icon1
              */
-            avatar: string;
+            avatar: string | null;
             /**
              * Role
              * @description User role
              */
             role: string;
+            /**
+             * Mfa Enabled
+             * @description Check if mfa is enable
+             */
+            mfa_enabled: boolean;
         };
         /** UserSearchResponse */
         UserSearchResponse: {
@@ -1277,6 +1726,8 @@ export interface components {
              * Format: uuid
              */
             document_id: string;
+            /** Document Number */
+            document_number: number;
             /** File Name */
             file_name: string;
             /** Document Hash */
@@ -1486,6 +1937,125 @@ export interface operations {
             };
         };
     };
+    mfa_setup_auth_mfa_setup_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MFASetupResponse"];
+                };
+            };
+        };
+    };
+    mfa_enable_auth_mfa_verify_enable_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MFAVerifyRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessageResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    mfa_disable_auth_mfa_disable_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MFAVerifyRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessageResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    mfa_verify_signin_auth_mfa_verify_signin_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MFALoginVerifyRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SignInResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     search_user_users_search_get: {
         parameters: {
             query: {
@@ -1583,6 +2153,7 @@ export interface operations {
     get_all_user_documents_documents__get: {
         parameters: {
             query?: {
+                book_id?: string | null;
                 limit?: number;
                 offset?: number;
             };
@@ -1616,6 +2187,33 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
+            };
+        };
+    };
+    get_pending_invitations_documents_invitations_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Invitations retrieved */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentInvitationResponse"][];
+                };
+            };
+            /** @description Not authenticated — missing or invalid bearer token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -1664,63 +2262,7 @@ export interface operations {
             };
         };
     };
-    upload_document_documents_upload_post: {
-        parameters: {
-            query: {
-                file_name: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "multipart/form-data": components["schemas"]["Body_upload_document_documents_upload_post"];
-            };
-        };
-        responses: {
-            /** @description Document accepted for processing */
-            202: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DocumentUploadAcceptedResponse"];
-                };
-            };
-            /** @description Empty file, unsupported file type, or file exceeds size limit */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Not authenticated — missing or invalid bearer token */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Forbidden — only lawyers may upload documents */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    rename_document_documents__document_id___patch: {
+    rename_document_documents__document_id__patch: {
         parameters: {
             query?: never;
             header?: never;
@@ -1760,6 +2302,63 @@ export interface operations {
             };
             /** @description Document not found */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    upload_document_documents_upload_post: {
+        parameters: {
+            query: {
+                book_id: string;
+                file_name: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_upload_document_documents_upload_post"];
+            };
+        };
+        responses: {
+            /** @description Document accepted for processing */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentUploadAcceptedResponse"];
+                };
+            };
+            /** @description Empty file, unsupported file type, or file exceeds size limit */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not authenticated — missing or invalid bearer token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden — only lawyers may upload documents */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2030,6 +2629,145 @@ export interface operations {
                 content?: never;
             };
             /** @description Document or party not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    accept_document_invitation_documents__document_id__parties_accept_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                document_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Invitation accepted */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Not authenticated — missing or invalid bearer token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Pending invitation not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reject_document_invitation_documents__document_id__parties_reject_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                document_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Invitation rejected */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Not authenticated — missing or invalid bearer token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Pending invitation not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_document_audit_logs_documents__document_id__audit_logs_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                document_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Audit trail retrieved */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditLogResponse"][];
+                };
+            };
+            /** @description Not authenticated — missing or invalid bearer token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Document not found or user has no access */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -2425,6 +3163,45 @@ export interface operations {
             };
         };
     };
+    get_system_audit_logs_admin_audit_logs_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List of system audit logs */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SystemAuditLogListResponse"];
+                };
+            };
+            /** @description Not admin */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     verify_public_public_verify_post: {
         parameters: {
             query?: never;
@@ -2592,6 +3369,201 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    get_all_books_books__get: {
+        parameters: {
+            query?: {
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List of books */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BookResponse"][];
+                };
+            };
+            /** @description Not authenticated — missing or invalid bearer token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden — only lawyers may access books */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_book_books__post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BookCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Book created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BookResponse"];
+                };
+            };
+            /** @description Not authenticated — missing or invalid bearer token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden — only lawyers may create books */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_book_books__book_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                book_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Book found */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BookResponse"];
+                };
+            };
+            /** @description Not authenticated — missing or invalid bearer token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden — only lawyers may access books */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Book not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_book_books__book_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                book_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Book deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not authenticated — missing or invalid bearer token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden — only lawyers may delete books */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Book not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
             };
         };
     };

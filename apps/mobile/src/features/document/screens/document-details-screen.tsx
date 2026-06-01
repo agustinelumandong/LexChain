@@ -12,6 +12,7 @@ import {
   useAddDocumentParty,
   useAskDocument,
   useDocument,
+  useDocumentAuditLogs,
   useDocumentParties,
   useDocumentVersions,
   useNotarizeDocument,
@@ -21,11 +22,12 @@ import {
   useUserSearch,
   useVerifyOnChainDocument,
 } from '@/services/query';
-import { documentsApi } from '@/services/api';
+import { documentsApi, type AskChatMessage } from '@/services/api';
 import { parseApiError } from '@/shared/utils/api-error';
 import { APP_COLORS } from '@/theme';
 import botQuestionMarkImage from '@/assets/images/lexchain-bot-question-mark.png';
 import { canRoleUploadDocuments } from '@/features/profile';
+import { authenticateWithDeviceLock } from '@/features/auth/app-lock';
 
 import { HEADER_CONTENT_GAP } from '../constants/document-details.constants';
 import { DocumentDetailsContent } from '../components/details/document-details-content';
@@ -50,6 +52,7 @@ export default function DocumentDetailsScreen() {
   const documentId = Array.isArray(id) ? id[0] : id;
   const documentQuery = useDocument(documentId);
   const versionHistoryQuery = useDocumentVersions(documentId);
+  const auditLogsQuery = useDocumentAuditLogs(documentId);
   const partiesQuery = useDocumentParties(documentId);
   const renameMutation = useRenameDocument();
   const notarizeMutation = useNotarizeDocument();
@@ -99,13 +102,25 @@ export default function DocumentDetailsScreen() {
     }
   };
 
-  const handleAsk = useCallback((question: string) => {
-    askDocument({ documentId, question });
+  const handleAsk = useCallback((question: string, history: AskChatMessage[]) => {
+    askDocument({ documentId, question, history });
   }, [askDocument, documentId]);
 
   const handleNotarize = async () => {
+    const authResult = await authenticateWithDeviceLock('Confirm blockchain anchor');
+
+    if (authResult.status === 'cancelled') {
+      return;
+    }
+
+    if (authResult.status !== 'success') {
+      toast.error(authResult.message ?? 'Device confirmation failed');
+      return;
+    }
+
     try {
       await notarizeMutation.mutateAsync(documentId);
+      sheets.setIsAnchorConfirmSheetVisible(false);
       toast.success('Document anchored to blockchain');
       router.push(`/verify/${documentId}`);
     } catch (error) {
@@ -229,11 +244,19 @@ export default function DocumentDetailsScreen() {
             isLoading={documentQuery.isLoading}
             isNotarizing={notarizeMutation.isPending}
             isViewer={isViewer}
-            partyNames={whitelistData.grants.map((grant) => grant.name)}
+            grants={whitelistData.grants}
             riskSections={riskSections}
             versionHistory={versionHistory}
+            auditLogs={auditLogsQuery.data ?? []}
+            onPressAuditTrail={() => {
+              router.push({
+                pathname: '/document/audit-trail',
+                params: { documentId, title: document?.file_name ?? 'Audit trail' },
+              });
+            }}
+            onPressBlockchainStatus={() => router.push(`/verify/${documentId}`)}
             onPressManageWhitelist={() => sheets.setIsWhitelistSheetVisible(true)}
-            onPressNotarize={handleNotarize}
+            onPressNotarize={() => sheets.setIsAnchorConfirmSheetVisible(true)}
             onPressPdf={() => {
               if (!document || !pdfUri) {
                 return;
@@ -249,8 +272,17 @@ export default function DocumentDetailsScreen() {
                 },
               });
             }}
-            onPressSearch={() => sheets.setIsSearchSheetVisible(true)}
             onPressVersion={handleOpenVersion}
+            onPressVersionHistory={() => {
+              router.push({
+                pathname: '/document/version-history',
+                params: {
+                  documentId,
+                  role: currentDocumentRole,
+                  title: document?.file_name ?? 'Version history',
+                },
+              });
+            }}
             onRetry={() => {
               void documentQuery.refetch();
             }}
@@ -285,34 +317,32 @@ export default function DocumentDetailsScreen() {
           qaMutation.isError ? parseApiError(qaMutation.error).message : undefined
         }
         currentName={document?.file_name ?? ''}
-        documentId={documentId}
         documentTitle={document?.file_name ?? 'this document'}
         isAddPartyPending={addPartyMutation.isPending}
+        isAnchorConfirmLoading={notarizeMutation.isPending}
+        isAnchorConfirmSheetVisible={sheets.isAnchorConfirmSheetVisible}
         isAskLoading={qaMutation.isPending}
         isAskSheetVisible={canUseDocumentAssistant && sheets.isAskSheetVisible}
         isPartiesLoading={partiesQuery.isLoading}
         isRemovePartyPending={removePartyMutation.isPending}
         isRenameLoading={renameMutation.isPending}
         isRenameSheetVisible={sheets.isRenameSheetVisible}
-        isSearchSheetVisible={sheets.isSearchSheetVisible}
         isUserSearchFetching={userSearchQuery.isFetching}
         isWhitelistSheetVisible={sheets.isWhitelistSheetVisible}
         searchQuery={sheets.whitelistSearchQuery}
         whitelistData={whitelistData}
         onAsk={handleAsk}
         onChangeSearchQuery={sheets.setWhitelistSearchQuery}
+        onCloseAnchorConfirm={() => sheets.setIsAnchorConfirmSheetVisible(false)}
         onCloseAsk={() => sheets.setIsAskSheetVisible(false)}
         onCloseRename={() => sheets.setIsRenameSheetVisible(false)}
-        onCloseSearch={() => sheets.setIsSearchSheetVisible(false)}
         onCloseWhitelist={() => {
           sheets.setIsWhitelistSheetVisible(false);
           sheets.setWhitelistSearchQuery('');
         }}
         onPressAddResult={handleAddWhitelistResult}
+        onPressConfirmAnchor={handleNotarize}
         onPressRevoke={handleRevokeWhitelistGrant}
-        onPressSearchMatch={(chunkId) => {
-          toast(`Section: ${chunkId}`);
-        }}
         onRename={handleRename}
       />
     </SafeAreaView>

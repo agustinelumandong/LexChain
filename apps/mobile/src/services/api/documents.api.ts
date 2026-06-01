@@ -11,6 +11,7 @@ type ApiSchema<Name extends keyof components['schemas']> =
   components['schemas'][Name];
 
 export type DocumentListItem = ApiSchema<'DocumentUploadResponse'> & {
+  book_id?: string;
   on_chain?: boolean;
   status: DocumentStatusKey;
 };
@@ -18,6 +19,7 @@ export type DocumentListItem = ApiSchema<'DocumentUploadResponse'> & {
 export type DocumentUploadResponse = DocumentListItem;
 
 export type DocumentDetail = ApiSchema<'DocumentResponse'> & {
+  book_id?: string;
   status: DocumentStatusKey;
   storage_url?: string | null;
   file_uri?: string | null;
@@ -53,6 +55,10 @@ export type AskCitation = {
   score: number;
 };
 
+export type AskChatMessage = ApiSchema<'ChatMessage'>;
+
+export type AskRequest = ApiSchema<'AskRequest'>;
+
 export type AskResponse = {
   question: string;
   answer: string;
@@ -73,6 +79,14 @@ export type DocumentPartyResponse = ApiSchema<'DocumentPartyResponse'>;
 export type DocumentPartyListResponse = ApiSchema<'DocumentPartyListResponse'>;
 
 export type RemovePartyResponse = ApiSchema<'RemovePartyResponse'>;
+export type AuditLogResponse = ApiSchema<'AuditLogResponse'>;
+export type DocumentInvitationResponse = ApiSchema<'DocumentInvitationResponse'>;
+
+export type ListDocumentsParams = {
+  bookId?: string;
+  limit?: number;
+  offset?: number;
+};
 
 // Helper to fetch search results with document details
 export async function fetchSearchResultsWithDetails(
@@ -139,13 +153,14 @@ const encodeDocumentId = (documentId: string) => {
 };
 
 export const documentsApi = {
-  list: (params?: { limit?: number; offset?: number }) => {
+  list: (params?: ListDocumentsParams) => {
     if (env.useMockApi) {
       return mockDocumentsApi.list(params);
     }
 
     return apiClient.get<DocumentListItem[]>(
       `/documents/${toQueryString({
+        book_id: params?.bookId,
         limit: params?.limit,
         offset: params?.offset,
       })}`,
@@ -162,12 +177,15 @@ export const documentsApi = {
     return apiClient.get<DocumentDetail>(`/documents/${encodedDocumentId}`);
   },
 
-  upload: (file: PickedUploadFile, fileName: string) => {
+  upload: (file: PickedUploadFile, fileName: string, bookId: string) => {
     if (env.useMockApi) {
-      return mockDocumentsApi.upload(file, fileName);
+      return mockDocumentsApi.upload(file, fileName, bookId);
     }
 
-    const searchParams = new URLSearchParams({ file_name: fileName });
+    const searchParams = new URLSearchParams({
+      book_id: bookId,
+      file_name: fileName,
+    });
 
     return apiClient.post<DocumentUploadAcceptedResponse>(
       `/documents/upload?${searchParams.toString()}`,
@@ -218,8 +236,20 @@ export const documentsApi = {
     }
 
     return apiClient.patch<DocumentUploadResponse>(
-      `/documents/${encodedDocumentId}/`,
+      `/documents/${encodedDocumentId}`,
       { file_name: fileName },
+    );
+  },
+
+  getAuditLogs: (documentId: string) => {
+    const encodedDocumentId = encodeDocumentId(documentId);
+
+    if (env.useMockApi) {
+      return mockDocumentsApi.getAuditLogs(documentId);
+    }
+
+    return apiClient.get<AuditLogResponse[]>(
+      `/documents/${encodedDocumentId}/audit-logs`,
     );
   },
 
@@ -236,16 +266,52 @@ export const documentsApi = {
     );
   },
 
-  ask: (documentId: string, question: string) => {
+  ask: (documentId: string, question: string, history: AskChatMessage[] = []) => {
     const encodedDocumentId = encodeDocumentId(documentId);
+    const payload: AskRequest = {
+      question,
+      history,
+    };
 
     if (env.useMockApi) {
-      return mockDocumentsApi.ask(documentId, question);
+      return mockDocumentsApi.ask(documentId, payload);
     }
 
     return apiClient.post<AskResponse>(
       `/documents/${encodedDocumentId}/ask`,
-      { question },
+      payload,
+    );
+  },
+
+  getPendingInvitations: () => {
+    if (env.useMockApi) {
+      return mockDocumentsApi.getPendingInvitations();
+    }
+
+    return apiClient.get<DocumentInvitationResponse[]>('/documents/invitations');
+  },
+
+  acceptInvitation: (documentId: string) => {
+    const encodedDocumentId = encodeDocumentId(documentId);
+
+    if (env.useMockApi) {
+      return mockDocumentsApi.acceptInvitation(documentId);
+    }
+
+    return apiClient.post<Record<string, unknown>>(
+      `/documents/${encodedDocumentId}/parties/accept`,
+    );
+  },
+
+  rejectInvitation: (documentId: string) => {
+    const encodedDocumentId = encodeDocumentId(documentId);
+
+    if (env.useMockApi) {
+      return mockDocumentsApi.rejectInvitation(documentId);
+    }
+
+    return apiClient.post<Record<string, unknown>>(
+      `/documents/${encodedDocumentId}/parties/reject`,
     );
   },
 

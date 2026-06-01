@@ -16,6 +16,7 @@ import {
   formatWhitelistCountLabel,
 } from '@/features/document/utils/document-details-formatters';
 import {
+  AuditTrailCard,
   AccessControlCard,
   ConfidenceCard,
   DocumentStatusCard,
@@ -23,6 +24,8 @@ import {
 } from '@/features/document/components/details/document-detail-cards';
 import { DocumentDetailsActions } from '@/features/document/components/details/document-details-actions';
 import { DocumentDetailsSkeleton } from '@/features/document/components/details/document-details-skeleton';
+import type { AuditLogResponse } from '@/services/api';
+import type { WhitelistGrant } from '@/types';
 
 type DetailSection = {
   title: string;
@@ -41,14 +44,17 @@ type DocumentDetailsContentProps = {
   isAnchorTimeLoading: boolean;
   isNotarizing: boolean;
   isViewer: boolean;
-  partyNames: string[];
+  grants: WhitelistGrant[];
   riskSections: DetailSection[];
   versionHistory: VersionHistoryItem[];
+  auditLogs: AuditLogResponse[];
+  onPressAuditTrail: () => void;
+  onPressBlockchainStatus: () => void;
   onPressManageWhitelist: () => void;
   onPressNotarize: () => void;
   onPressPdf: () => void;
-  onPressSearch: () => void;
   onPressVersion: (version: VersionHistoryItem) => void;
+  onPressVersionHistory: () => void;
   onRetry: () => void;
 };
 
@@ -64,14 +70,17 @@ export function DocumentDetailsContent({
   isAnchorTimeLoading,
   isNotarizing,
   isViewer,
-  partyNames,
+  grants,
   riskSections,
   versionHistory,
+  auditLogs,
+  onPressAuditTrail,
+  onPressBlockchainStatus,
   onPressManageWhitelist,
   onPressNotarize,
   onPressPdf,
-  onPressSearch,
   onPressVersion,
+  onPressVersionHistory,
   onRetry,
 }: DocumentDetailsContentProps) {
   if (isLoading) {
@@ -99,9 +108,9 @@ export function DocumentDetailsContent({
         isAnchored={Boolean(document.on_chain)}
         isNotarizing={isNotarizing}
         isViewer={isViewer}
+        onPressBlockchainStatus={onPressBlockchainStatus}
         onPressNotarize={onPressNotarize}
         onPressPdf={onPressPdf}
-        onPressSearch={onPressSearch}
       />
 
       <DocumentSummaryCard
@@ -123,11 +132,17 @@ export function DocumentDetailsContent({
       <AccessControlCard
         allowedCountLabel={formatWhitelistCountLabel(allowedCount)}
         canManageWhitelist={canManageWhitelist}
-        partyNames={partyNames}
+        grants={grants}
         onPressManage={onPressManageWhitelist}
       />
 
-      <VersionHistoryCard items={versionHistory} onPressVersion={onPressVersion} />
+      <VersionHistoryCard
+        items={versionHistory}
+        onPressVersion={onPressVersion}
+        onPressViewHistory={onPressVersionHistory}
+      />
+
+      <AuditTrailCard logs={auditLogs} onPressViewAll={onPressAuditTrail} />
 
       <Text style={styles.insightsEyebrow}>DOCUMENT INSIGHTS</Text>
 

@@ -256,6 +256,45 @@ export const adminAnalytics = [
   { label: "Anchoring success rate", value: "98%", detail: "2% delayed or retrying" },
 ];
 
+export const adminGeneratedReports = [
+  {
+    id: "rpt_001",
+    title: "Deed of Sale - Lot 18 Summary",
+    type: "NLP Summary",
+    source: "Deed of Sale - Lot 18.pdf",
+    status: "ready",
+    generated_by: "Atty. Maria Santos",
+    generated_at: "2026-05-01T09:22:00Z",
+  },
+  {
+    id: "rpt_002",
+    title: "Public Verification Mismatch Report",
+    type: "Verification Report",
+    source: "Barangay Resolution 2026-14.pdf",
+    status: "ready",
+    generated_by: "System",
+    generated_at: "2026-05-08T15:21:00Z",
+  },
+  {
+    id: "rpt_003",
+    title: "Lease Agreement OCR Extraction",
+    type: "OCR Extraction",
+    source: "Lease Agreement - Unit 4B.pdf",
+    status: "review_needed",
+    generated_by: "System",
+    generated_at: "2026-05-10T14:08:00Z",
+  },
+  {
+    id: "rpt_004",
+    title: "Weekly Blockchain Anchoring Export",
+    type: "Blockchain Export",
+    source: "Polygon Amoy Testnet",
+    status: "queued",
+    generated_by: "LexChain Owner",
+    generated_at: "2026-05-13T08:30:00Z",
+  },
+];
+
 export const adminAuditLogs = [
   {
     actor: "owner@lexchain.local",

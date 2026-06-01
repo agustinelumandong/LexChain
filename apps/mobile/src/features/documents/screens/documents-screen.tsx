@@ -1,4 +1,4 @@
-import React, { useCallback, useRef } from 'react';
+import React, { useCallback, useEffect, useRef } from 'react';
 import { useFocusEffect, useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { FlatList, RefreshControl, Text, View } from 'react-native';
@@ -22,6 +22,9 @@ import { DocumentSearchResultRow } from '@/features/documents/components/documen
 import { styles } from '@/features/documents/components/list/documents-screen.styles';
 import { useDocumentsScreen } from '@/features/documents/hooks/use-documents-screen';
 import { APP_COLORS } from '@/theme';
+import { useUiShellStore } from '@/shared/stores/ui-shell-store';
+import { canRoleUploadDocuments } from '@/features/profile';
+import { usePendingDocumentInvitations, useUserProfile } from '@/services/query';
 import type {
   DisplayDocument,
   DocumentFilterStatusKey,
@@ -31,12 +34,34 @@ export default function DocumentsScreen() {
   const router = useRouter();
   const isOpeningDocumentRef = useRef(false);
   const screen = useDocumentsScreen();
+  const userProfileQuery = useUserProfile();
+  const userRole = userProfileQuery.data?.role?.trim().toLowerCase();
+  const canViewInvitations = userRole === 'user';
+  const invitationsQuery = usePendingDocumentInvitations(canViewInvitations);
+  const canManageBooks = canRoleUploadDocuments(userProfileQuery.data?.role);
+  const setBottomNavHidden = useUiShellStore((state) => state.setBottomNavHidden);
+  const { clearSearch, documentsQuery } = screen;
+  const { isLoading: isLoadingDocumentsQuery, refetch: refetchDocuments } = documentsQuery;
 
   useFocusEffect(
     useCallback(() => {
+      if (isOpeningDocumentRef.current) {
+        clearSearch();
+      }
       isOpeningDocumentRef.current = false;
-    }, []),
+      if (!isLoadingDocumentsQuery) {
+        void refetchDocuments();
+      }
+    }, [clearSearch, isLoadingDocumentsQuery, refetchDocuments]),
   );
+
+  useEffect(() => {
+    const shouldHideBottomNav = screen.isFilterSheetOpen || screen.isSortSheetOpen;
+
+    setBottomNavHidden(shouldHideBottomNav);
+
+    return () => setBottomNavHidden(false);
+  }, [screen.isFilterSheetOpen, screen.isSortSheetOpen, setBottomNavHidden]);
 
   const openDocument = useCallback(
     (documentId: string) => {
@@ -60,6 +85,10 @@ export default function DocumentsScreen() {
         <DocumentResultCard
           title={document.title}
           date={document.date}
+          documentNumber={document.documentNumber}
+          bookNumber={document.bookNumber}
+          pageNumber={document.pageNumber}
+          series={document.series}
           onChain={document.onChain}
           onPressCard={() => openDocument(document.id)}
           onPressOpen={() => openDocument(document.id)}
@@ -107,7 +136,17 @@ export default function DocumentsScreen() {
           }
           ListHeaderComponent={
             <>
-              <DocumentsHeader />
+              <DocumentsHeader
+                onPressInvitations={
+                  canViewInvitations ? () => router.push('/invitations') : undefined
+                }
+                pendingInvitationCount={
+                  canViewInvitations ? invitationsQuery.data?.length ?? 0 : 0
+                }
+                onPressBooks={
+                  canManageBooks ? () => router.push('/books') : undefined
+                }
+              />
 
               <View style={styles.searchWrap}>
                 <SearchInputWithResults
