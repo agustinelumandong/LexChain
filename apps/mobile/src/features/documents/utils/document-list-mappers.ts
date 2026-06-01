@@ -39,6 +39,10 @@ export function mapDocumentListItem(item: DocumentListItem): DisplayDocument {
     documentType: 'all',
     onChain: item.on_chain,
     status: mapDocumentStatus(item.status),
+    documentNumber: item.document_number ?? 0,
+    bookNumber: item.book_number ?? 0,
+    pageNumber: item.page_number ?? 0,
+    series: item.series ?? 0,
   };
 }
 
@@ -56,6 +60,10 @@ export function mapGlobalSearchResult(result: GlobalSearchResult): DisplayDocume
       onChain: false,
       status: 'review-needed',
       snippet: '',
+      documentNumber: 0,
+      bookNumber: 0,
+      pageNumber: 0,
+      series: 0,
     };
   }
 
@@ -69,5 +77,9 @@ export function mapGlobalSearchResult(result: GlobalSearchResult): DisplayDocume
     onChain: doc.on_chain,
     status: mapDocumentStatus(doc.status),
     snippet: doc.summary ?? '',
+    documentNumber: doc.document_number ?? 0,
+    bookNumber: 0,
+    pageNumber: 0,
+    series: 0,
   };
 }

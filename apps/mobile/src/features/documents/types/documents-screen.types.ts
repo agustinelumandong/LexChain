@@ -14,4 +14,8 @@ export type DisplayDocument = {
   onChain?: boolean;
   status: DocumentFilterStatusKey;
   snippet?: string;
+  documentNumber: number;
+  bookNumber: number;
+  pageNumber: number;
+  series: number;
 };

@@ -24,7 +24,7 @@ import { useDocumentsScreen } from '@/features/documents/hooks/use-documents-scr
 import { APP_COLORS } from '@/theme';
 import { useUiShellStore } from '@/shared/stores/ui-shell-store';
 import { canRoleUploadDocuments } from '@/features/profile';
-import { useUserProfile } from '@/services/query';
+import { usePendingDocumentInvitations, useUserProfile } from '@/services/query';
 import type {
   DisplayDocument,
   DocumentFilterStatusKey,
@@ -35,6 +35,9 @@ export default function DocumentsScreen() {
   const isOpeningDocumentRef = useRef(false);
   const screen = useDocumentsScreen();
   const userProfileQuery = useUserProfile();
+  const userRole = userProfileQuery.data?.role?.trim().toLowerCase();
+  const canViewInvitations = userRole === 'user';
+  const invitationsQuery = usePendingDocumentInvitations(canViewInvitations);
   const canManageBooks = canRoleUploadDocuments(userProfileQuery.data?.role);
   const setBottomNavHidden = useUiShellStore((state) => state.setBottomNavHidden);
   const { clearSearch, documentsQuery } = screen;
@@ -82,6 +85,10 @@ export default function DocumentsScreen() {
         <DocumentResultCard
           title={document.title}
           date={document.date}
+          documentNumber={document.documentNumber}
+          bookNumber={document.bookNumber}
+          pageNumber={document.pageNumber}
+          series={document.series}
           onChain={document.onChain}
           onPressCard={() => openDocument(document.id)}
           onPressOpen={() => openDocument(document.id)}
@@ -130,6 +137,12 @@ export default function DocumentsScreen() {
           ListHeaderComponent={
             <>
               <DocumentsHeader
+                onPressInvitations={
+                  canViewInvitations ? () => router.push('/invitations') : undefined
+                }
+                pendingInvitationCount={
+                  canViewInvitations ? invitationsQuery.data?.length ?? 0 : 0
+                }
                 onPressBooks={
                   canManageBooks ? () => router.push('/books') : undefined
                 }

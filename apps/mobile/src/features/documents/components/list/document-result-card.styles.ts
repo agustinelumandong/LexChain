@@ -70,6 +70,23 @@ export const documentResultCardStyles = StyleSheet.create({
     fontWeight: '500',
     fontFamily: fonts.regular,
   },
+  registryRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  registryPill: {
+    overflow: 'hidden',
+    borderRadius: 999,
+    backgroundColor: documentResultCardColors.surfaceSoft,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    color: documentResultCardColors.primary,
+    fontSize: 10,
+    lineHeight: 12,
+    fontWeight: '800',
+    fontFamily: fonts.regular,
+  },
   actionButton: {
     borderRadius: 999,
     paddingVertical: 10,
