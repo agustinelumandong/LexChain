@@ -1,10 +1,10 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { useFocusEffect, useRouter } from 'expo-router';
 import * as DocumentPicker from 'expo-document-picker';
 import * as Haptics from 'expo-haptics';
 import { toast } from 'sonner-native';
 
-import { useUploadDocument } from '@/services/query';
+import { useBooks, useUploadDocument } from '@/services/query';
 import { parseApiError } from '@/shared/utils/api-error';
 import type { PickedUploadFile } from '@/types';
 
@@ -18,13 +18,29 @@ import {
   scanDocumentsWithNativeScanner,
 } from '../native-document-scanner';
 import { formatUploadFileSize, isPdfFile } from '../utils/upload-file';
+import { sanitizeDocumentTitle, validateDocumentTitle } from '../utils/document-title';
 
 export function useUploadFlow() {
   const router = useRouter();
   const [pickedFiles, setPickedFiles] = useState<PickedUploadFile[]>([]);
   const [documentTitle, setDocumentTitle] = useState('');
+  const [selectedBookId, setSelectedBookId] = useState('');
   const [isPreparingScanPdf, setIsPreparingScanPdf] = useState(false);
+  const booksQuery = useBooks({ limit: 50, offset: 0 });
   const uploadMutation = useUploadDocument();
+  const books = useMemo(() => booksQuery.data ?? [], [booksQuery.data]);
+  const documentTitleError = useMemo(
+    () => (documentTitle ? validateDocumentTitle(documentTitle) : undefined),
+    [documentTitle],
+  );
+  const selectedBook = useMemo(
+    () => books.find((book) => book.id === selectedBookId),
+    [books, selectedBookId],
+  );
+
+  const handleChangeDocumentTitle = useCallback((value: string) => {
+    setDocumentTitle(sanitizeDocumentTitle(value));
+  }, []);
 
   const convertCapturedFilesToPdf = useCallback((capturedFiles: PickedUploadFile[]) => {
     if (capturedFiles.length === 0) {
@@ -37,7 +53,7 @@ export function useUploadFlow() {
       .then((scanPdf) => {
         setPickedFiles([scanPdf]);
         setDocumentTitle((currentTitle) =>
-          currentTitle.trim() ? currentTitle : scanPdf.name,
+          currentTitle.trim() ? currentTitle : sanitizeDocumentTitle(scanPdf.name),
         );
         toast.success(
           capturedFiles.length === 1
@@ -101,7 +117,7 @@ export function useUploadFlow() {
 
       setPickedFiles([selectedFile]);
       setDocumentTitle((currentTitle) =>
-        currentTitle.trim() ? currentTitle : selectedFile.name,
+        currentTitle.trim() ? currentTitle : sanitizeDocumentTitle(selectedFile.name),
       );
 
       toast.success('PDF ready to upload');
@@ -152,7 +168,7 @@ export function useUploadFlow() {
       pathname: '/document/pdf-viewer',
       params: {
         documentId: file.id,
-        title: documentTitle.trim() || file.name,
+        title: sanitizeDocumentTitle(documentTitle) || sanitizeDocumentTitle(file.name),
         uri: file.uri,
         role: 'owner',
       },
@@ -172,17 +188,26 @@ export function useUploadFlow() {
       return;
     }
 
-    if (!documentTitle.trim()) {
+    const sanitizedTitle = sanitizeDocumentTitle(documentTitle);
+
+    if (!sanitizedTitle) {
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       toast.warning('Enter a document title');
+      return;
+    }
+
+    if (!selectedBookId) {
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      toast.warning('Choose a register book');
       return;
     }
 
     try {
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       const response = await uploadMutation.mutateAsync({
+        bookId: selectedBookId,
         file: pickedFiles[0],
-        fileName: documentTitle.trim(),
+        fileName: sanitizedTitle,
       });
 
       toast.success(response.message || 'Document accepted for processing');
@@ -212,15 +237,22 @@ export function useUploadFlow() {
   };
 
   return {
+    books,
+    booksError: booksQuery.error,
     documentTitle,
+    documentTitleError,
     handleChooseFile,
+    handleChangeDocumentTitle,
     handleContinueToProcessing,
     handleOpenCameraCapture,
     handlePreviewFile,
     handleRemoveFile,
+    isLoadingBooks: booksQuery.isLoading,
     isPreparingScanPdf,
     isUploadingDocument: uploadMutation.isPending,
     pickedFiles,
-    setDocumentTitle,
+    selectedBook,
+    selectedBookId,
+    setSelectedBookId,
   };
 }

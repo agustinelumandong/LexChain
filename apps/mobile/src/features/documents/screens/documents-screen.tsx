@@ -23,6 +23,8 @@ import { styles } from '@/features/documents/components/list/documents-screen.st
 import { useDocumentsScreen } from '@/features/documents/hooks/use-documents-screen';
 import { APP_COLORS } from '@/theme';
 import { useUiShellStore } from '@/shared/stores/ui-shell-store';
+import { canRoleUploadDocuments } from '@/features/profile';
+import { useUserProfile } from '@/services/query';
 import type {
   DisplayDocument,
   DocumentFilterStatusKey,
@@ -32,6 +34,8 @@ export default function DocumentsScreen() {
   const router = useRouter();
   const isOpeningDocumentRef = useRef(false);
   const screen = useDocumentsScreen();
+  const userProfileQuery = useUserProfile();
+  const canManageBooks = canRoleUploadDocuments(userProfileQuery.data?.role);
   const setBottomNavHidden = useUiShellStore((state) => state.setBottomNavHidden);
   const { clearSearch, documentsQuery } = screen;
   const { isLoading: isLoadingDocumentsQuery, refetch: refetchDocuments } = documentsQuery;
@@ -125,7 +129,11 @@ export default function DocumentsScreen() {
           }
           ListHeaderComponent={
             <>
-              <DocumentsHeader />
+              <DocumentsHeader
+                onPressBooks={
+                  canManageBooks ? () => router.push('/books') : undefined
+                }
+              />
 
               <View style={styles.searchWrap}>
                 <SearchInputWithResults
