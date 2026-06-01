@@ -22,7 +22,7 @@ import {
   useUserSearch,
   useVerifyOnChainDocument,
 } from '@/services/query';
-import { documentsApi } from '@/services/api';
+import { documentsApi, type AskChatMessage } from '@/services/api';
 import { parseApiError } from '@/shared/utils/api-error';
 import { APP_COLORS } from '@/theme';
 import botQuestionMarkImage from '@/assets/images/lexchain-bot-question-mark.png';
@@ -102,8 +102,8 @@ export default function DocumentDetailsScreen() {
     }
   };
 
-  const handleAsk = useCallback((question: string) => {
-    askDocument({ documentId, question });
+  const handleAsk = useCallback((question: string, history: AskChatMessage[]) => {
+    askDocument({ documentId, question, history });
   }, [askDocument, documentId]);
 
   const handleNotarize = async () => {
