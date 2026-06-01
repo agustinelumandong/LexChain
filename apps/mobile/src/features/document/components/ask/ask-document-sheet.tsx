@@ -11,6 +11,7 @@ import { AskDocumentComposer } from './ask-document-composer';
 import { AskDocumentMessages } from './ask-document-messages';
 import { ASK_DOCUMENT_COLORS as COLORS, askDocumentStyles as styles } from './ask-document.styles';
 import { useAskDocumentSheet } from '../../hooks/use-ask-document-sheet';
+import type { AskChatMessage } from '@/services/api';
 
 type AskDocumentSheetProps = {
   visible: boolean;
@@ -19,7 +20,7 @@ type AskDocumentSheetProps = {
   isLoading?: boolean;
   errorMessage?: string;
   onClose: () => void;
-  onAsk: (question: string) => void;
+  onAsk: (question: string, history: AskChatMessage[]) => void;
 };
 
 export function AskDocumentSheet({
