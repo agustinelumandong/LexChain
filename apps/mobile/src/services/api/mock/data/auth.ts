@@ -6,6 +6,8 @@ export const MOCK_SIGN_IN_RESPONSE: SignInResponse = {
   refresh_token: 'bh3xqvjrm5pm',
   token_type: 'bearer',
   expires_in: 3600,
+  mfa_required: false,
+  mfa_token: null,
   user: {
     id: 'da976baa-007f-4f37-a551-f6c4e279c461',
     email: 'dibopiw438@imashr.com',
