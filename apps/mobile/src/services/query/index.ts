@@ -6,11 +6,20 @@ export {
   useCreateAdminInvitation,
   useRevokeAdminInvitation,
 } from './use-admin';
-export { useResendVerification, useSignIn, useSignUp } from './use-auth';
+export {
+  useDisableMfa,
+  useEnableMfa,
+  useResendVerification,
+  useSetupMfa,
+  useSignIn,
+  useSignUp,
+  useVerifyMfaSignIn,
+} from './use-auth';
 export { useBook, useBooks, useCreateBook } from './use-books';
 export { useNotarizeDocument, useVerifyOnChainDocument } from './use-blockchain';
 export {
   useAddDocumentParty,
+  useAcceptDocumentInvitation,
   useAskDocument,
   useDocument,
   useDocumentAuditLogs,
@@ -18,6 +27,8 @@ export {
   useDocumentVersions,
   useDocuments,
   useGlobalSearch,
+  usePendingDocumentInvitations,
+  useRejectDocumentInvitation,
   useRenameDocument,
   useRemoveDocumentParty,
   useSearchDocument,
