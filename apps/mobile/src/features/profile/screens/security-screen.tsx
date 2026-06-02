@@ -1,4 +1,5 @@
 import React from 'react';
+import * as Linking from 'expo-linking';
 import { toast } from 'sonner-native';
 
 import {
@@ -57,13 +58,17 @@ export default function SecurityScreen() {
     secret: string;
     provisioning_uri: string;
   } | null>(null);
-  const [mfaEnabledThisSession, setMfaEnabledThisSession] = React.useState(false);
   const security = useProfileSettingsStore((state) => state.security);
   const updateSecurity = useProfileSettingsStore((state) => state.updateSecurity);
   const userProfileQuery = useUserProfile();
   const setupMfaMutation = useSetupMfa();
   const enableMfaMutation = useEnableMfa();
   const disableMfaMutation = useDisableMfa();
+  const mfaEnabled = Boolean(userProfileQuery.data?.mfa_enabled);
+  const isMfaBusy =
+    setupMfaMutation.isPending ||
+    enableMfaMutation.isPending ||
+    disableMfaMutation.isPending;
 
   React.useEffect(() => {
     void getAppLockEnabled().then((enabled) => {
@@ -71,6 +76,13 @@ export default function SecurityScreen() {
       updateSecurity('biometricUnlock', enabled);
     });
   }, [updateSecurity]);
+
+  React.useEffect(() => {
+    if (mfaEnabled) {
+      setMfaSetup(null);
+      setMfaCode('');
+    }
+  }, [mfaEnabled]);
 
   const handleAppLockChange = async (value: boolean) => {
     if (isUpdatingAppLock) {
@@ -109,6 +121,8 @@ export default function SecurityScreen() {
       setAppLockEnabledState(true);
       updateSecurity('biometricUnlock', true);
       toast.success('App Lock enabled');
+    } catch (error) {
+      toast.error(parseApiError(error).message);
     } finally {
       setIsUpdatingAppLock(false);
     }
@@ -141,13 +155,25 @@ export default function SecurityScreen() {
 
     try {
       await enableMfaMutation.mutateAsync({ code });
-      void userProfileQuery.refetch();
       setMfaSetup(null);
       setMfaCode('');
-      setMfaEnabledThisSession(true);
       toast.success('MFA enabled');
     } catch (error) {
       toast.error(parseApiError(error).message);
+    }
+  };
+
+  const handleOpenAuthenticatorApp = async () => {
+    if (!mfaSetup?.provisioning_uri) {
+      toast.warning('MFA setup link is not ready yet');
+      return;
+    }
+
+    try {
+      await Linking.openURL(mfaSetup.provisioning_uri);
+      toast.info('Return to LexChain and enter the 6-digit code');
+    } catch {
+      toast.warning('No authenticator app opened. Use the manual secret below.');
     }
   };
 
@@ -161,9 +187,7 @@ export default function SecurityScreen() {
 
     try {
       await disableMfaMutation.mutateAsync({ code });
-      void userProfileQuery.refetch();
       setMfaDisableCode('');
-      setMfaEnabledThisSession(false);
       toast.success('MFA disabled');
     } catch (error) {
       toast.error(parseApiError(error).message);
@@ -177,7 +201,7 @@ export default function SecurityScreen() {
     >
       <SettingsCard
         title="Account protection"
-        description="Current backend auth supports sign-in, sign-up, and email verification."
+        description="Protect sign-in with email verification and authenticator app codes."
       >
         <InfoRow
           iconName="mark-email-read"
@@ -188,29 +212,29 @@ export default function SecurityScreen() {
           iconName="admin-panel-settings"
           title="Multi-factor authentication"
           body={
-            userProfileQuery.data?.mfa_enabled || mfaEnabledThisSession
+            mfaEnabled
               ? 'MFA is enabled for this account.'
               : 'Use an authenticator app to protect sign-in with a 6-digit code.'
           }
         />
 
-        {mfaSetup ? (
+        {!mfaEnabled && mfaSetup ? (
           <>
             <InfoRow
               iconName="qr-code-2"
               title="Add this account"
-              body="Open Google Authenticator, Authy, or 1Password and add the manual secret below."
+              body="Open your authenticator app, approve the LexChain account, then return here and enter the 6-digit code."
+            />
+            <Button
+              label="Open authenticator app"
+              fullWidth
+              leftIconName="open-in-new"
+              disabled={isMfaBusy}
+              onPress={handleOpenAuthenticatorApp}
             />
             <ProfileTextField
-              label="Manual secret"
+              label="Manual setup key"
               value={mfaSetup.secret}
-              editable={false}
-              multiline
-              style={profileDetailStyles.mfaReadOnlyInput}
-            />
-            <ProfileTextField
-              label="Provisioning URI"
-              value={mfaSetup.provisioning_uri}
               editable={false}
               multiline
               style={profileDetailStyles.mfaReadOnlyInput}
@@ -228,48 +252,55 @@ export default function SecurityScreen() {
               fullWidth
               leftIconName="verified-user"
               loading={enableMfaMutation.isPending}
-              disabled={enableMfaMutation.isPending}
+              disabled={isMfaBusy || mfaCode.trim().length !== 6}
               onPress={handleEnableMfa}
             />
             <Button
               label="Cancel setup"
               variant="secondary"
               fullWidth
+              disabled={isMfaBusy}
               onPress={() => {
                 setMfaSetup(null);
                 setMfaCode('');
               }}
             />
           </>
-        ) : (
+        ) : null}
+
+        {!mfaEnabled && !mfaSetup ? (
           <Button
             label="Enable MFA"
             variant="secondary"
             fullWidth
             leftIconName="admin-panel-settings"
             loading={setupMfaMutation.isPending}
-            disabled={setupMfaMutation.isPending}
+            disabled={isMfaBusy}
             onPress={handleSetupMfa}
           />
-        )}
+        ) : null}
 
-        <ProfileTextField
-          label="Disable MFA code"
-          placeholder="123456"
-          value={mfaDisableCode}
-          onChangeText={(value) => setMfaDisableCode(value.replace(/\D/g, '').slice(0, 6))}
-          keyboardType="number-pad"
-          maxLength={6}
-        />
-        <Button
-          label="Disable MFA"
-          variant="secondary"
-          fullWidth
-          leftIconName="lock-open"
-          loading={disableMfaMutation.isPending}
-          disabled={disableMfaMutation.isPending || mfaDisableCode.trim().length !== 6}
-          onPress={handleDisableMfa}
-        />
+        {mfaEnabled ? (
+          <>
+            <ProfileTextField
+              label="Disable MFA code"
+              placeholder="123456"
+              value={mfaDisableCode}
+              onChangeText={(value) => setMfaDisableCode(value.replace(/\D/g, '').slice(0, 6))}
+              keyboardType="number-pad"
+              maxLength={6}
+            />
+            <Button
+              label="Disable MFA"
+              variant="secondary"
+              fullWidth
+              leftIconName="lock-open"
+              loading={disableMfaMutation.isPending}
+              disabled={isMfaBusy || mfaDisableCode.trim().length !== 6}
+              onPress={handleDisableMfa}
+            />
+          </>
+        ) : null}
 
         <InfoRow
           iconName="vpn-key"
