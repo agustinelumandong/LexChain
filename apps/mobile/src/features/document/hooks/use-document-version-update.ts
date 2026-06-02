@@ -55,7 +55,7 @@ export function useDocumentVersionUpdate(documentId?: string) {
       });
       toast.success(response.message || 'Document update accepted for processing');
       setSelectedUpdateFile(null);
-      return true;
+      return response;
     } catch (error) {
       toast.error(parseApiError(error).message);
       return false;

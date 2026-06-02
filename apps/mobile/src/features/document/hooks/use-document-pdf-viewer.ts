@@ -5,9 +5,8 @@ import { toast } from 'sonner-native';
 import { useCreateDocumentRequest } from '@/services/query';
 import { parseApiError } from '@/shared/utils/api-error';
 
+import { DEFAULT_DOCUMENT_HEADER_HEIGHT } from '../constants/document-details.constants';
 import { getDocumentPermissions } from '../services/document-permissions';
-
-const DEFAULT_HEADER_HEIGHT = 126;
 
 function getStringParam(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value;
@@ -18,7 +17,7 @@ export function useDocumentPdfViewer() {
   const createRequestMutation = useCreateDocumentRequest();
   const [isRequestSheetVisible, setIsRequestSheetVisible] = useState(false);
   const [isToolsSheetVisible, setIsToolsSheetVisible] = useState(false);
-  const [headerHeight, setHeaderHeight] = useState(DEFAULT_HEADER_HEIGHT);
+  const [headerHeight, setHeaderHeight] = useState(DEFAULT_DOCUMENT_HEADER_HEIGHT);
   const params = useLocalSearchParams<{
     documentId?: string;
     title?: string;
