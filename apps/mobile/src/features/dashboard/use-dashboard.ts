@@ -10,7 +10,7 @@ export type DashboardRecentActivity = {
   time: string;
   timestamp: string;
   status: string;
-  tone: 'success' | 'warning' | 'info';
+  tone: 'success' | 'warning' | 'info' | 'danger';
 };
 
 function formatActivityTime(value: string) {
@@ -28,10 +28,19 @@ function formatActivityTime(value: string) {
   });
 }
 
-function getDocumentActivity(document: DocumentListItem): DashboardRecentActivity {
-  const status = document.status;
+function formatStatusLabel(value: string) {
+  return value
+    .toLowerCase()
+    .split(/[_\s-]+/)
+    .filter(Boolean)
+    .map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1)}`)
+    .join(' ');
+}
 
-  if (status === 'COMPLETED') {
+function getDocumentActivity(document: DocumentListItem): DashboardRecentActivity {
+  const status = document.status.toUpperCase();
+
+  if (document.on_chain) {
     return {
       id: `document-${document.id}`,
       title: `${document.file_name} was anchored`,
@@ -43,7 +52,19 @@ function getDocumentActivity(document: DocumentListItem): DashboardRecentActivit
     };
   }
 
-  if (status === 'PROCESSING' || status === 'QUEUED') {
+  if (status === 'COMPLETED') {
+    return {
+      id: `document-${document.id}`,
+      title: `${document.file_name} is ready`,
+      detail: 'Document processing finished. Blockchain anchoring is not complete yet.',
+      time: formatActivityTime(document.created_at),
+      timestamp: document.created_at,
+      status: 'Completed',
+      tone: 'info',
+    };
+  }
+
+  if (status === 'PROCESSING') {
     return {
       id: `document-${document.id}`,
       title: `${document.file_name} is still processing`,
@@ -55,14 +76,38 @@ function getDocumentActivity(document: DocumentListItem): DashboardRecentActivit
     };
   }
 
+  if (status === 'QUEUED' || status === 'PENDING') {
+    return {
+      id: `document-${document.id}`,
+      title: `${document.file_name} is queued`,
+      detail: 'Document is waiting for processing.',
+      time: formatActivityTime(document.created_at),
+      timestamp: document.created_at,
+      status: 'Queued',
+      tone: 'warning',
+    };
+  }
+
+  if (status === 'FAILED') {
+    return {
+      id: `document-${document.id}`,
+      title: `${document.file_name} failed processing`,
+      detail: 'Document processing did not complete successfully.',
+      time: formatActivityTime(document.created_at),
+      timestamp: document.created_at,
+      status: 'Failed',
+      tone: 'danger',
+    };
+  }
+
   return {
     id: `document-${document.id}`,
-    title: `${document.file_name} needs review`,
-    detail: 'Document processing did not complete successfully.',
+    title: `${document.file_name} status changed`,
+    detail: 'Document status was updated.',
     time: formatActivityTime(document.created_at),
     timestamp: document.created_at,
-    status: 'Review',
-    tone: 'warning',
+    status: formatStatusLabel(status),
+    tone: 'info',
   };
 }
 
@@ -76,9 +121,7 @@ export function useDashboard() {
   return useMemo(() => {
     const documents = documentsQuery.data ?? [];
     const documentsCount = documents.length;
-    const anchoredOnChainCount = documents.filter(
-      (doc) => doc.status === 'COMPLETED',
-    ).length;
+    const anchoredOnChainCount = documents.filter((doc) => doc.on_chain).length;
     const processingCount = documents.filter(
       (doc) => doc.status === 'PROCESSING' || doc.status === 'QUEUED',
     ).length;

@@ -12,9 +12,11 @@ export const COLORS = {
   success: APP_COLORS.success,
   warning: APP_COLORS.warning,
   info: APP_COLORS.primary,
+  danger: APP_COLORS.danger,
   successSoft: '#EAF8F0',
   warningSoft: '#FFF4DD',
   infoSoft: '#EAF4FF',
+  dangerSoft: '#FEE2E2',
 };
 
 export const styles = StyleSheet.create({
@@ -203,6 +205,9 @@ export const styles = StyleSheet.create({
   activityIconInfo: {
     backgroundColor: '#F5EAFE',
   },
+  activityIconDanger: {
+    backgroundColor: COLORS.dangerSoft,
+  },
   activityCopy: {
     flex: 1,
     gap: 4,
@@ -252,6 +257,10 @@ export const styles = StyleSheet.create({
   activityStatusInfo: {
     backgroundColor: COLORS.infoSoft,
     color: COLORS.info,
+  },
+  activityStatusDanger: {
+    backgroundColor: COLORS.dangerSoft,
+    color: COLORS.danger,
   },
   activityTime: {
     color: COLORS.textMuted,
