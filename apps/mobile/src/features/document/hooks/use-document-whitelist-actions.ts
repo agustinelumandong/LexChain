@@ -51,18 +51,10 @@ export function useDocumentWhitelistActions({
   );
 
   const handleAddWhitelistResult = async (
-    resultId: string,
+    email: string,
     role: DocumentPartyRole,
   ) => {
-    if (!documentId) {
-      return;
-    }
-
-    const result = whitelistData.searchResults.find(
-      (entry) => entry.id === resultId,
-    );
-
-    if (!result) {
+    if (!documentId || !email) {
       return;
     }
 
@@ -70,12 +62,12 @@ export function useDocumentWhitelistActions({
       await addPartyMutation.mutateAsync({
         documentId,
         payload: {
-          email: result.email,
+          email: email.trim().toLowerCase(),
           role,
         },
       });
       onSearchQueryReset();
-      toast.success(`${result.name} added as ${role}`);
+      toast.success(`${email} invited as ${role}`);
     } catch (error) {
       toast.error(parseApiError(error).message);
     }

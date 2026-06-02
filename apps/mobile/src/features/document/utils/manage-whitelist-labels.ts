@@ -1,23 +1,15 @@
 import type { DocumentPartyRole } from '@/types';
-
-import type { MobileUserRoleKey } from '../constants/manage-whitelist.constants';
+import { MOBILE_USER_ROLES, type MobileUserRoleKey } from '../constants/manage-whitelist.constants';
 
 export function getWhitelistAddLabel(role: DocumentPartyRole) {
-  if (role === 'viewer') {
-    return 'Add Read';
-  }
-
-  return `Add ${role.charAt(0).toUpperCase()}${role.slice(1)}`;
+  return `Add ${role ? role.charAt(0).toUpperCase() + role.slice(1) : ''}`;
 }
 
 export function getMobileRoleLabel(role: MobileUserRoleKey) {
-  if (role === 'owner') {
-    return 'Owner';
+  const predefined = MOBILE_USER_ROLES.find((r) => r.key === role);
+  if (predefined) {
+    return predefined.label;
   }
 
-  if (role === 'lawyer') {
-    return 'Lawyer';
-  }
-
-  return 'Witness/Participant';
+  return role ? role.charAt(0).toUpperCase() + role.slice(1) : '';
 }

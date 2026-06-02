@@ -1,10 +1,13 @@
-export type MobileUserRoleKey = 'participant' | 'owner' | 'lawyer';
+export type MobileUserRoleKey = string;
 
 export const MOBILE_USER_ROLES: {
-  key: MobileUserRoleKey;
+  key: string;
   label: string;
 }[] = [
-  { key: 'participant', label: 'Witness/Participant' },
   { key: 'owner', label: 'Owner' },
-  { key: 'lawyer', label: 'Lawyer' },
+  { key: 'buyer', label: 'Buyer' },
+  { key: 'seller', label: 'Seller' },
+  { key: 'participant', label: 'Participant' },
+  { key: 'whitelisted', label: 'Whitelisted' },
+  { key: 'other', label: 'Other' },
 ];

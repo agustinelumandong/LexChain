@@ -13,19 +13,89 @@ const COLORS = {
 
 type WhitelistGrantRowProps = {
   name: string;
+  status: string;
   accessLabel: string;
   onPressMenu?: () => void;
 };
 
 export function WhitelistGrantRow({
   name,
+  status,
   accessLabel,
   onPressMenu,
 }: WhitelistGrantRowProps) {
   return (
     <View style={styles.card}>
       <View style={styles.copy}>
-        <Text style={styles.name}>{name}</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          <Text style={styles.name}>{name}</Text>
+          {status === 'pending' && (
+            <View style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 3,
+              backgroundColor: '#FFF8E1',
+              paddingHorizontal: 8,
+              paddingVertical: 2,
+              borderRadius: 8,
+              borderWidth: 0.5,
+              borderColor: '#FFE082',
+            }}>
+              <MaterialIcons name="schedule" size={10} color="#FF8F00" />
+              <Text style={{
+                color: '#FF8F00',
+                fontFamily: fonts.regular,
+                fontSize: 10,
+                fontWeight: '700',
+                lineHeight: 12,
+              }}>Pending</Text>
+            </View>
+          )}
+          {status === 'accepted' && (
+            <View style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 3,
+              backgroundColor: '#E8F5E9',
+              paddingHorizontal: 8,
+              paddingVertical: 2,
+              borderRadius: 8,
+              borderWidth: 0.5,
+              borderColor: '#A5D6A7',
+            }}>
+              <MaterialIcons name="check-circle" size={10} color="#2E7D32" />
+              <Text style={{
+                color: '#2E7D32',
+                fontFamily: fonts.regular,
+                fontSize: 10,
+                fontWeight: '700',
+                lineHeight: 12,
+              }}>Accepted</Text>
+            </View>
+          )}
+          {status === 'rejected' && (
+            <View style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 3,
+              backgroundColor: '#FFEBEE',
+              paddingHorizontal: 8,
+              paddingVertical: 2,
+              borderRadius: 8,
+              borderWidth: 0.5,
+              borderColor: '#FFCDD2',
+            }}>
+              <MaterialIcons name="cancel" size={10} color="#C62828" />
+              <Text style={{
+                color: '#C62828',
+                fontFamily: fonts.regular,
+                fontSize: 10,
+                fontWeight: '700',
+                lineHeight: 12,
+              }}>Rejected</Text>
+            </View>
+          )}
+        </View>
         <Text style={styles.access}>{accessLabel}</Text>
       </View>
 
