@@ -9,10 +9,15 @@ import {
 
 import { queryKeys } from './keys';
 
+const DOCUMENT_REQUESTS_REFRESH_INTERVAL_MS = 30 * 1000;
+
 export function useDocumentRequests(params?: ListDocumentRequestsParams) {
   return useQuery({
     queryKey: queryKeys.requests.list(params),
     queryFn: () => requestsApi.list(params),
+    staleTime: 0,
+    refetchOnMount: 'always',
+    refetchInterval: DOCUMENT_REQUESTS_REFRESH_INTERVAL_MS,
   });
 }
 
@@ -20,6 +25,9 @@ export function useMyDocumentRequests() {
   return useQuery({
     queryKey: queryKeys.requests.mine,
     queryFn: requestsApi.listMine,
+    staleTime: 0,
+    refetchOnMount: 'always',
+    refetchInterval: DOCUMENT_REQUESTS_REFRESH_INTERVAL_MS,
   });
 }
 
