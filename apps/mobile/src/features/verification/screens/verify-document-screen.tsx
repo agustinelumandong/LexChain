@@ -22,6 +22,8 @@ const COLORS = {
   textMuted: APP_COLORS.textMuted,
 };
 
+const DEFAULT_HEADER_HEIGHT = 160;
+
 export default function VerifyDocumentScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -30,8 +32,10 @@ export default function VerifyDocumentScreen() {
   const onChainQuery = useVerifyOnChainDocument(documentId);
   const document = documentQuery.data;
   const onChainRecord = onChainQuery.data;
+  const isCheckingOnChain = onChainQuery.isLoading || onChainQuery.isRefetching;
+  const hasTransactionLink = Boolean(onChainRecord?.transacttion_link);
 
-  const chainStatus = onChainQuery.isLoading
+  const chainStatus = isCheckingOnChain
     ? 'Verifying'
     : onChainRecord
       ? onChainRecord.is_verified
@@ -39,7 +43,7 @@ export default function VerifyDocumentScreen() {
         : 'Tampered'
       : 'Not Anchored';
   const isTampered = onChainRecord && !onChainRecord.is_verified;
-  const [headerHeight, setHeaderHeight] = useState(126);
+  const [headerHeight, setHeaderHeight] = useState(DEFAULT_HEADER_HEIGHT);
   const handleHeaderHeightChange = useCallback((nextHeight: number) => {
     setHeaderHeight((height) => (height === nextHeight ? height : nextHeight));
   }, []);
@@ -53,6 +57,10 @@ export default function VerifyDocumentScreen() {
       }
     }
   }, [onChainRecord]);
+
+  const handleVerifyOnChain = useCallback(() => {
+    void onChainQuery.refetch();
+  }, [onChainQuery]);
 
   return (
     <SafeAreaView style={styles.screen} edges={['left', 'right', 'bottom']}>
@@ -83,6 +91,15 @@ export default function VerifyDocumentScreen() {
             />
           ) : null}
 
+          {!onChainRecord && onChainQuery.error && !isCheckingOnChain ? (
+            <ErrorState
+              title="Unable to verify on-chain record"
+              message={parseApiError(onChainQuery.error).message}
+              retryLabel="Verify document"
+              onRetry={handleVerifyOnChain}
+            />
+          ) : null}
+
           {/* Hide processing status automatically if document is already recorded on-chain */}
           {!onChainRecord && (
             <VerificationStatusCard
@@ -95,7 +112,7 @@ export default function VerifyDocumentScreen() {
                 },
                 {
                   label: 'On-chain record',
-                  status: onChainRecord ? 'done' : onChainQuery.isLoading ? 'verifying' : 'pending',
+                  status: onChainRecord ? 'done' : isCheckingOnChain ? 'verifying' : 'pending',
                 },
               ]}
             />
@@ -185,7 +202,7 @@ export default function VerifyDocumentScreen() {
             </View>
           ) : null}
 
-          {!onChainRecord && !onChainQuery.isLoading ? (
+          {!onChainRecord && !isCheckingOnChain && !onChainQuery.error ? (
             <View style={{
               backgroundColor: '#FFFDF9',
               borderRadius: 24,
@@ -227,12 +244,21 @@ export default function VerifyDocumentScreen() {
 
         <View style={styles.footer}>
           <Button
-            label={onChainRecord ? "View Transaction Details on BaseScan" : "Back to documents"}
+            label={isCheckingOnChain ? 'Verifying...' : 'Verify document'}
             variant="primary"
             fullWidth
-            leftIconName={onChainRecord ? undefined : "arrow-back"}
-            onPress={onChainRecord ? handlePressViewAnchor : () => router.push('/(tabs)/documents')}
+            disabled={isCheckingOnChain || !documentId}
+            leftIconName="verified-user"
+            onPress={handleVerifyOnChain}
           />
+          {hasTransactionLink ? (
+            <Button
+              label="View Transaction Details on BaseScan"
+              variant="secondary"
+              fullWidth
+              onPress={handlePressViewAnchor}
+            />
+          ) : null}
         </View>
       </View>
     </SafeAreaView>
