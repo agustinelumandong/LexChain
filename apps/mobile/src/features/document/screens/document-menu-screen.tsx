@@ -15,7 +15,10 @@ import {
 } from '@/services/query';
 import { parseApiError } from '@/shared/utils/api-error';
 import { canRoleUploadDocuments } from '@/features/profile';
-import { HEADER_CONTENT_GAP } from '@/features/document/constants/document-details.constants';
+import {
+  DEFAULT_DOCUMENT_HEADER_HEIGHT,
+  HEADER_CONTENT_GAP,
+} from '@/features/document/constants/document-details.constants';
 import { ManageWhitelistBottomSheet } from '@/features/document/components/whitelist/manage-whitelist-bottom-sheet';
 import { RenameDocumentSheet } from '@/features/document/components/sheets/rename-document-sheet';
 import { DocumentMenuActionsCard } from '@/features/document/components/details/document-menu-actions-card';
@@ -35,7 +38,7 @@ export default function DocumentMenuScreen() {
   const title = getStringParam(params.title) ?? 'Document';
   const userProfileQuery = useUserProfile();
   const canManageDocument = canRoleUploadDocuments(userProfileQuery.data?.role);
-  const [headerHeight, setHeaderHeight] = useState(126);
+  const [headerHeight, setHeaderHeight] = useState(DEFAULT_DOCUMENT_HEADER_HEIGHT);
   const [isRenameSheetVisible, setIsRenameSheetVisible] = useState(false);
   const [isUpdateSheetVisible, setIsUpdateSheetVisible] = useState(false);
   const [isAccessSheetVisible, setIsAccessSheetVisible] = useState(false);
@@ -99,12 +102,23 @@ export default function DocumentMenuScreen() {
   }, [clearSelectedUpdateFile, isUpdatingVersion]);
 
   const handleSubmitUpdate = useCallback(async () => {
-    const didUpload = await handleUploadUpdate();
+    const response = await handleUploadUpdate();
 
-    if (didUpload) {
+    if (response) {
+      const currentDocumentId = response.document_id || documentId;
+
+      if (!currentDocumentId) {
+        toast.error('Document ID is missing');
+        return;
+      }
+
       setIsUpdateSheetVisible(false);
+      router.replace({
+        pathname: '/document/[id]',
+        params: { id: currentDocumentId },
+      });
     }
-  }, [handleUploadUpdate]);
+  }, [documentId, handleUploadUpdate, router]);
 
   return (
     <SafeAreaView style={documentMenuScreenStyles.screen} edges={['left', 'right', 'bottom']}>
