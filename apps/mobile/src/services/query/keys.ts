@@ -34,6 +34,11 @@ export const queryKeys = {
       ['notifications', 'list', params ?? {}] as const,
     unreadCount: ['notifications', 'unread-count'] as const,
   },
+  requests: {
+    all: ['requests'] as const,
+    list: (params?: { status?: string }) => ['requests', 'list', params ?? {}] as const,
+    mine: ['requests', 'mine'] as const,
+  },
   users: {
     profile: ['users', 'profile'] as const,
     search: (email: string) => ['users', 'search', email] as const,

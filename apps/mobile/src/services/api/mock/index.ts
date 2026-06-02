@@ -5,4 +5,5 @@ export { mockBlockchainApi } from './blockchain.mock';
 export { mockDocumentsApi } from './documents.mock';
 export { mockNotificationsApi } from './notifications.mock';
 export { mockPublicApi } from './public.mock';
+export { mockRequestsApi } from './requests.mock';
 export { mockUsersApi } from './users.mock';
