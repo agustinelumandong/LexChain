@@ -19,6 +19,7 @@ export { DocumentPdfToolsContent } from './pdf-viewer/document-pdf-tools-content
 export { DocumentPdfToolsHeader } from './pdf-viewer/document-pdf-tools-header';
 export { DocumentPdfToolsSheet } from './pdf-viewer/document-pdf-tools-sheet';
 export { LexChainPdfViewer } from './pdf-viewer/lexchain-pdf-viewer';
+export { RequestECopySheet } from './pdf-viewer/request-ecopy-sheet';
 
 // sheets
 export { DocumentPreviewBottomSheet } from './sheets/document-preview-bottom-sheet';

@@ -40,26 +40,26 @@ export function DocumentDetailsActions({
         iconColor={APP_COLORS.danger}
         onPress={onPressPdf}
       />
-      {!isViewer && (
-        isAnchored ? (
-          <Button
-            label="Verify Document"
-            variant="secondary"
-            size="sm"
-            leftIconName="verified"
-            style={[
-              styles.actionButton,
-              {
-                backgroundColor: APP_COLORS.surfaceSoft,
-                borderWidth: 1.5,
-                borderColor: APP_COLORS.primary,
-              },
-            ]}
-            textColor={APP_COLORS.primary}
-            iconColor={APP_COLORS.primary}
-            onPress={onPressBlockchainStatus}
-          />
-        ) : (
+      {isAnchored ? (
+        <Button
+          label="Verify Document"
+          variant="secondary"
+          size="sm"
+          leftIconName="verified"
+          style={[
+            styles.actionButton,
+            {
+              backgroundColor: APP_COLORS.surfaceSoft,
+              borderWidth: 1.5,
+              borderColor: APP_COLORS.primary,
+            },
+          ]}
+          textColor={APP_COLORS.primary}
+          iconColor={APP_COLORS.primary}
+          onPress={onPressBlockchainStatus}
+        />
+      ) : (
+        !isViewer && (
           <Button
             label="Anchor to Blockchain"
             variant="secondary"
