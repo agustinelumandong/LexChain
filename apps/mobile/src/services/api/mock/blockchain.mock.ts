@@ -24,7 +24,7 @@ export const mockBlockchainApi = {
     return {
       document_id: documentId,
       onchain_document_id: documentId,
-      data_hash: 'mock-data-hash',
+      data_hash: 'mock-document-hash',
       tx_hash: '0xmockverified',
       onchain_timestamp: Math.floor(Date.now() / 1000),
       issued_by: '0xMockIssuer',

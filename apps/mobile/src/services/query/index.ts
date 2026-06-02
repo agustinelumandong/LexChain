@@ -42,4 +42,10 @@ export {
   useUnreadNotificationCount,
 } from './use-notifications';
 export { usePublicVerifyDocument } from './use-public';
+export {
+  useCreateDocumentRequest,
+  useDocumentRequests,
+  useMyDocumentRequests,
+  useReviewDocumentRequest,
+} from './use-requests';
 export { useUserProfile, useUserSearch } from './use-users';
