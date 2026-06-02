@@ -2,7 +2,8 @@ import type { DocumentTypeKey } from '@/types';
 
 import type { DOCUMENT_STATUS_OPTIONS } from '../constants/documents-screen.constants';
 
-export type DocumentFilterStatusKey = (typeof DOCUMENT_STATUS_OPTIONS)[number]['value'];
+export type DocumentStatusKey = (typeof DOCUMENT_STATUS_OPTIONS)[number]['value'];
+export type DocumentFilterStatusKey = 'all' | DocumentStatusKey;
 
 export type DisplayDocument = {
   id: string;
@@ -12,7 +13,7 @@ export type DisplayDocument = {
   rawDate: string;
   documentType: DocumentTypeKey;
   onChain?: boolean;
-  status: DocumentFilterStatusKey;
+  status: DocumentStatusKey;
   snippet?: string;
   documentNumber: number;
   bookNumber: number;

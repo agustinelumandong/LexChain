@@ -6,7 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { SearchInputWithResults } from '@/ui';
-import type { DocumentSortKey, DocumentTypeKey } from '@/types';
+import type { DocumentSortKey } from '@/types';
 import { DocumentResultCard } from '@/features/documents/components/list/document-result-card';
 import { DocumentsFilterControls } from '@/features/documents/components/filter/documents-filter-controls';
 import { DocumentsFilterSheet } from '@/features/documents/components/filter/documents-filter-sheet';
@@ -16,7 +16,6 @@ import { DocumentsSortSheet } from '@/features/documents/components/sort/documen
 import {
   DOCUMENT_SORT_OPTIONS,
   DOCUMENT_STATUS_OPTIONS,
-  DOCUMENT_TYPE_OPTIONS,
 } from '@/features/documents/constants/documents-screen.constants';
 import { DocumentSearchResultRow } from '@/features/documents/components/document-search-result-row';
 import { styles } from '@/features/documents/components/list/documents-screen.styles';
@@ -187,21 +186,27 @@ export default function DocumentsScreen() {
 
       <DocumentsFilterSheet
         visible={screen.isFilterSheetOpen}
-        typeOptions={[...DOCUMENT_TYPE_OPTIONS]}
         statusOptions={[...DOCUMENT_STATUS_OPTIONS]}
-        selectedType={screen.documentTypeFilter}
         selectedStatus={screen.documentStatusFilter}
         selectedDate={screen.documentDateFilter}
+        documentNumberFilter={screen.documentNumberFilter}
+        pageNumberFilter={screen.pageNumberFilter}
+        bookNumberFilter={screen.bookNumberFilter}
         onClose={() => screen.setIsFilterSheetOpen(false)}
-        onChangeType={(value) => screen.setDocumentTypeFilter(value as DocumentTypeKey)}
         onChangeStatus={(value) =>
           screen.setDocumentStatusFilter(value as DocumentFilterStatusKey)
         }
         onChangeDate={screen.setDocumentDateFilter}
+        onChangeDocumentNumber={screen.setDocumentNumberFilter}
+        onChangePageNumber={screen.setPageNumberFilter}
+        onChangeBookNumber={screen.setBookNumberFilter}
         onClear={() => {
           screen.setDocumentTypeFilter('all');
           screen.setDocumentStatusFilter('all');
           screen.setDocumentDateFilter(null);
+          screen.setDocumentNumberFilter('');
+          screen.setPageNumberFilter('');
+          screen.setBookNumberFilter('');
         }}
       />
 
