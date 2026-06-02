@@ -25,5 +25,6 @@ export const verifyDocumentScreenStyles = StyleSheet.create({
   footer: {
     paddingHorizontal: 16,
     paddingBottom: 24,
+    gap: 10,
   },
 });
