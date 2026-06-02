@@ -2,7 +2,8 @@ export type DocumentSortKey = 'newest' | 'oldest' | 'title-az';
 export type DocumentTypeKey = 'all' | 'deed-of-sale' | 'lease-contract' | 'power-of-attorney';
 export type DocumentStatusKey = 'all' | 'COMPLETED' | 'PROCESSING' | 'QUEUED' | 'FAILED';
 export type DocumentAccessRole = 'owner' | 'editor' | 'viewer' | 'verifier';
-export type DocumentPartyRole = 'viewer' | 'signer' | 'editor';
+export type WhitelistGrantRole = 'pending' | 'accepted' | 'rejected';
+export type DocumentPartyRole = string;
 
 export type DocumentPermission = {
   canViewPdf: boolean;
@@ -17,10 +18,11 @@ export type DocumentPermission = {
 export type WhitelistGrant = {
   id: string;
   name: string;
+  status?: WhitelistGrantRole;
   accessLabel: string;
   actionLabel: string;
   email?: string;
-  assignedAs?: 'participant' | 'owner' | 'lawyer';
+  assignedAs?: DocumentPartyRole;
 };
 
 export type WhitelistSearchResult = {
