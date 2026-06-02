@@ -2,7 +2,7 @@ import type { DocumentListItem, GlobalSearchResult } from '@/services/api';
 
 import type {
   DisplayDocument,
-  DocumentFilterStatusKey,
+  DocumentStatusKey,
 } from '../types/documents-screen.types';
 
 export function formatDocumentListDate(value: string) {
@@ -19,14 +19,23 @@ export function formatDocumentListDate(value: string) {
   });
 }
 
-export function mapDocumentStatus(status: string): DocumentFilterStatusKey {
+export function mapDocumentStatus(status: string): DocumentStatusKey {
   const normalizedStatus = status.toLowerCase();
 
-  if (normalizedStatus.includes('verified') || normalizedStatus.includes('complete')) {
+  if (normalizedStatus.includes('tampered')) {
+    return 'tampered';
+  }
+  if (normalizedStatus.includes('fail')) {
+    return 'failed';
+  }
+  if (normalizedStatus.includes('success')) {
+    return 'successful';
+  }
+  if (normalizedStatus.includes('verified') || normalizedStatus.includes('complete') || normalizedStatus.includes('accepted')) {
     return 'verified';
   }
 
-  return 'review-needed';
+  return 'verified';
 }
 
 export function mapDocumentListItem(item: DocumentListItem): DisplayDocument {
@@ -58,7 +67,7 @@ export function mapGlobalSearchResult(result: GlobalSearchResult): DisplayDocume
       rawDate: '',
       documentType: 'all',
       onChain: false,
-      status: 'review-needed',
+      status: 'failed',
       snippet: '',
       documentNumber: 0,
       bookNumber: 0,
