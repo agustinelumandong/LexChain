@@ -13,19 +13,29 @@ type DocumentsHeaderProps = {
   eyebrow?: string;
   title?: string;
   description?: string;
-  onPressBooks?: () => void;
-  onPressInvitations?: () => void;
-  pendingInvitationCount?: number;
+  actions?: DocumentsHeaderAction[];
+  onPressActions?: () => void;
+};
+
+export type DocumentsHeaderAction = {
+  label: string;
+  iconName: React.ComponentProps<typeof MaterialIcons>['name'];
+  badgeCount?: number;
+  onPress: () => void;
 };
 
 export function DocumentsHeader({
   eyebrow = 'AUTHORIZED SEARCH',
   title = 'Documents',
   description = 'Find by title, date, or keyword.',
-  onPressBooks,
-  onPressInvitations,
-  pendingInvitationCount = 0,
+  actions = [],
+  onPressActions,
 }: DocumentsHeaderProps) {
+  const badgeCount = actions.reduce(
+    (total, action) => total + (action.badgeCount ?? 0),
+    0,
+  );
+
   return (
     <View style={styles.wrap}>
       <View style={styles.topLine}>
@@ -34,39 +44,24 @@ export function DocumentsHeader({
           <Text style={styles.title}>{title}</Text>
         </View>
         <View style={styles.actions}>
-          {onPressInvitations ? (
+          {actions.length > 0 && onPressActions ? (
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel="Open pending invitations"
-              onPress={onPressInvitations}
+              accessibilityLabel="Open document actions"
+              onPress={onPressActions}
               style={({ pressed }) => [
                 styles.iconButton,
                 pressed && styles.headerButtonPressed,
               ]}
             >
-              <MaterialIcons name="mail-outline" size={22} color={COLORS.navy} />
-              {pendingInvitationCount > 0 ? (
+              <MaterialIcons name="more-horiz" size={22} color={COLORS.navy} />
+              {badgeCount > 0 ? (
                 <View style={styles.badge}>
                   <Text style={styles.badgeText}>
-                    {pendingInvitationCount > 99 ? '99+' : pendingInvitationCount}
+                    {badgeCount > 99 ? '99+' : badgeCount}
                   </Text>
                 </View>
               ) : null}
-            </Pressable>
-          ) : null}
-
-          {onPressBooks ? (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Open register books"
-              onPress={onPressBooks}
-              style={({ pressed }) => [
-                styles.booksButton,
-                pressed && styles.headerButtonPressed,
-              ]}
-            >
-              <MaterialIcons name="library-books" size={20} color={COLORS.navy} />
-              <Text style={styles.booksText}>Books</Text>
             </Pressable>
           ) : null}
         </View>
@@ -115,6 +110,7 @@ const styles = StyleSheet.create({
   actions: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'flex-end',
     gap: 8,
   },
   iconButton: {
@@ -126,17 +122,6 @@ const styles = StyleSheet.create({
     backgroundColor: APP_COLORS.white,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  booksButton: {
-    minHeight: 44,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: APP_COLORS.borderSoft,
-    backgroundColor: APP_COLORS.white,
-    paddingHorizontal: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
   },
   headerButtonPressed: {
     opacity: 0.78,
@@ -159,13 +144,6 @@ const styles = StyleSheet.create({
     fontSize: 10,
     lineHeight: 12,
     fontWeight: '900',
-    fontFamily: fonts.regular,
-  },
-  booksText: {
-    color: COLORS.navy,
-    fontSize: 12,
-    lineHeight: 14,
-    fontWeight: '800',
     fontFamily: fonts.regular,
   },
 });
