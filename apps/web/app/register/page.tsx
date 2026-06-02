@@ -2,12 +2,15 @@
 
 import Image from 'next/image';
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
+
+import { getEmailFromInviteToken } from "@/lib/invite-token";
 
 const registerSchema = z.object({
   firstName: z.string().trim().min(1, "First name is required."),
@@ -22,20 +25,36 @@ const registerSchema = z.object({
 
 type RegisterForm = z.infer<typeof registerSchema>;
 
-async function signUp(data: RegisterForm) {
+async function signUp(data: RegisterForm & { token?: string }) {
   const res = await fetch("/api/portal/signup", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email: data.email, password: data.password, f_name: data.firstName, l_name: data.lastName }),
+    body: JSON.stringify({
+      email: data.email,
+      password: data.password,
+      f_name: data.firstName,
+      l_name: data.lastName,
+      phone_number: null,
+      ...(data.token ? { token: data.token } : null),
+    }),
   });
   const payload = await res.json().catch(() => null);
   if (!res.ok) throw new Error(payload?.message ?? "Sign up failed.");
   return payload;
 }
 
-export default function RegisterPage() {
+function RegisterPageContent() {
   const router = useRouter();
-  const { register, handleSubmit, formState: { errors } } = useForm<RegisterForm>({ resolver: zodResolver(registerSchema) });
+  const searchParams = useSearchParams();
+  const inviteToken = searchParams.get("token")?.trim() ?? "";
+  const inviteEmail = searchParams.get("email")?.trim() || getEmailFromInviteToken(inviteToken);
+  const hasInviteEmail = inviteEmail.length > 0;
+  const { register, handleSubmit, setValue, formState: { errors } } = useForm<RegisterForm>({
+    resolver: zodResolver(registerSchema),
+    defaultValues: {
+      email: inviteEmail,
+    },
+  });
 
   const mutation = useMutation({
     mutationFn: signUp,
@@ -46,8 +65,17 @@ export default function RegisterPage() {
     onError: (error: Error) => toast.error(error.message),
   });
 
-  const onSubmit = handleSubmit((values) => mutation.mutate(values));
+  const onSubmit = handleSubmit((values) => mutation.mutate({ ...values, token: inviteToken || undefined }));
   const inputClass = "mt-2 min-h-12 w-full rounded-[14px] border border-[#E4EEF9] bg-[#F5FAFF] px-3.5 text-sm font-semibold text-[#0C2B49] outline-none focus:border-[#0985E7]";
+  const emailInputClass = hasInviteEmail
+    ? `${inputClass} cursor-not-allowed bg-[#EEF4FB] text-[#4B6382]`
+    : inputClass;
+
+  useEffect(() => {
+    if (inviteEmail) {
+      setValue("email", inviteEmail, { shouldValidate: true });
+    }
+  }, [inviteEmail, setValue]);
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-[#F5FAFF] p-5 text-[#111827]">
@@ -59,7 +87,9 @@ export default function RegisterPage() {
           </div>
           <h1 className="text-3xl font-black leading-9 text-[#0C2B49]">Create account</h1>
           <p className="text-sm font-semibold leading-5 text-[#64748b]">
-            Register to access your documents.
+            {inviteToken
+              ? "Complete your LexChain lawyer (document issuer) invitation."
+              : "Register to access your documents."}
           </p>
         </div>
 
@@ -79,7 +109,15 @@ export default function RegisterPage() {
 
           <label className="block">
             <span className="text-[13px] font-black text-[#0C2B49]">Email</span>
-            <input {...register("email")} type="email" autoComplete="email" className={inputClass} />
+            <input
+              {...register("email")}
+              type="email"
+              autoComplete="email"
+              className={emailInputClass}
+              readOnly={hasInviteEmail}
+              aria-disabled={hasInviteEmail}
+              tabIndex={hasInviteEmail ? -1 : undefined}
+            />
             {errors.email && <p className="text-xs text-red-500 mt-1">{errors.email.message}</p>}
           </label>
 
@@ -112,5 +150,21 @@ export default function RegisterPage() {
         </form>
       </section>
     </main>
+  );
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="flex min-h-screen items-center justify-center bg-[#F5FAFF] p-5 text-[#111827]">
+          <section className="w-full max-w-[440px] rounded-[24px] border border-[#E4EEF9] bg-white p-7 shadow-[0_10px_24px_rgba(12,43,73,0.08)]">
+            <p className="text-sm font-black text-[#0C2B49]">Loading sign-up...</p>
+          </section>
+        </main>
+      }
+    >
+      <RegisterPageContent />
+    </Suspense>
   );
 }

@@ -2,6 +2,7 @@ import { permanentRedirect } from "next/navigation";
 
 type SignUpCompatibilityPageProps = {
   searchParams: Promise<{
+    email?: string | string[];
     token?: string | string[];
   }>;
 };
@@ -13,10 +14,13 @@ function firstValue(value?: string | string[]) {
 export default async function SignUpCompatibilityPage({
   searchParams,
 }: SignUpCompatibilityPageProps) {
-  const token = firstValue((await searchParams).token)?.trim();
+  const params = await searchParams;
+  const token = firstValue(params.token)?.trim();
+  const email = firstValue(params.email)?.trim();
 
   if (token) {
-    permanentRedirect(`/invite/${encodeURIComponent(token)}`);
+    const emailQuery = email ? `?email=${encodeURIComponent(email)}` : '';
+    permanentRedirect(`/invite/${encodeURIComponent(token)}${emailQuery}`);
   }
 
   permanentRedirect("/register");
