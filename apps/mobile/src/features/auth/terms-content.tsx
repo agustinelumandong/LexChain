@@ -14,15 +14,23 @@ const TERMS_SECTIONS = [
   },
   {
     title: '3. Privacy and confidentiality',
-    body: 'Documents may contain private or sensitive legal information. You agree to use the platform carefully and avoid uploading data in violation of confidentiality duties or applicable law.',
+    body: 'LexChain is designed for private legal records. Document access is limited by account role, whitelist permissions, and authenticated requests. Do not upload records you are not allowed to store, process, or share.',
   },
   {
-    title: '4. Acceptable use',
+    title: '4. Storage and encryption',
+    body: 'Account and document records are transmitted through secured connections and protected in application storage and database systems with encryption and access controls where supported by the platform.',
+  },
+  {
+    title: '5. AI and third-party processing',
+    body: 'Some AI features may use a third-party language model service to create summaries, risk signals, or document answers. LexChain sends only the content needed for the requested AI task; account credentials, access tokens, and permission settings are not sent to the model provider.',
+  },
+  {
+    title: '6. Acceptable use',
     body: 'You must not use the platform for fraud, identity misrepresentation, unauthorized disclosure, tampering, or unlawful access to protected records.',
   },
   {
-    title: '5. Consent to processing',
-    body: 'By continuing, you consent to storage and processing required to provide upload, summary, access control, and verification features within the LexChain system.',
+    title: '7. Consent to processing',
+    body: 'By continuing, you consent to the storage and processing needed to provide uploads, search, AI-assisted review, access control, audit trails, and verification features inside LexChain.',
   },
 ];
 

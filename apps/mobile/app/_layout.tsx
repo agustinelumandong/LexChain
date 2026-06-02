@@ -190,6 +190,8 @@ export default function RootLayout() {
                 <Stack.Screen name="notifications" options={{ headerShown: false }} />
                 <Stack.Screen name="books/index" options={{ headerShown: false }} />
                 <Stack.Screen name="books/[id]" options={{ headerShown: false }} />
+                <Stack.Screen name="requests/index" options={{ headerShown: false }} />
+                <Stack.Screen name="requests/my" options={{ headerShown: false }} />
                 <Stack.Screen name="upload" options={{ headerShown: false }} />
                 <Stack.Screen name="profile/account" options={{ headerShown: false }} />
                 <Stack.Screen
