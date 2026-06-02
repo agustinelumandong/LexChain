@@ -11,6 +11,7 @@ import { Button } from '@/ui';
 import { ProfileHeader } from '../profile-header';
 import { styles } from '../profile-screen.styles';
 import {
+  canRoleUploadDocuments,
   getProfileDisplayName,
   getProfileInitials,
   useProfileSettingsStore,
@@ -33,6 +34,7 @@ export default function ProfileScreen() {
   const displayName = profileName || getProfileDisplayName(account);
   const displayEmail = userProfile?.email ?? account.email;
   const displayRole = userProfile?.role ?? account.role;
+  const isLawyer = canRoleUploadDocuments(displayRole);
 
   const handleSignOut = async () => {
     if (isSigningOut) {
@@ -81,6 +83,14 @@ export default function ProfileScreen() {
                 description: 'Control alerts for uploads and verifications.',
                 iconName: 'notifications-none',
                 onPress: () => router.push('/profile/notifications'),
+              },
+              {
+                label: isLawyer ? 'Document requests' : 'My e-copy requests',
+                description: isLawyer
+                  ? 'Review client e-copy requests.'
+                  : 'Track requests sent to issuing lawyers.',
+                iconName: 'request-page',
+                onPress: () => router.push(isLawyer ? '/requests' : '/requests/my'),
               },
               {
                 label: 'Security',
