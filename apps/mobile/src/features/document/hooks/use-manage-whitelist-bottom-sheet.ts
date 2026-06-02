@@ -11,6 +11,7 @@ type UseManageWhitelistBottomSheetParams = {
   visible: boolean;
   data: ManageWhitelistData | null;
   searchQuery: string;
+  onPressGrantAction?: (grantId: string, role: MobileUserRoleKey) => void;
   onPressRevoke?: (grantId: string) => void;
 };
 
@@ -18,6 +19,7 @@ export function useManageWhitelistBottomSheet({
   visible,
   data,
   searchQuery,
+  onPressGrantAction,
   onPressRevoke,
 }: UseManageWhitelistBottomSheetParams) {
   const bottomSheetRef = useRef<BottomSheet>(null);
@@ -25,23 +27,25 @@ export function useManageWhitelistBottomSheet({
   const insets = useSafeAreaInsets();
   const [selectedGrantId, setSelectedGrantId] = useState<string | null>(null);
   const [selectedGrantRole, setSelectedGrantRole] =
-    useState<MobileUserRoleKey>('participant');
+    useState<MobileUserRoleKey>('owner');
+  const [customRoleText, setCustomRoleText] = useState('');
   const [isGrantRoleDropdownOpen, setIsGrantRoleDropdownOpen] = useState(false);
   const [revokeCountdown, setRevokeCountdown] = useState<number | null>(null);
   const snapPoints = useMemo(() => ['90%'], []);
   const grantSnapPoints = useMemo(() => ['55%'], []);
 
   const normalizedQuery = searchQuery.trim().toLowerCase();
+  const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedQuery);
   const grants = data?.grants ?? [];
-  const searchResults = data?.searchResults ?? [];
-  const filteredSearchResults =
-    normalizedQuery.length > 0
-      ? searchResults.filter(
-          (result) =>
-            result.name.toLowerCase().includes(normalizedQuery) ||
-            result.email.toLowerCase().includes(normalizedQuery),
-        )
-      : [];
+  const filteredSearchResults = isEmail
+    ? [
+        {
+          id: normalizedQuery,
+          name: 'Invite User',
+          email: normalizedQuery,
+        },
+      ]
+    : [];
   const shouldShowSearchResults = normalizedQuery.length > 0;
   const selectedGrant = grants.find((grant) => grant.id === selectedGrantId);
 
@@ -84,7 +88,15 @@ export function useManageWhitelistBottomSheet({
 
   const openGrantMenu = (grant: WhitelistGrant) => {
     setSelectedGrantId(grant.id);
-    setSelectedGrantRole(grant.assignedAs ?? 'participant');
+    const role = grant.assignedAs ?? 'owner';
+    const isPredefined = ['owner', 'buyer', 'seller', 'participant', 'whitelisted'].includes(role.toLowerCase());
+    if (isPredefined) {
+      setSelectedGrantRole(role.toLowerCase());
+      setCustomRoleText('');
+    } else {
+      setSelectedGrantRole('other');
+      setCustomRoleText(role);
+    }
     setIsGrantRoleDropdownOpen(false);
     setRevokeCountdown(null);
   };
@@ -93,6 +105,7 @@ export function useManageWhitelistBottomSheet({
     setSelectedGrantId(null);
     setIsGrantRoleDropdownOpen(false);
     setRevokeCountdown(null);
+    setCustomRoleText('');
   }, []);
 
   const handlePressRevoke = useCallback(() => {
@@ -125,6 +138,16 @@ export function useManageWhitelistBottomSheet({
   const selectGrantRole = (role: MobileUserRoleKey) => {
     setSelectedGrantRole(role);
     setIsGrantRoleDropdownOpen(false);
+    if (role !== 'other' && selectedGrant) {
+      onPressGrantAction?.(selectedGrant.id, role);
+    }
+  };
+
+  const saveCustomRole = () => {
+    if (selectedGrant && customRoleText.trim()) {
+      onPressGrantAction?.(selectedGrant.id, customRoleText.trim());
+      closeGrantMenu();
+    }
   };
 
   return {
@@ -145,5 +168,8 @@ export function useManageWhitelistBottomSheet({
     handlePressRevoke,
     toggleGrantRoleDropdown,
     selectGrantRole,
+    customRoleText,
+    setCustomRoleText,
+    saveCustomRole,
   };
 }
