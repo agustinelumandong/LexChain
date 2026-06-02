@@ -4,14 +4,16 @@ import BottomSheet, {
   type BottomSheetFooterProps,
 } from '@gorhom/bottom-sheet';
 import React, { useCallback } from 'react';
+import { Text, View } from 'react-native';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 
+import { APP_COLORS, fonts } from '@/theme';
 import type { WhitelistGrant } from '@/types';
 
 import { type MobileUserRoleKey } from '../../constants/manage-whitelist.constants';
 import { ManageWhitelistGrantFooter } from './manage-whitelist-grant-footer';
 import { ManageWhitelistGrantHeader } from './manage-whitelist-grant-header';
-import { ManageWhitelistRoleDropdown } from './manage-whitelist-role-dropdown';
-import { manageWhitelistStyles as styles } from './manage-whitelist.styles';
+import { manageWhitelistStyles as styles, MANAGE_WHITELIST_COLORS as COLORS } from './manage-whitelist.styles';
 
 type ManageWhitelistGrantActionSheetProps = {
   grantSheetRef: React.RefObject<BottomSheet | null>;
@@ -19,13 +21,10 @@ type ManageWhitelistGrantActionSheetProps = {
   bottomInset: number;
   selectedGrant?: WhitelistGrant;
   selectedGrantRole: MobileUserRoleKey;
-  isGrantRoleDropdownOpen: boolean;
   revokeCountdown: number | null;
   revokeLabel: string;
   onClose: () => void;
   onPressRevoke: () => void;
-  onToggleRoleDropdown: () => void;
-  onSelectGrantRole: (role: MobileUserRoleKey) => void;
 };
 
 export function ManageWhitelistGrantActionSheet({
@@ -34,13 +33,10 @@ export function ManageWhitelistGrantActionSheet({
   bottomInset,
   selectedGrant,
   selectedGrantRole,
-  isGrantRoleDropdownOpen,
   revokeCountdown,
   revokeLabel,
   onClose,
   onPressRevoke,
-  onToggleRoleDropdown,
-  onSelectGrantRole,
 }: ManageWhitelistGrantActionSheetProps) {
   const renderGrantBackdrop = (props: React.ComponentProps<typeof BottomSheetBackdrop>) => (
     <BottomSheetBackdrop
@@ -89,12 +85,44 @@ export function ManageWhitelistGrantActionSheet({
       >
         <ManageWhitelistGrantHeader selectedGrant={selectedGrant} />
 
-        <ManageWhitelistRoleDropdown
-          isOpen={isGrantRoleDropdownOpen}
-          selectedRole={selectedGrantRole}
-          onSelectRole={onSelectGrantRole}
-          onToggle={onToggleRoleDropdown}
-        />
+        <View style={{ gap: 6, paddingHorizontal: 4, marginTop: 8 }}>
+          <Text style={{
+            color: COLORS.navy,
+            fontFamily: fonts.regular,
+            fontSize: 13,
+            fontWeight: '800',
+            lineHeight: 17,
+            marginBottom: 2
+          }}>
+            Role
+          </Text>
+          <View style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            backgroundColor: APP_COLORS.surfaceSoft,
+            borderColor: APP_COLORS.borderSoft,
+            borderWidth: 1,
+            borderRadius: 16,
+            paddingHorizontal: 16,
+            height: 48,
+            opacity: 0.7,
+          }}>
+            <Text style={{
+              color: COLORS.textMuted,
+              fontFamily: fonts.regular,
+              fontSize: 14,
+              fontWeight: '600',
+            }}>
+              {selectedGrant?.accessLabel ?? ''}
+            </Text>
+            <MaterialIcons
+              name="lock"
+              size={18}
+              color={COLORS.textMuted}
+            />
+          </View>
+        </View>
       </BottomSheetScrollView>
     </BottomSheet>
   );
