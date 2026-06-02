@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useQueryClient } from '@tanstack/react-query';
@@ -29,7 +29,10 @@ import botQuestionMarkImage from '@/assets/images/lexchain-bot-question-mark.png
 import { canRoleUploadDocuments } from '@/features/profile';
 import { authenticateWithDeviceLock } from '@/features/auth/app-lock';
 import type { DocumentPartyRole } from '@/types';
-import { HEADER_CONTENT_GAP } from '../constants/document-details.constants';
+import {
+  DEFAULT_DOCUMENT_HEADER_HEIGHT,
+  HEADER_CONTENT_GAP,
+} from '../constants/document-details.constants';
 import { DocumentDetailsContent } from '../components/details/document-details-content';
 import { DocumentDetailsSheets } from '../components/details/document-details-sheets';
 import { useDocumentDetailsSheets } from '../hooks/use-document-details-sheets';
@@ -45,6 +48,9 @@ import {
   getDocumentPdfUri,
 } from '../utils/document-details-formatters';
 
+const ACTIVE_DOCUMENT_DETAIL_REFRESH_INTERVAL_MS = 20 * 1000;
+const STABLE_DOCUMENT_DETAIL_REFRESH_INTERVAL_MS = 60 * 1000;
+
 export default function DocumentDetailsScreen() {
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -54,6 +60,10 @@ export default function DocumentDetailsScreen() {
   const versionHistoryQuery = useDocumentVersions(documentId);
   const auditLogsQuery = useDocumentAuditLogs(documentId);
   const partiesQuery = useDocumentParties(documentId);
+  const refetchDocument = documentQuery.refetch;
+  const refetchVersions = versionHistoryQuery.refetch;
+  const refetchAuditLogs = auditLogsQuery.refetch;
+  const refetchParties = partiesQuery.refetch;
   const renameMutation = useRenameDocument();
   const notarizeMutation = useNotarizeDocument();
   const addPartyMutation = useAddDocumentParty();
@@ -61,7 +71,7 @@ export default function DocumentDetailsScreen() {
   const document = documentQuery.data as DocumentDetailsDocument | undefined;
   const userProfileQuery = useUserProfile();
 
-  const [headerHeight, setHeaderHeight] = useState(126);
+  const [headerHeight, setHeaderHeight] = useState(DEFAULT_DOCUMENT_HEADER_HEIGHT);
   const sheets = useDocumentDetailsSheets();
   const trimmedWhitelistSearchQuery = sheets.whitelistSearchQuery.trim();
   const userSearchQuery = useUserSearch(
@@ -75,6 +85,14 @@ export default function DocumentDetailsScreen() {
   const currentDocumentRole = canManageWhitelist ? 'owner' : 'viewer';
   const isViewer = currentDocumentRole === 'viewer';
   const isAnchored = Boolean(document?.on_chain);
+  const shouldUseFastDetailRefresh =
+    !document ||
+    document.status === 'PROCESSING' ||
+    document.status === 'QUEUED' ||
+    (document.status === 'COMPLETED' && !isAnchored);
+  const detailRefreshIntervalMs = shouldUseFastDetailRefresh
+    ? ACTIVE_DOCUMENT_DETAIL_REFRESH_INTERVAL_MS
+    : STABLE_DOCUMENT_DETAIL_REFRESH_INTERVAL_MS;
   const onChainQuery = useVerifyOnChainDocument(documentId, isAnchored);
   const canNotarizeDocument =
     canManageWhitelist && document?.status === 'COMPLETED' && !isAnchored;
@@ -222,11 +240,33 @@ export default function DocumentDetailsScreen() {
   }, []);
 
   const handleRefresh = useCallback(() => {
-    void documentQuery.refetch();
-    void versionHistoryQuery.refetch();
-    void auditLogsQuery.refetch();
-    void partiesQuery.refetch();
-  }, [documentQuery, versionHistoryQuery, auditLogsQuery, partiesQuery]);
+    void refetchDocument();
+    void refetchVersions();
+    void refetchAuditLogs();
+    void refetchParties();
+  }, [refetchDocument, refetchVersions, refetchAuditLogs, refetchParties]);
+
+  useEffect(() => {
+    if (!documentId) {
+      return undefined;
+    }
+
+    const intervalId = setInterval(() => {
+      void refetchDocument();
+      void refetchVersions();
+      void refetchAuditLogs();
+      void refetchParties();
+    }, detailRefreshIntervalMs);
+
+    return () => clearInterval(intervalId);
+  }, [
+    detailRefreshIntervalMs,
+    documentId,
+    refetchAuditLogs,
+    refetchDocument,
+    refetchParties,
+    refetchVersions,
+  ]);
 
   return (
     <SafeAreaView style={styles.screen} edges={['left', 'right', 'bottom']}>
@@ -268,6 +308,7 @@ export default function DocumentDetailsScreen() {
               onRefresh={handleRefresh}
               tintColor={APP_COLORS.primary}
               colors={[APP_COLORS.primary]}
+              progressViewOffset={headerHeight + HEADER_CONTENT_GAP}
               progressBackgroundColor={APP_COLORS.surface}
             />
           }

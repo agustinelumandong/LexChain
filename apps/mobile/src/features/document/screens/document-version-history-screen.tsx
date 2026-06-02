@@ -6,7 +6,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { toast } from 'sonner-native';
 
 import { VersionHistoryCard } from '@/features/document/components/details/document-detail-cards';
-import { HEADER_CONTENT_GAP } from '@/features/document/constants/document-details.constants';
+import {
+  DEFAULT_DOCUMENT_HEADER_HEIGHT,
+  HEADER_CONTENT_GAP,
+} from '@/features/document/constants/document-details.constants';
 import { useDocument, useDocumentVersions, queryKeys } from '@/services/query';
 import { documentsApi } from '@/services/api';
 import { parseApiError } from '@/shared/utils/api-error';
@@ -38,7 +41,7 @@ export default function DocumentVersionHistoryScreen() {
     document,
     versions: versionHistoryQuery.data?.versions,
   });
-  const [headerHeight, setHeaderHeight] = useState(126);
+  const [headerHeight, setHeaderHeight] = useState(DEFAULT_DOCUMENT_HEADER_HEIGHT);
 
   const handleHeaderHeightChange = useCallback((nextHeight: number) => {
     setHeaderHeight((height) => (height === nextHeight ? height : nextHeight));

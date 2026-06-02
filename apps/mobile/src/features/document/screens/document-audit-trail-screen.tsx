@@ -4,7 +4,10 @@ import { ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AuditTrailCard } from '@/features/document/components/details/document-detail-cards';
-import { HEADER_CONTENT_GAP } from '@/features/document/constants/document-details.constants';
+import {
+  DEFAULT_DOCUMENT_HEADER_HEIGHT,
+  HEADER_CONTENT_GAP,
+} from '@/features/document/constants/document-details.constants';
 import { useDocumentAuditLogs } from '@/services/query';
 import { parseApiError } from '@/shared/utils/api-error';
 import { APP_COLORS } from '@/theme';
@@ -20,7 +23,7 @@ export default function DocumentAuditTrailScreen() {
   const normalizedTitle = Array.isArray(title) ? title[0] : title;
   const auditLogsQuery = useDocumentAuditLogs(normalizedDocumentId);
   const logs = auditLogsQuery.data ?? [];
-  const [headerHeight, setHeaderHeight] = useState(126);
+  const [headerHeight, setHeaderHeight] = useState(DEFAULT_DOCUMENT_HEADER_HEIGHT);
 
   const handleHeaderHeightChange = useCallback((nextHeight: number) => {
     setHeaderHeight((height) => (height === nextHeight ? height : nextHeight));
