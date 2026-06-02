@@ -19,6 +19,7 @@ type IntegrityCheckCardProps = {
   onChainHash: string;
   status: string;
   onPressViewAnchor?: () => void;
+  buttonLabel?: string;
 };
 
 function formatHashPreview(value: string) {
@@ -36,7 +37,12 @@ export function IntegrityCheckCard({
   onChainHash,
   status,
   onPressViewAnchor,
+  buttonLabel = 'View anchor tx',
 }: IntegrityCheckCardProps) {
+  const isTampered = status === 'Tampered';
+  const statusBgColor = isTampered ? '#FEE2E2' : '#EAF4FF'; // EAF4FF matches COLORS.primarySoft
+  const statusTextColor = isTampered ? APP_COLORS.danger : COLORS.primary;
+
   return (
     <View style={styles.card}>
       <Text style={styles.title}>Integrity check</Text>
@@ -55,13 +61,13 @@ export function IntegrityCheckCard({
         </Text>
       </View>
 
-      <View style={styles.statusCard}>
-        <Text style={styles.statusLabel}>Status</Text>
-        <Text style={styles.statusValue}>{status}</Text>
+      <View style={[styles.statusCard, { backgroundColor: statusBgColor }]}>
+        <Text style={[styles.statusLabel, { color: statusTextColor }]}>Status</Text>
+        <Text style={[styles.statusValue, { color: statusTextColor }]}>{status}</Text>
       </View>
 
       <Button
-        label="View anchor tx"
+        label={buttonLabel}
         variant="primary"
         fullWidth
         onPress={onPressViewAnchor}
