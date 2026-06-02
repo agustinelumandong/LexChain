@@ -2,19 +2,19 @@ import BottomSheet, {
   BottomSheetBackdrop,
   BottomSheetFooter,
   BottomSheetScrollView,
-  BottomSheetView,
+  BottomSheetTextInput,
   type BottomSheetFooterProps,
 } from '@gorhom/bottom-sheet';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useRouter } from 'expo-router';
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  BackHandler,
   FlatList,
   Pressable,
   RefreshControl,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -189,6 +189,22 @@ function RequestDetailSheet({
   const bottomSheetRef = useRef<BottomSheet>(null);
   const canReview = mode === 'lawyer' && request?.status === 'pending';
   const snapPoints = useMemo(() => ['62%', '88%'], []);
+
+  useEffect(() => {
+    if (!request) {
+      return;
+    }
+
+    const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+      bottomSheetRef.current?.close();
+      return true;
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, [request]);
+
   const renderBackdrop = useCallback(
     (props: React.ComponentProps<typeof BottomSheetBackdrop>) => (
       <BottomSheetBackdrop
@@ -228,6 +244,9 @@ function RequestDetailSheet({
         enableDynamicSizing={false}
         enablePanDownToClose
         onClose={onClose}
+        keyboardBehavior="interactive"
+        keyboardBlurBehavior="restore"
+        android_keyboardInputMode="adjustResize"
         backdropComponent={renderBackdrop}
         footerComponent={renderFooter}
         backgroundStyle={styles.sheetBackground}
@@ -247,34 +266,34 @@ function RequestDetailSheet({
           <Text style={styles.sheetTitle}>{getDocumentName(request)}</Text>
           <Text style={styles.sheetSubtitle}>{request.description}</Text>
 
-          <BottomSheetView style={styles.detailGroup}>
+          <View style={styles.detailGroup}>
             <Text style={styles.detailLabel}>Status</Text>
             <Text style={[styles.statusPill, getStatusTone(request.status)]}>
               {formatStatus(request.status)}
             </Text>
-          </BottomSheetView>
-          <BottomSheetView style={styles.detailGroup}>
+          </View>
+          <View style={styles.detailGroup}>
             <Text style={styles.detailLabel}>Requester</Text>
             <Text style={styles.detailValue}>
               {request.requester_name} · {request.requester_email}
             </Text>
-          </BottomSheetView>
-          <BottomSheetView style={styles.detailGroup}>
+          </View>
+          <View style={styles.detailGroup}>
             <Text style={styles.detailLabel}>Submitted</Text>
             <Text style={styles.detailValue}>{formatRequestDate(request.created_at)}</Text>
-          </BottomSheetView>
+          </View>
 
           {request.rejection_reason ? (
-            <BottomSheetView style={styles.detailGroup}>
+            <View style={styles.detailGroup}>
               <Text style={styles.detailLabel}>Rejection reason</Text>
               <Text style={styles.detailValue}>{request.rejection_reason}</Text>
-            </BottomSheetView>
+            </View>
           ) : null}
 
           {canReview ? (
-            <BottomSheetView style={styles.rejectBox}>
+            <View style={styles.rejectBox}>
               <Text style={styles.detailLabel}>Rejection reason</Text>
-              <TextInput
+              <BottomSheetTextInput
                 value={rejectReason}
                 onChangeText={onChangeRejectReason}
                 placeholder="Required when rejecting"
@@ -283,7 +302,7 @@ function RequestDetailSheet({
                 editable={!isReviewing}
                 style={styles.rejectInput}
               />
-            </BottomSheetView>
+            </View>
           ) : null}
         </BottomSheetScrollView>
       </BottomSheet>
