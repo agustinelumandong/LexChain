@@ -11,20 +11,22 @@ import { queryKeys } from './keys';
 
 const DOCUMENT_REQUESTS_REFRESH_INTERVAL_MS = 30 * 1000;
 
-export function useDocumentRequests(params?: ListDocumentRequestsParams) {
+export function useDocumentRequests(params?: ListDocumentRequestsParams, enabled = true) {
   return useQuery({
     queryKey: queryKeys.requests.list(params),
     queryFn: () => requestsApi.list(params),
+    enabled,
     staleTime: 0,
     refetchOnMount: 'always',
     refetchInterval: DOCUMENT_REQUESTS_REFRESH_INTERVAL_MS,
   });
 }
 
-export function useMyDocumentRequests() {
+export function useMyDocumentRequests(enabled = true) {
   return useQuery({
     queryKey: queryKeys.requests.mine,
     queryFn: requestsApi.listMine,
+    enabled,
     staleTime: 0,
     refetchOnMount: 'always',
     refetchInterval: DOCUMENT_REQUESTS_REFRESH_INTERVAL_MS,
