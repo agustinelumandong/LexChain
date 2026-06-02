@@ -15,6 +15,8 @@ import { ProcessingStatusCard } from '@/features/upload/components/processing/pr
 import { processingScreenStyles as styles } from '@/features/upload/components/processing/processing-screen.styles';
 import { isCompleteStatus } from '@/features/upload/utils/processing-status';
 
+const DEFAULT_HEADER_HEIGHT = 160;
+
 export default function ProcessingScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ documentId?: string; status?: string }>();
@@ -22,7 +24,7 @@ export default function ProcessingScreen() {
     ? params.documentId[0]
     : params.documentId;
   const initialStatus = Array.isArray(params.status) ? params.status[0] : params.status;
-  const [headerHeight, setHeaderHeight] = useState(126);
+  const [headerHeight, setHeaderHeight] = useState(DEFAULT_HEADER_HEIGHT);
   const handleHeaderHeightChange = useCallback((nextHeight: number) => {
     setHeaderHeight((height) => (height === nextHeight ? height : nextHeight));
   }, []);

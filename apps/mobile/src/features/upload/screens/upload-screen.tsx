@@ -14,10 +14,11 @@ import { useUploadFlow } from '../hooks/use-upload-flow';
 import { uploadScreenStyles } from './upload-screen.styles';
 
 const HEADER_CONTENT_GAP = 12;
+const DEFAULT_HEADER_HEIGHT = 160;
 
 export default function UploadScreen() {
   const router = useRouter();
-  const [headerHeight, setHeaderHeight] = useState(126);
+  const [headerHeight, setHeaderHeight] = useState(DEFAULT_HEADER_HEIGHT);
   const [isBookSheetVisible, setIsBookSheetVisible] = useState(false);
   const upload = useUploadFlow();
 
