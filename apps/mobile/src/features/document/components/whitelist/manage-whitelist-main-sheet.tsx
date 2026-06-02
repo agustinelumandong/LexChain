@@ -47,7 +47,7 @@ export function ManageWhitelistMainSheet({
   onPressAddResult,
   onOpenGrantMenu,
 }: ManageWhitelistMainSheetProps) {
-  const [inviteRole, setInviteRole] = useState<string>('owner');
+  const [inviteRole, setInviteRole] = useState<string>('participant');
   const [customInviteRoleText, setCustomInviteRoleText] = useState<string>('');
   const [isInviteRoleDropdownOpen, setIsInviteRoleDropdownOpen] = useState<boolean>(false);
 
@@ -221,7 +221,7 @@ export function ManageWhitelistMainSheet({
                 onPress={() => {
                   const finalRole = inviteRole === 'other' ? (customInviteRoleText.trim() as DocumentPartyRole) : (inviteRole as DocumentPartyRole);
                   onPressAddResult?.(searchQuery.trim(), finalRole);
-                  setInviteRole('owner');
+                  setInviteRole('participant');
                   setCustomInviteRoleText('');
                 }}
               />
