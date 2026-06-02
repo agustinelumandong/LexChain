@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { clearSessionData } from '@/features/auth/session-cleanup';
 import {
   authApi,
+  type UserProfileResponse,
   type MFALoginVerifyPayload,
   type MFAVerifyPayload,
   type SignInPayload,
@@ -59,14 +60,32 @@ export function useSetupMfa() {
 }
 
 export function useEnableMfa() {
+  const queryClient = useQueryClient();
+
   return useMutation({
     mutationFn: (payload: MFAVerifyPayload) => authApi.enableMfa(payload),
+    onSuccess: () => {
+      queryClient.setQueryData<UserProfileResponse | undefined>(
+        queryKeys.users.profile,
+        (profile) => profile ? { ...profile, mfa_enabled: true } : profile,
+      );
+      void queryClient.invalidateQueries({ queryKey: queryKeys.users.profile });
+    },
   });
 }
 
 export function useDisableMfa() {
+  const queryClient = useQueryClient();
+
   return useMutation({
     mutationFn: (payload: MFAVerifyPayload) => authApi.disableMfa(payload),
+    onSuccess: () => {
+      queryClient.setQueryData<UserProfileResponse | undefined>(
+        queryKeys.users.profile,
+        (profile) => profile ? { ...profile, mfa_enabled: false } : profile,
+      );
+      void queryClient.invalidateQueries({ queryKey: queryKeys.users.profile });
+    },
   });
 }
 

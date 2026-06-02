@@ -34,6 +34,7 @@ type AuthInputProps = {
   autoCapitalize?: TextInputProps['autoCapitalize'];
   autoComplete?: TextInputProps['autoComplete'];
   autoCorrect?: boolean;
+  editable?: boolean;
   textContentType?: TextInputProps['textContentType'];
   error?: string;
 };
@@ -51,6 +52,7 @@ export function AuthInput({
   autoCapitalize = 'none',
   autoComplete,
   autoCorrect = false,
+  editable = true,
   textContentType,
   error,
 }: AuthInputProps) {
@@ -102,10 +104,11 @@ export function AuthInput({
           autoCapitalize={autoCapitalize}
           autoComplete={autoComplete}
           autoCorrect={autoCorrect}
+          editable={editable}
           textContentType={textContentType}
           onFocus={handleFocus}
           onBlur={handleBlur}
-          style={styles.input}
+          style={[styles.input, !editable && styles.inputDisabled]}
         />
         {secureTextEntry ? (
           <Pressable
@@ -167,6 +170,9 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     fontWeight: '500',
     fontFamily: fonts.regular,
+  },
+  inputDisabled: {
+    color: COLORS.textMuted,
   },
   errorText: {
     color: COLORS.danger,

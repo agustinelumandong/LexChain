@@ -22,6 +22,7 @@ export function useSignUpScreen() {
   const transitionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const authRouteParams = getInvitationRouteParams(normalizeAuthCallbackParams(params));
   const inviteEmail = authRouteParams.email ?? '';
+  const hasInviteEmail = inviteEmail.length > 0;
 
   const [isSwitchingScreen, setIsSwitchingScreen] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
@@ -41,6 +42,12 @@ export function useSignUpScreen() {
   const password = form.watch('password');
   const passwordStrength = getPasswordStrengthState(password);
   const shouldShowPasswordStrength = password.length > 0;
+
+  useEffect(() => {
+    if (inviteEmail) {
+      form.setValue('email', inviteEmail);
+    }
+  }, [form, inviteEmail]);
 
   useEffect(() => {
     return () => {
@@ -134,6 +141,7 @@ export function useSignUpScreen() {
     hasReachedTermsEnd,
     isSwitchingScreen,
     isTermsSheetVisible,
+    hasInviteEmail,
     passwordStrength,
     shouldShowPasswordStrength,
     signUpMutation,

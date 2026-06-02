@@ -21,6 +21,7 @@ import { Button } from '@/ui';
 
 import { AuthHeader } from '../auth-header';
 import { AuthInput } from '../auth-input';
+import { MfaVerificationSheet } from '../components/mfa-verification-sheet';
 import { AuthScreenShell } from '../auth-screen-shell';
 import { signInSchema, type SignInFormValues } from '../schemas';
 import { signInScreenStyles as styles } from './sign-in-screen.styles';
@@ -217,97 +218,103 @@ export default function SignInScreen() {
     }
   };
 
+  const handleCancelMfa = () => {
+    setMfaToken(null);
+    setMfaEmail('');
+    setMfaCode('');
+  };
+
   return (
-    <AuthScreenShell>
-      <View style={styles.container}>
-        <AuthHeader
-          eyebrow="WELCOME BACK"
-          title="Sign in"
-          description="Access your repository."
-        />
-        <View style={styles.fieldStack}>
-          <Controller
-            control={control}
-            name="email"
-            render={({ field: { value, onChange } }) => (
-              <AuthInput
-                label="Email"
-                placeholder="your@email.com"
-                value={value}
-                onChangeText={onChange}
-                iconName="mail-outline"
-                keyboardType="email-address"
-                error={errors.email?.message}
-              />
-            )}
+    <>
+      <AuthScreenShell>
+        <View style={styles.container}>
+          <AuthHeader
+            eyebrow="WELCOME BACK"
+            title="Sign in"
+            description="Access your repository."
           />
-
-          <Controller
-            control={control}
-            name="password"
-            render={({ field: { value, onChange } }) => (
-              <AuthInput
-                label="Password"
-                placeholder="●●●●●●●●"
-                value={value}
-                onChangeText={onChange}
-                iconName="lock-outline"
-                secureTextEntry
-                error={errors.password?.message}
-              />
-            )}
-          />
-
-          {mfaToken ? (
-            <AuthInput
-              label="Authenticator code"
-              placeholder="123456"
-              value={mfaCode}
-              onChangeText={(value) => setMfaCode(value.replace(/\D/g, '').slice(0, 6))}
-              iconName="verified-user"
-              keyboardType="number-pad"
+          <View style={styles.fieldStack}>
+            <Controller
+              control={control}
+              name="email"
+              render={({ field: { value, onChange } }) => (
+                <AuthInput
+                  label="Email"
+                  placeholder="your@email.com"
+                  value={value}
+                  onChangeText={onChange}
+                  iconName="mail-outline"
+                  keyboardType="email-address"
+                  error={errors.email?.message}
+                />
+              )}
             />
-          ) : null}
+
+            <Controller
+              control={control}
+              name="password"
+              render={({ field: { value, onChange } }) => (
+                <AuthInput
+                  label="Password"
+                  placeholder="●●●●●●●●"
+                  value={value}
+                  onChangeText={onChange}
+                  iconName="lock-outline"
+                  secureTextEntry
+                  error={errors.password?.message}
+                />
+              )}
+            />
+          </View>
+
+          <View style={styles.utilityRow}>
+            <Pressable
+              style={[styles.chip, rememberMe && styles.chipActive]}
+              onPress={() => setRememberMe((prev) => !prev)}
+            >
+              <View style={[styles.checkbox, rememberMe && styles.checkboxChecked]}>
+                {rememberMe ? (
+                  <MaterialIcons name="check" size={14} color={APP_COLORS.white} />
+                ) : null}
+              </View>
+              <Text style={styles.chipText}>REMEMBER ME</Text>
+            </Pressable>
+
+            <Pressable onPress={navigateToForgotPassword}>
+              <Text style={styles.forgotText}>Forgot password?</Text>
+            </Pressable>
+          </View>
+
+          <View style={styles.actions}>
+            <Button
+              label="Sign in"
+              fullWidth
+              leftIconName="login"
+              loading={signInMutation.isPending}
+              disabled={signInMutation.isPending || verifyMfaMutation.isPending}
+              onPress={handlePressSignIn}
+            />
+            <Button
+              label="Create an account"
+              variant="secondary"
+              fullWidth
+              leftIconName="person-add"
+              disabled={isSwitchingScreen || verifyMfaMutation.isPending}
+              onPress={navigateToSignUp}
+            />
+          </View>
         </View>
+      </AuthScreenShell>
 
-        <View style={styles.utilityRow}>
-          <Pressable
-            style={[styles.chip, rememberMe && styles.chipActive]}
-            onPress={() => setRememberMe((prev) => !prev)}
-          >
-            <View style={[styles.checkbox, rememberMe && styles.checkboxChecked]}>
-              {rememberMe ? (
-                <MaterialIcons name="check" size={14} color={APP_COLORS.white} />
-              ) : null}
-            </View>
-            <Text style={styles.chipText}>REMEMBER ME</Text>
-          </Pressable>
-
-          <Pressable onPress={navigateToForgotPassword}>
-            <Text style={styles.forgotText}>Forgot password?</Text>
-          </Pressable>
-        </View>
-
-        <View style={styles.actions}>
-          <Button
-            label={mfaToken ? 'Verify code' : 'Sign in'}
-            fullWidth
-            leftIconName={mfaToken ? 'verified-user' : 'login'}
-            loading={signInMutation.isPending || verifyMfaMutation.isPending}
-            disabled={signInMutation.isPending || verifyMfaMutation.isPending}
-            onPress={mfaToken ? handlePressVerifyMfa : handlePressSignIn}
-          />
-
-          <Button
-            label="Create an account"
-            variant="secondary"
-            fullWidth
-            leftIconName="person-add"
-            disabled={isSwitchingScreen}
-            onPress={navigateToSignUp}
-          />
-        </View>
-      </View>
-    </AuthScreenShell>
+      <MfaVerificationSheet
+        visible={Boolean(mfaToken)}
+        code={mfaCode}
+        email={mfaEmail}
+        isLoading={verifyMfaMutation.isPending}
+        onCancel={handleCancelMfa}
+        onChangeCode={setMfaCode}
+        onVerify={handlePressVerifyMfa}
+      />
+    </>
   );
 }
