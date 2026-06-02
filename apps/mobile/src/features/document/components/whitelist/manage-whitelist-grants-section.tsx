@@ -13,14 +13,12 @@ import { WhitelistGrantRow } from './whitelist-grant-row';
 type ManageWhitelistGrantsSectionProps = {
   grants: WhitelistGrant[];
   isLoading: boolean;
-  onPressGrantAction?: (grantId: string) => void;
   onOpenGrantMenu: (grant: WhitelistGrant) => void;
 };
 
 export function ManageWhitelistGrantsSection({
   grants,
   isLoading,
-  onPressGrantAction,
   onOpenGrantMenu,
 }: ManageWhitelistGrantsSectionProps) {
   return (
@@ -41,9 +39,9 @@ export function ManageWhitelistGrantsSection({
             <WhitelistGrantRow
               key={grant.id}
               name={grant.name}
+              status={grant.status ?? 'pending'}
               accessLabel={grant.accessLabel}
               onPressMenu={() => {
-                onPressGrantAction?.(grant.id);
                 onOpenGrantMenu(grant);
               }}
             />

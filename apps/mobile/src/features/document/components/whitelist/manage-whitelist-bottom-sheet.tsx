@@ -14,7 +14,7 @@ type ManageWhitelistBottomSheetProps = {
   isLoading?: boolean;
   onChangeSearchQuery: (value: string) => void;
   onClose: () => void;
-  onPressGrantAction?: (grantId: string) => void;
+  onPressGrantAction?: (grantId: string, role: DocumentPartyRole) => void;
   onPressRevoke?: (grantId: string) => void;
   onPressAddResult?: (resultId: string, role: DocumentPartyRole) => void;
 };
@@ -34,6 +34,7 @@ export function ManageWhitelistBottomSheet({
     visible,
     data,
     searchQuery,
+    onPressGrantAction,
     onPressRevoke,
   });
 
@@ -49,12 +50,9 @@ export function ManageWhitelistBottomSheet({
         bottomInset={sheet.insets.bottom}
         data={data}
         searchQuery={searchQuery}
-        filteredSearchResults={sheet.filteredSearchResults}
-        shouldShowSearchResults={sheet.shouldShowSearchResults}
         isLoading={isLoading}
         onChangeSearchQuery={onChangeSearchQuery}
         onClose={onClose}
-        onPressGrantAction={onPressGrantAction}
         onPressAddResult={onPressAddResult}
         onOpenGrantMenu={sheet.openGrantMenu}
       />
@@ -66,13 +64,10 @@ export function ManageWhitelistBottomSheet({
           bottomInset={sheet.insets.bottom}
           selectedGrant={sheet.selectedGrant}
           selectedGrantRole={sheet.selectedGrantRole}
-          isGrantRoleDropdownOpen={sheet.isGrantRoleDropdownOpen}
           revokeCountdown={sheet.revokeCountdown}
           revokeLabel={sheet.revokeLabel}
           onClose={sheet.closeGrantMenu}
           onPressRevoke={sheet.handlePressRevoke}
-          onToggleRoleDropdown={sheet.toggleGrantRoleDropdown}
-          onSelectGrantRole={sheet.selectGrantRole}
         />
       ) : null}
     </View>
