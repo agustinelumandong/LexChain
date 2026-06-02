@@ -12,6 +12,12 @@ import type { PickedUploadFile } from '@/types';
 
 import { queryKeys } from './keys';
 
+type QueryRefreshOptions = {
+  refetchInterval?: number | false;
+  refetchOnMount?: boolean | 'always';
+  staleTime?: number;
+};
+
 export function useDocuments(params?: ListDocumentsParams) {
   return useQuery({
     queryKey: queryKeys.documents.list(params),
@@ -19,11 +25,12 @@ export function useDocuments(params?: ListDocumentsParams) {
   });
 }
 
-export function useDocument(documentId?: string) {
+export function useDocument(documentId?: string, refreshOptions?: QueryRefreshOptions) {
   return useQuery({
     queryKey: queryKeys.documents.detail(documentId ?? ''),
     queryFn: () => documentsApi.getById(documentId ?? ''),
     enabled: Boolean(documentId),
+    ...refreshOptions,
   });
 }
 
@@ -59,27 +66,33 @@ export function useUpdateDocumentVersion() {
       file: PickedUploadFile;
       fileName: string;
     }) => documentsApi.updateVersion(documentId, file, fileName),
-    onSuccess: (_, { documentId }) => {
+    onSuccess: (response, { documentId }) => {
+      const currentDocumentId = response.document_id || documentId;
+
       void queryClient.invalidateQueries({ queryKey: queryKeys.documents.detail(documentId) });
       void queryClient.invalidateQueries({ queryKey: queryKeys.documents.versions(documentId) });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.documents.detail(currentDocumentId) });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.documents.versions(currentDocumentId) });
       void queryClient.invalidateQueries({ queryKey: queryKeys.documents.all });
     },
   });
 }
 
-export function useDocumentVersions(documentId?: string) {
+export function useDocumentVersions(documentId?: string, refreshOptions?: QueryRefreshOptions) {
   return useQuery({
     queryKey: queryKeys.documents.versions(documentId ?? ''),
     queryFn: () => documentsApi.getVersions(documentId ?? ''),
     enabled: Boolean(documentId),
+    ...refreshOptions,
   });
 }
 
-export function useDocumentAuditLogs(documentId?: string) {
+export function useDocumentAuditLogs(documentId?: string, refreshOptions?: QueryRefreshOptions) {
   return useQuery({
     queryKey: queryKeys.documents.auditLogs(documentId ?? ''),
     queryFn: () => documentsApi.getAuditLogs(documentId ?? ''),
     enabled: Boolean(documentId),
+    ...refreshOptions,
   });
 }
 
@@ -157,11 +170,12 @@ export function useRejectDocumentInvitation() {
   });
 }
 
-export function useDocumentParties(documentId?: string) {
+export function useDocumentParties(documentId?: string, refreshOptions?: QueryRefreshOptions) {
   return useQuery({
     queryKey: queryKeys.documents.parties(documentId ?? ''),
     queryFn: () => documentsApi.getParties(documentId ?? ''),
     enabled: Boolean(documentId),
+    ...refreshOptions,
   });
 }
 
