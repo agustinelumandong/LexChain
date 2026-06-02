@@ -7,6 +7,7 @@ import { ScreenHeader } from '@/ui';
 
 import { LexChainPdfViewer } from '../components/pdf-viewer/lexchain-pdf-viewer';
 import { DocumentPdfToolsSheet } from '../components/pdf-viewer/document-pdf-tools-sheet';
+import { RequestECopySheet } from '../components/pdf-viewer/request-ecopy-sheet';
 import { useDocumentPdfViewer } from '../hooks/use-document-pdf-viewer';
 
 const HEADER_CONTENT_GAP = 12;
@@ -26,14 +27,18 @@ export default function DocumentPdfViewerScreen() {
   return (
     <SafeAreaView style={styles.screen} edges={['left', 'right', 'bottom']}>
       <ScreenHeader
-        eyebrow="DOCUMENT PDF"
+        eyebrow="REQUEST E-COPY"
         title={viewer.title}
-        subtitle="Read the original document and keep LexChain metadata close by."
+        subtitle={
+          viewer.isRequestingECopy
+            ? 'Submitting your e-copy request...'
+            : 'Read this document or request an e-copy from the issuing lawyer.'
+        }
         leftAccessibilityLabel="Back to document details"
-        rightIconName="info-outline"
-        rightAccessibilityLabel="Open document tools"
+        rightIconName="file-copy"
+        rightAccessibilityLabel="Request e-copy document"
         onPressLeft={viewer.handleBack}
-        onPressRight={viewer.handleOpenTools}
+        onPressRight={viewer.handleOpenRequestSheet}
         onHeightChange={viewer.handleHeaderHeightChange}
         includeTopInset
       />
@@ -62,6 +67,13 @@ export default function DocumentPdfViewerScreen() {
         title={viewer.title}
         permissions={viewer.permissions}
         onClose={viewer.handleCloseTools}
+      />
+      <RequestECopySheet
+        visible={viewer.isRequestSheetVisible}
+        documentTitle={viewer.title}
+        isLoading={viewer.isRequestingECopy}
+        onCancel={viewer.handleCloseRequestSheet}
+        onConfirm={viewer.handleConfirmRequestECopy}
       />
     </SafeAreaView>
   );
