@@ -2222,6 +2222,219 @@
           }
         }
       }
+    },
+    "/requests": {
+      "post": {
+        "tags": [
+          "Document Requests"
+        ],
+        "summary": "Request a digital document copy",
+        "description": "Any authenticated user can request a digital copy of an existing document. All lawyers are notified via email.",
+        "operationId": "submit_document_request_requests_post",
+        "security": [
+          {
+            "Bearer Token": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateDocumentRequestBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Request submitted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentRequestResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated"
+          },
+          "404": {
+            "description": "User or document not found"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Document Requests"
+        ],
+        "summary": "List all document requests (lawyer)",
+        "description": "Returns all document requests. Optionally filter by status: pending | approved | rejected.",
+        "operationId": "get_all_requests_requests_get",
+        "security": [
+          {
+            "Bearer Token": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentRequestListResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated"
+          },
+          "403": {
+            "description": "Lawyer access required"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/requests/my": {
+      "get": {
+        "tags": [
+          "Document Requests"
+        ],
+        "summary": "List my document requests",
+        "description": "Returns all document requests submitted by the authenticated user.",
+        "operationId": "get_my_requests_requests_my_get",
+        "responses": {
+          "200": {
+            "description": "List of requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentRequestListResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated"
+          }
+        },
+        "security": [
+          {
+            "Bearer Token": []
+          }
+        ]
+      }
+    },
+    "/requests/{request_id}/review": {
+      "patch": {
+        "tags": [
+          "Document Requests"
+        ],
+        "summary": "Approve or reject a document request",
+        "description": "A lawyer reviews a pending request. The requester is notified via email.",
+        "operationId": "review_request_requests__request_id__review_patch",
+        "security": [
+          {
+            "Bearer Token": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Request Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReviewRequestBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Request reviewed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentRequestResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Already reviewed or missing rejection reason"
+          },
+          "401": {
+            "description": "Not authenticated"
+          },
+          "403": {
+            "description": "Lawyer access required"
+          },
+          "404": {
+            "description": "Request not found"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -2573,6 +2786,30 @@
         ],
         "title": "ChatMessage"
       },
+      "CreateDocumentRequestBody": {
+        "properties": {
+          "document_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Document Id",
+            "description": "ID of the document being requested."
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 2000,
+            "minLength": 10,
+            "title": "Description",
+            "description": "Additional context or notes about the request."
+          }
+        },
+        "type": "object",
+        "required": [
+          "document_id",
+          "description"
+        ],
+        "title": "CreateDocumentRequestBody",
+        "description": "Payload from the user to submit a document request."
+      },
       "CreateInvitationRequest": {
         "properties": {
           "email": {
@@ -2732,6 +2969,121 @@
         ],
         "title": "DocumentPartyResponse",
         "description": "A single party record on a document"
+      },
+      "DocumentRequestListResponse": {
+        "properties": {
+          "requests": {
+            "items": {
+              "$ref": "#/components/schemas/DocumentRequestResponse"
+            },
+            "type": "array",
+            "title": "Requests"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          }
+        },
+        "type": "object",
+        "required": [
+          "requests",
+          "total"
+        ],
+        "title": "DocumentRequestListResponse",
+        "description": "List wrapper for document requests."
+      },
+      "DocumentRequestResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "requester_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Requester Id"
+          },
+          "requester_email": {
+            "type": "string",
+            "title": "Requester Email"
+          },
+          "requester_name": {
+            "type": "string",
+            "title": "Requester Name"
+          },
+          "document_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Document Id"
+          },
+          "document_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Document Name"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "lawyer_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lawyer Id"
+          },
+          "rejection_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rejection Reason"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "requester_id",
+          "requester_email",
+          "requester_name",
+          "document_id",
+          "description",
+          "status",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "DocumentRequestResponse",
+        "description": "Full document request record returned to clients."
       },
       "DocumentResponse": {
         "properties": {
@@ -3275,6 +3627,11 @@
             "title": "Data Hash",
             "description": "Hash stored on-chain."
           },
+          "tx_hash": {
+            "type": "string",
+            "title": "Tx Hash",
+            "description": "Transaction hash of the record on-chain."
+          },
           "onchain_timestamp": {
             "type": "integer",
             "title": "Onchain Timestamp",
@@ -3290,6 +3647,16 @@
             "format": "date-time",
             "title": "Verified At",
             "description": "When this verification was performed."
+          },
+          "transacttion_link": {
+            "type": "string",
+            "title": "Transacttion Link",
+            "description": "Redirect to transaction in baseScan.org"
+          },
+          "is_verified": {
+            "type": "boolean",
+            "title": "Is Verified",
+            "description": "True if the actual file hash matches the on-chain hash."
           }
         },
         "type": "object",
@@ -3297,9 +3664,12 @@
           "document_id",
           "onchain_document_id",
           "data_hash",
+          "tx_hash",
           "onchain_timestamp",
           "issued_by",
-          "verified_at"
+          "verified_at",
+          "transacttion_link",
+          "is_verified"
         ],
         "title": "OnChainVerificationResponse",
         "description": "Response returned when verifying an on-chain record."
@@ -3405,6 +3775,11 @@
             "type": "string",
             "title": "Data Hash",
             "description": "SHA256 hash stored on-chain."
+          },
+          "transacttion_link": {
+            "type": "string",
+            "title": "Transacttion Link",
+            "description": "Redirect to transaction in baseScan.org"
           }
         },
         "type": "object",
@@ -3412,7 +3787,8 @@
           "document_id",
           "tx_hash",
           "onchain_document_id",
-          "data_hash"
+          "data_hash",
+          "transacttion_link"
         ],
         "title": "RecordResponse",
         "description": "Response returned after recording a document on-chain."
@@ -3425,8 +3801,15 @@
             "title": "Document Id"
           },
           "user_id": {
-            "type": "string",
-            "format": "uuid",
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "User Id"
           },
           "message": {
@@ -3437,7 +3820,6 @@
         "type": "object",
         "required": [
           "document_id",
-          "user_id",
           "message"
         ],
         "title": "RemovePartyResponse",
@@ -3474,6 +3856,38 @@
           "email"
         ],
         "title": "ResendVerificationRequest"
+      },
+      "ReviewRequestBody": {
+        "properties": {
+          "action": {
+            "type": "string",
+            "enum": [
+              "approve",
+              "reject"
+            ],
+            "title": "Action",
+            "description": "Decision: approve or reject."
+          },
+          "rejection_reason": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 1000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rejection Reason",
+            "description": "Required when action is 'reject'."
+          }
+        },
+        "type": "object",
+        "required": [
+          "action"
+        ],
+        "title": "ReviewRequestBody",
+        "description": "Payload from a lawyer to approve or reject a document request."
       },
       "SearchHit": {
         "properties": {
