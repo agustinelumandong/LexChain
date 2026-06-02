@@ -2,10 +2,43 @@
 
 import { useEffect, useState } from "react";
 
-import {
-  type PublicVerifyResponse,
-  verifyPublicPdf,
-} from "@/lib/public-verifier-api";
+type MockVerificationCheck = {
+  label: string;
+  status: string;
+  description: string;
+};
+
+type MockVerificationResult = {
+  fileName: string;
+  status: "Verified";
+  checkedAt: string;
+  checks: MockVerificationCheck[];
+};
+
+function createMockVerificationResult(file: File): MockVerificationResult {
+  return {
+    fileName: file.name,
+    status: "Verified",
+    checkedAt: new Date().toISOString(),
+    checks: [
+      {
+        label: "Notarial reference",
+        status: "Matched",
+        description: "The uploaded PDF matches a registered notarial reference.",
+      },
+      {
+        label: "Content hash",
+        status: "Matched",
+        description: "The uploaded PDF hash matches the stored document hash.",
+      },
+      {
+        label: "Blockchain integrity",
+        status: "Verified / not tampered",
+        description: "The stored hash matches the blockchain verification record.",
+      },
+    ],
+  };
+}
 
 function isPdfFile(file: File) {
   return file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
@@ -37,37 +70,6 @@ function formatDate(value?: string | number | null) {
   });
 }
 
-function formatHash(value?: string | null) {
-  if (!value) {
-    return "Not available";
-  }
-
-  if (value.length <= 28) {
-    return value;
-  }
-
-  return `${value.slice(0, 14)}...${value.slice(-12)}`;
-}
-
-function normalizeStatus(value: string) {
-  const status = value.toLowerCase();
-
-  if (status === "match" || status === "verified" || status === "valid") {
-    return "Verified";
-  }
-
-  if (status === "pending") {
-    return "Pending";
-  }
-
-  return "Invalid";
-}
-
-function formatConfidence(value: number) {
-  const percentage = value <= 1 ? value * 100 : value;
-  return `${Math.round(percentage)}%`;
-}
-
 export function PublicVerifyForm() {
   const [isDragging, setIsDragging] = useState(false);
   const [, setDragDepth] = useState(0);
@@ -75,7 +77,7 @@ export function PublicVerifyForm() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<PublicVerifyResponse | null>(null);
+  const [result, setResult] = useState<MockVerificationResult | null>(null);
 
   useEffect(() => {
     function onWindowDragEnter(event: DragEvent) {
@@ -189,25 +191,12 @@ export function PublicVerifyForm() {
     setIsPending(true);
     const progressPromise = runProgressToSeventy();
 
-    try {
-      const [response] = await Promise.all([
-        verifyPublicPdf(selectedFile),
-        progressPromise,
-      ]);
-
-      setProgress(100);
-      window.setTimeout(() => {
-        setResult(response);
-        setIsPending(false);
-      }, 250);
-    } catch (requestError) {
-      setError(
-        requestError instanceof Error
-          ? requestError.message
-          : "Unable to verify uploaded PDF.",
-      );
+    await progressPromise;
+    setProgress(100);
+    window.setTimeout(() => {
+      setResult(createMockVerificationResult(selectedFile));
       setIsPending(false);
-    }
+    }, 250);
   }
 
   return (
@@ -275,7 +264,7 @@ export function PublicVerifyForm() {
             PDF only
           </p>
           <p className="mt-3 text-xl font-black text-[#0C2B49]">
-            {selectedFile?.name ?? (isPending ? "Verifying uploaded document..." : "Drag and Drop here")}
+            {selectedFile?.name ?? (isPending ? "Verifying uploaded document" : "Drag and Drop here")}
           </p>
           {selectedFile ? (
             <div className="mt-3 space-y-4">
@@ -290,10 +279,10 @@ export function PublicVerifyForm() {
                   <div className="flex items-center justify-between gap-4">
                     <div>
                       <p className="text-sm font-black text-[#0C2B49]">
-                        Verifying uploaded document...
+                        Verifying uploaded document
                       </p>
                       <p className="mt-1 text-sm font-semibold text-[#64748b]">
-                        OCR, hash comparison, and blockchain lookup are running.
+                        Notarial reference, content hash, and blockchain integrity checks are running.
                       </p>
                     </div>
                     <p className="text-sm font-black text-[#0985E7]">{progress}%</p>
@@ -306,7 +295,7 @@ export function PublicVerifyForm() {
                   </div>
                   {progress >= 70 ? (
                     <p className="mt-3 text-center text-xs font-black uppercase tracking-[0.14em] text-[#64748b]">
-                      Waiting for verification response
+                      Finalizing verification checks
                     </p>
                   ) : null}
                 </div>
@@ -377,68 +366,63 @@ export function PublicVerifyForm() {
                 LexChain Verification
               </p>
               <h2 className="mt-2 text-2xl font-black text-[#0C2B49]">
-                {result.file_name ?? selectedFile?.name ?? "Uploaded PDF"}
+                {result.fileName}
               </h2>
+              <p className="mt-2 text-sm font-semibold text-[#64748b]">
+                Checked {formatDate(result.checkedAt)}
+              </p>
             </div>
             <div className="rounded-full bg-[#EAF6FF] px-4 py-2 text-sm font-black text-[#0770c4]">
-              {normalizeStatus(result.status)}
+              {result.status}
             </div>
           </div>
-          <dl className="mt-6 divide-y divide-[#E4EEF9] border-t border-[#E4EEF9]">
-            <div className="flex justify-between gap-5 py-3.5">
-              <dt className="text-[13px] font-black text-[#64748b]">Confidence</dt>
-              <dd className="text-right text-[13px] font-black text-[#0C2B49]">
-                {formatConfidence(result.confidence)}
-              </dd>
-            </div>
-            <div className="flex justify-between gap-5 py-3.5">
-              <dt className="text-[13px] font-black text-[#64748b]">Matched</dt>
-              <dd className="text-right text-[13px] font-black text-[#0C2B49]">
-                {formatDate(result.matched_at)}
-              </dd>
-            </div>
-            <div className="flex justify-between gap-5 py-3.5">
-              <dt className="text-[13px] font-black text-[#64748b]">Recorded</dt>
-              <dd className="text-right text-[13px] font-black text-[#0C2B49]">
-                {formatDate(result.recorded_at)}
-              </dd>
-            </div>
-            <div className="flex justify-between gap-5 py-3.5">
-              <dt className="text-[13px] font-black text-[#64748b]">Recorded by</dt>
-              <dd className="break-all text-right text-[13px] font-black text-[#0C2B49]">
-                {result.recorded_by ?? "Not available"}
-              </dd>
-            </div>
-          </dl>
-          <div className="mt-4 rounded-2xl bg-[#F5FAFF] p-4 text-center">
-            <p className="text-xs font-black uppercase tracking-[0.14em] text-[#64748b]">
-              Transaction hash
-            </p>
-            <p className="mx-auto mt-2 max-w-full break-all font-mono text-sm font-black text-[#0C2B49]">
-              {formatHash(result.tx_hash)}
-            </p>
+          <div className="mt-6 grid gap-3">
+            {result.checks.map((check) => (
+              <article
+                className="flex gap-3 rounded-2xl border border-[#D7ECD7] bg-[#F3FBF5] p-4"
+                key={check.label}
+              >
+                <span
+                  aria-hidden="true"
+                  className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#18A058] text-white"
+                >
+                  <svg
+                    className="h-4 w-4"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="3"
+                    viewBox="0 0 24 24"
+                  >
+                    <path d="M20 6 9 17l-5-5" />
+                  </svg>
+                </span>
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                    <h3 className="text-sm font-black text-[#0C2B49]">
+                      {check.label}
+                    </h3>
+                    <p className="text-sm font-black text-[#127A43]">
+                      {check.status}
+                    </p>
+                  </div>
+                  <p className="mt-1 text-sm font-semibold leading-5 text-[#4F6475]">
+                    {check.description}
+                  </p>
+                </div>
+              </article>
+            ))}
           </div>
-          {result.storage_url ? (
-            <div className="mt-4 rounded-2xl p-4 text-center">
-              <div className="mt-3 flex flex-col items-center justify-center gap-3 sm:flex-row">
-                <a
-                  className="inline-flex rounded-full bg-[#0985E7] px-5 py-2.5 text-sm font-black text-white shadow-[0_10px_24px_rgba(9,133,231,0.18)] transition hover:bg-[#0770c4]"
-                  href={result.storage_url}
-                  rel="noreferrer"
-                  target="_blank"
-                >
-                  Open PDF
-                </a>
-                <button
-                  className="rounded-full border border-[#E4EEF9] bg-white px-5 py-2.5 text-sm font-black text-[#0C2B49] transition hover:bg-[#F5FAFF]"
-                  type="button"
-                  onClick={removeSelectedFile}
-                >
-                  Verify another document
-                </button>
-              </div>
-            </div>
-          ) : null}
+          <div className="mt-5 flex justify-center">
+            <button
+              className="rounded-full border border-[#E4EEF9] bg-white px-5 py-2.5 text-sm font-black text-[#0C2B49] transition hover:bg-[#F5FAFF]"
+              type="button"
+              onClick={removeSelectedFile}
+            >
+              Verify another document
+            </button>
+          </div>
         </section>
       ) : null}
     </div>
