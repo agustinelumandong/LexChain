@@ -22,6 +22,7 @@ export function buildVersionHistory({
       id: 'current',
       date: formatDate(createdAt),
       label: 'Current version',
+      status,
       statusLabel: formatStatusLabel(status),
       description: 'Active document version used for search, summaries, and access review.',
       isCurrent: true,
@@ -38,6 +39,7 @@ export function mapApiVersionHistory(
     date: formatDate(version.created_at),
     fileName: version.file_name,
     label: version.is_latest ? 'Current version' : version.file_name,
+    status: version.status,
     statusLabel: formatStatusLabel(version.status),
     description: version.is_latest
       ? 'Active document version used for search, summaries, and access review.'

@@ -4,6 +4,7 @@ export type VersionHistoryItem = {
   date: string;
   fileName?: string;
   label: string;
+  status?: string;
   statusLabel?: string;
   description: string;
   isCurrent?: boolean;

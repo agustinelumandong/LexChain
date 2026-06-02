@@ -6,6 +6,28 @@ import { APP_COLORS } from '@/theme';
 import type { VersionHistoryItem } from '../../../types/document-details.types';
 import { documentDetailCardStyles as styles } from './document-detail-card.styles';
 
+function getVersionStatusStyle(status?: string) {
+  const normalizedStatus = status?.trim().toUpperCase();
+
+  if (normalizedStatus === 'COMPLETED') {
+    return styles.versionStatusCompleted;
+  }
+
+  if (
+    normalizedStatus === 'PROCESSING' ||
+    normalizedStatus === 'QUEUED' ||
+    normalizedStatus === 'PENDING'
+  ) {
+    return styles.versionStatusQueued;
+  }
+
+  if (normalizedStatus === 'FAILED') {
+    return styles.versionStatusFailed;
+  }
+
+  return styles.versionStatusNeutral;
+}
+
 export function VersionHistoryCard({
   items,
   onPressVersion,
@@ -90,7 +112,9 @@ export function VersionHistoryCard({
                     {item.label}
                   </Text>
                   {item.statusLabel ? (
-                    <Text style={styles.versionStatus}>{item.statusLabel}</Text>
+                    <Text style={[styles.versionStatus, getVersionStatusStyle(item.status)]}>
+                      {item.statusLabel}
+                    </Text>
                   ) : null}
                 </View>
                 <Text style={styles.timelineDescription}>{item.description}</Text>

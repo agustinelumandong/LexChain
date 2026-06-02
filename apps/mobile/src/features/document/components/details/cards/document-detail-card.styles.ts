@@ -234,14 +234,28 @@ export const documentDetailCardStyles = StyleSheet.create({
   versionStatus: {
     overflow: 'hidden',
     borderRadius: 999,
-    backgroundColor: '#EAF8F0',
-    color: '#0C6B3A',
     fontFamily: fonts.regular,
     fontSize: 11,
     lineHeight: 14,
     fontWeight: '800',
     paddingHorizontal: 8,
     paddingVertical: 3,
+  },
+  versionStatusCompleted: {
+    backgroundColor: '#EAF8F0',
+    color: '#0C6B3A',
+  },
+  versionStatusQueued: {
+    backgroundColor: '#FFF4DD',
+    color: '#B77900',
+  },
+  versionStatusFailed: {
+    backgroundColor: '#FEE2E2',
+    color: APP_COLORS.danger,
+  },
+  versionStatusNeutral: {
+    backgroundColor: APP_COLORS.surfaceSoft,
+    color: APP_COLORS.textMuted,
   },
   timelineDescription: {
     color: APP_COLORS.textMuted,
