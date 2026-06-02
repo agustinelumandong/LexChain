@@ -16,6 +16,7 @@ import { EmptyState, ErrorState, LoadingState, ScreenHeader } from '@/ui';
 import { invitationScreenStyles as styles } from './invitations-screen.styles';
 
 const HEADER_CONTENT_GAP = 12;
+const DEFAULT_HEADER_HEIGHT = 160;
 
 function formatInvitationTime(value: string) {
   const date = new Date(value);
@@ -105,7 +106,7 @@ function InvitationCard({
 
 export default function InvitationsScreen() {
   const router = useRouter();
-  const [headerHeight, setHeaderHeight] = useState(126);
+  const [headerHeight, setHeaderHeight] = useState(DEFAULT_HEADER_HEIGHT);
   const invitationsQuery = usePendingDocumentInvitations();
   const acceptInvitationMutation = useAcceptDocumentInvitation();
   const rejectInvitationMutation = useRejectDocumentInvitation();

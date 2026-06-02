@@ -19,6 +19,7 @@ import {
 } from './notifications-screen.styles';
 
 const HEADER_CONTENT_GAP = 12;
+const DEFAULT_HEADER_HEIGHT = 160;
 
 function formatNotificationTime(value: string) {
   const date = new Date(value);
@@ -106,7 +107,7 @@ function NotificationRow({
 
 export default function NotificationsScreen() {
   const router = useRouter();
-  const [headerHeight, setHeaderHeight] = useState(126);
+  const [headerHeight, setHeaderHeight] = useState(DEFAULT_HEADER_HEIGHT);
   const notificationsQuery = useNotifications({ limit: 50, offset: 0, unreadOnly: false });
   const unreadCountQuery = useUnreadNotificationCount();
   const markReadMutation = useMarkNotificationRead();
@@ -189,6 +190,7 @@ export default function NotificationsScreen() {
         showsVerticalScrollIndicator={false}
         refreshing={isRefreshing}
         onRefresh={handleRefresh}
+        progressViewOffset={headerHeight + HEADER_CONTENT_GAP}
         ListHeaderComponent={
           <View style={styles.summaryCard}>
             <View style={styles.summaryTopLine}>

@@ -24,6 +24,7 @@ import { APP_COLORS } from '@/theme';
 import { booksScreenStyles as styles } from './books-screen.styles';
 
 const HEADER_CONTENT_GAP = 12;
+const DEFAULT_HEADER_HEIGHT = 160;
 
 function formatBookTitle(book: BookResponse) {
   return `Book ${book.book_number}`;
@@ -182,7 +183,7 @@ function CreateBookSheet({
 
 export default function BooksScreen() {
   const router = useRouter();
-  const [headerHeight, setHeaderHeight] = useState(126);
+  const [headerHeight, setHeaderHeight] = useState(DEFAULT_HEADER_HEIGHT);
   const [isCreateSheetVisible, setIsCreateSheetVisible] = useState(false);
   const userProfileQuery = useUserProfile();
   const canManageBooks = canRoleUploadDocuments(userProfileQuery.data?.role);

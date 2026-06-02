@@ -17,12 +17,13 @@ import { EmptyState, ErrorState, ScreenHeader } from '@/ui';
 import { booksScreenStyles as styles } from './books-screen.styles';
 
 const HEADER_CONTENT_GAP = 12;
+const DEFAULT_HEADER_HEIGHT = 160;
 
 export default function BookDetailsScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const bookId = Array.isArray(id) ? id[0] : id;
-  const [headerHeight, setHeaderHeight] = useState(126);
+  const [headerHeight, setHeaderHeight] = useState(DEFAULT_HEADER_HEIGHT);
   const isOpeningDocumentRef = useRef(false);
   const bookQuery = useBook(bookId);
   const documentsQuery = useDocuments({ bookId, limit: 50, offset: 0 });
@@ -100,6 +101,7 @@ export default function BookDetailsScreen() {
               }}
               tintColor={APP_COLORS.primary}
               colors={[APP_COLORS.primary]}
+              progressViewOffset={headerHeight + HEADER_CONTENT_GAP}
               progressBackgroundColor={APP_COLORS.white}
             />
           }
