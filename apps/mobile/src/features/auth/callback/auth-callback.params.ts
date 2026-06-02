@@ -1,6 +1,8 @@
 import * as Linking from 'expo-linking';
 import { Platform } from 'react-native';
 
+import { getEmailFromInviteToken } from '../utils/invite-token';
+
 export type AuthCallbackParams = Record<string, string>;
 
 const CALLBACK_PATH = '/auth/callback';
@@ -66,7 +68,7 @@ export function getInvitationRouteParams(params: AuthCallbackParams) {
   const invitationToken = params.token;
   const documentId = params.document_id ?? params.documentId;
   const role = params.role ?? params.permission;
-  const email = params.email;
+  const email = params.email ?? getEmailFromInviteToken(invitationToken);
 
   return {
     ...(email ? { email } : null),

@@ -80,6 +80,7 @@ export default function SignUpScreen() {
                   onChangeText={onChange}
                   iconName="mail-outline"
                   keyboardType="email-address"
+                  editable={!signUp.hasInviteEmail}
                   error={errors.email?.message}
                 />
               )}
