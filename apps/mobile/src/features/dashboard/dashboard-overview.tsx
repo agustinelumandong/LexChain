@@ -30,18 +30,21 @@ const ACTIVITY_STATUS_STYLES = {
   success: styles.activityStatusSuccess,
   warning: styles.activityStatusWarning,
   info: styles.activityStatusInfo,
+  danger: styles.activityStatusDanger,
 };
 
 const ACTIVITY_ICON_STYLES = {
   success: styles.activityIconSuccess,
   warning: styles.activityIconWarning,
   info: styles.activityIconInfo,
+  danger: styles.activityIconDanger,
 };
 
 const ACTIVITY_ICON_NAMES = {
   success: 'description',
   warning: 'schedule',
   info: 'person-add-alt',
+  danger: 'error-outline',
 } as const;
 
 export function DashboardOverview() {
