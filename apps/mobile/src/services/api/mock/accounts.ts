@@ -7,6 +7,7 @@ export type MockAccount = {
   l_name: string;
   avatar: string;
   role: MockAccountRole;
+  mfa_enabled?: boolean;
 };
 
 export const MOCK_ACCOUNTS: MockAccount[] = [
@@ -38,6 +39,10 @@ export const MOCK_ACCOUNTS: MockAccount[] = [
 
 export const DEFAULT_MOCK_ACCOUNT = MOCK_ACCOUNTS[1];
 
+const mockMfaState = new Map<string, boolean>(
+  MOCK_ACCOUNTS.map((account) => [account.id, Boolean(account.mfa_enabled)]),
+);
+
 export function findMockAccountByEmail(email?: string | null) {
   const normalizedEmail = email?.trim().toLowerCase();
 
@@ -65,6 +70,30 @@ export function createMockAccessToken(account: MockAccount) {
 
 export function getMockAccountIdFromToken(token?: string | null) {
   if (!token?.startsWith('mock-access-token:')) {
+    return null;
+  }
+
+  return token.split(':')[1] ?? null;
+}
+
+export function getMockMfaEnabled(accountId?: string | null) {
+  const account = findMockAccountById(accountId);
+
+  return mockMfaState.get(account.id) ?? false;
+}
+
+export function setMockMfaEnabled(accountId: string | null | undefined, enabled: boolean) {
+  const account = findMockAccountById(accountId);
+
+  mockMfaState.set(account.id, enabled);
+}
+
+export function createMockMfaToken(account: MockAccount) {
+  return `mock-mfa-token:${account.id}:${Date.now()}`;
+}
+
+export function getMockAccountIdFromMfaToken(token?: string | null) {
+  if (!token?.startsWith('mock-mfa-token:')) {
     return null;
   }
 
