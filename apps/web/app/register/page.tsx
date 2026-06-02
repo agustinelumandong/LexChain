@@ -2,8 +2,8 @@
 
 import Image from 'next/image';
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -25,6 +25,16 @@ const registerSchema = z.object({
 
 type RegisterForm = z.infer<typeof registerSchema>;
 
+type SignUpResponse = {
+  requires_email_confirmation?: boolean;
+  message?: string;
+};
+
+type CreatedAccount = {
+  email: string;
+  requiresEmailConfirmation: boolean;
+};
+
 async function signUp(data: RegisterForm & { token?: string }) {
   const res = await fetch("/api/portal/signup", {
     method: "POST",
@@ -40,15 +50,15 @@ async function signUp(data: RegisterForm & { token?: string }) {
   });
   const payload = await res.json().catch(() => null);
   if (!res.ok) throw new Error(payload?.message ?? "Sign up failed.");
-  return payload;
+  return payload as SignUpResponse;
 }
 
 function RegisterPageContent() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const inviteToken = searchParams.get("token")?.trim() ?? "";
   const inviteEmail = searchParams.get("email")?.trim() || getEmailFromInviteToken(inviteToken);
   const hasInviteEmail = inviteEmail.length > 0;
+  const [createdAccount, setCreatedAccount] = useState<CreatedAccount | null>(null);
   const { register, handleSubmit, setValue, formState: { errors } } = useForm<RegisterForm>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
@@ -58,9 +68,17 @@ function RegisterPageContent() {
 
   const mutation = useMutation({
     mutationFn: signUp,
-    onSuccess: () => {
-      toast.success("Account created! Check your email.");
-      router.push("/login");
+    onSuccess: (response, values) => {
+      const requiresEmailConfirmation = response.requires_email_confirmation !== false;
+      setCreatedAccount({
+        email: values.email,
+        requiresEmailConfirmation,
+      });
+      toast.success(
+        requiresEmailConfirmation
+          ? "Account created. Check your email to verify it."
+          : "Account created. You can now sign in.",
+      );
     },
     onError: (error: Error) => toast.error(error.message),
   });
@@ -76,6 +94,35 @@ function RegisterPageContent() {
       setValue("email", inviteEmail, { shouldValidate: true });
     }
   }, [inviteEmail, setValue]);
+
+  if (createdAccount) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-[#F5FAFF] p-5 text-[#111827]">
+        <section className="w-full max-w-[440px] rounded-[24px] border border-[#E4EEF9] bg-white p-7 shadow-[0_10px_24px_rgba(12,43,73,0.08)]">
+          <div className="flex items-center gap-2">
+            <Image src="/lexchain/logo-lexchain.svg" alt="LexChain" width={36} height={36} className="rounded-[10px]" />
+            <span className="text-lg font-black text-[#0C2B49]">Lex<span className="text-[#0985E7]">Chain</span></span>
+          </div>
+          <div className="mt-7 rounded-[20px] bg-[#EAF6FF] p-5">
+            <h1 className="text-3xl font-black leading-9 text-[#0C2B49]">
+              {createdAccount.requiresEmailConfirmation ? "Check your email" : "Account created"}
+            </h1>
+            <p className="mt-3 text-sm font-semibold leading-5 text-[#4B6382]">
+              {createdAccount.requiresEmailConfirmation
+                ? `We sent a verification link to ${createdAccount.email}. Verify your email before signing in.`
+                : `Your account for ${createdAccount.email} is ready. You can now sign in.`}
+            </p>
+          </div>
+          <Link
+            href="/login"
+            className="mt-6 flex min-h-[52px] w-full items-center justify-center rounded-full bg-[#0985E7] px-5 py-3.5 text-[15px] font-black text-white transition hover:bg-[#0770c4]"
+          >
+            Go to login
+          </Link>
+        </section>
+      </main>
+    );
+  }
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-[#F5FAFF] p-5 text-[#111827]">
@@ -159,7 +206,7 @@ export default function RegisterPage() {
       fallback={
         <main className="flex min-h-screen items-center justify-center bg-[#F5FAFF] p-5 text-[#111827]">
           <section className="w-full max-w-[440px] rounded-[24px] border border-[#E4EEF9] bg-white p-7 shadow-[0_10px_24px_rgba(12,43,73,0.08)]">
-            <p className="text-sm font-black text-[#0C2B49]">Loading sign-up...</p>
+            <p className="text-sm font-black text-[#0C2B49]">Loading sign-up</p>
           </section>
         </main>
       }
