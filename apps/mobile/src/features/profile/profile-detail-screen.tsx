@@ -13,6 +13,7 @@ export { SettingToggleRow } from './setting-toggle-row';
 export { SettingsCard } from './settings-card';
 
 const HEADER_CONTENT_GAP = 12;
+const DEFAULT_HEADER_HEIGHT = 160;
 
 type ProfileDetailScreenProps = {
   title: string;
@@ -28,7 +29,7 @@ export function ProfileDetailScreen({
   footer,
 }: ProfileDetailScreenProps) {
   const router = useRouter();
-  const [headerHeight, setHeaderHeight] = useState(126);
+  const [headerHeight, setHeaderHeight] = useState(DEFAULT_HEADER_HEIGHT);
   const handleHeaderHeightChange = useCallback((nextHeight: number) => {
     setHeaderHeight((h) => (h === nextHeight ? h : nextHeight));
   }, []);
