@@ -14,11 +14,17 @@ export function matchesStructuredFilters({
   documentDateFilter,
   documentStatusFilter,
   documentTypeFilter,
+  documentNumberFilter,
+  pageNumberFilter,
+  bookNumberFilter,
 }: {
   document: DisplayDocument;
   documentDateFilter: Date | null;
   documentStatusFilter: DocumentFilterStatusKey;
   documentTypeFilter: DocumentTypeKey;
+  documentNumberFilter?: string;
+  pageNumberFilter?: string;
+  bookNumberFilter?: string;
 }) {
   if (documentTypeFilter !== 'all' && document.documentType !== documentTypeFilter) {
     return false;
@@ -26,6 +32,24 @@ export function matchesStructuredFilters({
 
   if (documentStatusFilter !== 'all' && document.status !== documentStatusFilter) {
     return false;
+  }
+
+  if (documentNumberFilter && documentNumberFilter.trim() !== '') {
+    if (document.documentNumber.toString() !== documentNumberFilter.trim()) {
+      return false;
+    }
+  }
+
+  if (pageNumberFilter && pageNumberFilter.trim() !== '') {
+    if (document.pageNumber.toString() !== pageNumberFilter.trim()) {
+      return false;
+    }
+  }
+
+  if (bookNumberFilter && bookNumberFilter.trim() !== '') {
+    if (document.bookNumber.toString() !== bookNumberFilter.trim()) {
+      return false;
+    }
   }
 
   if (documentDateFilter) {
@@ -75,10 +99,16 @@ export function getActiveFilterSummary({
   documentDateFilter,
   documentStatusFilter,
   documentTypeFilter,
+  documentNumberFilter,
+  pageNumberFilter,
+  bookNumberFilter,
 }: {
   documentDateFilter: Date | null;
   documentStatusFilter: DocumentFilterStatusKey;
   documentTypeFilter: DocumentTypeKey;
+  documentNumberFilter?: string;
+  pageNumberFilter?: string;
+  bookNumberFilter?: string;
 }) {
   return [
     documentTypeFilter !== 'all'
@@ -94,6 +124,15 @@ export function getActiveFilterSummary({
       : null,
     documentDateFilter
       ? `Date: ${formatSelectedDate(documentDateFilter) ?? ''}`
+      : null,
+    documentNumberFilter && documentNumberFilter.trim() !== ''
+      ? `Doc No: ${documentNumberFilter.trim()}`
+      : null,
+    pageNumberFilter && pageNumberFilter.trim() !== ''
+      ? `Page No: ${pageNumberFilter.trim()}`
+      : null,
+    bookNumberFilter && bookNumberFilter.trim() !== ''
+      ? `Book No: ${bookNumberFilter.trim()}`
       : null,
   ].filter(Boolean) as string[];
 }
