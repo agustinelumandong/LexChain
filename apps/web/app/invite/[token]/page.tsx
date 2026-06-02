@@ -1,17 +1,29 @@
 import Image from "next/image";
 import Link from "next/link";
 
+import { getEmailFromInviteToken } from "@/lib/invite-token";
+
 type InvitePageProps = {
   params: Promise<{
     token: string;
   }>;
+  searchParams: Promise<{
+    email?: string | string[];
+  }>;
 };
 
-export default async function InvitePage({ params }: InvitePageProps) {
+function firstValue(value?: string | string[]) {
+  return Array.isArray(value) ? value[0] : value;
+}
+
+export default async function InvitePage({ params, searchParams }: InvitePageProps) {
   const { token } = await params;
+  const inviteEmail =
+    firstValue((await searchParams).email)?.trim() || getEmailFromInviteToken(token);
   const encodedToken = encodeURIComponent(token);
-  const appLink = `lexchain://sign-up?token=${encodedToken}`;
-  const webSignUpLink = `/register?token=${encodedToken}`;
+  const emailQuery = inviteEmail ? `&email=${encodeURIComponent(inviteEmail)}` : '';
+  const appLink = `lexchain://sign-up?token=${encodedToken}${emailQuery}`;
+  const webSignUpLink = `/register?token=${encodedToken}${emailQuery}`;
 
   return (
     <main className="flex min-h-dvh items-center justify-center bg-[#F5FAFF] px-5 py-14 text-[#102033]">
@@ -37,7 +49,7 @@ export default async function InvitePage({ params }: InvitePageProps) {
         </h1>
         <p className="mt-3 text-sm font-semibold leading-6 text-[#64748b]">
           Open the mobile app to accept your invitation, download the app, or
-          continue sign-up on the web with your invitation token preserved.
+          continue sign-up on the web with your invitation details preserved.
         </p>
 
         <div className="mt-8 grid gap-3 sm:grid-cols-3">
