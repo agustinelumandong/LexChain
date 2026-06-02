@@ -29,6 +29,7 @@ import type {
   DocumentUploadAcceptedResponse,
   GlobalSearchPayload,
   GlobalSearchResponse,
+  GlobalSearchResult,
   ListDocumentsParams,
   RemovePartyResponse,
   RenameDocumentResponse,
@@ -419,10 +420,20 @@ export const mockDocumentsApi = {
 
   buildSearchResultsWithDetails(payload: GlobalSearchPayload) {
     return this.globalSearch(payload).then((response) =>
-      response.results.map((hit) => ({
-        document_id: hit.document_id,
-        document: mockDocumentDetails[hit.document_id] ?? buildFallbackDocumentDetail(hit.document_id),
-      })),
+      response.results.reduce<GlobalSearchResult[]>((uniqueResults, hit, index) => {
+        if (uniqueResults.some((result) => result.document_id === hit.document_id)) {
+          return uniqueResults;
+        }
+
+        uniqueResults.push({
+          document_id: hit.document_id,
+          hit,
+          rank: index,
+          document: mockDocumentDetails[hit.document_id] ?? buildFallbackDocumentDetail(hit.document_id),
+        });
+
+        return uniqueResults;
+      }, []),
     );
   },
 };

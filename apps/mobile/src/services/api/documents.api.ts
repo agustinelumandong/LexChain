@@ -40,6 +40,8 @@ export type GlobalSearchHit = ApiSchema<'GlobalSearchHit'>;
 
 export type GlobalSearchResult = {
   document_id: string;
+  hit: GlobalSearchHit;
+  rank: number;
   document?: DocumentDetail;
 };
 
@@ -97,19 +99,31 @@ export async function fetchSearchResultsWithDetails(
   }
 
   const response = await apiClient.post<GlobalSearchResponse>('/search', payload);
-  const results = response.results;
+  const results = response.results.reduce<GlobalSearchResult[]>((uniqueResults, hit, index) => {
+    if (uniqueResults.some((result) => result.document_id === hit.document_id)) {
+      return uniqueResults;
+    }
+
+    uniqueResults.push({
+      document_id: hit.document_id,
+      hit,
+      rank: index,
+    });
+
+    return uniqueResults;
+  }, []);
 
   // Fetch details for each result in parallel
   const resultsWithDetails = await Promise.all(
-    results.map(async (hit) => {
+    results.map(async (result) => {
       try {
         const detail = await apiClient.get<DocumentDetail>(
-          `/documents/${encodeURIComponent(hit.document_id)}`,
+          `/documents/${encodeURIComponent(result.document_id)}`,
         );
-        return { document_id: hit.document_id, document: detail };
+        return { ...result, document: detail };
       } catch {
         // If detail fetch fails, return without details
-        return { document_id: hit.document_id, document: undefined };
+        return { ...result, document: undefined };
       }
     }),
   );
