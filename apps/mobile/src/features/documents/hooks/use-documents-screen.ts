@@ -28,9 +28,6 @@ export function useDocumentsScreen() {
   const [documentStatusFilter, setDocumentStatusFilter] =
     useState<DocumentFilterStatusKey>('all');
   const [documentDateFilter, setDocumentDateFilter] = useState<Date | null>(null);
-  const [documentNumberFilter, setDocumentNumberFilter] = useState('');
-  const [pageNumberFilter, setPageNumberFilter] = useState('');
-  const [bookNumberFilter, setBookNumberFilter] = useState('');
   const [sortKey, setSortKey] = useState<DocumentSortKey>('newest');
   const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false);
   const [isSortSheetOpen, setIsSortSheetOpen] = useState(false);
@@ -71,9 +68,6 @@ export function useDocumentsScreen() {
             documentDateFilter,
             documentStatusFilter,
             documentTypeFilter,
-            documentNumberFilter,
-            pageNumberFilter,
-            bookNumberFilter,
           }),
         ),
         sortKey,
@@ -83,9 +77,6 @@ export function useDocumentsScreen() {
       documentDateFilter,
       documentStatusFilter,
       documentTypeFilter,
-      documentNumberFilter,
-      pageNumberFilter,
-      bookNumberFilter,
       documents,
       isBackendSearchActive,
       searchResults,
@@ -119,17 +110,11 @@ export function useDocumentsScreen() {
         documentDateFilter,
         documentStatusFilter,
         documentTypeFilter,
-        documentNumberFilter,
-        pageNumberFilter,
-        bookNumberFilter,
       }),
     [
       documentDateFilter,
       documentStatusFilter,
       documentTypeFilter,
-      documentNumberFilter,
-      pageNumberFilter,
-      bookNumberFilter,
     ],
   );
 
@@ -141,9 +126,6 @@ export function useDocumentsScreen() {
     documentDateFilter,
     documentStatusFilter,
     documentTypeFilter,
-    documentNumberFilter,
-    pageNumberFilter,
-    bookNumberFilter,
     documentsQuery,
     filteredDocuments,
     isFilterSheetOpen,
@@ -156,9 +138,6 @@ export function useDocumentsScreen() {
     setDocumentDateFilter,
     setDocumentStatusFilter,
     setDocumentTypeFilter,
-    setDocumentNumberFilter,
-    setPageNumberFilter,
-    setBookNumberFilter,
     setIsFilterSheetOpen,
     setIsSortSheetOpen,
     setSearchQuery,

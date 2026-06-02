@@ -189,24 +189,15 @@ export default function DocumentsScreen() {
         statusOptions={[...DOCUMENT_STATUS_OPTIONS]}
         selectedStatus={screen.documentStatusFilter}
         selectedDate={screen.documentDateFilter}
-        documentNumberFilter={screen.documentNumberFilter}
-        pageNumberFilter={screen.pageNumberFilter}
-        bookNumberFilter={screen.bookNumberFilter}
         onClose={() => screen.setIsFilterSheetOpen(false)}
         onChangeStatus={(value) =>
           screen.setDocumentStatusFilter(value as DocumentFilterStatusKey)
         }
         onChangeDate={screen.setDocumentDateFilter}
-        onChangeDocumentNumber={screen.setDocumentNumberFilter}
-        onChangePageNumber={screen.setPageNumberFilter}
-        onChangeBookNumber={screen.setBookNumberFilter}
         onClear={() => {
           screen.setDocumentTypeFilter('all');
           screen.setDocumentStatusFilter('all');
           screen.setDocumentDateFilter(null);
-          screen.setDocumentNumberFilter('');
-          screen.setPageNumberFilter('');
-          screen.setBookNumberFilter('');
         }}
       />
 

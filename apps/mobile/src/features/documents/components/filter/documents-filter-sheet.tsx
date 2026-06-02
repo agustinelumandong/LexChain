@@ -1,10 +1,9 @@
 import BottomSheet, {
   BottomSheetBackdrop,
   BottomSheetScrollView,
-  BottomSheetTextInput,
 } from '@gorhom/bottom-sheet';
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import { SelectDropdownField } from '@/ui';
 
@@ -12,10 +11,7 @@ import { DocumentsFilterDateSection } from './documents-filter-date-section';
 import { DocumentsFilterFooter } from './documents-filter-footer';
 import { DocumentsFilterHeader } from './documents-filter-header';
 import { DocumentsFilterSection } from './documents-filter-section';
-import {
-  DOCUMENTS_FILTER_COLORS as COLORS,
-  documentsFilterStyles as styles,
-} from './documents-filter-sheet.styles';
+import { documentsFilterStyles as styles } from './documents-filter-sheet.styles';
 import { DocumentsFilterTopBar } from './documents-filter-top-bar';
 import { useDocumentsFilterSheet } from '../../hooks/use-documents-filter-sheet';
 
@@ -29,15 +25,9 @@ type DocumentsFilterSheetProps = {
   statusOptions: FilterOption[];
   selectedStatus: string;
   selectedDate: Date | null;
-  documentNumberFilter: string;
-  pageNumberFilter: string;
-  bookNumberFilter: string;
   onClose: () => void;
   onChangeStatus: (value: string) => void;
   onChangeDate: (value: Date | null) => void;
-  onChangeDocumentNumber: (value: string) => void;
-  onChangePageNumber: (value: string) => void;
-  onChangeBookNumber: (value: string) => void;
   onClear: () => void;
 };
 
@@ -46,15 +36,9 @@ export function DocumentsFilterSheet({
   statusOptions,
   selectedStatus,
   selectedDate,
-  documentNumberFilter,
-  pageNumberFilter,
-  bookNumberFilter,
   onClose,
   onChangeStatus,
   onChangeDate,
-  onChangeDocumentNumber,
-  onChangePageNumber,
-  onChangeBookNumber,
   onClear,
 }: DocumentsFilterSheetProps) {
   const filterSheet = useDocumentsFilterSheet({
@@ -127,42 +111,6 @@ export function DocumentsFilterSheet({
               onChangeDate={onChangeDate}
               onDatePickerChange={filterSheet.handleDateChange}
             />
-
-            <DocumentsFilterSection active={false}>
-              <Text style={styles.sectionTitle}>Document No.</Text>
-              <BottomSheetTextInput
-                style={styles.textInput}
-                value={documentNumberFilter}
-                onChangeText={onChangeDocumentNumber}
-                placeholder="Enter Document No."
-                placeholderTextColor={COLORS.textMuted}
-                keyboardType="numeric"
-              />
-            </DocumentsFilterSection>
-
-            <DocumentsFilterSection active={false}>
-              <Text style={styles.sectionTitle}>Page No.</Text>
-              <BottomSheetTextInput
-                style={styles.textInput}
-                value={pageNumberFilter}
-                onChangeText={onChangePageNumber}
-                placeholder="Enter Page No."
-                placeholderTextColor={COLORS.textMuted}
-                keyboardType="numeric"
-              />
-            </DocumentsFilterSection>
-
-            <DocumentsFilterSection active={false}>
-              <Text style={styles.sectionTitle}>Book No.</Text>
-              <BottomSheetTextInput
-                style={styles.textInput}
-                value={bookNumberFilter}
-                onChangeText={onChangeBookNumber}
-                placeholder="Enter Book No."
-                placeholderTextColor={COLORS.textMuted}
-                keyboardType="numeric"
-              />
-            </DocumentsFilterSection>
           </BottomSheetScrollView>
 
           <DocumentsFilterFooter
