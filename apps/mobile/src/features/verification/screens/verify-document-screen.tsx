@@ -5,7 +5,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import * as WebBrowser from 'expo-web-browser';
 
 import {
-  IntegrityCheckCard,
   VerificationStatusCard,
 } from '@/features/document';
 import { useDocument, useVerifyOnChainDocument } from '@/services/query';
@@ -31,13 +30,15 @@ export default function VerifyDocumentScreen() {
   const onChainQuery = useVerifyOnChainDocument(documentId);
   const document = documentQuery.data;
   const onChainRecord = onChainQuery.data;
+
   const chainStatus = onChainQuery.isLoading
     ? 'Verifying'
     : onChainRecord
       ? onChainRecord.is_verified
-        ? 'Match'
-        : 'Mismatch'
-      : 'No on-chain record';
+        ? 'Verified'
+        : 'Tampered'
+      : 'Not Anchored';
+  const isTampered = onChainRecord && !onChainRecord.is_verified;
   const [headerHeight, setHeaderHeight] = useState(126);
   const handleHeaderHeightChange = useCallback((nextHeight: number) => {
     setHeaderHeight((height) => (height === nextHeight ? height : nextHeight));
@@ -100,32 +101,59 @@ export default function VerifyDocumentScreen() {
             />
           )}
 
-          <IntegrityCheckCard
-            offChainHash={onChainRecord?.data_hash ?? 'Pending'}
-            onChainHash={onChainRecord?.data_hash ?? 'Pending'}
-            status={chainStatus}
-            onPressViewAnchor={onChainRecord ? handlePressViewAnchor : undefined}
-          />
-
           {onChainRecord ? (
             <View style={{
               backgroundColor: '#F7FBFF',
               borderRadius: 24,
               padding: 18,
               gap: 14,
+              borderWidth: isTampered ? 1.5 : 1,
+              borderColor: isTampered ? 'rgba(217, 75, 102, 0.4)' : '#EAF4FF',
+              shadowColor: isTampered ? APP_COLORS.danger : '#1689F5',
+              shadowOffset: isTampered ? { width: 0, height: 8 } : { width: 0, height: 4 },
+              shadowOpacity: isTampered ? 0.15 : 0.03,
+              shadowRadius: isTampered ? 16 : 8,
+              elevation: isTampered ? 4 : 1,
             }}>
-              <Text style={{
-                color: COLORS.navy,
-                fontFamily: fonts.regular,
-                fontSize: 15,
-                lineHeight: 18,
-                fontWeight: '800',
-              }}>On-chain details</Text>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Text style={{
+                  color: COLORS.navy,
+                  fontFamily: fonts.regular,
+                  fontSize: 15,
+                  lineHeight: 18,
+                  fontWeight: '800',
+                }}>On-chain details</Text>
+
+                <View style={{
+                  backgroundColor: onChainRecord.is_verified ? '#EAF8F0' : '#FEE2E2',
+                  borderRadius: 12,
+                  paddingHorizontal: 10,
+                  paddingVertical: 4,
+                }}>
+                  <Text style={{
+                    color: onChainRecord.is_verified ? '#12A150' : '#D94B66',
+                    fontFamily: fonts.regular,
+                    fontSize: 12,
+                    fontWeight: '800',
+                  }}>
+                    {chainStatus}
+                  </Text>
+                </View>
+              </View>
+
+              <View style={{ height: 1, backgroundColor: '#EAF4FF', marginVertical: 4 }} />
 
               <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
                 <Text style={{ color: COLORS.textMuted, fontFamily: fonts.regular, fontSize: 12, fontWeight: '700' }}>On-chain ID</Text>
                 <Text style={{ color: COLORS.navy, fontFamily: fonts.regular, fontSize: 12, fontWeight: '800' }} selectable>
                   {onChainRecord.onchain_document_id}
+                </Text>
+              </View>
+
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
+                <Text style={{ color: COLORS.textMuted, fontFamily: fonts.regular, fontSize: 12, fontWeight: '700' }}>Data hash</Text>
+                <Text style={{ color: COLORS.navy, fontFamily: fonts.regular, fontSize: 12, fontWeight: '800' }} selectable>
+                  {onChainRecord.data_hash ? `${onChainRecord.data_hash.slice(0, 10)}...${onChainRecord.data_hash.slice(-8)}` : 'Unknown'}
                 </Text>
               </View>
 
@@ -156,15 +184,54 @@ export default function VerifyDocumentScreen() {
               </View>
             </View>
           ) : null}
+
+          {!onChainRecord && !onChainQuery.isLoading ? (
+            <View style={{
+              backgroundColor: '#FFFDF9',
+              borderRadius: 24,
+              padding: 20,
+              gap: 12,
+              borderWidth: 1,
+              borderColor: '#FFF4DD',
+              alignItems: 'center',
+            }}>
+              <View style={{
+                backgroundColor: '#FFF4DD',
+                borderRadius: 12,
+                paddingHorizontal: 12,
+                paddingVertical: 6,
+                alignSelf: 'center',
+              }}>
+                <Text style={{
+                  color: '#B77900',
+                  fontFamily: fonts.regular,
+                  fontSize: 12,
+                  fontWeight: '800',
+                }}>
+                  {chainStatus}
+                </Text>
+              </View>
+              <Text style={{
+                color: COLORS.navy,
+                fontFamily: fonts.regular,
+                fontSize: 14,
+                textAlign: 'center',
+                fontWeight: '600',
+                lineHeight: 18,
+              }}>
+                This document is not yet registered or anchored to the blockchain network.
+              </Text>
+            </View>
+          ) : null}
         </ScrollView>
 
         <View style={styles.footer}>
           <Button
-            label="Back to documents"
+            label={onChainRecord ? "View Transaction Details on BaseScan" : "Back to documents"}
             variant="primary"
             fullWidth
-            leftIconName="arrow-back"
-            onPress={() => router.push('/(tabs)/documents')}
+            leftIconName={onChainRecord ? undefined : "arrow-back"}
+            onPress={onChainRecord ? handlePressViewAnchor : () => router.push('/(tabs)/documents')}
           />
         </View>
       </View>
