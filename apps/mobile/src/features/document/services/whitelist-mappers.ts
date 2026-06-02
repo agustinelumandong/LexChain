@@ -2,7 +2,7 @@ import type {
   DocumentPartyResponse,
   UserSearchResponse,
 } from '@/services/api';
-import type { ManageWhitelistData, WhitelistSearchResult } from '@/types';
+import type { ManageWhitelistData, WhitelistSearchResult, WhitelistGrantRole } from '@/types';
 
 function formatReference(value: string) {
   if (value.length <= 16) {
@@ -12,30 +12,8 @@ function formatReference(value: string) {
   return `${value.slice(0, 8)}...${value.slice(-7)}`;
 }
 
-function getAssignedRole(value: string): 'participant' | 'owner' | 'lawyer' {
-  const normalizedRole = value.toLowerCase();
-
-  if (normalizedRole === 'owner' || normalizedRole === 'issuer') {
-    return 'owner';
-  }
-
-  if (normalizedRole === 'signer' || normalizedRole === 'editor') {
-    return 'lawyer';
-  }
-
-  return 'participant';
-}
-
-function getAssignedRoleLabel(value: 'participant' | 'owner' | 'lawyer') {
-  if (value === 'owner') {
-    return 'Owner';
-  }
-
-  if (value === 'lawyer') {
-    return 'Lawyer';
-  }
-
-  return 'Witness/Participant';
+function getAssignedRole(value: string): string {
+  return value ? value.trim().toLowerCase() : 'owner';
 }
 
 function formatPartyRoleLabel(value: string) {
@@ -93,12 +71,13 @@ export function mapPartiesToWhitelistData(
       const roleLabel = formatPartyRoleLabel(party.role);
 
       return {
-        id: party.user_id ?? party.id,
+        id: party.id,
         name: getDisplayName(party),
         email: party.email,
+        status: party.status as WhitelistGrantRole,
         assignedAs,
         accessLabel: roleLabel,
-        actionLabel: getAssignedRoleLabel(assignedAs),
+        actionLabel: `Assign as ${roleLabel}`,
       };
     }),
     searchResults,
