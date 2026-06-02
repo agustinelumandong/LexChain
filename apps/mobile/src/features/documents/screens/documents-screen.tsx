@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useFocusEffect, useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { FlatList, RefreshControl, Text, View } from 'react-native';
@@ -11,13 +11,13 @@ import { DocumentResultCard } from '@/features/documents/components/list/documen
 import { DocumentsFilterControls } from '@/features/documents/components/filter/documents-filter-controls';
 import { DocumentsFilterSheet } from '@/features/documents/components/filter/documents-filter-sheet';
 import { DocumentsHeader } from '@/features/documents/components/list/documents-header';
+import { DocumentsHeaderActionsSheet } from '@/features/documents/components/list/documents-header-actions-sheet';
 import { DocumentsListSkeleton } from '@/features/documents/components/list/documents-list-skeleton';
 import { DocumentsSortSheet } from '@/features/documents/components/sort/documents-sort-sheet';
 import {
   DOCUMENT_SORT_OPTIONS,
   DOCUMENT_STATUS_OPTIONS,
 } from '@/features/documents/constants/documents-screen.constants';
-import { DocumentSearchResultRow } from '@/features/documents/components/document-search-result-row';
 import { styles } from '@/features/documents/components/list/documents-screen.styles';
 import { useDocumentsScreen } from '@/features/documents/hooks/use-documents-screen';
 import { APP_COLORS } from '@/theme';
@@ -28,10 +28,12 @@ import type {
   DisplayDocument,
   DocumentFilterStatusKey,
 } from '@/features/documents/types/documents-screen.types';
+import type { DocumentsHeaderAction } from '@/features/documents/components/list/documents-header';
 
 export default function DocumentsScreen() {
   const router = useRouter();
   const isOpeningDocumentRef = useRef(false);
+  const [isActionsSheetVisible, setIsActionsSheetVisible] = useState(false);
   const screen = useDocumentsScreen();
   const userProfileQuery = useUserProfile();
   const userRole = userProfileQuery.data?.role?.trim().toLowerCase();
@@ -55,12 +57,54 @@ export default function DocumentsScreen() {
   );
 
   useEffect(() => {
-    const shouldHideBottomNav = screen.isFilterSheetOpen || screen.isSortSheetOpen;
+    const shouldHideBottomNav =
+      screen.isFilterSheetOpen || screen.isSortSheetOpen || isActionsSheetVisible;
 
     setBottomNavHidden(shouldHideBottomNav);
 
     return () => setBottomNavHidden(false);
-  }, [screen.isFilterSheetOpen, screen.isSortSheetOpen, setBottomNavHidden]);
+  }, [
+    isActionsSheetVisible,
+    screen.isFilterSheetOpen,
+    screen.isSortSheetOpen,
+    setBottomNavHidden,
+  ]);
+
+  const headerActions = useMemo<DocumentsHeaderAction[]>(() => {
+    if (canManageBooks) {
+      return [
+        {
+          label: 'Register books',
+          iconName: 'library-books',
+          onPress: () => router.push('/books'),
+        },
+        {
+          label: 'Document requests',
+          iconName: 'request-page',
+          onPress: () => router.push('/requests'),
+        },
+      ];
+    }
+
+    const actions: DocumentsHeaderAction[] = [
+      {
+        label: 'My e-copy requests',
+        iconName: 'request-page',
+        onPress: () => router.push('/requests/my'),
+      },
+    ];
+
+    if (canViewInvitations) {
+      actions.push({
+        label: 'Pending invitations',
+        iconName: 'mail-outline',
+        badgeCount: invitationsQuery.data?.length ?? 0,
+        onPress: () => router.push('/invitations'),
+      });
+    }
+
+    return actions;
+  }, [canManageBooks, canViewInvitations, invitationsQuery.data?.length, router]);
 
   const openDocument = useCallback(
     (documentId: string) => {
@@ -97,24 +141,14 @@ export default function DocumentsScreen() {
     [openDocument],
   );
 
-  const renderSearchResult = useCallback(
-    (document: DisplayDocument) => (
-      <DocumentSearchResultRow
-        title={document.title}
-        summary={document.snippet ?? document.summary}
-        date={document.date}
-        onPress={() => openDocument(document.id)}
-      />
-    ),
-    [openDocument],
-  );
+  const renderHiddenSearchResult = useCallback(() => null, []);
 
   return (
     <SafeAreaView style={styles.screen}>
       <View style={styles.surface}>
         <FlatList
           data={screen.isLoadingDocuments ? [] : screen.filteredDocuments}
-          keyExtractor={(document, index) => `${document.id}-${index}`}
+          keyExtractor={(document) => document.id}
           renderItem={renderDocumentResult}
           contentContainerStyle={styles.scrollContent}
           initialNumToRender={8}
@@ -124,9 +158,9 @@ export default function DocumentsScreen() {
           showsVerticalScrollIndicator={false}
           refreshControl={
             <RefreshControl
-              refreshing={screen.documentsQuery.isRefetching}
+              refreshing={screen.isRefreshingDocuments}
               onRefresh={() => {
-                void screen.documentsQuery.refetch();
+                void screen.refetchVisibleDocuments();
               }}
               tintColor={APP_COLORS.primary}
               colors={[APP_COLORS.primary]}
@@ -136,15 +170,8 @@ export default function DocumentsScreen() {
           ListHeaderComponent={
             <>
               <DocumentsHeader
-                onPressInvitations={
-                  canViewInvitations ? () => router.push('/invitations') : undefined
-                }
-                pendingInvitationCount={
-                  canViewInvitations ? invitationsQuery.data?.length ?? 0 : 0
-                }
-                onPressBooks={
-                  canManageBooks ? () => router.push('/books') : undefined
-                }
+                actions={headerActions}
+                onPressActions={() => setIsActionsSheetVisible(true)}
               />
 
               <View style={styles.searchWrap}>
@@ -155,17 +182,19 @@ export default function DocumentsScreen() {
                   placeholder="Title, party, date, or keyword"
                   results={screen.filteredDocuments}
                   emptyText="No documents matched your search"
-                  keyExtractor={(document, index) => `${document.id}-${index}`}
-                  renderItem={renderSearchResult}
+                  keyExtractor={(document) => document.id}
+                  renderItem={renderHiddenSearchResult}
                 />
               </View>
 
-              <DocumentsFilterControls
-                activeSummary={screen.activeFilterSummary}
-                sortLabel={screen.sortLabel}
-                onPressFilter={() => screen.setIsFilterSheetOpen(true)}
-                onPressSort={() => screen.setIsSortSheetOpen(true)}
-              />
+              {!screen.isBackendSearchActive ? (
+                <DocumentsFilterControls
+                  activeSummary={screen.activeFilterSummary}
+                  sortLabel={screen.sortLabel}
+                  onPressFilter={() => screen.setIsFilterSheetOpen(true)}
+                  onPressSort={() => screen.setIsSortSheetOpen(true)}
+                />
+              ) : null}
             </>
           }
           ListEmptyComponent={
@@ -173,9 +202,15 @@ export default function DocumentsScreen() {
               <DocumentsListSkeleton />
             ) : (
               <View style={styles.emptyState}>
-                <Text style={styles.emptyTitle}>No documents found</Text>
+                <Text style={styles.emptyTitle}>
+                  {screen.isBackendSearchActive
+                    ? 'No semantic matches found'
+                    : 'No documents found'}
+                </Text>
                 <Text style={styles.emptyBody}>
-                  Try another title, party name, or date.
+                  {screen.isBackendSearchActive
+                    ? 'Try another party, phrase, or keyword.'
+                    : 'Try another title, party name, or date.'}
                 </Text>
               </View>
             )
@@ -207,6 +242,12 @@ export default function DocumentsScreen() {
         selectedSort={screen.sortKey}
         onClose={() => screen.setIsSortSheetOpen(false)}
         onSelectSort={(value) => screen.setSortKey(value as DocumentSortKey)}
+      />
+
+      <DocumentsHeaderActionsSheet
+        visible={isActionsSheetVisible}
+        actions={headerActions}
+        onClose={() => setIsActionsSheetVisible(false)}
       />
     </SafeAreaView>
   );
