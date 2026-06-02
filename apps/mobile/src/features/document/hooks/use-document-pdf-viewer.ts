@@ -66,10 +66,15 @@ export function useDocumentPdfViewer() {
 
     const documentTitle = title.trim() || 'document';
 
+    if (!documentId) {
+      toast.error('Document ID is missing');
+      return;
+    }
+
     try {
       await createRequestMutation.mutateAsync({
-        document_type: 'PDF',
-        description: `Client requested an e-copy PDF for ${documentTitle}${documentId ? ` (${documentId})` : ''}.`,
+        document_id: documentId,
+        description: `Client requested an e-copy PDF for ${documentTitle}.`,
       });
       setIsRequestSheetVisible(false);
       toast.success('E-copy request submitted');
