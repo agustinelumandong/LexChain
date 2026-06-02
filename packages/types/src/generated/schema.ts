@@ -762,6 +762,70 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List all document requests (lawyer)
+         * @description Returns all document requests. Optionally filter by status: pending | approved | rejected.
+         */
+        get: operations["get_all_requests_requests_get"];
+        put?: never;
+        /**
+         * Request a digital document copy
+         * @description Any authenticated user can request a digital copy of an existing document. All lawyers are notified via email.
+         */
+        post: operations["submit_document_request_requests_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/requests/my": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List my document requests
+         * @description Returns all document requests submitted by the authenticated user.
+         */
+        get: operations["get_my_requests_requests_my_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/requests/{request_id}/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Approve or reject a document request
+         * @description A lawyer reviews a pending request. The requester is notified via email.
+         */
+        patch: operations["review_request_requests__request_id__review_patch"];
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -929,6 +993,23 @@ export interface components {
             /** Content */
             content: string;
         };
+        /**
+         * CreateDocumentRequestBody
+         * @description Payload from the user to submit a document request.
+         */
+        CreateDocumentRequestBody: {
+            /**
+             * Document Id
+             * Format: uuid
+             * @description ID of the document being requested.
+             */
+            document_id: string;
+            /**
+             * Description
+             * @description Additional context or notes about the request.
+             */
+            description: string;
+        };
         /** CreateInvitationRequest */
         CreateInvitationRequest: {
             /**
@@ -1044,6 +1125,61 @@ export interface components {
              * Format: date-time
              */
             created_at: string;
+        };
+        /**
+         * DocumentRequestListResponse
+         * @description List wrapper for document requests.
+         */
+        DocumentRequestListResponse: {
+            /** Requests */
+            requests: components["schemas"]["DocumentRequestResponse"][];
+            /** Total */
+            total: number;
+        };
+        /**
+         * DocumentRequestResponse
+         * @description Full document request record returned to clients.
+         */
+        DocumentRequestResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Requester Id
+             * Format: uuid
+             */
+            requester_id: string;
+            /** Requester Email */
+            requester_email: string;
+            /** Requester Name */
+            requester_name: string;
+            /**
+             * Document Id
+             * Format: uuid
+             */
+            document_id: string;
+            /** Document Name */
+            document_name?: string | null;
+            /** Description */
+            description: string;
+            /** Status */
+            status: string;
+            /** Lawyer Id */
+            lawyer_id?: string | null;
+            /** Rejection Reason */
+            rejection_reason?: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
         };
         /**
          * DocumentResponse
@@ -1370,6 +1506,11 @@ export interface components {
              */
             data_hash: string;
             /**
+             * Tx Hash
+             * @description Transaction hash of the record on-chain.
+             */
+            tx_hash: string;
+            /**
              * Onchain Timestamp
              * @description Unix timestamp when strored.
              */
@@ -1385,6 +1526,16 @@ export interface components {
              * @description When this verification was performed.
              */
             verified_at: string;
+            /**
+             * Transacttion Link
+             * @description Redirect to transaction in baseScan.org
+             */
+            transacttion_link: string;
+            /**
+             * Is Verified
+             * @description True if the actual file hash matches the on-chain hash.
+             */
+            is_verified: boolean;
         };
         /** PublicVerifyResponse */
         PublicVerifyResponse: {
@@ -1434,6 +1585,11 @@ export interface components {
              * @description SHA256 hash stored on-chain.
              */
             data_hash: string;
+            /**
+             * Transacttion Link
+             * @description Redirect to transaction in baseScan.org
+             */
+            transacttion_link: string;
         };
         /**
          * RemovePartyResponse
@@ -1445,11 +1601,8 @@ export interface components {
              * Format: uuid
              */
             document_id: string;
-            /**
-             * User Id
-             * Format: uuid
-             */
-            user_id: string;
+            /** User Id */
+            user_id?: string | null;
             /** Message */
             message: string;
         };
@@ -1472,6 +1625,23 @@ export interface components {
              * @description Email address to resend verification to
              */
             email: string;
+        };
+        /**
+         * ReviewRequestBody
+         * @description Payload from a lawyer to approve or reject a document request.
+         */
+        ReviewRequestBody: {
+            /**
+             * Action
+             * @description Decision: approve or reject.
+             * @enum {string}
+             */
+            action: "approve" | "reject";
+            /**
+             * Rejection Reason
+             * @description Required when action is 'reject'.
+             */
+            rejection_reason?: string | null;
         };
         /** SearchHit */
         SearchHit: {
@@ -3550,6 +3720,188 @@ export interface operations {
                 content?: never;
             };
             /** @description Book not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_all_requests_requests_get: {
+        parameters: {
+            query?: {
+                status?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List of requests */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentRequestListResponse"];
+                };
+            };
+            /** @description Not authenticated */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Lawyer access required */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    submit_document_request_requests_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateDocumentRequestBody"];
+            };
+        };
+        responses: {
+            /** @description Request submitted */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentRequestResponse"];
+                };
+            };
+            /** @description Not authenticated */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description User or document not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_my_requests_requests_my_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List of requests */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentRequestListResponse"];
+                };
+            };
+            /** @description Not authenticated */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    review_request_requests__request_id__review_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                request_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReviewRequestBody"];
+            };
+        };
+        responses: {
+            /** @description Request reviewed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentRequestResponse"];
+                };
+            };
+            /** @description Already reviewed or missing rejection reason */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not authenticated */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Lawyer access required */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Request not found */
             404: {
                 headers: {
                     [name: string]: unknown;
