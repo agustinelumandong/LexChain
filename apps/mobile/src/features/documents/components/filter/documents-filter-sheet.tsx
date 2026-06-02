@@ -1,9 +1,10 @@
 import BottomSheet, {
   BottomSheetBackdrop,
   BottomSheetScrollView,
+  BottomSheetTextInput,
 } from '@gorhom/bottom-sheet';
 import React from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
 import { SelectDropdownField } from '@/ui';
 
@@ -11,7 +12,10 @@ import { DocumentsFilterDateSection } from './documents-filter-date-section';
 import { DocumentsFilterFooter } from './documents-filter-footer';
 import { DocumentsFilterHeader } from './documents-filter-header';
 import { DocumentsFilterSection } from './documents-filter-section';
-import { documentsFilterStyles as styles } from './documents-filter-sheet.styles';
+import {
+  DOCUMENTS_FILTER_COLORS as COLORS,
+  documentsFilterStyles as styles,
+} from './documents-filter-sheet.styles';
 import { DocumentsFilterTopBar } from './documents-filter-top-bar';
 import { useDocumentsFilterSheet } from '../../hooks/use-documents-filter-sheet';
 
@@ -22,36 +26,40 @@ export type FilterOption = {
 
 type DocumentsFilterSheetProps = {
   visible: boolean;
-  typeOptions: FilterOption[];
   statusOptions: FilterOption[];
-  selectedType: string;
   selectedStatus: string;
   selectedDate: Date | null;
+  documentNumberFilter: string;
+  pageNumberFilter: string;
+  bookNumberFilter: string;
   onClose: () => void;
-  onChangeType: (value: string) => void;
   onChangeStatus: (value: string) => void;
   onChangeDate: (value: Date | null) => void;
+  onChangeDocumentNumber: (value: string) => void;
+  onChangePageNumber: (value: string) => void;
+  onChangeBookNumber: (value: string) => void;
   onClear: () => void;
 };
 
 export function DocumentsFilterSheet({
   visible,
-  typeOptions,
   statusOptions,
-  selectedType,
   selectedStatus,
   selectedDate,
+  documentNumberFilter,
+  pageNumberFilter,
+  bookNumberFilter,
   onClose,
-  onChangeType,
   onChangeStatus,
   onChangeDate,
+  onChangeDocumentNumber,
+  onChangePageNumber,
+  onChangeBookNumber,
   onClear,
 }: DocumentsFilterSheetProps) {
   const filterSheet = useDocumentsFilterSheet({
     visible,
-    typeOptions,
     statusOptions,
-    selectedType,
     selectedStatus,
     selectedDate,
     onChangeDate,
@@ -95,22 +103,6 @@ export function DocumentsFilterSheet({
 
             <DocumentsFilterHeader />
 
-            <DocumentsFilterSection active={filterSheet.isTypeDropdownOpen}>
-              <SelectDropdownField
-                label="Document type"
-                value={filterSheet.selectedTypeLabel}
-                selectedOption={selectedType}
-                options={typeOptions}
-                isOpen={filterSheet.isTypeDropdownOpen}
-                onPress={filterSheet.toggleTypeDropdown}
-                onOutsidePress={filterSheet.closeDropdowns}
-                onSelect={(value) => {
-                  onChangeType(value);
-                  filterSheet.closeTypeDropdown();
-                }}
-              />
-            </DocumentsFilterSection>
-
             <DocumentsFilterSection active={filterSheet.isStatusDropdownOpen}>
               <SelectDropdownField
                 label="Status"
@@ -135,6 +127,42 @@ export function DocumentsFilterSheet({
               onChangeDate={onChangeDate}
               onDatePickerChange={filterSheet.handleDateChange}
             />
+
+            <DocumentsFilterSection active={false}>
+              <Text style={styles.sectionTitle}>Document No.</Text>
+              <BottomSheetTextInput
+                style={styles.textInput}
+                value={documentNumberFilter}
+                onChangeText={onChangeDocumentNumber}
+                placeholder="Enter Document No."
+                placeholderTextColor={COLORS.textMuted}
+                keyboardType="numeric"
+              />
+            </DocumentsFilterSection>
+
+            <DocumentsFilterSection active={false}>
+              <Text style={styles.sectionTitle}>Page No.</Text>
+              <BottomSheetTextInput
+                style={styles.textInput}
+                value={pageNumberFilter}
+                onChangeText={onChangePageNumber}
+                placeholder="Enter Page No."
+                placeholderTextColor={COLORS.textMuted}
+                keyboardType="numeric"
+              />
+            </DocumentsFilterSection>
+
+            <DocumentsFilterSection active={false}>
+              <Text style={styles.sectionTitle}>Book No.</Text>
+              <BottomSheetTextInput
+                style={styles.textInput}
+                value={bookNumberFilter}
+                onChangeText={onChangeBookNumber}
+                placeholder="Enter Book No."
+                placeholderTextColor={COLORS.textMuted}
+                keyboardType="numeric"
+              />
+            </DocumentsFilterSection>
           </BottomSheetScrollView>
 
           <DocumentsFilterFooter

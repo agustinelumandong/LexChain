@@ -114,6 +114,18 @@ export const documentsFilterStyles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: 12,
   },
+  textInput: {
+    minHeight: 52,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: COLORS.borderSoft,
+    backgroundColor: COLORS.surface,
+    paddingHorizontal: 16,
+    color: COLORS.navy,
+    fontSize: 14,
+    fontWeight: '600',
+    fontFamily: fonts.regular,
+  },
   fieldRowLeft: {
     flexDirection: 'row',
     alignItems: 'center',
