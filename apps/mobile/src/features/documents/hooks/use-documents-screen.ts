@@ -60,9 +60,12 @@ export function useDocumentsScreen() {
   );
   const filteredDocuments = useMemo(
     () => {
-      const baseDocs = isBackendSearchActive ? searchResults : documents;
+      if (isBackendSearchActive) {
+        return searchResults;
+      }
+
       return sortDocuments(
-        baseDocs.filter((document) =>
+        documents.filter((document) =>
           matchesStructuredFilters({
             document,
             documentDateFilter,
@@ -84,8 +87,19 @@ export function useDocumentsScreen() {
     ],
   );
   const isAnySheetOpen = isFilterSheetOpen || isSortSheetOpen;
-  const isLoadingDocuments =
-    documentsQuery.isLoading || (isBackendSearchActive && searchQueryResult.isLoading);
+  const isLoadingDocuments = isBackendSearchActive
+    ? searchQueryResult.isLoading
+    : documentsQuery.isLoading;
+  const isRefreshingDocuments = isBackendSearchActive
+    ? searchQueryResult.isRefetching
+    : documentsQuery.isRefetching;
+  const refetchVisibleDocuments = useCallback(() => {
+    if (isBackendSearchActive) {
+      return searchQueryResult.refetch();
+    }
+
+    return documentsQuery.refetch();
+  }, [documentsQuery, isBackendSearchActive, searchQueryResult]);
 
   useEffect(() => {
     if (documentsQuery.error) {
@@ -128,12 +142,15 @@ export function useDocumentsScreen() {
     documentTypeFilter,
     documentsQuery,
     filteredDocuments,
+    isBackendSearchActive,
     isFilterSheetOpen,
     isLoadingDocuments,
+    isRefreshingDocuments,
     isSortSheetOpen,
     searchQuery,
     sortKey,
     clearSearch,
+    refetchVisibleDocuments,
     sortLabel,
     setDocumentDateFilter,
     setDocumentStatusFilter,

@@ -15,6 +15,10 @@ export type DisplayDocument = {
   onChain?: boolean;
   status: DocumentStatusKey;
   snippet?: string;
+  searchChunkId?: string;
+  searchChunkIndex?: number;
+  searchRank?: number;
+  searchScore?: number;
   documentNumber: number;
   bookNumber: number;
   pageNumber: number;
