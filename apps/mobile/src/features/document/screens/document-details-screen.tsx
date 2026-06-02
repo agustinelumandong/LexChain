@@ -2,7 +2,7 @@ import React, { useCallback, useMemo, useState } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useQueryClient } from '@tanstack/react-query';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { toast } from 'sonner-native';
 
@@ -28,7 +28,7 @@ import { APP_COLORS } from '@/theme';
 import botQuestionMarkImage from '@/assets/images/lexchain-bot-question-mark.png';
 import { canRoleUploadDocuments } from '@/features/profile';
 import { authenticateWithDeviceLock } from '@/features/auth/app-lock';
-
+import type { DocumentPartyRole } from '@/types';
 import { HEADER_CONTENT_GAP } from '../constants/document-details.constants';
 import { DocumentDetailsContent } from '../components/details/document-details-content';
 import { DocumentDetailsSheets } from '../components/details/document-details-sheets';
@@ -66,7 +66,7 @@ export default function DocumentDetailsScreen() {
   const trimmedWhitelistSearchQuery = sheets.whitelistSearchQuery.trim();
   const userSearchQuery = useUserSearch(
     trimmedWhitelistSearchQuery,
-    sheets.isWhitelistSheetVisible && trimmedWhitelistSearchQuery.length >= 3,
+    false,
   );
   const qaMutation = useAskDocument();
   const { mutate: askDocument } = qaMutation;
@@ -105,6 +105,27 @@ export default function DocumentDetailsScreen() {
   const handleAsk = useCallback((question: string, history: AskChatMessage[]) => {
     askDocument({ documentId, question, history });
   }, [askDocument, documentId]);
+
+  const handlePressGrantAction = async (grantId: string, role: DocumentPartyRole) => {
+    const grant = whitelistData.grants.find((g) => g.id === grantId);
+    if (!grant || !grant.email || !documentId) {
+      return;
+    }
+
+    try {
+      await removePartyMutation.mutateAsync({ documentId, partyUserId: grantId });
+      await addPartyMutation.mutateAsync({
+        documentId,
+        payload: {
+          email: grant.email,
+          role,
+        },
+      });
+      toast.success(`Role updated to ${role} for ${grant.email}`);
+    } catch (error) {
+      toast.error(parseApiError(error).message);
+    }
+  };
 
   const handleNotarize = async () => {
     const authResult = await authenticateWithDeviceLock('Confirm blockchain anchor');
@@ -200,6 +221,13 @@ export default function DocumentDetailsScreen() {
     );
   }, []);
 
+  const handleRefresh = useCallback(() => {
+    void documentQuery.refetch();
+    void versionHistoryQuery.refetch();
+    void auditLogsQuery.refetch();
+    void partiesQuery.refetch();
+  }, [documentQuery, versionHistoryQuery, auditLogsQuery, partiesQuery]);
+
   return (
     <SafeAreaView style={styles.screen} edges={['left', 'right', 'bottom']}>
       <View style={styles.surface}>
@@ -229,6 +257,20 @@ export default function DocumentDetailsScreen() {
             { paddingTop: headerHeight + HEADER_CONTENT_GAP },
           ]}
           showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={
+                documentQuery.isRefetching ||
+                versionHistoryQuery.isRefetching ||
+                auditLogsQuery.isRefetching ||
+                partiesQuery.isRefetching
+              }
+              onRefresh={handleRefresh}
+              tintColor={APP_COLORS.primary}
+              colors={[APP_COLORS.primary]}
+              progressBackgroundColor={APP_COLORS.surface}
+            />
+          }
         >
           <DocumentDetailsContent
             allowedCount={whitelistData.grants.length}
@@ -342,6 +384,7 @@ export default function DocumentDetailsScreen() {
         }}
         onPressAddResult={handleAddWhitelistResult}
         onPressConfirmAnchor={handleNotarize}
+        onPressGrantAction={handlePressGrantAction}
         onPressRevoke={handleRevokeWhitelistGrant}
         onRename={handleRename}
       />

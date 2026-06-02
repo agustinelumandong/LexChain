@@ -31,6 +31,7 @@ type DocumentDetailsSheetsProps = {
   onCloseWhitelist: () => void;
   onPressAddResult: (resultId: string, role: DocumentPartyRole) => void;
   onPressConfirmAnchor: () => void;
+  onPressGrantAction: (grantId: string, role: DocumentPartyRole) => void;
   onPressRevoke: (partyUserId: string) => void;
   onRename: (newName: string) => void;
 };
@@ -61,6 +62,7 @@ export function DocumentDetailsSheets({
   onCloseWhitelist,
   onPressAddResult,
   onPressConfirmAnchor,
+  onPressGrantAction,
   onPressRevoke,
   onRename,
 }: DocumentDetailsSheetsProps) {
@@ -104,7 +106,7 @@ export function DocumentDetailsSheets({
         }
         onChangeSearchQuery={onChangeSearchQuery}
         onClose={onCloseWhitelist}
-        onPressGrantAction={() => {}}
+        onPressGrantAction={onPressGrantAction}
         onPressRevoke={onPressRevoke}
         onPressAddResult={onPressAddResult}
       />
