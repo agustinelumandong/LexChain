@@ -83,10 +83,24 @@ function formatExpires(invitation: Invitation) {
   return formatDate(invitation.expires_at);
 }
 
+function withInviteEmail(link: string | null | undefined, email: string) {
+  if (!link) return null;
+
+  try {
+    const url = new URL(link);
+    url.searchParams.set("email", email);
+    return url.toString();
+  } catch {
+    const separator = link.includes("?") ? "&" : "?";
+    return `${link}${separator}email=${encodeURIComponent(email)}`;
+  }
+}
+
 function enrichInvitation(invitation: Invitation): DirectoryInvitation {
   const invitee = getNameFromEmail(invitation.email);
   return {
     ...invitation,
+    magic_link: withInviteEmail(invitation.magic_link, invitation.email),
     invitee,
     initials: getInitials(invitee),
     roleLabel: invitation.role === "document_issuer" ? "Document Issuer" : toTitle(invitation.role),
@@ -272,6 +286,15 @@ export function InvitationsManagementView({ invitations, mockMode = false }: { i
   const safePage = Math.min(page, totalPages - 1);
   const visibleInvites = filtered.slice(safePage * perPage, (safePage + 1) * perPage);
   const pendingCount = directoryInvites.filter((invite) => invite.statusLabel === "Pending").length;
+  const copyInviteLink = async (invite: DirectoryInvitation) => {
+    if (!invite.magic_link) {
+      showToast({ title: "No magic link returned", detail: invite.email, tone: "info" });
+      return;
+    }
+
+    await navigator.clipboard?.writeText(invite.magic_link);
+    showToast({ title: "Invitation link copied", detail: invite.email, tone: "success" });
+  };
 
   const metrics = [
     { label: "Total Invites", value: directoryInvites.length, detail: "All invitation records", icon: <EmailIcon fontSize="small" />, tone: "blue" as const },
@@ -363,7 +386,7 @@ export function InvitationsManagementView({ invitations, mockMode = false }: { i
                       <ActionsMenu
                         invite={invite}
                         onView={() => { setSelectedInvite(invite); setModalMode("view"); }}
-                        onCopyLink={() => showToast({ title: invite.magic_link ? "Invitation link copied" : "No magic link returned", detail: invite.email, tone: invite.magic_link ? "success" : "info" })}
+                        onCopyLink={() => { void copyInviteLink(invite); }}
                         onRevoke={() => { setSelectedInvite(invite); setModalMode("revoke"); }}
                       />
                     </td>
