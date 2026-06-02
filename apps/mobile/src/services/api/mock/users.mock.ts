@@ -5,6 +5,7 @@ import { authTokenStorage } from '@/shared/utils/secure-storage';
 import {
   findMockAccountById,
   getMockAccountIdFromToken,
+  getMockMfaEnabled,
   MOCK_ACCOUNTS,
 } from './accounts';
 import { mockDelay } from './delay';
@@ -31,7 +32,7 @@ export const mockUsersApi = {
       l_name: account.l_name,
       avatar: account.avatar,
       role: account.role,
-      mfa_enabled: false,
+      mfa_enabled: getMockMfaEnabled(account.id),
     };
   },
 

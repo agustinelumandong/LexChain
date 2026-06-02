@@ -18,7 +18,7 @@ let mockInvitations: InvitationResponse[] = [
     status: 'pending',
     expires_at: '2026-05-21T00:00:00Z',
     created_at: '2026-05-14T00:00:00Z',
-    magic_link: 'https://lexchain.local/invite/mock-lawyer',
+    magic_link: 'https://lexchain.local/invite/mock-lawyer?email=lawyer%40example.com',
   },
 ];
 
@@ -79,7 +79,7 @@ export const mockAdminApi = {
       status: 'pending',
       expires_at: '2026-05-21T00:00:00Z',
       created_at: new Date().toISOString(),
-      magic_link: `https://lexchain.local/invite/${encodeURIComponent(invitationId)}`,
+      magic_link: `https://lexchain.local/invite/${encodeURIComponent(invitationId)}?email=${encodeURIComponent(payload.email)}`,
     };
 
     mockInvitations = [invitation, ...mockInvitations];
