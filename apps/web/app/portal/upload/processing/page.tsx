@@ -1,11 +1,12 @@
 'use client';
 
-import { use, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { use } from 'react';
+import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ErrorIcon from '@mui/icons-material/Error';
 import type { ApiSchema } from '@lexchain/types';
+import { getDocumentStatusLabel } from '../../lib/document-ui';
 
 type DocumentResponse = ApiSchema<'DocumentResponse'>;
 
@@ -24,7 +25,6 @@ export default function ProcessingPage({
 }: {
   searchParams: Promise<{ id?: string }>;
 }) {
-  const router = useRouter();
   const id = use(searchParams).id ?? '';
 
   const { data, isError } = useQuery({
@@ -37,13 +37,7 @@ export default function ProcessingPage({
   const status = data?.status?.toLowerCase() ?? 'processing';
   const done = DONE.has(status);
   const failed = isError || status === 'failed' || status === 'error' || !id;
-
-  useEffect(() => {
-    if (done && !failed && id) {
-      const timer = setTimeout(() => router.push(`/portal/documents/${id}`), 1500);
-      return () => clearTimeout(timer);
-    }
-  }, [done, failed, id, router]);
+  const normalizedStatus = getDocumentStatusLabel(data?.status ?? (failed ? 'FAILED' : 'PROCESSING'));
 
   return (
     <div className="flex min-h-[60vh] flex-col items-center justify-center gap-6 text-center">
@@ -52,7 +46,10 @@ export default function ProcessingPage({
           <div className="h-16 w-16 animate-spin rounded-full border-4 border-[#0985E7] border-t-transparent" />
           <div>
             <p className="text-xl font-black text-[#0C2B49]">Processing your document...</p>
-            <p className="mt-1 text-sm text-[#64748b]">Current status: {status}</p>
+            <p className="mt-1 text-sm text-[#64748b]">Current status: {normalizedStatus}</p>
+            <p className="mt-3 text-sm text-[#64748b]">LexChain is scanning the upload, drafting a summary, and preparing integrity checks.</p>
+            <div className="mt-4 h-2 overflow-hidden rounded-full bg-[#E8F0F8]"><div className="h-full w-2/3 rounded-full bg-[#0985E7]" /></div>
+            <p className="mt-2 text-xs font-bold text-[#64748b]">Your summary will appear here when processing is complete.</p>
           </div>
         </>
       )}
@@ -61,8 +58,9 @@ export default function ProcessingPage({
           <CheckCircleIcon sx={{ fontSize: 64, color: '#12A150' }} />
           <div>
             <p className="text-xl font-black text-[#0C2B49]">Document ready</p>
-            <p className="mt-1 text-sm text-[#64748b]">Redirecting to your document...</p>
+            <p className="mt-1 text-sm text-[#64748b]">Your document summary is ready.</p>
           </div>
+          <Link href={`/portal/documents/${id}`} className="rounded-full bg-[#0985E7] px-6 py-3 text-sm font-black text-white">View document</Link>
         </>
       )}
       {failed && (
@@ -74,12 +72,7 @@ export default function ProcessingPage({
               {id ? 'Please try uploading again.' : 'Missing document id.'}
             </p>
           </div>
-          <button
-            onClick={() => router.push('/portal/upload')}
-            className="rounded-full bg-[#0985E7] px-6 py-3 text-sm font-black text-white"
-          >
-            Try Again
-          </button>
+          <Link href="/portal/upload" className="rounded-full bg-[#0985E7] px-6 py-3 text-sm font-black text-white">Try Again</Link>
         </>
       )}
     </div>

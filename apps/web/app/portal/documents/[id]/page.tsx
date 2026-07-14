@@ -1,7 +1,7 @@
 'use client';
 
 import { use } from 'react';
-import { useQueries } from '@tanstack/react-query';
+import { useMutation, useQueries } from '@tanstack/react-query';
 import Link from 'next/link';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import DescriptionIcon from '@mui/icons-material/Description';
@@ -15,12 +15,15 @@ import ListAltIcon from '@mui/icons-material/ListAlt';
 import QuestionAnswerIcon from '@mui/icons-material/QuestionAnswer';
 import type { ApiSchema } from '@lexchain/types';
 import PortalChatbot from '../../components/portal-chatbot';
+import { getDocumentActions } from '../../lib/document-ui';
+import { getPortalUiRole } from '../../lib/portal-role';
 
 type DocumentResponse = ApiSchema<'DocumentResponse'>;
 type DocumentPartyListResponse = ApiSchema<'DocumentPartyListResponse'>;
 type VersionHistoryResponse = ApiSchema<'VersionHistoryResponse'>;
 type AuditLogResponse = ApiSchema<'AuditLogResponse'>;
 type OnChainVerificationResponse = ApiSchema<'OnChainVerificationResponse'>;
+type UserProfile = ApiSchema<'UserProfileResponse'>;
 
 const cardClass = 'bg-white rounded-[18px] border border-[#E8F0F8] shadow-[0_4px_12px_rgba(19,59,115,0.05)] p-5';
 
@@ -92,12 +95,25 @@ export default function DocumentDetailPage({ params }: { params: Promise<{ id: s
     ],
   });
 
+  const [profileQ] = useQueries({
+    queries: [{ queryKey: ['portal-profile'], queryFn: () => getJson<UserProfile | null>('/users/') }],
+  });
+  const anchorMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch(`/api/portal/proxy-post?path=${encodeURIComponent(`/blockchain/record/${id}`)}`, { method: 'POST', credentials: 'same-origin' });
+      if (!response.ok) throw new Error('Unable to anchor document');
+      return response.json();
+    },
+    onSuccess: () => void docQ.refetch(),
+  });
+
   const doc = docQ.data;
   const parties = partiesQ.data?.parties ?? [];
   const issuer = partiesQ.data?.issuer;
   const versions = versionsQ.data?.versions ?? [];
   const auditLogs = auditQ.data ?? [];
   const chain = chainQ.data;
+  const actions = getDocumentActions(getPortalUiRole(profileQ.data?.role), doc ?? {});
 
   if (docQ.isLoading) return <div className="h-40 animate-pulse rounded-[18px] border border-[#E8F0F8] bg-white" />;
   if (docQ.isError || !doc) return <p className="text-sm text-[#64748b]">Document not found.</p>;
@@ -116,9 +132,9 @@ export default function DocumentDetailPage({ params }: { params: Promise<{ id: s
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
-        <Link href={`/portal/documents/${id}/viewer`} className="flex items-center justify-center gap-2 rounded-full bg-[#0985E7] px-5 py-3 text-sm font-extrabold text-white">
-          View PDF
-        </Link>
+        {actions.includes('View PDF') && <Link href={`/portal/documents/${id}/viewer`} className="flex items-center justify-center gap-2 rounded-full bg-[#0985E7] px-5 py-3 text-sm font-extrabold text-white">View PDF</Link>}
+        {actions.includes('Anchor to Blockchain') && <button type="button" disabled={anchorMutation.isPending} onClick={() => anchorMutation.mutate()} className="rounded-full border border-[#E8F0F8] bg-white px-5 py-3 text-sm font-extrabold text-[#0C2B49] disabled:opacity-40">{anchorMutation.isPending ? 'Anchoring...' : 'Anchor to Blockchain'}</button>}
+        {actions.includes('Verify Document') && <Link href={`/portal/documents/${id}/verify`} className="flex items-center justify-center gap-2 rounded-full border border-[#E8F0F8] bg-white px-5 py-3 text-sm font-extrabold text-[#0C2B49]">Verify Document</Link>}
         <Link href={`/portal/documents/${id}/ask`} className="flex items-center justify-center gap-2 rounded-full border border-[#E8F0F8] bg-white px-5 py-3 text-sm font-extrabold text-[#0C2B49]">
           <QuestionAnswerIcon sx={{ fontSize: 16 }} /> Ask AI
         </Link>
@@ -156,7 +172,7 @@ export default function DocumentDetailPage({ params }: { params: Promise<{ id: s
           <VerifiedUserIcon sx={{ fontSize: 24, color: doc.on_chain ? '#12A150' : '#B77900' }} />
         </div>
         <div className="flex min-w-0 flex-1 flex-col gap-1">
-          <span className="text-[15px] font-extrabold text-[#0C2B49]">Blockchain status</span>
+          <span className="text-[15px] font-extrabold text-[#0C2B49]">Document status</span>
           <p className="text-[13px] font-medium text-[#64748b]">
             {chain ? `Hash ${chain.data_hash}` : doc.on_chain ? 'On-chain record exists but could not be loaded.' : 'This document is not yet recorded on-chain.'}
           </p>
@@ -170,7 +186,7 @@ export default function DocumentDetailPage({ params }: { params: Promise<{ id: s
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
         <div className={cardClass}>
           <h2 className="mb-3 flex items-center gap-2 text-sm font-black text-[#0C2B49]">
-            <PeopleIcon sx={{ fontSize: 16, color: '#0985E7' }} /> Parties ({parties.length + (issuer ? 1 : 0)})
+            <PeopleIcon sx={{ fontSize: 16, color: '#0985E7' }} /> Access control ({parties.length + (issuer ? 1 : 0)})
           </h2>
           <div className="flex flex-col gap-3">
             {issuer && (
@@ -216,6 +232,17 @@ export default function DocumentDetailPage({ params }: { params: Promise<{ id: s
           )}
         </div>
 
+        <div className={`${cardClass} lg:col-span-2`}>
+          <h2 className="mb-3 flex items-center gap-2 text-sm font-black text-[#0C2B49]">
+            <ListAltIcon sx={{ fontSize: 16, color: '#0985E7' }} /> Audit trail
+          </h2>
+          {auditLogs.length === 0 ? <p className="text-xs text-[#64748b]">No audit events.</p> : (
+            <div className="flex max-h-64 flex-col gap-2 overflow-y-auto">
+              {auditLogs.map((log) => <div key={log.id} className="flex items-start justify-between gap-3 rounded-xl bg-[#F8FBFF] px-3 py-2 text-xs"><div className="min-w-0"><p className="font-bold capitalize text-[#0C2B49]">{log.action.replace(/_/g, ' ')}</p>{log.details && <p className="truncate text-[#64748b]">{renderUnknown(log.details)}</p>}</div><span className="shrink-0 text-[#A0AAB8]">{formatDate(log.created_at)}</span></div>)}
+            </div>
+          )}
+        </div>
+
         <div className={cardClass}>
           <h2 className="mb-3 flex items-center gap-2 text-sm font-black text-[#0C2B49]">
             <WarningAmberIcon sx={{ fontSize: 16, color: '#B77900' }} /> Risk review
@@ -229,25 +256,7 @@ export default function DocumentDetailPage({ params }: { params: Promise<{ id: s
           </h2>
           <InsightList items={doc.entities?.length ? doc.entities : doc.labels} empty="No extracted information available." />
         </div>
-
-        <div className={`${cardClass} lg:col-span-2`}>
-          <h2 className="mb-3 flex items-center gap-2 text-sm font-black text-[#0C2B49]">
-            <ListAltIcon sx={{ fontSize: 16, color: '#0985E7' }} /> Audit Log
-          </h2>
-          {auditLogs.length === 0 ? <p className="text-xs text-[#64748b]">No audit events.</p> : (
-            <div className="flex max-h-64 flex-col gap-2 overflow-y-auto">
-              {auditLogs.map((log) => (
-                <div key={log.id} className="flex items-start justify-between gap-3 rounded-xl bg-[#F8FBFF] px-3 py-2 text-xs">
-                  <div className="min-w-0">
-                    <p className="font-bold capitalize text-[#0C2B49]">{log.action.replace(/_/g, ' ')}</p>
-                    {log.details && <p className="truncate text-[#64748b]">{renderUnknown(log.details)}</p>}
-                  </div>
-                  <span className="shrink-0 text-[#A0AAB8]">{formatDate(log.created_at)}</span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+        <div className={cardClass}><h2 className="mb-3 text-sm font-black text-[#0C2B49]">Confidence</h2><p className="text-[13px] font-medium text-[#64748b]">{doc.summary ? 'Summary generated from document processing.' : 'Confidence is unavailable until processing completes.'}</p></div>
       </div>
 
       {doc.on_chain && (

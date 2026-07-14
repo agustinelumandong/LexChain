@@ -7,6 +7,7 @@ import SearchIcon from '@mui/icons-material/Search';
 import ShieldIcon from '@mui/icons-material/Shield';
 import DescriptionIcon from '@mui/icons-material/Description';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
+import { getDocumentStatusLabel } from '../lib/document-ui';
 
 interface Document {
   id: string;
@@ -14,6 +15,9 @@ interface Document {
   status: string;
   on_chain: boolean;
   created_at: string;
+  document_number?: number;
+  book_number?: number | null;
+  page_number?: number | null;
 }
 
 async function fetchDocuments(): Promise<Document[]> {
@@ -35,14 +39,23 @@ function statusStyle(status: string) {
 
 export default function DocumentsPage() {
   const [search, setSearch] = useState('');
+  const [status, setStatus] = useState('all');
+  const [date, setDate] = useState('');
+  const [sort, setSort] = useState('newest');
   const { data: documents = [], isLoading } = useQuery<Document[]>({
     queryKey: ['portal-documents'],
     queryFn: fetchDocuments,
   });
 
-  const filtered = documents.filter(d =>
-    d.file_name.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = documents
+    .filter((document) => document.file_name.toLowerCase().includes(search.toLowerCase()))
+    .filter((document) => status === 'all' || document.status.toLowerCase() === status)
+    .filter((document) => !date || document.created_at.slice(0, 10) === date)
+    .sort((left, right) => {
+      if (sort === 'oldest') return new Date(left.created_at).getTime() - new Date(right.created_at).getTime();
+      if (sort === 'title') return left.file_name.localeCompare(right.file_name);
+      return new Date(right.created_at).getTime() - new Date(left.created_at).getTime();
+    });
 
   return (
     <div className="flex flex-col gap-5">
@@ -57,6 +70,22 @@ export default function DocumentsPage() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-3">
+        <label className="text-xs font-bold text-[#64748b]">Status
+          <select value={status} onChange={(event) => setStatus(event.target.value)} className="mt-1 w-full rounded-xl border border-[#E8F0F8] bg-white px-3 py-2 text-sm text-[#0C2B49]">
+            <option value="all">All statuses</option><option value="queued">Queued</option><option value="processing">Processing</option><option value="completed">Completed</option><option value="failed">Failed</option>
+          </select>
+        </label>
+        <label className="text-xs font-bold text-[#64748b]">Date
+          <input type="date" value={date} onChange={(event) => setDate(event.target.value)} className="mt-1 w-full rounded-xl border border-[#E8F0F8] bg-white px-3 py-2 text-sm text-[#0C2B49]" />
+        </label>
+        <label className="text-xs font-bold text-[#64748b]">Sort
+          <select value={sort} onChange={(event) => setSort(event.target.value)} className="mt-1 w-full rounded-xl border border-[#E8F0F8] bg-white px-3 py-2 text-sm text-[#0C2B49]">
+            <option value="newest">Newest first</option><option value="oldest">Oldest first</option><option value="title">Title A–Z</option>
+          </select>
+        </label>
       </div>
 
       {/* List */}
@@ -91,9 +120,14 @@ export default function DocumentsPage() {
               <div className="flex-1 min-w-0">
                 <span className="text-sm font-bold text-[#0C2B49] block truncate">{doc.file_name}</span>
                 <div className="flex items-center gap-2 mt-1">
-                  <span className={`${statusStyle(doc.status)} rounded-full py-0.5 px-2.5 text-[11px] font-bold capitalize`}>{doc.status}</span>
+                  <span className={`${statusStyle(doc.status)} rounded-full py-0.5 px-2.5 text-[11px] font-bold`}>{getDocumentStatusLabel(doc.status)}</span>
                   <span className="text-[11px] text-[#A0AAB8]">{formatDate(doc.created_at)}</span>
                 </div>
+                <p className="mt-1 text-[11px] font-medium text-[#64748b]">
+                  {doc.document_number ? `Document #${doc.document_number}` : 'Document number unavailable'}
+                  {doc.book_number ? ` · Book ${doc.book_number}` : ''}{doc.page_number ? ` · Page ${doc.page_number}` : ''}
+                  {doc.on_chain ? ' · On-chain' : ' · Off-chain'}
+                </p>
               </div>
               <ChevronRightIcon sx={{ fontSize: 20, color: '#A0AAB8' }} />
             </Link>
