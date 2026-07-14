@@ -43,3 +43,9 @@ No backend routes or proxy routes were added or changed.
 ## Manual-flow boundary
 
 The live UI routes are present in the production build. A full authenticated mutation walkthrough requires a running backend. The local portal mock currently has no invitation/request endpoint fixtures, so mock mode returns its existing `Mock endpoint not found` response rather than a fabricated success; no fake success behavior was added.
+
+## Review follow-up
+
+- `/portal/requests` now loads `/users/` through the existing portal proxy and maps the result with the portal role helper before it enables the request query or renders issuer controls. A profile failure, Participant, or unsupported role receives an access-unavailable state; this direct-route guard fails closed.
+- Invitation Accept/Reject and issuer Approve/Reject handlers now render an in-page `role="alert"` error on a failed proxy mutation. They retain the current data and do not navigate, invalidate as success, or claim a successful decision.
+- Extended the focused helper coverage for non-issuer decision gating and issuer decision error copy.

@@ -1,6 +1,6 @@
 import { expect, it } from "vitest";
 
-import { getRequestActions } from "./request-ui";
+import { getRequestActions, getRequestActionError } from "./request-ui";
 
 it("allows an issuer to decide a pending request", () => {
   expect(getRequestActions("issuer", "pending")).toEqual(["Approve", "Reject"]);
@@ -12,4 +12,14 @@ it("does not show decision controls to a participant", () => {
 
 it("does not show decision controls after a request is decided", () => {
   expect(getRequestActions("issuer", "approved")).toEqual([]);
+});
+
+it("fails closed when a participant directly visits issuer request management", () => {
+  expect(getRequestActions("participant", "pending")).toEqual([]);
+  expect(getRequestActions("unsupported", "pending")).toEqual([]);
+});
+
+it("provides an actionable error for a failed request decision", () => {
+  expect(getRequestActionError("approve")).toBe("Unable to approve this request. Please try again.");
+  expect(getRequestActionError("reject")).toBe("Unable to reject this request. Please try again.");
 });

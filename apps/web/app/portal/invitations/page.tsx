@@ -25,6 +25,7 @@ export default function InvitationsPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
   const { data: invitations = [], error, isLoading } = useQuery<Invitation[]>({
     queryKey: ["portal-invitations"],
     queryFn: () => portalFetch<Invitation[]>("/documents/invitations"),
@@ -32,10 +33,13 @@ export default function InvitationsPage() {
 
   async function handleInvitation(invitation: Invitation, action: "accept" | "reject") {
     setBusyId(invitation.id);
+    setActionError(null);
     try {
       await updateInvitation(invitation.document_id, action);
       await queryClient.invalidateQueries({ queryKey: ["portal-invitations"] });
       if (action === "accept") router.replace(`/portal/documents/${invitation.document_id}`);
+    } catch {
+      setActionError(`Unable to ${action} this invitation. Please try again.`);
     } finally {
       setBusyId(null);
     }
@@ -50,6 +54,7 @@ export default function InvitationsPage() {
       </div>
       {isLoading ? <p className="text-sm font-semibold text-[#64748b]">Loading invitations…</p> : null}
       {error ? <p className="rounded-xl bg-red-50 p-4 text-sm font-semibold text-red-700">Unable to load invitations. Please try again.</p> : null}
+      {actionError ? <p role="alert" className="rounded-xl bg-red-50 p-4 text-sm font-semibold text-red-700">{actionError}</p> : null}
       {!isLoading && !error && invitations.length === 0 ? <div className="rounded-[18px] border border-[#E8F0F8] bg-white p-8 text-center text-sm font-bold text-[#0C2B49]">No pending invitations</div> : null}
       {invitations.map((invitation) => {
         const isBusy = busyId === invitation.id;
