@@ -2,7 +2,7 @@ import type { ApiSchema } from '@lexchain/types';
 
 type UploadAccepted = ApiSchema<'DocumentUploadAcceptedResponse'>;
 
-export async function uploadDocument(file: File): Promise<UploadAccepted> {
+export async function uploadDocument({ file }: { file: File; title: string; bookId: string }): Promise<UploadAccepted> {
   const form = new FormData();
   form.append('file', file);
 
