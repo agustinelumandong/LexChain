@@ -7,6 +7,7 @@ describe("portal dashboard", () => {
       "Dashboard",
       "Documents",
       "Books",
+      "Document Requests",
       "Profile & Security",
     ]);
   });
@@ -14,6 +15,8 @@ describe("portal dashboard", () => {
   it("only shows participant routes that exist", () => {
     expect(getPortalNavigation("participant").map((item) => item.label)).toEqual([
       "Shared Documents",
+      "Invitations",
+      "My E-copy Requests",
       "Profile & Security",
     ]);
   });

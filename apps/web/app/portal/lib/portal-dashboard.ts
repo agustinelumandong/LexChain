@@ -18,12 +18,15 @@ export function getPortalNavigation(role: PortalUiRole): PortalNavigationItem[] 
       { label: "Dashboard", href: "/portal/dashboard" },
       { label: "Documents", href: "/portal/documents" },
       { label: "Books", href: "/portal/books" },
+      { label: "Document Requests", href: "/portal/requests" },
       { label: "Profile & Security", href: "/portal/profile" },
     ];
   }
 
   return [
     { label: "Shared Documents", href: "/portal/documents" },
+    { label: "Invitations", href: "/portal/invitations" },
+    { label: "My E-copy Requests", href: "/portal/requests/my" },
     { label: "Profile & Security", href: "/portal/profile" },
   ];
 }
