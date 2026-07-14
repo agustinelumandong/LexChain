@@ -10,6 +10,7 @@ import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import FileUploadIcon from '@mui/icons-material/FileUpload';
 import NotificationsNoneIcon from '@mui/icons-material/NotificationsNone';
 import SearchIcon from '@mui/icons-material/Search';
+import MenuBookIcon from '@mui/icons-material/MenuBook';
 import type { ApiSchema } from '@lexchain/types';
 import { getDashboardMetrics } from '../lib/portal-dashboard';
 import { getPortalUiRole } from '../lib/portal-role';
@@ -197,6 +198,13 @@ export default function DashboardPage() {
                 <div className="flex-1 min-w-0"><span className="text-sm font-bold text-[#0C2B49] block">Upload Document</span><span className="text-[11px] text-[#64748b]">Add a new legal document</span></div>
                 <ChevronRightIcon sx={{ fontSize: 18, color: '#A0AAB8' }} />
               </Link>
+              {isIssuer && (
+                <Link href="/portal/books" className="flex items-center gap-3 py-3">
+                  <div className="w-9 h-9 rounded-lg bg-[#EEF6FF] flex items-center justify-center"><MenuBookIcon sx={{ fontSize: 18, color: '#0985E7' }} /></div>
+                  <div className="flex-1 min-w-0"><span className="text-sm font-bold text-[#0C2B49] block">Register books</span><span className="text-[11px] text-[#64748b]">Manage physical register volumes</span></div>
+                  <ChevronRightIcon sx={{ fontSize: 18, color: '#A0AAB8' }} />
+                </Link>
+              )}
               <Link href="/portal/documents" className="flex items-center gap-3 py-3">
                 <div className="w-9 h-9 rounded-lg bg-[#EEF6FF] flex items-center justify-center"><GroupsIcon sx={{ fontSize: 18, color: '#0985E7' }} /></div>
                 <div className="flex-1 min-w-0"><span className="text-sm font-bold text-[#0C2B49] block">Invite Party</span><span className="text-[11px] text-[#64748b]">Invite others to collaborate</span></div>
