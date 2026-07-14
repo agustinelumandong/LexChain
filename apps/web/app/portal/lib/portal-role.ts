@@ -7,6 +7,10 @@ export function getPortalUiRole(role?: string): PortalUiRole {
   return "unsupported";
 }
 
+export function isSupportedPortalUiRole(role: PortalUiRole): boolean {
+  return role !== "unsupported";
+}
+
 export function getPortalRoleLabel(role?: string): string {
   const uiRole = getPortalUiRole(role);
   if (uiRole === "issuer") return "Document Issuer";

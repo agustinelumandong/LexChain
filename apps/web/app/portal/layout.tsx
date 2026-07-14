@@ -19,7 +19,7 @@ import MoreVertIcon from "@mui/icons-material/MoreVert";
 import VerifiedUserIcon from "@mui/icons-material/VerifiedUser";
 import { Toaster } from 'sonner';
 import type { ApiSchema } from "@lexchain/types";
-import { getPortalRoleLabel, getPortalUiRole } from "./lib/portal-role";
+import { getPortalRoleLabel, getPortalUiRole, isSupportedPortalUiRole } from "./lib/portal-role";
 
 type UserProfile = ApiSchema<'UserProfileResponse'>;
 
@@ -45,7 +45,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
   const [collapsed, setCollapsed] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const profileMenuRef = useRef<HTMLDivElement>(null);
-  const { data: profile } = useQuery<UserProfile | null>({
+  const { data: profile, isError, isPending } = useQuery<UserProfile | null>({
     queryKey: ['portal-profile'],
     queryFn: async () => {
       const res = await fetch('/api/portal/proxy?path=%2Fusers%2F', { credentials: 'same-origin' });
@@ -73,6 +73,32 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
   async function handleLogout() {
     await fetch("/api/portal/logout", { method: "POST" });
     window.location.href = "/login";
+  }
+
+  if (isPending) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-[#F5FAFF] p-6 text-[#0C2B49]">
+        <p className="text-sm font-semibold">Loading your portal…</p>
+      </main>
+    );
+  }
+
+  if (isError || !profile || !isSupportedPortalUiRole(uiRole)) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-[#F5FAFF] p-6 text-[#0C2B49]">
+        <section className="w-full max-w-md rounded-2xl border border-[#E4EEF9] bg-white p-6 text-center shadow-sm">
+          <h1 className="text-xl font-black">Portal access unavailable</h1>
+          <p className="mt-2 text-sm font-semibold text-[#64748b]">Your account does not have a supported portal role.</p>
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="mt-5 rounded-full bg-[#0985E7] px-5 py-2.5 text-sm font-black text-white transition hover:bg-[#0770c4]"
+          >
+            Sign out
+          </button>
+        </section>
+      </main>
+    );
   }
 
   return (
