@@ -11,7 +11,7 @@ async function handler(request: NextRequest, method: 'POST' | 'PATCH') {
 
   if (isMockMode()) {
     if (!isMockPortalToken(token)) return NextResponse.json({ message: 'Not authenticated' }, { status: 401 });
-    return mockPortalMutate(method, path, request);
+    return mockPortalMutate(method, path, request, token);
   }
 
   const contentType = request.headers.get('content-type') ?? '';
