@@ -127,8 +127,7 @@ function profileForToken(token?: string) {
 }
 
 export function mockPortalGet(path: string, token?: string): Response {
-  const profile = profileForToken(token);
-  if (path === '/users/' || path === '/users') return json(profile);
+  if (path === '/users/' || path === '/users') return json(profileForToken(token));
   if (path === '/documents/' || path === '/documents') return json(documents);
   if (path === '/notifications/' || path === '/notifications') {
     return json({ notifications, total: notifications.length });
@@ -146,7 +145,7 @@ export function mockPortalGet(path: string, token?: string): Response {
     if (detail === 'parties') {
       return json({
         document_id: document.id,
-        issuer: { id: mockUserId, f_name: profile.f_name, l_name: profile.l_name, email: profile.email, role: 'issuer' },
+        issuer: { id: mockUserId, f_name: issuerProfile.f_name, l_name: issuerProfile.l_name, email: issuerProfile.email, role: 'issuer' },
         parties: [{ id: 'mock-party-1', f_name: 'Sample', l_name: 'Tenant', email: 'tenant@example.test', role: 'tenant' }],
       });
     }
