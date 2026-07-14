@@ -15,7 +15,7 @@ import ListAltIcon from '@mui/icons-material/ListAlt';
 import QuestionAnswerIcon from '@mui/icons-material/QuestionAnswer';
 import type { ApiSchema } from '@lexchain/types';
 import PortalChatbot from '../../components/portal-chatbot';
-import { getDocumentActions } from '../../lib/document-ui';
+import { getDocumentActions, getDocumentStatusLabel } from '../../lib/document-ui';
 import { getPortalUiRole } from '../../lib/portal-role';
 
 type DocumentResponse = ApiSchema<'DocumentResponse'>;
@@ -157,7 +157,7 @@ export default function DocumentDetailPage({ params }: { params: Promise<{ id: s
           </div>
           <div className="flex justify-between gap-4">
             <span className="text-xs font-bold text-[#64748b]">Status</span>
-            <span className={`${statusStyle(doc.status)} rounded-full px-2.5 py-0.5 text-[11px] font-bold capitalize`}>{doc.status}</span>
+            <span className={`${statusStyle(doc.status)} rounded-full px-2.5 py-0.5 text-[11px] font-bold`}>{getDocumentStatusLabel(doc.status)}</span>
           </div>
           <div className="h-px bg-[#E8F0F8]" />
           <div className="flex flex-col gap-2">
@@ -167,12 +167,20 @@ export default function DocumentDetailPage({ params }: { params: Promise<{ id: s
         </div>
       </div>
 
+      <div className={`${cardClass} flex items-center justify-between gap-4`}>
+        <div>
+          <h2 className="text-[15px] font-extrabold text-[#0C2B49]">Document status</h2>
+          <p className="mt-1 text-[13px] font-medium text-[#64748b]">Current processing state for this document.</p>
+        </div>
+        <span className={`${statusStyle(doc.status)} shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold`}>{getDocumentStatusLabel(doc.status)}</span>
+      </div>
+
       <div className={`${cardClass} flex items-start gap-4`}>
         <div className={`flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-full ${doc.on_chain ? 'bg-[#EAF8F0]' : 'bg-[#FFF4DD]'}`}>
           <VerifiedUserIcon sx={{ fontSize: 24, color: doc.on_chain ? '#12A150' : '#B77900' }} />
         </div>
         <div className="flex min-w-0 flex-1 flex-col gap-1">
-          <span className="text-[15px] font-extrabold text-[#0C2B49]">Document status</span>
+          <span className="text-[15px] font-extrabold text-[#0C2B49]">Blockchain status</span>
           <p className="text-[13px] font-medium text-[#64748b]">
             {chain ? `Hash ${chain.data_hash}` : doc.on_chain ? 'On-chain record exists but could not be loaded.' : 'This document is not yet recorded on-chain.'}
           </p>

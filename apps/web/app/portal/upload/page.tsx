@@ -28,6 +28,7 @@ export default function UploadPage() {
   const [drag, setDrag] = useState(false);
   const booksQuery = useQuery({ queryKey: ['portal-books'], queryFn: fetchBooks });
   const books = booksQuery.data ?? [];
+  const availableBooks = books.filter((book) => !book.is_full);
 
   const mutation = useMutation({
     mutationFn: () => {
@@ -65,12 +66,12 @@ export default function UploadPage() {
 
       <label className="flex flex-col gap-1.5 text-sm font-bold text-[#0C2B49]">
         Book
-        <select value={bookId} onChange={(event) => setBookId(event.target.value)} disabled={booksQuery.isLoading || books.length === 0} className="rounded-xl border border-[#D7E4F2] bg-white px-3 py-2.5 text-sm font-medium outline-none focus:border-[#0985E7] disabled:bg-[#F8FBFF]">
-          <option value="">{booksQuery.isLoading ? 'Loading books...' : books.length === 0 ? 'No registered books available' : 'Choose a book'}</option>
-          {books.filter((book) => !book.is_full).map((book) => <option key={book.id} value={book.id}>Book {book.book_number} — Series {book.series_year}</option>)}
+        <select value={bookId} onChange={(event) => setBookId(event.target.value)} disabled={booksQuery.isLoading || availableBooks.length === 0} className="rounded-xl border border-[#D7E4F2] bg-white px-3 py-2.5 text-sm font-medium outline-none focus:border-[#0985E7] disabled:bg-[#F8FBFF]">
+          <option value="">{booksQuery.isLoading ? 'Loading books...' : availableBooks.length === 0 ? 'No active books available' : 'Choose a book'}</option>
+          {availableBooks.map((book) => <option key={book.id} value={book.id}>Book {book.book_number} — Series {book.series_year}</option>)}
         </select>
         {booksQuery.isError && <span className="text-xs font-medium text-red-600">Unable to load books. Please try again.</span>}
-        {!booksQuery.isLoading && books.length === 0 && <span className="text-xs font-medium text-[#64748b]">Register a book before uploading a document.</span>}
+        {!booksQuery.isLoading && availableBooks.length === 0 && <span className="text-xs font-medium text-[#64748b]">Register an active book before uploading a document.</span>}
       </label>
 
       <div
