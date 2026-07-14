@@ -17,16 +17,12 @@ export function getPortalNavigation(role: PortalUiRole): PortalNavigationItem[] 
     return [
       { label: "Dashboard", href: "/portal/dashboard" },
       { label: "Documents", href: "/portal/documents" },
-      { label: "Books", href: "/portal/books" },
-      { label: "Document Requests", href: "/portal/requests" },
       { label: "Profile & Security", href: "/portal/profile" },
     ];
   }
 
   return [
     { label: "Shared Documents", href: "/portal/documents" },
-    { label: "Pending Invitations", href: "/portal/invitations" },
-    { label: "My E-copy Requests", href: "/portal/requests/my" },
     { label: "Profile & Security", href: "/portal/profile" },
   ];
 }
@@ -36,7 +32,10 @@ export function getDashboardMetrics(
   documents: PortalDocument[],
 ): DashboardMetric[] {
   const processing = documents.filter(
-    (document) => document.status?.trim().toUpperCase() === "PROCESSING",
+    (document) => {
+      const status = document.status?.trim().toUpperCase();
+      return status === "PROCESSING" || status === "PENDING";
+    },
   ).length;
   const onChain = documents.filter((document) => document.on_chain).length;
 

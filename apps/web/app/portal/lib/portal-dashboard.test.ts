@@ -6,8 +6,13 @@ describe("portal dashboard", () => {
     expect(getPortalNavigation("issuer").map((item) => item.label)).toEqual([
       "Dashboard",
       "Documents",
-      "Books",
-      "Document Requests",
+      "Profile & Security",
+    ]);
+  });
+
+  it("only shows participant routes that exist", () => {
+    expect(getPortalNavigation("participant").map((item) => item.label)).toEqual([
+      "Shared Documents",
       "Profile & Security",
     ]);
   });
@@ -23,6 +28,13 @@ describe("portal dashboard", () => {
       ["Processing", 1],
       ["On-Chain Records", 1],
       ["Pending Invites", 0],
+    ]);
+  });
+
+  it("counts pending documents as processing", () => {
+    expect(getDashboardMetrics("issuer", [{ status: "PENDING" }])).toContainEqual([
+      "Processing",
+      1,
     ]);
   });
 });
