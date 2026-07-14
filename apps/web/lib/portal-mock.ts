@@ -18,12 +18,21 @@ type MockDocument = {
   updated_at: string;
 };
 
-const profile = {
+const issuerProfile = {
   email: 'jane.doe@lexchain.local',
   f_name: 'Jane',
   l_name: 'Doe',
   avatar: 'icon1',
   role: 'lawyer',
+  mfa_enabled: false,
+};
+
+const participantProfile = {
+  email: 'user@example.com',
+  f_name: 'Alex',
+  l_name: 'User',
+  avatar: 'icon2',
+  role: 'user',
   mfa_enabled: false,
 };
 
@@ -113,7 +122,12 @@ export function isMockPortalToken(token: string) {
   return token.startsWith('mock-token:');
 }
 
-export function mockPortalGet(path: string): Response {
+function profileForToken(token?: string) {
+  return token === 'mock-token:mock-user' ? participantProfile : issuerProfile;
+}
+
+export function mockPortalGet(path: string, token?: string): Response {
+  const profile = profileForToken(token);
   if (path === '/users/' || path === '/users') return json(profile);
   if (path === '/documents/' || path === '/documents') return json(documents);
   if (path === '/notifications/' || path === '/notifications') {
