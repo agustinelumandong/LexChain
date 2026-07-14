@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getPortalRoleLabel, getPortalUiRole } from "./portal-role";
+import { getPortalRoleLabel, getPortalUiRole, isSupportedPortalUiRole } from "./portal-role";
 
 describe("portal UI roles", () => {
   it("maps backend lawyer copy to Document Issuer", () => {
@@ -13,6 +13,9 @@ describe("portal UI roles", () => {
   });
 
   it("keeps unrecognized roles out of restricted UI", () => {
-    expect(getPortalUiRole("staff")).toBe("unsupported");
+    const uiRole = getPortalUiRole("staff");
+
+    expect(uiRole).toBe("unsupported");
+    expect(isSupportedPortalUiRole(uiRole)).toBe(false);
   });
 });
