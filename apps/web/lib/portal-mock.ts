@@ -97,6 +97,14 @@ function documentPaths(path: string) {
   return path.match(/^\/documents\/([^/]+)(?:\/(parties|versions|audit-logs))?\/?$/);
 }
 
+function pathname(path: string) {
+  try {
+    return new URL(path, 'https://mock.lexchain.local').pathname;
+  } catch {
+    return path;
+  }
+}
+
 export function isMockMode() {
   return process.env.NEXT_PUBLIC_USE_MOCK_API === 'true' || process.env.USE_MOCK_API === 'true';
 }
@@ -230,7 +238,8 @@ async function askDocument(id: string, request: Request) {
 }
 
 export async function mockPortalMutate(method: 'POST' | 'PATCH', path: string, request: Request): Promise<Response> {
-  if (method === 'POST' && (path === '/documents/upload' || path === '/documents/upload/')) return uploadDocument(request);
+  const requestPathname = pathname(path);
+  if (method === 'POST' && (requestPathname === '/documents/upload' || requestPathname === '/documents/upload/')) return uploadDocument(request);
   if (method === 'POST' && path === '/search') return searchDocuments(request);
 
   const askMatch = path.match(/^\/documents\/([^/]+)\/ask\/?$/);
