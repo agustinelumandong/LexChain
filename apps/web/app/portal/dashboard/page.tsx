@@ -10,6 +10,11 @@ import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import FileUploadIcon from '@mui/icons-material/FileUpload';
 import NotificationsNoneIcon from '@mui/icons-material/NotificationsNone';
 import SearchIcon from '@mui/icons-material/Search';
+import LibraryBooksIcon from '@mui/icons-material/LibraryBooks';
+import RequestPageIcon from '@mui/icons-material/RequestPage';
+import type { ApiSchema } from '@lexchain/types';
+import { getDashboardMetrics } from '../lib/portal-dashboard';
+import { getPortalUiRole } from '../lib/portal-role';
 
 interface Document {
   id: string;
@@ -18,6 +23,8 @@ interface Document {
   on_chain: boolean;
   created_at: string;
 }
+
+type UserProfile = ApiSchema<'UserProfileResponse'>;
 
 async function fetchJson<T>(path: string): Promise<T> {
   const res = await fetch(`/api/portal/proxy?path=${encodeURIComponent(path)}`, { credentials: 'same-origin' });
@@ -44,6 +51,13 @@ function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 }
 
+function getMetricIcon(label: string) {
+  if (label === 'Processing') return ScheduleIcon;
+  if (label === 'On-Chain Records') return VerifiedUserIcon;
+  if (label === 'Pending Invites' || label === 'Recent Access') return GroupsIcon;
+  return DescriptionIcon;
+}
+
 export default function DashboardPage() {
   const { data: documents = [] } = useQuery<Document[]>({
     queryKey: ['portal-documents'],
@@ -55,21 +69,26 @@ export default function DashboardPage() {
     queryFn: () => fetchJson('/notifications/unread-count'),
   });
 
+  const { data: profile } = useQuery<UserProfile | null>({
+    queryKey: ['portal-profile'],
+    queryFn: () => fetchJson('/users/'),
+  });
+
+  const uiRole = getPortalUiRole(profile?.role);
+  const isIssuer = uiRole === 'issuer';
   const total = documents.length;
   const processing = documents.filter(d => d.status?.toLowerCase() === 'processing' || d.status?.toLowerCase() === 'pending').length;
-  const onChain = documents.filter(d => d.on_chain).length;
   const recent = [...documents].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).slice(0, 5);
 
   // Status overview counts
   const anchored = documents.filter(d => d.status?.toLowerCase() === 'anchored' || d.status?.toLowerCase() === 'completed').length;
   const other = total - anchored - processing;
 
-  const kpis = [
-    { label: 'Total Documents', value: total, icon: DescriptionIcon },
-    { label: 'Processing', value: processing, icon: ScheduleIcon },
-    { label: 'On Chain Records', value: onChain, icon: VerifiedUserIcon },
-    { label: 'Pending Invites', value: 0, icon: GroupsIcon },
-  ];
+  const kpis = getDashboardMetrics(uiRole, documents).map(([label, value]) => ({
+    label,
+    value,
+    icon: getMetricIcon(label),
+  }));
 
   return (
     <div className="flex flex-col gap-6">
@@ -77,7 +96,9 @@ export default function DashboardPage() {
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-[28px] font-black leading-[34px] text-[#0C2B49]">Good morning</h1>
-          <p className="text-sm font-medium text-[#64748b] mt-1">Manage and verify your legal documents</p>
+          <p className="text-sm font-medium text-[#64748b] mt-1">
+            {isIssuer ? 'Manage and verify your legal documents' : 'View shared documents and verification activity'}
+          </p>
         </div>
         <div className="flex items-center gap-3">
           <div className="hidden sm:flex items-center gap-2 rounded-full border border-[#E8F0F8] bg-[#F8FBFF] px-4 py-2.5 min-w-[200px]">
@@ -183,6 +204,20 @@ export default function DashboardPage() {
                 <div className="flex-1 min-w-0"><span className="text-sm font-bold text-[#0C2B49] block">Invite Party</span><span className="text-[11px] text-[#64748b]">Invite others to collaborate</span></div>
                 <ChevronRightIcon sx={{ fontSize: 18, color: '#A0AAB8' }} />
               </Link>
+              {isIssuer && (
+                <>
+                  <Link href="/portal/books" className="flex items-center gap-3 py-3">
+                    <div className="w-9 h-9 rounded-lg bg-[#EEF6FF] flex items-center justify-center"><LibraryBooksIcon sx={{ fontSize: 18, color: '#0985E7' }} /></div>
+                    <div className="flex-1 min-w-0"><span className="text-sm font-bold text-[#0C2B49] block">Register books</span><span className="text-[11px] text-[#64748b]">Register a book for document issuance</span></div>
+                    <ChevronRightIcon sx={{ fontSize: 18, color: '#A0AAB8' }} />
+                  </Link>
+                  <Link href="/portal/requests" className="flex items-center gap-3 py-3">
+                    <div className="w-9 h-9 rounded-lg bg-[#EEF6FF] flex items-center justify-center"><RequestPageIcon sx={{ fontSize: 18, color: '#0985E7' }} /></div>
+                    <div className="flex-1 min-w-0"><span className="text-sm font-bold text-[#0C2B49] block">Review document requests</span><span className="text-[11px] text-[#64748b]">Review incoming document requests</span></div>
+                    <ChevronRightIcon sx={{ fontSize: 18, color: '#A0AAB8' }} />
+                  </Link>
+                </>
+              )}
               <Link href="/portal/documents" className="flex items-center gap-3 py-3 last:pb-0">
                 <div className="w-9 h-9 rounded-lg bg-[#EEF6FF] flex items-center justify-center"><VerifiedUserIcon sx={{ fontSize: 18, color: '#0985E7' }} /></div>
                 <div className="flex-1 min-w-0"><span className="text-sm font-bold text-[#0C2B49] block">Verify Document</span><span className="text-[11px] text-[#64748b]">Verify document authenticity</span></div>
