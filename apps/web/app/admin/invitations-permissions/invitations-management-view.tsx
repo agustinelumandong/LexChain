@@ -308,7 +308,7 @@ export function InvitationsManagementView({ invitations, mockMode = false }: { i
     <div className="flex min-h-[calc(100vh-48px)] w-full flex-col gap-5">
       <header className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
         <div>
-          <p className="text-xs font-black uppercase tracking-[0.22em] text-[#0879D8]">LexChain Super Admin</p>
+          <p className="text-xs font-black uppercase tracking-[0.22em] text-[#0879D8]">LexChain Operations</p>
           <h1 className="mt-1 text-3xl font-black leading-tight text-[#071B33]">Invitations & Permissions</h1>
           <p className="mt-1 text-sm font-semibold text-[#4B6382]">Manage admin invitations from the backend invitation response.</p>
         </div>

@@ -13,6 +13,7 @@ export function PortalTopBar() {
         <div className="flex items-center gap-3">
           <Link
             href="/portal/notifications"
+            aria-label="View notifications"
             className="w-10 h-10 flex items-center justify-center rounded-full border border-[var(--portal-border-soft)] hover:bg-[var(--portal-surface-soft)] transition-colors"
           >
             <NotificationsNoneOutlinedIcon sx={{ fontSize: 20, color: 'var(--portal-navy)' }} />

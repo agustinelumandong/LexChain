@@ -295,7 +295,7 @@ export function AuditLogsManagementView({
       <header className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
         <div>
           <p className="text-xs font-black uppercase tracking-[0.22em] text-[#0879D8]">
-            LexChain Super Admin
+            LexChain Operations
           </p>
           <h1 className="mt-1 text-3xl font-black leading-tight text-[#071B33]">
             Audit Logs

@@ -129,6 +129,7 @@ export default function AskPage({ params }: { params: Promise<{ id: string }> })
         <button
           onClick={send}
           disabled={!input.trim() || loading}
+          aria-label="Send question"
           className="rounded-[12px] bg-[#0985E7] p-2.5 text-white transition hover:bg-[#0770c4] disabled:opacity-40"
           type="button"
         >

@@ -106,7 +106,7 @@ export default function DashboardPage() {
             <span className="text-sm text-[#A0AAB8]">Search documents...</span>
             <span className="ml-auto text-[11px] font-bold text-[#A0AAB8] border border-[#E8F0F8] rounded px-1.5 py-0.5">⌘K</span>
           </div>
-          <Link href="/portal/notifications" className="relative flex h-10 w-10 items-center justify-center rounded-full border border-[#E8F0F8] transition hover:bg-[#F5FAFF]">
+          <Link href="/portal/notifications" aria-label="View notifications" className="relative flex h-10 w-10 items-center justify-center rounded-full border border-[#E8F0F8] transition hover:bg-[#F5FAFF]">
             <NotificationsNoneIcon sx={{ fontSize: 20, color: '#0C2B49' }} />
             {(notifCount?.unread ?? 0) > 0 && (
               <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] rounded-full bg-[#0985E7] text-white text-[10px] font-black flex items-center justify-center px-1">

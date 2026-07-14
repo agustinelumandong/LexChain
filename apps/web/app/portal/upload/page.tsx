@@ -123,7 +123,7 @@ export default function UploadPage() {
           <InsertDriveFileIcon sx={{ color: '#0985E7' }} />
           <span className="flex-1 truncate text-sm font-bold text-[#0C2B49]">{file.name}</span>
           <span className="text-xs text-[#64748b]">{(file.size / 1024 / 1024).toFixed(1)} MB</span>
-          <button onClick={() => setFile(null)} type="button">
+          <button aria-label="Remove uploaded file" onClick={() => setFile(null)} type="button">
             <CloseIcon sx={{ fontSize: 18, color: '#64748b' }} />
           </button>
         </div>
