@@ -31,4 +31,13 @@ describe("portal UI source audit", () => {
     expect(dashboard).toContain('aria-label="View notifications"');
     expect(upload).toContain('aria-label="Remove uploaded file"');
   });
+
+  it("provides a keyboard-reachable PDF chooser", async () => {
+    const upload = await readFile(path.join(appDirectory, "portal/upload/page.tsx"), "utf8");
+
+    const chooser = upload.match(/<button[\s\S]*?Choose a PDF[\s\S]*?<\/button>/)?.[0];
+
+    expect(chooser).toContain('type="button"');
+    expect(chooser).toContain('onClick={() => inputRef.current?.click()}');
+  });
 });

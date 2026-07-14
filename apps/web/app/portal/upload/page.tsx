@@ -102,13 +102,19 @@ export default function UploadPage() {
           setDrag(false);
           pick(e.dataTransfer.files[0] ?? null);
         }}
-        onClick={() => inputRef.current?.click()}
-        className={`cursor-pointer rounded-[18px] border-2 border-dashed p-10 text-center transition ${
+        className={`rounded-[18px] border-2 border-dashed p-10 text-center transition ${
           drag ? 'border-[#0985E7] bg-[#EEF6FF]' : 'border-[#E8F0F8] bg-white hover:border-[#0985E7]'
         }`}
       >
         <UploadFileIcon sx={{ fontSize: 48, color: '#0985E7' }} />
-        <p className="mt-3 text-sm font-bold text-[#0C2B49]">Drop your PDF here or click to browse</p>
+        <p className="mt-3 text-sm font-bold text-[#0C2B49]">Drop your PDF here</p>
+        <button
+          type="button"
+          onClick={() => inputRef.current?.click()}
+          className="mt-3 rounded-full border border-[#0985E7] px-4 py-2 text-sm font-bold text-[#0985E7] transition hover:bg-[#EEF6FF] focus:outline-none focus:ring-2 focus:ring-[#0985E7] focus:ring-offset-2"
+        >
+          Choose a PDF
+        </button>
         <input
           ref={inputRef}
           type="file"
