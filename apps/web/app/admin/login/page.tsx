@@ -58,7 +58,7 @@ export default function AdminLoginPage() {
             <Image src="/lexchain/logo-lexchain.svg" alt="LexChain" width={36} height={36} className="rounded-[10px]" />
             <span className="text-lg font-black text-[#0C2B49]">Lex<span className="text-[#0985E7]">Chain</span></span>
           </div>
-          <h1 className="text-3xl font-black leading-9 text-[#0C2B49]">Super Admin Login</h1>
+          <h1 className="text-3xl font-black leading-9 text-[#0C2B49]">Operations Login</h1>
           <p className="text-sm font-semibold leading-5 text-[#64748b]">
             Sign in with your admin credentials.
           </p>

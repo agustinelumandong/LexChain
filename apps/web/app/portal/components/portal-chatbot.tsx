@@ -42,6 +42,7 @@ export default function PortalChatbot() {
     return (
       <button
         onClick={() => setOpen(true)}
+        aria-label="Open document assistant"
         className="fixed bottom-24 right-4 z-50 w-14 h-14 flex items-center justify-center rounded-full bg-[#1689F5] text-white shadow-[0_8px_20px_rgba(22,137,245,0.2)] hover:opacity-90 transition-opacity cursor-pointer"
       >
         <ChatIcon />
@@ -54,7 +55,7 @@ export default function PortalChatbot() {
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--portal-border-soft)]">
         <span className="font-bold text-[var(--portal-navy)]">Ask Document</span>
-        <button onClick={() => setOpen(false)} className="text-[var(--portal-navy)] opacity-60 hover:opacity-100">
+        <button onClick={() => setOpen(false)} aria-label="Close document assistant" className="text-[var(--portal-navy)] opacity-60 hover:opacity-100">
           <CloseIcon fontSize="small" />
         </button>
       </div>
@@ -88,6 +89,7 @@ export default function PortalChatbot() {
         />
         <button
           onClick={send}
+          aria-label="Send question"
           className="w-9 h-9 flex items-center justify-center rounded-full bg-[#1689F5] text-white"
         >
           <SendIcon fontSize="small" />

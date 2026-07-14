@@ -316,7 +316,7 @@ export function GeneratedReportsManagementView({ reports }: { reports: Generated
     <div className="flex min-h-[calc(100vh-48px)] w-full flex-col gap-5">
       <header className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
         <div>
-          <p className="text-xs font-black uppercase tracking-[0.22em] text-[#0879D8]">LexChain Super Admin</p>
+          <p className="text-xs font-black uppercase tracking-[0.22em] text-[#0879D8]">LexChain Operations</p>
           <h1 className="mt-1 text-3xl font-black leading-tight text-[#071B33]">Generated Reports</h1>
           <p className="mt-1 text-sm font-semibold text-[#4B6382]">Review generated summaries, OCR extracts, verification reports, blockchain exports, and admin-ready records.</p>
         </div>

@@ -27,6 +27,7 @@ export function PortalBottomNav({ pathname }: { pathname: string }) {
                 <Link
                   key={href}
                   href={href}
+                  aria-label={label}
                   className={`flex-1 flex flex-col items-center justify-center gap-[3px] min-h-[56px] rounded-[28px] transition-colors ${active ? 'bg-[var(--portal-surface-soft)]' : ''}`}
                 >
                   <Icon sx={{ fontSize: 18, color: active ? 'var(--portal-primary)' : 'var(--portal-text-muted)' }} />
@@ -40,6 +41,7 @@ export function PortalBottomNav({ pathname }: { pathname: string }) {
 
           <Link
             href="/portal/upload"
+            aria-label="Upload document"
             className="shrink-0 w-[62px] h-[62px] flex items-center justify-center rounded-3xl bg-[var(--portal-primary)] shadow-[0_12px_20px_rgba(22,137,245,0.16)]"
           >
             <FileUploadIcon sx={{ fontSize: 22, color: '#fff' }} />

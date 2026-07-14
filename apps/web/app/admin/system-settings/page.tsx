@@ -86,7 +86,7 @@ export default function AdminSystemSettingsPage() {
                   <span className="text-xs font-black uppercase tracking-[0.1em] text-[#64748b]">Role</span>
                   <input
                     className="mt-2 min-h-12 w-full rounded-xl border border-[#E4EEF9] bg-[#F8FBFF] px-4 text-sm font-semibold text-[#64748b] outline-none"
-                    value="Super Admin"
+                    value="Operations Administrator"
                     disabled
                   />
                 </label>

@@ -89,6 +89,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
         <aside className={`relative sticky top-0 hidden h-screen shrink-0 flex-col gap-7 border-r border-[#E8F0F8] bg-white pb-[22px] pt-[26px] transition-all duration-300 md:flex ${collapsed ? "w-[72px] px-3" : "w-[260px] px-[22px]"}`}>
           <button
             onClick={() => setCollapsed(!collapsed)}
+            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
             className="absolute -right-3 top-7 z-10 flex h-6 w-6 cursor-pointer items-center justify-center rounded-full border border-[#E8F0F8] bg-white text-[#64748b] shadow-sm transition hover:bg-[#EEF4FB] hover:text-[#0C2B49]"
           >
             {collapsed ? <MenuIcon style={{ fontSize: 14 }} /> : <ChevronLeftIcon style={{ fontSize: 14 }} />}
@@ -122,6 +123,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
                   ].join(" ")}
                   href={link.href}
                   key={link.href}
+                  aria-label={link.label}
                   title={collapsed ? link.label : undefined}
                 >
                   <span className={isActive ? "text-[#0985E7]" : "text-[#A7B4C4]"}>
@@ -163,6 +165,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
                   <button
                     type="button"
                     onClick={() => setProfileMenuOpen((o) => !o)}
+                    aria-label="Open profile menu"
                     className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-[#64748b] transition hover:bg-white hover:text-[#0C2B49]"
                   >
                     <MoreVertIcon fontSize="small" />

@@ -44,7 +44,7 @@ type PermissionRow = {
 };
 
 const roles: RoleRow[] = [
-  { id: "role_super_admin", name: "Super Admin", users: 2, scope: "Global", permissions: "Full Access", status: "Active", updated: "Today", category: "admin", access: "Full Access" },
+  { id: "role_super_admin", name: "Operations Administrator", users: 2, scope: "Global", permissions: "Full Access", status: "Active", updated: "Today", category: "admin", access: "Full Access" },
   { id: "role_admin", name: "Admin", users: 16, scope: "System", permissions: "User & report management", status: "Active", updated: "2h ago", category: "admin", access: "Administrative" },
   { id: "role_issuer", name: "Document Issuer", users: 40, scope: "Owned documents", permissions: "Upload, manage, invite", status: "Active", updated: "25m ago", category: "issuer", access: "Issuer" },
   { id: "role_participant", name: "Participant", users: 96, scope: "Shared documents", permissions: "View / comment", status: "Active", updated: "1h ago", category: "participant", access: "Participant" },
@@ -56,9 +56,9 @@ const permissions: PermissionRow[] = [
   { id: "perm_documents_upload", name: "Upload Documents", group: "Documents", scope: "Owned documents", assignedRoles: "Document Issuer, Admin", rule: "Create and submit records", status: "Active", updated: "15m ago" },
   { id: "perm_documents_share", name: "Invite Document Viewers", group: "Invitations", scope: "Owned documents", assignedRoles: "Document Issuer", rule: "Invite participant access", status: "Active", updated: "28m ago" },
   { id: "perm_verify_public", name: "Run Public Verification", group: "Documents", scope: "Verification portal", assignedRoles: "Public Verifier, Participant", rule: "Verify authenticity only", status: "Active", updated: "1h ago" },
-  { id: "perm_reports_export", name: "Export Reports", group: "Reports", scope: "Admin reports", assignedRoles: "Super Admin, Admin", rule: "Download PDF / CSV / TXT", status: "Active", updated: "2h ago" },
-  { id: "perm_audit_review", name: "Review Audit Logs", group: "Audit", scope: "Compliance logs", assignedRoles: "Super Admin, Compliance Reviewer", rule: "Read-only trace review", status: "Pending Review", updated: "Yesterday" },
-  { id: "perm_roles_manage", name: "Manage Roles", group: "Users", scope: "Role directory", assignedRoles: "Super Admin", rule: "Create, edit, approve roles", status: "Active", updated: "Today" },
+  { id: "perm_reports_export", name: "Export Reports", group: "Reports", scope: "Admin reports", assignedRoles: "Operations Administrator, Admin", rule: "Download PDF / CSV / TXT", status: "Active", updated: "2h ago" },
+  { id: "perm_audit_review", name: "Review Audit Logs", group: "Audit", scope: "Compliance logs", assignedRoles: "Operations Administrator, Compliance Reviewer", rule: "Read-only trace review", status: "Pending Review", updated: "Yesterday" },
+  { id: "perm_roles_manage", name: "Manage Roles", group: "Users", scope: "Role directory", assignedRoles: "Operations Administrator", rule: "Create, edit, approve roles", status: "Active", updated: "Today" },
 ];
 
 const managementTabs = [
@@ -67,7 +67,7 @@ const managementTabs = [
 ];
 
 const activities = [
-  { label: "Super Admin permission updated — Maria Santos", time: "12m ago", icon: <ShieldIcon fontSize="small" />, color: "text-[#0879D8]" },
+  { label: "Operations Administrator permission updated — Maria Santos", time: "12m ago", icon: <ShieldIcon fontSize="small" />, color: "text-[#0879D8]" },
   { label: "Issuer role assigned — Andrea Dizon", time: "28m ago", icon: <DescriptionIcon fontSize="small" />, color: "text-[#7C3AED]" },
   { label: "Participant access expanded — Sofia Tan", time: "1h ago", icon: <GroupsIcon fontSize="small" />, color: "text-[#F97316]" },
   { label: "Verifier role created — System", time: "2h ago", icon: <VerifiedUserIcon fontSize="small" />, color: "text-[#06B6D4]" },
@@ -333,7 +333,7 @@ export function RolesPermissionsView() {
     <div className="flex min-h-[calc(100vh-48px)] w-full flex-col gap-5 xl:h-[calc(100vh-48px)] xl:overflow-hidden">
       <header className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
         <div>
-          <p className="text-xs font-black uppercase tracking-[0.22em] text-[#0879D8]">LexChain Super Admin</p>
+          <p className="text-xs font-black uppercase tracking-[0.22em] text-[#0879D8]">LexChain Operations</p>
           <h1 className="mt-1 text-3xl font-black leading-tight text-[#071B33]">User Roles & Permissions</h1>
           <p className="mt-1 text-sm font-semibold text-[#4B6382]">Manage role assignments, access scopes, and permission policies across the platform.</p>
         </div>
