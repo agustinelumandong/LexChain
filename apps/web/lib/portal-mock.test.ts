@@ -34,4 +34,17 @@ describe('portal mock profiles', () => {
       role: 'lawyer',
     });
   });
+
+  it('keeps the fixed document issuer when a participant fetches document parties', async () => {
+    const response = mockPortalGet('/documents/mock-document-1/parties', 'mock-token:mock-user');
+
+    await expect(response.json()).resolves.toMatchObject({
+      issuer: {
+        f_name: 'Jane',
+        l_name: 'Doe',
+        email: 'jane.doe@lexchain.local',
+        role: 'issuer',
+      },
+    });
+  });
 });
