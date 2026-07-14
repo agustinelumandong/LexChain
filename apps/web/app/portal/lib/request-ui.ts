@@ -6,6 +6,12 @@ export function getRequestActions(role: PortalUiRole, status?: string): string[]
     : [];
 }
 
+export function getRequestActionError(action: "approve" | "reject"): string {
+  return action === "approve"
+    ? "Unable to approve this request. Please try again."
+    : "Unable to reject this request. Please try again.";
+}
+
 export function getRequestStatusLabel(status: string): string {
   return status
     .trim()
