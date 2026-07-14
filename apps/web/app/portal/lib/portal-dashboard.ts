@@ -1,4 +1,5 @@
 import type { PortalUiRole } from "./portal-role";
+import { getDocumentStatusLabel } from "./document-ui";
 
 export type PortalDocument = {
   status?: string | null;
@@ -11,6 +12,37 @@ export type PortalNavigationItem = {
 };
 
 export type DashboardMetric = readonly [label: string, value: number];
+
+export type IssuerQuickActionLabel =
+  | "Upload Document"
+  | "Register books"
+  | "Review document requests"
+  | "Invite Party"
+  | "Verify Document";
+
+export type IssuerQuickAction = {
+  label: IssuerQuickActionLabel;
+  description: string;
+  href: string;
+};
+
+export function getIssuerQuickActions(): IssuerQuickAction[] {
+  return [
+    { label: "Upload Document", description: "Add a new legal document", href: "/portal/upload" },
+    { label: "Register books", description: "Manage physical register volumes", href: "/portal/books" },
+    { label: "Review document requests", description: "Respond to participant e-copy requests", href: "/portal/requests" },
+    { label: "Invite Party", description: "Invite others to collaborate", href: "/portal/documents" },
+    { label: "Verify Document", description: "Verify document authenticity", href: "/portal/documents" },
+  ];
+}
+
+export function getRecentActivityStatus(status?: string | null) {
+  return getDocumentStatusLabel(status);
+}
+
+export function getStatusOverviewLabel(status?: string | null) {
+  return getDocumentStatusLabel(status);
+}
 
 export function getPortalNavigation(role: PortalUiRole): PortalNavigationItem[] {
   if (role === "issuer") {

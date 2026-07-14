@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getDashboardMetrics, getPortalNavigation } from "./portal-dashboard";
+import { getDashboardMetrics, getIssuerQuickActions, getPortalNavigation, getRecentActivityStatus, getStatusOverviewLabel } from "./portal-dashboard";
 
 describe("portal dashboard", () => {
   it("gives issuers the mobile-aligned navigation", () => {
@@ -40,5 +40,20 @@ describe("portal dashboard", () => {
       "Processing",
       1,
     ]);
+  });
+
+  it("includes the issuer document-request review quick action", () => {
+    expect(getIssuerQuickActions()).toContainEqual(expect.objectContaining({
+      label: "Review document requests",
+      href: "/portal/requests",
+    }));
+  });
+
+  it("uses the mobile completed vocabulary for anchored recent activity", () => {
+    expect(getRecentActivityStatus("anchored")).toBe("Completed");
+  });
+
+  it("uses the mobile completed vocabulary in the status overview", () => {
+    expect(getStatusOverviewLabel("anchored")).toBe("Completed");
   });
 });

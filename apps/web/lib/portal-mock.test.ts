@@ -12,12 +12,25 @@ describe('portal mock mutations', () => {
 
     const response = await mockPortalMutate(
       'POST',
-      '/documents/upload?book_id=book-1&file_name=Deed%20of%20Sale',
+      '/documents/upload?book_id=mock-book-1&file_name=Deed%20of%20Sale',
       request,
     );
 
     expect(response.status).toBe(201);
     await expect(response.json()).resolves.toMatchObject({ status: 'completed' });
+  });
+
+  it('denies a participant document upload', async () => {
+    const form = new FormData();
+    form.append('file', new File(['PDF'], 'participant.pdf', { type: 'application/pdf' }));
+    const response = await mockPortalMutate(
+      'POST',
+      '/documents/upload?book_id=mock-book-1&file_name=Participant',
+      new Request('https://mock.lexchain.local/api/portal/proxy-post', { method: 'POST', body: form }),
+      'mock-token:mock-user',
+    );
+
+    expect(response.status).toBe(403);
   });
 });
 
@@ -39,8 +52,8 @@ describe('portal mock profiles', () => {
     });
   });
 
-  it('keeps the fixed document issuer when a participant fetches document parties', async () => {
-    const response = mockPortalGet('/documents/mock-document-1/parties', 'mock-token:mock-user');
+  it('keeps the fixed document issuer when an issuer fetches document parties', async () => {
+    const response = mockPortalGet('/documents/mock-document-1/parties', 'mock-token:mock-lawyer');
 
     await expect(response.json()).resolves.toMatchObject({
       issuer: {
@@ -50,6 +63,64 @@ describe('portal mock profiles', () => {
         role: 'issuer',
       },
     });
+  });
+});
+
+describe('portal mock document isolation', () => {
+  it('does not expose issuer documents or document details to a participant before access is accepted', async () => {
+    const documents = mockPortalGet('/documents/', 'mock-token:mock-user');
+    const detail = mockPortalGet('/documents/mock-document-2', 'mock-token:mock-user');
+
+    await expect(documents.json()).resolves.toEqual([]);
+    expect(detail.status).toBe(403);
+  });
+});
+
+describe('portal mock books', () => {
+  it('lists active issuer books and creates a book that can be used for upload', async () => {
+    const initial = mockPortalGet('/books/?limit=50&offset=0', 'mock-token:mock-lawyer');
+    expect(initial.status).toBe(200);
+    await expect(initial.json()).resolves.toContainEqual(expect.objectContaining({ id: 'mock-book-1', is_full: false }));
+
+    const created = await mockPortalMutate(
+      'POST',
+      '/books/',
+      new Request('https://mock.lexchain.local/api/portal/proxy-post', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ book_number: 2, series_year: 2026 }),
+      }),
+      'mock-token:mock-lawyer',
+    );
+
+    expect(created.status).toBe(201);
+    const book = await created.json();
+    expect(book).toMatchObject({ book_number: 2, series_year: 2026, is_full: false });
+
+    const form = new FormData();
+    form.append('file', new File(['PDF'], 'registered-book.pdf', { type: 'application/pdf' }));
+    const upload = await mockPortalMutate(
+      'POST',
+      `/documents/upload?book_id=${book.id}&file_name=Registered%20book`,
+      new Request('https://mock.lexchain.local/api/portal/proxy-post', { method: 'POST', body: form }),
+      'mock-token:mock-lawyer',
+    );
+    expect(upload.status).toBe(201);
+  });
+
+  it('denies participant book access and book registration', async () => {
+    expect(mockPortalGet('/books/', 'mock-token:mock-user').status).toBe(403);
+    const response = await mockPortalMutate(
+      'POST',
+      '/books/',
+      new Request('https://mock.lexchain.local/api/portal/proxy-post', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ book_number: 3, series_year: 2026 }),
+      }),
+      'mock-token:mock-user',
+    );
+    expect(response.status).toBe(403);
   });
 });
 
