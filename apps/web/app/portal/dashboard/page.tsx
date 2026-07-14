@@ -12,7 +12,7 @@ import NotificationsNoneIcon from '@mui/icons-material/NotificationsNone';
 import SearchIcon from '@mui/icons-material/Search';
 import MenuBookIcon from '@mui/icons-material/MenuBook';
 import type { ApiSchema } from '@lexchain/types';
-import { getDashboardMetrics } from '../lib/portal-dashboard';
+import { getDashboardMetrics, getIssuerQuickActions, getRecentActivityStatus, getStatusOverviewLabel } from '../lib/portal-dashboard';
 import { getPortalUiRole } from '../lib/portal-role';
 
 interface Document {
@@ -44,6 +44,14 @@ const toneStyles = {
   success: 'bg-[#EAF8F0] text-[#12A150]',
   warning: 'bg-[#FFF4DD] text-[#B77900]',
   info: 'bg-[#EAF4FF] text-[#1689F5]',
+};
+
+const issuerQuickActionIcons = {
+  'Upload Document': FileUploadIcon,
+  'Register books': MenuBookIcon,
+  'Review document requests': GroupsIcon,
+  'Invite Party': GroupsIcon,
+  'Verify Document': VerifiedUserIcon,
 };
 
 function formatDate(iso: string) {
@@ -161,7 +169,7 @@ export default function DashboardPage() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-bold text-[#0C2B49] truncate">{doc.file_name}</span>
-                        <span className={`${toneStyles[tone]} rounded-full py-0.5 px-2.5 text-[11px] font-bold shrink-0 capitalize`}>{doc.status}</span>
+                        <span className={`${toneStyles[tone]} rounded-full py-0.5 px-2.5 text-[11px] font-bold shrink-0`}>{getRecentActivityStatus(doc.status)}</span>
                       </div>
                       <p className="text-[11px] font-bold text-[#A0AAB8] mt-1">{formatDate(doc.created_at)}</p>
                     </div>
@@ -181,7 +189,7 @@ export default function DashboardPage() {
             <div className="flex items-center gap-6">
               <div className="w-[100px] h-[100px] rounded-full border-[12px] border-[#0985E7] border-t-[#12A150] border-r-[#12A150] shrink-0" />
               <div className="flex flex-col gap-2 text-xs">
-                <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-[#12A150]" /><span className="text-[#0C2B49] font-medium">Anchored</span><span className="ml-auto font-bold text-[#0C2B49] pl-4">{anchored} ({total ? Math.round(anchored/total*100) : 0}%)</span></div>
+                <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-[#12A150]" /><span className="text-[#0C2B49] font-medium">{getStatusOverviewLabel('ANCHORED')}</span><span className="ml-auto font-bold text-[#0C2B49] pl-4">{anchored} ({total ? Math.round(anchored/total*100) : 0}%)</span></div>
                 <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-[#0985E7]" /><span className="text-[#0C2B49] font-medium">Processing</span><span className="ml-auto font-bold text-[#0C2B49] pl-4">{processing} ({total ? Math.round(processing/total*100) : 0}%)</span></div>
                 <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-[#D1D5DB]" /><span className="text-[#0C2B49] font-medium">Other</span><span className="ml-auto font-bold text-[#0C2B49] pl-4">{other} ({total ? Math.round(other/total*100) : 0}%)</span></div>
               </div>
@@ -196,28 +204,18 @@ export default function DashboardPage() {
           <div className={`${cardClass} p-5`}>
             <h3 className="text-base font-black text-[#0C2B49] mb-3">Quick Actions</h3>
             <div className="flex flex-col divide-y divide-[#E8F0F8]">
-              {isIssuer && <Link href="/portal/upload" className="flex items-center gap-3 py-3 first:pt-0">
-                <div className="w-9 h-9 rounded-lg bg-[#EEF6FF] flex items-center justify-center"><FileUploadIcon sx={{ fontSize: 18, color: '#0985E7' }} /></div>
-                <div className="flex-1 min-w-0"><span className="text-sm font-bold text-[#0C2B49] block">Upload Document</span><span className="text-[11px] text-[#64748b]">Add a new legal document</span></div>
-                <ChevronRightIcon sx={{ fontSize: 18, color: '#A0AAB8' }} />
-              </Link>}
-              {isIssuer && (
-                <Link href="/portal/books" className="flex items-center gap-3 py-3">
-                  <div className="w-9 h-9 rounded-lg bg-[#EEF6FF] flex items-center justify-center"><MenuBookIcon sx={{ fontSize: 18, color: '#0985E7' }} /></div>
-                  <div className="flex-1 min-w-0"><span className="text-sm font-bold text-[#0C2B49] block">Register books</span><span className="text-[11px] text-[#64748b]">Manage physical register volumes</span></div>
+              {isIssuer ? getIssuerQuickActions().map((action, index) => {
+                const Icon = issuerQuickActionIcons[action.label];
+                return <Link key={action.label} href={action.href} className={`flex items-center gap-3 py-3 ${index === 0 ? 'first:pt-0' : ''} ${index === getIssuerQuickActions().length - 1 ? 'last:pb-0' : ''}`}>
+                  <div className="w-9 h-9 rounded-lg bg-[#EEF6FF] flex items-center justify-center"><Icon sx={{ fontSize: 18, color: '#0985E7' }} /></div>
+                  <div className="flex-1 min-w-0"><span className="text-sm font-bold text-[#0C2B49] block">{action.label}</span><span className="text-[11px] text-[#64748b]">{action.description}</span></div>
                   <ChevronRightIcon sx={{ fontSize: 18, color: '#A0AAB8' }} />
-                </Link>
-              )}
-              <Link href="/portal/documents" className="flex items-center gap-3 py-3">
-                <div className="w-9 h-9 rounded-lg bg-[#EEF6FF] flex items-center justify-center"><GroupsIcon sx={{ fontSize: 18, color: '#0985E7' }} /></div>
-                <div className="flex-1 min-w-0"><span className="text-sm font-bold text-[#0C2B49] block">Invite Party</span><span className="text-[11px] text-[#64748b]">Invite others to collaborate</span></div>
-                <ChevronRightIcon sx={{ fontSize: 18, color: '#A0AAB8' }} />
-              </Link>
-              <Link href="/portal/documents" className="flex items-center gap-3 py-3 last:pb-0">
+                </Link>;
+              }) : <Link href="/portal/documents" className="flex items-center gap-3 py-3 last:pb-0">
                 <div className="w-9 h-9 rounded-lg bg-[#EEF6FF] flex items-center justify-center"><VerifiedUserIcon sx={{ fontSize: 18, color: '#0985E7' }} /></div>
                 <div className="flex-1 min-w-0"><span className="text-sm font-bold text-[#0C2B49] block">Verify Document</span><span className="text-[11px] text-[#64748b]">Verify document authenticity</span></div>
                 <ChevronRightIcon sx={{ fontSize: 18, color: '#A0AAB8' }} />
-              </Link>
+              </Link>}
             </div>
           </div>
         </div>

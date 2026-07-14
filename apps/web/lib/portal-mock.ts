@@ -43,6 +43,17 @@ type MockDocumentRequest = {
   updated_at: string;
 };
 
+type MockBook = {
+  id: string;
+  book_number: number;
+  series_year: number;
+  document_count: number;
+  page_count: number;
+  is_full: boolean;
+  created_at: string;
+  updated_at: string | null;
+};
+
 const issuerProfile = {
   email: 'jane.doe@lexchain.local',
   f_name: 'Jane',
@@ -157,6 +168,21 @@ let documentRequests: MockDocumentRequest[] = [
   },
 ];
 
+let books: MockBook[] = [
+  {
+    id: 'mock-book-1',
+    book_number: 1,
+    series_year: 2026,
+    document_count: 2,
+    page_count: 2,
+    is_full: false,
+    created_at: '2026-07-01T08:00:00.000Z',
+    updated_at: null,
+  },
+];
+
+const sharedDocumentIds = new Set<string>();
+
 function json(data: unknown, status = 200) {
   return Response.json(data, { status });
 }
@@ -167,6 +193,10 @@ function error(message: string, status: number) {
 
 function documentFor(id: string) {
   return documents.find((document) => document.id === id);
+}
+
+function canAccessDocument(token: string | undefined, document: MockDocument) {
+  return !isMockParticipant(token) || sharedDocumentIds.has(document.id);
 }
 
 function documentPaths(path: string) {
@@ -201,6 +231,10 @@ function isMockIssuer(token?: string) {
   return token === 'mock-token:mock-lawyer';
 }
 
+function hasMockIssuerAccess(token?: string) {
+  return !token || isMockIssuer(token);
+}
+
 function requestList(requests: MockDocumentRequest[]) {
   return { requests, total: requests.length };
 }
@@ -210,7 +244,13 @@ export function mockPortalGet(path: string, token?: string): Response {
   const requestPathname = pathname(path);
   const searchParams = new URL(path, 'https://mock.lexchain.local').searchParams;
   if (path === '/users/' || path === '/users') return json(profileForToken(token));
-  if (path === '/documents/' || path === '/documents') return json(documents);
+  if (requestPathname === '/documents' || requestPathname === '/documents/') {
+    return json(isMockParticipant(token) ? documents.filter((document) => sharedDocumentIds.has(document.id)) : documents);
+  }
+  if (requestPathname === '/books' || requestPathname === '/books/') {
+    if (!hasMockIssuerAccess(token)) return error('Document Issuer access required', 403);
+    return json(books);
+  }
   if (path === '/notifications/' || path === '/notifications') {
     return json({ notifications, total: notifications.length });
   }
@@ -237,6 +277,7 @@ export function mockPortalGet(path: string, token?: string): Response {
     const [, id, detail] = documentMatch;
     const document = documentFor(id);
     if (!document) return error('Document not found', 404);
+    if (!canAccessDocument(token, document)) return error('Document access required', 403);
     if (!detail) return json(document);
     if (detail === 'parties') {
       return json({
@@ -284,7 +325,7 @@ async function jsonBody(request: Request) {
   return request.json().catch(() => null) as Promise<Record<string, unknown> | null>;
 }
 
-async function uploadDocument(request: Request) {
+async function uploadDocument(request: Request, path: string) {
   const form = await request.formData().catch(() => null);
   const file = form?.get('file');
   if (!(file instanceof File) || !file.name.toLowerCase().endsWith('.pdf')) {
@@ -292,6 +333,10 @@ async function uploadDocument(request: Request) {
   }
 
   const now = new Date().toISOString();
+  const requestUrl = new URL(path, 'https://mock.lexchain.local');
+  const bookId = requestUrl.searchParams.get('book_id');
+  const book = books.find((candidate) => candidate.id === bookId && !candidate.is_full);
+  if (!book) return error('An active book is required', 400);
   const id = `mock-document-${Date.now()}`;
   const document: MockDocument = {
     id,
@@ -311,6 +356,12 @@ async function uploadDocument(request: Request) {
     updated_at: now,
   };
   documents = [document, ...documents];
+  books = books.map((candidate) => candidate.id === book.id ? {
+    ...candidate,
+    document_count: candidate.document_count + 1,
+    page_count: candidate.page_count + 1,
+    updated_at: now,
+  } : candidate);
   notifications = [{
     id: `mock-notification-${Date.now()}`,
     title: 'Document uploaded',
@@ -319,6 +370,34 @@ async function uploadDocument(request: Request) {
     created_at: now,
   }, ...notifications];
   return json({ document_id: id, status: document.status }, 201);
+}
+
+async function createBook(request: Request) {
+  const body = await jsonBody(request);
+  const bookNumber = body?.book_number;
+  const seriesYear = body?.series_year;
+  if (typeof bookNumber !== 'number' || !Number.isInteger(bookNumber) || typeof seriesYear !== 'number' || !Number.isInteger(seriesYear)) {
+    return error('Book number and series year are required', 400);
+  }
+  if (bookNumber < 1 || bookNumber > 1000 || seriesYear < 2000) {
+    return error('Book number or series year is invalid', 400);
+  }
+  if (books.some((book) => book.book_number === bookNumber && book.series_year === seriesYear)) {
+    return error('Book already exists', 400);
+  }
+  const now = new Date().toISOString();
+  const book: MockBook = {
+    id: `mock-book-${Date.now()}`,
+    book_number: bookNumber,
+    series_year: seriesYear,
+    document_count: 0,
+    page_count: 0,
+    is_full: false,
+    created_at: now,
+    updated_at: null,
+  };
+  books = [...books, book];
+  return json(book, 201);
 }
 
 async function searchDocuments(request: Request) {
@@ -349,7 +428,14 @@ async function askDocument(id: string, request: Request) {
 export async function mockPortalMutate(method: 'POST' | 'PATCH', path: string, request: Request, token?: string): Promise<Response> {
   if (token && !isMockPortalToken(token)) return error('Not authenticated', 401);
   const requestPathname = pathname(path);
-  if (method === 'POST' && (requestPathname === '/documents/upload' || requestPathname === '/documents/upload/')) return uploadDocument(request);
+  if (method === 'POST' && (requestPathname === '/documents/upload' || requestPathname === '/documents/upload/')) {
+    if (!hasMockIssuerAccess(token)) return error('Document Issuer access required', 403);
+    return uploadDocument(request, path);
+  }
+  if (method === 'POST' && (requestPathname === '/books' || requestPathname === '/books/')) {
+    if (!hasMockIssuerAccess(token)) return error('Document Issuer access required', 403);
+    return createBook(request);
+  }
   if (method === 'POST' && path === '/search') return searchDocuments(request);
 
   const askMatch = path.match(/^\/documents\/([^/]+)\/ask\/?$/);
@@ -362,6 +448,7 @@ export async function mockPortalMutate(method: 'POST' | 'PATCH', path: string, r
     const invitation = invitations.find((item) => item.document_id === documentId && item.status === 'pending');
     if (!invitation) return error('Invitation not found', 404);
     invitations = invitations.filter((item) => item.id !== invitation.id);
+    sharedDocumentIds.add(documentId);
     return new Response(null, { status: 204 });
   }
 
