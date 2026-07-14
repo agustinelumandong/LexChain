@@ -1,10 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { getPortalRoleLabel, getPortalUiRole, isSupportedPortalUiRole } from "./portal-role";
+import { getPortalProfileRequestShortcut, getPortalRoleLabel, getPortalUiRole, isSupportedPortalUiRole } from "./portal-role";
 
 describe("portal UI roles", () => {
   it("maps backend lawyer copy to Document Issuer", () => {
     expect(getPortalUiRole("lawyer")).toBe("issuer");
     expect(getPortalRoleLabel("lawyer")).toBe("Document Issuer");
+  });
+
+  it("does not expose Super Admin as product copy", () => {
+    expect(getPortalRoleLabel("lawyer")).not.toContain("Admin");
   });
 
   it("maps backend user copy to Document Participant", () => {
@@ -17,5 +21,17 @@ describe("portal UI roles", () => {
 
     expect(uiRole).toBe("unsupported");
     expect(isSupportedPortalUiRole(uiRole)).toBe(false);
+    expect(getPortalProfileRequestShortcut(uiRole)).toBeUndefined();
+  });
+
+  it("maps profile shortcuts only for supported portal roles", () => {
+    expect(getPortalProfileRequestShortcut("issuer")).toEqual({
+      label: "Document Requests",
+      href: "/portal/requests",
+    });
+    expect(getPortalProfileRequestShortcut("participant")).toEqual({
+      label: "My E-copy Requests",
+      href: "/portal/requests/my",
+    });
   });
 });

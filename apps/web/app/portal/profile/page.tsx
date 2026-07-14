@@ -9,16 +9,18 @@ import LockIcon from '@mui/icons-material/Lock';
 import NotificationsNoneIcon from '@mui/icons-material/NotificationsNone';
 import PolicyIcon from '@mui/icons-material/Policy';
 import HelpOutlineIcon from '@mui/icons-material/HelpOutlineOutlined';
+import RequestPageIcon from '@mui/icons-material/RequestPage';
 import type { ApiSchema } from '@lexchain/types';
+import { getPortalProfileRequestShortcut, getPortalRoleLabel, getPortalUiRole } from '../lib/portal-role';
 
 type UserProfile = ApiSchema<'UserProfileResponse'>;
 
-const settingsItems = [
-  { label: 'Account', description: 'Personal information and email', href: '/portal/profile/account', icon: PersonIcon },
+const sharedSettingsItems = [
+  { label: 'Account details', description: 'Update your profile and legal contact info', href: '/portal/profile/account', icon: PersonIcon },
   { label: 'Security', description: 'Password and login settings', href: '/portal/profile/security', icon: LockIcon },
   { label: 'Notifications', description: 'Manage notification preferences', href: '/portal/notifications', icon: NotificationsNoneIcon },
-  { label: 'Privacy Policy', description: 'How we handle your data', href: '/privacy', icon: PolicyIcon },
-  { label: 'Help & Support', description: 'Get help or contact support', href: '/download', icon: HelpOutlineIcon },
+  { label: 'Privacy policy', description: 'Review how document and account data is handled', href: '/privacy', icon: PolicyIcon },
+  { label: 'Help and support', description: 'Get help with access or verification issues', href: '/download', icon: HelpOutlineIcon },
 ];
 
 async function fetchProfile(): Promise<UserProfile> {
@@ -42,6 +44,24 @@ export default function ProfilePage() {
   };
 
   const fullName = user ? `${user.f_name} ${user.l_name}` : 'Loading...';
+  const uiRole = getPortalUiRole(user?.role);
+  const roleLabel = getPortalRoleLabel(user?.role);
+  const requestShortcut = getPortalProfileRequestShortcut(uiRole);
+  const requestItem = requestShortcut
+    ? {
+      ...requestShortcut,
+      description: uiRole === 'issuer' ? 'Review participant e-copy requests' : 'Track requests sent to issuing lawyers',
+      icon: RequestPageIcon,
+    }
+    : undefined;
+  const settingsItems = [
+    sharedSettingsItems[0],
+    sharedSettingsItems[2],
+    ...(requestItem ? [requestItem] : []),
+    sharedSettingsItems[1],
+    sharedSettingsItems[3],
+    sharedSettingsItems[4],
+  ];
 
   return (
     <div className="flex flex-col gap-5">
@@ -64,8 +84,8 @@ export default function ProfilePage() {
             </>
           )}
         </div>
-        <span className="shrink-0 rounded-full bg-[#EEF4FB] px-3.5 py-1.5 text-xs font-bold capitalize text-[#0985E7]">
-          {user?.role?.replace('_', ' ') ?? '...'}
+        <span className="shrink-0 rounded-full bg-[#EEF4FB] px-3.5 py-1.5 text-xs font-bold text-[#0985E7]">
+          {isLoading ? '...' : roleLabel}
         </span>
       </div>
 
@@ -89,7 +109,7 @@ export default function ProfilePage() {
         className="flex w-full items-center justify-center gap-2 rounded-[18px] border border-red-200 bg-white px-4 py-3.5 text-sm font-bold text-red-500 transition hover:bg-red-50"
       >
         <LogoutIcon sx={{ fontSize: 18 }} />
-        Logout
+        Sign out
       </button>
     </div>
   );
