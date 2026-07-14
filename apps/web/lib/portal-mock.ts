@@ -334,6 +334,8 @@ async function uploadDocument(request: Request, path: string) {
 
   const now = new Date().toISOString();
   const requestUrl = new URL(path, 'https://mock.lexchain.local');
+  const fileName = requestUrl.searchParams.get('file_name')?.trim();
+  if (!fileName || /[\u0000-\u001F\u007F]/.test(fileName)) return error('A valid file name is required', 400);
   const bookId = requestUrl.searchParams.get('book_id');
   const book = books.find((candidate) => candidate.id === bookId && !candidate.is_full);
   if (!book) return error('An active book is required', 400);
@@ -342,8 +344,8 @@ async function uploadDocument(request: Request, path: string) {
     id,
     document_id: id,
     document_number: 1000 + documents.length + 1,
-    file_name: file.name,
-    storage_url: `/mock-documents/${encodeURIComponent(file.name)}`,
+    file_name: fileName,
+    storage_url: `/mock-documents/${encodeURIComponent(fileName)}`,
     content_type: file.type || 'application/pdf',
     status: 'completed',
     on_chain: false,
@@ -365,7 +367,7 @@ async function uploadDocument(request: Request, path: string) {
   notifications = [{
     id: `mock-notification-${Date.now()}`,
     title: 'Document uploaded',
-    body: `${file.name} is ready to review.`,
+    body: `${fileName} is ready to review.`,
     is_read: false,
     created_at: now,
   }, ...notifications];
