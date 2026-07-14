@@ -6,11 +6,6 @@ import { useQuery } from "@tanstack/react-query";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import HomeIcon from "@mui/icons-material/Home";
-import DescriptionIcon from "@mui/icons-material/Description";
-import HistoryIcon from "@mui/icons-material/History";
-import PersonIcon from "@mui/icons-material/Person";
-import SearchIcon from "@mui/icons-material/Search";
 import SettingsIcon from "@mui/icons-material/Settings";
 import LogoutIcon from "@mui/icons-material/Logout";
 import MenuIcon from "@mui/icons-material/Menu";
@@ -20,24 +15,10 @@ import VerifiedUserIcon from "@mui/icons-material/VerifiedUser";
 import { Toaster } from 'sonner';
 import type { ApiSchema } from "@lexchain/types";
 import { getPortalRoleLabel, getPortalUiRole, isSupportedPortalUiRole } from "./lib/portal-role";
+import { getPortalNavigation } from "./lib/portal-dashboard";
+import { getPortalNavigationIcon } from "./components/portal-role-navigation";
 
 type UserProfile = ApiSchema<'UserProfileResponse'>;
-
-const issuerPortalLinks = [
-  { label: "Home", href: "/portal/dashboard", icon: <HomeIcon fontSize="small" /> },
-  { label: "Documents", href: "/portal/documents", icon: <DescriptionIcon fontSize="small" /> },
-  { label: "Upload", href: "/portal/upload", icon: <DescriptionIcon fontSize="small" /> },
-  { label: "Activity", href: "/portal/notifications", icon: <HistoryIcon fontSize="small" /> },
-  { label: "Profile", href: "/portal/profile", icon: <PersonIcon fontSize="small" /> },
-];
-
-const participantPortalLinks = [
-  { label: "Home", href: "/portal/dashboard", icon: <HomeIcon fontSize="small" /> },
-  { label: "Documents", href: "/portal/documents", icon: <DescriptionIcon fontSize="small" /> },
-  { label: "Search", href: "/portal/search", icon: <SearchIcon fontSize="small" /> },
-  { label: "Activity", href: "/portal/notifications", icon: <HistoryIcon fontSize="small" /> },
-  { label: "Profile", href: "/portal/profile", icon: <PersonIcon fontSize="small" /> },
-];
 
 export default function PortalLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -55,7 +36,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
 
   const uiRole = getPortalUiRole(profile?.role);
   const roleLabel = getPortalRoleLabel(profile?.role);
-  const portalLinks = uiRole === "issuer" ? issuerPortalLinks : uiRole === "participant" ? participantPortalLinks : [];
+  const portalLinks = isSupportedPortalUiRole(uiRole) ? getPortalNavigation(uiRole) : [];
   const initials = `${profile?.f_name?.[0] ?? ''}${profile?.l_name?.[0] ?? ''}`.toUpperCase() || '?';
   const fullName = profile ? `${profile.f_name} ${profile.l_name}` : '...';
   const email = profile?.email ?? '...';
@@ -105,7 +86,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
     <main className="min-h-screen bg-[#F5FAFF] text-[#111827]">
       <div className="flex min-h-screen">
         {/* Sidebar — same pattern as admin */}
-        <aside className={`relative sticky top-0 hidden h-screen shrink-0 flex-col gap-7 border-r border-[#E8F0F8] bg-white pb-[22px] pt-[26px] transition-all duration-300 lg:flex ${collapsed ? "w-[72px] px-3" : "w-[260px] px-[22px]"}`}>
+        <aside className={`relative sticky top-0 hidden h-screen shrink-0 flex-col gap-7 border-r border-[#E8F0F8] bg-white pb-[22px] pt-[26px] transition-all duration-300 md:flex ${collapsed ? "w-[72px] px-3" : "w-[260px] px-[22px]"}`}>
           <button
             onClick={() => setCollapsed(!collapsed)}
             className="absolute -right-3 top-7 z-10 flex h-6 w-6 cursor-pointer items-center justify-center rounded-full border border-[#E8F0F8] bg-white text-[#64748b] shadow-sm transition hover:bg-[#EEF4FB] hover:text-[#0C2B49]"
@@ -129,6 +110,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
           <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto">
             {portalLinks.map((link) => {
               const isActive = pathname.startsWith(link.href);
+              const Icon = getPortalNavigationIcon(link);
               return (
                 <Link
                   className={[
@@ -143,7 +125,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
                   title={collapsed ? link.label : undefined}
                 >
                   <span className={isActive ? "text-[#0985E7]" : "text-[#A7B4C4]"}>
-                    {link.icon}
+                    <Icon fontSize="small" />
                   </span>
                   {!collapsed && <span className="flex-1">{link.label}</span>}
                   {!collapsed && (
