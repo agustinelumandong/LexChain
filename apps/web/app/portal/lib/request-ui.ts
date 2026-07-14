@@ -1,0 +1,28 @@
+import type { PortalUiRole } from "./portal-role";
+
+export function getRequestActions(role: PortalUiRole, status?: string): string[] {
+  return role === "issuer" && status?.trim().toLowerCase() === "pending"
+    ? ["Approve", "Reject"]
+    : [];
+}
+
+export function getRequestStatusLabel(status: string): string {
+  return status
+    .trim()
+    .toLowerCase()
+    .split(/[\s_-]+/)
+    .filter(Boolean)
+    .map((part) => `${part[0]?.toUpperCase() ?? ""}${part.slice(1)}`)
+    .join(" ");
+}
+
+export function getRequestStatusClassName(status: string): string {
+  switch (status.trim().toLowerCase()) {
+    case "approved":
+      return "bg-[#EAF8F0] text-[#12A150]";
+    case "rejected":
+      return "bg-red-50 text-red-700";
+    default:
+      return "bg-[#FFF4DD] text-[#B77900]";
+  }
+}
