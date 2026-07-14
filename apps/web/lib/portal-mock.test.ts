@@ -20,6 +20,61 @@ describe('portal mock mutations', () => {
     await expect(response.json()).resolves.toMatchObject({ status: 'completed' });
   });
 
+  it('rejects an upload that omits the required file-name metadata', async () => {
+    const form = new FormData();
+    form.append('file', new File(['PDF'], 'missing-metadata.pdf', { type: 'application/pdf' }));
+
+    const response = await mockPortalMutate(
+      'POST',
+      '/documents/upload?book_id=mock-book-1',
+      new Request('https://mock.lexchain.local/api/portal/proxy-post', { method: 'POST', body: form }),
+    );
+
+    expect(response.status).toBe(400);
+  });
+
+  it('rejects an upload with blank file-name metadata', async () => {
+    const form = new FormData();
+    form.append('file', new File(['PDF'], 'blank-metadata.pdf', { type: 'application/pdf' }));
+
+    const response = await mockPortalMutate(
+      'POST',
+      '/documents/upload?book_id=mock-book-1&file_name=%20%20%20',
+      new Request('https://mock.lexchain.local/api/portal/proxy-post', { method: 'POST', body: form }),
+    );
+
+    expect(response.status).toBe(400);
+  });
+
+  it('rejects an upload with invalid file-name metadata', async () => {
+    const form = new FormData();
+    form.append('file', new File(['PDF'], 'invalid-metadata.pdf', { type: 'application/pdf' }));
+
+    const response = await mockPortalMutate(
+      'POST',
+      '/documents/upload?book_id=mock-book-1&file_name=Invalid%00title',
+      new Request('https://mock.lexchain.local/api/portal/proxy-post', { method: 'POST', body: form }),
+    );
+
+    expect(response.status).toBe(400);
+  });
+
+  it('persists file-name metadata instead of the multipart filename', async () => {
+    const form = new FormData();
+    form.append('file', new File(['PDF'], 'multipart-name.pdf', { type: 'application/pdf' }));
+
+    const upload = await mockPortalMutate(
+      'POST',
+      '/documents/upload?book_id=mock-book-1&file_name=Issuer%20document%20title',
+      new Request('https://mock.lexchain.local/api/portal/proxy-post', { method: 'POST', body: form }),
+    );
+
+    const { document_id } = await upload.json() as { document_id: string };
+    await expect(mockPortalGet(`/documents/${document_id}`).json()).resolves.toMatchObject({
+      file_name: 'Issuer document title',
+    });
+  });
+
   it('denies a participant document upload', async () => {
     const form = new FormData();
     form.append('file', new File(['PDF'], 'participant.pdf', { type: 'application/pdf' }));
