@@ -8,6 +8,7 @@ import RefreshIcon from '@mui/icons-material/Refresh';
 import type { ApiSchema } from '@lexchain/types';
 import { toast } from 'sonner';
 import { getPortalUiRole } from '../lib/portal-role';
+import { canAccessPortalFeature } from '../lib/portal-access';
 
 type Book = ApiSchema<'BookResponse'>;
 type BookCreateRequest = ApiSchema<'BookCreateRequest'>;
@@ -47,7 +48,7 @@ export default function BooksPage() {
     queryKey: ['portal-profile'],
     queryFn: () => portalGet('/users/'),
   });
-  const isIssuer = getPortalUiRole(profileQuery.data?.role) === 'issuer';
+  const isIssuer = canAccessPortalFeature(getPortalUiRole(profileQuery.data?.role), 'books');
   const booksQuery = useQuery<Book[]>({
     queryKey: ['portal-books'],
     queryFn: () => portalGet('/books/?limit=50&offset=0'),
@@ -73,7 +74,7 @@ export default function BooksPage() {
 
   function handleRegister(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!canSubmit) return;
+    if (!isIssuer || !canSubmit) return;
     createBookMutation.mutate({ book_number: parsedBookNumber, series_year: parsedSeriesYear });
   }
 

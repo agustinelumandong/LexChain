@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { isAdminRole } from "../../lib/admin-role";
 
 async function signIn(data: { email: string; password: string }) {
   const res = await fetch("/api/auth", {
@@ -38,7 +39,7 @@ function getRedirectPath(data: Record<string, unknown> | null): string {
     decodeJwtRole(data.access_token as string) ??
     ""
   ).toLowerCase();
-  if (role === "admin") {
+  if (isAdminRole(role)) {
     return "/admin/dashboard";
   }
   return "/portal/dashboard";

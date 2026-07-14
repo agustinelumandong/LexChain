@@ -5,6 +5,7 @@ export function getDocumentStatusLabel(status?: string | null): string {
   if (value === 'QUEUED') return 'Queued';
   if (value === 'PROCESSING') return 'Processing';
   if (value === 'COMPLETED') return 'Completed';
+  if (value === 'ANCHORED') return 'Completed';
   if (value === 'FAILED') return 'Failed';
   return 'Unknown';
 }

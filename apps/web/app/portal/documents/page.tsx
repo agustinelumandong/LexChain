@@ -8,6 +8,8 @@ import ShieldIcon from '@mui/icons-material/Shield';
 import DescriptionIcon from '@mui/icons-material/Description';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import { getDocumentStatusLabel } from '../lib/document-ui';
+import { getPortalUiRole } from '../lib/portal-role';
+import type { ApiSchema } from '@lexchain/types';
 
 interface Document {
   id: string;
@@ -19,6 +21,8 @@ interface Document {
   book_number?: number | null;
   page_number?: number | null;
 }
+
+type UserProfile = ApiSchema<'UserProfileResponse'>;
 
 async function fetchDocuments(): Promise<Document[]> {
   const res = await fetch('/api/portal/proxy?path=%2Fdocuments%2F', { credentials: 'same-origin' });
@@ -42,10 +46,20 @@ export default function DocumentsPage() {
   const [status, setStatus] = useState('all');
   const [date, setDate] = useState('');
   const [sort, setSort] = useState('newest');
-  const { data: documents = [], isLoading } = useQuery<Document[]>({
+  const documentsQuery = useQuery<Document[]>({
     queryKey: ['portal-documents'],
     queryFn: fetchDocuments,
   });
+  const profileQuery = useQuery<UserProfile | null>({
+    queryKey: ['portal-profile'],
+    queryFn: async () => {
+      const response = await fetch('/api/portal/proxy?path=%2Fusers%2F', { credentials: 'same-origin' });
+      if (!response.ok) throw new Error('Failed to fetch profile');
+      return response.json();
+    },
+  });
+  const documents = documentsQuery.data ?? [];
+  const isIssuer = getPortalUiRole(profileQuery.data?.role) === 'issuer';
 
   const filtered = documents
     .filter((document) => document.file_name.toLowerCase().includes(search.toLowerCase()))
@@ -89,19 +103,21 @@ export default function DocumentsPage() {
       </div>
 
       {/* List */}
-      {isLoading ? (
+      {documentsQuery.isLoading ? (
         <div className="flex flex-col gap-3">
           {[1,2,3].map(i => (
             <div key={i} className="bg-white rounded-[18px] border border-[#E8F0F8] h-[80px] animate-pulse" />
           ))}
         </div>
+      ) : documentsQuery.isError ? (
+        <div role="alert" className="bg-white rounded-[18px] border border-[#E8F0F8] p-8 text-center"><p className="text-sm font-bold text-[#0C2B49]">Unable to load documents.</p><button type="button" onClick={() => void documentsQuery.refetch()} className="mt-4 rounded-full border border-[#D7E4F2] px-4 py-2 text-sm font-black text-[#0985E7]">Retry</button></div>
       ) : filtered.length === 0 ? (
         <div className="bg-white rounded-[18px] border border-[#E8F0F8] p-8 text-center">
           <p className="text-sm font-bold text-[#0C2B49]">{search ? 'No documents match your search' : 'No documents yet'}</p>
-          <p className="text-xs text-[#64748b] mt-1">Upload your first document to get started.</p>
-          <Link href="/portal/upload" className="inline-flex items-center gap-2 mt-4 rounded-full bg-[#0985E7] px-5 py-2.5 text-sm font-black text-white">
+          <p className="text-xs text-[#64748b] mt-1">{isIssuer ? 'Upload your first document to get started.' : 'No documents are available yet.'}</p>
+          {isIssuer && <Link href="/portal/upload" className="inline-flex items-center gap-2 mt-4 rounded-full bg-[#0985E7] px-5 py-2.5 text-sm font-black text-white">
             Upload Document
-          </Link>
+          </Link>}
         </div>
       ) : (
         <div className="flex flex-col gap-3">
