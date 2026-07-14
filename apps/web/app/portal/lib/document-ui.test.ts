@@ -21,4 +21,8 @@ describe("document UI", () => {
     expect(getDocumentActions("participant", { status: "COMPLETED", on_chain: false }))
       .toEqual(["View PDF"]);
   });
+
+  it("labels the existing anchored mock status as completed", () => {
+    expect(getDocumentStatusLabel("anchored")).toBe("Completed");
+  });
 });

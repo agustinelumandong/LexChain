@@ -143,7 +143,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
                 <VerifiedUserIcon sx={{ fontSize: 20, color: '#0985E7' }} />
                 <span className="text-xs font-black text-[#0C2B49]">Secure. Verifiable. Trustworthy.</span>
               </div>
-              <p className="text-[11px] font-medium text-[#64748b] leading-4">All records are secured on-chain and tamper-proof.</p>
+              <p className="text-[11px] font-medium text-[#64748b] leading-4">On-chain records support document verification and integrity checks.</p>
             </div>
           )}
 

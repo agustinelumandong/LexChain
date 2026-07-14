@@ -267,7 +267,7 @@ export default function DocumentDetailPage({ params }: { params: Promise<{ id: s
         <div className={cardClass}><h2 className="mb-3 text-sm font-black text-[#0C2B49]">Confidence</h2><p className="text-[13px] font-medium text-[#64748b]">{doc.summary ? 'Summary generated from document processing.' : 'Confidence is unavailable until processing completes.'}</p></div>
       </div>
 
-      {doc.on_chain && (
+      {actions.includes('Verify Document') && (
         <Link href={`/portal/documents/${id}/verify`} className="flex w-full items-center justify-center rounded-full bg-[#0985E7] py-3 text-sm font-extrabold text-white">
           Verify on Chain
         </Link>

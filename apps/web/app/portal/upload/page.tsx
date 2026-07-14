@@ -7,9 +7,12 @@ import UploadFileIcon from '@mui/icons-material/UploadFile';
 import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile';
 import CloseIcon from '@mui/icons-material/Close';
 import { uploadDocument } from '../lib/portal-upload';
+import { canAccessPortalFeature } from '../lib/portal-access';
+import { getPortalUiRole } from '../lib/portal-role';
 import type { ApiSchema } from '@lexchain/types';
 
 type Book = ApiSchema<'BookResponse'>;
+type UserProfile = ApiSchema<'UserProfileResponse'>;
 
 async function fetchBooks(): Promise<Book[]> {
   const res = await fetch(`/api/portal/proxy?path=${encodeURIComponent('/books/?limit=50&offset=0')}`, {
@@ -26,7 +29,16 @@ export default function UploadPage() {
   const [title, setTitle] = useState('');
   const [bookId, setBookId] = useState('');
   const [drag, setDrag] = useState(false);
-  const booksQuery = useQuery({ queryKey: ['portal-books'], queryFn: fetchBooks });
+  const profileQuery = useQuery<UserProfile | null>({
+    queryKey: ['portal-profile'],
+    queryFn: async () => {
+      const response = await fetch(`/api/portal/proxy?path=${encodeURIComponent('/users/')}`, { credentials: 'same-origin' });
+      if (!response.ok) throw new Error('Unable to load profile');
+      return response.json();
+    },
+  });
+  const isIssuer = canAccessPortalFeature(getPortalUiRole(profileQuery.data?.role), 'upload');
+  const booksQuery = useQuery({ queryKey: ['portal-books'], queryFn: fetchBooks, enabled: isIssuer });
   const books = booksQuery.data ?? [];
   const availableBooks = books.filter((book) => !book.is_full);
 
@@ -51,6 +63,11 @@ export default function UploadPage() {
   }
 
   const error = mutation.error instanceof Error ? mutation.error.message : null;
+
+  if (profileQuery.isPending) return <p className="text-sm font-semibold text-[#64748b]">Loading your upload access…</p>;
+  if (!isIssuer) {
+    return <section className="max-w-xl rounded-[18px] border border-[#E8F0F8] bg-white p-6"><h1 className="text-xl font-black text-[#0C2B49]">Upload unavailable</h1><p className="mt-2 text-sm text-[#64748b]">Only Document Issuers can upload documents.</p></section>;
+  }
 
   return (
     <div className="flex max-w-xl flex-col gap-5">

@@ -5,8 +5,11 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import type { ApiSchema } from "@lexchain/types";
 import { portalFetch } from "../lib/portal-fetch";
+import { canAccessPortalFeature } from "../lib/portal-access";
+import { getPortalUiRole } from "../lib/portal-role";
 
 type Invitation = ApiSchema<"DocumentInvitationResponse">;
+type UserProfile = ApiSchema<"UserProfileResponse">;
 
 function formatDate(value: string) {
   const date = new Date(value);
@@ -26,12 +29,16 @@ export default function InvitationsPage() {
   const queryClient = useQueryClient();
   const [busyId, setBusyId] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const profileQuery = useQuery<UserProfile | null>({ queryKey: ["portal-profile"], queryFn: () => portalFetch<UserProfile | null>("/users/") });
+  const isParticipant = canAccessPortalFeature(getPortalUiRole(profileQuery.data?.role), "invitations");
   const { data: invitations = [], error, isLoading } = useQuery<Invitation[]>({
     queryKey: ["portal-invitations"],
     queryFn: () => portalFetch<Invitation[]>("/documents/invitations"),
+    enabled: isParticipant,
   });
 
   async function handleInvitation(invitation: Invitation, action: "accept" | "reject") {
+    if (!isParticipant) return;
     setBusyId(invitation.id);
     setActionError(null);
     try {
@@ -44,6 +51,9 @@ export default function InvitationsPage() {
       setBusyId(null);
     }
   }
+
+  if (profileQuery.isPending) return <p className="text-sm font-semibold text-[#64748b]">Loading your invitation access…</p>;
+  if (!isParticipant) return <section className="rounded-[18px] border border-[#E8F0F8] bg-white p-6"><h1 className="text-xl font-black text-[#0C2B49]">Invitations unavailable</h1><p className="mt-2 text-sm text-[#64748b]">Document Participants can manage shared document invitations.</p></section>;
 
   return (
     <div className="flex max-w-3xl flex-col gap-5">

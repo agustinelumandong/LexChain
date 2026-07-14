@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-
-const ADMIN_ROLES = new Set(["admin", "super_admin", "superadmin", "owner"]);
+import { isAdminRole } from "./lib/admin-role";
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const token = request.cookies.get("portal_token")?.value ?? request.cookies.get("admin_token")?.value;
   const role = request.cookies.get("user_role")?.value ?? "";
-  const isAdmin = ADMIN_ROLES.has(role.toLowerCase());
+  const isAdmin = isAdminRole(role);
 
   // Legacy /admin/login → unified /login
   if (pathname === "/admin/login") {

@@ -58,7 +58,7 @@ function getMetricIcon(label: string) {
 }
 
 export default function DashboardPage() {
-  const { data: documents = [] } = useQuery<Document[]>({
+  const documentsQuery = useQuery<Document[]>({
     queryKey: ['portal-documents'],
     queryFn: () => fetchJson('/documents/'),
   });
@@ -75,6 +75,7 @@ export default function DashboardPage() {
 
   const uiRole = getPortalUiRole(profile?.role);
   const isIssuer = uiRole === 'issuer';
+  const documents = documentsQuery.data ?? [];
   const total = documents.length;
   const processing = documents.filter(d => d.status?.toLowerCase() === 'processing' || d.status?.toLowerCase() === 'pending').length;
   const recent = [...documents].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).slice(0, 5);
@@ -113,12 +114,14 @@ export default function DashboardPage() {
               </span>
             )}
           </Link>
-          <Link href="/portal/upload" className="flex items-center gap-2 rounded-full bg-[#0985E7] px-5 py-2.5 text-sm font-black text-white transition hover:bg-[#0770c4]">
+          {isIssuer && <Link href="/portal/upload" className="flex items-center gap-2 rounded-full bg-[#0985E7] px-5 py-2.5 text-sm font-black text-white transition hover:bg-[#0770c4]">
             <FileUploadIcon sx={{ fontSize: 18 }} />
             Upload Document
-          </Link>
+          </Link>}
         </div>
       </div>
+
+      {documentsQuery.isError && <div role="alert" className={`${cardClass} flex flex-wrap items-center justify-between gap-3 p-5`}><p className="text-sm font-bold text-[#0C2B49]">Unable to load documents. Please try again.</p><button type="button" onClick={() => void documentsQuery.refetch()} className="rounded-full border border-[#D7E4F2] px-4 py-2 text-sm font-black text-[#0985E7]">Retry</button></div>}
 
       {/* KPI Row */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -144,8 +147,8 @@ export default function DashboardPage() {
             <h2 className="text-base font-black text-[#0C2B49]">Recent Activity</h2>
             <Link href="/portal/documents" className="text-xs font-black text-[#0985E7]">View all</Link>
           </div>
-          {recent.length === 0 ? (
-            <p className="text-sm text-[#64748b] py-4 text-center">No documents yet. Upload your first document.</p>
+          {documentsQuery.isError ? <p className="text-sm text-[#64748b] py-4 text-center">Document activity is unavailable until the retry succeeds.</p> : recent.length === 0 ? (
+            <p className="text-sm text-[#64748b] py-4 text-center">No documents yet.{isIssuer ? ' Upload your first document.' : ''}</p>
           ) : (
             <div className="flex flex-col divide-y divide-[#E8F0F8]">
               {recent.map((doc) => {
@@ -193,11 +196,11 @@ export default function DashboardPage() {
           <div className={`${cardClass} p-5`}>
             <h3 className="text-base font-black text-[#0C2B49] mb-3">Quick Actions</h3>
             <div className="flex flex-col divide-y divide-[#E8F0F8]">
-              <Link href="/portal/upload" className="flex items-center gap-3 py-3 first:pt-0">
+              {isIssuer && <Link href="/portal/upload" className="flex items-center gap-3 py-3 first:pt-0">
                 <div className="w-9 h-9 rounded-lg bg-[#EEF6FF] flex items-center justify-center"><FileUploadIcon sx={{ fontSize: 18, color: '#0985E7' }} /></div>
                 <div className="flex-1 min-w-0"><span className="text-sm font-bold text-[#0C2B49] block">Upload Document</span><span className="text-[11px] text-[#64748b]">Add a new legal document</span></div>
                 <ChevronRightIcon sx={{ fontSize: 18, color: '#A0AAB8' }} />
-              </Link>
+              </Link>}
               {isIssuer && (
                 <Link href="/portal/books" className="flex items-center gap-3 py-3">
                   <div className="w-9 h-9 rounded-lg bg-[#EEF6FF] flex items-center justify-center"><MenuBookIcon sx={{ fontSize: 18, color: '#0985E7' }} /></div>

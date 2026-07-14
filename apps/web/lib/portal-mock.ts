@@ -23,7 +23,7 @@ const profile = {
   f_name: 'Jane',
   l_name: 'Doe',
   avatar: 'icon1',
-  role: 'document_owner',
+  role: 'lawyer',
   mfa_enabled: false,
 };
 
