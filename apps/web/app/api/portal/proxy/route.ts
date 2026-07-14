@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
 
   if (isMockMode()) {
     if (!isMockPortalToken(token)) return NextResponse.json({ message: 'Not authenticated' }, { status: 401 });
-    return mockPortalGet(path);
+    return mockPortalGet(path, token);
   }
 
   const upstream = await fetch(backendUrl(path), {
