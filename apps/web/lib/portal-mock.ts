@@ -1,4 +1,5 @@
-const mockUserId = 'mock-user-1';
+const mockParticipantId = 'mock-user-1';
+const mockIssuerId = 'mock-lawyer';
 
 type MockDocument = {
   id: string;
@@ -128,28 +129,28 @@ let invitations: MockInvitation[] = [
 let documentRequests: MockDocumentRequest[] = [
   {
     id: 'mock-request-1',
-    requester_id: mockUserId,
+    requester_id: mockParticipantId,
     requester_email: participantProfile.email,
     requester_name: `${participantProfile.f_name} ${participantProfile.l_name}`,
     document_id: 'mock-document-1',
     document_name: 'Lease Agreement.pdf',
     description: 'I need an e-copy for my records.',
     status: 'pending',
-    lawyer_id: mockUserId,
+    lawyer_id: mockIssuerId,
     rejection_reason: null,
     created_at: '2026-07-11T10:00:00.000Z',
     updated_at: '2026-07-11T10:00:00.000Z',
   },
   {
     id: 'mock-request-2',
-    requester_id: mockUserId,
+    requester_id: mockParticipantId,
     requester_email: participantProfile.email,
     requester_name: `${participantProfile.f_name} ${participantProfile.l_name}`,
     document_id: 'mock-document-2',
     document_name: 'Certificate of Employment.pdf',
     description: 'Please send the completed certificate.',
     status: 'approved',
-    lawyer_id: mockUserId,
+    lawyer_id: mockIssuerId,
     rejection_reason: null,
     created_at: '2026-07-09T10:00:00.000Z',
     updated_at: '2026-07-10T10:00:00.000Z',
@@ -185,7 +186,7 @@ export function isMockMode() {
 }
 
 export function isMockPortalToken(token: string) {
-  return token.startsWith('mock-token:');
+  return token === 'mock-token:mock-user' || token === 'mock-token:mock-lawyer';
 }
 
 function profileForToken(token?: string) {
@@ -205,6 +206,7 @@ function requestList(requests: MockDocumentRequest[]) {
 }
 
 export function mockPortalGet(path: string, token?: string): Response {
+  if (token && !isMockPortalToken(token)) return error('Not authenticated', 401);
   const requestPathname = pathname(path);
   const searchParams = new URL(path, 'https://mock.lexchain.local').searchParams;
   if (path === '/users/' || path === '/users') return json(profileForToken(token));
@@ -221,7 +223,7 @@ export function mockPortalGet(path: string, token?: string): Response {
   }
   if (requestPathname === '/requests/my') {
     if (!isMockParticipant(token)) return error('Document Participant access required', 403);
-    return json(requestList(documentRequests.filter((request) => request.requester_id === mockUserId)));
+    return json(requestList(documentRequests.filter((request) => request.requester_id === mockParticipantId)));
   }
   if (requestPathname === '/requests') {
     if (!isMockIssuer(token)) return error('Document Issuer access required', 403);
@@ -239,7 +241,7 @@ export function mockPortalGet(path: string, token?: string): Response {
     if (detail === 'parties') {
       return json({
         document_id: document.id,
-        issuer: { id: mockUserId, f_name: issuerProfile.f_name, l_name: issuerProfile.l_name, email: issuerProfile.email, role: 'issuer' },
+        issuer: { id: mockIssuerId, f_name: issuerProfile.f_name, l_name: issuerProfile.l_name, email: issuerProfile.email, role: 'issuer' },
         parties: [{ id: 'mock-party-1', f_name: 'Sample', l_name: 'Tenant', email: 'tenant@example.test', role: 'tenant' }],
       });
     }
@@ -250,7 +252,7 @@ export function mockPortalGet(path: string, token?: string): Response {
       {
         id: `mock-audit-${document.id}`,
         document_id: document.id,
-        user_id: mockUserId,
+        user_id: mockIssuerId,
         action: 'document_created',
         details: { source: 'mock portal' },
         created_at: document.created_at,
@@ -345,6 +347,7 @@ async function askDocument(id: string, request: Request) {
 }
 
 export async function mockPortalMutate(method: 'POST' | 'PATCH', path: string, request: Request, token?: string): Promise<Response> {
+  if (token && !isMockPortalToken(token)) return error('Not authenticated', 401);
   const requestPathname = pathname(path);
   if (method === 'POST' && (requestPathname === '/documents/upload' || requestPathname === '/documents/upload/')) return uploadDocument(request);
   if (method === 'POST' && path === '/search') return searchDocuments(request);
