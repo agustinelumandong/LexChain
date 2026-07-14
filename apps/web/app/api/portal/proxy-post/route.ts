@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { backendUrl } from '@/lib/admin-api';
+import { isMockMode, isMockPortalToken, mockPortalMutate } from '@/lib/portal-mock';
 
 async function handler(request: NextRequest, method: 'POST' | 'PATCH') {
   const token = request.cookies.get('portal_token')?.value;
@@ -7,6 +8,11 @@ async function handler(request: NextRequest, method: 'POST' | 'PATCH') {
 
   const path = request.nextUrl.searchParams.get('path');
   if (!path) return NextResponse.json({ message: 'Missing path' }, { status: 400 });
+
+  if (isMockMode()) {
+    if (!isMockPortalToken(token)) return NextResponse.json({ message: 'Not authenticated' }, { status: 401 });
+    return mockPortalMutate(method, path, request);
+  }
 
   const contentType = request.headers.get('content-type') ?? '';
   let body: BodyInit | undefined;
