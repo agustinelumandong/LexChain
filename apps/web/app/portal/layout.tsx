@@ -19,10 +19,19 @@ import MoreVertIcon from "@mui/icons-material/MoreVert";
 import VerifiedUserIcon from "@mui/icons-material/VerifiedUser";
 import { Toaster } from 'sonner';
 import type { ApiSchema } from "@lexchain/types";
+import { getPortalRoleLabel, getPortalUiRole } from "./lib/portal-role";
 
 type UserProfile = ApiSchema<'UserProfileResponse'>;
 
-const portalLinks = [
+const issuerPortalLinks = [
+  { label: "Home", href: "/portal/dashboard", icon: <HomeIcon fontSize="small" /> },
+  { label: "Documents", href: "/portal/documents", icon: <DescriptionIcon fontSize="small" /> },
+  { label: "Upload", href: "/portal/upload", icon: <DescriptionIcon fontSize="small" /> },
+  { label: "Activity", href: "/portal/notifications", icon: <HistoryIcon fontSize="small" /> },
+  { label: "Profile", href: "/portal/profile", icon: <PersonIcon fontSize="small" /> },
+];
+
+const participantPortalLinks = [
   { label: "Home", href: "/portal/dashboard", icon: <HomeIcon fontSize="small" /> },
   { label: "Documents", href: "/portal/documents", icon: <DescriptionIcon fontSize="small" /> },
   { label: "Search", href: "/portal/search", icon: <SearchIcon fontSize="small" /> },
@@ -44,6 +53,9 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
     },
   });
 
+  const uiRole = getPortalUiRole(profile?.role);
+  const roleLabel = getPortalRoleLabel(profile?.role);
+  const portalLinks = uiRole === "issuer" ? issuerPortalLinks : uiRole === "participant" ? participantPortalLinks : [];
   const initials = `${profile?.f_name?.[0] ?? ''}${profile?.l_name?.[0] ?? ''}`.toUpperCase() || '?';
   const fullName = profile ? `${profile.f_name} ${profile.l_name}` : '...';
   const email = profile?.email ?? '...';
@@ -137,6 +149,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
                 <>
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-black leading-5 text-[#0C2B49]">{fullName}</p>
+                    <p className="truncate text-xs font-semibold leading-4 text-[#64748b]">{roleLabel}</p>
                     <p className="truncate text-xs font-semibold leading-4 text-[#64748b]">{email}</p>
                   </div>
                   <button
