@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getDashboardMetrics, getIssuerQuickActions, getPortalNavigation, getRecentActivityStatus, getStatusOverviewLabel } from "./portal-dashboard";
+import { getDashboardMetrics, getPortalNavigation, getRecentActivityStatus, getStatusOverviewLabel } from "./portal-dashboard";
 
 describe("portal dashboard", () => {
   it("gives issuers the enabled office workspace navigation", () => {
@@ -21,32 +21,35 @@ describe("portal dashboard", () => {
     ]);
   });
 
-  it("counts issuer document cards", () => {
-    const metrics = getDashboardMetrics("issuer", [
+  it("summarizes an empty document repository without unsupported metrics", () => {
+    expect(getDashboardMetrics([])).toEqual([
+      ["Total Documents", 0],
+      ["Processing", 0],
+      ["Ready Documents", 0],
+    ]);
+  });
+
+  it("summarizes processing, ready, failed, and recorded blockchain states", () => {
+    expect(getDashboardMetrics([
       { status: "PROCESSING", on_chain: false },
+      { status: "PENDING", on_chain: false },
       { status: "COMPLETED", on_chain: true },
-    ]);
-
-    expect(metrics).toEqual([
-      ["Total Documents", 2],
-      ["Processing", 1],
+      { status: "ANCHORED", on_chain: false },
+      { status: "FAILED", on_chain: false },
+    ])).toEqual([
+      ["Total Documents", 5],
+      ["Processing", 2],
+      ["Ready Documents", 2],
       ["On-Chain Records", 1],
-      ["Pending Invites", 0],
     ]);
   });
 
-  it("counts pending documents as processing", () => {
-    expect(getDashboardMetrics("issuer", [{ status: "PENDING" }])).toContainEqual([
-      "Processing",
-      1,
-    ]);
-  });
+  it("does not show unavailable roadmap metrics as zero", () => {
+    const labels = getDashboardMetrics([{ status: "FAILED" }]).map(([label]) => label);
 
-  it("includes the issuer document-request review quick action", () => {
-    expect(getIssuerQuickActions()).toContainEqual(expect.objectContaining({
-      label: "Review document requests",
-      href: "/portal/requests",
-    }));
+    expect(labels).not.toContain("Pending Invites");
+    expect(labels).not.toContain("Recent Access");
+    expect(labels).not.toContain("Integrity Alerts");
   });
 
   it("uses the mobile completed vocabulary for anchored recent activity", () => {

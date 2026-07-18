@@ -13,29 +13,6 @@ export type PortalNavigationItem = {
 
 export type DashboardMetric = readonly [label: string, value: number];
 
-export type IssuerQuickActionLabel =
-  | "Upload Document"
-  | "Register books"
-  | "Review document requests"
-  | "Invite Party"
-  | "Verify Document";
-
-export type IssuerQuickAction = {
-  label: IssuerQuickActionLabel;
-  description: string;
-  href: string;
-};
-
-export function getIssuerQuickActions(): IssuerQuickAction[] {
-  return [
-    { label: "Upload Document", description: "Add a new legal document", href: "/portal/upload" },
-    { label: "Register books", description: "Manage physical register volumes", href: "/portal/books" },
-    { label: "Review document requests", description: "Respond to participant e-copy requests", href: "/portal/requests" },
-    { label: "Invite Party", description: "Invite others to collaborate", href: "/portal/documents" },
-    { label: "Verify Document", description: "Verify document authenticity", href: "/portal/documents" },
-  ];
-}
-
 export function getRecentActivityStatus(status?: string | null) {
   return getDocumentStatusLabel(status);
 }
@@ -63,31 +40,26 @@ export function getPortalNavigation(role: PortalUiRole): PortalNavigationItem[] 
   ];
 }
 
-export function getDashboardMetrics(
-  role: PortalUiRole,
-  documents: PortalDocument[],
-): DashboardMetric[] {
+export function getDashboardMetrics(documents: PortalDocument[]): DashboardMetric[] {
   const processing = documents.filter(
     (document) => {
       const status = document.status?.trim().toUpperCase();
       return status === "PROCESSING" || status === "PENDING";
     },
   ).length;
-  const onChain = documents.filter((document) => document.on_chain).length;
+  const ready = documents.filter((document) => {
+    const status = document.status?.trim().toUpperCase();
+    return status === "COMPLETED" || status === "ANCHORED";
+  }).length;
+  const metrics: DashboardMetric[] = [
+    ["Total Documents", documents.length],
+    ["Processing", processing],
+    ["Ready Documents", ready],
+  ];
 
-  if (role === "issuer") {
-    return [
-      ["Total Documents", documents.length],
-      ["Processing", processing],
-      ["On-Chain Records", onChain],
-      ["Pending Invites", 0],
-    ];
+  if (documents.some((document) => typeof document.on_chain === "boolean")) {
+    metrics.push(["On-Chain Records", documents.filter((document) => document.on_chain).length]);
   }
 
-  return [
-    ["Shared Documents", documents.length],
-    ["Processing", processing],
-    ["On-Chain Records", onChain],
-    ["Recent Access", 0],
-  ];
+  return metrics;
 }
