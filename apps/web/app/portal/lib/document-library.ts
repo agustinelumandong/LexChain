@@ -1,3 +1,5 @@
+import type { PortalUiRole } from './portal-role';
+
 export type DocumentListItem = {
   id: string;
   document_id?: string;
@@ -44,9 +46,9 @@ export function getDocumentStatuses(documents: DocumentListItem[]) {
   return [...new Set(documents.map((document) => document.status?.trim().toLowerCase()).filter(Boolean))] as string[];
 }
 
-export function getDocumentListActions(document: DocumentListItem) {
+export function getDocumentListActions(role: PortalUiRole, document: DocumentListItem) {
   const actions = ['Open'];
   if (document.storage_url) actions.push('View / Download');
-  if (document.on_chain) actions.push('Verify integrity');
+  if (role === 'issuer' && document.on_chain) actions.push('Verify integrity');
   return actions;
 }
