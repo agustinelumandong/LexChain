@@ -3,7 +3,6 @@
 import Link from 'next/link';
 import NotificationsNoneOutlinedIcon from '@mui/icons-material/NotificationsNoneOutlined';
 import SearchIcon from '@mui/icons-material/Search';
-import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 
 type PortalTopBarProps = {
   fullName: string;
@@ -42,7 +41,7 @@ export function PortalTopBar({ fullName, initials, roleLabel, processingCount }:
             aria-label="Get help"
             className="hidden h-10 w-10 items-center justify-center rounded-full border border-[var(--portal-border-soft)] transition-colors hover:bg-[var(--portal-surface-soft)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0985E7] sm:flex"
           >
-            <HelpOutlineIcon sx={{ fontSize: 20, color: 'var(--portal-navy)' }} />
+            <span aria-hidden="true" className="text-base font-black leading-none text-[var(--portal-navy)]">?</span>
           </a>
           <div className="hidden min-w-0 text-right lg:block">
             <p className="truncate text-sm font-black text-[var(--portal-navy)]">{fullName}</p>
