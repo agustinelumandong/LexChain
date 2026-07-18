@@ -4,23 +4,21 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
 import SearchIcon from '@mui/icons-material/Search';
-import ShieldIcon from '@mui/icons-material/Shield';
 import DescriptionIcon from '@mui/icons-material/Description';
-import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import { getDocumentStatusLabel } from '../lib/document-ui';
 import { getPortalUiRole } from '../lib/portal-role';
+import {
+  getDocumentListActions,
+  getDocumentStatuses,
+  getVisibleDocuments,
+  type DocumentListItem,
+} from '../lib/document-library';
 import type { ApiSchema } from '@lexchain/types';
 
-interface Document {
+type Document = DocumentListItem & {
   id: string;
   file_name: string;
-  status: string;
-  on_chain: boolean;
-  created_at: string;
-  document_number?: number;
-  book_number?: number | null;
-  page_number?: number | null;
-}
+};
 
 type UserProfile = ApiSchema<'UserProfileResponse'>;
 
@@ -30,26 +28,51 @@ async function fetchDocuments(): Promise<Document[]> {
   return res.json();
 }
 
-function formatDate(iso: string) {
+function formatDate(iso?: string | null) {
+  if (!iso) return 'Not available';
   return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
-function statusStyle(status: string) {
-  const s = status?.toLowerCase();
-  if (s === 'anchored' || s === 'completed') return 'bg-[#EAF8F0] text-[#12A150]';
-  if (s === 'processing' || s === 'pending') return 'bg-[#FFF4DD] text-[#B77900]';
+function statusStyle(status?: string | null) {
+  const value = status?.toLowerCase();
+  if (value === 'anchored' || value === 'completed') return 'bg-[#EAF8F0] text-[#12A150]';
+  if (value === 'processing' || value === 'pending') return 'bg-[#FFF4DD] text-[#B77900]';
   return 'bg-[#EAF4FF] text-[#1689F5]';
+}
+
+function DocumentBadges({ document }: { document: Document }) {
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      {document.status && <span className={`${statusStyle(document.status)} rounded-full px-2.5 py-0.5 text-[11px] font-bold`}>{getDocumentStatusLabel(document.status)}</span>}
+      {typeof document.on_chain === 'boolean' && (
+        <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold ${document.on_chain ? 'bg-[#EAF8F0] text-[#12A150]' : 'bg-[#F1F5F9] text-[#64748b]'}`}>
+          {document.on_chain ? 'On-chain' : 'Off-chain'}
+        </span>
+      )}
+    </div>
+  );
+}
+
+function DocumentActions({ document }: { document: Document }) {
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      {getDocumentListActions(document).map((action) => {
+        const href = action === 'Open'
+          ? `/portal/documents/${document.id}`
+          : action === 'View / Download'
+            ? `/portal/documents/${document.id}/viewer`
+            : `/portal/documents/${document.id}/verify`;
+        return <Link key={action} href={href} className="text-xs font-black text-[#0985E7] hover:underline">{action}</Link>;
+      })}
+    </div>
+  );
 }
 
 export default function DocumentsPage() {
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('all');
-  const [date, setDate] = useState('');
-  const [sort, setSort] = useState('newest');
-  const documentsQuery = useQuery<Document[]>({
-    queryKey: ['portal-documents'],
-    queryFn: fetchDocuments,
-  });
+  const [sort, setSort] = useState<'newest' | 'oldest' | 'title'>('newest');
+  const documentsQuery = useQuery<Document[]>({ queryKey: ['portal-documents'], queryFn: fetchDocuments });
   const profileQuery = useQuery<UserProfile | null>({
     queryKey: ['portal-profile'],
     queryFn: async () => {
@@ -59,96 +82,64 @@ export default function DocumentsPage() {
     },
   });
   const documents = documentsQuery.data ?? [];
+  const statuses = getDocumentStatuses(documents);
+  const hasDates = documents.some((document) => document.updated_at || document.created_at);
   const isIssuer = getPortalUiRole(profileQuery.data?.role) === 'issuer';
-
-  const filtered = documents
-    .filter((document) => document.file_name.toLowerCase().includes(search.toLowerCase()))
-    .filter((document) => status === 'all' || document.status.toLowerCase() === status)
-    .filter((document) => !date || document.created_at.slice(0, 10) === date)
-    .sort((left, right) => {
-      if (sort === 'oldest') return new Date(left.created_at).getTime() - new Date(right.created_at).getTime();
-      if (sort === 'title') return left.file_name.localeCompare(right.file_name);
-      return new Date(right.created_at).getTime() - new Date(left.created_at).getTime();
-    });
+  const visibleDocuments = getVisibleDocuments(documents, {
+    query: search,
+    status,
+    sort: hasDates ? sort : 'title',
+  });
 
   return (
     <div className="flex flex-col gap-5">
-      <h1 className="text-[28px] font-black text-[#0C2B49]">Documents</h1>
-
-      {/* Search */}
-      <div className="flex items-center gap-2 rounded-full border border-[#E8F0F8] bg-[#F8FBFF] px-4 py-2.5">
-        <SearchIcon sx={{ fontSize: 18, color: '#A0AAB8' }} />
-        <input
-          className="flex-1 bg-transparent text-sm text-[#0C2B49] placeholder:text-[#A0AAB8] outline-none"
-          placeholder="Search documents..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-      </div>
-
-      <div className="grid gap-3 sm:grid-cols-3">
-        <label className="text-xs font-bold text-[#64748b]">Status
-          <select value={status} onChange={(event) => setStatus(event.target.value)} className="mt-1 w-full rounded-xl border border-[#E8F0F8] bg-white px-3 py-2 text-sm text-[#0C2B49]">
-            <option value="all">All statuses</option><option value="queued">Queued</option><option value="processing">Processing</option><option value="completed">Completed</option><option value="failed">Failed</option>
-          </select>
-        </label>
-        <label className="text-xs font-bold text-[#64748b]">Date
-          <input type="date" value={date} onChange={(event) => setDate(event.target.value)} className="mt-1 w-full rounded-xl border border-[#E8F0F8] bg-white px-3 py-2 text-sm text-[#0C2B49]" />
-        </label>
-        <label className="text-xs font-bold text-[#64748b]">Sort
-          <select value={sort} onChange={(event) => setSort(event.target.value)} className="mt-1 w-full rounded-xl border border-[#E8F0F8] bg-white px-3 py-2 text-sm text-[#0C2B49]">
-            <option value="newest">Newest first</option><option value="oldest">Oldest first</option><option value="title">Title A–Z</option>
-          </select>
-        </label>
-      </div>
-
-      {/* List */}
-      {documentsQuery.isLoading ? (
-        <div className="flex flex-col gap-3">
-          {[1,2,3].map(i => (
-            <div key={i} className="bg-white rounded-[18px] border border-[#E8F0F8] h-[80px] animate-pulse" />
-          ))}
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="text-[28px] font-black text-[#0C2B49]">Documents</h1>
+          <p className="mt-1 text-sm text-[#64748b]">Manage and review documents in the office repository</p>
         </div>
+        {isIssuer && <Link href="/portal/upload" className="rounded-full bg-[#0985E7] px-5 py-2.5 text-sm font-black text-white">Upload Document</Link>}
+      </div>
+
+      <div className="flex flex-col gap-3 rounded-[18px] border border-[#E8F0F8] bg-white p-4">
+        <label className="flex items-center gap-2 rounded-full border border-[#E8F0F8] bg-[#F8FBFF] px-4 py-2.5">
+          <SearchIcon sx={{ fontSize: 18, color: '#A0AAB8' }} />
+          <span className="sr-only">Search documents by title or reference</span>
+          <input className="flex-1 bg-transparent text-sm text-[#0C2B49] placeholder:text-[#A0AAB8] outline-none" placeholder="Search by title or reference..." value={search} onChange={(event) => setSearch(event.target.value)} />
+        </label>
+        <div className="grid gap-3 sm:grid-cols-2">
+          {statuses.length > 0 && <label className="text-xs font-bold text-[#64748b]">Status
+            <select value={status} onChange={(event) => setStatus(event.target.value)} className="mt-1 w-full rounded-xl border border-[#E8F0F8] bg-white px-3 py-2 text-sm text-[#0C2B49]">
+              <option value="all">All statuses</option>
+              {statuses.map((value) => <option key={value} value={value}>{getDocumentStatusLabel(value)}</option>)}
+            </select>
+          </label>}
+          <label className="text-xs font-bold text-[#64748b]">Sort
+            <select value={hasDates ? sort : 'title'} onChange={(event) => setSort(event.target.value as typeof sort)} className="mt-1 w-full rounded-xl border border-[#E8F0F8] bg-white px-3 py-2 text-sm text-[#0C2B49]">
+              {hasDates && <><option value="newest">Recently updated</option><option value="oldest">Least recently updated</option></>}
+              <option value="title">Title A–Z</option>
+            </select>
+          </label>
+        </div>
+      </div>
+
+      {documentsQuery.isLoading ? (
+        <div className="flex flex-col gap-3" aria-label="Loading documents">{[1, 2, 3].map((index) => <div key={index} className="h-[80px] animate-pulse rounded-[18px] border border-[#E8F0F8] bg-white" />)}</div>
       ) : documentsQuery.isError ? (
-        <div role="alert" className="bg-white rounded-[18px] border border-[#E8F0F8] p-8 text-center"><p className="text-sm font-bold text-[#0C2B49]">Unable to load documents.</p><button type="button" onClick={() => void documentsQuery.refetch()} className="mt-4 rounded-full border border-[#D7E4F2] px-4 py-2 text-sm font-black text-[#0985E7]">Retry</button></div>
-      ) : filtered.length === 0 ? (
-        <div className="bg-white rounded-[18px] border border-[#E8F0F8] p-8 text-center">
-          <p className="text-sm font-bold text-[#0C2B49]">{search ? 'No documents match your search' : 'No documents yet'}</p>
-          <p className="text-xs text-[#64748b] mt-1">{isIssuer ? 'Upload your first document to get started.' : 'No documents are available yet.'}</p>
-          {isIssuer && <Link href="/portal/upload" className="inline-flex items-center gap-2 mt-4 rounded-full bg-[#0985E7] px-5 py-2.5 text-sm font-black text-white">
-            Upload Document
-          </Link>}
+        <div role="alert" className="rounded-[18px] border border-[#E8F0F8] bg-white p-8 text-center"><p className="text-sm font-bold text-[#0C2B49]">Unable to load documents.</p><p className="mt-1 text-xs text-[#64748b]">Check your connection and try again.</p><button type="button" onClick={() => void documentsQuery.refetch()} className="mt-4 rounded-full border border-[#D7E4F2] px-4 py-2 text-sm font-black text-[#0985E7]">Retry</button></div>
+      ) : visibleDocuments.length === 0 ? (
+        <div className="rounded-[18px] border border-[#E8F0F8] bg-white p-8 text-center">
+          <p className="text-sm font-bold text-[#0C2B49]">{search || status !== 'all' ? 'No documents match your search or filter' : 'No documents yet'}</p>
+          <p className="mt-1 text-xs text-[#64748b]">{isIssuer ? 'Upload your first document to get started.' : 'No documents are available yet.'}</p>
+          {isIssuer && <Link href="/portal/upload" className="mt-4 inline-flex rounded-full bg-[#0985E7] px-5 py-2.5 text-sm font-black text-white">Upload Document</Link>}
         </div>
       ) : (
-        <div className="flex flex-col gap-3">
-          {filtered.map((doc) => (
-            <Link
-              key={doc.id}
-              href={`/portal/documents/${doc.id}`}
-              className="bg-white rounded-[18px] border border-[#E8F0F8] shadow-[0_4px_12px_rgba(19,59,115,0.05)] px-5 py-4 flex items-center gap-4 transition hover:bg-[#F8FBFF]"
-            >
-              <div className={`w-[44px] h-[44px] rounded-xl flex items-center justify-center shrink-0 ${doc.on_chain ? 'bg-[#EEF6FF]' : 'bg-[#FFF4DD]'}`}>
-                {doc.on_chain
-                  ? <ShieldIcon sx={{ fontSize: 20, color: '#0985E7' }} />
-                  : <DescriptionIcon sx={{ fontSize: 20, color: '#B77900' }} />
-                }
-              </div>
-              <div className="flex-1 min-w-0">
-                <span className="text-sm font-bold text-[#0C2B49] block truncate">{doc.file_name}</span>
-                <div className="flex items-center gap-2 mt-1">
-                  <span className={`${statusStyle(doc.status)} rounded-full py-0.5 px-2.5 text-[11px] font-bold`}>{getDocumentStatusLabel(doc.status)}</span>
-                  <span className="text-[11px] text-[#A0AAB8]">{formatDate(doc.created_at)}</span>
-                </div>
-                <p className="mt-1 text-[11px] font-medium text-[#64748b]">
-                  {doc.document_number ? `Document #${doc.document_number}` : 'Document number unavailable'}
-                  {doc.book_number ? ` · Book ${doc.book_number}` : ''}{doc.page_number ? ` · Page ${doc.page_number}` : ''}
-                  {doc.on_chain ? ' · On-chain' : ' · Off-chain'}
-                </p>
-              </div>
-              <ChevronRightIcon sx={{ fontSize: 20, color: '#A0AAB8' }} />
-            </Link>
-          ))}
-        </div>
+        <>
+          <div className="hidden overflow-x-auto rounded-[18px] border border-[#E8F0F8] bg-white md:block">
+            <table className="min-w-full text-left"><thead className="border-b border-[#E8F0F8] bg-[#F8FBFF] text-xs font-black text-[#64748b]"><tr><th className="px-5 py-3">Document</th><th className="px-5 py-3">Status</th><th className="px-5 py-3">Blockchain</th><th className="px-5 py-3">Updated</th><th className="px-5 py-3">Actions</th></tr></thead><tbody>{visibleDocuments.map((document) => <tr key={document.id} className="border-b border-[#E8F0F8] last:border-0"><td className="px-5 py-4"><p className="font-bold text-[#0C2B49]">{document.file_name}</p><p className="mt-1 text-xs text-[#64748b]">{document.document_number ? `Reference #${document.document_number}` : 'Reference unavailable'}</p></td><td className="px-5 py-4"><DocumentBadges document={document} /></td><td className="px-5 py-4 text-xs font-bold text-[#64748b]">{typeof document.on_chain === 'boolean' ? (document.on_chain ? 'Recorded on-chain' : 'Not recorded on-chain') : 'Not supplied'}</td><td className="px-5 py-4 text-xs text-[#64748b]">{formatDate(document.updated_at ?? document.created_at)}</td><td className="px-5 py-4"><DocumentActions document={document} /></td></tr>)}</tbody></table>
+          </div>
+          <div className="flex flex-col gap-3 md:hidden">{visibleDocuments.map((document) => <article key={document.id} className="rounded-[18px] border border-[#E8F0F8] bg-white p-4"><div className="flex gap-3"><DescriptionIcon sx={{ fontSize: 22, color: '#0985E7' }} /><div className="min-w-0 flex-1"><p className="truncate text-sm font-bold text-[#0C2B49]">{document.file_name}</p><p className="mt-1 text-xs text-[#64748b]">{document.document_number ? `Reference #${document.document_number}` : 'Reference unavailable'} · Updated {formatDate(document.updated_at ?? document.created_at)}</p><div className="mt-2"><DocumentBadges document={document} /></div></div></div><div className="mt-4 border-t border-[#E8F0F8] pt-3"><DocumentActions document={document} /></div></article>)}</div>
+        </>
       )}
     </div>
   );
