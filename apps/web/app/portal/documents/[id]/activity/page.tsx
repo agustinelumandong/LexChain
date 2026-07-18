@@ -8,6 +8,7 @@ import HistoryIcon from '@mui/icons-material/History';
 import type { ApiSchema } from '@lexchain/types';
 import { listDocumentAuditLogs } from '../../../lib/portal-access-api';
 import { formatAuditEvent } from '../../../lib/activity-log';
+import { canLoadDocumentActivity } from '../../../lib/document-activity-access';
 import { getPortalUiRole } from '../../../lib/portal-role';
 
 type AuditLog = ApiSchema<'AuditLogResponse'>;
@@ -50,8 +51,17 @@ export default function DocumentActivityPage({ params }: { params: Promise<{ id:
   const [eventFilter, setEventFilter] = useState('');
   const [dateFilter, setDateFilter] = useState('');
   const profileQuery = useQuery({ queryKey: ['portal-profile'], queryFn: getProfile });
-  const documentQuery = useQuery({ queryKey: ['portal-document', id], queryFn: () => getDocument(id) });
-  const auditQuery = useQuery({ queryKey: ['portal-document-audit', id], queryFn: () => listDocumentAuditLogs(id) });
+  const canLoadActivity = canLoadDocumentActivity(profileQuery.data?.role);
+  const documentQuery = useQuery({
+    queryKey: ['portal-document', id],
+    queryFn: () => getDocument(id),
+    enabled: canLoadActivity,
+  });
+  const auditQuery = useQuery({
+    queryKey: ['portal-document-audit', id],
+    queryFn: () => listDocumentAuditLogs(id),
+    enabled: canLoadActivity,
+  });
   const role = getPortalUiRole(profileQuery.data?.role);
   const logs = auditQuery.data ?? [];
   const eventOptions = Array.from(new Set(logs.map((log) => log.action))).sort();
