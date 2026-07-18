@@ -10,6 +10,7 @@ describe("lawyer portal navigation", () => {
     expect(navigation.map((item) => item.label)).toEqual([
       "Dashboard",
       "Documents",
+      "Categories",
       "Upload Document",
       "Notifications",
       "Profile & Security",
@@ -21,6 +22,7 @@ describe("lawyer portal navigation", () => {
   it.each([
     ["/portal/dashboard", "Dashboard"],
     ["/portal/documents", "Documents"],
+    ["/portal/categories", "Categories"],
     ["/portal/upload", "Upload Document"],
   ])("marks %s as the active %s destination", (pathname, label) => {
     const item = getPortalNavigation("issuer").find((navigationItem) => navigationItem.label === label);
