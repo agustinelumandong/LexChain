@@ -135,6 +135,7 @@ export default function DocumentDetailPage({ params }: { params: Promise<{ id: s
         {actions.includes('View PDF') && <Link href={`/portal/documents/${id}/viewer`} className="flex items-center justify-center gap-2 rounded-full bg-[#0985E7] px-5 py-3 text-sm font-extrabold text-white">View PDF</Link>}
         {actions.includes('Anchor to Blockchain') && <button type="button" disabled={anchorMutation.isPending} onClick={() => anchorMutation.mutate()} className="rounded-full border border-[#E8F0F8] bg-white px-5 py-3 text-sm font-extrabold text-[#0C2B49] disabled:opacity-40">{anchorMutation.isPending ? 'Anchoring...' : 'Anchor to Blockchain'}</button>}
         {actions.includes('Verify Document') && <Link href={`/portal/documents/${id}/verify`} className="flex items-center justify-center gap-2 rounded-full border border-[#E8F0F8] bg-white px-5 py-3 text-sm font-extrabold text-[#0C2B49]">Verify Document</Link>}
+        {getPortalUiRole(profileQ.data?.role) === 'issuer' && <Link href={`/portal/documents/${id}/activity`} className="flex items-center justify-center gap-2 rounded-full border border-[#E8F0F8] bg-white px-5 py-3 text-sm font-extrabold text-[#0C2B49]"><HistoryIcon sx={{ fontSize: 16 }} /> Activity</Link>}
         <Link href={`/portal/documents/${id}/ask`} className="flex items-center justify-center gap-2 rounded-full border border-[#E8F0F8] bg-white px-5 py-3 text-sm font-extrabold text-[#0C2B49]">
           <QuestionAnswerIcon sx={{ fontSize: 16 }} /> Ask AI
         </Link>
