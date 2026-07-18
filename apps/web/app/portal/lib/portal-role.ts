@@ -18,9 +18,13 @@ export function isSupportedPortalUiRole(role: PortalUiRole): boolean {
 
 export function getPortalRoleLabel(role?: string): string {
   const uiRole = getPortalUiRole(role);
-  if (uiRole === "issuer") return "Document Issuer";
+  if (uiRole === "issuer") return "Document Issuer · Super User";
   if (uiRole === "participant") return "Document Participant";
   return "LexChain User";
+}
+
+export function getPortalLoginRedirect(role?: string): "/portal/dashboard" | undefined {
+  return getPortalUiRole(role) === "issuer" ? "/portal/dashboard" : undefined;
 }
 
 export function getPortalProfileRequestShortcut(

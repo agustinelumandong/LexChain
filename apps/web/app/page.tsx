@@ -60,7 +60,7 @@ export default function Home() {
             </Link>
             <Link
               className="rounded-full bg-[#0985E7] px-4 py-2 text-sm font-bold text-white shadow-[0_10px_24px_rgba(9,133,231,0.22)] transition hover:bg-[#0770c4]"
-              href="/admin/login"
+              href="/login"
             >
               Admin Login
             </Link>
@@ -91,7 +91,7 @@ export default function Home() {
               </Link>
               <Link
                 className="rounded-md border border-slate-300 bg-white px-5 py-3 text-center text-sm font-black text-slate-900 transition hover:bg-slate-50"
-                href="/admin/login"
+                href="/login"
               >
                 Admin Login
               </Link>
@@ -305,7 +305,7 @@ export default function Home() {
           </div>
           <div className="flex gap-5 text-sm font-bold text-[#8ecbff]">
             <Link href="/verify">Verify</Link>
-            <Link href="/admin/login">Admin</Link>
+            <Link href="/login">Sign in</Link>
             <Link href="/download">Download</Link>
             <Link href="/privacy">Privacy</Link>
             <Link href="/terms">Terms</Link>
