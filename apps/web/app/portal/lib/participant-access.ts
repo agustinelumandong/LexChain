@@ -1,0 +1,31 @@
+import type { PortalUiRole } from "./portal-role";
+
+export const documentParticipantPermissions = ["viewer", "signer", "editor"] as const;
+
+export type DocumentParticipantPermission = (typeof documentParticipantPermissions)[number];
+
+export type ParticipantInvitation = {
+  email: string;
+  role: string;
+};
+
+export type ParticipantInvitationValidation =
+  | { valid: true; value: { email: string; role: DocumentParticipantPermission } }
+  | { valid: false; message: string };
+
+export function canManageParticipants(role: PortalUiRole): boolean {
+  return role === "issuer";
+}
+
+export function validateParticipantInvitation(
+  invitation: ParticipantInvitation,
+): ParticipantInvitationValidation {
+  const email = invitation.email.trim();
+  if (!email) return { valid: false, message: "Enter a participant email address." };
+
+  if (!documentParticipantPermissions.includes(invitation.role as DocumentParticipantPermission)) {
+    return { valid: false, message: "Choose a supported document permission." };
+  }
+
+  return { valid: true, value: { email, role: invitation.role as DocumentParticipantPermission } };
+}
