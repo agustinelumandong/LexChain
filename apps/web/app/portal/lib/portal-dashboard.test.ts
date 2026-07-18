@@ -2,12 +2,12 @@ import { describe, expect, it } from "vitest";
 import { getDashboardMetrics, getIssuerQuickActions, getPortalNavigation, getRecentActivityStatus, getStatusOverviewLabel } from "./portal-dashboard";
 
 describe("portal dashboard", () => {
-  it("gives issuers the mobile-aligned navigation", () => {
+  it("gives issuers the enabled office workspace navigation", () => {
     expect(getPortalNavigation("issuer").map((item) => item.label)).toEqual([
       "Dashboard",
       "Documents",
-      "Books",
-      "Document Requests",
+      "Upload Document",
+      "Notifications",
       "Profile & Security",
     ]);
   });

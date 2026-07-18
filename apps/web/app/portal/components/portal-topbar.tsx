@@ -2,24 +2,54 @@
 
 import Link from 'next/link';
 import NotificationsNoneOutlinedIcon from '@mui/icons-material/NotificationsNoneOutlined';
+import SearchIcon from '@mui/icons-material/Search';
+import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 
-export function PortalTopBar() {
+type PortalTopBarProps = {
+  fullName: string;
+  initials: string;
+  roleLabel: string;
+  processingCount: number;
+};
+
+export function PortalTopBar({ fullName, initials, roleLabel, processingCount }: PortalTopBarProps) {
+  const processingLabel = processingCount === 1 ? '1 document processing' : `${processingCount} documents processing`;
+
   return (
-    <header className="sticky top-0 z-40 bg-[var(--portal-surface)] border-b border-[var(--portal-border-soft)]">
-      <div className="mx-auto max-w-3xl flex items-center justify-between h-14 px-4">
-        <span className="text-lg font-[900] font-['Montserrat'] text-[var(--portal-navy)]">
-          LexChain
+    <header className="sticky top-0 z-40 -mx-6 mb-6 border-b border-[var(--portal-border-soft)] bg-[var(--portal-surface)] px-4 md:px-6">
+      <div className="flex min-h-16 items-center gap-3">
+        <Link
+          href="/portal/search"
+          aria-label="Search documents"
+          className="flex min-w-0 flex-1 items-center gap-2 rounded-xl border border-[var(--portal-border-soft)] bg-white px-3 py-2 text-sm font-semibold text-[var(--portal-text-muted)] transition hover:border-[#0985E7] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0985E7]"
+        >
+          <SearchIcon fontSize="small" />
+          <span className="truncate">Search documents</span>
+        </Link>
+        <span className="hidden rounded-full bg-[#FFF4DD] px-3 py-1.5 text-xs font-bold text-[#9A6700] lg:inline-flex">
+          {processingLabel}
         </span>
-        <div className="flex items-center gap-3">
+        <div className="flex shrink-0 items-center gap-2">
           <Link
             href="/portal/notifications"
             aria-label="View notifications"
-            className="w-10 h-10 flex items-center justify-center rounded-full border border-[var(--portal-border-soft)] hover:bg-[var(--portal-surface-soft)] transition-colors"
+            className="flex h-10 w-10 items-center justify-center rounded-full border border-[var(--portal-border-soft)] transition-colors hover:bg-[var(--portal-surface-soft)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0985E7]"
           >
             <NotificationsNoneOutlinedIcon sx={{ fontSize: 20, color: 'var(--portal-navy)' }} />
           </Link>
-          <div className="w-9 h-9 flex items-center justify-center rounded-full bg-[var(--portal-surface-soft)] text-[var(--portal-primary)] text-xs font-bold">
-            U
+          <a
+            href="mailto:support@lexchain.app"
+            aria-label="Get help"
+            className="hidden h-10 w-10 items-center justify-center rounded-full border border-[var(--portal-border-soft)] transition-colors hover:bg-[var(--portal-surface-soft)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0985E7] sm:flex"
+          >
+            <HelpOutlineIcon sx={{ fontSize: 20, color: 'var(--portal-navy)' }} />
+          </a>
+          <div className="hidden min-w-0 text-right lg:block">
+            <p className="truncate text-sm font-black text-[var(--portal-navy)]">{fullName}</p>
+            <p className="truncate text-xs font-semibold text-[var(--portal-text-muted)]">{roleLabel}</p>
+          </div>
+          <div aria-label={`${fullName} profile`} className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--portal-surface-soft)] text-xs font-bold text-[var(--portal-primary)]">
+            {initials}
           </div>
         </div>
       </div>

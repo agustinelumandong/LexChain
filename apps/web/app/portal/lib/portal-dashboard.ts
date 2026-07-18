@@ -49,8 +49,8 @@ export function getPortalNavigation(role: PortalUiRole): PortalNavigationItem[] 
     return [
       { label: "Dashboard", href: "/portal/dashboard" },
       { label: "Documents", href: "/portal/documents" },
-      { label: "Books", href: "/portal/books" },
-      { label: "Document Requests", href: "/portal/requests" },
+      { label: "Upload Document", href: "/portal/upload" },
+      { label: "Notifications", href: "/portal/notifications" },
       { label: "Profile & Security", href: "/portal/profile" },
     ];
   }

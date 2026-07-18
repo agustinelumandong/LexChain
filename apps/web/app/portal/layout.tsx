@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import SettingsIcon from "@mui/icons-material/Settings";
 import LogoutIcon from "@mui/icons-material/Logout";
 import MenuIcon from "@mui/icons-material/Menu";
@@ -16,13 +16,15 @@ import { Toaster } from 'sonner';
 import type { ApiSchema } from "@lexchain/types";
 import { getPortalRoleLabel, getPortalUiRole, isSupportedPortalUiRole } from "./lib/portal-role";
 import { getPortalNavigation } from "./lib/portal-dashboard";
-import { getPortalNavigationIcon } from "./components/portal-role-navigation";
+import { getPortalNavigationIcon, isPortalRouteActive } from "./components/portal-role-navigation";
+import { PortalBottomNav } from "./components/portal-bottom-nav";
+import { PortalTopBar } from "./components/portal-topbar";
 
 type UserProfile = ApiSchema<'UserProfileResponse'>;
+type PortalDocument = { status?: string | null };
 
 export default function PortalLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const router = useRouter();
   const [collapsed, setCollapsed] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const profileMenuRef = useRef<HTMLDivElement>(null);
@@ -33,6 +35,14 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
       return res.ok ? res.json() : null;
     },
   });
+  const { data: documents = [] } = useQuery<PortalDocument[]>({
+    queryKey: ['portal-shell-documents'],
+    queryFn: async () => {
+      const res = await fetch('/api/portal/proxy?path=%2Fdocuments%2F', { credentials: 'same-origin' });
+      return res.ok ? res.json() : [];
+    },
+    enabled: Boolean(profile),
+  });
 
   const uiRole = getPortalUiRole(profile?.role);
   const roleLabel = getPortalRoleLabel(profile?.role);
@@ -40,6 +50,10 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
   const initials = `${profile?.f_name?.[0] ?? ''}${profile?.l_name?.[0] ?? ''}`.toUpperCase() || '?';
   const fullName = profile ? `${profile.f_name} ${profile.l_name}` : '...';
   const email = profile?.email ?? '...';
+  const processingCount = documents.filter((document) => {
+    const status = document.status?.trim().toLowerCase();
+    return status === "processing" || status === "pending";
+  }).length;
 
   useEffect(() => {
     function handleClick(event: MouseEvent) {
@@ -85,7 +99,13 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
   return (
     <main className="min-h-screen bg-[#F5FAFF] text-[#111827]">
       <div className="flex min-h-screen">
-        {/* Sidebar — same pattern as admin */}
+        <a
+          href="#portal-content"
+          className="sr-only z-[60] rounded-md bg-[#0C2B49] px-4 py-2 text-sm font-bold text-white focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:outline-none"
+        >
+          Skip to content
+        </a>
+        {/* Desktop office navigation */}
         <aside className={`relative sticky top-0 hidden h-screen shrink-0 flex-col gap-7 border-r border-[#E8F0F8] bg-white pb-[22px] pt-[26px] transition-all duration-300 md:flex ${collapsed ? "w-[72px] px-3" : "w-[260px] px-[22px]"}`}>
           <button
             onClick={() => setCollapsed(!collapsed)}
@@ -110,7 +130,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
           {/* Nav */}
           <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto">
             {portalLinks.map((link) => {
-              const isActive = pathname.startsWith(link.href);
+              const isActive = isPortalRouteActive(pathname, link);
               const Icon = getPortalNavigationIcon(link);
               return (
                 <Link
@@ -176,21 +196,21 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
 
             {profileMenuOpen && (
               <div className="absolute bottom-[74px] left-0 z-50 w-full overflow-hidden rounded-2xl border border-[#E4EEF9] bg-white shadow-[0_16px_40px_rgba(12,43,73,0.14)]">
-                <button
-                  type="button"
-                  onClick={() => { setProfileMenuOpen(false); router.push("/portal/profile/security"); }}
+                <Link
+                  href="/portal/profile"
+                  onClick={() => setProfileMenuOpen(false)}
                   className="flex w-full cursor-pointer items-center gap-3 px-4 py-3 text-left text-sm font-bold text-[#0C2B49] transition hover:bg-[#F5FAFF]"
                 >
                   <SettingsIcon fontSize="small" className="text-[#64748b]" />
-                  Settings
-                </button>
+                  Profile
+                </Link>
                 <button
                   type="button"
                   onClick={handleLogout}
                   className="flex w-full cursor-pointer items-center gap-3 px-4 py-3 text-left text-sm font-bold text-red-600 transition hover:bg-red-50"
                 >
                   <LogoutIcon fontSize="small" />
-                  Logout
+                  Sign Out
                 </button>
               </div>
             )}
@@ -198,10 +218,17 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
         </aside>
 
         {/* Main content */}
-        <section className="flex min-w-0 flex-1 flex-col px-6 py-6 overflow-x-hidden">
+        <section id="portal-content" tabIndex={-1} className="flex min-w-0 flex-1 flex-col overflow-x-hidden px-6 pb-24 pt-0 md:pb-6">
+          <PortalTopBar
+            fullName={fullName}
+            initials={initials}
+            roleLabel={roleLabel}
+            processingCount={processingCount}
+          />
           {children}
         </section>
       </div>
+      {uiRole === "issuer" ? <PortalBottomNav pathname={pathname} /> : null}
       <Toaster position="top-center" richColors />
     </main>
   );

@@ -5,6 +5,8 @@ import MenuBookIcon from "@mui/icons-material/MenuBook";
 import PersonIcon from "@mui/icons-material/Person";
 import EmailOutlinedIcon from "@mui/icons-material/EmailOutlined";
 import RequestPageIcon from "@mui/icons-material/RequestPage";
+import FileUploadIcon from "@mui/icons-material/FileUpload";
+import NotificationsNoneOutlinedIcon from "@mui/icons-material/NotificationsNoneOutlined";
 import type { PortalNavigationItem } from "../lib/portal-dashboard";
 
 type PortalNavigationIcon = ComponentType<{ fontSize?: "small" }>;
@@ -18,7 +20,13 @@ const iconsByLabel: Record<string, PortalNavigationIcon> = {
   Invitations: EmailOutlinedIcon,
   "My E-copy Requests": RequestPageIcon,
   "Profile & Security": PersonIcon,
+  "Upload Document": FileUploadIcon,
+  Notifications: NotificationsNoneOutlinedIcon,
 };
+
+export function isPortalRouteActive(pathname: string, item: PortalNavigationItem): boolean {
+  return pathname === item.href || pathname.startsWith(`${item.href}/`);
+}
 
 export function getPortalNavigationIcon(item: PortalNavigationItem): PortalNavigationIcon {
   return iconsByLabel[item.label] ?? DescriptionIcon;
