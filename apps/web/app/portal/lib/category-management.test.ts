@@ -15,6 +15,28 @@ describe("demo category management", () => {
     expect(category.id).toMatch(/^demo-category-/);
   });
 
+  it("gives duplicate names distinct IDs so each category can be updated independently", () => {
+    const first = createDemoCategory(initialDemoCategories, "Affidavits");
+    const categories = [...initialDemoCategories, first];
+    const second = createDemoCategory(categories, "Affidavits");
+
+    expect(second.id).not.toBe(first.id);
+
+    const edited = editDemoCategory([...categories, second], second.id, "Sworn Affidavits");
+    expect(edited.find((category) => category.id === first.id)).toMatchObject({
+      name: "Affidavits",
+      active: true,
+    });
+    expect(edited.find((category) => category.id === second.id)).toMatchObject({
+      name: "Sworn Affidavits",
+      active: true,
+    });
+
+    const deactivated = deactivateDemoCategory(edited, second.id);
+    expect(deactivated.find((category) => category.id === first.id)).toMatchObject({ active: true });
+    expect(deactivated.find((category) => category.id === second.id)).toMatchObject({ active: false });
+  });
+
   it("edits a category name without changing its active state", () => {
     const edited = editDemoCategory(initialDemoCategories, "demo-category-contracts", "Contracts and Agreements");
 

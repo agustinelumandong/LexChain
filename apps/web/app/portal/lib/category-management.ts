@@ -12,8 +12,18 @@ export const initialDemoCategories: DemoCategory[] = [
 
 export function createDemoCategory(categories: DemoCategory[], name: string): DemoCategory {
   const normalizedName = name.trim();
+  const baseId = `demo-category-${normalizedName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "")}`;
+  const categoryIds = new Set(categories.map((category) => category.id));
+  let id = baseId;
+  let duplicateNumber = 2;
+
+  while (categoryIds.has(id)) {
+    id = `${baseId}-${duplicateNumber}`;
+    duplicateNumber += 1;
+  }
+
   return {
-    id: `demo-category-${normalizedName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "")}`,
+    id,
     name: normalizedName,
     active: true,
   };
