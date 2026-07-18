@@ -2,6 +2,7 @@ import type { ComponentType } from "react";
 import HomeIcon from "@mui/icons-material/Home";
 import DescriptionIcon from "@mui/icons-material/Description";
 import MenuBookIcon from "@mui/icons-material/MenuBook";
+import CategoryOutlinedIcon from "@mui/icons-material/CategoryOutlined";
 import PersonIcon from "@mui/icons-material/Person";
 import EmailOutlinedIcon from "@mui/icons-material/EmailOutlined";
 import RequestPageIcon from "@mui/icons-material/RequestPage";
@@ -14,6 +15,7 @@ type PortalNavigationIcon = ComponentType<{ fontSize?: "small" }>;
 const iconsByLabel: Record<string, PortalNavigationIcon> = {
   Dashboard: HomeIcon,
   Documents: DescriptionIcon,
+  Categories: CategoryOutlinedIcon,
   Books: MenuBookIcon,
   "Document Requests": RequestPageIcon,
   "Shared Documents": DescriptionIcon,

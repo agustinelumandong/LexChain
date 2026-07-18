@@ -1,8 +1,8 @@
 import type { PortalUiRole } from "./portal-role";
 
-export type ProtectedPortalFeature = "upload" | "books" | "invitations" | "my-requests";
+export type ProtectedPortalFeature = "upload" | "books" | "categories" | "invitations" | "my-requests";
 
 export function canAccessPortalFeature(role: PortalUiRole, feature: ProtectedPortalFeature): boolean {
-  if (feature === "upload" || feature === "books") return role === "issuer";
+  if (feature === "upload" || feature === "books" || feature === "categories") return role === "issuer";
   return role === "participant";
 }
