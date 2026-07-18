@@ -22,10 +22,15 @@ export function validateParticipantInvitation(
 ): ParticipantInvitationValidation {
   const email = invitation.email.trim();
   if (!email) return { valid: false, message: "Enter a participant email address." };
+  if (!/^\S+@\S+\.\S+$/.test(email)) return { valid: false, message: "Enter a valid participant email address." };
 
   if (!documentParticipantPermissions.includes(invitation.role as DocumentParticipantPermission)) {
     return { valid: false, message: "Choose a supported document permission." };
   }
 
   return { valid: true, value: { email, role: invitation.role as DocumentParticipantPermission } };
+}
+
+export function isParticipantAccessCapabilityError(reason: unknown): boolean {
+  return reason instanceof Error && /\b403\b|forbidden|not permitted|capability/i.test(reason.message);
 }

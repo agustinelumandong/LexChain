@@ -1,6 +1,6 @@
 import { afterEach, expect, it, vi } from 'vitest';
 import { NextRequest } from 'next/server';
-import { GET } from './route';
+import { GET, POST } from './route';
 
 const originalApiUrl = process.env.API_URL;
 
@@ -45,4 +45,28 @@ it('rejects unauthenticated requests and forwards an authenticated party list re
   });
   expect(authenticated.status).toBe(200);
   await expect(authenticated.json()).resolves.toEqual({ parties: [] });
+});
+
+it('rejects malformed participant invitations before forwarding them upstream', async () => {
+  const fetchMock = vi.fn();
+  vi.stubGlobal('fetch', fetchMock);
+  const params = Promise.resolve({ id: 'document-123' });
+
+  for (const body of [
+    { email: 'not-an-email', role: 'viewer' },
+    { email: 'person@example.com', role: 'owner' },
+  ]) {
+    const response = await POST(
+      new NextRequest('http://localhost/api/portal/documents/document-123/parties', {
+        method: 'POST',
+        headers: { cookie: 'portal_token=portal-token', 'content-type': 'application/json' },
+        body: JSON.stringify(body),
+      }),
+      { params },
+    );
+
+    expect(response.status).toBe(400);
+  }
+
+  expect(fetchMock).not.toHaveBeenCalled();
 });
