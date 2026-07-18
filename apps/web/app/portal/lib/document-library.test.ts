@@ -35,7 +35,7 @@ describe('document library list', () => {
   });
 
   it('offers only existing list actions and never unsupported workflow actions', () => {
-    const actions = getDocumentListActions(documents[1]);
+    const actions = getDocumentListActions('issuer', documents[1]);
 
     expect(actions).toEqual(['Open', 'View / Download', 'Verify integrity']);
     expect(actions).not.toContain('Delete');
@@ -43,5 +43,10 @@ describe('document library list', () => {
     expect(actions).not.toContain('Anchor');
     expect(actions).not.toContain('Versions');
     expect(actions).not.toContain('Participants');
+  });
+
+  it('does not offer integrity verification to participants for on-chain documents', () => {
+    expect(getDocumentListActions('participant', documents[1]))
+      .toEqual(['Open', 'View / Download']);
   });
 });

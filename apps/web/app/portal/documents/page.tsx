@@ -53,10 +53,10 @@ function DocumentBadges({ document }: { document: Document }) {
   );
 }
 
-function DocumentActions({ document }: { document: Document }) {
+function DocumentActions({ document, role }: { document: Document; role: ReturnType<typeof getPortalUiRole> }) {
   return (
     <div className="flex flex-wrap items-center gap-2">
-      {getDocumentListActions(document).map((action) => {
+      {getDocumentListActions(role, document).map((action) => {
         const href = action === 'Open'
           ? `/portal/documents/${document.id}`
           : action === 'View / Download'
@@ -84,7 +84,8 @@ export default function DocumentsPage() {
   const documents = documentsQuery.data ?? [];
   const statuses = getDocumentStatuses(documents);
   const hasDates = documents.some((document) => document.updated_at || document.created_at);
-  const isIssuer = getPortalUiRole(profileQuery.data?.role) === 'issuer';
+  const uiRole = getPortalUiRole(profileQuery.data?.role);
+  const isIssuer = uiRole === 'issuer';
   const visibleDocuments = getVisibleDocuments(documents, {
     query: search,
     status,
@@ -136,9 +137,9 @@ export default function DocumentsPage() {
       ) : (
         <>
           <div className="hidden overflow-x-auto rounded-[18px] border border-[#E8F0F8] bg-white md:block">
-            <table className="min-w-full text-left"><thead className="border-b border-[#E8F0F8] bg-[#F8FBFF] text-xs font-black text-[#64748b]"><tr><th className="px-5 py-3">Document</th><th className="px-5 py-3">Status</th><th className="px-5 py-3">Blockchain</th><th className="px-5 py-3">Updated</th><th className="px-5 py-3">Actions</th></tr></thead><tbody>{visibleDocuments.map((document) => <tr key={document.id} className="border-b border-[#E8F0F8] last:border-0"><td className="px-5 py-4"><p className="font-bold text-[#0C2B49]">{document.file_name}</p><p className="mt-1 text-xs text-[#64748b]">{document.document_number ? `Reference #${document.document_number}` : 'Reference unavailable'}</p></td><td className="px-5 py-4"><DocumentBadges document={document} /></td><td className="px-5 py-4 text-xs font-bold text-[#64748b]">{typeof document.on_chain === 'boolean' ? (document.on_chain ? 'Recorded on-chain' : 'Not recorded on-chain') : 'Not supplied'}</td><td className="px-5 py-4 text-xs text-[#64748b]">{formatDate(document.updated_at ?? document.created_at)}</td><td className="px-5 py-4"><DocumentActions document={document} /></td></tr>)}</tbody></table>
+            <table className="min-w-full text-left"><thead className="border-b border-[#E8F0F8] bg-[#F8FBFF] text-xs font-black text-[#64748b]"><tr><th className="px-5 py-3">Document</th><th className="px-5 py-3">Status</th><th className="px-5 py-3">Blockchain</th><th className="px-5 py-3">Updated</th><th className="px-5 py-3">Actions</th></tr></thead><tbody>{visibleDocuments.map((document) => <tr key={document.id} className="border-b border-[#E8F0F8] last:border-0"><td className="px-5 py-4"><p className="font-bold text-[#0C2B49]">{document.file_name}</p><p className="mt-1 text-xs text-[#64748b]">{document.document_number ? `Reference #${document.document_number}` : 'Reference unavailable'}</p></td><td className="px-5 py-4"><DocumentBadges document={document} /></td><td className="px-5 py-4 text-xs font-bold text-[#64748b]">{typeof document.on_chain === 'boolean' ? (document.on_chain ? 'Recorded on-chain' : 'Not recorded on-chain') : 'Not supplied'}</td><td className="px-5 py-4 text-xs text-[#64748b]">{formatDate(document.updated_at ?? document.created_at)}</td><td className="px-5 py-4"><DocumentActions document={document} role={uiRole} /></td></tr>)}</tbody></table>
           </div>
-          <div className="flex flex-col gap-3 md:hidden">{visibleDocuments.map((document) => <article key={document.id} className="rounded-[18px] border border-[#E8F0F8] bg-white p-4"><div className="flex gap-3"><DescriptionIcon sx={{ fontSize: 22, color: '#0985E7' }} /><div className="min-w-0 flex-1"><p className="truncate text-sm font-bold text-[#0C2B49]">{document.file_name}</p><p className="mt-1 text-xs text-[#64748b]">{document.document_number ? `Reference #${document.document_number}` : 'Reference unavailable'} · Updated {formatDate(document.updated_at ?? document.created_at)}</p><div className="mt-2"><DocumentBadges document={document} /></div></div></div><div className="mt-4 border-t border-[#E8F0F8] pt-3"><DocumentActions document={document} /></div></article>)}</div>
+          <div className="flex flex-col gap-3 md:hidden">{visibleDocuments.map((document) => <article key={document.id} className="rounded-[18px] border border-[#E8F0F8] bg-white p-4"><div className="flex gap-3"><DescriptionIcon sx={{ fontSize: 22, color: '#0985E7' }} /><div className="min-w-0 flex-1"><p className="truncate text-sm font-bold text-[#0C2B49]">{document.file_name}</p><p className="mt-1 text-xs text-[#64748b]">{document.document_number ? `Reference #${document.document_number}` : 'Reference unavailable'} · Updated {formatDate(document.updated_at ?? document.created_at)}</p><div className="mt-2"><DocumentBadges document={document} /></div></div></div><div className="mt-4 border-t border-[#E8F0F8] pt-3"><DocumentActions document={document} role={uiRole} /></div></article>)}</div>
         </>
       )}
     </div>
