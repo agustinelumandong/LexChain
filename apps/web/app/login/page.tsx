@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { isAdminRole } from "../../lib/admin-role";
+import { getPortalLoginRedirect } from "../portal/lib/portal-role";
 
 async function signIn(data: { email: string; password: string }) {
   const res = await fetch("/api/auth", {
@@ -29,7 +29,7 @@ function decodeJwtRole(token?: string): string {
 }
 
 function getRedirectPath(data: Record<string, unknown> | null): string {
-  if (!data) return "/portal/dashboard";
+  if (!data) return "/login";
   const user = (data.user as Record<string, unknown>) ?? data;
   const role = String(
     user.role ??
@@ -39,10 +39,7 @@ function getRedirectPath(data: Record<string, unknown> | null): string {
     decodeJwtRole(data.access_token as string) ??
     ""
   ).toLowerCase();
-  if (isAdminRole(role)) {
-    return "/admin/dashboard";
-  }
-  return "/portal/dashboard";
+  return getPortalLoginRedirect(role) ?? "/login";
 }
 
 export default function LoginPage() {
