@@ -8,7 +8,6 @@ const document = {
   document_number: 101,
   file_name: 'service-agreement.pdf',
   status: 'COMPLETED',
-  on_chain: true,
   content_type: 'application/pdf',
   storage_url: 'https://files.example/service-agreement.pdf',
   summary: 'A summary generated from the document.',
@@ -38,7 +37,7 @@ describe('DocumentWorkspace', () => {
   });
 
   it('explains unavailable data without inventing controls or restricted workflow actions', () => {
-    render(<DocumentWorkspace document={{ ...document, storage_url: '', summary: null, labels: [], entities: [], risk_flags: [], on_chain: false }} role="issuer" />);
+    render(<DocumentWorkspace document={{ ...document, storage_url: '', summary: null, labels: [], entities: [], risk_flags: [] }} role="issuer" />);
 
     fireEvent.click(screen.getByRole('tab', { name: 'Original PDF' }));
     expect(screen.getByText(/original PDF is not available/i)).toBeTruthy();
