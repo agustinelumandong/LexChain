@@ -29,6 +29,8 @@ export function getPortalNavigation(role: PortalUiRole): PortalNavigationItem[] 
       { label: "Processing Monitor", href: "/portal/processing" },
       { label: "Blockchain Records", href: "/portal/blockchain-records" },
       { label: "Categories", href: "/portal/categories" },
+      { label: "Analytics", href: "/portal/analytics" },
+      { label: "Reports", href: "/portal/reports" },
       { label: "Upload Document", href: "/portal/upload" },
       { label: "Notifications", href: "/portal/notifications" },
       { label: "Profile & Security", href: "/portal/profile" },

@@ -13,6 +13,8 @@ describe("lawyer portal navigation", () => {
       "Processing Monitor",
       "Blockchain Records",
       "Categories",
+      "Analytics",
+      "Reports",
       "Upload Document",
       "Notifications",
       "Profile & Security",
@@ -27,6 +29,8 @@ describe("lawyer portal navigation", () => {
     ["/portal/processing", "Processing Monitor"],
     ["/portal/blockchain-records", "Blockchain Records"],
     ["/portal/categories", "Categories"],
+    ["/portal/analytics", "Analytics"],
+    ["/portal/reports", "Reports"],
     ["/portal/upload", "Upload Document"],
   ])("marks %s as the active %s destination", (pathname, label) => {
     const item = getPortalNavigation("issuer").find((navigationItem) => navigationItem.label === label);
