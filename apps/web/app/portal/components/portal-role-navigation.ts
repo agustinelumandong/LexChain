@@ -12,6 +12,7 @@ import NotificationsNoneOutlinedIcon from "@mui/icons-material/NotificationsNone
 import ScheduleIcon from "@mui/icons-material/Schedule";
 import AnalyticsOutlinedIcon from "@mui/icons-material/AnalyticsOutlined";
 import AssessmentOutlinedIcon from "@mui/icons-material/AssessmentOutlined";
+import SettingsIcon from "@mui/icons-material/Settings";
 import type { PortalNavigationItem } from "../lib/portal-dashboard";
 
 type PortalNavigationIcon = ComponentType<{ fontSize?: "small" }>;
@@ -32,6 +33,7 @@ const iconsByLabel: Record<string, PortalNavigationIcon> = {
   "Profile & Security": PersonIcon,
   "Upload Document": FileUploadIcon,
   Notifications: NotificationsNoneOutlinedIcon,
+  "Office Settings": SettingsIcon,
 };
 
 export function isPortalRouteActive(pathname: string, item: PortalNavigationItem): boolean {

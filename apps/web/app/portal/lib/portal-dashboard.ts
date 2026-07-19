@@ -33,6 +33,7 @@ export function getPortalNavigation(role: PortalUiRole): PortalNavigationItem[] 
       { label: "Reports", href: "/portal/reports" },
       { label: "Upload Document", href: "/portal/upload" },
       { label: "Notifications", href: "/portal/notifications" },
+      { label: "Office Settings", href: "/portal/office-settings" },
       { label: "Profile & Security", href: "/portal/profile" },
     ];
   }
