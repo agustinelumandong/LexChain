@@ -1,16 +1,19 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import type { ApiSchema } from '@lexchain/types';
 import {
   defaultOfficeSettings,
   invitationExpiryDays,
-  sessionTimeoutMinutes,
   uploadLimitMegabytes,
   validateOfficeSettings,
   type OfficeSettings,
 } from '../lib/office-settings-schema';
+import { getPortalUiRole } from '../lib/portal-role';
 
 type NumberSettingField = keyof OfficeSettings;
+type UserProfile = ApiSchema<'UserProfileResponse'>;
 
 const fields: Array<{
   key: NumberSettingField;
@@ -30,15 +33,29 @@ const fields: Array<{
     description: 'The largest document size this office can upload in the demo.',
     range: uploadLimitMegabytes,
   },
-  {
-    key: 'sessionTimeoutMinutes',
-    label: 'Session timeout',
-    description: 'How long an inactive office session remains open in the demo.',
-    range: sessionTimeoutMinutes,
-  },
 ];
 
+async function fetchProfile(): Promise<UserProfile | null> {
+  const response = await fetch('/api/portal/proxy?path=%2Fusers%2F', { credentials: 'same-origin' });
+  if (!response.ok) return null;
+  return response.json();
+}
+
 export default function OfficeSettingsPage() {
+  const profileQuery = useQuery<UserProfile | null>({ queryKey: ['portal-profile'], queryFn: fetchProfile });
+
+  if (profileQuery.isLoading) {
+    return <p className="py-10 text-sm font-semibold text-[#64748b]">Loading office settings access…</p>;
+  }
+
+  if (getPortalUiRole(profileQuery.data?.role) !== 'issuer') {
+    return <p className="text-sm font-semibold text-[#64748b]">Office Settings are available to Document Issuers only.</p>;
+  }
+
+  return <OfficeSettingsForm />;
+}
+
+function OfficeSettingsForm() {
   const [savedSettings, setSavedSettings] = useState<OfficeSettings>(defaultOfficeSettings);
   const [settings, setSettings] = useState<OfficeSettings>(defaultOfficeSettings);
   const [savedMessage, setSavedMessage] = useState(false);
