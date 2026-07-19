@@ -6,6 +6,7 @@ describe("portal dashboard", () => {
     expect(getPortalNavigation("issuer").map((item) => item.label)).toEqual([
       "Dashboard",
       "Documents",
+      "Processing Monitor",
       "Blockchain Records",
       "Categories",
       "Upload Document",
