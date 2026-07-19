@@ -1,6 +1,6 @@
 import { afterEach, expect, it, vi } from 'vitest';
 import { NextRequest } from 'next/server';
-import { GET } from './route';
+import { POST } from './route';
 
 const originalApiUrl = process.env.API_URL;
 
@@ -11,7 +11,7 @@ afterEach(() => {
 });
 
 it('rejects unauthenticated blockchain record requests', async () => {
-  const response = await GET(
+  const response = await POST(
     new NextRequest('http://localhost/api/portal/blockchain/record/document-123'),
     { params: Promise.resolve({ id: 'document-123' }) },
   );
@@ -29,7 +29,7 @@ it('forwards authenticated blockchain record requests to the matching upstream p
   );
   vi.stubGlobal('fetch', fetchMock);
 
-  const response = await GET(
+  const response = await POST(
     new NextRequest('http://localhost/api/portal/blockchain/record/document-123', {
       headers: { cookie: 'portal_token=portal-token' },
     }),
@@ -37,6 +37,7 @@ it('forwards authenticated blockchain record requests to the matching upstream p
   );
 
   expect(fetchMock).toHaveBeenCalledWith('/blockchain/record/document-123', {
+    method: 'POST',
     headers: {
       Authorization: 'Bearer portal-token',
       'ngrok-skip-browser-warning': 'true',
