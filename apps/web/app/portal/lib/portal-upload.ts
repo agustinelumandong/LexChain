@@ -2,6 +2,34 @@ import type { ApiSchema } from '@lexchain/types';
 
 type UploadAccepted = ApiSchema<'DocumentUploadAcceptedResponse'>;
 
+export type UploadMetadata = { title: string; bookId: string };
+
+export type UploadOutcome = {
+  documentId: string;
+  status: string;
+  message: string;
+};
+
+export function getUploadFileError(file: File): string | null {
+  return file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')
+    ? null
+    : 'Choose a PDF file.';
+}
+
+export function getRequiredUploadMetadataError({ title, bookId }: UploadMetadata): string | null {
+  if (!title.trim()) return 'Enter a document title.';
+  if (!bookId) return 'Choose a book.';
+  return null;
+}
+
+export function getUploadOutcome(response: UploadAccepted): UploadOutcome {
+  return {
+    documentId: response.document_id,
+    status: response.status,
+    message: response.message,
+  };
+}
+
 export async function uploadDocument({ file, title, bookId }: { file: File; title: string; bookId: string }): Promise<UploadAccepted> {
   const form = new FormData();
   form.append('file', file);
