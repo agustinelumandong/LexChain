@@ -2,14 +2,14 @@ import { describe, expect, it } from "vitest";
 import { getDocumentActions, getDocumentStatusLabel } from "./document-ui";
 
 describe("document UI", () => {
-  it("shows an issuer anchor action only for completed off-chain documents", () => {
+  it("does not expose anchoring for completed off-chain documents", () => {
     expect(getDocumentActions("issuer", { status: "COMPLETED", on_chain: false }))
-      .toEqual(["View PDF", "Anchor to Blockchain"]);
+      .toEqual(["View PDF"]);
   });
 
   it("replaces anchoring with verification after anchoring", () => {
     expect(getDocumentActions("issuer", { status: "COMPLETED", on_chain: true }))
-      .toEqual(["View PDF", "Verify Document"]);
+      .toEqual(["View PDF", "Verify Integrity"]);
   });
 
   it("uses the mobile status vocabulary", () => {

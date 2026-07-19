@@ -15,9 +15,6 @@ export function getDocumentActions(
   document: { status?: string | null; on_chain?: boolean | null },
 ): string[] {
   if (role !== 'issuer') return ['View PDF'];
-  if (document.on_chain) return ['View PDF', 'Verify Document'];
-  if (document.status?.trim().toUpperCase() === 'COMPLETED') {
-    return ['View PDF', 'Anchor to Blockchain'];
-  }
+  if (document.on_chain) return ['View PDF', 'Verify Integrity'];
   return ['View PDF'];
 }
