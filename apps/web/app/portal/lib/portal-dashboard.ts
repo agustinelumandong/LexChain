@@ -26,6 +26,7 @@ export function getPortalNavigation(role: PortalUiRole): PortalNavigationItem[] 
     return [
       { label: "Dashboard", href: "/portal/dashboard" },
       { label: "Documents", href: "/portal/documents" },
+      { label: "Blockchain Records", href: "/portal/blockchain-records" },
       { label: "Categories", href: "/portal/categories" },
       { label: "Upload Document", href: "/portal/upload" },
       { label: "Notifications", href: "/portal/notifications" },

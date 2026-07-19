@@ -10,6 +10,7 @@ describe("lawyer portal navigation", () => {
     expect(navigation.map((item) => item.label)).toEqual([
       "Dashboard",
       "Documents",
+      "Blockchain Records",
       "Categories",
       "Upload Document",
       "Notifications",
@@ -22,6 +23,7 @@ describe("lawyer portal navigation", () => {
   it.each([
     ["/portal/dashboard", "Dashboard"],
     ["/portal/documents", "Documents"],
+    ["/portal/blockchain-records", "Blockchain Records"],
     ["/portal/categories", "Categories"],
     ["/portal/upload", "Upload Document"],
   ])("marks %s as the active %s destination", (pathname, label) => {
