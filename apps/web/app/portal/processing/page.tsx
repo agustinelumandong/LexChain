@@ -1,5 +1,18 @@
+'use client';
+
+import { useQuery } from '@tanstack/react-query';
+import type { ApiSchema } from '@lexchain/types';
 import Link from 'next/link';
 import { getProcessingMonitorItems, getProcessingStageLabel, type ProcessingStage } from '../lib/processing-monitor';
+import { getPortalUiRole } from '../lib/portal-role';
+
+type UserProfile = ApiSchema<'UserProfileResponse'>;
+
+async function getJson<T>(path: string): Promise<T> {
+  const response = await fetch(`/api/portal/proxy?path=${encodeURIComponent(path)}`, { credentials: 'same-origin' });
+  if (!response.ok) throw new Error(`Failed to fetch ${path}`);
+  return response.json() as Promise<T>;
+}
 
 const stageClasses: Record<ProcessingStage, string> = {
   queued: 'bg-[#FFF4DD] text-[#B77900]',
@@ -9,6 +22,16 @@ const stageClasses: Record<ProcessingStage, string> = {
 };
 
 export default function ProcessingMonitorPage() {
+  const profileQuery = useQuery({
+    queryKey: ['portal-profile'],
+    queryFn: () => getJson<UserProfile | null>('/users/'),
+  });
+  if (profileQuery.isLoading) return <div className="h-36 animate-pulse rounded-[18px] border border-[#E8F0F8] bg-white" />;
+
+  if (getPortalUiRole(profileQuery.data?.role) !== 'issuer') {
+    return <p className="text-sm font-semibold text-[#64748b]">Processing Monitor is available to Document Issuers only.</p>;
+  }
+
   const items = getProcessingMonitorItems();
 
   return (
