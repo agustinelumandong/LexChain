@@ -25,7 +25,9 @@ export function PortalBottomNav({ pathname }: { pathname: string }) {
                   aria-label={item.label}
                   className={`flex-1 flex flex-col items-center justify-center gap-[3px] min-h-[56px] rounded-[28px] transition-colors ${active ? 'bg-[var(--portal-surface-soft)]' : ''}`}
                 >
-                  <Icon sx={{ fontSize: 18, color: active ? 'var(--portal-primary)' : 'var(--portal-text-muted)' }} />
+                  <span className={active ? 'text-[var(--portal-primary)]' : 'text-[var(--portal-text-muted)]'}>
+                    <Icon fontSize="small" />
+                  </span>
                   {active && (
                     <span className="text-[10px] font-bold leading-[12px] text-[var(--portal-primary)]">{item.label}</span>
                   )}
