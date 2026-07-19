@@ -8,10 +8,10 @@ import type { ApiSchema } from '@lexchain/types';
 import PortalChatbot from '../../components/portal-chatbot';
 import { DocumentWorkspace } from './document-workspace';
 import { getDocumentActions, getDocumentStatusLabel } from '../../lib/document-ui';
+import { verifyRepositoryDocument } from '../../lib/integrity-api';
 import { getPortalUiRole } from '../../lib/portal-role';
 
 type DocumentResponse = ApiSchema<'DocumentResponse'>;
-type OnChainVerificationResponse = ApiSchema<'OnChainVerificationResponse'>;
 type UserProfile = ApiSchema<'UserProfileResponse'>;
 
 async function getJson<T>(path: string): Promise<T> {
@@ -32,7 +32,7 @@ export default function DocumentDetailPage({ params }: { params: Promise<{ id: s
   const [docQ, chainQ, profileQ] = useQueries({
     queries: [
       { queryKey: ['portal-doc', id], queryFn: () => getJson<DocumentResponse>(`/documents/${id}`) },
-      { queryKey: ['portal-doc-chain', id], queryFn: () => getJson<OnChainVerificationResponse>(`/blockchain/verify/${id}`), retry: false },
+      { queryKey: ['portal-doc-chain', id], queryFn: () => verifyRepositoryDocument(id), retry: false },
       { queryKey: ['portal-profile'], queryFn: () => getJson<UserProfile | null>('/users/') },
     ],
   });
