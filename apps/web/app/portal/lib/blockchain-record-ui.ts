@@ -1,25 +1,23 @@
-export type BlockchainRecordUi = {
-  data_hash?: string | null;
-  tx_hash?: string | null;
-  network?: string | null;
-  onchain_timestamp?: string | number | null;
-  timestamp?: string | number | null;
-};
+import type { components } from '@lexchain/types';
+
+export type BlockchainRecordUi = Pick<
+  components['schemas']['RecordResponse'],
+  'document_id' | 'tx_hash' | 'onchain_document_id' | 'data_hash' | 'transacttion_link'
+>;
 
 export type BlockchainRecordField = {
-  label: 'Hash' | 'Transaction' | 'Network' | 'Timestamp';
+  label: 'Document ID' | 'Transaction hash' | 'On-chain document ID' | 'Data hash' | 'Transaction link';
   value: string;
 };
 
 export function getBlockchainRecordFields(record?: BlockchainRecordUi | null): BlockchainRecordField[] {
   if (!record) return [];
 
-  const timestamp = record.onchain_timestamp ?? record.timestamp;
-
   return [
-    record.data_hash && { label: 'Hash' as const, value: record.data_hash },
-    record.tx_hash && { label: 'Transaction' as const, value: record.tx_hash },
-    record.network && { label: 'Network' as const, value: record.network },
-    timestamp !== undefined && timestamp !== null && { label: 'Timestamp' as const, value: String(timestamp) },
-  ].filter((field): field is BlockchainRecordField => Boolean(field));
+    { label: 'Document ID', value: record.document_id },
+    { label: 'Transaction hash', value: record.tx_hash },
+    { label: 'On-chain document ID', value: record.onchain_document_id },
+    { label: 'Data hash', value: record.data_hash },
+    { label: 'Transaction link', value: record.transacttion_link },
+  ];
 }
