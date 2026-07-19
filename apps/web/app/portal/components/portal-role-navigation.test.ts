@@ -17,6 +17,7 @@ describe("lawyer portal navigation", () => {
       "Reports",
       "Upload Document",
       "Notifications",
+      "Office Settings",
       "Profile & Security",
     ]);
     expect(navigation.map((item) => item.href)).not.toContain("/admin");
@@ -32,6 +33,7 @@ describe("lawyer portal navigation", () => {
     ["/portal/analytics", "Analytics"],
     ["/portal/reports", "Reports"],
     ["/portal/upload", "Upload Document"],
+    ["/portal/office-settings", "Office Settings"],
   ])("marks %s as the active %s destination", (pathname, label) => {
     const item = getPortalNavigation("issuer").find((navigationItem) => navigationItem.label === label);
 

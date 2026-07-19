@@ -13,6 +13,7 @@ describe("portal dashboard", () => {
       "Reports",
       "Upload Document",
       "Notifications",
+      "Office Settings",
       "Profile & Security",
     ]);
   });
