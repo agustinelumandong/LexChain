@@ -1,10 +1,31 @@
 'use client';
 
 import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import type { ApiSchema } from '@lexchain/types';
 import { getOfficeDateRanges, getOfficeInsightMetrics } from '../lib/office-insight';
+import { getPortalUiRole } from '../lib/portal-role';
+
+type UserProfile = ApiSchema<'UserProfileResponse'>;
+
+async function getJson<T>(path: string): Promise<T> {
+  const response = await fetch(`/api/portal/proxy?path=${encodeURIComponent(path)}`, { credentials: 'same-origin' });
+  if (!response.ok) throw new Error(`Failed to fetch ${path}`);
+  return response.json() as Promise<T>;
+}
 
 export default function OfficeAnalyticsPage() {
   const [selectedRange, setSelectedRange] = useState('30-days');
+  const profileQuery = useQuery({
+    queryKey: ['portal-profile'],
+    queryFn: () => getJson<UserProfile | null>('/users/'),
+  });
+  if (profileQuery.isLoading) return <div className="h-36 animate-pulse rounded-[18px] border border-[#E8F0F8] bg-white" />;
+
+  if (getPortalUiRole(profileQuery.data?.role) !== 'issuer') {
+    return <p className="text-sm font-semibold text-[#64748b]">Office Analytics is available to Document Issuers only.</p>;
+  }
+
   const dateRanges = getOfficeDateRanges();
   const metrics = getOfficeInsightMetrics();
 
