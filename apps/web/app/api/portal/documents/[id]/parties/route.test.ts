@@ -21,12 +21,14 @@ it('rejects unauthenticated requests and forwards an authenticated party list re
   expect(unauthenticated.status).toBe(401);
   await expect(unauthenticated.json()).resolves.toEqual({ message: 'Not authenticated' });
 
-  const fetchMock = vi.fn().mockResolvedValue(
+  const fetchMock = vi.fn()
+    .mockResolvedValueOnce(new Response(JSON.stringify({ role: 'lawyer' }), { status: 200 }))
+    .mockResolvedValueOnce(
       new Response(JSON.stringify({ parties: [] }), {
         status: 200,
         headers: { 'content-type': 'application/json' },
       }),
-  );
+    );
   vi.stubGlobal('fetch', fetchMock);
 
   const authenticated = await GET(
@@ -36,7 +38,7 @@ it('rejects unauthenticated requests and forwards an authenticated party list re
     { params },
   );
 
-  expect(fetchMock).toHaveBeenCalledWith('/documents/document-123/parties', {
+  expect(fetchMock).toHaveBeenLastCalledWith('/documents/document-123/parties', {
     headers: {
       Authorization: 'Bearer portal-token',
       'ngrok-skip-browser-warning': 'true',
@@ -45,6 +47,37 @@ it('rejects unauthenticated requests and forwards an authenticated party list re
   });
   expect(authenticated.status).toBe(200);
   await expect(authenticated.json()).resolves.toEqual({ parties: [] });
+});
+
+it('does not proxy participant management when the authenticated profile is not an issuer', async () => {
+  const fetchMock = vi.fn().mockResolvedValue(
+    new Response(JSON.stringify({ role: 'user' }), { status: 200 }),
+  );
+  vi.stubGlobal('fetch', fetchMock);
+  const params = Promise.resolve({ id: 'document-123' });
+
+  const listResponse = await GET(
+    new NextRequest('http://localhost/api/portal/documents/document-123/parties', {
+      headers: { cookie: 'portal_token=portal-token' },
+    }),
+    { params },
+  );
+  const inviteResponse = await POST(
+    new NextRequest('http://localhost/api/portal/documents/document-123/parties', {
+      method: 'POST',
+      headers: { cookie: 'portal_token=portal-token', 'content-type': 'application/json' },
+      body: JSON.stringify({ email: 'person@example.com', role: 'viewer' }),
+    }),
+    { params },
+  );
+
+  expect(listResponse.status).toBe(403);
+  await expect(listResponse.json()).resolves.toEqual({ message: 'Participant management is available to Document Issuers only.' });
+  expect(inviteResponse.status).toBe(403);
+  await expect(inviteResponse.json()).resolves.toEqual({ message: 'Participant management is available to Document Issuers only.' });
+  expect(fetchMock).toHaveBeenCalledTimes(2);
+  expect(fetchMock).toHaveBeenNthCalledWith(1, '/users/', expect.any(Object));
+  expect(fetchMock).toHaveBeenNthCalledWith(2, '/users/', expect.any(Object));
 });
 
 it('rejects malformed participant invitations before forwarding them upstream', async () => {

@@ -12,9 +12,28 @@ function unauthenticated() {
   return NextResponse.json({ message: 'Not authenticated' }, { status: 401 });
 }
 
+async function isDocumentIssuer(token: string) {
+  const profile = await fetch(backendUrl('/users/'), {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'ngrok-skip-browser-warning': 'true',
+    },
+    cache: 'no-store',
+  });
+  const profileData = await profile.json().catch(() => null);
+  return profileData?.role?.trim().toLowerCase() === 'lawyer';
+}
+
 async function proxy(request: NextRequest, method: 'GET' | 'POST', context: RouteContext, body?: string) {
   const token = tokenFrom(request);
   if (!token) return unauthenticated();
+
+  if (!await isDocumentIssuer(token)) {
+    return NextResponse.json(
+      { message: 'Participant management is available to Document Issuers only.' },
+      { status: 403 },
+    );
+  }
 
   const { id } = await context.params;
   const upstream = await fetch(backendUrl(`/documents/${id}/parties`), {

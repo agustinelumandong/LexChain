@@ -8,8 +8,10 @@ import ScheduleIcon from '@mui/icons-material/Schedule';
 import VerifiedUserIcon from '@mui/icons-material/VerifiedUser';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import NotificationsNoneIcon from '@mui/icons-material/NotificationsNone';
+import type { ApiSchema } from '@lexchain/types';
 import { getDocumentStatusLabel } from '../lib/document-ui';
 import { getDashboardMetrics } from '../lib/portal-dashboard';
+import { getPortalUiRole } from '../lib/portal-role';
 
 interface Document {
   id: string;
@@ -18,6 +20,8 @@ interface Document {
   on_chain?: boolean | null;
   created_at: string;
 }
+
+type UserProfile = ApiSchema<'UserProfileResponse'>;
 
 async function fetchJson<T>(path: string): Promise<T> {
   const response = await fetch(`/api/portal/proxy?path=${encodeURIComponent(path)}`, { credentials: 'same-origin' });
@@ -55,14 +59,27 @@ function getMetricIcon(label: string) {
 }
 
 export default function DashboardPage() {
+  const profileQuery = useQuery({
+    queryKey: ['portal-profile'],
+    queryFn: () => fetchJson<UserProfile | null>('/users/'),
+  });
+  const isIssuer = getPortalUiRole(profileQuery.data?.role) === 'issuer';
   const documentsQuery = useQuery<Document[]>({
     queryKey: ['portal-documents'],
     queryFn: () => fetchJson('/documents/'),
+    enabled: isIssuer,
   });
   const notificationsQuery = useQuery<{ unread: number }>({
     queryKey: ['portal-notif-count'],
     queryFn: () => fetchJson('/notifications/unread-count'),
+    enabled: isIssuer,
   });
+
+  if (profileQuery.isLoading) return <div className="h-36 animate-pulse rounded-[18px] border border-[#E8F0F8] bg-white" />;
+
+  if (!isIssuer) {
+    return <p className="text-sm font-semibold text-[#64748b]">The Lawyer Portal dashboard is available to Document Issuers only.</p>;
+  }
 
   const documents = documentsQuery.data ?? [];
   const recentDocuments = [...documents]

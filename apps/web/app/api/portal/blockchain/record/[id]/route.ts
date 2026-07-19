@@ -7,6 +7,21 @@ export async function POST(request: NextRequest, context: RouteContext) {
   const token = request.cookies.get('portal_token')?.value;
   if (!token) return NextResponse.json({ message: 'Not authenticated' }, { status: 401 });
 
+  const profile = await fetch(backendUrl('/users/'), {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'ngrok-skip-browser-warning': 'true',
+    },
+    cache: 'no-store',
+  });
+  const profileData = await profile.json().catch(() => null);
+  if (profileData?.role?.trim().toLowerCase() !== 'lawyer') {
+    return NextResponse.json(
+      { message: 'Blockchain anchoring is available to Document Issuers only.' },
+      { status: 403 },
+    );
+  }
+
   const { id } = await context.params;
   const upstream = await fetch(backendUrl(`/blockchain/record/${id}`), {
     method: 'POST',
