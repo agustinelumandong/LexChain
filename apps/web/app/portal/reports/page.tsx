@@ -1,6 +1,29 @@
+'use client';
+
+import { useQuery } from '@tanstack/react-query';
+import type { ApiSchema } from '@lexchain/types';
 import { getOfficeReports } from '../lib/office-insight';
+import { getPortalUiRole } from '../lib/portal-role';
+
+type UserProfile = ApiSchema<'UserProfileResponse'>;
+
+async function getJson<T>(path: string): Promise<T> {
+  const response = await fetch(`/api/portal/proxy?path=${encodeURIComponent(path)}`, { credentials: 'same-origin' });
+  if (!response.ok) throw new Error(`Failed to fetch ${path}`);
+  return response.json() as Promise<T>;
+}
 
 export default function OfficeReportsPage() {
+  const profileQuery = useQuery({
+    queryKey: ['portal-profile'],
+    queryFn: () => getJson<UserProfile | null>('/users/'),
+  });
+  if (profileQuery.isLoading) return <div className="h-36 animate-pulse rounded-[18px] border border-[#E8F0F8] bg-white" />;
+
+  if (getPortalUiRole(profileQuery.data?.role) !== 'issuer') {
+    return <p className="text-sm font-semibold text-[#64748b]">Office Reports are available to Document Issuers only.</p>;
+  }
+
   const reports = getOfficeReports();
 
   return (
