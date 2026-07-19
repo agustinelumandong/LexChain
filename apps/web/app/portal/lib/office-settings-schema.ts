@@ -1,7 +1,6 @@
 export type OfficeSettings = {
   invitationExpiryDays: number;
   uploadLimitMegabytes: number;
-  sessionTimeoutMinutes: number;
 };
 
 type NumericRange = {
@@ -12,7 +11,6 @@ type NumericRange = {
 
 export const invitationExpiryDays: NumericRange = { min: 1, max: 30, unit: 'days' };
 export const uploadLimitMegabytes: NumericRange = { min: 1, max: 100, unit: 'MB' };
-export const sessionTimeoutMinutes: NumericRange = { min: 15, max: 480, unit: 'minutes' };
 
 export type OfficeSettingsErrors = Partial<Record<keyof OfficeSettings, string>>;
 
@@ -26,12 +24,10 @@ export function validateOfficeSettings(settings: OfficeSettings): OfficeSettings
   return {
     invitationExpiryDays: validateRange(settings.invitationExpiryDays, invitationExpiryDays, 'Invitation expiry'),
     uploadLimitMegabytes: validateRange(settings.uploadLimitMegabytes, uploadLimitMegabytes, 'Upload limit'),
-    sessionTimeoutMinutes: validateRange(settings.sessionTimeoutMinutes, sessionTimeoutMinutes, 'Session timeout'),
   };
 }
 
 export const defaultOfficeSettings: OfficeSettings = {
   invitationExpiryDays: 7,
   uploadLimitMegabytes: 25,
-  sessionTimeoutMinutes: 60,
 };
