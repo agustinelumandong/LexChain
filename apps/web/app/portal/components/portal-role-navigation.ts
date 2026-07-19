@@ -10,6 +10,8 @@ import RequestPageIcon from "@mui/icons-material/RequestPage";
 import FileUploadIcon from "@mui/icons-material/FileUpload";
 import NotificationsNoneOutlinedIcon from "@mui/icons-material/NotificationsNoneOutlined";
 import ScheduleIcon from "@mui/icons-material/Schedule";
+import AnalyticsOutlinedIcon from "@mui/icons-material/AnalyticsOutlined";
+import AssessmentOutlinedIcon from "@mui/icons-material/AssessmentOutlined";
 import type { PortalNavigationItem } from "../lib/portal-dashboard";
 
 type PortalNavigationIcon = ComponentType<{ fontSize?: "small" }>;
@@ -20,6 +22,8 @@ const iconsByLabel: Record<string, PortalNavigationIcon> = {
   "Processing Monitor": ScheduleIcon,
   "Blockchain Records": LinkIcon,
   Categories: CategoryOutlinedIcon,
+  Analytics: AnalyticsOutlinedIcon,
+  Reports: AssessmentOutlinedIcon,
   Books: MenuBookIcon,
   "Document Requests": RequestPageIcon,
   "Shared Documents": DescriptionIcon,

@@ -9,6 +9,8 @@ describe("portal dashboard", () => {
       "Processing Monitor",
       "Blockchain Records",
       "Categories",
+      "Analytics",
+      "Reports",
       "Upload Document",
       "Notifications",
       "Profile & Security",
