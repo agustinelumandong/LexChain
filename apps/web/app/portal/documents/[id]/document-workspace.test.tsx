@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
 import { DocumentWorkspace } from './document-workspace';
 
@@ -18,6 +18,23 @@ const document = {
 
 describe('DocumentWorkspace', () => {
   afterEach(cleanup);
+
+  it('shows populated document metadata in the Overview tab', () => {
+    render(<DocumentWorkspace document={document} role="issuer" />);
+
+    const overview = screen.getByRole('tabpanel');
+    expect(within(overview).getByRole('heading', { name: 'Overview' })).toBeTruthy();
+    expect(within(overview).getByText('Reference').nextElementSibling?.textContent).toBe('101');
+    expect(within(overview).getByText('Content type').nextElementSibling?.textContent).toBe('application/pdf');
+  });
+
+  it('marks missing Overview metadata as not supplied', () => {
+    render(<DocumentWorkspace document={{ storage_url: null }} role="issuer" />);
+
+    const overview = screen.getByRole('tabpanel');
+    expect(within(overview).getByText('Reference').nextElementSibling?.textContent).toBe('Not supplied');
+    expect(within(overview).getByText('Content type').nextElementSibling?.textContent).toBe('Not supplied');
+  });
 
   it('keeps original files, derived insights, and integrity data in separate tabs', () => {
     render(<DocumentWorkspace document={document} role="issuer" chain={{ data_hash: '0xabc', tx_hash: '0xdef', onchain_timestamp: 1_700_000_000 }} />);
