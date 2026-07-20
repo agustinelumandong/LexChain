@@ -37,7 +37,7 @@ export default function OfficeAnalyticsPage() {
         <p className="mt-1 text-sm text-[#64748b]">Review local office activity snapshots without changing any records.</p>
       </header>
 
-      <p className="rounded-[18px] border border-[#E8F0F8] bg-[#F8FBFF] p-4 text-sm font-semibold text-[#64748b]">Demo data — changes reset when this page is refreshed.</p>
+      <p className="self-start rounded-full border border-[#E8F0F8] bg-[#F8FBFF] px-3 py-1 text-xs font-bold text-[#64748b]">Demo data — changes reset when this page is refreshed.</p>
 
       <section aria-label="Analytics date range" className="flex flex-wrap gap-2">
         {dateRanges.map((range) => (
@@ -67,9 +67,9 @@ export default function OfficeAnalyticsPage() {
         ))}
       </section>
 
-      <section aria-label="Analytics empty state" role="status" className="rounded-[18px] border border-dashed border-[#CFE1F2] bg-white p-6 text-center">
-        <h2 className="text-base font-black text-[#0C2B49]">No office activity yet</h2>
-        <p className="mt-2 text-sm font-semibold text-[#64748b]">No office activity is available for this demo period.</p>
+      <section aria-label="Analytics demo status" role="status" className="rounded-[18px] border border-dashed border-[#CFE1F2] bg-white p-6 text-center">
+        <h2 className="text-base font-black text-[#0C2B49]">Demo activity snapshot</h2>
+        <p className="mt-2 text-sm font-semibold text-[#64748b]">Totals shown are seeded for this demo period.</p>
       </section>
     </div>
   );
