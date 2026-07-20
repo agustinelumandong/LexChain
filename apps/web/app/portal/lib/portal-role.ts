@@ -24,7 +24,7 @@ export function getPortalRoleLabel(role?: string): string {
 }
 
 export function getPortalLoginRedirect(role?: string): "/portal/dashboard" | undefined {
-  return getPortalUiRole(role) === "issuer" ? "/portal/dashboard" : undefined;
+  return isSupportedPortalUiRole(getPortalUiRole(role)) ? "/portal/dashboard" : undefined;
 }
 
 export function getPortalProfileRequestShortcut(
