@@ -82,6 +82,16 @@ describe('DocumentWorkspace', () => {
     expect(onRetry).toHaveBeenCalledOnce();
   });
 
+  it('renders a mismatched integrity record with the warning treatment', () => {
+    render(<DocumentWorkspace document={document} role="issuer" chain={{ data_hash: '0xabc' }} integrityState="mismatch" />);
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Blockchain' }));
+    const mismatch = screen.getByText('Integrity mismatch');
+    expect(mismatch.className).toContain('bg-[#FFF4DD]');
+    expect(mismatch.className).toContain('text-[#B77900]');
+    expect(mismatch.className).not.toContain('text-[#12A150]');
+  });
+
   it('renders one-key insight objects as readable key-value details', () => {
     render(<DocumentWorkspace document={document} role="issuer" integrityState="recorded" />);
 

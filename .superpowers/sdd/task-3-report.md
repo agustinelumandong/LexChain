@@ -16,3 +16,10 @@
 ## Concern
 
 - `pnpm run build` compiles but cannot finish in this sandbox because Next.js cannot write `.next/trace-build` (`EROFS`). The strict TypeScript check above passes; the build write failure is environmental.
+
+## Follow-up: integrity mismatch workspace treatment
+
+- Fixed the Blockchain-tab integrity label so an explicit `mismatch` uses the same amber warning badge treatment as the detail header, instead of success green.
+- Added a regression assertion that checks the mismatch label has the warning background/text tokens and no success-green text.
+- RED: `pnpm test -- --run 'app/portal/documents/[id]/document-workspace.test.tsx'` failed because the label used `text-[#12A150]`.
+- GREEN: `pnpm exec vitest run 'app/portal/documents/[id]/document-workspace.test.tsx'` passed: 1 file, 10 tests.
