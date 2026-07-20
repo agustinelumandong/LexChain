@@ -1,6 +1,19 @@
+// @vitest-environment jsdom
 import { readFile, readdir } from "node:fs/promises";
 import path from "node:path";
-import { describe, expect, it } from "vitest";
+import { createElement } from 'react';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from "vitest";
+import ProfilePage from '../profile/page';
+import PortalChatbot from '../components/portal-chatbot';
+
+vi.mock('@tanstack/react-query', () => ({
+  useQuery: () => ({ data: { f_name: 'Ada', l_name: 'Lovelace', email: 'ada@example.com', role: 'lawyer' }, isLoading: false }),
+}));
+
+vi.mock('next/link', () => ({ default: ({ href, children, ...props }: React.ComponentProps<'a'>) => createElement('a', { href, ...props }, children) }));
+
+afterEach(cleanup);
 
 const appDirectory = path.resolve(process.cwd(), "app");
 
@@ -39,5 +52,19 @@ describe("portal UI source audit", () => {
 
     expect(chooser).toContain('type="button"');
     expect(chooser).toContain('onClick={() => inputRef.current?.click()}');
+  });
+
+  it('links profile support to the support mailbox', () => {
+    render(createElement(ProfilePage));
+
+    expect(screen.getByRole('link', { name: /help and support/i }).getAttribute('href')).toBe('mailto:support@lexchain.app');
+  });
+
+  it('offers safe document-assistant guidance', () => {
+    render(createElement(PortalChatbot));
+    fireEvent.click(screen.getByRole('button', { name: 'Open document assistant' }));
+
+    expect(screen.getByText('Suggested questions')).toBeTruthy();
+    expect(screen.getByText('AI-generated assistance. Review the original PDF before relying on an answer.')).toBeTruthy();
   });
 });

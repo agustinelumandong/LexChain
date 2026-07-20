@@ -20,7 +20,7 @@ const sharedSettingsItems = [
   { label: 'Security', description: 'Password and login settings', href: '/portal/profile/security', icon: LockIcon },
   { label: 'Notifications', description: 'Manage notification preferences', href: '/portal/notifications', icon: NotificationsNoneIcon },
   { label: 'Privacy policy', description: 'Review how document and account data is handled', href: '/privacy', icon: PolicyIcon },
-  { label: 'Help and support', description: 'Get help with access or verification issues', href: '/download', icon: HelpOutlineIcon },
+  { label: 'Help and support', description: 'Get help with access or verification issues', href: 'mailto:support@lexchain.app', icon: HelpOutlineIcon },
 ];
 
 async function fetchProfile(): Promise<UserProfile> {

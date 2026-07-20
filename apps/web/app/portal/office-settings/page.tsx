@@ -148,6 +148,7 @@ function OfficeSettingsForm() {
           >
             Cancel
           </button>
+          {isDirty && !hasErrors ? <p role="status" className="text-sm font-semibold text-[#B77900]">Unsaved changes</p> : null}
           {savedMessage ? <p role="status" className="text-sm font-semibold text-[#16834B]">Settings saved for this demo session.</p> : null}
         </div>
       </form>

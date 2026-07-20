@@ -28,6 +28,7 @@ export default function CategoriesPage() {
   const profileQuery = useQuery<UserProfile | null>({ queryKey: ['portal-profile'], queryFn: fetchProfile });
   const [categories, setCategories] = useState<DemoCategory[]>(initialDemoCategories);
   const [editingCategory, setEditingCategory] = useState<DemoCategory | null>(null);
+  const [categoryToDeactivate, setCategoryToDeactivate] = useState<DemoCategory | null>(null);
   const [draftName, setDraftName] = useState('');
   const isIssuer = canAccessPortalFeature(getPortalUiRole(profileQuery.data?.role), 'categories');
 
@@ -106,12 +107,22 @@ export default function CategoriesPage() {
               </div>
               <div className="flex items-center gap-3">
                 <button type="button" onClick={() => openEdit(category)} className="inline-flex items-center gap-1 text-sm font-black text-[#0985E7] hover:underline"><EditOutlinedIcon fontSize="small" /> Edit</button>
-                {category.active && <button type="button" onClick={() => setCategories((current) => deactivateDemoCategory(current, category.id))} className="inline-flex items-center gap-1 text-sm font-black text-[#B45309] hover:underline"><BlockOutlinedIcon fontSize="small" /> Deactivate</button>}
+                {category.active && <button type="button" onClick={() => setCategoryToDeactivate(category)} className="inline-flex items-center gap-1 text-sm font-black text-[#B45309] hover:underline"><BlockOutlinedIcon fontSize="small" /> Deactivate</button>}
               </div>
             </li>
           ))}
         </ul>
       </section>
+      {categoryToDeactivate && (
+        <dialog open aria-modal="true" aria-label={`Deactivate ${categoryToDeactivate.name} category`} className="fixed inset-0 m-auto w-[calc(100%-2rem)] max-w-md rounded-[18px] border border-[#E8F0F8] bg-white p-5 shadow-[0_10px_40px_rgba(19,59,115,0.12)]">
+          <p className="font-black text-[#0C2B49]">Deactivate {categoryToDeactivate.name}?</p>
+          <p className="mt-2 text-sm text-[#64748b]">Documents already using this category keep their existing label.</p>
+          <div className="mt-5 flex justify-end gap-3">
+            <button type="button" onClick={() => setCategoryToDeactivate(null)} className="rounded-xl border border-[#D7E4F2] px-4 py-2 text-sm font-black text-[#0C2B49]">Cancel</button>
+            <button type="button" onClick={() => { setCategories((current) => deactivateDemoCategory(current, categoryToDeactivate.id)); setCategoryToDeactivate(null); }} className="rounded-xl bg-[#B45309] px-4 py-2 text-sm font-black text-white">Deactivate category</button>
+          </div>
+        </dialog>
+      )}
     </div>
   );
 }
