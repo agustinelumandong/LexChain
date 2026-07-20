@@ -17,3 +17,8 @@
 ## Scope
 
 The unused `PortalSidebar` component retains its flat navigation rendering for compatibility with the grouped navigation data. The rendered desktop sidebar is `app/portal/layout.tsx`.
+
+## Cleanup follow-up
+
+- Removed `app/portal/components/portal-sidebar.tsx`. A repository import/call-site search found only its own declaration; the rendered desktop sidebar remains `app/portal/layout.tsx`.
+- Re-ran the focused navigation tests and lint after removal; no runtime behavior changed.
