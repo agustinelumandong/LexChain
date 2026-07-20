@@ -23,8 +23,19 @@ describe('DashboardPage', () => {
 
     render(<DashboardPage />);
 
-    expect(screen.getByText('The Lawyer Portal dashboard is available to Document Issuers only.')).toBeTruthy();
+    expect(screen.getByText('The Document Issuer Portal dashboard is available to Document Issuers only.')).toBeTruthy();
     expect(screen.queryByText('Recent documents')).toBeNull();
     expect(screen.queryByText('Documents needing attention')).toBeNull();
+  });
+
+  it('labels the issuer dashboard as the Document Issuer Portal', () => {
+    useQuery.mockImplementation((options: { queryKey: string[]; enabled?: boolean }) => {
+      if (options.queryKey[0] === 'portal-profile') return { data: { role: 'lawyer' }, isLoading: false };
+      return { data: [], isLoading: false };
+    });
+
+    render(<DashboardPage />);
+
+    expect(screen.getByRole('heading', { name: 'Document Issuer Portal' })).toBeTruthy();
   });
 });
