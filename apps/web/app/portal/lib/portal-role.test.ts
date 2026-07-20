@@ -7,8 +7,9 @@ describe("portal UI roles", () => {
     expect(getPortalRoleLabel("lawyer")).toBe("Document Issuer · Super User");
   });
 
-  it("routes Lawyer office sign-in to the portal without granting unsupported roles office navigation", () => {
+  it("routes supported portal accounts to the portal without granting unsupported roles office navigation", () => {
     expect(getPortalLoginRedirect("lawyer")).toBe("/portal/dashboard");
+    expect(getPortalLoginRedirect("user")).toBe("/portal/dashboard");
     expect(getPortalLoginRedirect("staff")).toBeUndefined();
   });
 
