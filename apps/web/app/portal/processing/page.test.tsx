@@ -27,7 +27,8 @@ describe('ProcessingMonitorPage', () => {
 
     expect(screen.getByRole('link', { name: 'Open document' }).getAttribute('href')).toBe('/portal/documents/demo-failed-lease');
     expect(screen.getByRole('link', { name: 'Upload replacement PDF for Commercial Lease — Mabini Avenue' }).getAttribute('href')).toBe('/portal/upload');
-    expect(screen.getByRole('button', { name: 'Retry processing' }).disabled).toBe(true);
+    const retryButton = screen.getByRole('button', { name: 'Retry processing' }) as HTMLButtonElement;
+    expect(retryButton.disabled).toBe(true);
     expect(screen.getByText('Retry processing is not available in demo mode.')).toBeTruthy();
   });
 });
