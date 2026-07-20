@@ -5,6 +5,8 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { IntegrityResult } from '../components/integrity-result';
 import {
   INTEGRITY_SAFETY_MESSAGE,
+  getIntegrityUiCopy,
+  getIntegrityUiState,
   getIntegrityResult,
 } from './integrity-ui';
 
@@ -22,6 +24,31 @@ const matchingRecord = {
 
 afterEach(cleanup);
 
+describe('getIntegrityUiState', () => {
+  it('reports a returned hash as recorded', () => {
+    expect(getIntegrityUiState({ record: { data_hash: '0xabc' }, requestFailed: false })).toBe('recorded');
+  });
+
+  it('reports a failed request as unavailable instead of a positive state', () => {
+    expect(getIntegrityUiState({ record: undefined, requestFailed: true })).toBe('unavailable');
+    expect(getIntegrityUiState({ record: { data_hash: '0xabc' }, requestFailed: true })).toBe('unavailable');
+  });
+
+  it('reports an explicit verification failure as mismatch', () => {
+    expect(getIntegrityUiState({ record: { data_hash: '0xabc', is_verified: false }, requestFailed: false })).toBe('mismatch');
+  });
+
+  it('reports a missing record as not recorded', () => {
+    expect(getIntegrityUiState({ record: undefined, requestFailed: false })).toBe('not_recorded');
+  });
+});
+
+describe('getIntegrityUiCopy', () => {
+  it('uses clear copy for an unavailable integrity status', () => {
+    expect(getIntegrityUiCopy('unavailable').label).toBe('Integrity status unavailable');
+  });
+});
+
 describe('getIntegrityResult', () => {
   it('labels a verified repository response as Match', () => {
     expect(getIntegrityResult({ is_verified: true })).toMatchObject({ label: 'Match' });
@@ -36,10 +63,10 @@ describe('getIntegrityResult', () => {
   });
 });
 
-it('uses integrity-only safety wording without legal or retention claims', () => {
-  expect(INTEGRITY_SAFETY_MESSAGE).toContain('integrity');
-  expect(INTEGRITY_SAFETY_MESSAGE).toContain('does not determine legal validity');
-  expect(INTEGRITY_SAFETY_MESSAGE).toContain('does not upload or retain a public file');
+it('uses the required file-integrity-only safety wording', () => {
+  expect(INTEGRITY_SAFETY_MESSAGE).toBe(
+    'This checks file integrity only. It does not determine legal validity, notarization, or enforceability.',
+  );
 });
 
 describe('IntegrityResult', () => {
@@ -71,5 +98,24 @@ describe('IntegrityResult', () => {
     expect(screen.getByText(/does not determine legal validity/i)).toBeTruthy();
     expect(screen.queryByRole('button', { name: /legal|fraud|anchor|finali[sz]/i })).toBeNull();
     expect(screen.queryByRole('link', { name: /legal|fraud|anchor|finali[sz]/i })).toBeNull();
+  });
+
+  it('announces unavailable and mismatch states as alerts, and only shows retry when supplied', () => {
+    const { rerender } = render(createElement(IntegrityResult, { requestFailed: true }));
+
+    expect(screen.getByRole('alert')).toBeTruthy();
+    expect(screen.getByText('Integrity status unavailable')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /retry/i })).toBeNull();
+
+    rerender(createElement(IntegrityResult, { record: { ...matchingRecord, is_verified: false }, onRetry: () => undefined }));
+
+    expect(screen.getByRole('alert')).toBeTruthy();
+    expect(screen.getByRole('button', { name: /retry integrity check/i })).toBeTruthy();
+  });
+
+  it('announces informational states as status', () => {
+    render(createElement(IntegrityResult));
+
+    expect(screen.getByRole('status')).toBeTruthy();
   });
 });
