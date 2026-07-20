@@ -11,7 +11,11 @@ export default function VerifyPage() {
           Public verifier
         </h1>
         <p className="mt-3 text-sm font-semibold leading-5 text-[#64748b]">
-          Upload a PDF and LexChain checks whether it matches a notarized record.
+          Upload a PDF to check whether its file hash matches a LexChain integrity record.
+        </p>
+        <p className="mt-2 text-sm font-semibold leading-5 text-[#64748b]">
+          This checks file integrity only. It does not determine legal validity,
+          notarization, or enforceability.
         </p>
         <div className="mt-8">
           <PublicVerifyForm />

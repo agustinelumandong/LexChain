@@ -79,7 +79,7 @@ export default function LoginPage() {
           </div>
           <h1 className="text-3xl font-black leading-9 text-[#0C2B49]">Sign in</h1>
           <p className="text-sm font-semibold leading-5 text-[#64748b]">
-            Sign in with your credentials.
+            For Document Issuers and invited participants. Sign in with your credentials.
           </p>
         </div>
 

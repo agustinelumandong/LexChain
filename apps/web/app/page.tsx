@@ -62,7 +62,7 @@ export default function Home() {
               className="rounded-full bg-[#0985E7] px-4 py-2 text-sm font-bold text-white shadow-[0_10px_24px_rgba(9,133,231,0.22)] transition hover:bg-[#0770c4]"
               href="/login"
             >
-              Admin Login
+              Sign In
             </Link>
           </div>
         </nav>
@@ -93,7 +93,7 @@ export default function Home() {
                 className="rounded-md border border-slate-300 bg-white px-5 py-3 text-center text-sm font-black text-slate-900 transition hover:bg-slate-50"
                 href="/login"
               >
-                Admin Login
+                Sign In
               </Link>
             </div>
             <div className="mt-8">

@@ -78,7 +78,7 @@ export default function DashboardPage() {
   if (profileQuery.isLoading) return <div className="h-36 animate-pulse rounded-[18px] border border-[#E8F0F8] bg-white" />;
 
   if (!isIssuer) {
-    return <p className="text-sm font-semibold text-[#64748b]">The Lawyer Portal dashboard is available to Document Issuers only.</p>;
+    return <p className="text-sm font-semibold text-[#64748b]">The Document Issuer Portal dashboard is available to Document Issuers only.</p>;
   }
 
   const documents = documentsQuery.data ?? [];
@@ -93,7 +93,7 @@ export default function DashboardPage() {
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-[28px] font-black leading-[34px] text-[#0C2B49]">Lawyer Portal</h1>
+          <h1 className="text-[28px] font-black leading-[34px] text-[#0C2B49]">Document Issuer Portal</h1>
           <p className="mt-1 text-sm font-medium text-[#64748b]">Your document workspace at a glance.</p>
         </div>
         <div className="flex items-center gap-3">
