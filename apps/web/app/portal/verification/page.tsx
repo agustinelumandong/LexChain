@@ -12,6 +12,7 @@ export default function VerificationPage() {
   const [record, setRecord] = useState<OnChainVerification | undefined>();
   const [hasChecked, setHasChecked] = useState(false);
   const [isChecking, setIsChecking] = useState(false);
+  const [requestFailed, setRequestFailed] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function checkIntegrity() {
@@ -25,6 +26,7 @@ export default function VerificationPage() {
     setError(null);
     setHasChecked(false);
     setRecord(undefined);
+    setRequestFailed(false);
 
     try {
       setRecord(await verifyRepositoryDocument(identifier));
@@ -33,7 +35,8 @@ export default function VerificationPage() {
       if (caught instanceof Error && caught.message === 'API error: 404') {
         setHasChecked(true);
       } else {
-        setError('Unable to retrieve the repository integrity record. Please try again.');
+        setRequestFailed(true);
+        setHasChecked(true);
       }
     } finally {
       setIsChecking(false);
@@ -64,7 +67,7 @@ export default function VerificationPage() {
         </button>
       </section>
 
-      {hasChecked && <IntegrityResult record={record} />}
+      {hasChecked && <IntegrityResult record={record} requestFailed={requestFailed} onRetry={checkIntegrity} />}
     </div>
   );
 }
