@@ -19,3 +19,8 @@ Reused the monitor's existing local failure data and the existing notification m
 ## Concern
 
 The monitor is intentionally local status-only demo data, so its controls reset on refresh. Notification read actions retain their existing backend proxy behavior.
+
+## Review coverage follow-up
+
+- Added focused Processing Monitor assertions that the failed item exposes `Open document` to `/portal/documents/demo-failed-lease` and that `Retry processing` is disabled.
+- Verification: `pnpm exec vitest run app/portal/processing/page.test.tsx` — 1 file, 2 tests passed.
