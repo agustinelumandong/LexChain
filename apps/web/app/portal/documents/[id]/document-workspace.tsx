@@ -1,11 +1,14 @@
 'use client';
 
 import { useState } from 'react';
+import type { IntegrityUiState } from '../../lib/integrity-ui';
 import type { PortalUiRole } from '../../lib/portal-role';
 
 type WorkspaceDocument = {
+  file_name?: string | null;
   document_number?: number | string | null;
   content_type?: string | null;
+  status?: string | null;
   storage_url?: string | null;
   summary?: string | null;
   labels?: unknown[] | null;
@@ -19,13 +22,28 @@ type BlockchainRecord = {
   onchain_timestamp?: number | null;
 } | null | undefined;
 
-const tabs = ['Overview', 'Original PDF', 'Insights', 'Blockchain'] as const;
+const tabs = ['Overview', 'Original PDF', 'Insights', 'Blockchain', 'Versions', 'Access', 'Activity'] as const;
 type Tab = typeof tabs[number];
 
-function readable(value: unknown) {
+function readable(value: unknown): string {
   if (value == null) return 'Not supplied';
   if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') return String(value);
+  if (typeof value === 'object' && !Array.isArray(value)) {
+    const entries = Object.entries(value);
+    if (entries.length === 1) {
+      const [key, entryValue] = entries[0];
+      return `${key} — ${readable(entryValue)}`;
+    }
+  }
   return JSON.stringify(value);
+}
+
+function integrityLabel(state: IntegrityUiState) {
+  if (state === 'recorded') return 'Integrity record available';
+  if (state === 'unavailable') return 'Integrity status unavailable';
+  if (state === 'mismatch') return 'Integrity mismatch';
+  if (state === 'match') return 'Integrity match';
+  return 'No integrity record';
 }
 
 function InsightGroup({ title, items }: { title: string; items?: unknown[] | null }) {
@@ -41,7 +59,7 @@ function InsightGroup({ title, items }: { title: string; items?: unknown[] | nul
   );
 }
 
-export function DocumentWorkspace({ document, chain }: { document: WorkspaceDocument; role: PortalUiRole; chain?: BlockchainRecord }) {
+export function DocumentWorkspace({ document, chain, integrityState, onRetry }: { document: WorkspaceDocument; role: PortalUiRole; chain?: BlockchainRecord; integrityState: IntegrityUiState; onRetry?: () => void }) {
   const [activeTab, setActiveTab] = useState<Tab>('Overview');
   const hasInsights = Boolean(document.summary || document.labels?.length || document.entities?.length || document.risk_flags?.length);
 
@@ -67,9 +85,13 @@ export function DocumentWorkspace({ document, chain }: { document: WorkspaceDocu
           <div className="space-y-4">
             <h2 className="text-lg font-extrabold text-[#0C2B49]">Overview</h2>
             <dl className="grid gap-3 text-sm sm:grid-cols-2">
+              <div><dt className="font-bold text-[#64748b]">Filename</dt><dd className="mt-1 text-[#0C2B49]">{document.file_name ?? 'Not supplied'}</dd></div>
               <div><dt className="font-bold text-[#64748b]">Reference</dt><dd className="mt-1 text-[#0C2B49]">{document.document_number ?? 'Not supplied'}</dd></div>
               <div><dt className="font-bold text-[#64748b]">Content type</dt><dd className="mt-1 text-[#0C2B49]">{document.content_type ?? 'Not supplied'}</dd></div>
+              <div><dt className="font-bold text-[#64748b]">Lifecycle status</dt><dd className="mt-1 text-[#0C2B49]">{document.status ?? 'Not supplied'}</dd></div>
+              <div><dt className="font-bold text-[#64748b]">Integrity status</dt><dd className="mt-1 text-[#0C2B49]">{integrityLabel(integrityState)}</dd></div>
             </dl>
+            {integrityState === 'unavailable' && onRetry && <button type="button" onClick={onRetry} className="w-fit rounded-full border border-[#D7E4F2] px-4 py-2 text-sm font-bold text-[#0985E7]">Retry integrity lookup</button>}
             <p className="text-sm leading-6 text-[#64748b]">Use this workspace to review the original file, derived assistance, and available integrity information.</p>
           </div>
         )}
@@ -97,9 +119,13 @@ export function DocumentWorkspace({ document, chain }: { document: WorkspaceDocu
           </div>
         )}
 
-        {activeTab === 'Blockchain' && (chain?.data_hash ? (
-          <div className="space-y-4"><div><h2 className="text-lg font-extrabold text-[#0C2B49]">Blockchain</h2><p className="mt-1 text-sm leading-6 text-[#64748b]">A hash record supports integrity checking, not legal validity.</p></div><dl className="space-y-3 text-sm"><div><dt className="font-bold text-[#64748b]">Data hash</dt><dd className="mt-1 break-all font-mono text-[#0C2B49]">{chain.data_hash}</dd></div>{chain.tx_hash && <div><dt className="font-bold text-[#64748b]">Transaction hash</dt><dd className="mt-1 break-all font-mono text-[#0C2B49]">{chain.tx_hash}</dd></div>}</dl></div>
+        {activeTab === 'Blockchain' && (integrityState === 'unavailable' ? (
+          <div className="space-y-4"><p className="text-sm text-[#64748b]">Integrity status unavailable</p>{onRetry && <button type="button" onClick={onRetry} className="rounded-full border border-[#D7E4F2] px-4 py-2 text-sm font-bold text-[#0985E7]">Retry integrity lookup</button>}</div>
+        ) : chain?.data_hash ? (
+          <div className="space-y-4"><div><h2 className="text-lg font-extrabold text-[#0C2B49]">Blockchain</h2><p className="mt-1 text-sm font-bold text-[#12A150]">{integrityLabel(integrityState)}</p><p className="mt-1 text-sm leading-6 text-[#64748b]">A hash record supports integrity checking, not legal validity.</p></div><dl className="space-y-3 text-sm"><div><dt className="font-bold text-[#64748b]">Data hash</dt><dd className="mt-1 break-all font-mono text-[#0C2B49]">{chain.data_hash}</dd></div>{chain.tx_hash && <div><dt className="font-bold text-[#64748b]">Transaction hash</dt><dd className="mt-1 break-all font-mono text-[#0C2B49]">{chain.tx_hash}</dd></div>}</dl></div>
         ) : <p className="text-sm text-[#64748b]">No blockchain record is available in the current document record.</p>)}
+
+        {(['Versions', 'Access', 'Activity'] as const).includes(activeTab as 'Versions' | 'Access' | 'Activity') && <p className="text-sm text-[#64748b]">This workspace section will be available when its document data is connected.</p>}
       </div>
     </section>
   );

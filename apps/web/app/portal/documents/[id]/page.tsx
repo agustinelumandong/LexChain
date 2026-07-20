@@ -9,6 +9,7 @@ import PortalChatbot from '../../components/portal-chatbot';
 import { DocumentWorkspace } from './document-workspace';
 import { getDocumentActions, getDocumentStatusLabel } from '../../lib/document-ui';
 import { verifyRepositoryDocument } from '../../lib/integrity-api';
+import { getIntegrityUiState } from '../../lib/integrity-ui';
 import { getPortalUiRole } from '../../lib/portal-role';
 
 type DocumentResponse = ApiSchema<'DocumentResponse'>;
@@ -42,7 +43,7 @@ export default function DocumentDetailPage({ params }: { params: Promise<{ id: s
 
   const document = docQ.data;
   const actions = getDocumentActions(getPortalUiRole(profileQ.data?.role), document);
-  const hasBlockchainStatus = Boolean(document.on_chain || chainQ.data?.data_hash);
+  const integrityState = getIntegrityUiState({ record: chainQ.data, requestFailed: chainQ.isError });
 
   return (
     <div className="flex w-full min-w-0 flex-col gap-5 overflow-x-hidden">
@@ -57,7 +58,9 @@ export default function DocumentDetailPage({ params }: { params: Promise<{ id: s
             <div className="mt-2 flex flex-wrap items-center gap-2 text-[13px] font-medium text-[#64748b]">
               <span>Reference #{document.document_number}</span>
               <span className={`${statusStyle(document.status)} rounded-full px-2.5 py-0.5 text-[11px] font-bold`}>{getDocumentStatusLabel(document.status)}</span>
-              {hasBlockchainStatus && <span className="rounded-full bg-[#EAF8F0] px-2.5 py-0.5 text-[11px] font-bold text-[#12A150]">Blockchain record available</span>}
+              {integrityState === 'recorded' && <span className="rounded-full bg-[#EAF8F0] px-2.5 py-0.5 text-[11px] font-bold text-[#12A150]">Integrity record available</span>}
+              {integrityState === 'unavailable' && <span className="rounded-full bg-[#FFF4DD] px-2.5 py-0.5 text-[11px] font-bold text-[#B77900]">Integrity status unavailable</span>}
+              {integrityState === 'mismatch' && <span className="rounded-full bg-[#FFF4DD] px-2.5 py-0.5 text-[11px] font-bold text-[#B77900]">Integrity mismatch</span>}
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -67,7 +70,7 @@ export default function DocumentDetailPage({ params }: { params: Promise<{ id: s
         </div>
       </header>
 
-      <DocumentWorkspace document={document} role={getPortalUiRole(profileQ.data?.role)} chain={chainQ.data} />
+      <DocumentWorkspace document={document} role={getPortalUiRole(profileQ.data?.role)} chain={chainQ.data} integrityState={integrityState} onRetry={() => void chainQ.refetch()} />
       <PortalChatbot />
     </div>
   );
