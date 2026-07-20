@@ -1,4 +1,8 @@
-import { describe, expect, it } from "vitest";
+// @vitest-environment jsdom
+import { createElement } from 'react';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from "vitest";
+import CategoriesPage from '../categories/page';
 import {
   createDemoCategory,
   deactivateDemoCategory,
@@ -6,6 +10,12 @@ import {
   initialDemoCategories,
 } from "./category-management";
 import { canAccessPortalFeature } from "./portal-access";
+
+vi.mock('@tanstack/react-query', () => ({
+  useQuery: () => ({ data: { role: 'lawyer' }, isLoading: false }),
+}));
+
+afterEach(cleanup);
 
 describe("demo category management", () => {
   it("starts with local category data and creates a new active category in page state", () => {
@@ -63,5 +73,13 @@ describe("category access", () => {
   it("allows the document issuer and denies participants", () => {
     expect(canAccessPortalFeature("issuer", "categories")).toBe(true);
     expect(canAccessPortalFeature("participant", "categories")).toBe(false);
+  });
+
+  it('confirms category deactivation before changing local data', () => {
+    render(createElement(CategoriesPage));
+
+    fireEvent.click(screen.getAllByRole('button', { name: 'Deactivate' })[0]);
+
+    expect(screen.getByRole('dialog', { name: 'Deactivate Contracts category' })).toBeTruthy();
   });
 });

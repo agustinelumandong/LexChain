@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import OfficeSettingsPage from './page';
 
@@ -26,5 +26,14 @@ describe('OfficeSettingsPage', () => {
 
     expect(screen.getByLabelText('Office settings')).toBeTruthy();
     expect(screen.queryByLabelText('Session timeout')).toBeNull();
+  });
+
+  it('identifies valid local changes before they are saved', () => {
+    profile.role = 'lawyer';
+    render(<OfficeSettingsPage />);
+
+    fireEvent.change(screen.getByLabelText('Invitation expiry'), { target: { value: '8' } });
+
+    expect(screen.getByRole('status').textContent).toContain('Unsaved changes');
   });
 });

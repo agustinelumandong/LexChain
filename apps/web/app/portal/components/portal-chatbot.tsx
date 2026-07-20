@@ -11,6 +11,12 @@ const mockResponses = [
   'The monthly payment obligation is $5,000 due by the 15th of each month.',
 ];
 
+const suggestedQuestions = [
+  'What are the key dates?',
+  'Who are the parties?',
+  'What should I review?',
+];
+
 type Message = { from: 'bot' | 'user'; text: string };
 
 export default function PortalChatbot() {
@@ -75,6 +81,13 @@ export default function PortalChatbot() {
             </div>
           </div>
         ))}
+        <div>
+          <p className="text-xs font-bold uppercase tracking-wide text-[#64748b]">Suggested questions</p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {suggestedQuestions.map((question) => <button key={question} type="button" onClick={() => setInput(question)} className="rounded-full border border-[var(--portal-border-soft)] px-3 py-1.5 text-xs font-semibold text-[var(--portal-navy)] hover:bg-[#EAF4FF]">{question}</button>)}
+          </div>
+          <p className="mt-3 text-xs text-[#64748b]">AI-generated assistance. Review the original PDF before relying on an answer.</p>
+        </div>
         <div ref={bottomRef} />
       </div>
 
