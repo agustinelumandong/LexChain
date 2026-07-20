@@ -5,7 +5,7 @@ import { getPortalNavigation } from '../lib/portal-dashboard';
 import { getPortalNavigationIcon, isPortalRouteActive } from './portal-role-navigation';
 
 export function PortalBottomNav({ pathname }: { pathname: string }) {
-  const navItems = getPortalNavigation('issuer');
+  const navItems = getPortalNavigation('issuer').flatMap((group) => group.items);
 
   return (
     <>
@@ -23,6 +23,7 @@ export function PortalBottomNav({ pathname }: { pathname: string }) {
                   key={item.href}
                   href={item.href}
                   aria-label={item.label}
+                  aria-current={active ? 'page' : undefined}
                   className={`flex-1 flex flex-col items-center justify-center gap-[3px] min-h-[56px] rounded-[28px] transition-colors ${active ? 'bg-[var(--portal-surface-soft)]' : ''}`}
                 >
                   <span className={active ? 'text-[var(--portal-primary)]' : 'text-[var(--portal-text-muted)]'}>

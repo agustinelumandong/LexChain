@@ -38,4 +38,15 @@ describe('DashboardPage', () => {
 
     expect(screen.getByRole('heading', { name: 'Document Issuer Portal' })).toBeTruthy();
   });
+
+  it('reassures issuers when no documents need attention', () => {
+    useQuery.mockImplementation((options: { queryKey: string[]; enabled?: boolean }) => {
+      if (options.queryKey[0] === 'portal-profile') return { data: { role: 'lawyer' }, isLoading: false };
+      return { data: [], isLoading: false };
+    });
+
+    render(<DashboardPage />);
+
+    expect(screen.getByText('No action required. All documents are progressing normally.')).toBeTruthy();
+  });
 });

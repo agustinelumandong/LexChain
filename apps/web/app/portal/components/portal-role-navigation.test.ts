@@ -7,20 +7,8 @@ describe("lawyer portal navigation", () => {
   it("keeps the office workspace focused on enabled portal destinations", () => {
     const navigation = getPortalNavigation("issuer");
 
-    expect(navigation.map((item) => item.label)).toEqual([
-      "Dashboard",
-      "Documents",
-      "Processing Monitor",
-      "Blockchain Records",
-      "Categories",
-      "Analytics",
-      "Reports",
-      "Upload Document",
-      "Notifications",
-      "Office Settings",
-      "Profile & Security",
-    ]);
-    expect(navigation.map((item) => item.href)).not.toContain("/admin");
+    expect(navigation.map((group) => group.label)).toEqual(["Workspace", "Integrity", "Office", "Account"]);
+    expect(navigation.flatMap((group) => group.items).map((item) => item.href)).not.toContain("/admin");
     expect(getPortalRoleLabel("lawyer")).toBe("Document Issuer · Super User");
   });
 
@@ -35,7 +23,7 @@ describe("lawyer portal navigation", () => {
     ["/portal/upload", "Upload Document"],
     ["/portal/office-settings", "Office Settings"],
   ])("marks %s as the active %s destination", (pathname, label) => {
-    const item = getPortalNavigation("issuer").find((navigationItem) => navigationItem.label === label);
+    const item = getPortalNavigation("issuer").flatMap((group) => group.items).find((navigationItem) => navigationItem.label === label);
 
     expect(item).toBeDefined();
     expect(isPortalRouteActive(pathname, item!)).toBe(true);

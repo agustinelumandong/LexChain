@@ -25,9 +25,13 @@ export function PortalTopBar({ fullName, initials, roleLabel, processingCount }:
           <SearchIcon fontSize="small" />
           <span className="truncate">Search documents</span>
         </Link>
-        <span className="hidden rounded-full bg-[#FFF4DD] px-3 py-1.5 text-xs font-bold text-[#9A6700] lg:inline-flex">
+        <Link
+          href="/portal/processing"
+          aria-label="View processing documents"
+          className="hidden rounded-full bg-[#FFF4DD] px-3 py-1.5 text-xs font-bold text-[#9A6700] transition hover:bg-[#FFE9BD] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0985E7] lg:inline-flex"
+        >
           {processingLabel}
-        </span>
+        </Link>
         <div className="flex shrink-0 items-center gap-2">
           <Link
             href="/portal/notifications"

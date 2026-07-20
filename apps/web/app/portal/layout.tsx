@@ -46,7 +46,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
 
   const uiRole = getPortalUiRole(profile?.role);
   const roleLabel = getPortalRoleLabel(profile?.role);
-  const portalLinks = isSupportedPortalUiRole(uiRole) ? getPortalNavigation(uiRole) : [];
+  const portalNavigationGroups = isSupportedPortalUiRole(uiRole) ? getPortalNavigation(uiRole) : [];
   const initials = `${profile?.f_name?.[0] ?? ''}${profile?.l_name?.[0] ?? ''}`.toUpperCase() || '?';
   const fullName = profile ? `${profile.f_name} ${profile.l_name}` : '...';
   const email = profile?.email ?? '...';
@@ -128,34 +128,45 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
           </div>
 
           {/* Nav */}
-          <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto">
-            {portalLinks.map((link) => {
-              const isActive = isPortalRouteActive(pathname, link);
-              const Icon = getPortalNavigationIcon(link);
-              return (
-                <Link
-                  className={[
-                    "flex min-h-11 items-center gap-3.5 rounded-xl py-2 text-[13px] font-black leading-4",
-                    collapsed ? "justify-center px-2" : "pl-[22px] pr-3",
-                    isActive
-                      ? "bg-[#EEF4FB] text-[#111827]"
-                      : "text-[#A0AAB8] transition hover:bg-[#F5FAFF] hover:text-[#111827]",
-                  ].join(" ")}
-                  href={link.href}
-                  key={link.href}
-                  aria-label={link.label}
-                  title={collapsed ? link.label : undefined}
-                >
-                  <span className={isActive ? "text-[#0985E7]" : "text-[#A7B4C4]"}>
-                    <Icon fontSize="small" />
-                  </span>
-                  {!collapsed && <span className="flex-1">{link.label}</span>}
-                  {!collapsed && (
-                    <span className={["h-6 w-[5px] rounded-full", isActive ? "bg-[#0985E7]" : "bg-transparent"].join(" ")} />
-                  )}
-                </Link>
-              );
-            })}
+          <nav className="flex flex-1 flex-col gap-4 overflow-y-auto">
+            {portalNavigationGroups.map((group) => (
+              <section key={group.label} aria-label={group.label}>
+                {!collapsed && <p className="px-3 pb-1 text-[10px] font-black uppercase tracking-[0.12em] text-[#A0AAB8]">{group.label}</p>}
+                <div className="flex flex-col gap-0.5">
+                  {group.items.map((link) => {
+                    const isActive = isPortalRouteActive(pathname, link);
+                    const isUpload = link.href === "/portal/upload";
+                    const Icon = getPortalNavigationIcon(link);
+                    return (
+                      <Link
+                        className={[
+                          "flex min-h-11 items-center gap-3.5 rounded-xl py-2 text-[13px] font-black leading-4",
+                          collapsed ? "justify-center px-2" : "pl-[22px] pr-3",
+                          isUpload
+                            ? "bg-[#0985E7] text-white transition hover:bg-[#0770c4]"
+                            : isActive
+                              ? "bg-[#EEF4FB] text-[#111827]"
+                              : "text-[#A0AAB8] transition hover:bg-[#F5FAFF] hover:text-[#111827]",
+                        ].join(" ")}
+                        href={link.href}
+                        key={link.href}
+                        aria-current={isActive ? "page" : undefined}
+                        aria-label={link.label}
+                        title={collapsed ? link.label : undefined}
+                      >
+                        <span className={isUpload ? "text-white" : isActive ? "text-[#0985E7]" : "text-[#A7B4C4]"}>
+                          <Icon fontSize="small" />
+                        </span>
+                        {!collapsed && <span className="flex-1">{link.label}</span>}
+                        {!collapsed && !isUpload && (
+                          <span className={["h-6 w-[5px] rounded-full", isActive ? "bg-[#0985E7]" : "bg-transparent"].join(" ")} />
+                        )}
+                      </Link>
+                    );
+                  })}
+                </div>
+              </section>
+            ))}
           </nav>
 
           {/* Trust badge */}
