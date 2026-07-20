@@ -22,3 +22,9 @@ it('gets a verification request through the same-origin portal route', async () 
     cache: 'no-store',
   });
 });
+
+it('keeps failed verification requests available for the UI to map to unavailable', async () => {
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(null, { status: 503 })));
+
+  await expect(verifyRepositoryDocument('document-123')).rejects.toThrow('API error: 503');
+});

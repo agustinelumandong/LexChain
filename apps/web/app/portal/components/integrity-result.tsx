@@ -1,6 +1,7 @@
 import type { ApiSchema } from '@lexchain/types';
 import {
-  getIntegrityResult,
+  getIntegrityUiCopy,
+  getIntegrityUiState,
   INTEGRITY_SAFETY_MESSAGE,
 } from '../lib/integrity-ui';
 
@@ -21,11 +22,21 @@ function Detail({ label, value }: { label: string; value: string }) {
   );
 }
 
-export function IntegrityResult({ record }: { record?: OnChainVerification }) {
-  const result = getIntegrityResult(record);
+export function IntegrityResult({
+  record,
+  requestFailed = false,
+  onRetry,
+}: {
+  record?: OnChainVerification;
+  requestFailed?: boolean;
+  onRetry?: () => void;
+}) {
+  const state = getIntegrityUiState({ record, requestFailed });
+  const result = getIntegrityUiCopy(state);
+  const role = state === 'unavailable' || state === 'mismatch' ? 'alert' : 'status';
 
   return (
-    <section aria-live="polite" className={`rounded-[18px] border p-5 ${toneClasses[result.tone]}`}>
+    <section role={role} className={`rounded-[18px] border p-5 ${toneClasses[result.tone]}`}>
       <p className="text-lg font-black">{result.label}</p>
       <p className="mt-1 text-sm leading-6">{result.description}</p>
 
@@ -40,6 +51,12 @@ export function IntegrityResult({ record }: { record?: OnChainVerification }) {
           <Detail label="Verified at" value={record.verified_at} />
           <Detail label="Transaction link" value={record.transacttion_link} />
         </dl>
+      )}
+
+      {onRetry && (
+        <button type="button" onClick={onRetry} className="mt-4 rounded-full border border-current/30 px-4 py-2 text-sm font-bold">
+          Retry integrity check
+        </button>
       )}
 
       <p className="mt-5 border-t border-current/15 pt-4 text-xs leading-5">{INTEGRITY_SAFETY_MESSAGE}</p>
