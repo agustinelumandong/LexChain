@@ -10,14 +10,18 @@ export type BlockchainRecordField = {
   value: string;
 };
 
+function shortenHash(value: string): string {
+  return value.length > 16 ? `${value.slice(0, 10)}…${value.slice(-6)}` : value;
+}
+
 export function getBlockchainRecordFields(record?: BlockchainRecordUi | null): BlockchainRecordField[] {
   if (!record) return [];
 
   return [
     { label: 'Document ID', value: record.document_id },
-    { label: 'Transaction hash', value: record.tx_hash },
+    { label: 'Transaction hash', value: shortenHash(record.tx_hash) },
     { label: 'On-chain document ID', value: record.onchain_document_id },
-    { label: 'Data hash', value: record.data_hash },
-    { label: 'Transaction link', value: record.transacttion_link },
+    { label: 'Data hash', value: shortenHash(record.data_hash) },
+    ...(record.transacttion_link.includes('/demo-') ? [] : [{ label: 'Transaction link' as const, value: record.transacttion_link }]),
   ];
 }

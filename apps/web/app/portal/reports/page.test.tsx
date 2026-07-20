@@ -13,10 +13,11 @@ afterEach(cleanup);
 beforeEach(() => { profile.role = 'lawyer'; });
 
 describe('OfficeReportsPage', () => {
-  it('shows local reports with unavailable demo downloads', () => {
+  it('shows local reports as preview-only in demo mode', () => {
     render(<OfficeReportsPage />);
 
-    expect(screen.getAllByRole('button', { name: 'Download unavailable in demo mode' })).not.toHaveLength(0);
+    expect(screen.getAllByText('Preview only in demo mode')).not.toHaveLength(0);
+    expect(screen.queryByRole('button')).toBeNull();
     expect(screen.getByText('Demo data — changes reset when this page is refreshed.')).toBeTruthy();
   });
 

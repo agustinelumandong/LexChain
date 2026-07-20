@@ -14,18 +14,15 @@ describe('office insights', () => {
     ]);
   });
 
-  it('represents the local office insight state with accessible zero-data copy', () => {
+  it('represents the local demo office insight totals', () => {
     expect(getOfficeInsightMetrics()).toEqual([
-      { label: 'Documents issued', value: 0 },
-      { label: 'Documents verified', value: 0 },
-      { label: 'On-chain records', value: 0 },
+      { label: 'Documents issued', value: 2 },
+      { label: 'Documents verified', value: 1 },
+      { label: 'On-chain records', value: 1 },
     ]);
   });
 
-  it('marks every report download as unavailable in demo mode', () => {
-    expect(getOfficeReports()).toEqual(expect.arrayContaining([
-      expect.objectContaining({ downloadAvailable: false }),
-    ]));
-    expect(getOfficeReports().every((report) => report.downloadAvailable === false)).toBe(true);
+  it('provides the three planned report previews', () => {
+    expect(getOfficeReports()).toHaveLength(3);
   });
 });

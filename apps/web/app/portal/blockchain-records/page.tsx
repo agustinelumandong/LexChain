@@ -10,11 +10,11 @@ type UserProfile = ApiSchema<'UserProfileResponse'>;
 
 const mockBlockchainRecords: BlockchainRecordUi[] = [
   {
-    document_id: 'mock-document-1',
-    tx_hash: '0xmocktransactionhash',
-    onchain_document_id: 'chain-mock-document-1',
-    data_hash: '0xmockdatahash',
-    transacttion_link: 'https://example.test/mock-transaction',
+    document_id: 'demo-document-a',
+    tx_hash: '0xdemo-transaction-placeholder-000001',
+    onchain_document_id: 'demo-anchor-a',
+    data_hash: '0xdemo-data-placeholder-000001',
+    transacttion_link: 'https://example.test/demo-transaction',
   },
 ];
 
@@ -41,7 +41,7 @@ export default function BlockchainRecordsPage() {
         <h1 className="text-[28px] font-black text-[#0C2B49]">Blockchain Records</h1>
         <p className="mt-1 text-sm text-[#64748b]">Local mock blockchain records for the Document Issuer workspace.</p>
       </header>
-      <p className="rounded-[18px] border border-[#E8F0F8] bg-[#F8FBFF] p-4 text-sm font-semibold text-[#64748b]">Demo data — changes reset when this page is refreshed.</p>
+      <p className="self-start rounded-full border border-[#E8F0F8] bg-[#F8FBFF] px-3 py-1 text-xs font-bold text-[#64748b]">Demo data — changes reset when this page is refreshed.</p>
       {mockBlockchainRecords.length === 0 ? (
         <p className="rounded-[18px] border border-[#E8F0F8] bg-white p-5 text-sm font-semibold text-[#64748b]">No anchored record</p>
       ) : (

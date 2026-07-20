@@ -12,7 +12,6 @@ export type OfficeReport = {
   title: string;
   description: string;
   periodLabel: string;
-  downloadAvailable: false;
 };
 
 const officeDateRanges: readonly OfficeDateRange[] = [
@@ -22,9 +21,9 @@ const officeDateRanges: readonly OfficeDateRange[] = [
 ];
 
 const officeInsightMetrics: readonly OfficeInsightMetric[] = [
-  { label: 'Documents issued', value: 0 },
-  { label: 'Documents verified', value: 0 },
-  { label: 'On-chain records', value: 0 },
+  { label: 'Documents issued', value: 2 },
+  { label: 'Documents verified', value: 1 },
+  { label: 'On-chain records', value: 1 },
 ];
 
 const officeReports: readonly OfficeReport[] = [
@@ -32,19 +31,16 @@ const officeReports: readonly OfficeReport[] = [
     title: 'Issuance summary',
     description: 'A local preview of documents issued during the selected period.',
     periodLabel: 'Last 30 days',
-    downloadAvailable: false,
   },
   {
     title: 'Verification activity',
     description: 'A local preview of document verification activity for the office.',
     periodLabel: 'Last 30 days',
-    downloadAvailable: false,
   },
   {
     title: 'On-chain record summary',
     description: 'A local preview of recorded document references for the office.',
     periodLabel: 'Last 30 days',
-    downloadAvailable: false,
   },
 ];
 

@@ -15,6 +15,13 @@ const record = {
   transacttion_link: 'https://example.test/transaction/0xtransaction',
 };
 
+const demoRecord = {
+  ...record,
+  tx_hash: '0xdemo-transaction-placeholder-000001',
+  data_hash: '0xdemo-data-placeholder-000001',
+  transacttion_link: 'https://example.test/demo-transaction',
+};
+
 afterEach(cleanup);
 
 describe('BlockchainRecordCard', () => {
@@ -42,6 +49,16 @@ describe('BlockchainRecordCard', () => {
     ]);
   });
 
+  it('shortens demo hashes and omits its fake explorer URL', () => {
+    expect(getBlockchainRecordFields(demoRecord)).toEqual(expect.arrayContaining([
+      expect.objectContaining({ label: 'Transaction hash', value: '0xdemo-tra…000001' }),
+      expect.objectContaining({ label: 'Data hash', value: '0xdemo-dat…000001' }),
+    ]));
+    expect(getBlockchainRecordFields(demoRecord)).not.toEqual(expect.arrayContaining([
+      expect.objectContaining({ label: 'Transaction link' }),
+    ]));
+  });
+
   it('does not import or invoke the anchoring API from the record UI', () => {
     const componentSource = readFileSync(resolve(import.meta.dirname, '../components/blockchain-record-card.tsx'), 'utf8');
     const pageSource = readFileSync(resolve(import.meta.dirname, '../blockchain-records/page.tsx'), 'utf8');
@@ -50,6 +67,7 @@ describe('BlockchainRecordCard', () => {
     expect(componentSource).not.toMatch(/getBlockchainRecord\s*\(/);
     expect(componentSource).not.toContain('/api/portal/blockchain/record');
     expect(pageSource).not.toContain('/api/portal/blockchain/record');
+    expect(pageSource).toContain('Demo data — changes reset when this page is refreshed.');
     expect(componentSource).not.toMatch(/network|timestamp/i);
   });
 });
