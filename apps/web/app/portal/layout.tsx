@@ -11,7 +11,6 @@ import LogoutIcon from "@mui/icons-material/Logout";
 import MenuIcon from "@mui/icons-material/Menu";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
-import VerifiedUserIcon from "@mui/icons-material/VerifiedUser";
 import { Toaster } from 'sonner';
 import type { ApiSchema } from "@lexchain/types";
 import { getPortalRoleLabel, getPortalUiRole, isSupportedPortalUiRole } from "./lib/portal-role";
@@ -168,17 +167,6 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
               </section>
             ))}
           </nav>
-
-          {/* Trust badge */}
-          {!collapsed && (
-            <div className="rounded-2xl bg-[#F8FBFF] p-4 border border-[#E8F0F8]">
-              <div className="flex items-center gap-2 mb-2">
-                <VerifiedUserIcon sx={{ fontSize: 20, color: '#0985E7' }} />
-                <span className="text-xs font-black text-[#0C2B49]">Secure. Verifiable. Trustworthy.</span>
-              </div>
-              <p className="text-[11px] font-medium text-[#64748b] leading-4">On-chain records support document verification and integrity checks.</p>
-            </div>
-          )}
 
           {/* Profile */}
           <div ref={profileMenuRef} className="relative border-t border-[#E8F0F8] pt-4">
