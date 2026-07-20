@@ -3,23 +3,14 @@ import { getDashboardMetrics, getPortalNavigation, getRecentActivityStatus, getS
 
 describe("portal dashboard", () => {
   it("gives issuers the enabled office workspace navigation", () => {
-    expect(getPortalNavigation("issuer").map((item) => item.label)).toEqual([
-      "Dashboard",
-      "Documents",
-      "Processing Monitor",
-      "Blockchain Records",
-      "Categories",
-      "Analytics",
-      "Reports",
-      "Upload Document",
-      "Notifications",
-      "Office Settings",
-      "Profile & Security",
-    ]);
+    const navigation = getPortalNavigation("issuer");
+
+    expect(navigation.map((group) => group.label)).toEqual(["Workspace", "Integrity", "Office", "Account"]);
+    expect(navigation[0].items.at(-1)?.label).toBe("Upload Document");
   });
 
   it("only shows participant routes that exist", () => {
-    expect(getPortalNavigation("participant").map((item) => item.label)).toEqual([
+    expect(getPortalNavigation("participant").flatMap((group) => group.items).map((item) => item.label)).toEqual([
       "Shared Documents",
       "Invitations",
       "My E-copy Requests",

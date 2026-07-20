@@ -1,51 +1,19 @@
-# Task 4 report: participant invitations and e-copy requests
+# Task 4 report: group issuer navigation and dashboard cues
 
 ## Delivered
 
-- Added participant invitation workspace at `/portal/invitations`.
-  - Displays document title, sent time, party role, Accept, and Reject.
-  - Accept uses `POST /documents/{document_id}/parties/accept` through the existing `/api/portal/proxy-post` route, then navigates to the accepted document.
-  - Reject uses `POST /documents/{document_id}/parties/reject` through the same proxy.
-  - Empty state: `No pending invitations`.
-- Added participant e-copy request status page at `/portal/requests/my`.
-  - Uses `GET /requests/my` through the existing portal proxy.
-  - Shows status and rejection reason when supplied.
-- Added issuer request management at `/portal/requests`.
-  - Uses `GET /requests` with Pending, Approved, and Rejected filters.
-  - Shows requester name/email, document, description, and submitted date.
-  - Uses `PATCH /requests/{request_id}/review` through the existing portal proxy.
-  - Only issuer rendering exposes Approve/Reject controls; rejection cannot be confirmed without a reason.
-- Added the shared request-status component and tested request-action helper.
-- Exposed navigation only after the pages existed:
-  - Document Issuer: Document Requests.
-  - Document Participant: Invitations and My E-copy Requests.
-
-## API contract check
-
-`openapi-updated.json` documents all required endpoints and methods. There is no backend endpoint gap for this slice:
-
-- `GET /documents/invitations`
-- `POST /documents/{document_id}/parties/accept`
-- `POST /documents/{document_id}/parties/reject`
-- `GET /requests`
-- `GET /requests/my`
-- `PATCH /requests/{request_id}/review`
-
-No backend routes or proxy routes were added or changed.
+- Grouped the rendered issuer navigation as Workspace, Integrity, Office, and Account.
+- Kept Upload Document in Workspace and styled it as the primary action.
+- Marked active navigation links with `aria-current="page"`.
+- Linked the processing indicator to `/portal/processing`.
+- Replaced the empty attention state with: `No action required. All documents are progressing normally.`
 
 ## Verification
 
-- `pnpm test -- app/portal/lib/request-ui.test.ts app/portal/lib/portal-dashboard.test.ts` — passed (15 tests across 5 test files).
+- `pnpm exec vitest run app/portal/lib/portal-dashboard.test.ts app/portal/components/portal-role-navigation.test.ts app/portal/dashboard/page.test.tsx` — 20 tests passed.
 - `pnpm lint` — passed.
-- `pnpm build` — passed. Next.js reported its pre-existing multiple-lockfile workspace-root warning, but compiled, type-checked, and emitted all routes successfully.
 - `git diff --check` — passed.
 
-## Manual-flow boundary
+## Scope
 
-The live UI routes are present in the production build. A full authenticated mutation walkthrough requires a running backend. The local portal mock currently has no invitation/request endpoint fixtures, so mock mode returns its existing `Mock endpoint not found` response rather than a fabricated success; no fake success behavior was added.
-
-## Review follow-up
-
-- `/portal/requests` now loads `/users/` through the existing portal proxy and maps the result with the portal role helper before it enables the request query or renders issuer controls. A profile failure, Participant, or unsupported role receives an access-unavailable state; this direct-route guard fails closed.
-- Invitation Accept/Reject and issuer Approve/Reject handlers now render an in-page `role="alert"` error on a failed proxy mutation. They retain the current data and do not navigate, invalidate as success, or claim a successful decision.
-- Extended the focused helper coverage for non-issuer decision gating and issuer decision error copy.
+The unused `PortalSidebar` component retains its flat navigation rendering for compatibility with the grouped navigation data. The rendered desktop sidebar is `app/portal/layout.tsx`.

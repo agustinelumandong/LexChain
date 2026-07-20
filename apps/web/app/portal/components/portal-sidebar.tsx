@@ -6,7 +6,7 @@ import { getPortalRoleLabel } from '../lib/portal-role';
 import { getPortalNavigationIcon, isPortalRouteActive } from './portal-role-navigation';
 
 export function PortalSidebar({ pathname }: { pathname: string }) {
-  const navItems = getPortalNavigation('issuer');
+  const navItems = getPortalNavigation('issuer').flatMap((group) => group.items);
 
   return (
     <aside

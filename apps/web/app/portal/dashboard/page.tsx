@@ -135,7 +135,7 @@ export default function DashboardPage() {
         <div className="flex flex-col gap-5">
           <section className={`${cardClass} p-5`}>
             <h2 className="mb-3 text-base font-black text-[#0C2B49]">Documents needing attention</h2>
-            {documentsQuery.isLoading ? <p className="text-sm text-[#64748b]">Checking document statuses…</p> : attentionDocuments.length === 0 ? <p className="text-sm text-[#64748b]">No documents currently need attention.</p> : <div className="flex flex-col divide-y divide-[#E8F0F8]">{attentionDocuments.slice(0, 3).map((document) => <Link key={document.id} href={`/portal/documents/${document.id}`} className="py-3 first:pt-0 last:pb-0"><span className="block text-sm font-bold text-[#0C2B49]">{document.file_name}</span><span className="mt-1 block text-xs text-[#C24141]">Status: {getDocumentStatusLabel(document.status)}. Open document to review.</span></Link>)}</div>}
+            {documentsQuery.isLoading ? <p className="text-sm text-[#64748b]">Checking document statuses…</p> : attentionDocuments.length === 0 ? <p className="text-sm text-[#64748b]">No action required. All documents are progressing normally.</p> : <div className="flex flex-col divide-y divide-[#E8F0F8]">{attentionDocuments.slice(0, 3).map((document) => <Link key={document.id} href={`/portal/documents/${document.id}`} className="py-3 first:pt-0 last:pb-0"><span className="block text-sm font-bold text-[#0C2B49]">{document.file_name}</span><span className="mt-1 block text-xs text-[#C24141]">Status: {getDocumentStatusLabel(document.status)}. Open document to review.</span></Link>)}</div>}
           </section>
 
           <section className={`${cardClass} p-5`}>
