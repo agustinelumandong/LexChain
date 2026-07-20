@@ -16,6 +16,7 @@ import {
 } from '../lib/portal-upload';
 import { canAccessPortalFeature } from '../lib/portal-access';
 import { getPortalUiRole } from '../lib/portal-role';
+import { defaultOfficeSettings } from '../lib/office-settings-schema';
 import type { ApiSchema } from '@lexchain/types';
 
 type Book = ApiSchema<'BookResponse'>;
@@ -30,6 +31,10 @@ async function fetchBooks(): Promise<Book[]> {
 }
 
 const stepClass = 'rounded-xl border px-3 py-2 text-xs font-black';
+
+function formatFileSize(size: number) {
+  return `${(size / (1024 * 1024)).toFixed(1)} MB`;
+}
 
 export default function UploadPage() {
   const router = useRouter();
@@ -104,6 +109,7 @@ export default function UploadPage() {
           <div>
             <p className="text-lg font-black text-[#0C2B49]">Upload accepted</p>
             <p className="mt-1 text-sm text-[#64748b]">{outcome.message || 'No additional processing detail was returned.'}</p>
+            <p className="mt-1 text-sm text-[#64748b]">You can leave this page. Processing continues in the background.</p>
           </div>
         </div>
         <dl className="mt-5 grid gap-3 rounded-xl bg-[#F8FBFF] p-4 text-sm">
@@ -132,7 +138,7 @@ export default function UploadPage() {
 
       <section aria-labelledby="select-pdf-heading" className="rounded-[18px] border border-[#E8F0F8] bg-white p-5">
         <h2 id="select-pdf-heading" className="font-black text-[#0C2B49]">Select PDF</h2>
-        <p className="mt-1 text-sm text-[#64748b]">Choose a PDF file. The service checks empty files, unsupported formats, and its size limit before accepting the upload.</p>
+        <p className="mt-1 text-sm text-[#64748b]">PDF only · maximum {defaultOfficeSettings.uploadLimitMegabytes} MB</p>
         <div
           onDragOver={(event) => { event.preventDefault(); setDrag(true); }}
           onDragLeave={() => setDrag(false)}
@@ -144,7 +150,7 @@ export default function UploadPage() {
           <button type="button" onClick={() => inputRef.current?.click()} className="mt-3 rounded-full border border-[#0985E7] px-4 py-2 text-sm font-bold text-[#0985E7] focus:outline-none focus:ring-2 focus:ring-[#0985E7] focus:ring-offset-2">Choose a PDF</button>
           <input ref={inputRef} type="file" accept="application/pdf,.pdf" className="hidden" onChange={(event) => pick(event.target.files?.[0] ?? null)} />
         </div>
-        {file && <div className="mt-4 flex items-center gap-3 rounded-[14px] border border-[#E8F0F8] p-4"><InsertDriveFileIcon sx={{ color: '#0985E7' }} /><span className="flex-1 truncate text-sm font-bold text-[#0C2B49]">{file.name}</span><button aria-label="Remove uploaded file" onClick={() => { setFile(null); setValidationError(null); }} type="button"><CloseIcon sx={{ fontSize: 18, color: '#64748b' }} /></button></div>}
+        {file && <div className="mt-4 flex items-center gap-3 rounded-[14px] border border-[#E8F0F8] p-4"><InsertDriveFileIcon sx={{ color: '#0985E7' }} /><span className="flex-1 truncate text-sm font-bold text-[#0C2B49]">{file.name} · {formatFileSize(file.size)}</span><button aria-label="Remove uploaded file" onClick={() => { setFile(null); setValidationError(null); }} type="button"><CloseIcon sx={{ fontSize: 18, color: '#64748b' }} /></button></div>}
       </section>
 
       <section aria-labelledby="document-information-heading" className="rounded-[18px] border border-[#E8F0F8] bg-white p-5">
@@ -152,7 +158,7 @@ export default function UploadPage() {
         <p className="mt-1 text-sm text-[#64748b]">Provide the title and active book required by the upload service.</p>
         <div className="mt-4 grid gap-4">
           <label className="flex flex-col gap-1.5 text-sm font-bold text-[#0C2B49]">Document title<input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="e.g. Deed of Sale" className="rounded-xl border border-[#D7E4F2] px-3 py-2.5 text-sm font-medium outline-none focus:border-[#0985E7]" /></label>
-          <label className="flex flex-col gap-1.5 text-sm font-bold text-[#0C2B49]">Book<select value={bookId} onChange={(event) => setBookId(event.target.value)} disabled={booksQuery.isLoading || availableBooks.length === 0} className="rounded-xl border border-[#D7E4F2] bg-white px-3 py-2.5 text-sm font-medium outline-none focus:border-[#0985E7] disabled:bg-[#F8FBFF]"><option value="">{booksQuery.isLoading ? 'Loading books...' : availableBooks.length === 0 ? 'No active books available' : 'Choose a book'}</option>{availableBooks.map((book) => <option key={book.id} value={book.id}>Book {book.book_number} — Series {book.series_year}</option>)}</select></label>
+          <label className="flex flex-col gap-1.5 text-sm font-bold text-[#0C2B49]">Register book<select value={bookId} onChange={(event) => setBookId(event.target.value)} disabled={booksQuery.isLoading || availableBooks.length === 0} className="rounded-xl border border-[#D7E4F2] bg-white px-3 py-2.5 text-sm font-medium outline-none focus:border-[#0985E7] disabled:bg-[#F8FBFF]"><option value="">{booksQuery.isLoading ? 'Loading register books...' : availableBooks.length === 0 ? 'No active register books available' : 'Choose a register book'}</option>{availableBooks.map((book) => <option key={book.id} value={book.id}>Register book {book.book_number} — Series {book.series_year}</option>)}</select></label>
           {booksQuery.isError && <p role="alert" className="text-sm font-bold text-red-600">Unable to load books. Please try again.</p>}
           {!booksQuery.isLoading && availableBooks.length === 0 && <p className="text-sm text-[#64748b]">Register an active book before uploading a document.</p>}
         </div>

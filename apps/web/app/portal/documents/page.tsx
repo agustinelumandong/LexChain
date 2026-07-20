@@ -54,9 +54,12 @@ function DocumentBadges({ document }: { document: Document }) {
 }
 
 function DocumentActions({ document, role }: { document: Document; role: ReturnType<typeof getPortalUiRole> }) {
+  const [showMoreActions, setShowMoreActions] = useState(false);
+  const actions = getDocumentListActions(role, document);
+
   return (
     <div className="flex flex-wrap items-center gap-2">
-      {getDocumentListActions(role, document).map((action) => {
+      {actions.filter((action) => action === 'Open').map((action) => {
         const href = action === 'Open'
           ? `/portal/documents/${document.id}`
           : action === 'View / Download'
@@ -64,6 +67,7 @@ function DocumentActions({ document, role }: { document: Document; role: ReturnT
             : `/portal/documents/${document.id}/verify`;
         return <Link key={action} href={href} className="text-xs font-black text-[#0985E7] hover:underline">{action}</Link>;
       })}
+      {actions.length > 1 && <><button type="button" aria-controls={`document-actions-${document.id}`} aria-expanded={showMoreActions} aria-label={`More actions for ${document.file_name}`} onClick={() => setShowMoreActions((current) => !current)} className="text-xs font-black text-[#0985E7] hover:underline">More actions</button>{showMoreActions && <div id={`document-actions-${document.id}`} className="flex flex-wrap gap-2">{actions.filter((action) => action !== 'Open').map((action) => <Link key={action} href={action === 'View / Download' ? `/portal/documents/${document.id}/viewer` : `/portal/documents/${document.id}/verify`} className="text-xs font-black text-[#0985E7] hover:underline">{action}</Link>)}</div>}</>}
     </div>
   );
 }
@@ -136,6 +140,7 @@ export default function DocumentsPage() {
         </div>
       ) : (
         <>
+          <p className="text-sm font-bold text-[#64748b]">{visibleDocuments.length} document{visibleDocuments.length === 1 ? '' : 's'}</p>
           <div className="hidden overflow-x-auto rounded-[18px] border border-[#E8F0F8] bg-white md:block">
             <table className="min-w-full text-left"><thead className="border-b border-[#E8F0F8] bg-[#F8FBFF] text-xs font-black text-[#64748b]"><tr><th className="px-5 py-3">Document</th><th className="px-5 py-3">Status</th><th className="px-5 py-3">Repository record</th><th className="px-5 py-3">Updated</th><th className="px-5 py-3">Actions</th></tr></thead><tbody>{visibleDocuments.map((document) => <tr key={document.id} className="border-b border-[#E8F0F8] last:border-0"><td className="px-5 py-4"><p className="font-bold text-[#0C2B49]">{document.file_name}</p><p className="mt-1 text-xs text-[#64748b]">{document.document_number ? `Reference #${document.document_number}` : 'Reference unavailable'}</p></td><td className="px-5 py-4"><DocumentBadges document={document} /></td><td className="px-5 py-4 text-xs font-bold text-[#64748b]">{typeof document.on_chain === 'boolean' ? (document.on_chain ? 'Repository marked recorded' : 'Repository marked not recorded') : 'Not supplied'}</td><td className="px-5 py-4 text-xs text-[#64748b]">{formatDate(document.updated_at ?? document.created_at)}</td><td className="px-5 py-4"><DocumentActions document={document} role={uiRole} /></td></tr>)}</tbody></table>
           </div>

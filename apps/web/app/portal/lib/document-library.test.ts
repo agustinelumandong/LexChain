@@ -1,5 +1,15 @@
-import { describe, expect, it } from 'vitest';
+// @vitest-environment jsdom
+import { createElement } from 'react';
+import { render, screen, within } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
 import { getDocumentListActions, getVisibleDocuments } from './document-library';
+import DocumentsPage from '../documents/page';
+
+vi.mock('@tanstack/react-query', () => ({
+  useQuery: ({ queryKey }: { queryKey: string[] }) => queryKey[0] === 'portal-documents'
+    ? { data: documents, isLoading: false, isError: false }
+    : { data: { role: 'lawyer' }, isLoading: false, isError: false },
+}));
 
 const documents = [
   {
@@ -7,8 +17,9 @@ const documents = [
     document_number: 102,
     file_name: 'Lease Agreement.pdf',
     status: 'processing',
-    on_chain: false,
+    on_chain: true,
     updated_at: '2026-07-13T13:30:00.000Z',
+    storage_url: '/mock-documents/lease.pdf',
   },
   {
     id: 'document-2',
@@ -48,5 +59,12 @@ describe('document library list', () => {
   it('does not offer integrity verification to participants for on-chain documents', () => {
     expect(getDocumentListActions('participant', documents[1]))
       .toEqual(['Open', 'View / Download']);
+  });
+
+  it('states the result count and keeps secondary actions in an accessible control', () => {
+    render(createElement(DocumentsPage));
+
+    expect(screen.getByText('2 documents')).toBeTruthy();
+    expect(within(screen.getByRole('table')).getByRole('button', { name: 'More actions for Lease Agreement.pdf' })).toBeTruthy();
   });
 });
