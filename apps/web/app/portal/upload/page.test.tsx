@@ -42,7 +42,7 @@ vi.mock('@tanstack/react-query', async () => {
 function completeUploadForm(container: HTMLElement) {
   const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
   fireEvent.change(fileInput, { target: { files: [new File(['PDF'], 'deed.pdf', { type: 'application/pdf' })] } });
-  fireEvent.change(screen.getByLabelText('Book'), { target: { value: 'book-1' } });
+  fireEvent.change(screen.getByLabelText('Register book'), { target: { value: 'book-1' } });
   fireEvent.click(screen.getByRole('button', { name: 'Confirm and process' }));
 }
 
@@ -70,5 +70,16 @@ describe('UploadPage', () => {
     completeUploadForm(container);
 
     await waitFor(() => expect(screen.getByRole('alert').textContent).toContain('The PDF is too large.'));
+  });
+
+  it('identifies the selected file, office upload limit, and register book field', () => {
+    const { container } = render(<UploadPage />);
+    const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
+
+    fireEvent.change(fileInput, { target: { files: [new File([new Uint8Array(4_508_877)], 'Lease Agreement.pdf', { type: 'application/pdf' })] } });
+
+    expect(screen.getByText('Lease Agreement.pdf · 4.3 MB')).toBeTruthy();
+    expect(screen.getByText('PDF only · maximum 25 MB')).toBeTruthy();
+    expect(screen.getByLabelText('Register book')).toBeTruthy();
   });
 });
