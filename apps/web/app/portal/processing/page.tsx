@@ -59,9 +59,17 @@ export default function ProcessingMonitorPage() {
                 </span>
               </div>
               {item.failureReason ? (
-                <p className="mt-4 rounded-xl border border-[#F5C6C6] bg-[#FFF7F7] p-3 text-sm font-semibold text-[#9B2C2C]">
-                  Failure reason: {item.failureReason}
-                </p>
+                <div className="mt-4">
+                  <p className="rounded-xl border border-[#F5C6C6] bg-[#FFF7F7] p-3 text-sm font-semibold text-[#9B2C2C]">
+                    Failure reason: {item.failureReason}
+                  </p>
+                  <div className="mt-3 flex flex-wrap gap-3 text-sm font-bold">
+                    <Link href={item.documentHref} className="text-[#0985E7] underline underline-offset-4 hover:text-[#0769B3]">Open document</Link>
+                    <Link href="/portal/upload" aria-label={`Upload replacement PDF for ${item.documentName}`} className="text-[#0985E7] underline underline-offset-4 hover:text-[#0769B3]">Upload replacement PDF</Link>
+                    <button type="button" disabled aria-describedby={`${item.id}-retry-note`} className="text-[#94A3B8] disabled:cursor-not-allowed">Retry processing</button>
+                  </div>
+                  <p id={`${item.id}-retry-note`} className="mt-2 text-xs font-semibold text-[#64748B]">Retry processing is not available in demo mode.</p>
+                </div>
               ) : null}
             </article>
           ))}

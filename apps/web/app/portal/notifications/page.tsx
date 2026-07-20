@@ -87,20 +87,27 @@ export default function NotificationsPage() {
         </div>
       ) : (
         <div className="flex flex-col gap-2">
-          {notifications.map((n) => (
-            <button
-              key={n.id}
-              onClick={() => !n.is_read && markOneMutation.mutate(n.id)}
-              className={`flex items-start gap-3 rounded-[18px] border border-[#E8F0F8] p-4 text-left w-full transition ${n.is_read ? 'bg-white' : 'bg-[#F5FAFF] cursor-pointer hover:bg-[#EEF6FF]'}`}
-            >
+          {notifications.map((n) => {
+            const content = <>
               <div className={`mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full ${n.is_read ? 'bg-transparent' : 'bg-[#0985E7]'}`} />
               <div className="flex-1 min-w-0">
                 <span className="text-sm font-bold text-[#0C2B49]">{n.title}</span>
                 <p className="text-xs text-[#64748b] mt-0.5">{n.body}</p>
                 <p className="text-[11px] font-bold text-[#A0AAB8] mt-1">{formatDate(n.created_at)}</p>
               </div>
-            </button>
-          ))}
+            </>;
+
+            return n.is_read ? (
+              <article key={n.id} className="flex items-start gap-3 rounded-[18px] border border-[#E8F0F8] bg-white p-4">
+                {content}
+                <span className="shrink-0 text-xs font-bold text-[#64748B]">Marked as read</span>
+              </article>
+            ) : (
+              <button key={n.id} onClick={() => markOneMutation.mutate(n.id)} aria-label={`Mark ${n.title} as read`} className="flex w-full items-start gap-3 rounded-[18px] border border-[#E8F0F8] bg-[#F5FAFF] p-4 text-left transition hover:bg-[#EEF6FF]">
+                {content}
+              </button>
+            );
+          })}
         </div>
       )}
     </div>
