@@ -95,6 +95,12 @@ export default function UploadPage() {
   }
 
   const error = validationError ?? (mutation.error instanceof Error ? mutation.error.message : null);
+  const activeStep = !file ? 1 : !title.trim() || !bookId ? 2 : 3;
+  const getStepClass = (step: number) => `${stepClass} ${
+    activeStep === step
+      ? 'border-[#0985E7] bg-[#EEF6FF] text-[#0C6BBF]'
+      : 'border-[#D7E4F2] bg-white text-[#64748b]'
+  }`;
 
   if (profileQuery.isPending) return <p className="text-sm font-semibold text-[#64748b]">Loading your upload access…</p>;
   if (!isIssuer) {
@@ -131,9 +137,9 @@ export default function UploadPage() {
       </div>
 
       <ol aria-label="Upload steps" className="grid grid-cols-3 gap-2">
-        <li className={`${stepClass} border-[#0985E7] bg-[#EEF6FF] text-[#0C6BBF]`}>1. Select PDF</li>
-        <li className={`${stepClass} border-[#D7E4F2] bg-white text-[#64748b]`}>2. Document information</li>
-        <li className={`${stepClass} border-[#D7E4F2] bg-white text-[#64748b]`}>3. Confirm and process</li>
+        <li aria-current={activeStep === 1 ? 'step' : undefined} className={getStepClass(1)}>1. Select PDF</li>
+        <li aria-current={activeStep === 2 ? 'step' : undefined} className={getStepClass(2)}>2. Document information</li>
+        <li aria-current={activeStep === 3 ? 'step' : undefined} className={getStepClass(3)}>3. Confirm and process</li>
       </ol>
 
       <section aria-labelledby="select-pdf-heading" className="rounded-[18px] border border-[#E8F0F8] bg-white p-5">
