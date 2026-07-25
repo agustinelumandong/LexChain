@@ -117,3 +117,6 @@ openapi.json
 *.md
 .claude
 .agents
+
+!docs/benchmark/*.md
+!docs/benchmark/*.txt
