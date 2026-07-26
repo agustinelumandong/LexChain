@@ -13,6 +13,7 @@ describe('portal mock mutations', () => {
     expect(first.status).toBe(200);
     await expect(first.json()).resolves.toMatchObject({
       lifecycle: 'finalized',
+      on_chain: true,
       document_hash: expect.stringMatching(/^[a-f0-9]{64}$/),
       finalized_by: 'mock-lawyer',
       anchor_status: 'confirmed',
@@ -21,6 +22,13 @@ describe('portal mock mutations', () => {
 
     const snapshots = mockPortalGet('/documents/mock-document-2/snapshots', 'mock-token:mock-lawyer');
     await expect(snapshots.json()).resolves.toHaveLength(1);
+    await expect(mockPortalGet('/blockchain/verify/mock-document-2', 'mock-token:mock-lawyer').json()).resolves.toMatchObject({
+      document_id: 'mock-document-2',
+      is_verified: true,
+    });
+    const repository = await mockPortalGet('/documents/', 'mock-token:mock-lawyer').json() as Array<{ document_id: string; on_chain: boolean }>;
+    expect(repository.filter((document) => document.on_chain)).toHaveLength(3);
+    expect(repository.find((document) => document.document_id === 'mock-document-2')).toMatchObject({ on_chain: true });
 
     const second = await mockPortalMutate(
       'POST',
@@ -387,6 +395,77 @@ describe('portal mock participant invitations and requests', () => {
     expect(history).toMatchObject({ total: 2 });
     expect(history.requests).toContainEqual(expect.objectContaining({ id: 'mock-request-1', requester_email: 'user@example.com' }));
     expect(issuer.status).toBe(403);
+  });
+});
+
+describe('portal mock search and document questions', () => {
+  it('scopes search and Ask to documents visible to the authenticated portal user', async () => {
+    vi.resetModules();
+    const scopedMock = await import('./portal-mock');
+    const searchRequest = (query: string) => new Request('https://mock.lexchain.local/api/portal/proxy-post', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ query }),
+    });
+    const askRequest = () => new Request('https://mock.lexchain.local/api/portal/proxy-post', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ question: 'What is this document about?' }),
+    });
+
+    const issuerSearch = await scopedMock.mockPortalMutate(
+      'POST',
+      '/search',
+      searchRequest('Restoration Review'),
+      'mock-token:mock-lawyer',
+    );
+    await expect(issuerSearch.json()).resolves.toMatchObject({
+      results: [expect.objectContaining({ document_id: 'mock-document-3' })],
+    });
+    expect((await scopedMock.mockPortalMutate(
+      'POST',
+      '/documents/mock-document-3/ask',
+      askRequest(),
+      'mock-token:mock-lawyer',
+    )).status).toBe(200);
+
+    const privateSearch = await scopedMock.mockPortalMutate(
+      'POST',
+      '/search',
+      searchRequest('Restoration Review'),
+      'mock-token:mock-user',
+    );
+    await expect(privateSearch.json()).resolves.toMatchObject({ results: [] });
+    const privateAsk = await scopedMock.mockPortalMutate(
+      'POST',
+      '/documents/mock-document-3/ask',
+      askRequest(),
+      'mock-token:mock-user',
+    );
+    expect(privateAsk.status).toBe(404);
+    await expect(privateAsk.json()).resolves.toEqual({ message: 'Document not found' });
+
+    await scopedMock.mockPortalMutate(
+      'POST',
+      '/documents/mock-document-1/parties/accept',
+      new Request('https://mock.lexchain.local/api/portal/proxy-post', { method: 'POST' }),
+      'mock-token:mock-user',
+    );
+    const sharedSearch = await scopedMock.mockPortalMutate(
+      'POST',
+      '/search',
+      searchRequest('Lease Agreement'),
+      'mock-token:mock-user',
+    );
+    await expect(sharedSearch.json()).resolves.toMatchObject({
+      results: [expect.objectContaining({ document_id: 'mock-document-1' })],
+    });
+    expect((await scopedMock.mockPortalMutate(
+      'POST',
+      '/documents/mock-document-1/ask',
+      askRequest(),
+      'mock-token:mock-user',
+    )).status).toBe(200);
   });
 });
 
