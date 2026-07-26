@@ -1,6 +1,7 @@
 import { adminFetch, getTokenFromRequest, missingApiUrl, missingToken } from "@/lib/admin-api";
+import { isMockDocumentIssuerToken } from "@/lib/portal-mock";
 
-const useMock = process.env.NEXT_PUBLIC_USE_MOCK_API === "true";
+const useMock = process.env.USE_MOCK_API === "true";
 
 export async function GET(request: Request) {
   const apiBase = process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL;
@@ -21,15 +22,18 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  const token = getTokenFromRequest(request);
+  if (!token) return missingToken();
+
   if (useMock) {
+    if (!isMockDocumentIssuerToken(token)) {
+      return Response.json({ message: "Document Issuer access required." }, { status: 403 });
+    }
     return Response.json({ message: "Mock invitation accepted." }, { status: 201 });
   }
 
   const apiBase = process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL;
   if (!apiBase) return missingApiUrl();
-
-  const token = getTokenFromRequest(request);
-  if (!token) return missingToken();
 
   const body = await request.json().catch(() => null);
   if (!body?.email) {

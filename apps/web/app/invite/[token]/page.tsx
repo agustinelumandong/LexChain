@@ -45,7 +45,7 @@ export default async function InvitePage({ params, searchParams }: InvitePagePro
         </div>
 
         <h1 className="mt-7 text-3xl font-black leading-9 text-[#0C2B49]">
-          You are invited to LexChain as a lawyer (document issuer)
+          You are invited to LexChain as a Document Issuer
         </h1>
         <p className="mt-3 text-sm font-semibold leading-6 text-[#64748b]">
           Open the mobile app to accept your invitation, download the app, or

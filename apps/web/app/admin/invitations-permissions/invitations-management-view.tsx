@@ -17,6 +17,7 @@ import MoreVertIcon from "@mui/icons-material/MoreVert";
 import { Dropdown } from "../components/dropdown";
 import { MockModal, exportMockRows, useMockToast } from "../components/mock-ui";
 import { CreateInvitationModal } from "./create-invitation-modal";
+import { getPortalRoleLabel } from "../../portal/lib/portal-role";
 
 type Invitation = {
   id: string;
@@ -97,7 +98,7 @@ function enrichInvitation(invitation: Invitation): DirectoryInvitation {
     magic_link: withInviteEmail(invitation.magic_link, invitation.email),
     invitee,
     initials: getInitials(invitee),
-    roleLabel: invitation.role === "document_participant" || invitation.role === "user" ? "Document Participant" : "Document Issuer",
+    roleLabel: getPortalRoleLabel(invitation.role),
     statusLabel: getStatus(invitation.status),
     createdLabel: formatDate(invitation.created_at),
     expiresLabel: formatExpires(invitation),

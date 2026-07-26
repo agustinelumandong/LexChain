@@ -349,12 +349,12 @@ function isMockParticipant(token?: string) {
   return token === 'mock-token:mock-document-participant';
 }
 
-function isMockIssuer(token?: string) {
+export function isMockDocumentIssuerToken(token?: string) {
   return token === 'mock-token:mock-document-issuer';
 }
 
 function hasMockIssuerAccess(token?: string) {
-  return isMockIssuer(token);
+  return isMockDocumentIssuerToken(token);
 }
 
 function requestList(requests: MockDocumentRequest[]) {
@@ -388,7 +388,7 @@ export function mockPortalGet(path: string, token?: string): Response {
     return json(requestList(documentRequests.filter((request) => request.requester_id === mockParticipantId)));
   }
   if (requestPathname === '/requests') {
-    if (!isMockIssuer(token)) return error('Document Issuer access required', 403);
+    if (!isMockDocumentIssuerToken(token)) return error('Document Issuer access required', 403);
     const status = searchParams.get('status');
     const filtered = status ? documentRequests.filter((request) => request.status === status) : documentRequests;
     return json(requestList(filtered));
@@ -664,7 +664,7 @@ export async function mockPortalMutate(method: 'POST' | 'PATCH', path: string, r
 
   const reviewMatch = requestPathname.match(/^\/requests\/([^/]+)\/review$/);
   if (method === 'PATCH' && reviewMatch) {
-    if (!isMockIssuer(token)) return error('Document Issuer access required', 403);
+    if (!isMockDocumentIssuerToken(token)) return error('Document Issuer access required', 403);
     const body = await jsonBody(request);
     const action = body?.action;
     const rejectionReason = typeof body?.rejection_reason === 'string' ? body.rejection_reason.trim() : '';

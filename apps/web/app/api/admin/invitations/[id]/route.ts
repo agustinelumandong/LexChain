@@ -1,23 +1,27 @@
 import { adminFetch, getTokenFromRequest, missingApiUrl, missingToken } from "@/lib/admin-api";
+import { isMockDocumentIssuerToken } from "@/lib/portal-mock";
 
-const useMock = process.env.NEXT_PUBLIC_USE_MOCK_API === "true";
+const useMock = process.env.USE_MOCK_API === "true";
 
 type RouteContext = {
   params: Promise<{ id: string }>;
 };
 
 export async function DELETE(request: Request, { params }: RouteContext) {
+  const token = getTokenFromRequest(request);
+  if (!token) return missingToken();
+
   const { id } = await params;
 
   if (useMock) {
+    if (!isMockDocumentIssuerToken(token)) {
+      return Response.json({ message: "Document Issuer access required." }, { status: 403 });
+    }
     return Response.json({ message: "Mock invitation revoked.", id });
   }
 
   const apiBase = process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL;
   if (!apiBase) return missingApiUrl();
-
-  const token = getTokenFromRequest(request);
-  if (!token) return missingToken();
 
   let upstream: Response;
   try {
