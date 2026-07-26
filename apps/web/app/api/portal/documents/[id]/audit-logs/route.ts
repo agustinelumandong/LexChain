@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { backendUrl } from '@/lib/admin-api';
+import { isMockMode, isMockPortalToken, mockPortalGet } from '@/lib/portal-mock';
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -7,13 +8,20 @@ export async function GET(request: NextRequest, context: RouteContext) {
   const token = request.cookies.get('portal_token')?.value;
   if (!token) return NextResponse.json({ message: 'Not authenticated' }, { status: 401 });
 
-  const profile = await fetch(backendUrl('/users/'), {
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'ngrok-skip-browser-warning': 'true',
-    },
-    cache: 'no-store',
-  });
+  const mockMode = isMockMode();
+  if (mockMode && !isMockPortalToken(token)) {
+    return NextResponse.json({ message: 'Not authenticated' }, { status: 401 });
+  }
+
+  const profile = mockMode
+    ? mockPortalGet('/users/', token)
+    : await fetch(backendUrl('/users/'), {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'ngrok-skip-browser-warning': 'true',
+        },
+        cache: 'no-store',
+      });
   const profileData = await profile.json().catch(() => null);
   if (profileData?.role?.trim().toLowerCase() !== 'lawyer') {
     return NextResponse.json(
@@ -23,13 +31,15 @@ export async function GET(request: NextRequest, context: RouteContext) {
   }
 
   const { id } = await context.params;
-  const upstream = await fetch(backendUrl(`/documents/${id}/audit-logs`), {
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'ngrok-skip-browser-warning': 'true',
-    },
-    cache: 'no-store',
-  });
+  const upstream = mockMode
+    ? mockPortalGet(`/documents/${id}/audit-logs`, token)
+    : await fetch(backendUrl(`/documents/${id}/audit-logs`), {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'ngrok-skip-browser-warning': 'true',
+        },
+        cache: 'no-store',
+      });
 
   const data = await upstream.json().catch(() => null);
   return NextResponse.json(data, { status: upstream.status });
