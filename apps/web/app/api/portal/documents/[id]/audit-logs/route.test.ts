@@ -42,9 +42,9 @@ it('does not proxy audit logs when the authenticated profile is not an issuer', 
   });
 });
 
-it('proxies audit logs after the authenticated profile confirms an issuer', async () => {
+it('proxies audit logs after the authenticated profile confirms a Super Admin issuer', async () => {
   const fetchMock = vi.fn()
-    .mockResolvedValueOnce(new Response(JSON.stringify({ role: 'lawyer' }), { status: 200 }))
+    .mockResolvedValueOnce(new Response(JSON.stringify({ role: 'super_admin' }), { status: 200 }))
     .mockResolvedValueOnce(new Response(JSON.stringify([{ id: 'audit-1' }]), { status: 200 }));
   vi.stubGlobal('fetch', fetchMock);
 

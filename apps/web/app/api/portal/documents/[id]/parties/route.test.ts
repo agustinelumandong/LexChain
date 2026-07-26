@@ -10,7 +10,7 @@ afterEach(() => {
   else process.env.API_URL = originalApiUrl;
 });
 
-it('rejects unauthenticated requests and forwards an authenticated party list request', async () => {
+it('rejects unauthenticated requests and forwards a Super Admin party list request', async () => {
   const params = Promise.resolve({ id: 'document-123' });
 
   const unauthenticated = await GET(
@@ -22,7 +22,7 @@ it('rejects unauthenticated requests and forwards an authenticated party list re
   await expect(unauthenticated.json()).resolves.toEqual({ message: 'Not authenticated' });
 
   const fetchMock = vi.fn()
-    .mockResolvedValueOnce(new Response(JSON.stringify({ role: 'lawyer' }), { status: 200 }))
+    .mockResolvedValueOnce(new Response(JSON.stringify({ role: 'admin' }), { status: 200 }))
     .mockResolvedValueOnce(
       new Response(JSON.stringify({ parties: [] }), {
         status: 200,
