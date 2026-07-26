@@ -7,6 +7,7 @@ import { demoResetToken, type DemoForgotPasswordResult } from "../../lib/schemas
 
 const resetMessage = "If an account exists for that email, a reset link has been sent." as const;
 const unavailableMessage = "Password recovery is not connected yet. The backend password-recovery endpoints are required before this can send a real email.";
+const demoSubmitDelayMs = 150;
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
@@ -25,7 +26,7 @@ export default function ForgotPasswordPage() {
 
     setError(null);
     setIsSubmitting(true);
-    await Promise.resolve();
+    await new Promise((resolve) => setTimeout(resolve, demoSubmitDelayMs));
     setIsSubmitting(false);
 
     if (process.env.NEXT_PUBLIC_USE_MOCK_API === "true") {

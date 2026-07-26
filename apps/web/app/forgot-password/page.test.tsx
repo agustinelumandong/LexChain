@@ -1,11 +1,12 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import ForgotPasswordPage from "./page";
 
 afterEach(() => {
   cleanup();
   vi.unstubAllEnvs();
+  vi.useRealTimers();
 });
 
 describe("ForgotPasswordPage", () => {
@@ -42,6 +43,7 @@ describe("ForgotPasswordPage", () => {
 
   it("shows a loading state and lets the user retry after returning to the form", async () => {
     vi.stubEnv("NEXT_PUBLIC_USE_MOCK_API", "true");
+    vi.useFakeTimers();
     render(<ForgotPasswordPage />);
 
     fireEvent.change(screen.getByLabelText("Email"), {
@@ -49,8 +51,15 @@ describe("ForgotPasswordPage", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: "Send reset link" }));
 
+    await act(async () => {
+      await Promise.resolve();
+    });
     expect(screen.getByRole("button", { name: "Sending…" })).toBeTruthy();
-    await screen.findByRole("link", { name: "Open demo reset page" });
+    act(() => {
+      vi.advanceTimersByTime(200);
+    });
+    await act(async () => {});
+    expect(screen.getByRole("link", { name: "Open demo reset page" })).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Try another email" }));
 
     expect(screen.getByRole("button", { name: "Send reset link" })).toBeTruthy();
