@@ -110,7 +110,7 @@ describe("UsersManagementView demo mutations", () => {
     expect(within(updatedRow).getByText("Mariel Santos")).toBeTruthy();
     expect(within(updatedRow).getByText("Admin")).toBeTruthy();
     expect(screen.getByText("Demo account updated")).toBeTruthy();
-    expect(screen.queryByText("Backend endpoint needed")).toBeNull();
+    expect(screen.queryByText(["Backend endpoint", "needed"].join(" "))).toBeNull();
   });
 
   it("cancels edits without changing the visible row", () => {

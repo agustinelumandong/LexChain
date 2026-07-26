@@ -2,12 +2,18 @@ import { NextRequest, NextResponse } from "next/server";
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  const token = request.cookies.get("portal_token")?.value ?? request.cookies.get("admin_token")?.value;
+  const adminToken = request.cookies.get("admin_token")?.value;
+  const portalToken = request.cookies.get("portal_token")?.value;
+  const role = request.cookies.get("user_role")?.value.trim().toLowerCase();
   if (pathname.startsWith("/admin")) {
-    return NextResponse.redirect(new URL(token ? "/portal/dashboard" : "/login", request.url));
+    if (adminToken && role === "admin") return NextResponse.next();
+    const redirectPath = portalToken && (role === "lawyer" || role === "user")
+      ? "/portal/dashboard"
+      : "/login";
+    return NextResponse.redirect(new URL(redirectPath, request.url));
   }
 
-  if (!token && pathname.startsWith("/portal")) {
+  if (!portalToken && pathname.startsWith("/portal")) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
