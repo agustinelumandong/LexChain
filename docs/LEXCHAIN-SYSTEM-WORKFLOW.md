@@ -12,7 +12,7 @@ The current frontend architecture is a monorepo:
 LexChain/
 ├── apps/
 │   ├── mobile/       # Expo React Native mobile app
-│   └── web/          # Next.js website, admin, public verifier
+│   └── web/          # Next.js website, public verifier, and /portal workspace
 ├── packages/
 │   ├── api/          # Shared API helpers
 │   ├── config/       # Shared environment/config helpers
@@ -135,9 +135,9 @@ Web workflows:
 - download app page
 - privacy page
 - terms page
-- admin login
-- admin dashboard
-- admin management pages
+- /portal login and shared workspace
+- Document Issuer System Management
+- legacy /admin redirects for compatibility
 ```
 
 Web routes:
@@ -153,25 +153,16 @@ apps/web/app/
 ├── download/page.tsx
 ├── privacy/page.tsx
 ├── terms/page.tsx
-├── admin/
-│   ├── login/page.tsx
+├── login/page.tsx
+├── portal/
 │   ├── dashboard/page.tsx
-│   ├── documents/page.tsx
 │   ├── users/page.tsx
-│   ├── analytics/page.tsx
+│   ├── issuer-invitations/page.tsx
+│   ├── system-reports/page.tsx
 │   ├── audit-logs/page.tsx
-│   ├── blockchain-records/page.tsx
-│   ├── categories/page.tsx
-│   ├── document-issuers/page.tsx
-│   ├── invitations-permissions/page.tsx
-│   ├── ocr-nlp-processing/page.tsx
-│   ├── system-settings/page.tsx
-│   └── verification-logs/page.tsx
+│   └── system-statistics/page.tsx
 └── api/
-    ├── admin/
-    │   ├── auth/route.ts
-    │   ├── dashboard/route.ts
-    │   └── users/route.ts
+    ├── admin/          # temporary issuer-operation transport names
     └── public/
         └── verify/route.ts
 ```
@@ -390,96 +381,71 @@ https://api.lexchain.app//public/verify
 
 ## 5. User Roles
 
-LexChain has several conceptual users.
+LexChain has exactly two registered actors. The parenthetical `Lawyer + Super
+Admin` in the diagram identifies the one Document Issuer actor; it is not a
+role tier or second portal.
 
-### 5.1 Regular User
-
-Can:
-
-```txt
-- sign up
-- sign in
-- view dashboard
-- view documents they own or can access
-- upload documents
-- verify documents inside the mobile app
-- manage profile settings
-```
-
-### 5.2 Document Issuer
+### 5.1 Document Issuer
 
 Can:
 
 ```txt
-- upload legal records
-- process documents
-- manage document metadata
-- grant document access
-- invite participants
-- view verification state
+- Upload Legal Document
+- Rename Document
+- View Document Status
+- Manage Document Access
+- View Document Insights
+- Ask Questions
+- Search Documents
+- Finalize Document
+- Verify Document Integrity
+- Restore Original from Backup
+- Manage User Accounts
+- Manage Issuer Invitations
+- Generate Reports
+- View Audit Logs
+- View System Statistics
+- View Registered Users
+- View and Manage Notifications
+- Register Account
+- Log In
 ```
 
-### 5.3 Public Verifier
+### 5.2 Document Participant
 
 Can:
 
 ```txt
-- open the public website
-- upload one PDF for verification
-- view verification result
-- use a public verification code page when backend support exists
+- View and Manage Notifications
+- Register Account
+- Log In
+- View Shared Documents
+- View Document Details
+- Request Document E-Copy
+- Search Shared Documents
 ```
 
-### 5.4 Super Admin
-
-Can monitor:
-
-```txt
-- dashboard metrics
-- users
-- document issuers
-- documents
-- categories
-- invitations and permissions
-- verification logs
-- blockchain records
-- OCR/NLP processing
-- analytics
-- audit logs
-- system settings
-```
-
-The user position roles are:
-
-```txt
-user
-lawyer
-```
-
-The privileged system role is:
-
-```txt
-admin
-```
-
-Do not treat `admin` as a normal user position. Use it only for admin-console/system privileges.
+The canonical backend role values are `document_issuer` and
+`document_participant`. Anonymous PDF verification remains a public feature,
+not a registered actor.
 
 ## 6. Main Workflow Overview
 
 The main system flow:
 
 ```txt
-1. User signs in or signs up.
-2. User uploads or captures a document.
+1. Document Issuer or Document Participant signs in or signs up.
+2. Document Issuer uploads or captures a document.
 3. App sends file to backend.
 4. Backend stores the file off-chain.
 5. Backend computes a document hash.
 6. Backend processes the document with OCR/NLP.
 7. Backend stores extracted metadata and summaries.
 8. Backend anchors or checks hash data on-chain when needed.
-9. User views document status and details in mobile.
-10. Public or authorized users verify document integrity.
-11. Admin monitors users, documents, verification, processing, and blockchain records on web.
+9. The authorized user views document status and details in mobile or /portal.
+10. An unauthenticated browser or authorized user verifies document integrity.
+11. Document Issuer uses System Management in /portal for user accounts, issuer
+    invitations, reports, audit logs, and system statistics.
 ```
 
 ## 7. Authentication Workflow
@@ -530,42 +496,45 @@ Flow:
 6. User signs in after verification.
 ```
 
-### 7.3 Admin Login on Web
+### 7.3 Portal Login and Issuer Session on Web
 
 Route:
 
 ```txt
-apps/web/app/admin/login/page.tsx
+apps/web/app/login/page.tsx
 ```
 
 Route handler:
 
 ```txt
-apps/web/app/api/admin/auth/route.ts
+apps/web/app/api/admin/auth/route.ts (temporary transport name)
 ```
 
 Flow:
 
 ```txt
-1. Admin enters credentials in Next.js web app.
-2. Browser posts credentials to /api/admin/auth.
+1. Document Issuer or Document Participant enters credentials in Next.js web app.
+2. Browser posts credentials to the authentication route handler.
 3. Next.js route handler forwards credentials to backend /auth/signin.
-4. Backend returns access token.
-5. Next.js stores token in an HTTP-only admin_token cookie.
-6. Admin moves to /admin/dashboard.
+4. Backend returns an authenticated profile with document_issuer or document_participant.
+5. Next.js creates an HTTP-only issuer_token only for document_issuer.
+6. Both actors enter their permitted /portal workspace; participants have no
+   issuer session.
 ```
 
 Why use an HTTP-only cookie:
 
 ```txt
 - JavaScript cannot directly read it.
-- It is better for admin session handling than storing bearer tokens in browser localStorage.
+- It keeps issuer authorization separate from client-readable role hints and
+  bearer tokens in browser localStorage.
 ```
 
 Current fallback behavior:
 
 ```txt
-If live admin backend data is unavailable, dashboard/users can show demo fallback data for development and presentation.
+If live issuer-management data is unavailable, mock mode can show demo data for
+development and presentation without granting client-side authority.
 ```
 
 ## 8. Mobile Document Upload Workflow
@@ -853,311 +822,39 @@ Configure Android App Links and iOS Universal Links for:
 - https://lexchain.app/verify/<code>
 ```
 
-## 14. Admin Web Workflow
+## 14. Document Issuer System Management Workflow
 
 Base route:
 
 ```txt
-apps/web/app/admin/
+/portal
 ```
 
-Shared layout:
+The complete Document Issuer System Management flow has five destinations:
 
 ```txt
-apps/web/app/admin/admin-shell.tsx
-```
-
-Shared table/resource component:
-
-```txt
-apps/web/app/admin/admin-resource-page.tsx
-```
-
-Demo fallback data:
-
-```txt
-apps/web/app/admin/admin-demo-data.ts
-```
-
-Admin routes:
-
-```txt
-/admin/login
-/admin/dashboard
-/admin/documents
-/admin/users
-/admin/analytics
-/admin/audit-logs
-/admin/blockchain-records
-/admin/categories
-/admin/document-issuers
-/admin/invitations-permissions
-/admin/ocr-nlp-processing
-/admin/system-settings
-/admin/verification-logs
-```
-
-### 14.1 Admin Dashboard
-
-Route:
-
-```txt
-apps/web/app/admin/dashboard/page.tsx
+/portal/users
+/portal/issuer-invitations
+/portal/system-reports
+/portal/audit-logs
+/portal/system-statistics
 ```
 
 Flow:
 
 ```txt
-1. Admin opens dashboard.
-2. Page checks admin_token cookie.
-3. If token exists, page tries backend /admin/dashboard.
-4. If backend succeeds, page shows live platform metrics.
-5. If backend is unavailable or token is missing, page shows demo fallback data.
+1. Document Issuer signs in at /login.
+2. The backend profile identifies document_issuer.
+3. Next.js creates the HTTP-only issuer_token session for issuer-only routes.
+4. The issuer opens one System Management destination in /portal.
+5. The backend authorizes the authenticated issuer role and applies document
+   ownership or document-level checks where relevant.
+6. The system returns the management result and records the action when needed.
 ```
 
-Dashboard shows:
-
-```txt
-- total users
-- document issuers/lawyers
-- total documents
-- processed documents
-- failed documents
-- on-chain records
-- pending invitations
-- processing overview
-```
-
-### 14.2 Admin Users
-
-Route:
-
-```txt
-apps/web/app/admin/users/page.tsx
-```
-
-Flow:
-
-```txt
-1. Page checks admin_token cookie.
-2. If token exists, page tries backend /admin/users.
-3. If backend succeeds, page shows live users.
-4. If backend is unavailable or token is missing, page shows demo fallback users.
-```
-
-Users page shows:
-
-```txt
-- total users
-- active users
-- super admin count
-- name
-- email
-- role
-- status
-- join date
-```
-
-### 14.3 Admin Documents
-
-Route:
-
-```txt
-apps/web/app/admin/documents/page.tsx
-```
-
-Shows:
-
-```txt
-- uploaded documents
-- anchored documents
-- documents needing review
-- file name
-- owner
-- category
-- document status
-- OCR/NLP status
-- blockchain status
-- created date
-```
-
-### 14.4 Admin Document Issuers
-
-Route:
-
-```txt
-apps/web/app/admin/document-issuers/page.tsx
-```
-
-Shows:
-
-```txt
-- issuer organizations
-- contact email
-- organization type
-- active users
-- uploaded documents
-- issuer status
-```
-
-### 14.5 Admin Categories
-
-Route:
-
-```txt
-apps/web/app/admin/categories/page.tsx
-```
-
-Shows:
-
-```txt
-- category name
-- public verification allowed
-- invitation requirement
-- download rule
-- default privacy
-```
-
-### 14.6 Invitations and Permissions
-
-Route:
-
-```txt
-apps/web/app/admin/invitations-permissions/page.tsx
-```
-
-Shows:
-
-```txt
-- document invitation events
-- issuer
-- participant email
-- permission type
-- status
-- sent date
-```
-
-Purpose:
-
-```txt
-Super Admin monitors permission events and can later be given emergency revoke controls through backend APIs.
-```
-
-### 14.7 Verification Logs
-
-Route:
-
-```txt
-apps/web/app/admin/verification-logs/page.tsx
-```
-
-Shows:
-
-```txt
-- document name
-- verification code
-- verifier
-- status
-- blockchain hash
-- verification date
-```
-
-### 14.8 Blockchain Records
-
-Route:
-
-```txt
-apps/web/app/admin/blockchain-records/page.tsx
-```
-
-Shows:
-
-```txt
-- document hash
-- transaction hash
-- block number
-- blockchain network
-- status
-- anchored date
-```
-
-### 14.9 OCR/NLP Processing
-
-Route:
-
-```txt
-apps/web/app/admin/ocr-nlp-processing/page.tsx
-```
-
-Shows:
-
-```txt
-- document name
-- OCR status
-- NLP status
-- extracted data state
-- processing time
-- API usage
-```
-
-### 14.10 Analytics
-
-Route:
-
-```txt
-apps/web/app/admin/analytics/page.tsx
-```
-
-Shows:
-
-```txt
-- processed document metrics
-- most used category
-- verification success
-- OCR/NLP failure rate
-- active issuers
-- storage usage
-- anchoring success rate
-```
-
-### 14.11 Audit Logs
-
-Route:
-
-```txt
-apps/web/app/admin/audit-logs/page.tsx
-```
-
-Shows:
-
-```txt
-- actor
-- action
-- target
-- severity
-- event date
-```
-
-### 14.12 System Settings
-
-Route:
-
-```txt
-apps/web/app/admin/system-settings/page.tsx
-```
-
-Shows:
-
-```txt
-- allowed file types
-- max file size
-- OCR preprocessing state
-- NLP provider
-- blockchain network
-- verification rules
-- invitation expiration
-- maintenance mode
-```
+Document Participant has no issuer session and is denied these routes. Existing
+`/admin/*` pages redirect for compatibility, while `/api/admin/*` may remain a
+temporary web transport namespace rather than an Admin actor.
 
 ## 15. Access and Permission Workflow
 
@@ -1190,7 +887,6 @@ Document access may involve:
 - issuer access
 - invited participant access
 - public verification access
-- super admin monitoring access
 ```
 
 ## 16. Blockchain Verification Workflow
@@ -1284,25 +980,16 @@ Purpose:
 - keep mobile screens usable while backend endpoints are being completed
 ```
 
-Web admin has demo fallback data:
+Web portal mock mode uses exactly two canonical accounts:
 
 ```txt
-apps/web/app/admin/admin-demo-data.ts
+issuer@example.com      document_issuer      Password123
+participant@example.com document_participant Password123
 ```
 
-Purpose:
-
-```txt
-- keep admin pages visible during presentation
-- allow route and layout testing without backend
-- avoid blocking UI work on missing admin endpoints
-```
-
-Production direction:
-
-```txt
-Replace demo fallback with strict backend data once all admin endpoints are stable.
-```
+The Document Issuer account must reach all five System Management destinations;
+the Document Participant account must be denied every issuer-only route. Mock
+data supports presentation only and never authorizes a route in production.
 
 ## 19. Deployment Workflow
 
@@ -1356,7 +1043,7 @@ Backend should provide:
 - auth endpoints
 - document endpoints
 - processing endpoints
-- admin endpoints
+- issuer-only System Management endpoints
 - public verification endpoints
 - blockchain verification endpoints
 ```
@@ -1402,7 +1089,7 @@ Do:
 ```txt
 - keep backend as authorization source of truth
 - use secure storage on mobile
-- use HTTP-only cookies for admin web tokens
+- use HTTP-only issuer_token cookies for issuer-only web routes
 - validate file type and file size
 - keep document content off-chain
 - use generated API types
@@ -1416,7 +1103,7 @@ Do not:
 - expose private keys in frontend code
 - import React Native components into Next.js
 - import Next.js components into Expo mobile
-- store admin tokens in localStorage
+- store issuer tokens in localStorage
 - treat blockchain verification as legal validation
 - manually edit generated OpenAPI schema
 ```
@@ -1439,19 +1126,11 @@ GET /public/verify/{code}
 
 If that endpoint is missing, the UI must show the limitation clearly.
 
-### 22.2 Admin Data
+### 22.2 System Management Data
 
-Some admin pages use demo fallback data until backend endpoints are available.
-
-Current live admin endpoints wired in web:
-
-```txt
-/auth/signin
-/admin/dashboard
-/admin/users
-```
-
-Other admin sections are ready in UI and can be wired to backend endpoints later.
+System Management remains mock-backed until backend issuer-only endpoints are
+available. The current `/api/admin/*` route-handler namespace is temporary web
+transport naming, not an actor or role name.
 
 ### 22.3 Invite Signup Contract
 
@@ -1507,10 +1186,13 @@ http://localhost:3000/invite/test-token
 http://localhost:3000/download
 http://localhost:3000/privacy
 http://localhost:3000/terms
-http://localhost:3000/admin/login
-http://localhost:3000/admin/dashboard
-http://localhost:3000/admin/documents
-http://localhost:3000/admin/users
+http://localhost:3000/login
+http://localhost:3000/portal/dashboard
+http://localhost:3000/portal/users
+http://localhost:3000/portal/issuer-invitations
+http://localhost:3000/portal/system-reports
+http://localhost:3000/portal/audit-logs
+http://localhost:3000/portal/system-statistics
 ```
 
 ## 24. File Ownership Guide
@@ -1544,7 +1226,7 @@ apps/web/app/invite/
 apps/web/app/download/
 apps/web/app/privacy/
 apps/web/app/terms/
-apps/web/app/admin/
+apps/web/app/portal/
 apps/web/app/api/
 ```
 
@@ -1580,8 +1262,8 @@ Open web -> verify PDF or code -> see result -> download app if needed.
 Invite recipient:
 Open HTTPS invite link -> open app or download app -> sign up with token.
 
-Super admin:
-Open web admin -> sign in -> monitor dashboard/users/documents/verification/blockchain/processing/audit/settings.
+Document Issuer:
+Open /portal -> sign in -> use document workflows and all five System Management destinations.
 
 Developer:
 Update OpenAPI -> generate types -> update wrappers -> run lint/build -> deploy mobile and web separately.

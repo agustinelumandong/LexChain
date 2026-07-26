@@ -30,11 +30,11 @@ actors:
 1. **Document Issuer (Lawyer + Super Admin)**
 2. **Document Participant**
 
-The diagrams intentionally combine Lawyer and Super Admin under the Document
-Issuer actor. This document preserves that target exactly instead of separating
-them.
+The parenthetical `Lawyer + Super Admin` identifies the one Document Issuer
+actor. It does not create roles, permission tiers, portal variants, or
+navigation groups.
 
-The diagrams do not define a Public Verifier, separate Super Admin actor,
+The diagrams do not define a Public Verifier, a separate third registered actor,
 separate mobile/web applications, external identity service, email service,
 object storage service, OCR provider, or blockchain provider as independent
 architecture components. Those items are therefore outside this
@@ -124,7 +124,7 @@ The use-case diagram connects the Document Issuer to:
 14. View Audit Logs
 15. View System Statistics
 16. View Registered Users
-17. View & Manage Notifications
+17. View and Manage Notifications
 18. Register Account
 19. Log In
 
@@ -134,7 +134,7 @@ These are all part of the target system even if some are not implemented yet.
 
 The use-case diagram connects the Document Participant to:
 
-1. View & Manage Notifications
+1. View and Manage Notifications
 2. Register Account
 3. Log In
 4. View Shared Documents
@@ -267,7 +267,8 @@ The three included operations are required parts of finalization.
 6. The participant receives a notification.
 
 The review step is implied by the ERD fields `lawyer_id`, `status`, and
-`rejection_reason`.
+`rejection_reason`. `lawyer_id` is the raw ERD schema field name for the
+responsible Document Issuer; it does not define a separate Lawyer role.
 
 ### 6.8 Notifications
 
@@ -278,7 +279,7 @@ The review step is implied by the ERD fields `lawyer_id`, `status`, and
 
 ### 6.9 Administration and reporting
 
-The Document Issuer actor, which includes the Super Admin in the diagrams, can:
+The Document Issuer uses the ordinary **System Management** capability set:
 
 1. manage user accounts;
 2. manage issuer invitations;
@@ -612,7 +613,7 @@ approved.
 Examples currently outside this diagram target:
 
 - Public Verifier;
-- a separate Super Admin actor;
+- a separate third registered actor;
 - billing or payments;
 - real-time collaborative editing;
 - digital-signature workflows;

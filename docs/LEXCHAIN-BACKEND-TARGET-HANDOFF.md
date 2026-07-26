@@ -23,9 +23,12 @@ local instructions before selecting files or writing migrations.
 
 This handoff documents requirements only. No backend implementation, database,
 OpenAPI contract, or generated type was changed by the two-actor portal work.
-The two registered actors are Document Issuer and Document Participant.
-Super Admin is a Document Issuer capability level, while anonymous verification
-is a public feature rather than a registered actor.
+The two registered actors are Document Issuer and Document Participant, with
+the only target role values `document_issuer` and `document_participant`.
+The diagram parenthetical `Lawyer + Super Admin` identifies the one Document
+Issuer actor; it does not preserve aliases, permission tiers, or another
+workspace. Anonymous verification is a public feature rather than a registered
+actor.
 
 ## 2. Required Backend Updates
 
@@ -55,6 +58,14 @@ anchor_status: pending | confirmed | failed | null
 
 Correct the ERD before migration so `document_parties.email` appears once.
 
+Authentication and profile responses must expose only:
+
+```text
+role: document_issuer | document_participant
+```
+
+Do not preserve historical role aliases in the target contract.
+
 ### 2.2 Password recovery
 
 Required endpoints:
@@ -79,7 +90,7 @@ Required behavior:
 Minimum request shapes:
 
 ```json
-{"email":"user@example.com"}
+{"email":"participant@example.com"}
 ```
 
 ```json
@@ -97,8 +108,8 @@ POST /documents/{document_id}/finalize
 Required behavior:
 
 1. Require an authenticated Document Issuer who owns the document or is
-   otherwise authorized for its lifecycle actions. A Super Admin-capable issuer
-   uses this same rule; the capability does not create ownership.
+   otherwise authorized for its lifecycle actions. Issuer status does not
+   create ownership.
 2. Require completed OCR/extraction and insights.
 3. Compute the canonical document/content hash on the backend.
 4. Insert one `document_snapshots` row containing extracted text and `text_hash`.
@@ -144,7 +155,7 @@ Snapshot lists must return metadata and `text_hash`, not raw extracted text.
 Restore must:
 
 - require a Document Issuer who owns the document or is otherwise authorized
-  for its lifecycle actions; Super Admin capability alone is not authorization;
+  for its lifecycle actions;
 - require a non-empty reason;
 - load the snapshot using both document ID and snapshot ID;
 - recompute and securely compare its text hash;
@@ -189,13 +200,17 @@ Required fields:
 
 Only a mismatch with a valid snapshot should set `can_restore: true`.
 
-### 2.6 Document Issuer — Super Admin user management
+### 2.6 Document Issuer user management
 
-Required endpoint:
+Required target endpoint:
 
 ```text
-PATCH /admin/users/{user_id}
+PATCH /issuer/users/{user_id}
 ```
+
+Existing Next.js `/api/admin/*` route-handler names may remain temporarily as
+web transport names. They do not define an Admin actor, a backend role alias,
+or a second workspace.
 
 Allowed fields:
 
@@ -203,18 +218,18 @@ Allowed fields:
 f_name
 l_name
 email
-role: user | lawyer | admin
+role: document_issuer | document_participant
 is_active
 ```
 
 Required behavior:
 
-- require the backend `admin` role that grants a Document Issuer Super Admin
-  capabilities;
+- require the authenticated `document_issuer` role for every user-management
+  operation;
 - PATCH only fields included in the request;
 - validate email format and uniqueness;
-- validate allowed role values;
-- prevent suspension or demotion of the last active admin;
+- accept only `document_issuer` or `document_participant` when changing a
+  role;
 - prevent unauthorized self-escalation paths;
 - return the updated user;
 - append a `system_audit_logs` entry containing actor, target, changed field
@@ -239,9 +254,8 @@ system-audit
 
 Required authorization:
 
-- Document Issuer: office reports scoped to owned or otherwise authorized data;
-- Document Issuer with Super Admin capabilities: the same scoped office reports
-  plus system reports;
+- Document Issuer: all fixed report types; office reports remain scoped to
+  owned or otherwise authorized data;
 - Document Participant: denied.
 
 Required response:
@@ -263,21 +277,21 @@ table, scheduler, report history, or generic query builder.
 
 Backend authorization is authoritative:
 
-| Operation | Document Issuer | Document Participant | Document Issuer with Super Admin capabilities |
-|---|---:|---:|---:|
-| Finalize document | If owned or authorized | No | If owned or authorized |
-| Restore document | If owned or authorized | No | If owned or authorized |
-| View shared document | If authorized | Yes, if shared | If authorized; no implicit ownership |
-| Manage user accounts | No | No | Yes |
-| Office reports | Yes, owned or authorized data | No | Yes, owned or authorized data |
-| System reports | No | No | Yes |
+| Operation | Document Issuer | Document Participant |
+|---|---:|---:|
+| Finalize document | If owned or authorized | No |
+| Restore document | If owned or authorized | No |
+| View shared document | If authorized | Yes, if shared |
+| Manage user accounts | Yes | No |
+| Manage issuer invitations | Yes | No |
+| View audit logs and system statistics | Yes | No |
+| Generate reports | Yes, with office data scoped to owned or authorized documents | No |
 
-The Document Issuer is one actor with an ordinary issuer permission baseline.
-Super Admin capability adds management and system-report authority to that
-baseline; it is not a separate actor and must not remove ordinary issuer
-workflows. It does not grant document ownership or bypass document-level
-authorization, and the ordinary issuer baseline does not grant management
-authority.
+All issuer-only endpoints must authorize the authenticated
+`document_issuer` role server-side. The web `issuer_token` is issued only after
+the authenticated profile identifies that role; a client-readable role hint is
+never authority. Issuer status does not grant document ownership or bypass
+document-level authorization.
 
 Write document actions to `document_audit_logs` and administrative/security
 actions to `system_audit_logs`.
@@ -316,15 +330,12 @@ The backend is ready only when these pass:
 7. Snapshot restore rejects corrupted hashes.
 8. Restore preserves the snapshot and original PDF while creating history.
 9. Participant and non-owner lifecycle operations are denied.
-10. A Document Issuer with Super Admin capabilities can edit, suspend, and
-    reactivate an allowed user.
-11. A standard Document Issuer cannot call Super Admin user mutations.
-12. The last active admin cannot be suspended or demoted.
-13. Office reports contain only data owned by or otherwise authorized for the
-    requesting Document Issuer, including an issuer with Super Admin
-    capabilities.
-14. System reports require Document Issuer Super Admin capabilities.
-15. Invalid report types and date ranges are rejected.
+10. A Document Issuer can edit, suspend, and reactivate an allowed user.
+11. A Document Participant is denied every issuer-only management operation.
+12. Office reports contain only data owned by or otherwise authorized for the
+    requesting Document Issuer.
+13. Document Issuers can retrieve each fixed system report type.
+14. Invalid report types and date ranges are rejected.
 
 ## 5. Nice to Have Later
 
@@ -386,7 +397,7 @@ Backend target work is complete when:
 - role and ownership authorization is enforced server-side;
 - finalization and restoration preserve data and audit history;
 - password recovery is account-safe and rate-limited;
-- Super Admin mutations protect the last active backend `admin` account;
+- all five System Management operations require the canonical issuer role;
 - fixed reports are correctly scoped;
 - generated TypeScript types compile;
 - backend-native tests and `tests/test_api_endpoints.py` pass; and

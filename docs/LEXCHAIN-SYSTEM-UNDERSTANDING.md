@@ -1,6 +1,6 @@
 # LexChain System Understanding
 
-Last updated: 2026-05-17
+Last updated: 2026-07-26
 
 ## Core Idea
 
@@ -23,7 +23,7 @@ Blockchain does not prove legal validity.
 
 ```txt
 Expo mobile = real app experience
-Next.js web = website, public verifier, and admin portal
+Next.js web = website, public verifier, and the shared /portal workspace
 Shared packages = safe cross-platform types, API helpers, and config helpers
 Backend = source of truth for auth, documents, permissions, processing, and blockchain records
 ```
@@ -34,7 +34,7 @@ Main structure:
 LexChain/
 ├── apps/
 │   ├── mobile/       # Expo React Native mobile app
-│   └── web/          # Next.js website, admin, public verifier
+│   └── web/          # Next.js website, public verifier, and /portal workspace
 ├── packages/
 │   ├── api/          # Shared API helpers
 │   ├── config/       # Shared environment/config helpers
@@ -49,17 +49,18 @@ LexChain/
 ## Main System Flow
 
 ```txt
-User signs in or signs up.
-User uploads or captures a document.
+Document Issuer or Document Participant signs in or signs up.
+Document Issuer uploads or captures a document.
 Mobile app sends the file to the backend.
 Backend stores the file off-chain.
 Backend computes a document hash.
 Backend processes the document with OCR/NLP.
 Backend saves extracted metadata and summaries.
 Backend anchors or checks hash data on-chain when needed.
-User views document status and details in mobile.
-Public or authorized users verify document integrity.
-Super admin monitors users, documents, verification, processing, and blockchain records on web.
+The authorized user views document status and details in mobile or /portal.
+An unauthenticated browser or an authorized user verifies document integrity.
+Document Issuer uses System Management in /portal when user, invitation, report,
+audit, or statistics work is needed.
 ```
 
 ## Mobile App Responsibility
@@ -124,9 +125,9 @@ invite fallback page
 download app page
 privacy page
 terms page
-admin login
-admin dashboard
-admin management pages
+/portal login and shared workspace
+Document Issuer System Management destinations
+legacy /admin redirects for compatibility only
 ```
 
 Public web flow:
@@ -138,12 +139,12 @@ Visitor opens website
 -> downloads app if needed
 ```
 
-Admin web flow:
+Document Issuer portal flow:
 
 ```txt
-Super admin opens web admin
--> signs in
--> monitors dashboard, users, documents, verification, blockchain, processing, audit, and settings
+Document Issuer signs in at /login
+-> receives an issuer session only after the backend profile returns document_issuer
+-> uses Workspace, Integrity, Office, Account, and System Management in /portal
 ```
 
 ## Backend Responsibility
@@ -163,7 +164,7 @@ OCR/NLP processing
 metadata extraction
 blockchain anchoring
 verification results
-admin data
+System Management data
 audit logs
 ```
 
@@ -342,51 +343,34 @@ Important contract rule:
 Use token, not invitation_token, unless backend OpenAPI contract changes.
 ```
 
-## Admin Workflow
+## Portal System Management Workflow
 
-Base route:
-
-```txt
-apps/web/app/admin/
-```
-
-Admin monitors:
+Both registered actors use `/portal`. Every Document Issuer receives these five
+ordinary **System Management** destinations:
 
 ```txt
-dashboard metrics
-users
-document issuers
-documents
-categories
-invitations and permissions
-verification logs
-blockchain records
-OCR/NLP processing
-analytics
-audit logs
-system settings
+User Accounts
+Issuer Invitations
+System Reports
+Audit Logs
+System Statistics
 ```
 
-Admin login flow:
+Issuer session flow:
 
 ```txt
-Admin enters credentials.
-Browser posts to /api/admin/auth.
-Next.js route handler forwards to backend /auth/signin.
-Backend returns access token.
-Next.js stores token in HTTP-only admin_token cookie.
-Admin moves to /admin/dashboard.
+Document Issuer enters credentials at /login.
+Browser posts to the Next.js authentication route handler.
+The handler forwards the sign-in request to the backend.
+The backend profile returns document_issuer or document_participant.
+Only document_issuer receives an HTTP-only issuer_token for issuer-only routes.
+Both roles enter their permitted /portal workspace.
 ```
 
-Current live admin endpoints wired in web:
-
-```txt
-/auth/signin
-/admin/dashboard
-/admin/users
-```
-
-Other admin pages can use demo fallback data until backend endpoints are stable.
+The backend, not a client-readable role hint, authorizes every issuer-only
+operation. Existing `/api/admin/*` route-handler names may remain temporarily
+as web transport names; they do not name an Admin actor or a second workspace.
+Legacy `/admin/*` pages redirect for compatibility.
 
 ## Shared Packages
 
@@ -452,7 +436,7 @@ Do:
 ```txt
 keep backend as authorization source of truth
 use secure storage on mobile
-use HTTP-only cookies for admin web tokens
+use HTTP-only issuer_token cookies for issuer-only web routes
 validate file type and file size
 keep document content off-chain
 use generated API types
@@ -466,7 +450,7 @@ put backend secrets in Next.js client components
 expose private keys in frontend code
 import React Native components into Next.js
 import Next.js components into Expo mobile
-store admin tokens in localStorage
+store issuer tokens in localStorage
 treat blockchain verification as legal validation
 manually edit generated OpenAPI schema
 ```
@@ -483,8 +467,8 @@ Open web -> verify PDF or code -> see result -> download app if needed.
 Invite recipient:
 Open HTTPS invite link -> open app or download app -> sign up with token.
 
-Super admin:
-Open web admin -> sign in -> monitor dashboard/users/documents/verification/blockchain/processing/audit/settings.
+Document Issuer:
+Open /portal -> sign in -> use document workflows and all five System Management destinations.
 
 Developer:
 Update OpenAPI -> generate types -> update wrappers -> run lint/build -> deploy mobile and web separately.

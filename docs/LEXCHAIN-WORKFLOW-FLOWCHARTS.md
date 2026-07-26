@@ -1,6 +1,6 @@
 # LexChain Workflow Flowcharts
 
-Last updated: 2026-05-16
+Last updated: 2026-07-26
 
 This document contains Mermaid diagrams for the main LexChain workflows. It is meant to support adviser review, developer onboarding, and implementation planning.
 
@@ -8,9 +8,10 @@ This document contains Mermaid diagrams for the main LexChain workflows. It is m
 
 ```mermaid
 flowchart TB
-  User[Mobile User] --> Mobile[Expo Mobile App<br/>apps/mobile]
-  Public[Public Visitor] --> Web[Next.js Web App<br/>apps/web]
-  Admin[Super Admin] --> Web
+  Issuer[Document Issuer] --> Mobile[Expo Mobile App<br/>apps/mobile]
+  Issuer --> Web[Next.js Web App<br/>apps/web]
+  Participant[Document Participant] --> Mobile
+  Participant --> Web
 
   Mobile --> SharedTypes[packages/types<br/>Generated OpenAPI Types]
   Web --> SharedApi[packages/api<br/>Shared API Helpers]
@@ -51,7 +52,8 @@ flowchart LR
   WebApp --> PublicCode["Code Verifier<br/>/verify/code"]
   WebApp --> Invite["Invite Fallback<br/>/invite/token"]
   WebApp --> Download["Download<br/>/download"]
-  WebApp --> AdminPortal["Admin Portal<br/>/admin/*"]
+  WebApp --> Portal["Portal Workspace<br/>/portal/*"]
+  WebApp --> LegacyAdmin["Legacy redirects<br/>/admin/*"]
   WebApp --> LegalPages["Terms / Privacy"]
 
   Packages --> Types[types]
@@ -63,7 +65,7 @@ flowchart LR
 
 ```mermaid
 flowchart TD
-  Start([User opens mobile app]) --> HasSession{Existing valid session?}
+  Start([Registered actor opens mobile app]) --> HasSession{Existing valid session?}
   HasSession -- Yes --> Dashboard[Go to Dashboard]
   HasSession -- No --> AuthScreen["Show Sign In / Sign Up"]
 
@@ -107,7 +109,7 @@ flowchart TD
   SubmitSignup --> BackendValidate[Backend validates invitation]
 
   Download --> DownloadPage["/download"]
-  ContinueWeb --> AdminOrWeb[Allowed web route]
+  ContinueWeb --> AllowedRoute[Allowed web route]
 
   BackendValidate --> SignupResult{Valid token?}
   SignupResult -- Yes --> AccountCreated[Create account / grant invite access]
@@ -118,7 +120,7 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-  Start([User starts document upload]) --> Source{Upload source}
+  Start([Document Issuer starts document upload]) --> Source{Upload source}
 
   Source -- File picker --> PickFile["Select PDF/file"]
   Source -- Camera --> Camera[Capture document pages]
@@ -188,7 +190,7 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-  Visitor[Public visitor] --> VerifyPage[Open /verify]
+  Browser[Unauthenticated browser] --> VerifyPage[Open /verify]
   VerifyPage --> SelectFile[Choose or drag one PDF]
   SelectFile --> FileCheck{Is one PDF file?}
 
@@ -217,7 +219,7 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-  Visitor[Public visitor] --> CodeUrl["Open /verify/code"]
+  Browser[Unauthenticated browser] --> CodeUrl["Open /verify/code"]
   CodeUrl --> BackendSupport{"Backend has GET /public/verify/code?"}
 
   BackendSupport -- Yes --> FetchCode[Fetch code verification]
@@ -230,103 +232,50 @@ flowchart TD
   Limitation --> PdfFallback[Link to /verify PDF upload]
 ```
 
-## 10. Admin Login and Session Workflow
+## 10. Portal Login and Issuer Session Workflow
 
 ```mermaid
 sequenceDiagram
-  participant Admin as Super Admin
+  participant Issuer as Document Issuer
+  participant Participant as Document Participant
   participant Browser as Browser
   participant Next as Next.js Route Handler
   participant Backend as Backend API
 
-  Admin->>Browser: Enter email/password
-  Browser->>Next: POST /api/admin/auth
+  Issuer->>Browser: Enter email/password
+  Participant->>Browser: Enter email/password
+  Browser->>Next: POST authentication request
   Next->>Backend: POST /auth/signin
-  Backend-->>Next: access_token / error
+  Backend-->>Next: authenticated profile / error
 
-  alt login success
-    Next-->>Browser: Set HttpOnly admin_token cookie
-    Browser->>Browser: Navigate to /admin/dashboard
+  alt document_issuer
+    Next-->>Browser: Set HttpOnly issuer_token cookie
+    Browser->>Browser: Navigate to /portal/dashboard
+  else document_participant
+    Next-->>Browser: Navigate to permitted /portal workspace
   else login failed
     Next-->>Browser: Return error message
-    Browser-->>Admin: Show login error
+    Browser-->>Issuer: Show login error
+    Browser-->>Participant: Show login error
   end
 ```
 
-## 11. Admin Dashboard Data Workflow
+## 11. Document Issuer System Management Workflow
 
 ```mermaid
 flowchart TD
-  Admin[Admin opens /admin/dashboard] --> CheckCookie{admin_token cookie exists?}
-
-  CheckCookie -- Yes --> FetchLive[Fetch backend /admin/dashboard]
-  FetchLive --> LiveOk{Backend success?}
-  LiveOk -- Yes --> ShowLive[Show live dashboard metrics]
-  LiveOk -- No --> DemoFallback[Show demo fallback data]
-
-  CheckCookie -- No --> DemoFallback
-
-  DemoFallback --> Notice[Show demo fallback notice]
-  ShowLive --> Dashboard[Render dashboard cards/charts]
-  Notice --> Dashboard
+  Issuer[Document Issuer] --> Session{issuer_token present?}
+  Session -- Yes --> SystemManagement[System Management]
+  Session -- No --> Login[Redirect to /login]
+  SystemManagement --> Users["/portal/users"]
+  SystemManagement --> Invitations["/portal/issuer-invitations"]
+  SystemManagement --> Reports["/portal/system-reports"]
+  SystemManagement --> Audit["/portal/audit-logs"]
+  SystemManagement --> Statistics["/portal/system-statistics"]
+  Participant[Document Participant] --> Denied[Safe denial or participant portal]
 ```
 
-## 12. Admin Page-by-Page Workflow
-
-```mermaid
-flowchart TB
-  AdminShell[Admin Shell<br/>Sidebar + Content Layout] --> Dashboard[Dashboard]
-  AdminShell --> Users[Users]
-  AdminShell --> Documents[Documents]
-  AdminShell --> Issuers[Document Issuers]
-  AdminShell --> Categories[Categories]
-  AdminShell --> Invitations[Invitations & Permissions]
-  AdminShell --> Verifications[Verification Logs]
-  AdminShell --> Blockchain[Blockchain Records]
-  AdminShell --> Processing[OCR / NLP Processing]
-  AdminShell --> Analytics[Analytics]
-  AdminShell --> Audit[Audit Logs]
-  AdminShell --> Settings[System Settings]
-
-  Dashboard --> Metrics[Platform Metrics]
-  Users --> UserTable[User Table]
-  Documents --> DocumentTable[Document Table]
-  Issuers --> IssuerTable[Issuer Table]
-  Categories --> CategoryRules[Category Rules]
-  Invitations --> AccessEvents[Access Events]
-  Verifications --> VerificationTable[Verification Attempts]
-  Blockchain --> ChainTable[Hash Anchors]
-  Processing --> ProcessingTable[Processing Jobs]
-  Analytics --> MetricTable[Operational Metrics]
-  Audit --> AuditTable[Security/Activity Events]
-  Settings --> ConfigTable[System Configuration]
-```
-
-## 13. Admin Monitoring Workflow
-
-```mermaid
-flowchart TD
-  Start([Admin reviews system]) --> Dashboard[Check dashboard health]
-  Dashboard --> Issues{Any issue?}
-
-  Issues -- Failed documents --> Processing[Open OCR/NLP Processing]
-  Issues -- Tamper alerts --> VerificationLogs[Open Verification Logs]
-  Issues -- Chain failures --> BlockchainRecords[Open Blockchain Records]
-  Issues -- User problems --> Users[Open Users]
-  Issues -- Permission problems --> Invitations[Open Invitations & Permissions]
-  Issues -- No issue --> Analytics[Review Analytics]
-
-  Processing --> ReviewAction["Investigate / retry later via backend action"]
-  VerificationLogs --> ReviewAction
-  BlockchainRecords --> ReviewAction
-  Users --> ReviewAction
-  Invitations --> ReviewAction
-  Analytics --> Done([Monitoring complete])
-  ReviewAction --> AuditLogs[Check Audit Logs]
-  AuditLogs --> Done
-```
-
-## 14. Shared OpenAPI Type Generation Workflow
+## 12. Shared OpenAPI Type Generation Workflow
 
 ```mermaid
 flowchart TD
@@ -343,7 +292,7 @@ flowchart TD
   WebApp --> WebScreens[Web pages/route handlers]
 ```
 
-## 15. API Request Flow
+## 13. API Request Flow
 
 ```mermaid
 flowchart LR
@@ -361,19 +310,19 @@ flowchart LR
   NextHandler --> WebClient
 ```
 
-## 16. Public Verifier Sequence Diagram
+## 14. Public Verifier Sequence Diagram
 
 ```mermaid
 sequenceDiagram
-  participant Visitor
+  participant Browser
   participant Web as Next.js /verify
   participant Handler as /api/public/verify
   participant Backend as Backend /public/verify
   participant DB as Database
   participant Chain as Blockchain
 
-  Visitor->>Web: Select PDF
-  Visitor->>Web: Click Verify
+  Browser->>Web: Select PDF
+  Browser->>Web: Click Verify
   Web->>Handler: POST FormData(file)
   Handler->>Backend: POST FormData(file)
   Backend->>Backend: Compute file hash
@@ -383,14 +332,14 @@ sequenceDiagram
   DB-->>Backend: Document record
   Backend-->>Handler: Verification response
   Handler-->>Web: JSON response
-  Web-->>Visitor: Show verification result
+  Web-->>Browser: Show verification result
 ```
 
-## 17. Upload and Blockchain Sequence Diagram
+## 15. Upload and Blockchain Sequence Diagram
 
 ```mermaid
 sequenceDiagram
-  participant User
+  participant Issuer as Document Issuer
   participant Mobile as Expo Mobile
   participant Backend as Backend API
   participant Storage as File Storage
@@ -398,7 +347,7 @@ sequenceDiagram
   participant DB as Database
   participant Chain as Blockchain
 
-  User->>Mobile: Upload or capture document
+  Issuer->>Mobile: Upload or capture document
   Mobile->>Backend: POST document file
   Backend->>Storage: Store file off-chain
   Backend->>Backend: Compute hash
@@ -409,10 +358,10 @@ sequenceDiagram
   Chain-->>Backend: Transaction hash / status
   Backend->>DB: Save blockchain record
   Backend-->>Mobile: Upload accepted / document status
-  Mobile-->>User: Show processing or document detail
+  Mobile-->>Issuer: Show processing or document detail
 ```
 
-## 18. Deployment Flow
+## 16. Deployment Flow
 
 ```mermaid
 flowchart TD
@@ -426,8 +375,9 @@ flowchart TD
   WebDeploy --> Domain[lexchain.app]
   BackendDeploy --> ApiDomain[api.lexchain.app]
 
-  Domain --> WebRoutes["Landing / Verify / Invite / Admin"]
-  ApiDomain --> BackendRoutes["Auth / Documents / Admin / Public Verify"]
+  Domain --> WebRoutes["Landing / Verify / Invite / Portal"]
+  Domain --> LegacyAdmin["/admin redirects"]
+  ApiDomain --> BackendRoutes["Auth / Documents / Issuer Operations / Public Verify"]
 
   Android --> AppLinks[Android App Links later]
   IOS --> UniversalLinks[iOS Universal Links later]
@@ -435,7 +385,7 @@ flowchart TD
   UniversalLinks --> InviteLinks
 ```
 
-## 19. Security Boundary Diagram
+## 17. Security Boundary Diagram
 
 ```mermaid
 flowchart TB
@@ -455,7 +405,7 @@ flowchart TB
     Permissions[Document Permissions]
     Processing["OCR/NLP Processing"]
     Hashing[Hash Computation]
-    AdminRules[Admin Rules]
+    IssuerAuthorization[Issuer Authorization]
   end
 
   subgraph External
@@ -474,7 +424,7 @@ flowchart TB
   Processing --> Hashing
   Hashing --> Storage
   Hashing --> Chain
-  AdminRules --> Permissions
+  IssuerAuthorization --> Permissions
 ```
 
 Security rule summary:
@@ -486,7 +436,7 @@ Blockchain may prove integrity.
 Blockchain does not prove legal validity.
 ```
 
-## 20. Current State Summary
+## 18. Current State Summary
 
 ```mermaid
 flowchart TD
