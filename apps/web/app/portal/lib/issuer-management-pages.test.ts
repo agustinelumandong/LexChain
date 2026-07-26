@@ -52,4 +52,15 @@ describe("Issuer management portal pages", () => {
     expect(source).toContain(`href="${target}"`);
     expect(source).not.toContain(`href="${legacyTarget}"`);
   });
+
+  it("uses canonical issuer invitation copy while loading", () => {
+    const source = readFileSync(
+      resolve(import.meta.dirname, "..", "..", "admin", "invitations-permissions", "loading.tsx"),
+      "utf8",
+    );
+
+    expect(source).toContain("Issuer Invitations");
+    expect(source).toContain("Manage Document Issuer invitations");
+    expect(source).not.toContain(["Manage", "lawyer invitations"].join(" "));
+  });
 });
