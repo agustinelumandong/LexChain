@@ -40,11 +40,11 @@ This design consolidates and corrects the intent of:
 
 When these sources disagree, use the following order:
 
-1. This target architecture for system boundaries and intended behavior
-2. The OpenAPI contract for backend request and response shapes
-3. The ERD for persistent data relationships
-4. Application code for current implementation behavior
-5. The CFD and use-case diagram for visual summaries
+1. The approved Draw.io target for actors, use cases, and system boundaries
+2. This architecture for implementation-oriented decisions
+3. The OpenAPI contract for backend request and response shapes
+4. The ERD for persistent data relationships
+5. Application code for current implementation behavior
 
 The diagrams should be updated when this document changes materially.
 
@@ -140,23 +140,25 @@ only when a measured problem cannot be solved safely inside the current design.
 
 ## 5. Users and Permissions
 
-LexChain has four user-facing roles.
+LexChain has exactly two registered actors.
 
-| User | Backing role | Main responsibility |
+| Registered actor | Canonical role | Main responsibility |
 |---|---|---|
-| Document Issuer | `lawyer` | Uploads, manages, shares, finalizes, anchors, and verifies documents |
-| Document Participant | `user` | Accesses shared documents and requests digital copies |
-| Super Admin | `admin` | Manages system users, issuer invitations, audit, and platform oversight |
-| Public Verifier | No account required | Uploads a PDF only to receive an integrity-verification result |
+| Document Issuer | `document_issuer` | Performs all 19 diagram-assigned issuer use cases, including System Management |
+| Document Participant | `document_participant` | Performs the 7 diagram-assigned shared-document use cases |
+
+The diagram parenthetical `Lawyer + Super Admin` identifies the one Document
+Issuer actor. It does not create a role, permission tier, portal variant, or
+navigation group. Anonymous PDF verification is a public feature, not a
+registered actor.
 
 ### 5.1 Role boundary
 
-A Super Admin is not automatically a Document Issuer. Administrative privileges
-and document-ownership privileges are separate.
-
-If an individual needs both capabilities, the backend must grant and evaluate
-them explicitly. The frontend must not infer document ownership from admin
-status.
+The backend returns only the canonical role values above. Every Document Issuer
+receives the complete issuer capability set, including User Accounts, Issuer
+Invitations, System Reports, Audit Logs, and System Statistics. Document
+ownership and document-level authorization remain separate checks; issuer
+status does not grant access to every document.
 
 ### 5.2 Document-level permissions
 
@@ -172,21 +174,22 @@ against both the account role and the document-level permission.
 
 ### 5.3 Minimum access matrix
 
-| Capability | Issuer | Participant | Super Admin | Public |
-|---|---:|---:|---:|---:|
-| Register and sign in | Yes | Yes | Controlled admin access | No |
-| Upload and organize documents | Yes | No | No, unless separately an issuer | No |
-| View owned documents | Yes | No | Oversight view only when authorized | No |
-| View shared documents | Yes | Yes | Oversight view only when authorized | No |
-| Manage document parties | Owner only | No | No | No |
-| Search or ask about accessible documents | Yes | Yes | Only when document access permits | No |
-| Finalize and anchor a document | Owner only | No | No | No |
-| Verify an accessible document | Yes | Yes when permitted | Oversight only when authorized | No |
-| Request a digital copy | Yes | Yes | Yes when acting as an authenticated user | No |
-| Review digital-copy requests | Yes | No | No | No |
-| Manage issuer invitations | No | No | Yes | No |
-| Manage users and system audit | No | No | Yes | No |
-| Public PDF verification | Yes | Yes | Yes | Yes |
+| Capability | Document Issuer | Document Participant |
+|---|---:|---:|
+| Register and sign in | Yes | Yes |
+| Upload and organize documents | Yes | No |
+| View owned documents | Yes | No |
+| View shared documents | If authorized | Yes, if shared |
+| Manage document parties | Owner or otherwise authorized | No |
+| Search or ask about accessible documents | Yes | Shared documents only |
+| Finalize and anchor a document | Owner or otherwise authorized | No |
+| Verify an accessible document | Yes | If shared and authorized |
+| Request a digital copy | Yes | Yes |
+| Review digital-copy requests | Yes | No |
+| System Management: users, issuer invitations, reports, audit, and statistics | Yes | No |
+
+Public PDF verification is available without a registered account and is not a
+role in this matrix.
 
 ## 6. System Context
 
@@ -194,8 +197,6 @@ against both the account role and the document-level permission.
 flowchart TB
   Issuer[Document Issuer]
   Participant[Document Participant]
-  Admin[Super Admin]
-  Public[Public Verifier]
 
   Mobile[Expo Mobile App]
   Web[Next.js Web App]
@@ -212,8 +213,6 @@ flowchart TB
   Issuer --> Web
   Participant --> Mobile
   Participant --> Web
-  Admin --> Web
-  Public --> Web
 
   Mobile --> API
   Web --> API
@@ -260,7 +259,7 @@ The web application owns:
 - the Document Issuer and Document Participant portal;
 - upload, document management, search, requests, notifications, reports, and
   verification screens;
-- the Super Admin console; and
+- the Document Issuer System Management destinations; and
 - server-side route handlers that safely proxy browser requests to the backend.
 
 Sensitive browser operations go through route handlers so backend credentials
@@ -351,7 +350,7 @@ current responsibilities.
 | Table | Responsibility |
 |---|---|
 | `users` | Application profile, account role, identity-provider link, and MFA state |
-| `invitations` | Super Admin invitations for Document Issuer accounts |
+| `invitations` | Document Issuer invitations and claim state |
 | `books` | Physical register/book grouping owned by a Document Issuer |
 | `documents` | Current document/version metadata, owner, book, storage reference, status, and hashes |
 | `document_parties` | Document access invitations and permissions |
@@ -403,10 +402,12 @@ current responsibilities.
 5. The user signs in.
 6. If MFA is enabled, the user completes the MFA challenge.
 7. The backend returns an authenticated session.
-8. The client routes the user according to the backend account role.
+8. The client routes the user according to the backend's canonical
+   `document_issuer` or `document_participant` role.
 
-The client must not select its own privileged role. Document Issuer access
-requires an approved issuer registration or Super Admin invitation.
+The client must not select its own role or treat a client-readable role hint as
+authorization. Document Issuer access requires an authenticated backend profile
+with the `document_issuer` role.
 
 ### 9.2 Password recovery
 
@@ -544,28 +545,22 @@ details, internal notes, or document permissions.
 Notifications are references to system events, not an independent source of
 business truth.
 
-### 9.13 Reports
+### 9.13 System Management
 
-1. A Document Issuer selects an allowed office report.
-2. A Super Admin selects an allowed system report.
-3. The backend queries existing operational data with the caller's permission
-   boundary.
-4. The system returns or exports the report.
-5. Sensitive fields are excluded unless explicitly required.
+1. A Document Issuer opens one of the five System Management destinations:
+   User Accounts, Issuer Invitations, System Reports, Audit Logs, or System
+   Statistics.
+2. The backend confirms the authenticated `document_issuer` role and applies
+   document ownership or document-level authorization where relevant.
+3. The backend returns the requested management result or fixed report.
+4. The system records management changes in the system audit log.
+
+All five destinations are ordinary Document Issuer capabilities in the same
+`/portal` workspace. They do not create a separate actor, console, or
+permission tier.
 
 Reports should be fixed, named queries first. Do not build a generic analytics
 or report-builder platform unless users demonstrate a real need.
-
-### 9.14 Super Admin workflow
-
-1. The Super Admin signs in through the protected admin flow.
-2. The backend confirms the `admin` role.
-3. The admin views system statistics, registered users, issuer invitations,
-   document-processing health, blockchain status, and system audit logs.
-4. The admin may create or revoke Document Issuer invitations.
-5. The system records privileged changes in the system audit log.
-
-Administrative oversight must not silently bypass document confidentiality.
 
 ## 10. Document Lifecycle
 
@@ -610,6 +605,9 @@ be successfully processed while blockchain anchoring is pending or failed.
 - Route handlers forward only required headers and fields.
 - Authentication cookies must be secure, HTTP-only, and appropriately
   same-site.
+- Issuer-only web routes require a server-issued `issuer_token` created only
+  after the backend profile identifies `document_issuer`; client-readable role
+  hints are never authorization.
 - Never expose backend service credentials to the browser.
 
 ### 11.3 Mobile boundary
@@ -682,7 +680,7 @@ Test:
 - internal and public verification;
 - document requests;
 - notifications; and
-- admin-only access.
+- issuer-only System Management access.
 
 ### 14.3 Client tests
 
@@ -704,8 +702,9 @@ Keep a small critical-path suite:
    and verifies a document.
 2. Document Participant signs in, accepts access, views the shared document, and
    submits a copy request.
-3. Public Verifier uploads a PDF and receives a safe result.
-4. Super Admin signs in, invites an issuer, and reviews audit activity.
+3. An unauthenticated browser uploads a PDF and receives a safe result.
+4. Document Issuer signs in, uses all five System Management destinations, and
+   reviews audit activity.
 
 Do not duplicate every unit and integration case in the end-to-end suite.
 
@@ -824,7 +823,8 @@ These decisions are intentional:
 1. Keep FastAPI as a modular monolith.
 2. Keep Expo mobile and Next.js web as separate clients of one backend.
 3. Keep `/portal` for Document Issuer and Document Participant workflows.
-4. Keep `/admin` for Super Admin workflows.
+4. Keep `/portal` as the one authenticated workspace; `/admin/*` remains a
+   legacy compatibility redirect only.
 5. Keep public verification separate from authenticated internal verification.
 6. Keep account roles separate from document-level permissions.
 7. Keep files off-chain and store only integrity proofs on-chain.
@@ -846,9 +846,9 @@ Document Participant flows while correcting the role boundary:
 - Document Participant sends account and shared-document access requests.
 - LexChain returns dashboards, insights, status, notifications, verification,
   reports, and audit results according to permission.
-- Super Admin is a separate actor for user, issuer-invitation, report, and audit
-  administration.
-- Public Verifier is a separate unauthenticated actor.
+- The Document Issuer performs user, issuer-invitation, report, audit, and
+  statistics management in the same portal.
+- Public PDF verification is an unauthenticated feature, not an actor.
 
 ### 19.2 Use-case diagram
 
@@ -864,8 +864,8 @@ The target design includes the diagram's:
 - notifications;
 - reports, user administration, invitations, statistics, and audit.
 
-The design assigns each use case to the correct actor instead of combining
-Document Issuer and Super Admin permissions.
+The design assigns all issuer management use cases to the one Document Issuer
+actor and all shared-document use cases to the Document Participant.
 
 ### 19.3 ERD
 
@@ -877,7 +877,7 @@ cannot be represented safely by the existing model.
 
 LexChain reaches the target design when:
 
-- all four user types can complete their authorized workflows;
+- both registered actors can complete their diagram-assigned workflows;
 - every private document action is enforced by the backend;
 - uploads produce stored files, hashes, processing results, and truthful status;
 - sharing grants only explicit document permissions;
@@ -885,7 +885,8 @@ LexChain reaches the target design when:
 - blockchain operations store and compare only integrity proofs;
 - internal and public verification return clear, safe results;
 - requests, notifications, and audits reflect real domain actions;
-- admin capabilities remain separate from document ownership;
+- System Management remains a Document Issuer capability while document
+  ownership stays separately authorized;
 - critical failure states are recoverable and visible; and
 - the system runs with the minimal deployment model unless measured evidence
   justifies more infrastructure.

@@ -11,21 +11,25 @@ Implementation code HEAD reviewed: f279028cb77631f56bd6d4a0ac6164057e870f4b
 - `pnpm --filter @lexchain/web build` — passed
 - `git diff --check` — passed
 - `git diff --name-only -- apps/mobile openapi-updated.json packages/types/src/generated/schema.ts` — no output
-- Actor terminology scan — no documentation elevates Admin beyond a Document
-  Issuer capability level or presents `/admin/dashboard` as an active workspace
+- Actor terminology scan — the registered actors are Document Issuer and
+  Document Participant; `/admin/*` is not an active workspace
 - Active-navigation scan — three `/admin` references remain inside legacy
   template components; proxy redirects prevent those page components from
   serving as product navigation
-- Playwright CLI acceptance — all Task 5 persona and redirect cases passed in
-  mock mode; see `LEXCHAIN-TWO-ACTOR-PORTAL-ACCEPTANCE.md`
-- Responsive Playwright acceptance — passed at `390x844`; the Super Admin
-  issuer reached all five privileged destinations and the standard issuer saw
-  none of those links
+- Playwright CLI acceptance — rerun the two-account issuer/participant and
+  legacy-redirect cases in mock mode; see
+  `LEXCHAIN-TWO-ACTOR-PORTAL-ACCEPTANCE.md`
+- Responsive Playwright acceptance must verify at `390x844` that the Document
+  Issuer reaches all five System Management destinations and the Document
+  Participant reaches none of them
 
 The web branch now covers the target UI/UX flow with honest demo behavior. The
 current implementation is suitable for web review in mock mode, but production
 completion still depends on backend work captured in
 `docs/LEXCHAIN-BACKEND-TARGET-HANDOFF.md`.
+
+Mock acceptance uses `issuer@example.com` (`document_issuer`) and
+`participant@example.com` (`document_participant`), both with `Password123`.
 
 ## Walkthrough summary
 
@@ -42,17 +46,14 @@ completion still depends on backend work captured in
   shared demo document state. The walkthrough showed 4 completed documents, 2
   integrity matches, and 2 on-chain records.
 
-### Document Issuer — Super Admin capabilities
+### Document Issuer System Management
 
-- A Document Issuer with Super Admin capabilities signs in through `/login` and
-  enters the same `/portal/dashboard` workspace as every other issuer.
-- The capability retains ordinary issuer workflows under their existing
-  ownership and authorization rules; it adds management and system reporting
-  without creating document ownership.
-- The `Super Admin` navigation group exposes User Accounts, Issuer Invitations,
+- Every Document Issuer signs in through `/login` and enters the `/portal`
+  workspace.
+- The **System Management** group exposes User Accounts, Issuer Invitations,
   System Reports, Audit Logs, and System Statistics under `/portal/*` routes.
-- Privileged portal routes remain bound to the server-issued `admin_token`; the
-  client-readable role cookie is not authorization.
+- Issuer-only portal routes remain bound to the server-issued `issuer_token`;
+  a client-readable role hint is not authorization.
 - User edits, suspend/reactivate actions, and report generation remain honest
   mock-mode interactions and reset on refresh.
 
@@ -79,7 +80,7 @@ completion still depends on backend work captured in
 | Document Issuer | Review processing state | `/portal/processing` | Ready for web UI review | Real processing pipeline status and retry/error semantics. See [backend target handoff](LEXCHAIN-BACKEND-TARGET-HANDOFF.md). |
 | Document Issuer | Review blockchain records | `/portal/blockchain-records` | Ready for web UI review | Real blockchain verification/record services and failure handling. See [integrity verification response](LEXCHAIN-BACKEND-TARGET-HANDOFF.md#25-integrity-verification-response). |
 | Document Issuer | Review office analytics | `/portal/analytics` | Ready for web UI review | Real analytics aggregation and date-range queries. See [backend target handoff](LEXCHAIN-BACKEND-TARGET-HANDOFF.md). |
-| Document Issuer | Use Super Admin capabilities | `/portal/users`, `/portal/issuer-invitations`, `/portal/system-reports`, `/portal/audit-logs`, `/portal/system-statistics` | Ready for web UI review | Real server-issued Super Admin authority, management endpoints, validations, and audit logging. See [Super Admin user management](LEXCHAIN-BACKEND-TARGET-HANDOFF.md#26-document-issuer--super-admin-user-management). |
+| Document Issuer | Use System Management | `/portal/users`, `/portal/issuer-invitations`, `/portal/system-reports`, `/portal/audit-logs`, `/portal/system-statistics` | Ready for web UI review | Real server-issued issuer authority, management endpoints, validations, and audit logging. See [Document Issuer user management](LEXCHAIN-BACKEND-TARGET-HANDOFF.md#26-document-issuer-user-management). |
 | Document Participant | Sign in to the restricted shared workspace | `/login`, `/portal/dashboard` | Already implemented | Real participant auth/session enforcement remains backend-owned. See [authorization and audit](LEXCHAIN-BACKEND-TARGET-HANDOFF.md#28-authorization-and-audit-requirements). |
 | Document Participant | View shared documents without issuer controls | `/portal/documents`, `/portal/documents/[id]` | Ready for web UI review | Real backend authorization on document scope and lifecycle actions. See [authorization and audit](LEXCHAIN-BACKEND-TARGET-HANDOFF.md#28-authorization-and-audit-requirements). |
 | Document Participant | Accept or reject document invitations | `/portal/invitations` | Ready for web UI review | Real invitation persistence and document-scope authorization. See [authorization and audit](LEXCHAIN-BACKEND-TARGET-HANDOFF.md#28-authorization-and-audit-requirements). |
