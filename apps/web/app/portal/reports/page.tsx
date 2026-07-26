@@ -8,7 +8,9 @@ import {
   downloadDemoReport,
   type DemoReport,
   type DemoReportType,
+  type PortalReportDocument,
 } from '../lib/office-insight';
+import { portalFetch } from '../lib/portal-fetch';
 import { getPortalUiRole } from '../lib/portal-role';
 
 type UserProfile = ApiSchema<'UserProfileResponse'>;
@@ -17,7 +19,7 @@ const reportOptions = [
   {
     type: 'office-document-activity',
     label: 'Document Activity',
-    description: 'Documents created by offices during the selected dates.',
+    description: 'Documents in your office workspace during the selected dates.',
   },
   {
     type: 'office-integrity',
@@ -33,32 +35,36 @@ const reportLabels: Record<DemoReportType, string> = {
   'system-audit': 'System Audit',
 };
 
-async function getJson<T>(path: string): Promise<T> {
-  const response = await fetch(`/api/portal/proxy?path=${encodeURIComponent(path)}`, { credentials: 'same-origin' });
-  if (!response.ok) throw new Error(`Failed to fetch ${path}`);
-  return response.json() as Promise<T>;
-}
-
 export default function OfficeReportsPage() {
   const profileQuery = useQuery({
     queryKey: ['portal-profile'],
-    queryFn: () => getJson<UserProfile | null>('/users/'),
+    queryFn: () => portalFetch<UserProfile | null>('/users/'),
+  });
+  const isIssuer = getPortalUiRole(profileQuery.data?.role) === 'issuer';
+  const documentsQuery = useQuery<PortalReportDocument[]>({
+    queryKey: ['portal-documents'],
+    queryFn: () => portalFetch('/documents/'),
+    enabled: isIssuer,
   });
   const [reportType, setReportType] = useState<DemoReportType>('office-document-activity');
-  const [from, setFrom] = useState('2026-05-01');
-  const [to, setTo] = useState('2026-05-31');
+  const [from, setFrom] = useState('2026-07-01');
+  const [to, setTo] = useState('2026-07-31');
   const [report, setReport] = useState<DemoReport | null>(null);
   const [error, setError] = useState('');
 
   if (profileQuery.isLoading) return <div className="h-36 animate-pulse rounded-[18px] border border-[#E8F0F8] bg-white" />;
 
-  if (getPortalUiRole(profileQuery.data?.role) !== 'issuer') {
+  if (!isIssuer) {
     return <p className="text-sm font-semibold text-[#64748b]">Office Reports are available to Document Issuers only.</p>;
+  }
+
+  if (documentsQuery.isLoading) {
+    return <div role="status" className="h-36 animate-pulse rounded-[18px] border border-[#E8F0F8] bg-white"><span className="sr-only">Loading office report data…</span></div>;
   }
 
   function generateReport() {
     try {
-      setReport(createDemoReport(reportType, from, to));
+      setReport(createDemoReport(reportType, from, to, documentsQuery.data ?? []));
       setError('');
     } catch (caught) {
       setReport(null);
@@ -75,6 +81,12 @@ export default function OfficeReportsPage() {
         <h1 className="mt-1 text-[28px] font-black text-[#0C2B49]">Office Reports</h1>
         <p className="mt-1 text-sm text-[#64748b]">Generate one of the fixed office reports from seeded demo data.</p>
       </header>
+
+      {documentsQuery.isError ? (
+        <p role="alert" className="rounded-[18px] border border-[#F5C6C6] bg-[#FFF7F7] p-5 text-sm font-semibold text-[#9B2C2C]">
+          We could not load office report data.
+        </p>
+      ) : null}
 
       <fieldset className="grid gap-3 sm:grid-cols-2">
         <legend className="sr-only">Report type</legend>

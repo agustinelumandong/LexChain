@@ -6,6 +6,7 @@ import {
   toCsv,
   type DemoReport,
   type DemoReportType,
+  type PortalReportDocument,
 } from './office-insight';
 
 describe('office insights', () => {
@@ -45,56 +46,54 @@ describe('office insights', () => {
     expect(createDemoReport(reportType, '2026-03-01', '2026-05-31').columns).toEqual(columns);
   });
 
-  it('builds office reports only from seeded document and integrity rows', () => {
-    const activity = createDemoReport('office-document-activity', '2026-05-01', '2026-05-31');
-    const integrity = createDemoReport('office-integrity', '2026-05-01', '2026-05-31');
+  it('builds office reports only from issuer-visible portal documents', () => {
+    const documents: PortalReportDocument[] = [
+      {
+        document_id: 'mock-document-1',
+        file_name: 'Lease Agreement.pdf',
+        status: 'anchored',
+        labels: ['lease', 'agreement'],
+        created_at: '2026-07-10T09:00:00.000Z',
+        updated_at: '2026-07-10T09:05:00.000Z',
+        on_chain: true,
+        integrity_state: 'match',
+        document_hash: 'abc123',
+        finalized_at: '2026-07-10T09:05:00.000Z',
+        finalized_by: 'mock-lawyer',
+      },
+      {
+        document_id: 'mock-document-old',
+        file_name: 'Older Office Record.pdf',
+        status: 'completed',
+        labels: ['record'],
+        created_at: '2026-06-20T09:00:00.000Z',
+        updated_at: '2026-06-20T09:00:00.000Z',
+        on_chain: false,
+        integrity_state: 'not-recorded',
+      },
+    ];
+    const activity = createDemoReport('office-document-activity', '2026-07-01', '2026-07-31', documents);
+    const integrity = createDemoReport('office-integrity', '2026-07-01', '2026-07-31', documents);
 
     expect(activity.rows).toEqual([
       {
-        Document: 'Deed of Sale - Lot 18.pdf',
-        Owner: 'Santos & Cruz Law Office',
-        Category: 'Deed of Sale',
-        Status: 'verified',
-        Created: '2026-05-01',
-      },
-      {
-        Document: 'Service Contract - Redacted.pdf',
-        Owner: 'Davao Business Hub',
-        Category: 'Contract',
-        Status: 'processing',
-        Created: '2026-05-05',
-      },
-      {
-        Document: 'Barangay Resolution 2026-14.pdf',
-        Owner: 'Barangay Matina Office',
-        Category: 'Barangay Resolution',
-        Status: 'failed',
-        Created: '2026-05-08',
-      },
-      {
-        Document: 'Lease Agreement - Unit 4B.pdf',
-        Owner: 'Mindanao Property Group',
-        Category: 'Lease Agreement',
-        Status: 'tampered',
-        Created: '2026-05-10',
+        Document: 'Lease Agreement.pdf',
+        Owner: 'Current office',
+        Category: 'lease',
+        Status: 'anchored',
+        Created: '2026-07-10',
       },
     ]);
     expect(integrity.rows).toEqual([
       {
-        Document: 'Deed of Sale - Lot 18.pdf',
-        'Integrity status': 'authentic',
-        Verifier: 'juan.delacruz@example.com',
-        'Blockchain hash': '0x91a4...f02c',
-        Verified: '2026-05-01',
-      },
-      {
-        Document: 'Barangay Resolution 2026-14.pdf',
-        'Integrity status': 'mismatch',
-        Verifier: 'records.audit@example.com',
-        'Blockchain hash': '0x20af...9db1',
-        Verified: '2026-05-08',
+        Document: 'Lease Agreement.pdf',
+        'Integrity status': 'match',
+        Verifier: 'mock-lawyer',
+        'Blockchain hash': 'abc123',
+        Verified: '2026-07-10',
       },
     ]);
+    expect(activity.rows.some((row) => row.Document === 'Deed of Sale - Lot 18.pdf')).toBe(false);
   });
 
   it('builds system reports only from seeded user and audit rows', () => {
