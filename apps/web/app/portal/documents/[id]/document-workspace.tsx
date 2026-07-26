@@ -141,7 +141,7 @@ export function DocumentWorkspace({
       ['portal-doc', document.document_id],
       ['portal-doc-chain', document.document_id],
       ['portal-doc-snapshots', document.document_id],
-      ['portal-doc-audit', document.document_id],
+      ['portal-document-audit', document.document_id],
     ].map((queryKey) => queryClient.invalidateQueries({ queryKey })));
   }
 
@@ -307,11 +307,11 @@ export function DocumentWorkspace({
         )}
 
         {activeTab === 'Access' && (
-          <div className="space-y-3"><h2 className="text-lg font-extrabold text-[#0C2B49]">Access</h2><p className="text-sm text-[#64748b]">Manage access on the existing document participant surface.</p><Link href={`/portal/documents/${document.document_id}/participants`} className="inline-flex rounded-full bg-[#0985E7] px-4 py-2.5 text-sm font-extrabold text-white">Manage document participants</Link></div>
+          <div className="space-y-3"><h2 className="text-lg font-extrabold text-[#0C2B49]">Access</h2><p className="text-sm text-[#64748b]">Manage access on the existing document participant surface.</p>{role === 'issuer' && <Link href={`/portal/documents/${document.document_id}/participants`} className="inline-flex rounded-full bg-[#0985E7] px-4 py-2.5 text-sm font-extrabold text-white">Manage document participants</Link>}</div>
         )}
 
         {activeTab === 'Activity' && (
-          <div className="space-y-3"><h2 className="text-lg font-extrabold text-[#0C2B49]">Activity</h2><p className="text-sm text-[#64748b]">Review lifecycle and access events on the existing audit surface.</p><Link href={`/portal/documents/${document.document_id}/activity`} className="inline-flex rounded-full bg-[#0985E7] px-4 py-2.5 text-sm font-extrabold text-white">View document activity</Link></div>
+          <div className="space-y-3"><h2 className="text-lg font-extrabold text-[#0C2B49]">Activity</h2><p className="text-sm text-[#64748b]">Review lifecycle and access events on the existing audit surface.</p>{role === 'issuer' && <Link href={`/portal/documents/${document.document_id}/activity`} className="inline-flex rounded-full bg-[#0985E7] px-4 py-2.5 text-sm font-extrabold text-white">View document activity</Link>}</div>
         )}
       </div>
     </section>

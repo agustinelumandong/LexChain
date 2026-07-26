@@ -230,7 +230,7 @@ describe('DocumentWorkspace', () => {
       ['portal-doc', 'doc-101'],
       ['portal-doc-chain', 'doc-101'],
       ['portal-doc-snapshots', 'doc-101'],
-      ['portal-doc-audit', 'doc-101'],
+      ['portal-document-audit', 'doc-101'],
     ]) {
       expect(invalidateQueries).toHaveBeenCalledWith({ queryKey });
     }
@@ -335,5 +335,15 @@ describe('DocumentWorkspace', () => {
 
     fireEvent.click(screen.getByRole('tab', { name: tab }));
     expect(screen.getByRole('link', { name: label }).getAttribute('href')).toBe(href);
+  });
+
+  it.each([
+    ['Access', 'Manage document participants'],
+    ['Activity', 'View document activity'],
+  ] as const)('does not show the issuer-only %s link to participants', (tab, label) => {
+    renderWorkspace({ role: 'participant' });
+
+    fireEvent.click(screen.getByRole('tab', { name: tab }));
+    expect(screen.queryByRole('link', { name: label })).toBeNull();
   });
 });
