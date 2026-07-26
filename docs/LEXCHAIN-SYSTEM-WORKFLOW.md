@@ -162,6 +162,7 @@ apps/web/app/
 │   ├── audit-logs/page.tsx
 │   └── system-statistics/page.tsx
 └── api/
+    ├── auth/route.ts
     ├── admin/          # temporary issuer-operation transport names
     └── public/
         └── verify/route.ts
@@ -507,27 +508,29 @@ apps/web/app/login/page.tsx
 Route handler:
 
 ```txt
-apps/web/app/api/admin/auth/route.ts (temporary transport name)
+apps/web/app/api/auth/route.ts
 ```
 
 Flow:
 
 ```txt
-1. Document Issuer or Document Participant enters credentials in Next.js web app.
-2. Browser posts credentials to the authentication route handler.
+1. One Document Issuer or Document Participant enters credentials in Next.js web app.
+2. Browser posts one login request to `/api/auth`.
 3. Next.js route handler forwards credentials to backend /auth/signin.
 4. Backend returns an authenticated profile with document_issuer or document_participant.
-5. Next.js creates an HTTP-only issuer_token only for document_issuer.
-6. Both actors enter their permitted /portal workspace; participants have no
-   issuer session.
+5. Next.js creates an HTTP-only portal_token for either authenticated actor.
+6. Next.js creates an additional HTTP-only issuer_token only for document_issuer.
+7. Both actors enter their permitted /portal workspace; participants receive
+   portal_token but no issuer_token.
+8. Logout clears portal_token, issuer_token, and any stale issuer cookie.
 ```
 
 Why use an HTTP-only cookie:
 
 ```txt
 - JavaScript cannot directly read it.
-- It keeps issuer authorization separate from client-readable role hints and
-  bearer tokens in browser localStorage.
+- It keeps portal and issuer authorization separate from client-readable role
+  hints and bearer tokens in browser localStorage.
 ```
 
 Current fallback behavior:
@@ -845,16 +848,18 @@ Flow:
 ```txt
 1. Document Issuer signs in at /login.
 2. The backend profile identifies document_issuer.
-3. Next.js creates the HTTP-only issuer_token session for issuer-only routes.
+3. Next.js creates the HTTP-only portal_token and issuer_token sessions.
 4. The issuer opens one System Management destination in /portal.
 5. The backend authorizes the authenticated issuer role and applies document
    ownership or document-level checks where relevant.
 6. The system returns the management result and records the action when needed.
 ```
 
-Document Participant has no issuer session and is denied these routes. Existing
-`/admin/*` pages redirect for compatibility, while `/api/admin/*` may remain a
-temporary web transport namespace rather than an Admin actor.
+Document Participant has a portal_token but no issuer_token and is denied these
+routes. Logout clears both portal_token and issuer_token, including any stale
+issuer cookie. Existing `/admin/*` pages redirect for compatibility, while
+`/api/admin/*` may remain a temporary web transport namespace rather than an
+Admin actor.
 
 ## 15. Access and Permission Workflow
 
@@ -1089,7 +1094,8 @@ Do:
 ```txt
 - keep backend as authorization source of truth
 - use secure storage on mobile
-- use HTTP-only issuer_token cookies for issuer-only web routes
+- use HTTP-only portal_token cookies for authenticated portal routes
+- use HTTP-only issuer_token cookies only for issuer-only web routes
 - validate file type and file size
 - keep document content off-chain
 - use generated API types

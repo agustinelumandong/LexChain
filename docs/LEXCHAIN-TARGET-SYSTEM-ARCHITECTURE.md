@@ -176,17 +176,29 @@ against both the account role and the document-level permission.
 
 | Capability | Document Issuer | Document Participant |
 |---|---:|---:|
-| Register and sign in | Yes | Yes |
-| Upload and organize documents | Yes | No |
-| View owned documents | Yes | No |
-| View shared documents | If authorized | Yes, if shared |
-| Manage document parties | Owner or otherwise authorized | No |
-| Search or ask about accessible documents | Yes | Shared documents only |
-| Finalize and anchor a document | Owner or otherwise authorized | No |
-| Verify an accessible document | Yes | If shared and authorized |
-| Request a digital copy | Yes | Yes |
-| Review digital-copy requests | Yes | No |
-| System Management: users, issuer invitations, reports, audit, and statistics | Yes | No |
+| Upload Legal Document | Yes | No |
+| Rename Document | Yes | No |
+| View Document Status | Yes | No |
+| Manage Document Access | Yes | No |
+| View Document Insights | Yes | No |
+| Ask Questions | Yes | No |
+| Search Documents | Yes | No |
+| Finalize Document | Yes | No |
+| Verify Document Integrity | Yes | No |
+| Restore Original from Backup | Yes | No |
+| Manage User Accounts | Yes | No |
+| Manage Issuer Invitations | Yes | No |
+| Generate Reports | Yes | No |
+| View Audit Logs | Yes | No |
+| View System Statistics | Yes | No |
+| View Registered Users | Yes | No |
+| View and Manage Notifications | Yes | Yes |
+| Register Account | Yes | Yes |
+| Log In | Yes | Yes |
+| View Shared Documents | No | Yes |
+| View Document Details | No | Yes |
+| Request Document E-Copy | No | Yes |
+| Search Shared Documents | No | Yes |
 
 Public PDF verification is available without a registered account and is not a
 role in this matrix.
@@ -605,9 +617,12 @@ be successfully processed while blockchain anchoring is pending or failed.
 - Route handlers forward only required headers and fields.
 - Authentication cookies must be secure, HTTP-only, and appropriately
   same-site.
-- Issuer-only web routes require a server-issued `issuer_token` created only
-  after the backend profile identifies `document_issuer`; client-readable role
-  hints are never authorization.
+- Every authenticated portal session receives a server-issued `portal_token`
+  after the backend profile identifies `document_issuer` or
+  `document_participant`.
+- Issuer-only web routes additionally require a server-issued `issuer_token`
+  for `document_issuer`; client-readable role hints are never authorization.
+- Logout clears `portal_token`, `issuer_token`, and any stale issuer cookie.
 - Never expose backend service credentials to the browser.
 
 ### 11.3 Mobile boundary
