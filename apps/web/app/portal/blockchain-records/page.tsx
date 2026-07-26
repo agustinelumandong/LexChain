@@ -36,7 +36,9 @@ export default function BlockchainRecordsPage() {
     return <p className="text-sm font-semibold text-[#64748b]">Blockchain records are available to Document Issuers only.</p>;
   }
 
-  if (recordsQuery.isLoading) return <div className="h-36 animate-pulse rounded-[18px] border border-[#E8F0F8] bg-white" />;
+  if (recordsQuery.isLoading) {
+    return <div role="status" className="h-36 animate-pulse rounded-[18px] border border-[#E8F0F8] bg-white"><span className="sr-only">Loading blockchain records…</span></div>;
+  }
 
   const records = recordsQuery.data ?? [];
 

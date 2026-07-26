@@ -7,6 +7,7 @@ const queryState = vi.hoisted(() => ({
   role: 'user',
   documents: [] as Array<Record<string, unknown>>,
   documentsError: false,
+  documentsLoading: false,
 }));
 const useQuery = vi.hoisted(() => vi.fn());
 
@@ -20,6 +21,7 @@ beforeEach(() => {
   queryState.role = 'user';
   queryState.documents = [];
   queryState.documentsError = false;
+  queryState.documentsLoading = false;
   useQuery.mockImplementation((options: { queryKey: string[]; enabled?: boolean }) => {
     if (options.queryKey[0] === 'portal-profile') {
       return { data: { role: queryState.role }, isLoading: false, isError: false };
@@ -29,7 +31,7 @@ beforeEach(() => {
     }
     return {
       data: queryState.documents,
-      isLoading: false,
+      isLoading: queryState.documentsLoading,
       isError: queryState.documentsError,
     };
   });
@@ -57,7 +59,7 @@ describe('ProcessingMonitorPage', () => {
     queryState.documents = [{
       document_id: 'response-failed-document',
       file_name: 'Unreadable filing.pdf',
-      status: 'failed',
+      status: 'error',
       failure_reason: 'The PDF could not be opened.',
       created_at: '2026-07-25T00:00:00.000Z',
       on_chain: false,
@@ -67,6 +69,7 @@ describe('ProcessingMonitorPage', () => {
 
     expect(screen.getByRole('link', { name: 'Unreadable filing.pdf' }).getAttribute('href')).toBe('/portal/documents/response-failed-document');
     expect(screen.getByText('Failure reason: The PDF could not be opened.')).toBeTruthy();
+    expect(screen.getByText('Failed')).toBeTruthy();
     expect(screen.getByRole('link', { name: 'Open document' }).getAttribute('href')).toBe('/portal/documents/response-failed-document');
     expect(screen.getByRole('link', { name: 'Upload replacement PDF for Unreadable filing.pdf' }).getAttribute('href')).toBe('/portal/upload');
     expect(screen.queryByRole('button', { name: 'Retry processing' })).toBeNull();
@@ -83,5 +86,14 @@ describe('ProcessingMonitorPage', () => {
     rerender(<ProcessingMonitorPage />);
 
     expect(screen.getByRole('alert').textContent).toContain('We could not load document processing data.');
+  });
+
+  it('announces when shared processing data is loading', () => {
+    queryState.role = 'lawyer';
+    queryState.documentsLoading = true;
+
+    render(<ProcessingMonitorPage />);
+
+    expect(screen.getByRole('status').textContent).toContain('Loading document processing data');
   });
 });

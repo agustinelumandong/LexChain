@@ -137,6 +137,31 @@ describe('BlockchainRecordCard', () => {
     expect(screen.getByText('No anchored records are available in this demo.')).toBeTruthy();
   });
 
+  it('announces when shared blockchain records are loading', () => {
+    useQuery.mockImplementation((options: { queryKey: string[] }) => (
+      options.queryKey[0] === 'portal-profile'
+        ? { data: { role: 'lawyer' }, isLoading: false, isError: false }
+        : { data: undefined, isLoading: true, isError: false }
+    ));
+
+    render(<BlockchainRecordsPage />);
+
+    expect(screen.getByRole('status').textContent).toContain('Loading blockchain records');
+  });
+
+  it('shows an honest error when shared blockchain records cannot load', () => {
+    useQuery.mockImplementation((options: { queryKey: string[] }) => (
+      options.queryKey[0] === 'portal-profile'
+        ? { data: { role: 'lawyer' }, isLoading: false, isError: false }
+        : { data: undefined, isLoading: false, isError: true }
+    ));
+
+    render(<BlockchainRecordsPage />);
+
+    expect(screen.getByRole('alert').textContent).toContain('We could not load blockchain verification records.');
+    expect(screen.queryByText('No anchored records are available in this demo.')).toBeNull();
+  });
+
   it('keeps blockchain records issuer-only', () => {
     useQuery.mockImplementation((options: { queryKey: string[]; enabled?: boolean }) => {
       if (options.queryKey[0] === 'portal-profile') {
