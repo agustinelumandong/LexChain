@@ -1,10 +1,5 @@
-import { AdminShell } from "../admin-shell";
-import { GeneratedReportsManagementView } from "./generated-reports-management-view";
+import { redirect } from "next/navigation";
 
-export default async function AdminGeneratedReportsPage() {
-  return (
-    <AdminShell activeHref="/admin/generated-reports">
-      <GeneratedReportsManagementView />
-    </AdminShell>
-  );
+export default function LegacyAdminGeneratedReportsPage() {
+  redirect("/portal/system-reports");
 }
