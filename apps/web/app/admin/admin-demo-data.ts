@@ -5,6 +5,8 @@ export const adminStats = {
   processed_documents: 2100,
   pending_documents: 120,
   failed_documents: 30,
+  total_on_chain: 1980,
+  pending_invitations: 8,
   total_verifications: 900,
   tamper_alerts: 5,
 };
