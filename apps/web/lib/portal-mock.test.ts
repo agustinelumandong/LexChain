@@ -185,9 +185,16 @@ describe('portal mock profiles', () => {
     expect(isMockPortalToken('mock-token:unknown-user')).toBe(false);
   });
 
-  it('returns the participant profile for a user token while preserving the issuer profile for a lawyer token', async () => {
+  it('returns issuer profiles for Super Admin tokens while preserving the participant restriction', async () => {
     const participant = mockPortalGet('/users/', 'mock-token:mock-user');
     const issuer = mockPortalGet('/users/', 'mock-token:mock-lawyer');
+    const admin = mockPortalGet('/users/', 'mock-token:mock-admin');
+    const owner = mockPortalGet('/users/', 'mock-token:mock-owner');
+    const adminDocuments = mockPortalGet('/documents/', 'mock-token:mock-admin');
+    const participantDocuments = mockPortalGet('/documents/', 'mock-token:mock-user');
+
+    expect(isMockPortalToken('mock-token:mock-admin')).toBe(true);
+    expect(isMockPortalToken('mock-token:mock-owner')).toBe(true);
 
     await expect(participant.json()).resolves.toMatchObject({
       email: 'user@example.com',
@@ -196,6 +203,12 @@ describe('portal mock profiles', () => {
     await expect(issuer.json()).resolves.toMatchObject({
       role: 'lawyer',
     });
+    await expect(admin.json()).resolves.toMatchObject({ role: 'admin' });
+    await expect(owner.json()).resolves.toMatchObject({ role: 'admin' });
+    await expect(adminDocuments.json()).resolves.toContainEqual(expect.objectContaining({ id: 'mock-document-1' }));
+    await expect(participantDocuments.json()).resolves.toEqual([
+      expect.objectContaining({ id: 'mock-document-4' }),
+    ]);
   });
 
   it('keeps the fixed document issuer when an issuer fetches document parties', async () => {

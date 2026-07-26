@@ -39,7 +39,6 @@ export function getRedirectPath(data: Record<string, unknown> | null): string {
     decodeJwtRole(data.access_token as string) ??
     ""
   ).toLowerCase();
-  if (role === "admin") return "/admin/dashboard";
   return getPortalLoginRedirect(role) ?? "/login";
 }
 

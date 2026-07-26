@@ -108,6 +108,12 @@ const participantProfile = {
   mfa_enabled: false,
 };
 
+const superAdminProfile = {
+  ...issuerProfile,
+  email: 'admin@example.com',
+  role: 'admin',
+};
+
 let documents: MockDocument[] = [
   {
     id: 'mock-document-1',
@@ -336,11 +342,16 @@ export function isMockMode() {
 }
 
 export function isMockPortalToken(token: string) {
-  return token === 'mock-token:mock-user' || token === 'mock-token:mock-lawyer';
+  return token === 'mock-token:mock-user'
+    || token === 'mock-token:mock-lawyer'
+    || token === 'mock-token:mock-admin'
+    || token === 'mock-token:mock-owner';
 }
 
 function profileForToken(token?: string) {
-  return token === 'mock-token:mock-user' ? participantProfile : issuerProfile;
+  if (token === 'mock-token:mock-user') return participantProfile;
+  if (isMockSuperAdmin(token)) return superAdminProfile;
+  return issuerProfile;
 }
 
 function isMockParticipant(token?: string) {
@@ -348,7 +359,11 @@ function isMockParticipant(token?: string) {
 }
 
 function isMockIssuer(token?: string) {
-  return token === 'mock-token:mock-lawyer';
+  return token === 'mock-token:mock-lawyer' || isMockSuperAdmin(token);
+}
+
+function isMockSuperAdmin(token?: string) {
+  return token === 'mock-token:mock-admin' || token === 'mock-token:mock-owner';
 }
 
 function hasMockIssuerAccess(token?: string) {
