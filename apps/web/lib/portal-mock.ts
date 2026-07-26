@@ -340,9 +340,9 @@ export function isMockPortalToken(token: string) {
     || token === 'mock-token:mock-document-issuer';
 }
 
-function profileForToken(token?: string) {
-  if (token === 'mock-token:mock-document-participant') return participantProfile;
-  return issuerProfile;
+function profileForToken(token: string) {
+  if (token === 'mock-token:mock-document-issuer') return issuerProfile;
+  return participantProfile;
 }
 
 function isMockParticipant(token?: string) {
@@ -354,7 +354,7 @@ function isMockIssuer(token?: string) {
 }
 
 function hasMockIssuerAccess(token?: string) {
-  return !token || isMockIssuer(token);
+  return isMockIssuer(token);
 }
 
 function requestList(requests: MockDocumentRequest[]) {
@@ -362,7 +362,7 @@ function requestList(requests: MockDocumentRequest[]) {
 }
 
 export function mockPortalGet(path: string, token?: string): Response {
-  if (token && !isMockPortalToken(token)) return error('Not authenticated', 401);
+  if (!token || !isMockPortalToken(token)) return error('Not authenticated', 401);
   const requestPathname = pathname(path);
   const searchParams = new URL(path, 'https://mock.lexchain.local').searchParams;
   if (path === '/users/' || path === '/users') return json(profileForToken(token));
@@ -560,7 +560,7 @@ async function askDocument(id: string, request: Request, token?: string) {
 }
 
 export async function mockPortalMutate(method: 'POST' | 'PATCH', path: string, request: Request, token?: string): Promise<Response> {
-  if (token && !isMockPortalToken(token)) return error('Not authenticated', 401);
+  if (!token || !isMockPortalToken(token)) return error('Not authenticated', 401);
   const requestPathname = pathname(path);
   if (method === 'POST' && (requestPathname === '/documents/upload' || requestPathname === '/documents/upload/')) {
     if (!hasMockIssuerAccess(token)) return error('Document Issuer access required', 403);
