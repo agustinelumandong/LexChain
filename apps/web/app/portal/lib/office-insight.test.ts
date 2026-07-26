@@ -59,7 +59,7 @@ describe('office insights', () => {
         integrity_state: 'match',
         document_hash: 'abc123',
         finalized_at: '2026-07-10T09:05:00.000Z',
-        finalized_by: 'mock-lawyer',
+        finalized_by: 'mock-document-issuer',
       },
       {
         document_id: 'mock-document-old',
@@ -88,7 +88,7 @@ describe('office insights', () => {
       {
         Document: 'Lease Agreement.pdf',
         'Integrity status': 'match',
-        Verifier: 'mock-lawyer',
+        Verifier: 'mock-document-issuer',
         'Blockchain hash': 'abc123',
         Verified: '2026-07-10',
       },

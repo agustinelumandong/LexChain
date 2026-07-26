@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import OfficeReportsPage from './page';
 
 const queryState = vi.hoisted(() => ({
-  role: 'lawyer',
+  role: 'document_issuer',
   documents: [{
     document_id: 'mock-document-1',
     file_name: 'Lease Agreement.pdf',
@@ -16,7 +16,7 @@ const queryState = vi.hoisted(() => ({
     integrity_state: 'match',
     document_hash: 'abc123',
     finalized_at: '2026-07-10T09:05:00.000Z',
-    finalized_by: 'mock-lawyer',
+    finalized_by: 'mock-document-issuer',
   }],
 }));
 
@@ -32,7 +32,7 @@ afterEach(() => {
   delete (URL as typeof URL & { createObjectURL?: unknown }).createObjectURL;
   delete (URL as typeof URL & { revokeObjectURL?: unknown }).revokeObjectURL;
 });
-beforeEach(() => { queryState.role = 'lawyer'; });
+beforeEach(() => { queryState.role = 'document_issuer'; });
 
 describe('OfficeReportsPage', () => {
   it('offers the two fixed issuer reports with native date fields', () => {
@@ -85,7 +85,7 @@ describe('OfficeReportsPage', () => {
   });
 
   it('denies participants before rendering local report data', () => {
-    queryState.role = 'user';
+    queryState.role = 'document_participant';
     render(<OfficeReportsPage />);
 
     expect(screen.getByText('Office Reports are available to Document Issuers only.')).toBeTruthy();

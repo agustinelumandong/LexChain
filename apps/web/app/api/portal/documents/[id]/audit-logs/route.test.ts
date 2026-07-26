@@ -16,7 +16,7 @@ afterEach(() => {
 
 it('does not proxy audit logs when the authenticated profile is not an issuer', async () => {
   const fetchMock = vi.fn().mockResolvedValue(
-    new Response(JSON.stringify({ role: 'user' }), {
+    new Response(JSON.stringify({ role: 'document_participant' }), {
       status: 200,
       headers: { 'content-type': 'application/json' },
     }),
@@ -42,9 +42,9 @@ it('does not proxy audit logs when the authenticated profile is not an issuer', 
   });
 });
 
-it('proxies audit logs after the authenticated profile confirms a Super Admin issuer', async () => {
+it('proxies audit logs after the authenticated profile confirms a Document Issuer issuer', async () => {
   const fetchMock = vi.fn()
-    .mockResolvedValueOnce(new Response(JSON.stringify({ role: 'super_admin' }), { status: 200 }))
+    .mockResolvedValueOnce(new Response(JSON.stringify({ role: 'document_issuer' }), { status: 200 }))
     .mockResolvedValueOnce(new Response(JSON.stringify([{ id: 'audit-1' }]), { status: 200 }));
   vi.stubGlobal('fetch', fetchMock);
 
@@ -72,14 +72,14 @@ it('returns the current document lifecycle history for a mock issuer without cal
     'POST',
     '/documents/mock-document-2/finalize',
     new Request('http://localhost/documents/mock-document-2/finalize', { method: 'POST' }),
-    'mock-token:mock-lawyer',
+    'mock-token:mock-document-issuer',
   );
   const fetchMock = vi.fn();
   vi.stubGlobal('fetch', fetchMock);
 
   const response = await GET(
     new NextRequest('http://localhost/api/portal/documents/mock-document-2/audit-logs', {
-      headers: { cookie: 'portal_token=mock-token:mock-lawyer' },
+      headers: { cookie: 'portal_token=mock-token:mock-document-issuer' },
     }),
     { params: Promise.resolve({ id: 'mock-document-2' }) },
   );
@@ -101,7 +101,7 @@ it('keeps mock document activity restricted to Document Issuers', async () => {
 
   const response = await GET(
     new NextRequest('http://localhost/api/portal/documents/mock-document-4/audit-logs', {
-      headers: { cookie: 'portal_token=mock-token:mock-user' },
+      headers: { cookie: 'portal_token=mock-token:mock-document-participant' },
     }),
     { params: Promise.resolve({ id: 'mock-document-4' }) },
   );

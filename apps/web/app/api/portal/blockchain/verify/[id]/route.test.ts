@@ -58,7 +58,7 @@ it('returns the seeded integrity mismatch in mock mode without calling the backe
 
   const response = await GET(
     new NextRequest('http://localhost/api/portal/blockchain/verify/mock-document-3', {
-      headers: { cookie: 'portal_token=mock-token:mock-lawyer' },
+      headers: { cookie: 'portal_token=mock-token:mock-document-issuer' },
     }),
     { params: Promise.resolve({ id: 'mock-document-3' }) },
   );
@@ -79,7 +79,7 @@ it('does not reveal an unshared mock integrity record to a participant', async (
 
   const response = await GET(
     new NextRequest('http://localhost/api/portal/blockchain/verify/mock-document-3', {
-      headers: { cookie: 'portal_token=mock-token:mock-user' },
+      headers: { cookie: 'portal_token=mock-token:mock-document-participant' },
     }),
     { params: Promise.resolve({ id: 'mock-document-3' }) },
   );
@@ -95,14 +95,14 @@ it('allows a participant to verify an on-chain document after accepting its invi
     'POST',
     '/documents/mock-document-1/parties/accept',
     new Request('http://localhost/documents/mock-document-1/parties/accept', { method: 'POST' }),
-    'mock-token:mock-user',
+    'mock-token:mock-document-participant',
   );
   const fetchMock = vi.fn();
   vi.stubGlobal('fetch', fetchMock);
 
   const response = await GET(
     new NextRequest('http://localhost/api/portal/blockchain/verify/mock-document-1', {
-      headers: { cookie: 'portal_token=mock-token:mock-user' },
+      headers: { cookie: 'portal_token=mock-token:mock-document-participant' },
     }),
     { params: Promise.resolve({ id: 'mock-document-1' }) },
   );
