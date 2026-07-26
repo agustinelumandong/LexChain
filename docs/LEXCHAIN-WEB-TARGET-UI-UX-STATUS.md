@@ -1,17 +1,23 @@
 # LexChain Web Target UI/UX Status
 
 Date: 2026-07-26
-Branch: `feat/web-target-ui-ux`
-Implementation HEAD reviewed: `ba499f2b4b8247bb63673d8336c9c041c4ac4e39`
+Branch: `feat/two-actor-portal`
+Implementation HEAD reviewed: `a2f0b14e03a07921e7be3f0fb1a4d632a0853dc4`
 
 ## Verification snapshot
 
-- `pnpm --filter @lexchain/web test` — passed (`51` files, `266` tests)
+- `pnpm --filter @lexchain/web test` — passed (`55` files, `299` tests)
 - `pnpm --filter @lexchain/web lint` — passed
 - `pnpm --filter @lexchain/web build` — passed
 - `git diff --check` — passed
 - `git diff --name-only -- apps/mobile openapi-updated.json packages/types/src/generated/schema.ts` — no output
-- Target-copy scan from the Task 7 brief — no matches
+- Actor terminology scan — no documentation matches treating Admin as a third
+  actor or `/admin/dashboard` as an active workspace
+- Active-navigation scan — three `/admin` references remain inside legacy
+  template components; proxy redirects prevent those page components from
+  serving as product navigation
+- Playwright CLI acceptance — all Task 5 persona and redirect cases passed in
+  mock mode; see `LEXCHAIN-TWO-ACTOR-PORTAL-ACCEPTANCE.md`
 
 The web branch now covers the target UI/UX flow with honest demo behavior. The
 current implementation is suitable for web review in mock mode, but production
@@ -33,17 +39,20 @@ completion still depends on backend work captured in
   shared demo document state. The walkthrough showed 4 completed documents, 2
   integrity matches, and 2 on-chain records.
 
-### Admin
+### Document Issuer — Super Admin capabilities
 
-- Admin sign-in now routes to `/admin/dashboard`.
-- `/admin` access is now bound to server-issued admin authentication rather than
-  the writable role cookie.
-- Admin user edits, suspend/reactivate actions, and report generation are
-  available as demo interactions and show reset-on-refresh behavior.
+- A Document Issuer with Super Admin capabilities signs in through `/login` and
+  enters the same `/portal/dashboard` workspace as every other issuer.
+- The `Super Admin` navigation group exposes User Accounts, Issuer Invitations,
+  System Reports, Audit Logs, and System Statistics under `/portal/*` routes.
+- Privileged portal routes remain bound to the server-issued `admin_token`; the
+  client-readable role cookie is not authorization.
+- User edits, suspend/reactivate actions, and report generation remain honest
+  mock-mode interactions and reset on refresh.
 
-### Participant
+### Document Participant
 
-- Participant sign-in still routes to the portal workspace.
+- Document Participant sign-in still routes to the portal workspace.
 - Finalize, Restore, issuer-only activity, issuer reports, processing,
   blockchain records, and analytics remain hidden or denied for participants.
 - Shared documents, search, requests, and notifications remain available.
@@ -64,20 +73,24 @@ completion still depends on backend work captured in
 | Document Issuer | Review processing state | `/portal/processing` | Ready for web UI review | Real processing pipeline status and retry/error semantics. See [backend target handoff](LEXCHAIN-BACKEND-TARGET-HANDOFF.md). |
 | Document Issuer | Review blockchain records | `/portal/blockchain-records` | Ready for web UI review | Real blockchain verification/record services and failure handling. See [integrity verification response](LEXCHAIN-BACKEND-TARGET-HANDOFF.md#25-integrity-verification-response). |
 | Document Issuer | Review office analytics | `/portal/analytics` | Ready for web UI review | Real analytics aggregation and date-range queries. See [backend target handoff](LEXCHAIN-BACKEND-TARGET-HANDOFF.md). |
-| Admin | Sign in to admin workspace | `/login`, `/admin/dashboard` | Ready for web UI review | Real admin auth/session enforcement beyond mock/demo UI. See [authorization and audit](LEXCHAIN-BACKEND-TARGET-HANDOFF.md#28-authorization-and-audit-requirements). |
-| Admin | Edit, suspend, and reactivate users | `/admin/users` | Ready for web UI review | Real user-management endpoints, validations, and audit logging. See [admin user management](LEXCHAIN-BACKEND-TARGET-HANDOFF.md#26-admin-user-management). |
-| Admin | Generate fixed system reports | `/admin/generated-reports` | Ready for web UI review | Real report data, exports, and server-side generation. See [fixed reports](LEXCHAIN-BACKEND-TARGET-HANDOFF.md#27-fixed-reports). |
-| Participant | Sign in to shared workspace | `/login`, `/portal/dashboard` | Already implemented | Real participant auth/session enforcement remains backend-owned. See [authorization and audit](LEXCHAIN-BACKEND-TARGET-HANDOFF.md#28-authorization-and-audit-requirements). |
-| Participant | View shared documents without issuer controls | `/portal/documents`, `/portal/documents/[id]` | Ready for web UI review | Real backend authorization on document scope and lifecycle actions. See [authorization and audit](LEXCHAIN-BACKEND-TARGET-HANDOFF.md#28-authorization-and-audit-requirements). |
-| Participant | Accept or reject document invitations | `/portal/invitations` | Ready for web UI review | Real invitation persistence and document-scope authorization. See [authorization and audit](LEXCHAIN-BACKEND-TARGET-HANDOFF.md#28-authorization-and-audit-requirements). |
-| Participant | Search, requests, and notifications | `/portal/search`, `/portal/requests/my`, `/portal/notifications` | Already implemented | Production data sources and permissions remain backend-owned. See [authorization and audit](LEXCHAIN-BACKEND-TARGET-HANDOFF.md#28-authorization-and-audit-requirements). |
-| Public visitor | Verify a document | `/verify` | Already implemented | Production verification remains connected through the public verifier backend contract. See [integrity verification response](LEXCHAIN-BACKEND-TARGET-HANDOFF.md#25-integrity-verification-response). |
-| Mobile actor flows | Camera capture, mobile-native upload, mobile verification, and native account flows | `N/A — apps/mobile` | Deferred to mobile phase | Mobile implementation remains out of scope for this web-only branch. |
+| Document Issuer | Use Super Admin capabilities | `/portal/users`, `/portal/issuer-invitations`, `/portal/system-reports`, `/portal/audit-logs`, `/portal/system-statistics` | Ready for web UI review | Real server-issued Super Admin authority, management endpoints, validations, and audit logging. See [Super Admin user management](LEXCHAIN-BACKEND-TARGET-HANDOFF.md#26-document-issuer--super-admin-user-management). |
+| Document Participant | Sign in to the restricted shared workspace | `/login`, `/portal/dashboard` | Already implemented | Real participant auth/session enforcement remains backend-owned. See [authorization and audit](LEXCHAIN-BACKEND-TARGET-HANDOFF.md#28-authorization-and-audit-requirements). |
+| Document Participant | View shared documents without issuer controls | `/portal/documents`, `/portal/documents/[id]` | Ready for web UI review | Real backend authorization on document scope and lifecycle actions. See [authorization and audit](LEXCHAIN-BACKEND-TARGET-HANDOFF.md#28-authorization-and-audit-requirements). |
+| Document Participant | Accept or reject document invitations | `/portal/invitations` | Ready for web UI review | Real invitation persistence and document-scope authorization. See [authorization and audit](LEXCHAIN-BACKEND-TARGET-HANDOFF.md#28-authorization-and-audit-requirements). |
+| Document Participant | Search, requests, and notifications | `/portal/search`, `/portal/requests/my`, `/portal/notifications` | Already implemented | Production data sources and permissions remain backend-owned. See [authorization and audit](LEXCHAIN-BACKEND-TARGET-HANDOFF.md#28-authorization-and-audit-requirements). |
 
 ## Notes
 
-- `/admin/roles-permissions` still exists as a legacy route, but the web target
-  flow no longer exposes it from user management.
+- The registered actors are exactly Document Issuer and Document Participant.
+  Anonymous verification at `/verify` is a public feature, not a registered
+  actor. Mobile-native flows remain deferred and do not add a web actor.
+- Legacy routes redirect for compatibility: `/admin/dashboard` to
+  `/portal/dashboard`, `/admin/users` to `/portal/users`,
+  `/admin/invitations-permissions` to `/portal/issuer-invitations`,
+  `/admin/generated-reports` to `/portal/system-reports`, `/admin/audit-logs`
+  to `/portal/audit-logs`, and `/admin/login` to `/login`. Other `/admin/*`
+  page routes fall back to `/portal/dashboard`; `/api/admin/*` remains a
+  backend-proxy namespace.
 - The current branch intentionally keeps demo honesty: no screen claims that
   password reset, finalization, restoration, reports, blockchain actions, or
   analytics are production-connected when they are still backed by mock data.
