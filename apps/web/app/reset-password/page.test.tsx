@@ -1,9 +1,14 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import ResetPasswordPage from "./page";
 
-afterEach(cleanup);
+beforeEach(() => vi.stubEnv("NEXT_PUBLIC_USE_MOCK_API", "true"));
+
+afterEach(() => {
+  cleanup();
+  vi.unstubAllEnvs();
+});
 
 vi.mock("next/navigation", () => ({
   useSearchParams: () => new URLSearchParams(window.location.search),
@@ -20,6 +25,17 @@ describe("ResetPasswordPage", () => {
 
     expect(await screen.findByText("This password reset link is invalid or has expired.")).toBeTruthy();
     expect(screen.getByRole("link", { name: "Back to sign in" }).getAttribute("href")).toBe("/login");
+  });
+
+  it("does not offer demo completion for a valid token outside mock mode", async () => {
+    vi.stubEnv("NEXT_PUBLIC_USE_MOCK_API", "false");
+    renderResetPage("lexchain-web-demo-reset");
+
+    expect(await screen.findByText(
+      "Password recovery is not connected yet. The backend password-recovery endpoints are required before this can send a real email.",
+    )).toBeTruthy();
+    expect(screen.queryByLabelText("New password")).toBeNull();
+    expect(screen.queryByText("Demo complete — no real password was changed.")).toBeNull();
   });
 
   it("keeps weak passwords on the form", async () => {

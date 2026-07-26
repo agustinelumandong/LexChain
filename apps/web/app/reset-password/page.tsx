@@ -6,6 +6,8 @@ import { useSearchParams } from "next/navigation";
 import { Suspense, useState, type ReactNode } from "react";
 import { demoResetToken, webResetPasswordSchema } from "../../lib/schemas/auth";
 
+const unavailableMessage = "Password recovery is not connected yet. The backend password-recovery endpoints are required before this can send a real email.";
+
 export default function ResetPasswordPage() {
   return (
     <Suspense fallback={null}>
@@ -16,11 +18,27 @@ export default function ResetPasswordPage() {
 
 function ResetPasswordForm() {
   const tokens = useSearchParams().getAll("token");
+  const isDemoMode = process.env.NEXT_PUBLIC_USE_MOCK_API === "true";
   const hasValidToken = tokens.length === 1 && tokens[0] === demoResetToken;
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [errors, setErrors] = useState<string[]>([]);
   const [isComplete, setIsComplete] = useState(false);
+
+  if (!isDemoMode) {
+    return (
+      <ResetPasswordShell>
+        <div className="mt-6 space-y-4">
+          <p role="alert" className="rounded-xl bg-red-50 px-4 py-3 text-sm font-semibold text-red-600">
+            {unavailableMessage}
+          </p>
+          <Link href="/login" className="flex min-h-[52px] w-full items-center justify-center rounded-full border-2 border-[#E4EEF9] px-5 py-3.5 text-[15px] font-black text-[#0C2B49] transition hover:bg-[#F5FAFF]">
+            Back to sign in
+          </Link>
+        </div>
+      </ResetPasswordShell>
+    );
+  }
 
   if (!hasValidToken) {
     return (
