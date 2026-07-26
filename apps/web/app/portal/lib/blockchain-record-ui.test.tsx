@@ -1,11 +1,14 @@
 // @vitest-environment jsdom
 import { createElement } from 'react';
 import { cleanup, render, screen } from '@testing-library/react';
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { BlockchainRecordCard } from '../components/blockchain-record-card';
+import BlockchainRecordsPage from '../blockchain-records/page';
 import { getBlockchainRecordFields } from './blockchain-record-ui';
+
+const useQuery = vi.hoisted(() => vi.fn());
+
+vi.mock('@tanstack/react-query', () => ({ useQuery }));
 
 const record = {
   document_id: 'document-123',
@@ -22,7 +25,19 @@ const demoRecord = {
   transacttion_link: 'https://example.test/demo-transaction',
 };
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  useQuery.mockReset();
+  vi.unstubAllGlobals();
+});
+beforeEach(() => {
+  useQuery.mockImplementation((options: { queryKey: string[]; enabled?: boolean }) => {
+    if (options.queryKey[0] === 'portal-profile') {
+      return { data: { role: 'lawyer' }, isLoading: false, isError: false };
+    }
+    return { data: [record], isLoading: false, isError: false };
+  });
+});
 
 describe('BlockchainRecordCard', () => {
   it('renders local RecordResponse mock fields without calling an API client', () => {
@@ -59,15 +74,81 @@ describe('BlockchainRecordCard', () => {
     ]));
   });
 
-  it('does not import or invoke the anchoring API from the record UI', () => {
-    const componentSource = readFileSync(resolve(import.meta.dirname, '../components/blockchain-record-card.tsx'), 'utf8');
-    const pageSource = readFileSync(resolve(import.meta.dirname, '../blockchain-records/page.tsx'), 'utf8');
+  it('loads verification records for every seeded on-chain document through the portal proxy', async () => {
+    let recordsQuery: (() => Promise<unknown>) | undefined;
+    useQuery.mockImplementation((options: {
+      queryKey: string[];
+      queryFn: () => Promise<unknown>;
+      enabled?: boolean;
+    }) => {
+      if (options.queryKey[0] === 'portal-profile') {
+        return { data: { role: 'lawyer' }, isLoading: false, isError: false };
+      }
+      recordsQuery = options.queryFn;
+      return { data: undefined, isLoading: true, isError: false };
+    });
+    const fetchMock = vi.fn(async (input: string) => {
+      const requestUrl = new URL(input, 'https://lexchain.test');
+      const path = requestUrl.searchParams.get('path');
+      if (path === '/documents/') {
+        return Response.json([
+          { document_id: 'chain-a', on_chain: true },
+          { document_id: 'local-only', on_chain: false },
+          { document_id: 'chain-b', on_chain: true },
+        ]);
+      }
+      return Response.json({
+        ...record,
+        document_id: path?.split('/').at(-1),
+      });
+    });
+    vi.stubGlobal('fetch', fetchMock);
 
-    expect(componentSource).not.toContain("from '../lib/integrity-api'");
-    expect(componentSource).not.toMatch(/getBlockchainRecord\s*\(/);
-    expect(componentSource).not.toContain('/api/portal/blockchain/record');
-    expect(pageSource).not.toContain('/api/portal/blockchain/record');
-    expect(pageSource).toContain('Demo data — changes reset when this page is refreshed.');
-    expect(componentSource).not.toMatch(/network|timestamp/i);
+    render(<BlockchainRecordsPage />);
+
+    expect(recordsQuery).toBeTypeOf('function');
+    await expect(recordsQuery!()).resolves.toEqual([
+      expect.objectContaining({ document_id: 'chain-a' }),
+      expect.objectContaining({ document_id: 'chain-b' }),
+    ]);
+    expect(fetchMock.mock.calls.map(([url]) => new URL(String(url), 'https://lexchain.test').searchParams.get('path'))).toEqual([
+      '/documents/',
+      '/blockchain/verify/chain-a',
+      '/blockchain/verify/chain-b',
+    ]);
+  });
+
+  it('renders shared verification records and labels them as demo data', () => {
+    render(<BlockchainRecordsPage />);
+
+    expect(screen.getByText('document-123')).toBeTruthy();
+    expect(screen.getByText('Demo data — changes reset when this page is refreshed.')).toBeTruthy();
+  });
+
+  it('shows an honest empty state when the shared data has no on-chain documents', () => {
+    useQuery.mockImplementation((options: { queryKey: string[] }) => (
+      options.queryKey[0] === 'portal-profile'
+        ? { data: { role: 'lawyer' }, isLoading: false, isError: false }
+        : { data: [], isLoading: false, isError: false }
+    ));
+
+    render(<BlockchainRecordsPage />);
+
+    expect(screen.getByText('No anchored records are available in this demo.')).toBeTruthy();
+  });
+
+  it('keeps blockchain records issuer-only', () => {
+    useQuery.mockImplementation((options: { queryKey: string[]; enabled?: boolean }) => {
+      if (options.queryKey[0] === 'portal-profile') {
+        return { data: { role: 'user' }, isLoading: false, isError: false };
+      }
+      if (options.enabled !== false) throw new Error('Participant records query must be disabled');
+      return { data: undefined, isLoading: false, isError: false };
+    });
+
+    render(<BlockchainRecordsPage />);
+
+    expect(screen.getByText('Blockchain records are available to Document Issuers only.')).toBeTruthy();
+    expect(screen.queryByText('Demo data — changes reset when this page is refreshed.')).toBeNull();
   });
 });

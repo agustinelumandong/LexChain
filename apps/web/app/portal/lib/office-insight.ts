@@ -4,6 +4,7 @@ import {
   adminUsers,
   adminVerificationLogs,
 } from '../../admin/admin-demo-data';
+import type { ApiSchema } from '@lexchain/types';
 
 export type OfficeDateRange = {
   id: '7-days' | '30-days' | '90-days';
@@ -13,6 +14,13 @@ export type OfficeDateRange = {
 export type OfficeInsightMetric = {
   label: string;
   value: number;
+};
+
+export type PortalDocument = Pick<
+  ApiSchema<'DocumentResponse'>,
+  'created_at' | 'on_chain'
+> & {
+  integrity_state?: 'match' | 'mismatch' | 'not-recorded' | 'unavailable' | null;
 };
 
 export type DemoReportType =
@@ -35,18 +43,28 @@ const officeDateRanges: readonly OfficeDateRange[] = [
   { id: '90-days', label: 'Last 90 days' },
 ];
 
-const officeInsightMetrics: readonly OfficeInsightMetric[] = [
-  { label: 'Documents issued', value: 2 },
-  { label: 'Documents verified', value: 1 },
-  { label: 'On-chain records', value: 1 },
-];
-
 export function getOfficeDateRanges(): readonly OfficeDateRange[] {
   return officeDateRanges;
 }
 
-export function getOfficeInsightMetrics(): readonly OfficeInsightMetric[] {
-  return officeInsightMetrics;
+export function getOfficeInsightMetrics(
+  documents: PortalDocument[],
+  selectedRange: OfficeDateRange['id'],
+  now: Date,
+): OfficeInsightMetric[] {
+  const rangeDays = selectedRange === '7-days' ? 7 : selectedRange === '30-days' ? 30 : 90;
+  const from = now.getTime() - rangeDays * 24 * 60 * 60 * 1000;
+  const to = now.getTime();
+  const included = documents.filter((document) => {
+    const createdAt = new Date(document.created_at).getTime();
+    return createdAt >= from && createdAt <= to;
+  });
+
+  return [
+    { label: 'Documents created', value: included.length },
+    { label: 'Integrity matches', value: included.filter((document) => document.integrity_state === 'match').length },
+    { label: 'On-chain records', value: included.filter((document) => document.on_chain).length },
+  ];
 }
 
 function datePart(value: string | null): string | undefined {

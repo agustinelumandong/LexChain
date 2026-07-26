@@ -3,16 +3,16 @@
 import { useQuery } from '@tanstack/react-query';
 import type { ApiSchema } from '@lexchain/types';
 import Link from 'next/link';
-import { getProcessingMonitorItems, getProcessingStageLabel, type ProcessingStage } from '../lib/processing-monitor';
+import {
+  getProcessingMonitorItems,
+  getProcessingStageLabel,
+  type PortalDocument,
+  type ProcessingStage,
+} from '../lib/processing-monitor';
+import { portalFetch } from '../lib/portal-fetch';
 import { getPortalUiRole } from '../lib/portal-role';
 
 type UserProfile = ApiSchema<'UserProfileResponse'>;
-
-async function getJson<T>(path: string): Promise<T> {
-  const response = await fetch(`/api/portal/proxy?path=${encodeURIComponent(path)}`, { credentials: 'same-origin' });
-  if (!response.ok) throw new Error(`Failed to fetch ${path}`);
-  return response.json() as Promise<T>;
-}
 
 const stageClasses: Record<ProcessingStage, string> = {
   queued: 'bg-[#FFF4DD] text-[#B77900]',
@@ -24,15 +24,23 @@ const stageClasses: Record<ProcessingStage, string> = {
 export default function ProcessingMonitorPage() {
   const profileQuery = useQuery({
     queryKey: ['portal-profile'],
-    queryFn: () => getJson<UserProfile | null>('/users/'),
+    queryFn: () => portalFetch<UserProfile | null>('/users/'),
+  });
+  const isIssuer = getPortalUiRole(profileQuery.data?.role) === 'issuer';
+  const documentsQuery = useQuery<PortalDocument[]>({
+    queryKey: ['portal-documents'],
+    queryFn: () => portalFetch('/documents/'),
+    enabled: isIssuer,
   });
   if (profileQuery.isLoading) return <div className="h-36 animate-pulse rounded-[18px] border border-[#E8F0F8] bg-white" />;
 
-  if (getPortalUiRole(profileQuery.data?.role) !== 'issuer') {
+  if (!isIssuer) {
     return <p className="text-sm font-semibold text-[#64748b]">Processing Monitor is available to Document Issuers only.</p>;
   }
 
-  const items = getProcessingMonitorItems();
+  if (documentsQuery.isLoading) return <div className="h-36 animate-pulse rounded-[18px] border border-[#E8F0F8] bg-white" />;
+
+  const items = getProcessingMonitorItems(documentsQuery.data ?? []);
 
   return (
     <div className="flex flex-col gap-5">
@@ -43,7 +51,16 @@ export default function ProcessingMonitorPage() {
 
       <p className="rounded-[18px] border border-[#E8F0F8] bg-[#F8FBFF] p-4 text-sm font-semibold text-[#64748b]">Demo data — changes reset when this page is refreshed.</p>
 
-      <section aria-label="Document processing stages" className="overflow-hidden rounded-[18px] border border-[#E8F0F8] bg-white">
+      {documentsQuery.isError ? (
+        <p role="alert" className="rounded-[18px] border border-[#F5C6C6] bg-[#FFF7F7] p-5 text-sm font-semibold text-[#9B2C2C]">
+          We could not load document processing data.
+        </p>
+      ) : items.length === 0 ? (
+        <p className="rounded-[18px] border border-[#E8F0F8] bg-white p-5 text-sm font-semibold text-[#64748b]">
+          No document processing records are available in this demo.
+        </p>
+      ) : (
+        <section aria-label="Document processing stages" className="overflow-hidden rounded-[18px] border border-[#E8F0F8] bg-white">
         <div className="divide-y divide-[#E8F0F8]">
           {items.map((item) => (
             <article key={item.id} className="p-5">
@@ -66,15 +83,14 @@ export default function ProcessingMonitorPage() {
                   <div className="mt-3 flex flex-wrap gap-3 text-sm font-bold">
                     <Link href={item.documentHref} className="text-[#0985E7] underline underline-offset-4 hover:text-[#0769B3]">Open document</Link>
                     <Link href="/portal/upload" aria-label={`Upload replacement PDF for ${item.documentName}`} className="text-[#0985E7] underline underline-offset-4 hover:text-[#0769B3]">Upload replacement PDF</Link>
-                    <button type="button" disabled aria-describedby={`${item.id}-retry-note`} className="text-[#94A3B8] disabled:cursor-not-allowed">Retry processing</button>
                   </div>
-                  <p id={`${item.id}-retry-note`} className="mt-2 text-xs font-semibold text-[#64748B]">Retry processing is not available in demo mode.</p>
                 </div>
               ) : null}
             </article>
           ))}
         </div>
-      </section>
+        </section>
+      )}
     </div>
   );
 }
