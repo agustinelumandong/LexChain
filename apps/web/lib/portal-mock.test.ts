@@ -7,7 +7,7 @@ describe('portal mock mutations', () => {
       'POST',
       '/documents/mock-document-2/finalize',
       new Request('https://mock.lexchain.local/api/portal/proxy-post', { method: 'POST' }),
-      'mock-token:mock-lawyer',
+      'mock-token:mock-document-issuer',
     );
 
     expect(first.status).toBe(200);
@@ -15,18 +15,18 @@ describe('portal mock mutations', () => {
       lifecycle: 'finalized',
       on_chain: true,
       document_hash: expect.stringMatching(/^[a-f0-9]{64}$/),
-      finalized_by: 'mock-lawyer',
+      finalized_by: 'mock-document-issuer',
       anchor_status: 'confirmed',
       snapshots: [expect.objectContaining({ document_id: 'mock-document-2' })],
     });
 
-    const snapshots = mockPortalGet('/documents/mock-document-2/snapshots', 'mock-token:mock-lawyer');
+    const snapshots = mockPortalGet('/documents/mock-document-2/snapshots', 'mock-token:mock-document-issuer');
     await expect(snapshots.json()).resolves.toHaveLength(1);
-    await expect(mockPortalGet('/blockchain/verify/mock-document-2', 'mock-token:mock-lawyer').json()).resolves.toMatchObject({
+    await expect(mockPortalGet('/blockchain/verify/mock-document-2', 'mock-token:mock-document-issuer').json()).resolves.toMatchObject({
       document_id: 'mock-document-2',
       is_verified: true,
     });
-    const repository = await mockPortalGet('/documents/', 'mock-token:mock-lawyer').json() as Array<{ document_id: string; on_chain: boolean }>;
+    const repository = await mockPortalGet('/documents/', 'mock-token:mock-document-issuer').json() as Array<{ document_id: string; on_chain: boolean }>;
     expect(repository.filter((document) => document.on_chain)).toHaveLength(3);
     expect(repository.find((document) => document.document_id === 'mock-document-2')).toMatchObject({ on_chain: true });
 
@@ -34,18 +34,18 @@ describe('portal mock mutations', () => {
       'POST',
       '/documents/mock-document-2/finalize',
       new Request('https://mock.lexchain.local/api/portal/proxy-post', { method: 'POST' }),
-      'mock-token:mock-lawyer',
+      'mock-token:mock-document-issuer',
     );
     expect(second.status).toBe(200);
 
-    const audits = await mockPortalGet('/documents/mock-document-2/audit-logs', 'mock-token:mock-lawyer').json();
+    const audits = await mockPortalGet('/documents/mock-document-2/audit-logs', 'mock-token:mock-document-issuer').json();
     expect(audits.filter((audit: { action: string }) => audit.action === 'document_finalized')).toHaveLength(1);
   });
 
   it('restores a mismatched finalized document from its retained snapshot with a reason', async () => {
-    const integrity = mockPortalGet('/blockchain/verify/mock-document-3', 'mock-token:mock-lawyer');
+    const integrity = mockPortalGet('/blockchain/verify/mock-document-3', 'mock-token:mock-document-issuer');
     await expect(integrity.json()).resolves.toMatchObject({ is_verified: false });
-    const sourceSnapshots = await mockPortalGet('/documents/mock-document-3/snapshots', 'mock-token:mock-lawyer').json();
+    const sourceSnapshots = await mockPortalGet('/documents/mock-document-3/snapshots', 'mock-token:mock-document-issuer').json();
     const blankReason = await mockPortalMutate(
       'POST',
       '/documents/mock-document-3/snapshots/mock-snapshot-3/restore',
@@ -54,7 +54,7 @@ describe('portal mock mutations', () => {
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ reason: '   ' }),
       }),
-      'mock-token:mock-lawyer',
+      'mock-token:mock-document-issuer',
     );
     expect(blankReason.status).toBe(400);
 
@@ -66,12 +66,12 @@ describe('portal mock mutations', () => {
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ reason: 'Restore the verified snapshot.' }),
       }),
-      'mock-token:mock-lawyer',
+      'mock-token:mock-document-issuer',
     );
 
     expect(restored.status).toBe(200);
     await expect(restored.json()).resolves.toMatchObject({ lifecycle: 'restored', snapshots: sourceSnapshots });
-    const audits = await mockPortalGet('/documents/mock-document-3/audit-logs', 'mock-token:mock-lawyer').json();
+    const audits = await mockPortalGet('/documents/mock-document-3/audit-logs', 'mock-token:mock-document-issuer').json();
     expect(audits).toContainEqual(expect.objectContaining({
       action: 'document_restored',
       details: { snapshot_id: 'mock-snapshot-3', reason: 'Restore the verified snapshot.' },
@@ -87,7 +87,7 @@ describe('portal mock mutations', () => {
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ reason: 'A matching document cannot be restored.' }),
       }),
-      'mock-token:mock-lawyer',
+      'mock-token:mock-document-issuer',
     );
 
     expect(response.status).toBe(400);
@@ -173,7 +173,7 @@ describe('portal mock mutations', () => {
       'POST',
       '/documents/upload?book_id=mock-book-1&file_name=Participant',
       new Request('https://mock.lexchain.local/api/portal/proxy-post', { method: 'POST', body: form }),
-      'mock-token:mock-user',
+      'mock-token:mock-document-participant',
     );
 
     expect(response.status).toBe(403);
@@ -185,40 +185,36 @@ describe('portal mock profiles', () => {
     expect(isMockPortalToken('mock-token:unknown-user')).toBe(false);
   });
 
-  it('returns issuer profiles for Super Admin tokens while preserving the participant restriction', async () => {
-    const participant = mockPortalGet('/users/', 'mock-token:mock-user');
-    const issuer = mockPortalGet('/users/', 'mock-token:mock-lawyer');
-    const admin = mockPortalGet('/users/', 'mock-token:mock-admin');
-    const owner = mockPortalGet('/users/', 'mock-token:mock-owner');
-    const adminDocuments = mockPortalGet('/documents/', 'mock-token:mock-admin');
-    const participantDocuments = mockPortalGet('/documents/', 'mock-token:mock-user');
+  it('recognizes only the canonical Document Issuer and Document Participant profiles', async () => {
+    const participant = mockPortalGet('/users/', 'mock-token:mock-document-participant');
+    const issuer = mockPortalGet('/users/', 'mock-token:mock-document-issuer');
+    const participantDocuments = mockPortalGet('/documents/', 'mock-token:mock-document-participant');
 
-    expect(isMockPortalToken('mock-token:mock-admin')).toBe(true);
-    expect(isMockPortalToken('mock-token:mock-owner')).toBe(true);
+    expect(isMockPortalToken('mock-token:mock-admin')).toBe(false);
+    expect(isMockPortalToken('mock-token:mock-lawyer')).toBe(false);
+    expect(isMockPortalToken('mock-token:mock-owner')).toBe(false);
 
     await expect(participant.json()).resolves.toMatchObject({
-      email: 'user@example.com',
-      role: 'user',
+      email: 'participant@example.com',
+      role: 'document_participant',
     });
     await expect(issuer.json()).resolves.toMatchObject({
-      role: 'lawyer',
+      email: 'issuer@example.com',
+      role: 'document_issuer',
     });
-    await expect(admin.json()).resolves.toMatchObject({ role: 'admin' });
-    await expect(owner.json()).resolves.toMatchObject({ role: 'admin' });
-    await expect(adminDocuments.json()).resolves.toContainEqual(expect.objectContaining({ id: 'mock-document-1' }));
     await expect(participantDocuments.json()).resolves.toEqual([
       expect.objectContaining({ id: 'mock-document-4' }),
     ]);
   });
 
   it('keeps the fixed document issuer when an issuer fetches document parties', async () => {
-    const response = mockPortalGet('/documents/mock-document-1/parties', 'mock-token:mock-lawyer');
+    const response = mockPortalGet('/documents/mock-document-1/parties', 'mock-token:mock-document-issuer');
 
     await expect(response.json()).resolves.toMatchObject({
       issuer: {
-        f_name: 'Jane',
-        l_name: 'Doe',
-        email: 'jane.doe@lexchain.local',
+        f_name: 'Document',
+        l_name: 'Issuer',
+        email: 'issuer@example.com',
         role: 'issuer',
       },
     });
@@ -227,8 +223,8 @@ describe('portal mock profiles', () => {
 
 describe('portal mock document isolation', () => {
   it('exposes only the seeded shared document to a participant before access is accepted', async () => {
-    const documents = mockPortalGet('/documents/', 'mock-token:mock-user');
-    const detail = mockPortalGet('/documents/mock-document-2', 'mock-token:mock-user');
+    const documents = mockPortalGet('/documents/', 'mock-token:mock-document-participant');
+    const detail = mockPortalGet('/documents/mock-document-2', 'mock-token:mock-document-participant');
 
     await expect(documents.json()).resolves.toMatchObject([{ id: 'mock-document-4' }]);
     expect(detail.status).toBe(403);
@@ -237,7 +233,7 @@ describe('portal mock document isolation', () => {
 
 describe('portal mock books', () => {
   it('lists active issuer books and creates a book that can be used for upload', async () => {
-    const initial = mockPortalGet('/books/?limit=50&offset=0', 'mock-token:mock-lawyer');
+    const initial = mockPortalGet('/books/?limit=50&offset=0', 'mock-token:mock-document-issuer');
     expect(initial.status).toBe(200);
     await expect(initial.json()).resolves.toContainEqual(expect.objectContaining({ id: 'mock-book-1', is_full: false }));
 
@@ -249,7 +245,7 @@ describe('portal mock books', () => {
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ book_number: 2, series_year: 2026 }),
       }),
-      'mock-token:mock-lawyer',
+      'mock-token:mock-document-issuer',
     );
 
     expect(created.status).toBe(201);
@@ -262,13 +258,13 @@ describe('portal mock books', () => {
       'POST',
       `/documents/upload?book_id=${book.id}&file_name=Registered%20book`,
       new Request('https://mock.lexchain.local/api/portal/proxy-post', { method: 'POST', body: form }),
-      'mock-token:mock-lawyer',
+      'mock-token:mock-document-issuer',
     );
     expect(upload.status).toBe(201);
   });
 
   it('denies participant book access and book registration', async () => {
-    expect(mockPortalGet('/books/', 'mock-token:mock-user').status).toBe(403);
+    expect(mockPortalGet('/books/', 'mock-token:mock-document-participant').status).toBe(403);
     const response = await mockPortalMutate(
       'POST',
       '/books/',
@@ -277,7 +273,7 @@ describe('portal mock books', () => {
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ book_number: 3, series_year: 2026 }),
       }),
-      'mock-token:mock-user',
+      'mock-token:mock-document-participant',
     );
     expect(response.status).toBe(403);
   });
@@ -291,12 +287,12 @@ describe('portal mock participant invitations and requests', () => {
       'POST',
       '/documents/mock-document-1/parties/reject',
       new Request('https://mock.lexchain.local/api/portal/proxy-post', { method: 'POST' }),
-      'mock-token:mock-user',
+      'mock-token:mock-document-participant',
     );
 
     expect(rejected.status).toBe(204);
-    expect(rejectedMock.mockPortalGet('/documents/mock-document-1', 'mock-token:mock-user').status).toBe(403);
-    expect(rejectedMock.mockPortalGet('/blockchain/verify/mock-document-1', 'mock-token:mock-user').status).toBe(404);
+    expect(rejectedMock.mockPortalGet('/documents/mock-document-1', 'mock-token:mock-document-participant').status).toBe(403);
+    expect(rejectedMock.mockPortalGet('/blockchain/verify/mock-document-1', 'mock-token:mock-document-participant').status).toBe(404);
 
     vi.resetModules();
     const acceptedMock = await import('./portal-mock');
@@ -304,24 +300,24 @@ describe('portal mock participant invitations and requests', () => {
       'POST',
       '/documents/mock-document-1/parties/accept',
       new Request('https://mock.lexchain.local/api/portal/proxy-post', { method: 'POST' }),
-      'mock-token:mock-user',
+      'mock-token:mock-document-participant',
     );
 
     expect(accepted.status).toBe(204);
-    expect(acceptedMock.mockPortalGet('/documents/mock-document-1', 'mock-token:mock-user').status).toBe(200);
-    expect(acceptedMock.mockPortalGet('/blockchain/verify/mock-document-1', 'mock-token:mock-user').status).toBe(200);
+    expect(acceptedMock.mockPortalGet('/documents/mock-document-1', 'mock-token:mock-document-participant').status).toBe(200);
+    expect(acceptedMock.mockPortalGet('/blockchain/verify/mock-document-1', 'mock-token:mock-document-participant').status).toBe(200);
   });
 
   it('does not reveal an unshared document integrity record to the mock participant', async () => {
-    const response = mockPortalGet('/blockchain/verify/mock-document-3', 'mock-token:mock-user');
+    const response = mockPortalGet('/blockchain/verify/mock-document-3', 'mock-token:mock-document-participant');
 
     expect(response.status).toBe(404);
     await expect(response.json()).resolves.toEqual({ message: 'On-chain record not found' });
   });
 
   it('returns pending invitations only to the mock participant', async () => {
-    const participant = mockPortalGet('/documents/invitations', 'mock-token:mock-user');
-    const issuer = mockPortalGet('/documents/invitations', 'mock-token:mock-lawyer');
+    const participant = mockPortalGet('/documents/invitations', 'mock-token:mock-document-participant');
+    const issuer = mockPortalGet('/documents/invitations', 'mock-token:mock-document-issuer');
 
     expect(participant.status).toBe(200);
     await expect(participant.json()).resolves.toMatchObject([
@@ -335,12 +331,12 @@ describe('portal mock participant invitations and requests', () => {
       'POST',
       '/documents/mock-document-1/parties/accept',
       new Request('https://mock.lexchain.local/api/portal/proxy-post', { method: 'POST' }),
-      'mock-token:mock-user',
+      'mock-token:mock-document-participant',
     );
 
     expect(response.status).toBe(204);
-    await expect(mockPortalGet('/documents/invitations', 'mock-token:mock-user').json()).resolves.toEqual([]);
-    await expect(mockPortalGet('/documents/mock-document-1', 'mock-token:mock-user').json()).resolves.toMatchObject({
+    await expect(mockPortalGet('/documents/invitations', 'mock-token:mock-document-participant').json()).resolves.toEqual([]);
+    await expect(mockPortalGet('/documents/mock-document-1', 'mock-token:mock-document-participant').json()).resolves.toMatchObject({
       document_id: 'mock-document-1',
     });
   });
@@ -350,7 +346,7 @@ describe('portal mock participant invitations and requests', () => {
       'POST',
       '/documents/mock-document-4/finalize',
       new Request('https://mock.lexchain.local/api/portal/proxy-post', { method: 'POST' }),
-      'mock-token:mock-user',
+      'mock-token:mock-document-participant',
     );
     const restore = await mockPortalMutate(
       'POST',
@@ -360,7 +356,7 @@ describe('portal mock participant invitations and requests', () => {
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ reason: 'No access.' }),
       }),
-      'mock-token:mock-user',
+      'mock-token:mock-document-participant',
     );
 
     expect(finalize.status).toBe(403);
@@ -372,7 +368,7 @@ describe('portal mock participant invitations and requests', () => {
       'POST',
       '/documents/mock-document-4/finalize',
       new Request('https://mock.lexchain.local/api/portal/proxy-post', { method: 'POST' }),
-      'mock-token:mock-lawyer',
+      'mock-token:mock-document-issuer',
     );
     const restore = await mockPortalMutate(
       'POST',
@@ -382,7 +378,7 @@ describe('portal mock participant invitations and requests', () => {
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ reason: 'Issuer access is still read-only.' }),
       }),
-      'mock-token:mock-lawyer',
+      'mock-token:mock-document-issuer',
     );
 
     expect(finalize.status).toBe(403);
@@ -394,19 +390,19 @@ describe('portal mock participant invitations and requests', () => {
       'POST',
       `/documents/mock-document-1/parties/${action}`,
       new Request('https://mock.lexchain.local/api/portal/proxy-post', { method: 'POST' }),
-      'mock-token:mock-lawyer',
+      'mock-token:mock-document-issuer',
     );
 
     expect(response.status).toBe(403);
   });
 
   it('returns request history only to the mock participant', async () => {
-    const participant = mockPortalGet('/requests/my', 'mock-token:mock-user');
-    const issuer = mockPortalGet('/requests/my', 'mock-token:mock-lawyer');
+    const participant = mockPortalGet('/requests/my', 'mock-token:mock-document-participant');
+    const issuer = mockPortalGet('/requests/my', 'mock-token:mock-document-issuer');
 
     const history = await participant.json();
     expect(history).toMatchObject({ total: 2 });
-    expect(history.requests).toContainEqual(expect.objectContaining({ id: 'mock-request-1', requester_email: 'user@example.com' }));
+    expect(history.requests).toContainEqual(expect.objectContaining({ id: 'mock-request-1', requester_email: 'participant@example.com' }));
     expect(issuer.status).toBe(403);
   });
 });
@@ -430,7 +426,7 @@ describe('portal mock search and document questions', () => {
       'POST',
       '/search',
       searchRequest('Restoration Review'),
-      'mock-token:mock-lawyer',
+      'mock-token:mock-document-issuer',
     );
     await expect(issuerSearch.json()).resolves.toMatchObject({
       results: [expect.objectContaining({ document_id: 'mock-document-3' })],
@@ -439,21 +435,21 @@ describe('portal mock search and document questions', () => {
       'POST',
       '/documents/mock-document-3/ask',
       askRequest(),
-      'mock-token:mock-lawyer',
+      'mock-token:mock-document-issuer',
     )).status).toBe(200);
 
     const privateSearch = await scopedMock.mockPortalMutate(
       'POST',
       '/search',
       searchRequest('Restoration Review'),
-      'mock-token:mock-user',
+      'mock-token:mock-document-participant',
     );
     await expect(privateSearch.json()).resolves.toMatchObject({ results: [] });
     const privateAsk = await scopedMock.mockPortalMutate(
       'POST',
       '/documents/mock-document-3/ask',
       askRequest(),
-      'mock-token:mock-user',
+      'mock-token:mock-document-participant',
     );
     expect(privateAsk.status).toBe(404);
     await expect(privateAsk.json()).resolves.toEqual({ message: 'Document not found' });
@@ -462,13 +458,13 @@ describe('portal mock search and document questions', () => {
       'POST',
       '/documents/mock-document-1/parties/accept',
       new Request('https://mock.lexchain.local/api/portal/proxy-post', { method: 'POST' }),
-      'mock-token:mock-user',
+      'mock-token:mock-document-participant',
     );
     const sharedSearch = await scopedMock.mockPortalMutate(
       'POST',
       '/search',
       searchRequest('Lease Agreement'),
-      'mock-token:mock-user',
+      'mock-token:mock-document-participant',
     );
     await expect(sharedSearch.json()).resolves.toMatchObject({
       results: [expect.objectContaining({ document_id: 'mock-document-1' })],
@@ -477,19 +473,19 @@ describe('portal mock search and document questions', () => {
       'POST',
       '/documents/mock-document-1/ask',
       askRequest(),
-      'mock-token:mock-user',
+      'mock-token:mock-document-participant',
     )).status).toBe(200);
   });
 });
 
 describe('portal mock issuer request review', () => {
   it('lists and filters requests only for the mock issuer', async () => {
-    const issuer = mockPortalGet('/requests?status=pending', 'mock-token:mock-lawyer');
-    const participant = mockPortalGet('/requests', 'mock-token:mock-user');
+    const issuer = mockPortalGet('/requests?status=pending', 'mock-token:mock-document-issuer');
+    const participant = mockPortalGet('/requests', 'mock-token:mock-document-participant');
 
     await expect(issuer.json()).resolves.toMatchObject({
       total: 1,
-      requests: [{ id: 'mock-request-1', status: 'pending', lawyer_id: 'mock-lawyer' }],
+      requests: [{ id: 'mock-request-1', status: 'pending', lawyer_id: 'mock-document-issuer' }],
     });
     expect(participant.status).toBe(403);
   });
@@ -503,7 +499,7 @@ describe('portal mock issuer request review', () => {
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ action: 'approve' }),
       }),
-      'mock-token:mock-user',
+      'mock-token:mock-document-participant',
     );
 
     expect(response.status).toBe(403);
@@ -518,13 +514,13 @@ describe('portal mock issuer request review', () => {
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ action: 'reject', rejection_reason: 'Please provide a signed copy.' }),
       }),
-      'mock-token:mock-lawyer',
+      'mock-token:mock-document-issuer',
     );
 
     await expect(response.json()).resolves.toMatchObject({
       id: 'mock-request-1', status: 'rejected', rejection_reason: 'Please provide a signed copy.',
     });
-    const history = await mockPortalGet('/requests/my', 'mock-token:mock-user').json();
+    const history = await mockPortalGet('/requests/my', 'mock-token:mock-document-participant').json();
     expect(history.requests).toContainEqual(expect.objectContaining({
       id: 'mock-request-1', status: 'rejected', rejection_reason: 'Please provide a signed copy.',
     }));

@@ -10,7 +10,7 @@ afterEach(() => {
   else process.env.API_URL = originalApiUrl;
 });
 
-it('rejects unauthenticated requests and forwards a Super Admin party list request', async () => {
+it('rejects unauthenticated requests and forwards a Document Issuer party list request', async () => {
   const params = Promise.resolve({ id: 'document-123' });
 
   const unauthenticated = await GET(
@@ -22,7 +22,7 @@ it('rejects unauthenticated requests and forwards a Super Admin party list reque
   await expect(unauthenticated.json()).resolves.toEqual({ message: 'Not authenticated' });
 
   const fetchMock = vi.fn()
-    .mockResolvedValueOnce(new Response(JSON.stringify({ role: 'admin' }), { status: 200 }))
+    .mockResolvedValueOnce(new Response(JSON.stringify({ role: 'document_issuer' }), { status: 200 }))
     .mockResolvedValueOnce(
       new Response(JSON.stringify({ parties: [] }), {
         status: 200,
@@ -51,7 +51,7 @@ it('rejects unauthenticated requests and forwards a Super Admin party list reque
 
 it('does not proxy participant management when the authenticated profile is not an issuer', async () => {
   const fetchMock = vi.fn().mockResolvedValue(
-    new Response(JSON.stringify({ role: 'user' }), { status: 200 }),
+    new Response(JSON.stringify({ role: 'document_participant' }), { status: 200 }),
   );
   vi.stubGlobal('fetch', fetchMock);
   const params = Promise.resolve({ id: 'document-123' });

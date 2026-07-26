@@ -1,7 +1,7 @@
 import { canFinalizeDocument, canRestoreDocument } from '../app/portal/lib/document-lifecycle-ui';
 
-const mockParticipantId = 'mock-user-1';
-const mockIssuerId = 'mock-lawyer';
+const mockParticipantId = 'mock-document-participant';
+const mockIssuerId = 'mock-document-issuer';
 
 export type DemoIntegrityState = 'match' | 'mismatch' | 'not-recorded' | 'unavailable';
 
@@ -91,27 +91,21 @@ function mockCreationAudit(documentId: string, createdAt: string) {
 }
 
 const issuerProfile = {
-  email: 'jane.doe@lexchain.local',
-  f_name: 'Jane',
-  l_name: 'Doe',
+  email: 'issuer@example.com',
+  f_name: 'Document',
+  l_name: 'Issuer',
   avatar: 'icon1',
-  role: 'lawyer',
+  role: 'document_issuer',
   mfa_enabled: false,
 };
 
 const participantProfile = {
-  email: 'user@example.com',
-  f_name: 'Alex',
-  l_name: 'User',
+  email: 'participant@example.com',
+  f_name: 'Document',
+  l_name: 'Participant',
   avatar: 'icon2',
-  role: 'user',
+  role: 'document_participant',
   mfa_enabled: false,
-};
-
-const superAdminProfile = {
-  ...issuerProfile,
-  email: 'admin@example.com',
-  role: 'admin',
 };
 
 let documents: MockDocument[] = [
@@ -342,28 +336,21 @@ export function isMockMode() {
 }
 
 export function isMockPortalToken(token: string) {
-  return token === 'mock-token:mock-user'
-    || token === 'mock-token:mock-lawyer'
-    || token === 'mock-token:mock-admin'
-    || token === 'mock-token:mock-owner';
+  return token === 'mock-token:mock-document-participant'
+    || token === 'mock-token:mock-document-issuer';
 }
 
 function profileForToken(token?: string) {
-  if (token === 'mock-token:mock-user') return participantProfile;
-  if (isMockSuperAdmin(token)) return superAdminProfile;
+  if (token === 'mock-token:mock-document-participant') return participantProfile;
   return issuerProfile;
 }
 
 function isMockParticipant(token?: string) {
-  return token === 'mock-token:mock-user';
+  return token === 'mock-token:mock-document-participant';
 }
 
 function isMockIssuer(token?: string) {
-  return token === 'mock-token:mock-lawyer' || isMockSuperAdmin(token);
-}
-
-function isMockSuperAdmin(token?: string) {
-  return token === 'mock-token:mock-admin' || token === 'mock-token:mock-owner';
+  return token === 'mock-token:mock-document-issuer';
 }
 
 function hasMockIssuerAccess(token?: string) {

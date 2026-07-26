@@ -20,9 +20,9 @@ it('rejects unauthenticated blockchain record requests', async () => {
   await expect(response.json()).resolves.toEqual({ message: 'Not authenticated' });
 });
 
-it('forwards Super Admin blockchain record requests to the matching upstream path', async () => {
+it('forwards Document Issuer blockchain record requests to the matching upstream path', async () => {
   const fetchMock = vi.fn()
-    .mockResolvedValueOnce(new Response(JSON.stringify({ role: 'admin' }), { status: 200 }))
+    .mockResolvedValueOnce(new Response(JSON.stringify({ role: 'document_issuer' }), { status: 200 }))
     .mockResolvedValueOnce(new Response(JSON.stringify({ document_id: 'document-123', transaction_hash: '0xabc' }), {
       status: 200,
       headers: { 'content-type': 'application/json' },
@@ -50,7 +50,7 @@ it('forwards Super Admin blockchain record requests to the matching upstream pat
 
 it('does not proxy blockchain record requests from participants', async () => {
   const fetchMock = vi.fn().mockResolvedValue(
-    new Response(JSON.stringify({ role: 'user' }), { status: 200 }),
+    new Response(JSON.stringify({ role: 'document_participant' }), { status: 200 }),
   );
   vi.stubGlobal('fetch', fetchMock);
 

@@ -6,7 +6,7 @@ afterEach(() => vi.restoreAllMocks());
 
 it('does not revoke participant access when the authenticated profile is not an issuer', async () => {
   const fetchMock = vi.fn().mockResolvedValue(
-    new Response(JSON.stringify({ role: 'user' }), { status: 200 }),
+    new Response(JSON.stringify({ role: 'document_participant' }), { status: 200 }),
   );
   vi.stubGlobal('fetch', fetchMock);
 
@@ -29,9 +29,9 @@ it('does not revoke participant access when the authenticated profile is not an 
   });
 });
 
-it('revokes participant access when the authenticated profile is a Super Admin issuer', async () => {
+it('revokes participant access when the authenticated profile is a Document Issuer issuer', async () => {
   const fetchMock = vi.fn()
-    .mockResolvedValueOnce(new Response(JSON.stringify({ role: 'super_admin' }), { status: 200 }))
+    .mockResolvedValueOnce(new Response(JSON.stringify({ role: 'document_issuer' }), { status: 200 }))
     .mockResolvedValueOnce(new Response(JSON.stringify({ removed: true }), { status: 200 }));
   vi.stubGlobal('fetch', fetchMock);
 
