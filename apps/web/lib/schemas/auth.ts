@@ -19,3 +19,25 @@ export const signInResponseSchema = z.object({
 });
 
 export type SignInResponse = z.infer<typeof signInResponseSchema>;
+
+export type DemoForgotPasswordResult = {
+  message: "If an account exists for that email, a reset link has been sent.";
+  demoResetHref: string;
+};
+
+export const demoResetToken = "lexchain-web-demo-reset";
+
+export const webResetPasswordSchema = z
+  .object({
+    password: z
+      .string()
+      .min(8, "Use at least 8 characters.")
+      .regex(/[A-Z]/, "Add at least one uppercase letter.")
+      .regex(/[a-z]/, "Add at least one lowercase letter.")
+      .regex(/[0-9]/, "Add at least one number."),
+    confirmPassword: z.string(),
+  })
+  .refine((values) => values.password === values.confirmPassword, {
+    message: "Passwords do not match.",
+    path: ["confirmPassword"],
+  });
