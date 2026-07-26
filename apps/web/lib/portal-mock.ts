@@ -423,7 +423,9 @@ export function mockPortalGet(path: string, token?: string): Response {
   const blockchainMatch = path.match(/^\/blockchain\/verify\/([^/]+)\/?$/);
   if (blockchainMatch) {
     const document = documentFor(blockchainMatch[1]);
-    if (!document || !document.on_chain) return error('On-chain record not found', 404);
+    if (!document || !canAccessDocument(token, document) || !document.on_chain) {
+      return error('On-chain record not found', 404);
+    }
     return json({
       document_id: document.id,
       onchain_document_id: `chain-${document.id}`,
