@@ -25,12 +25,12 @@ function ResetPasswordForm() {
   const [errors, setErrors] = useState<string[]>([]);
   const [isComplete, setIsComplete] = useState(false);
 
-  if (!isDemoMode) {
+  if (!hasValidToken) {
     return (
       <ResetPasswordShell>
         <div className="mt-6 space-y-4">
           <p role="alert" className="rounded-xl bg-red-50 px-4 py-3 text-sm font-semibold text-red-600">
-            {unavailableMessage}
+            This password reset link is invalid or has expired.
           </p>
           <Link href="/login" className="flex min-h-[52px] w-full items-center justify-center rounded-full border-2 border-[#E4EEF9] px-5 py-3.5 text-[15px] font-black text-[#0C2B49] transition hover:bg-[#F5FAFF]">
             Back to sign in
@@ -40,12 +40,12 @@ function ResetPasswordForm() {
     );
   }
 
-  if (!hasValidToken) {
+  if (!isDemoMode) {
     return (
       <ResetPasswordShell>
         <div className="mt-6 space-y-4">
           <p role="alert" className="rounded-xl bg-red-50 px-4 py-3 text-sm font-semibold text-red-600">
-            This password reset link is invalid or has expired.
+            {unavailableMessage}
           </p>
           <Link href="/login" className="flex min-h-[52px] w-full items-center justify-center rounded-full border-2 border-[#E4EEF9] px-5 py-3.5 text-[15px] font-black text-[#0C2B49] transition hover:bg-[#F5FAFF]">
             Back to sign in

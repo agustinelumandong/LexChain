@@ -27,6 +27,16 @@ describe("ResetPasswordPage", () => {
     expect(screen.getByRole("link", { name: "Back to sign in" }).getAttribute("href")).toBe("/login");
   });
 
+  it.each([undefined, "incorrect-token"])("keeps invalid token %s invalid outside mock mode", async (token) => {
+    vi.stubEnv("NEXT_PUBLIC_USE_MOCK_API", "false");
+    renderResetPage(token);
+
+    expect(await screen.findByText("This password reset link is invalid or has expired.")).toBeTruthy();
+    expect(screen.queryByText(
+      "Password recovery is not connected yet. The backend password-recovery endpoints are required before this can send a real email.",
+    )).toBeNull();
+  });
+
   it("does not offer demo completion for a valid token outside mock mode", async () => {
     vi.stubEnv("NEXT_PUBLIC_USE_MOCK_API", "false");
     renderResetPage("lexchain-web-demo-reset");
