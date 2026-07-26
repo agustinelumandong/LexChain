@@ -130,7 +130,7 @@ export default function UploadPage() {
   }
 
   return (
-    <div className="flex max-w-xl flex-col gap-5">
+    <div className="flex w-full max-w-5xl flex-col gap-5">
       <div>
         <h1 className="text-[28px] font-black text-[#0C2B49]">Upload Document</h1>
         <p className="mt-1 text-sm text-[#64748b]">A guided upload using the fields LexChain currently accepts.</p>
@@ -142,33 +142,35 @@ export default function UploadPage() {
         <li aria-current={activeStep === 3 ? 'step' : undefined} className={getStepClass(3)}>3. Confirm and process</li>
       </ol>
 
-      <section aria-labelledby="select-pdf-heading" className="rounded-[18px] border border-[#E8F0F8] bg-white p-5">
-        <h2 id="select-pdf-heading" className="font-black text-[#0C2B49]">Select PDF</h2>
-        <p className="mt-1 text-sm text-[#64748b]">PDF only · maximum {defaultOfficeSettings.uploadLimitMegabytes} MB</p>
-        <div
-          onDragOver={(event) => { event.preventDefault(); setDrag(true); }}
-          onDragLeave={() => setDrag(false)}
-          onDrop={(event) => { event.preventDefault(); setDrag(false); pick(event.dataTransfer.files[0] ?? null); }}
-          className={`mt-4 rounded-[18px] border-2 border-dashed p-8 text-center transition ${drag ? 'border-[#0985E7] bg-[#EEF6FF]' : 'border-[#E8F0F8] bg-[#F8FBFF] hover:border-[#0985E7]'}`}
-        >
-          <UploadFileIcon sx={{ fontSize: 44, color: '#0985E7' }} />
-          <p className="mt-2 text-sm font-bold text-[#0C2B49]">Drop your PDF here</p>
-          <button type="button" onClick={() => inputRef.current?.click()} className="mt-3 rounded-full border border-[#0985E7] px-4 py-2 text-sm font-bold text-[#0985E7] focus:outline-none focus:ring-2 focus:ring-[#0985E7] focus:ring-offset-2">Choose a PDF</button>
-          <input ref={inputRef} type="file" accept="application/pdf,.pdf" className="hidden" onChange={(event) => pick(event.target.files?.[0] ?? null)} />
-        </div>
-        {file && <div className="mt-4 flex items-center gap-3 rounded-[14px] border border-[#E8F0F8] p-4"><InsertDriveFileIcon sx={{ color: '#0985E7' }} /><span className="flex-1 truncate text-sm font-bold text-[#0C2B49]">{file.name} · {formatFileSize(file.size)}</span><button aria-label="Remove uploaded file" onClick={() => { setFile(null); setValidationError(null); }} type="button"><CloseIcon sx={{ fontSize: 18, color: '#64748b' }} /></button></div>}
-      </section>
+      <div className="grid gap-5 lg:grid-cols-2">
+        <section aria-labelledby="select-pdf-heading" className="rounded-[18px] border border-[#E8F0F8] bg-white p-5">
+          <h2 id="select-pdf-heading" className="font-black text-[#0C2B49]">Select PDF</h2>
+          <p className="mt-1 text-sm text-[#64748b]">PDF only · maximum {defaultOfficeSettings.uploadLimitMegabytes} MB</p>
+          <div
+            onDragOver={(event) => { event.preventDefault(); setDrag(true); }}
+            onDragLeave={() => setDrag(false)}
+            onDrop={(event) => { event.preventDefault(); setDrag(false); pick(event.dataTransfer.files[0] ?? null); }}
+            className={`mt-4 rounded-[18px] border-2 border-dashed p-6 text-center transition sm:p-8 ${drag ? 'border-[#0985E7] bg-[#EEF6FF]' : 'border-[#E8F0F8] bg-[#F8FBFF] hover:border-[#0985E7]'}`}
+          >
+            <UploadFileIcon sx={{ fontSize: 44, color: '#0985E7' }} />
+            <p className="mt-2 text-sm font-bold text-[#0C2B49]">Drop your PDF here</p>
+            <button type="button" onClick={() => inputRef.current?.click()} className="mt-3 rounded-full border border-[#0985E7] px-4 py-2 text-sm font-bold text-[#0985E7] focus:outline-none focus:ring-2 focus:ring-[#0985E7] focus:ring-offset-2">Choose a PDF</button>
+            <input ref={inputRef} type="file" accept="application/pdf,.pdf" className="hidden" onChange={(event) => pick(event.target.files?.[0] ?? null)} />
+          </div>
+          {file && <div className="mt-4 flex items-center gap-3 rounded-[14px] border border-[#E8F0F8] p-4"><InsertDriveFileIcon sx={{ color: '#0985E7' }} /><span className="flex-1 truncate text-sm font-bold text-[#0C2B49]">{file.name} · {formatFileSize(file.size)}</span><button aria-label="Remove uploaded file" onClick={() => { setFile(null); setValidationError(null); }} type="button"><CloseIcon sx={{ fontSize: 18, color: '#64748b' }} /></button></div>}
+        </section>
 
-      <section aria-labelledby="document-information-heading" className="rounded-[18px] border border-[#E8F0F8] bg-white p-5">
-        <h2 id="document-information-heading" className="font-black text-[#0C2B49]">Document information</h2>
-        <p className="mt-1 text-sm text-[#64748b]">Provide the title and active book required by the upload service.</p>
-        <div className="mt-4 grid gap-4">
-          <label className="flex flex-col gap-1.5 text-sm font-bold text-[#0C2B49]">Document title<input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="e.g. Deed of Sale" className="rounded-xl border border-[#D7E4F2] px-3 py-2.5 text-sm font-medium outline-none focus:border-[#0985E7]" /></label>
-          <label className="flex flex-col gap-1.5 text-sm font-bold text-[#0C2B49]">Register book<select value={bookId} onChange={(event) => setBookId(event.target.value)} disabled={booksQuery.isLoading || availableBooks.length === 0} className="rounded-xl border border-[#D7E4F2] bg-white px-3 py-2.5 text-sm font-medium outline-none focus:border-[#0985E7] disabled:bg-[#F8FBFF]"><option value="">{booksQuery.isLoading ? 'Loading register books...' : availableBooks.length === 0 ? 'No active register books available' : 'Choose a register book'}</option>{availableBooks.map((book) => <option key={book.id} value={book.id}>Register book {book.book_number} — Series {book.series_year}</option>)}</select></label>
-          {booksQuery.isError && <p role="alert" className="text-sm font-bold text-red-600">Unable to load books. Please try again.</p>}
-          {!booksQuery.isLoading && availableBooks.length === 0 && <p className="text-sm text-[#64748b]">Register an active book before uploading a document.</p>}
-        </div>
-      </section>
+        <section aria-labelledby="document-information-heading" className="rounded-[18px] border border-[#E8F0F8] bg-white p-5">
+          <h2 id="document-information-heading" className="font-black text-[#0C2B49]">Document information</h2>
+          <p className="mt-1 text-sm text-[#64748b]">Provide the title and active book required by the upload service.</p>
+          <div className="mt-4 grid gap-4">
+            <label className="flex flex-col gap-1.5 text-sm font-bold text-[#0C2B49]">Document title<input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="e.g. Deed of Sale" className="rounded-xl border border-[#D7E4F2] px-3 py-2.5 text-sm font-medium outline-none focus:border-[#0985E7]" /></label>
+            <label className="flex flex-col gap-1.5 text-sm font-bold text-[#0C2B49]">Register book<select value={bookId} onChange={(event) => setBookId(event.target.value)} disabled={booksQuery.isLoading || availableBooks.length === 0} className="rounded-xl border border-[#D7E4F2] bg-white px-3 py-2.5 text-sm font-medium outline-none focus:border-[#0985E7] disabled:bg-[#F8FBFF]"><option value="">{booksQuery.isLoading ? 'Loading register books...' : availableBooks.length === 0 ? 'No active register books available' : 'Choose a register book'}</option>{availableBooks.map((book) => <option key={book.id} value={book.id}>Register book {book.book_number} — Series {book.series_year}</option>)}</select></label>
+            {booksQuery.isError && <p role="alert" className="text-sm font-bold text-red-600">Unable to load books. Please try again.</p>}
+            {!booksQuery.isLoading && availableBooks.length === 0 && <p className="text-sm text-[#64748b]">Register an active book before uploading a document.</p>}
+          </div>
+        </section>
+      </div>
 
       <section aria-labelledby="confirm-process-heading" className="rounded-[18px] border border-[#E8F0F8] bg-white p-5">
         <h2 id="confirm-process-heading" className="font-black text-[#0C2B49]">Confirm and process</h2>
