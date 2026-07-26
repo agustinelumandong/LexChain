@@ -34,6 +34,11 @@ const iconsByLabel: Record<string, PortalNavigationIcon> = {
   "Upload Document": FileUploadIcon,
   Notifications: NotificationsNoneOutlinedIcon,
   "Office Settings": SettingsIcon,
+  "User Accounts": PersonIcon,
+  "Issuer Invitations": EmailOutlinedIcon,
+  "System Reports": AssessmentOutlinedIcon,
+  "Audit Logs": ScheduleIcon,
+  "System Statistics": AnalyticsOutlinedIcon,
 };
 
 export function isPortalRouteActive(pathname: string, item: PortalNavigationItem): boolean {

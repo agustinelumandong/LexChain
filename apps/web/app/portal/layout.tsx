@@ -13,7 +13,7 @@ import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import { Toaster } from 'sonner';
 import type { ApiSchema } from "@lexchain/types";
-import { getPortalRoleLabel, getPortalUiRole, isSupportedPortalUiRole } from "./lib/portal-role";
+import { getPortalRoleLabel, getPortalUiRole, isPortalSuperAdminRole, isSupportedPortalUiRole } from "./lib/portal-role";
 import { getPortalNavigation } from "./lib/portal-dashboard";
 import { getPortalNavigationIcon, isPortalRouteActive } from "./components/portal-role-navigation";
 import { PortalBottomNav } from "./components/portal-bottom-nav";
@@ -45,7 +45,9 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
 
   const uiRole = getPortalUiRole(profile?.role);
   const roleLabel = getPortalRoleLabel(profile?.role);
-  const portalNavigationGroups = isSupportedPortalUiRole(uiRole) ? getPortalNavigation(uiRole) : [];
+  const portalNavigationGroups = isSupportedPortalUiRole(uiRole)
+    ? getPortalNavigation(uiRole, isPortalSuperAdminRole(profile?.role))
+    : [];
   const initials = `${profile?.f_name?.[0] ?? ''}${profile?.l_name?.[0] ?? ''}`.toUpperCase() || '?';
   const fullName = profile ? `${profile.f_name} ${profile.l_name}` : '...';
   const email = profile?.email ?? '...';

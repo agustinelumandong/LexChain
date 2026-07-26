@@ -26,9 +26,12 @@ export function getStatusOverviewLabel(status?: string | null) {
   return getDocumentStatusLabel(status);
 }
 
-export function getPortalNavigation(role: PortalUiRole): PortalNavigationGroup[] {
+export function getPortalNavigation(
+  role: PortalUiRole,
+  superAdmin = false,
+): PortalNavigationGroup[] {
   if (role === "issuer") {
-    return [
+    const navigation: PortalNavigationGroup[] = [
       {
         label: "Workspace",
         items: [
@@ -61,6 +64,21 @@ export function getPortalNavigation(role: PortalUiRole): PortalNavigationGroup[]
         ],
       },
     ];
+
+    if (superAdmin) {
+      navigation.push({
+        label: "Super Admin",
+        items: [
+          { label: "User Accounts", href: "/portal/users" },
+          { label: "Issuer Invitations", href: "/portal/issuer-invitations" },
+          { label: "System Reports", href: "/portal/system-reports" },
+          { label: "Audit Logs", href: "/portal/audit-logs" },
+          { label: "System Statistics", href: "/portal/system-statistics" },
+        ],
+      });
+    }
+
+    return navigation;
   }
 
   return [

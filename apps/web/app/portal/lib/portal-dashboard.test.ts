@@ -18,6 +18,38 @@ describe("portal dashboard", () => {
     ]);
   });
 
+  it("adds the five management destinations for Super Admin issuers", () => {
+    const navigation = getPortalNavigation("issuer", true);
+
+    expect(navigation.filter((group) => group.label === "Super Admin")).toEqual([
+      {
+        label: "Super Admin",
+        items: [
+          { label: "User Accounts", href: "/portal/users" },
+          { label: "Issuer Invitations", href: "/portal/issuer-invitations" },
+          { label: "System Reports", href: "/portal/system-reports" },
+          { label: "Audit Logs", href: "/portal/audit-logs" },
+          { label: "System Statistics", href: "/portal/system-statistics" },
+        ],
+      },
+    ]);
+  });
+
+  it.each(["issuer", "participant"] as const)(
+    "does not expose Super Admin destinations to a standard %s",
+    (role) => {
+      const hrefs = getPortalNavigation(role).flatMap((group) =>
+        group.items.map((item) => item.href),
+      );
+
+      expect(hrefs).not.toContain("/portal/users");
+      expect(hrefs).not.toContain("/portal/issuer-invitations");
+      expect(hrefs).not.toContain("/portal/system-reports");
+      expect(hrefs).not.toContain("/portal/audit-logs");
+      expect(hrefs).not.toContain("/portal/system-statistics");
+    },
+  );
+
   it("summarizes an empty document repository without unsupported metrics", () => {
     expect(getDashboardMetrics([])).toEqual([
       ["Total Documents", 0],
