@@ -343,7 +343,7 @@ export function UsersManagementView({ users, total }: { users: AdminUser[]; tota
             <DownloadIcon fontSize="small" />
             Export
           </button>
-          <Link href="/admin/invitations-permissions" className="inline-flex items-center gap-2 rounded-xl bg-[#0985E7] px-5 py-3 text-sm font-black text-white shadow-sm shadow-[#0985E7]/25 transition hover:bg-[#0770C4]">
+          <Link href="/portal/issuer-invitations" className="inline-flex items-center gap-2 rounded-xl bg-[#0985E7] px-5 py-3 text-sm font-black text-white shadow-sm shadow-[#0985E7]/25 transition hover:bg-[#0770C4]">
             <PersonAddIcon fontSize="small" />
             Invite User
           </Link>

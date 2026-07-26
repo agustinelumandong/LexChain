@@ -240,7 +240,7 @@ function ActivityPanel({ invitations, mockMode }: { invitations: DirectoryInvita
     <article className="flex min-h-[240px] flex-col rounded-2xl border border-[#E4EEF9] bg-white p-5 shadow-sm shadow-[#DDEAF7]/35">
       <div className="mb-4 flex shrink-0 items-center justify-between">
         <h2 className="text-lg font-black text-[#071B33]">Recent Invitation Activity</h2>
-        <Link href="/admin/audit-logs" className="text-xs font-black text-[#0985E7] hover:text-[#0767B9]">View logs</Link>
+        <Link href="/portal/audit-logs" className="text-xs font-black text-[#0985E7] hover:text-[#0767B9]">View logs</Link>
       </div>
       <div className="admin-table-scroll min-h-0 flex-1 space-y-3 overflow-auto pr-1">
         {activity.map((item) => (
