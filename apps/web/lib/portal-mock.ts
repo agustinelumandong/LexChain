@@ -531,12 +531,13 @@ async function createBook(request: Request) {
   return json(book, 201);
 }
 
-async function searchDocuments(request: Request) {
+async function searchDocuments(request: Request, token?: string) {
   const body = await jsonBody(request);
   const query = typeof body?.query === 'string' ? body.query.trim() : '';
   if (!query) return error('Search query is required', 400);
   const normalized = query.toLowerCase();
   const results = documents
+    .filter((document) => canAccessDocument(token, document))
     .filter((document) => `${document.file_name} ${document.summary} ${document.labels.join(' ')}`.toLowerCase().includes(normalized))
     .map((document) => ({
       chunk_id: `mock-search-${document.id}`,
@@ -547,9 +548,9 @@ async function searchDocuments(request: Request) {
   return json({ query, results });
 }
 
-async function askDocument(id: string, request: Request) {
+async function askDocument(id: string, request: Request, token?: string) {
   const document = documentFor(id);
-  if (!document) return error('Document not found', 404);
+  if (!document || !canAccessDocument(token, document)) return error('Document not found', 404);
   const body = await jsonBody(request);
   const question = typeof body?.question === 'string' ? body.question.trim() : '';
   if (!question) return error('A question is required', 400);
@@ -583,6 +584,7 @@ export async function mockPortalMutate(method: 'POST' | 'PATCH', path: string, r
     const finalizedDocument: MockDocument = {
       ...document,
       lifecycle: 'finalized',
+      on_chain: true,
       document_hash: documentHash,
       finalized_at: now,
       finalized_by: mockIssuerId,
@@ -642,10 +644,10 @@ export async function mockPortalMutate(method: 'POST' | 'PATCH', path: string, r
     documents = documents.map((item) => item.id === document.id ? restoredDocument : item);
     return json(restoredDocument);
   }
-  if (method === 'POST' && path === '/search') return searchDocuments(request);
+  if (method === 'POST' && path === '/search') return searchDocuments(request, token);
 
   const askMatch = path.match(/^\/documents\/([^/]+)\/ask\/?$/);
-  if (method === 'POST' && askMatch) return askDocument(askMatch[1], request);
+  if (method === 'POST' && askMatch) return askDocument(askMatch[1], request, token);
 
   const invitationMatch = requestPathname.match(/^\/documents\/([^/]+)\/parties\/(accept|reject)$/);
   if (method === 'POST' && invitationMatch) {
