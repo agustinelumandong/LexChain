@@ -1,4 +1,13 @@
+import type { ApiSchema } from '@lexchain/types';
+
 export type ProcessingStage = 'queued' | 'processing' | 'completed' | 'failed';
+
+export type PortalDocument = Pick<
+  ApiSchema<'DocumentResponse'>,
+  'document_id' | 'file_name' | 'status'
+> & {
+  failure_reason?: string | null;
+};
 
 export type ProcessingMonitorItem = {
   id: string;
@@ -9,42 +18,37 @@ export type ProcessingMonitorItem = {
   failureReason?: string;
 };
 
-const processingMonitorItems: ProcessingMonitorItem[] = [
-  {
-    id: 'demo-queued-deed',
-    documentName: 'Deed of Sale — Rivera Property',
-    documentHref: '/portal/documents/demo-queued-deed',
-    stage: 'queued',
-    detail: 'Waiting for the next processing worker.',
-  },
-  {
-    id: 'demo-processing-affidavit',
-    documentName: 'Affidavit of Loss — Santos',
-    documentHref: '/portal/documents/demo-processing-affidavit',
-    stage: 'processing',
-    detail: 'Extracting text and preparing the verification record.',
-  },
-  {
-    id: 'demo-completed-contract',
-    documentName: 'Service Agreement — Northwind',
-    documentHref: '/portal/documents/demo-completed-contract',
-    stage: 'completed',
-    detail: 'Processing completed and the document is ready to review.',
-  },
-  {
-    id: 'demo-failed-lease',
-    documentName: 'Commercial Lease — Mabini Avenue',
-    documentHref: '/portal/documents/demo-failed-lease',
-    stage: 'failed',
-    detail: 'Processing stopped before a verification record was created.',
-    failureReason: 'The uploaded PDF is password-protected and could not be opened for text extraction.',
-  },
-];
+const stageDetails: Record<ProcessingStage, string> = {
+  queued: 'Waiting for the next processing worker.',
+  processing: 'Extracting text and preparing the verification record.',
+  completed: 'Processing completed and the document is ready to review.',
+  failed: 'Processing stopped before a verification record was created.',
+};
+
+function getProcessingStage(status: string): ProcessingStage {
+  const normalized = status.trim().toLowerCase();
+  if (normalized === 'queued' || normalized === 'pending') return 'queued';
+  if (normalized === 'processing') return 'processing';
+  if (normalized === 'failed') return 'failed';
+  return 'completed';
+}
 
 export function getProcessingStageLabel(stage: ProcessingStage): string {
   return stage.charAt(0).toUpperCase() + stage.slice(1);
 }
 
-export function getProcessingMonitorItems(): readonly ProcessingMonitorItem[] {
-  return processingMonitorItems;
+export function getProcessingMonitorItems(
+  documents: PortalDocument[],
+): ProcessingMonitorItem[] {
+  return documents.map((document) => {
+    const stage = getProcessingStage(document.status);
+    return {
+      id: document.document_id,
+      documentName: document.file_name,
+      documentHref: `/portal/documents/${document.document_id}`,
+      stage,
+      detail: stageDetails[stage],
+      ...(document.failure_reason ? { failureReason: document.failure_reason } : {}),
+    };
+  });
 }

@@ -17,10 +17,21 @@ describe('office insights', () => {
     ]);
   });
 
-  it('represents the local demo office insight totals', () => {
-    expect(getOfficeInsightMetrics()).toEqual([
-      { label: 'Documents issued', value: 2 },
-      { label: 'Documents verified', value: 1 },
+  it('derives local demo office insight totals from shared documents', () => {
+    expect(getOfficeInsightMetrics([
+      {
+        created_at: '2026-07-24T00:00:00.000Z',
+        integrity_state: 'match',
+        on_chain: true,
+      },
+      {
+        created_at: '2026-07-10T00:00:00.000Z',
+        integrity_state: 'mismatch',
+        on_chain: false,
+      },
+    ], '30-days', new Date('2026-07-26T00:00:00.000Z'))).toEqual([
+      { label: 'Documents created', value: 2 },
+      { label: 'Integrity matches', value: 1 },
       { label: 'On-chain records', value: 1 },
     ]);
   });
