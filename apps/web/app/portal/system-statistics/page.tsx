@@ -13,8 +13,8 @@ async function getDashboard(): Promise<DashboardResponse> {
       total_documents: adminStats.total_documents,
       total_processed: adminStats.processed_documents,
       total_failed: adminStats.failed_documents,
-      total_on_chain: adminStats.total_documents - adminStats.pending_documents,
-      pending_invitations: adminStats.pending_documents,
+      total_on_chain: adminStats.total_on_chain,
+      pending_invitations: adminStats.pending_invitations,
     };
   }
 
