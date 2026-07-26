@@ -80,6 +80,12 @@ describe("updateDemoUser", () => {
 });
 
 describe("UsersManagementView demo mutations", () => {
+  it("does not expose legacy role navigation from user management", () => {
+    renderUsers();
+
+    expect(screen.queryByRole("link", { name: "Manage roles" })).toBeNull();
+  });
+
   it("pre-fills the edit form with the selected user's current values", () => {
     renderUsers();
 
