@@ -263,7 +263,7 @@ sequenceDiagram
     Browser-->>Participant: Show login error
   end
 
-  Browser->>Next: POST /api/auth/logout
+  Browser->>Next: POST /api/portal/logout
   Next-->>Browser: Clear portal_token and issuer_token cookies, including stale issuer cookie
 ```
 
