@@ -363,8 +363,9 @@ Document Issuer enters credentials at /login.
 Browser posts to the Next.js authentication route handler.
 The handler forwards the sign-in request to the backend.
 The backend profile returns document_issuer or document_participant.
-Only document_issuer receives an HTTP-only issuer_token for issuer-only routes.
-Both roles enter their permitted /portal workspace.
+Both roles receive an HTTP-only portal_token for their permitted /portal workspace.
+Only document_issuer receives an additional HTTP-only issuer_token for issuer-only routes.
+Logout clears portal_token, issuer_token, and any stale issuer cookie.
 ```
 
 The backend, not a client-readable role hint, authorizes every issuer-only
@@ -436,7 +437,8 @@ Do:
 ```txt
 keep backend as authorization source of truth
 use secure storage on mobile
-use HTTP-only issuer_token cookies for issuer-only web routes
+use HTTP-only portal_token cookies for authenticated portal routes
+use HTTP-only issuer_token cookies only for issuer-only web routes
 validate file type and file size
 keep document content off-chain
 use generated API types

@@ -279,19 +279,36 @@ Backend authorization is authoritative:
 
 | Operation | Document Issuer | Document Participant |
 |---|---:|---:|
-| Finalize document | If owned or authorized | No |
-| Restore document | If owned or authorized | No |
-| View shared document | If authorized | Yes, if shared |
-| Manage user accounts | Yes | No |
-| Manage issuer invitations | Yes | No |
-| View audit logs and system statistics | Yes | No |
-| Generate reports | Yes, with office data scoped to owned or authorized documents | No |
+| Upload Legal Document | Yes | No |
+| Rename Document | Yes | No |
+| View Document Status | Yes | No |
+| Manage Document Access | Yes | No |
+| View Document Insights | Yes | No |
+| Ask Questions | Yes | No |
+| Search Documents | Yes | No |
+| Finalize Document | Yes, when owned or authorized | No |
+| Verify Document Integrity | Yes | No |
+| Restore Original from Backup | Yes, when owned or authorized | No |
+| Manage User Accounts | Yes | No |
+| Manage Issuer Invitations | Yes | No |
+| Generate Reports | Yes; office data remains scoped to owned or authorized documents | No |
+| View Audit Logs | Yes | No |
+| View System Statistics | Yes | No |
+| View Registered Users | Yes | No |
+| View and Manage Notifications | Yes | Yes |
+| Register Account | Yes | Yes |
+| Log In | Yes | Yes |
+| View Shared Documents | No | Yes |
+| View Document Details | No | Yes |
+| Request Document E-Copy | No | Yes |
+| Search Shared Documents | No | Yes |
 
 All issuer-only endpoints must authorize the authenticated
-`document_issuer` role server-side. The web `issuer_token` is issued only after
-the authenticated profile identifies that role; a client-readable role hint is
-never authority. Issuer status does not grant document ownership or bypass
-document-level authorization.
+`document_issuer` role server-side. The web issues `portal_token` to both
+authenticated actors and `issuer_token` only after the profile identifies
+`document_issuer`; a client-readable role hint is never authority. Logout must
+clear both tokens and any stale issuer cookie. Issuer status does not grant
+document ownership or bypass document-level authorization.
 
 Write document actions to `document_audit_logs` and administrative/security
 actions to `system_audit_logs`.

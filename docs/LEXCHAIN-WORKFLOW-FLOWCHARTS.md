@@ -242,29 +242,36 @@ sequenceDiagram
   participant Next as Next.js Route Handler
   participant Backend as Backend API
 
-  Issuer->>Browser: Enter email/password
-  Participant->>Browser: Enter email/password
-  Browser->>Next: POST authentication request
+  alt Document Issuer login
+    Issuer->>Browser: Enter email/password
+  else Document Participant login
+    Participant->>Browser: Enter email/password
+  end
+  Browser->>Next: POST /api/auth
   Next->>Backend: POST /auth/signin
   Backend-->>Next: authenticated profile / error
 
   alt document_issuer
-    Next-->>Browser: Set HttpOnly issuer_token cookie
+    Next-->>Browser: Set HttpOnly portal_token and issuer_token cookies
     Browser->>Browser: Navigate to /portal/dashboard
   else document_participant
-    Next-->>Browser: Navigate to permitted /portal workspace
+    Next-->>Browser: Set HttpOnly portal_token cookie
+    Browser->>Browser: Navigate to permitted /portal workspace
   else login failed
     Next-->>Browser: Return error message
     Browser-->>Issuer: Show login error
     Browser-->>Participant: Show login error
   end
+
+  Browser->>Next: POST /api/auth/logout
+  Next-->>Browser: Clear portal_token and issuer_token cookies, including stale issuer cookie
 ```
 
 ## 11. Document Issuer System Management Workflow
 
 ```mermaid
 flowchart TD
-  Issuer[Document Issuer] --> Session{issuer_token present?}
+  Issuer[Document Issuer] --> Session{portal_token and issuer_token present?}
   Session -- Yes --> SystemManagement[System Management]
   Session -- No --> Login[Redirect to /login]
   SystemManagement --> Users["/portal/users"]
@@ -272,7 +279,9 @@ flowchart TD
   SystemManagement --> Reports["/portal/system-reports"]
   SystemManagement --> Audit["/portal/audit-logs"]
   SystemManagement --> Statistics["/portal/system-statistics"]
-  Participant[Document Participant] --> Denied[Safe denial or participant portal]
+  Participant[Document Participant] --> ParticipantSession{portal_token present?}
+  ParticipantSession -- Yes --> Denied[Safe denial or participant portal]
+  ParticipantSession -- No --> Login
 ```
 
 ## 12. Shared OpenAPI Type Generation Workflow
