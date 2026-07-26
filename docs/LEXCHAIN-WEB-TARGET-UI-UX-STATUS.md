@@ -1,7 +1,7 @@
 # LexChain Web Target UI/UX Status
 
-Date: 2026-07-26  
-Branch: `feat/web-target-ui-ux`  
+Date: 2026-07-26
+Branch: `feat/web-target-ui-ux`
 Implementation HEAD reviewed: `d6f65d1f059215b99da8e691c38ae8cb7fc498e0`
 
 ## Verification snapshot

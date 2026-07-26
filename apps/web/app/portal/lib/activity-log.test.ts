@@ -5,6 +5,8 @@ describe("formatAuditEvent", () => {
   it("maps known audit actions to readable event labels", () => {
     expect(formatAuditEvent("document_uploaded")).toBe("Document uploaded");
     expect(formatAuditEvent("document_anchored")).toBe("Document anchored");
+    expect(formatAuditEvent("document_finalized")).toBe("Document finalized");
+    expect(formatAuditEvent("document_restored")).toBe("Document restored");
     expect(formatAuditEvent("verification_completed")).toBe("Verification completed");
   });
 
