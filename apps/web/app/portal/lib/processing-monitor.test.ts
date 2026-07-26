@@ -40,4 +40,20 @@ describe('processing monitor', () => {
       },
     ]);
   });
+
+  it('maps the shared error status to failed without losing its reason', () => {
+    expect(getProcessingMonitorItems([{
+      document_id: 'error-document',
+      file_name: 'Errored filing.pdf',
+      status: 'error',
+      failure_reason: 'Text extraction failed.',
+    }])).toEqual([{
+      id: 'error-document',
+      documentName: 'Errored filing.pdf',
+      documentHref: '/portal/documents/error-document',
+      stage: 'failed',
+      detail: 'Processing stopped before a verification record was created.',
+      failureReason: 'Text extraction failed.',
+    }]);
+  });
 });

@@ -38,7 +38,9 @@ export default function ProcessingMonitorPage() {
     return <p className="text-sm font-semibold text-[#64748b]">Processing Monitor is available to Document Issuers only.</p>;
   }
 
-  if (documentsQuery.isLoading) return <div className="h-36 animate-pulse rounded-[18px] border border-[#E8F0F8] bg-white" />;
+  if (documentsQuery.isLoading) {
+    return <div role="status" className="h-36 animate-pulse rounded-[18px] border border-[#E8F0F8] bg-white"><span className="sr-only">Loading document processing data…</span></div>;
+  }
 
   const items = getProcessingMonitorItems(documentsQuery.data ?? []);
 

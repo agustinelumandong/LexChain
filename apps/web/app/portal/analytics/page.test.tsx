@@ -8,6 +8,7 @@ const queryState = vi.hoisted(() => ({
   role: 'lawyer',
   documents: [] as Array<Record<string, unknown>>,
   documentsError: false,
+  documentsLoading: false,
 }));
 const useQuery = vi.hoisted(() => vi.fn());
 
@@ -22,12 +23,17 @@ beforeEach(() => {
   queryState.role = 'lawyer';
   queryState.documents = [];
   queryState.documentsError = false;
+  queryState.documentsLoading = false;
   useQuery.mockImplementation((options: { queryKey: string[]; enabled?: boolean }) => {
     if (options.queryKey[0] === 'portal-profile') {
       return { data: { role: queryState.role }, isLoading: false, isError: false };
     }
     if (options.enabled === false) return { data: undefined, isLoading: false, isError: false };
-    return { data: queryState.documents, isLoading: false, isError: queryState.documentsError };
+    return {
+      data: queryState.documents,
+      isLoading: queryState.documentsLoading,
+      isError: queryState.documentsError,
+    };
   });
 });
 
@@ -82,6 +88,14 @@ describe('OfficeAnalyticsPage', () => {
 
     expect(screen.getByRole('alert').textContent).toContain('We could not load office analytics data.');
     expect(screen.queryByLabelText('Office analytics')).toBeNull();
+  });
+
+  it('announces when shared analytics data is loading', () => {
+    queryState.documentsLoading = true;
+
+    render(<OfficeAnalyticsPage />);
+
+    expect(screen.getByRole('status').textContent).toContain('Loading office analytics data');
   });
 
   it('denies participants before requesting or rendering analytics data', () => {

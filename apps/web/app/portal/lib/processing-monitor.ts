@@ -29,7 +29,7 @@ function getProcessingStage(status: string): ProcessingStage {
   const normalized = status.trim().toLowerCase();
   if (normalized === 'queued' || normalized === 'pending') return 'queued';
   if (normalized === 'processing') return 'processing';
-  if (normalized === 'failed') return 'failed';
+  if (normalized === 'failed' || normalized === 'error') return 'failed';
   return 'completed';
 }
 
