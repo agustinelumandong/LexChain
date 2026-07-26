@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { backendUrl } from "@/lib/admin-api";
+import { isAdminRole } from "@/lib/admin-role";
 
 const useMock = process.env.NEXT_PUBLIC_USE_MOCK_API === "true" || process.env.USE_MOCK_API === "true";
 const mockPassword = "Password123";
@@ -21,9 +22,15 @@ function createSessionResponse(token: string, maxAge: number, user: { role?: str
     path: "/",
   };
 
-  response.cookies.set({ name: "admin_token", value: token, ...cookieOpts });
+  const admin = isAdminRole(user.role);
+  response.cookies.set({
+    name: "admin_token",
+    value: admin ? token : "",
+    ...cookieOpts,
+    maxAge: admin ? maxAge : 0,
+  });
   response.cookies.set({ name: "portal_token", value: token, ...cookieOpts });
-  // Non-httpOnly so middleware can read it for RBAC
+  // Client-readable routing hint only; admin authorization uses admin_token.
   response.cookies.set({ name: "user_role", value: user.role ?? "", httpOnly: false, secure: cookieOpts.secure, sameSite: cookieOpts.sameSite, maxAge, path: "/" });
 
   return response;
