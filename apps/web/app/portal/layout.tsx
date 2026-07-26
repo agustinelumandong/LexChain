@@ -45,8 +45,9 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
 
   const uiRole = getPortalUiRole(profile?.role);
   const roleLabel = getPortalRoleLabel(profile?.role);
+  const isSuperAdmin = isPortalSuperAdminRole(profile?.role);
   const portalNavigationGroups = isSupportedPortalUiRole(uiRole)
-    ? getPortalNavigation(uiRole, isPortalSuperAdminRole(profile?.role))
+    ? getPortalNavigation(uiRole, isSuperAdmin)
     : [];
   const initials = `${profile?.f_name?.[0] ?? ''}${profile?.l_name?.[0] ?? ''}`.toUpperCase() || '?';
   const fullName = profile ? `${profile.f_name} ${profile.l_name}` : '...';
@@ -229,7 +230,9 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
           {children}
         </section>
       </div>
-      {uiRole === "issuer" ? <PortalBottomNav pathname={pathname} /> : null}
+      {uiRole === "issuer" ? (
+        <PortalBottomNav pathname={pathname} role={uiRole} superAdmin={isSuperAdmin} />
+      ) : null}
       <Toaster position="top-center" richColors />
     </main>
   );
