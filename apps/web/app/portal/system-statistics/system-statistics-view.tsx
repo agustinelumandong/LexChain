@@ -16,7 +16,7 @@ export function SystemStatisticsView({ dashboard }: { dashboard: DashboardRespon
       <header>
         <h1 className="text-2xl font-black text-[#0C2B49]">System Statistics</h1>
         <p className="mt-1 text-sm font-semibold text-[#64748b]">
-          Current platform totals from the admin dashboard service.
+          Current platform totals from the issuer management service.
         </p>
       </header>
 

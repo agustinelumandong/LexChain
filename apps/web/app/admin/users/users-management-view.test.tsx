@@ -13,9 +13,9 @@ const users = [
   {
     id: "admin-1",
     f_name: "LexChain",
-    l_name: "Admin",
+    l_name: "Issuer",
     email: "admin@lexchain.local",
-    role: "admin",
+    role: "document_issuer",
     is_active: true,
     created_at: "2026-01-01T00:00:00Z",
   },
@@ -24,7 +24,7 @@ const users = [
     f_name: "Maria",
     l_name: "Santos",
     email: "maria@example.com",
-    role: "lawyer",
+    role: "document_issuer",
     is_active: true,
     created_at: "2026-01-02T00:00:00Z",
   },
@@ -33,7 +33,7 @@ const users = [
     f_name: "Juan",
     l_name: "Cruz",
     email: "juan@example.com",
-    role: "user",
+    role: "document_participant",
     is_active: false,
     created_at: "2026-01-03T00:00:00Z",
   },
@@ -55,9 +55,9 @@ afterEach(cleanup);
 
 describe("updateDemoUser", () => {
   it("changes only the matching row and preserves omitted fields", () => {
-    const result = updateDemoUser(users, "user-1", { f_name: "Mariel", role: "admin" });
+    const result = updateDemoUser(users, "user-1", { f_name: "Mariel", role: "document_participant" });
 
-    expect(result[1]).toEqual({ ...users[1], f_name: "Mariel", role: "admin" });
+    expect(result[1]).toEqual({ ...users[1], f_name: "Mariel", role: "document_participant" });
     expect(result[0]).toBe(users[0]);
     expect(result[2]).toBe(users[2]);
     expect(result[1].email).toBe("maria@example.com");
@@ -94,7 +94,12 @@ describe("UsersManagementView demo mutations", () => {
     expect((screen.getByLabelText("First name") as HTMLInputElement).value).toBe("Maria");
     expect((screen.getByLabelText("Last name") as HTMLInputElement).value).toBe("Santos");
     expect((screen.getByLabelText("Email") as HTMLInputElement).value).toBe("maria@example.com");
-    expect((screen.getByLabelText("Role") as HTMLSelectElement).value).toBe("lawyer");
+    const role = screen.getByLabelText("Role") as HTMLSelectElement;
+    expect(role.value).toBe("document_issuer");
+    expect([...role.options].map((option) => [option.value, option.text])).toEqual([
+      ["document_issuer", "Document Issuer"],
+      ["document_participant", "Document Participant"],
+    ]);
     expect(screen.getByText("Demo mode — changes reset when this page is refreshed.")).toBeTruthy();
   });
 
@@ -103,12 +108,12 @@ describe("UsersManagementView demo mutations", () => {
     fireEvent.click(within(rowFor("maria@example.com")).getByRole("button", { name: "Edit Maria Santos" }));
 
     fireEvent.change(screen.getByLabelText("First name"), { target: { value: "Mariel" } });
-    fireEvent.change(screen.getByLabelText("Role"), { target: { value: "admin" } });
+    fireEvent.change(screen.getByLabelText("Role"), { target: { value: "document_participant" } });
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
 
     const updatedRow = rowFor("maria@example.com");
     expect(within(updatedRow).getByText("Mariel Santos")).toBeTruthy();
-    expect(within(updatedRow).getByText("Admin")).toBeTruthy();
+    expect(within(updatedRow).getByText("Document Participant")).toBeTruthy();
     expect(screen.getByText("Demo account updated")).toBeTruthy();
     expect(screen.queryByText(["Backend endpoint", "needed"].join(" "))).toBeNull();
   });
@@ -146,9 +151,9 @@ describe("UsersManagementView demo mutations", () => {
     expect(within(rowFor("juan@example.com")).getByText("Active")).toBeTruthy();
   });
 
-  it("does not allow the displayed admin account to be suspended", () => {
+  it("does not allow the displayed current account to be suspended", () => {
     renderUsers();
-    fireEvent.click(within(rowFor("admin@lexchain.local")).getByRole("button", { name: "More actions for LexChain Admin" }));
+    fireEvent.click(within(rowFor("admin@lexchain.local")).getByRole("button", { name: "More actions for LexChain Issuer" }));
 
     const guard = screen.getByRole("button", { name: "Current account cannot be suspended" }) as HTMLButtonElement;
     expect(guard.disabled).toBe(true);

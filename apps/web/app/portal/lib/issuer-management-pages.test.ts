@@ -21,7 +21,7 @@ const managementLinks = [
   ["invitations-permissions/invitations-management-view.tsx", "/portal/audit-logs", "/admin/audit-logs"],
 ] as const;
 
-describe("Super Admin portal pages", () => {
+describe("Issuer management portal pages", () => {
   it.each(portalPages)("reuses the existing %s management view", (route, view, importPath) => {
     const page = resolve(import.meta.dirname, "..", route, "page.tsx");
 

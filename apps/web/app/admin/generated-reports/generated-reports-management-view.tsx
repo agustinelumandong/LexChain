@@ -21,7 +21,7 @@ const reportOptions: ReadonlyArray<{
   {
     type: "system-audit",
     title: "System Audit",
-    description: "Administrative audit events recorded during the selected dates.",
+    description: "System audit events recorded during the selected dates.",
   },
 ];
 

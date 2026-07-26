@@ -55,12 +55,6 @@ function getInitials(name: string) {
   return ((parts[0]?.[0] ?? "") + (parts[1]?.[0] ?? parts[0]?.[1] ?? "")).toUpperCase();
 }
 
-function toTitle(value: string) {
-  return value
-    .replace(/_/g, " ")
-    .replace(/\b\w/g, (letter) => letter.toUpperCase());
-}
-
 function getStatus(status: string): DirectoryInvitation["statusLabel"] {
   const raw = status.toLowerCase();
   if (raw === "accepted") return "Accepted";
@@ -103,7 +97,7 @@ function enrichInvitation(invitation: Invitation): DirectoryInvitation {
     magic_link: withInviteEmail(invitation.magic_link, invitation.email),
     invitee,
     initials: getInitials(invitee),
-    roleLabel: invitation.role === "document_issuer" ? "Document Issuer" : toTitle(invitation.role),
+    roleLabel: invitation.role === "document_participant" || invitation.role === "user" ? "Document Participant" : "Document Issuer",
     statusLabel: getStatus(invitation.status),
     createdLabel: formatDate(invitation.created_at),
     expiresLabel: formatExpires(invitation),
@@ -309,8 +303,8 @@ export function InvitationsManagementView({ invitations, mockMode = false }: { i
       <header className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
         <div>
           <p className="text-xs font-black uppercase tracking-[0.22em] text-[#0879D8]">LexChain Operations</p>
-          <h1 className="mt-1 text-3xl font-black leading-tight text-[#071B33]">Invitations & Permissions</h1>
-          <p className="mt-1 text-sm font-semibold text-[#4B6382]">Manage admin invitations from the backend invitation response.</p>
+          <h1 className="mt-1 text-3xl font-black leading-tight text-[#071B33]">Issuer Invitations</h1>
+          <p className="mt-1 text-sm font-semibold text-[#4B6382]">Manage Document Issuer invitations from the backend invitation response.</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <label className="flex min-w-[300px] items-center gap-2 rounded-xl border border-[#E4EEF9] bg-white px-4 py-3 shadow-sm shadow-[#DDEAF7]/35 focus-within:border-[#0985E7]">
