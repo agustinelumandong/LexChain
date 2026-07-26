@@ -58,6 +58,17 @@ export async function POST(request: Request) {
     maxAge,
     path: "/",
   });
+  for (const name of ["admin_token", "user_role"]) {
+    response.cookies.set({
+      name,
+      value: "",
+      httpOnly: name !== "user_role",
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 0,
+      path: "/",
+    });
+  }
 
   return response;
 }
