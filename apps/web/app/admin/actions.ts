@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { backendUrl } from "@/lib/admin-api";
 
 function getToken(cookieStore: Awaited<ReturnType<typeof cookies>>) {
-  return cookieStore.get("admin_token")?.value;
+  return cookieStore.get("issuer_token")?.value;
 }
 
 export async function getDashboard() {

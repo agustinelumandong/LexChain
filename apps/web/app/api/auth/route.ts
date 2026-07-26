@@ -1,14 +1,11 @@
 import { NextResponse } from "next/server";
 import { backendUrl } from "@/lib/admin-api";
-import { isAdminRole } from "@/lib/admin-role";
 
 const useMock = process.env.NEXT_PUBLIC_USE_MOCK_API === "true" || process.env.USE_MOCK_API === "true";
 const mockPassword = "Password123";
 const mockAccounts = [
-  { id: "mock-admin", email: "admin@example.com", role: "admin", name: "LexChain Admin" },
-  { id: "mock-lawyer", email: "lawyer@example.com", role: "lawyer", name: "LexChain Lawyer" },
-  { id: "mock-user", email: "user@example.com", role: "user", name: "LexChain User" },
-  { id: "mock-owner", email: "owner@lexchain.local", role: "admin", name: "LexChain Owner" },
+  { id: "mock-document-issuer", email: "issuer@example.com", role: "document_issuer", name: "Document Issuer" },
+  { id: "mock-document-participant", email: "participant@example.com", role: "document_participant", name: "Document Participant" },
 ] as const;
 
 function createSessionResponse(token: string, maxAge: number, user: { role?: string; email?: string; name?: string; id?: string }) {
@@ -22,15 +19,16 @@ function createSessionResponse(token: string, maxAge: number, user: { role?: str
     path: "/",
   };
 
-  const admin = isAdminRole(user.role);
+  const issuer = user.role === "document_issuer";
   response.cookies.set({
-    name: "admin_token",
-    value: admin ? token : "",
+    name: "issuer_token",
+    value: issuer ? token : "",
     ...cookieOpts,
-    maxAge: admin ? maxAge : 0,
+    maxAge: issuer ? maxAge : 0,
   });
   response.cookies.set({ name: "portal_token", value: token, ...cookieOpts });
-  // Client-readable routing hint only; admin authorization uses admin_token.
+  response.cookies.set({ name: "admin_token", value: "", ...cookieOpts, maxAge: 0 });
+  // Client-readable routing hint only; authorization uses server-only cookies.
   response.cookies.set({ name: "user_role", value: user.role ?? "", httpOnly: false, secure: cookieOpts.secure, sameSite: cookieOpts.sameSite, maxAge, path: "/" });
 
   return response;
@@ -122,7 +120,7 @@ export async function POST(request: Request) {
     id: rawUser.id ?? rawUser.sub,
     email: rawUser.email,
     name,
-    role: appRole || rawUser.role || "",
+    role: appRole,
   };
 
   return createSessionResponse(token, maxAge, user);
