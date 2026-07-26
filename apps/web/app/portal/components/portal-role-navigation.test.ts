@@ -12,6 +12,21 @@ describe("lawyer portal navigation", () => {
     expect(getPortalRoleLabel("lawyer")).toBe("Document Issuer · Super User");
   });
 
+  it("exposes one Super Admin group only for privileged issuers", () => {
+    const superAdminGroups = getPortalNavigation("issuer", true).filter(
+      (group) => group.label === "Super Admin",
+    );
+
+    expect(superAdminGroups).toHaveLength(1);
+    expect(superAdminGroups[0].items.map(({ label, href }) => [label, href])).toEqual([
+      ["User Accounts", "/portal/users"],
+      ["Issuer Invitations", "/portal/issuer-invitations"],
+      ["System Reports", "/portal/system-reports"],
+      ["Audit Logs", "/portal/audit-logs"],
+      ["System Statistics", "/portal/system-statistics"],
+    ]);
+  });
+
   it.each([
     ["/portal/dashboard", "Dashboard"],
     ["/portal/documents", "Documents"],
