@@ -650,11 +650,11 @@ export async function mockPortalMutate(method: 'POST' | 'PATCH', path: string, r
   const invitationMatch = requestPathname.match(/^\/documents\/([^/]+)\/parties\/(accept|reject)$/);
   if (method === 'POST' && invitationMatch) {
     if (!isMockParticipant(token)) return error('Document Participant access required', 403);
-    const [, documentId] = invitationMatch;
+    const [, documentId, action] = invitationMatch;
     const invitation = invitations.find((item) => item.document_id === documentId && item.status === 'pending');
     if (!invitation) return error('Invitation not found', 404);
     invitations = invitations.filter((item) => item.id !== invitation.id);
-    sharedDocumentIds.add(documentId);
+    if (action === 'accept') sharedDocumentIds.add(documentId);
     return new Response(null, { status: 204 });
   }
 
