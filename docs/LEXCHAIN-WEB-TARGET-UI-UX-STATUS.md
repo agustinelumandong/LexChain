@@ -2,11 +2,11 @@
 
 Date: 2026-07-26
 Branch: `feat/web-target-ui-ux`
-Implementation HEAD reviewed: `d6f65d1f059215b99da8e691c38ae8cb7fc498e0`
+Implementation HEAD reviewed: `ba499f2b4b8247bb63673d8336c9c041c4ac4e39`
 
 ## Verification snapshot
 
-- `pnpm --filter @lexchain/web test` — passed (`48` files, `257` tests)
+- `pnpm --filter @lexchain/web test` — passed (`51` files, `266` tests)
 - `pnpm --filter @lexchain/web lint` — passed
 - `pnpm --filter @lexchain/web build` — passed
 - `git diff --check` — passed
