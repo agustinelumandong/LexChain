@@ -3,11 +3,14 @@ import { NextRequest } from 'next/server';
 import { GET } from './route';
 
 const originalApiUrl = process.env.API_URL;
+const originalMockApi = process.env.NEXT_PUBLIC_USE_MOCK_API;
 
 afterEach(() => {
   vi.restoreAllMocks();
   if (originalApiUrl === undefined) delete process.env.API_URL;
   else process.env.API_URL = originalApiUrl;
+  if (originalMockApi === undefined) delete process.env.NEXT_PUBLIC_USE_MOCK_API;
+  else process.env.NEXT_PUBLIC_USE_MOCK_API = originalMockApi;
 });
 
 it('rejects unauthenticated blockchain verification requests', async () => {
@@ -45,4 +48,25 @@ it('forwards authenticated blockchain verification requests to the matching upst
   });
   expect(response.status).toBe(200);
   await expect(response.json()).resolves.toEqual({ document_id: 'document-123', data_hash: 'hash' });
+});
+
+it('returns the seeded integrity mismatch in mock mode without calling the backend', async () => {
+  process.env.NEXT_PUBLIC_USE_MOCK_API = 'true';
+  const fetchMock = vi.fn();
+  vi.stubGlobal('fetch', fetchMock);
+
+  const response = await GET(
+    new NextRequest('http://localhost/api/portal/blockchain/verify/mock-document-3', {
+      headers: { cookie: 'portal_token=mock-token:mock-lawyer' },
+    }),
+    { params: Promise.resolve({ id: 'mock-document-3' }) },
+  );
+
+  expect(response.status).toBe(200);
+  await expect(response.json()).resolves.toEqual(expect.objectContaining({
+    document_id: 'mock-document-3',
+    data_hash: '0xmockdatahash',
+    is_verified: false,
+  }));
+  expect(fetchMock).not.toHaveBeenCalled();
 });

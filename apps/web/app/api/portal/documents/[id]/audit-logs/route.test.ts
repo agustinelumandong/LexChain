@@ -1,13 +1,17 @@
 import { afterEach, expect, it, vi } from 'vitest';
 import { NextRequest } from 'next/server';
+import { mockPortalMutate } from '@/lib/portal-mock';
 import { GET } from './route';
 
 const originalApiUrl = process.env.API_URL;
+const originalMockApi = process.env.NEXT_PUBLIC_USE_MOCK_API;
 
 afterEach(() => {
   vi.restoreAllMocks();
   if (originalApiUrl === undefined) delete process.env.API_URL;
   else process.env.API_URL = originalApiUrl;
+  if (originalMockApi === undefined) delete process.env.NEXT_PUBLIC_USE_MOCK_API;
+  else process.env.NEXT_PUBLIC_USE_MOCK_API = originalMockApi;
 });
 
 it('does not proxy audit logs when the authenticated profile is not an issuer', async () => {
@@ -60,4 +64,49 @@ it('proxies audit logs after the authenticated profile confirms an issuer', asyn
     },
     cache: 'no-store',
   });
+});
+
+it('returns the current document lifecycle history for a mock issuer without calling the backend', async () => {
+  process.env.NEXT_PUBLIC_USE_MOCK_API = 'true';
+  await mockPortalMutate(
+    'POST',
+    '/documents/mock-document-2/finalize',
+    new Request('http://localhost/documents/mock-document-2/finalize', { method: 'POST' }),
+    'mock-token:mock-lawyer',
+  );
+  const fetchMock = vi.fn();
+  vi.stubGlobal('fetch', fetchMock);
+
+  const response = await GET(
+    new NextRequest('http://localhost/api/portal/documents/mock-document-2/audit-logs', {
+      headers: { cookie: 'portal_token=mock-token:mock-lawyer' },
+    }),
+    { params: Promise.resolve({ id: 'mock-document-2' }) },
+  );
+
+  expect(response.status).toBe(200);
+  const auditLogs = await response.json() as Array<{ action: string; document_id: string }>;
+  expect(auditLogs).toEqual(expect.arrayContaining([
+    expect.objectContaining({ action: 'document_created', document_id: 'mock-document-2' }),
+    expect.objectContaining({ action: 'document_finalized', document_id: 'mock-document-2' }),
+  ]));
+  expect(auditLogs.every((entry) => entry.document_id === 'mock-document-2')).toBe(true);
+  expect(fetchMock).not.toHaveBeenCalled();
+});
+
+it('keeps mock document activity restricted to Document Issuers', async () => {
+  process.env.NEXT_PUBLIC_USE_MOCK_API = 'true';
+  const fetchMock = vi.fn();
+  vi.stubGlobal('fetch', fetchMock);
+
+  const response = await GET(
+    new NextRequest('http://localhost/api/portal/documents/mock-document-4/audit-logs', {
+      headers: { cookie: 'portal_token=mock-token:mock-user' },
+    }),
+    { params: Promise.resolve({ id: 'mock-document-4' }) },
+  );
+
+  expect(response.status).toBe(403);
+  await expect(response.json()).resolves.toEqual({ message: 'Document activity is available to Document Issuers only.' });
+  expect(fetchMock).not.toHaveBeenCalled();
 });
