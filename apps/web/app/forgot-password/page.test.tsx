@@ -15,7 +15,7 @@ describe("ForgotPasswordPage", () => {
     render(<ForgotPasswordPage />);
 
     fireEvent.change(screen.getByLabelText("Email"), {
-      target: { value: "lawyer@example.com" },
+      target: { value: "issuer@example.com" },
     });
     fireEvent.click(screen.getByRole("button", { name: "Send reset link" }));
 
@@ -47,7 +47,7 @@ describe("ForgotPasswordPage", () => {
     render(<ForgotPasswordPage />);
 
     fireEvent.change(screen.getByLabelText("Email"), {
-      target: { value: "lawyer@example.com" },
+      target: { value: "issuer@example.com" },
     });
     fireEvent.click(screen.getByRole("button", { name: "Send reset link" }));
 
@@ -70,7 +70,7 @@ describe("ForgotPasswordPage", () => {
     render(<ForgotPasswordPage />);
 
     fireEvent.change(screen.getByLabelText("Email"), {
-      target: { value: "lawyer@example.com" },
+      target: { value: "issuer@example.com" },
     });
     fireEvent.click(screen.getByRole("button", { name: "Send reset link" }));
 

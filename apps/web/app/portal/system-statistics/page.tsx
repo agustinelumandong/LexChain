@@ -3,7 +3,7 @@ import { adminFetch } from "../../admin/components/admin-fetch";
 import type { DashboardResponse } from "@/lib/schemas/admin";
 import { SystemStatisticsView } from "./system-statistics-view";
 
-const useMock = process.env.NEXT_PUBLIC_USE_MOCK_API === "true";
+const useMock = process.env.USE_MOCK_API === "true";
 
 async function getDashboard(): Promise<DashboardResponse> {
   if (useMock) {

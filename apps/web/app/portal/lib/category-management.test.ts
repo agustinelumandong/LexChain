@@ -12,7 +12,7 @@ import {
 import { canAccessPortalFeature } from "./portal-access";
 
 vi.mock('@tanstack/react-query', () => ({
-  useQuery: () => ({ data: { role: 'lawyer' }, isLoading: false }),
+  useQuery: () => ({ data: { role: 'document_issuer' }, isLoading: false }),
 }));
 
 afterEach(cleanup);

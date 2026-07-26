@@ -19,7 +19,7 @@ vi.mock('@tanstack/react-query', async () => {
 
   return {
     useQuery: ({ queryKey }: { queryKey: string[] }) => queryKey[0] === 'portal-profile'
-      ? { data: { role: 'lawyer' }, isPending: false }
+      ? { data: { role: 'document_issuer' }, isPending: false }
       : { data: [{ id: 'book-1', book_number: '42', series_year: 2026, is_full: false }], isLoading: false, isError: false },
     useMutation: (options: { mutationFn: () => Promise<unknown>; onSuccess?: (data: unknown) => void }) => {
       const [state, setState] = React.useState<{ error: unknown; isPending: boolean }>({ error: null, isPending: false });

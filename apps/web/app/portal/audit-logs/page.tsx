@@ -1,7 +1,7 @@
 import { adminFetch } from "../../admin/components/admin-fetch";
 import { AuditLogsManagementView } from "../../admin/audit-logs/audit-logs-management-view";
 
-const useMock = process.env.NEXT_PUBLIC_USE_MOCK_API === "true";
+const useMock = process.env.USE_MOCK_API === "true";
 
 type SystemAuditLog = {
   id: string;

@@ -3,7 +3,7 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import OfficeSettingsPage from './page';
 
-const profile = vi.hoisted(() => ({ role: 'user' }));
+const profile = vi.hoisted(() => ({ role: 'document_participant' }));
 
 vi.mock('@tanstack/react-query', () => ({
   useQuery: () => ({ data: { role: profile.role }, isLoading: false }),
@@ -21,7 +21,7 @@ describe('OfficeSettingsPage', () => {
   });
 
   it('does not expose session or other technical settings to issuers', () => {
-    profile.role = 'lawyer';
+    profile.role = 'document_issuer';
     render(<OfficeSettingsPage />);
 
     expect(screen.getByLabelText('Office settings')).toBeTruthy();
@@ -29,7 +29,7 @@ describe('OfficeSettingsPage', () => {
   });
 
   it('identifies valid local changes before they are saved', () => {
-    profile.role = 'lawyer';
+    profile.role = 'document_issuer';
     render(<OfficeSettingsPage />);
 
     fireEvent.change(screen.getByLabelText('Invitation expiry'), { target: { value: '8' } });

@@ -8,7 +8,7 @@ import ProfilePage from '../profile/page';
 import PortalChatbot from '../components/portal-chatbot';
 
 vi.mock('@tanstack/react-query', () => ({
-  useQuery: () => ({ data: { f_name: 'Ada', l_name: 'Lovelace', email: 'ada@example.com', role: 'lawyer' }, isLoading: false }),
+  useQuery: () => ({ data: { f_name: 'Ada', l_name: 'Lovelace', email: 'ada@example.com', role: 'document_issuer' }, isLoading: false }),
 }));
 
 vi.mock('next/link', () => ({ default: ({ href, children, ...props }: React.ComponentProps<'a'>) => createElement('a', { href, ...props }, children) }));

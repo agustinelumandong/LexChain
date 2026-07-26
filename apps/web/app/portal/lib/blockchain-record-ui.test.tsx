@@ -33,7 +33,7 @@ afterEach(() => {
 beforeEach(() => {
   useQuery.mockImplementation((options: { queryKey: string[]; enabled?: boolean }) => {
     if (options.queryKey[0] === 'portal-profile') {
-      return { data: { role: 'lawyer' }, isLoading: false, isError: false };
+      return { data: { role: 'document_issuer' }, isLoading: false, isError: false };
     }
     return { data: [record], isLoading: false, isError: false };
   });
@@ -82,7 +82,7 @@ describe('BlockchainRecordCard', () => {
       enabled?: boolean;
     }) => {
       if (options.queryKey[0] === 'portal-profile') {
-        return { data: { role: 'lawyer' }, isLoading: false, isError: false };
+        return { data: { role: 'document_issuer' }, isLoading: false, isError: false };
       }
       recordsQuery = options.queryFn;
       return { data: undefined, isLoading: true, isError: false };
@@ -128,7 +128,7 @@ describe('BlockchainRecordCard', () => {
   it('shows an honest empty state when the shared data has no on-chain documents', () => {
     useQuery.mockImplementation((options: { queryKey: string[] }) => (
       options.queryKey[0] === 'portal-profile'
-        ? { data: { role: 'lawyer' }, isLoading: false, isError: false }
+        ? { data: { role: 'document_issuer' }, isLoading: false, isError: false }
         : { data: [], isLoading: false, isError: false }
     ));
 
@@ -140,7 +140,7 @@ describe('BlockchainRecordCard', () => {
   it('announces when shared blockchain records are loading', () => {
     useQuery.mockImplementation((options: { queryKey: string[] }) => (
       options.queryKey[0] === 'portal-profile'
-        ? { data: { role: 'lawyer' }, isLoading: false, isError: false }
+        ? { data: { role: 'document_issuer' }, isLoading: false, isError: false }
         : { data: undefined, isLoading: true, isError: false }
     ));
 
@@ -152,7 +152,7 @@ describe('BlockchainRecordCard', () => {
   it('shows an honest error when shared blockchain records cannot load', () => {
     useQuery.mockImplementation((options: { queryKey: string[] }) => (
       options.queryKey[0] === 'portal-profile'
-        ? { data: { role: 'lawyer' }, isLoading: false, isError: false }
+        ? { data: { role: 'document_issuer' }, isLoading: false, isError: false }
         : { data: undefined, isLoading: false, isError: true }
     ));
 
@@ -165,7 +165,7 @@ describe('BlockchainRecordCard', () => {
   it('keeps blockchain records issuer-only', () => {
     useQuery.mockImplementation((options: { queryKey: string[]; enabled?: boolean }) => {
       if (options.queryKey[0] === 'portal-profile') {
-        return { data: { role: 'user' }, isLoading: false, isError: false };
+        return { data: { role: 'document_participant' }, isLoading: false, isError: false };
       }
       if (options.enabled !== false) throw new Error('Participant records query must be disabled');
       return { data: undefined, isLoading: false, isError: false };

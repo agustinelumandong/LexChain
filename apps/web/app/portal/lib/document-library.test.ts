@@ -8,7 +8,7 @@ import DocumentsPage from '../documents/page';
 vi.mock('@tanstack/react-query', () => ({
   useQuery: ({ queryKey }: { queryKey: string[] }) => queryKey[0] === 'portal-documents'
     ? { data: documents, isLoading: false, isError: false }
-    : { data: { role: 'lawyer' }, isLoading: false, isError: false },
+    : { data: { role: 'document_issuer' }, isLoading: false, isError: false },
 }));
 
 const documents = [

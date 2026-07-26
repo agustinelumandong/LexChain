@@ -188,16 +188,13 @@ describe('portal mock mutations', () => {
 describe('portal mock profiles', () => {
   it('rejects unknown mock token values instead of treating them as issuers', () => {
     expect(isMockPortalToken('mock-token:unknown-user')).toBe(false);
+    expect(isMockPortalToken('mock-token:legacy-actor')).toBe(false);
   });
 
   it('recognizes only the canonical Document Issuer and Document Participant profiles', async () => {
     const participant = mockPortalGet('/users/', 'mock-token:mock-document-participant');
     const issuer = mockPortalGet('/users/', 'mock-token:mock-document-issuer');
     const participantDocuments = mockPortalGet('/documents/', 'mock-token:mock-document-participant');
-
-    expect(isMockPortalToken('mock-token:mock-admin')).toBe(false);
-    expect(isMockPortalToken('mock-token:mock-lawyer')).toBe(false);
-    expect(isMockPortalToken('mock-token:mock-owner')).toBe(false);
 
     await expect(participant.json()).resolves.toMatchObject({
       email: 'participant@example.com',
