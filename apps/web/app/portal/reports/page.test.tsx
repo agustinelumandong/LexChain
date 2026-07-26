@@ -3,10 +3,27 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import OfficeReportsPage from './page';
 
-const profile = vi.hoisted(() => ({ role: 'lawyer' }));
+const queryState = vi.hoisted(() => ({
+  role: 'lawyer',
+  documents: [{
+    document_id: 'mock-document-1',
+    file_name: 'Lease Agreement.pdf',
+    status: 'anchored',
+    labels: ['lease'],
+    created_at: '2026-07-10T09:00:00.000Z',
+    updated_at: '2026-07-10T09:05:00.000Z',
+    on_chain: true,
+    integrity_state: 'match',
+    document_hash: 'abc123',
+    finalized_at: '2026-07-10T09:05:00.000Z',
+    finalized_by: 'mock-lawyer',
+  }],
+}));
 
 vi.mock('@tanstack/react-query', () => ({
-  useQuery: () => ({ data: { role: profile.role }, isLoading: false }),
+  useQuery: (options: { queryKey: string[] }) => options.queryKey[0] === 'portal-profile'
+    ? { data: { role: queryState.role }, isLoading: false }
+    : { data: queryState.documents, isLoading: false, isError: false },
 }));
 
 afterEach(() => {
@@ -15,7 +32,7 @@ afterEach(() => {
   delete (URL as typeof URL & { createObjectURL?: unknown }).createObjectURL;
   delete (URL as typeof URL & { revokeObjectURL?: unknown }).revokeObjectURL;
 });
-beforeEach(() => { profile.role = 'lawyer'; });
+beforeEach(() => { queryState.role = 'lawyer'; });
 
 describe('OfficeReportsPage', () => {
   it('offers the two fixed issuer reports with native date fields', () => {
@@ -33,6 +50,8 @@ describe('OfficeReportsPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Generate' }));
     expect(screen.getByRole('region', { name: 'Document Activity report' })).toBeTruthy();
     expect(screen.getByRole('table', { name: 'Document Activity preview' })).toBeTruthy();
+    expect(screen.getByText('Lease Agreement.pdf')).toBeTruthy();
+    expect(screen.queryByText('Deed of Sale - Lot 18.pdf')).toBeNull();
     expect(screen.getByText('Demo report — generated locally from seeded data and not stored.')).toBeTruthy();
 
     fireEvent.click(screen.getByRole('radio', { name: 'Integrity' }));
@@ -50,12 +69,12 @@ describe('OfficeReportsPage', () => {
     });
     render(<OfficeReportsPage />);
 
-    fireEvent.change(screen.getByLabelText('From'), { target: { value: '2026-05-01' } });
-    fireEvent.change(screen.getByLabelText('To'), { target: { value: '2026-05-31' } });
+    fireEvent.change(screen.getByLabelText('From'), { target: { value: '2026-07-01' } });
+    fireEvent.change(screen.getByLabelText('To'), { target: { value: '2026-07-31' } });
     fireEvent.click(screen.getByRole('button', { name: 'Generate' }));
     fireEvent.click(screen.getByRole('button', { name: 'Download CSV' }));
 
-    expect(downloadedFilename).toBe('office-document-activity-2026-05-01-to-2026-05-31.csv');
+    expect(downloadedFilename).toBe('office-document-activity-2026-07-01-to-2026-07-31.csv');
   });
 
   it('removes generic report controls', () => {
@@ -66,7 +85,7 @@ describe('OfficeReportsPage', () => {
   });
 
   it('denies participants before rendering local report data', () => {
-    profile.role = 'user';
+    queryState.role = 'user';
     render(<OfficeReportsPage />);
 
     expect(screen.getByText('Office Reports are available to Document Issuers only.')).toBeTruthy();

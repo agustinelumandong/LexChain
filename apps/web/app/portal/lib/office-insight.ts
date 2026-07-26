@@ -1,8 +1,6 @@
 import {
   adminAuditLogs,
-  adminDocuments,
   adminUsers,
-  adminVerificationLogs,
 } from '../../admin/admin-demo-data';
 import type { ApiSchema } from '@lexchain/types';
 
@@ -21,6 +19,19 @@ export type PortalDocument = Pick<
   'created_at' | 'on_chain'
 > & {
   integrity_state?: 'match' | 'mismatch' | 'not-recorded' | 'unavailable' | null;
+};
+
+export type PortalReportDocument = Pick<
+  ApiSchema<'DocumentResponse'>,
+  'document_id' | 'file_name' | 'status' | 'created_at' | 'on_chain'
+> & Partial<Pick<
+  ApiSchema<'DocumentResponse'>,
+  'updated_at' | 'labels'
+>> & {
+  integrity_state?: PortalDocument['integrity_state'];
+  document_hash?: string | null;
+  finalized_at?: string | null;
+  finalized_by?: string | null;
 };
 
 export type DemoReportType =
@@ -80,6 +91,7 @@ export function createDemoReport(
   type: DemoReportType,
   from: string,
   to: string,
+  portalDocuments: PortalReportDocument[] = [],
 ): DemoReport {
   if (from > to) throw new Error('Start date must be on or before end date.');
 
@@ -90,12 +102,12 @@ export function createDemoReport(
         from,
         to,
         columns: ['Document', 'Owner', 'Category', 'Status', 'Created'],
-        rows: adminDocuments
+        rows: portalDocuments
           .filter((document) => isWithin(document.created_at, from, to))
           .map((document) => ({
             Document: document.file_name,
-            Owner: document.owner_name,
-            Category: document.category,
+            Owner: 'Current office',
+            Category: document.labels?.[0] ?? 'Uncategorized',
             Status: document.status,
             Created: datePart(document.created_at),
           })),
@@ -106,14 +118,16 @@ export function createDemoReport(
         from,
         to,
         columns: ['Document', 'Integrity status', 'Verifier', 'Blockchain hash', 'Verified'],
-        rows: adminVerificationLogs
-          .filter((record) => isWithin(record.verified_at, from, to))
-          .map((record) => ({
-            Document: record.document_name,
-            'Integrity status': record.status,
-            Verifier: record.verifier,
-            'Blockchain hash': record.blockchain_hash,
-            Verified: datePart(record.verified_at),
+        rows: portalDocuments
+          .filter((document) => (
+            document.integrity_state === 'match' || document.integrity_state === 'mismatch'
+          ) && isWithin(document.finalized_at ?? document.updated_at ?? document.created_at, from, to))
+          .map((document) => ({
+            Document: document.file_name,
+            'Integrity status': document.integrity_state,
+            Verifier: document.finalized_by ?? 'Current office',
+            'Blockchain hash': document.document_hash ?? 'Not recorded',
+            Verified: datePart(document.finalized_at ?? document.updated_at ?? document.created_at),
           })),
       };
     case 'system-users':
