@@ -6,6 +6,12 @@ Complete. The final web suite, lint, production build, source review, desktop
 two-actor acceptance, responsive issuer acceptance, compatibility redirect,
 and server cleanup all passed.
 
+The authoritative current result is the **Final fix wave** at the end of this
+report: 64 test files, 343 tests, participant landing at
+`/portal/documents`, and desktop/mobile acceptance for both actors. The
+earlier Task 7 and Fix round 1 counts below are chronological snapshots kept
+for the RED/GREEN record; they are superseded, not current readiness results.
+
 ## Scope completed
 
 - Migrated the final active web test fixtures from obsolete account roles to
@@ -44,9 +50,9 @@ existed after provider cleanup. The provider now tracks its own timeout IDs,
 removes fired IDs, and clears remaining IDs on unmount. The focused test and
 subsequent full suite passed without an unhandled error.
 
-## Automated verification
+## Original Task 7 automated verification (historical)
 
-Fresh final commands from the repository root:
+The original Task 7 snapshot recorded:
 
 | Command | Result |
 | --- | --- |
@@ -78,7 +84,7 @@ generation.
   internal proxy namespace, not a separate workspace or authorization model.
 - No compatibility authorization for obsolete account-role values was added.
 
-## Browser verification
+## Original Task 7 browser verification (historical)
 
 The verified production build ran with:
 
@@ -142,6 +148,9 @@ committed.
 
 ## Fix round 1: review-gate repairs
 
+This section records the first repair snapshot. Its 63-file/312-test result and
+participant dashboard behavior are superseded by the final fix wave below.
+
 ### RED to GREEN evidence
 
 - The original review identified anonymous mock invitation `POST`/`DELETE`
@@ -199,3 +208,86 @@ USE_MOCK_API=true pnpm --filter @lexchain/web start --hostname 127.0.0.1 --port 
 
 - Implementation and tests:
   `5a0d7e0d3cd1d4509acb995c94d66e80a6920214`
+
+## Final fix wave: senior-review closure
+
+This section is the authoritative current verification result.
+
+Implementation commit:
+`5c2e59bd7f017a96af0c2421c05b462737242a42`
+
+### Finding resolution
+
+- **I1 — issuer page authority:** added one shared server-side page guard and
+  called it before all five management pages render. Mock mode requires the
+  exact mock issuer token; real mode fetches the trusted profile and requires
+  exact `document_issuer`. A participant token copied into both authority
+  cookies and an arbitrary forged issuer cookie both fail closed.
+- **I2 — participant mobile workspace:** participant login now lands on
+  `/portal/documents`; the shared bottom navigation renders for both canonical
+  actors; all mobile destinations retain visible labels; and the desktop logo
+  returns a participant to shared documents.
+- **I3 — invitation input boundary:** the route authenticates before parsing,
+  validates the email and optional exact role before the mock/real split,
+  rejects noncanonical supplied roles, and constructs the upstream payload with
+  fixed `role: "document_issuer"`.
+- **I4 — stale readiness evidence:** the web status and acceptance documents
+  now name this branch and implementation commit, record the current test/build
+  and browser results, and retain the production-integration limitations.
+- **M1-M5:** malformed issuer cookies return controlled unauthenticated
+  responses; visible admin-tier copy was replaced; the dead legacy invitation
+  action was removed; mobile labels remain visible; and the workflow update
+  date is current.
+
+### RED to GREEN evidence
+
+- The new management-page authority suite initially failed 27 assertions
+  because the five pages rendered without trusted issuer verification. The
+  focused final suite passed 8 files and 48 tests after the shared guard and
+  invitation/participant corrections.
+- The participant shell-logo test then failed because its target was still
+  `/portal/dashboard`; reusing the canonical actor redirect changed it to
+  `/portal/documents`, and the 3-file/9-test focused rerun passed.
+- React Doctor identified the changed layout's sidebar button as an implicit
+  submit control. A new assertion first failed with a missing `type`;
+  `type="button"` made the focused layout test pass and reduced the scan from
+  82 to 81 broad branch warnings.
+
+### Final automated verification
+
+| Command | Result |
+| --- | --- |
+| `pnpm --filter @lexchain/web test` | Pass: 64 files, 343 tests |
+| `pnpm --filter @lexchain/web lint` | Pass: ESLint exit 0 |
+| `pnpm --filter @lexchain/web build` | Pass: compilation, TypeScript, and 68 generated routes |
+| `git diff --check` | Pass |
+| Targeted final re-review | Pass: no Critical, Important, or Minor findings |
+
+The build retained only the known multiple-worktree-lockfile root-inference
+warning.
+
+### Final browser and transport verification
+
+- Issuer desktop and `390x844` mobile sessions reached all five management
+  routes with their expected headings and 0px horizontal overflow.
+- Participant desktop direct requests to all five management routes were
+  denied without management content. Both forged-issuer-cookie variants were
+  also denied.
+- Participant mobile reached documents, invitations, personal e-copy requests,
+  notifications, and profile with four visible participant navigation labels,
+  no issuer links, and 0px horizontal overflow.
+- `POST /api/admin/invitations` returned `401` without a session, `403` for
+  a participant, `400` for invalid JSON/email/legacy role, and `201` for a
+  canonical issuer payload.
+- All four full-matrix browser sessions reported zero console errors and zero
+  console warnings. A post-commit production-build smoke reconfirmed the
+  final issuer, participant, overflow, and sidebar-button states.
+- Browser sessions and production servers were stopped; port `3216` had no
+  remaining listener.
+
+### Remaining limitations
+
+The verification remains web-only and uses seeded mock data. Backend,
+database, OpenAPI, mobile, email, blockchain, and persistence integration are
+not claimed. The planned `docs/LEXCHAIN-END-TO-END-TEST-FLOW.md` file remains
+absent, so only the existing target documents can be scanned.
