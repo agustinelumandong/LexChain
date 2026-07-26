@@ -216,10 +216,7 @@ function RoleDistribution({ users }: { users: DirectoryUser[] }) {
 
   return (
     <article className="flex h-full flex-col rounded-2xl border border-[#E4EEF9] bg-white p-5 shadow-sm shadow-[#DDEAF7]/35">
-      <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-lg font-black text-[#071B33]">Role Distribution</h2>
-        <Link href="/admin/roles-permissions" className="text-xs font-black text-[#0985E7] hover:text-[#0767B9]">Manage roles</Link>
-      </div>
+      <h2 className="mb-4 text-lg font-black text-[#071B33]">Role Distribution</h2>
       <div className="grid flex-1 items-center gap-5 sm:grid-cols-[160px_1fr] xl:grid-cols-1 2xl:grid-cols-[160px_1fr]">
         <div className="relative mx-auto size-36 rounded-full" style={{ background: `conic-gradient(${gradient})` }}>
           <div className="absolute inset-6 flex flex-col items-center justify-center rounded-full bg-white text-center">
