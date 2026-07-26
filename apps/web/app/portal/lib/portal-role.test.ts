@@ -1,29 +1,27 @@
 import { describe, expect, it } from "vitest";
-import { getPortalLoginRedirect, getPortalProfileRequestShortcut, getPortalRoleLabel, getPortalUiRole, isPortalSuperAdminRole, isSupportedPortalUiRole } from "./portal-role";
+import { getPortalLoginRedirect, getPortalProfileRequestShortcut, getPortalRoleLabel, getPortalUiRole, isSupportedPortalUiRole } from "./portal-role";
 
 describe("portal UI roles", () => {
-  it("maps backend lawyer copy to Document Issuer", () => {
-    expect(getPortalUiRole("lawyer")).toBe("issuer");
-    expect(getPortalRoleLabel("lawyer")).toBe("Document Issuer · Super User");
+  it("maps the canonical Document Issuer role", () => {
+    expect(getPortalUiRole("document_issuer")).toBe("issuer");
+    expect(getPortalRoleLabel("document_issuer")).toBe("Document Issuer");
   });
 
-  it("maps Super Admin aliases into the Document Issuer actor", () => {
-    expect(getPortalUiRole("admin")).toBe("issuer");
-    expect(getPortalUiRole("super_admin")).toBe("issuer");
-    expect(getPortalRoleLabel("admin")).toBe("Document Issuer · Super Admin");
-    expect(isPortalSuperAdminRole("admin")).toBe(true);
-    expect(isPortalSuperAdminRole("lawyer")).toBe(false);
+  it("maps the canonical Document Participant role", () => {
+    expect(getPortalUiRole("document_participant")).toBe("participant");
+    expect(getPortalRoleLabel("document_participant")).toBe("Document Participant");
   });
 
-  it("routes supported portal accounts to the portal without granting unsupported roles office navigation", () => {
-    expect(getPortalLoginRedirect("lawyer")).toBe("/portal/dashboard");
-    expect(getPortalLoginRedirect("user")).toBe("/portal/dashboard");
+  it("rejects obsolete roles", () => {
+    for (const obsoleteRole of ["lawyer", "admin", "super_admin", "owner", "user"]) {
+      expect(getPortalUiRole(obsoleteRole)).toBe("unsupported");
+    }
+  });
+
+  it("routes canonical portal accounts to the portal without granting unsupported roles office navigation", () => {
+    expect(getPortalLoginRedirect("document_issuer")).toBe("/portal/dashboard");
+    expect(getPortalLoginRedirect("document_participant")).toBe("/portal/dashboard");
     expect(getPortalLoginRedirect("staff")).toBeUndefined();
-  });
-
-  it("maps backend user copy to Document Participant", () => {
-    expect(getPortalUiRole("user")).toBe("participant");
-    expect(getPortalRoleLabel("user")).toBe("Document Participant");
   });
 
   it("keeps unrecognized roles out of restricted UI", () => {
