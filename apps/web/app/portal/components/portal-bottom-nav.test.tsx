@@ -5,7 +5,7 @@ import { PortalBottomNav } from "./portal-bottom-nav";
 
 afterEach(cleanup);
 
-const superAdminTools = [
+const systemManagementTools = [
   "User Accounts",
   "Issuer Invitations",
   "System Reports",
@@ -14,12 +14,10 @@ const superAdminTools = [
 ];
 
 describe("PortalBottomNav", () => {
-  it("exposes all five Super Admin tools for a privileged issuer", () => {
-    render(
-      <PortalBottomNav pathname="/portal/dashboard" role="issuer" superAdmin />,
-    );
+  it("exposes all five system management tools for every issuer", () => {
+    render(<PortalBottomNav pathname="/portal/dashboard" role="issuer" />);
 
-    for (const label of superAdminTools) {
+    for (const label of systemManagementTools) {
       expect(screen.getByRole("link", { name: label })).toBeTruthy();
     }
 
@@ -27,13 +25,5 @@ describe("PortalBottomNav", () => {
       .toContain("overflow-x-auto");
     expect(screen.getByRole("link", { name: "User Accounts" }).className)
       .toContain("shrink-0");
-  });
-
-  it("does not expose Super Admin tools for a standard issuer", () => {
-    render(<PortalBottomNav pathname="/portal/dashboard" role="issuer" />);
-
-    for (const label of superAdminTools) {
-      expect(screen.queryByRole("link", { name: label })).toBeNull();
-    }
   });
 });

@@ -1,24 +1,27 @@
 import { describe, expect, it } from "vitest";
 import { getPortalNavigation } from "../lib/portal-dashboard";
-import { getPortalRoleLabel } from "../lib/portal-role";
 import { isPortalRouteActive } from "./portal-role-navigation";
 
-describe("lawyer portal navigation", () => {
-  it("keeps the office workspace focused on enabled portal destinations", () => {
+describe("portal navigation", () => {
+  it("keeps the complete issuer workspace focused on portal destinations", () => {
     const navigation = getPortalNavigation("issuer");
 
-    expect(navigation.map((group) => group.label)).toEqual(["Workspace", "Integrity", "Office", "Account"]);
+    expect(navigation.map((group) => group.label)).toEqual([
+      "Workspace",
+      "Integrity",
+      "Office",
+      "System Management",
+      "Account",
+    ]);
     expect(navigation.flatMap((group) => group.items).map((item) => item.href)).not.toContain("/admin");
-    expect(getPortalRoleLabel("lawyer")).toBe("Document Issuer · Super User");
   });
 
-  it("exposes one Super Admin group only for privileged issuers", () => {
-    const superAdminGroups = getPortalNavigation("issuer", true).filter(
-      (group) => group.label === "Super Admin",
-    );
+  it("includes the five system management routes for every issuer", () => {
+    const managementItems = getPortalNavigation("issuer").find(
+      (group) => group.label === "System Management",
+    )?.items;
 
-    expect(superAdminGroups).toHaveLength(1);
-    expect(superAdminGroups[0].items.map(({ label, href }) => [label, href])).toEqual([
+    expect(managementItems?.map(({ label, href }) => [label, href])).toEqual([
       ["User Accounts", "/portal/users"],
       ["Issuer Invitations", "/portal/issuer-invitations"],
       ["System Reports", "/portal/system-reports"],

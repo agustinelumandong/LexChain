@@ -5,7 +5,13 @@ describe("portal dashboard", () => {
   it("gives issuers the enabled office workspace navigation", () => {
     const navigation = getPortalNavigation("issuer");
 
-    expect(navigation.map((group) => group.label)).toEqual(["Workspace", "Integrity", "Office", "Account"]);
+    expect(navigation.map((group) => group.label)).toEqual([
+      "Workspace",
+      "Integrity",
+      "Office",
+      "System Management",
+      "Account",
+    ]);
     expect(navigation[0].items.at(-1)?.label).toBe("Upload Document");
   });
 
@@ -18,37 +24,17 @@ describe("portal dashboard", () => {
     ]);
   });
 
-  it("adds the five management destinations for Super Admin issuers", () => {
-    const navigation = getPortalNavigation("issuer", true);
+  it("gives every issuer the five system management destinations", () => {
+    const navigation = getPortalNavigation("issuer");
 
-    expect(navigation.filter((group) => group.label === "Super Admin")).toEqual([
-      {
-        label: "Super Admin",
-        items: [
-          { label: "User Accounts", href: "/portal/users" },
-          { label: "Issuer Invitations", href: "/portal/issuer-invitations" },
-          { label: "System Reports", href: "/portal/system-reports" },
-          { label: "Audit Logs", href: "/portal/audit-logs" },
-          { label: "System Statistics", href: "/portal/system-statistics" },
-        ],
-      },
+    expect(navigation.find((group) => group.label === "System Management")?.items.map(({ label, href }) => [label, href])).toEqual([
+      ["User Accounts", "/portal/users"],
+      ["Issuer Invitations", "/portal/issuer-invitations"],
+      ["System Reports", "/portal/system-reports"],
+      ["Audit Logs", "/portal/audit-logs"],
+      ["System Statistics", "/portal/system-statistics"],
     ]);
   });
-
-  it.each(["issuer", "participant"] as const)(
-    "does not expose Super Admin destinations to a standard %s",
-    (role) => {
-      const hrefs = getPortalNavigation(role).flatMap((group) =>
-        group.items.map((item) => item.href),
-      );
-
-      expect(hrefs).not.toContain("/portal/users");
-      expect(hrefs).not.toContain("/portal/issuer-invitations");
-      expect(hrefs).not.toContain("/portal/system-reports");
-      expect(hrefs).not.toContain("/portal/audit-logs");
-      expect(hrefs).not.toContain("/portal/system-statistics");
-    },
-  );
 
   it("summarizes an empty document repository without unsupported metrics", () => {
     expect(getDashboardMetrics([])).toEqual([
