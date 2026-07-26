@@ -1,3 +1,5 @@
+import type { DemoIntegrityState } from './document-lifecycle-ui';
+
 type IntegrityRecord = { data_hash?: string | null; is_verified?: boolean | null } | null | undefined;
 
 export type IntegrityUiState = 'recorded' | 'not_recorded' | 'unavailable' | 'match' | 'mismatch';
@@ -12,6 +14,16 @@ export function getIntegrityUiState({ record, requestFailed }: IntegrityUiInput)
   if (!record) return 'not_recorded';
   if (record.is_verified === false) return 'mismatch';
   return record.data_hash ? 'recorded' : 'not_recorded';
+}
+
+export function getDemoIntegrityState(state: IntegrityUiState): DemoIntegrityState {
+  if (state === 'recorded' || state === 'match') return 'match';
+  if (state === 'not_recorded') return 'not-recorded';
+  return state;
+}
+
+export function shortenIntegrityHash(hash: string): string {
+  return hash.length > 20 ? `${hash.slice(0, 10)}…${hash.slice(-8)}` : hash;
 }
 
 export type IntegrityResult = {
