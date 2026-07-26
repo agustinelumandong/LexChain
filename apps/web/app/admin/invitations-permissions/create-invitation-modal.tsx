@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { Modal } from "../components/modal";
-import { Dropdown } from "../components/dropdown";
 import AddIcon from "@mui/icons-material/Add";
 
 type CreateInvitationModalProps = {
@@ -14,7 +13,6 @@ type CreateInvitationModalProps = {
 export function CreateInvitationModal({ label = "Create Invitation", className, onCreate }: CreateInvitationModalProps) {
   const [open, setOpen] = useState(false);
   const [email, setEmail] = useState("");
-  const [role, setRole] = useState("lawyer");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -24,12 +22,12 @@ export function CreateInvitationModal({ label = "Create Invitation", className, 
     setError("");
     try {
       if (onCreate) {
-        onCreate({ email, role });
+        onCreate({ email, role: "document_issuer" });
       } else {
         const response = await fetch("/api/admin/invitations", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, role }),
+          body: JSON.stringify({ email, role: "document_issuer" }),
         });
         if (!response.ok) {
           const payload = await response.json().catch(() => null);
@@ -38,7 +36,6 @@ export function CreateInvitationModal({ label = "Create Invitation", className, 
         window.location.reload();
       }
       setEmail("");
-      setRole("lawyer");
       setOpen(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create invitation.");
@@ -59,7 +56,7 @@ export function CreateInvitationModal({ label = "Create Invitation", className, 
       </button>
       <Modal open={open} onClose={() => setOpen(false)} title="Create Invitation">
         <p className="text-sm font-semibold text-[#64748b]">
-          Send a magic-link invitation to a lawyer to join the platform.
+          Send a magic-link invitation to a Document Issuer to join the platform.
         </p>
         <form onSubmit={handleSubmit} className="mt-4 space-y-4">
           {error ? (
@@ -76,21 +73,8 @@ export function CreateInvitationModal({ label = "Create Invitation", className, 
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="lawyer@example.com"
+              placeholder="issuer@example.com"
               className="w-full rounded-xl border border-[#E4EEF9] bg-[#F8FBFF] px-4 py-2.5 text-sm font-semibold text-[#0C2B49] outline-none placeholder:text-[#94a3b8] focus:border-[#0985E7]"
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-black uppercase tracking-[0.1em] text-[#64748b] mb-1.5">
-              Role
-            </label>
-            <Dropdown
-              value={role}
-              onChange={setRole}
-              options={[
-                { label: "Lawyer", value: "lawyer" },
-                { label: "Admin", value: "admin" },
-              ]}
             />
           </div>
           <button

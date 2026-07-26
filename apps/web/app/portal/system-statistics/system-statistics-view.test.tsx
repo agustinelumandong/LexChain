@@ -46,6 +46,12 @@ describe("SystemStatisticsView", () => {
     expect(screen.queryByText("Recent Activity")).toBeNull();
   });
 
+  it("describes the statistics as an issuer management service", () => {
+    render(<SystemStatisticsView dashboard={dashboard} />);
+
+    expect(screen.getByText("Current platform totals from the issuer management service.")).toBeTruthy();
+  });
+
   it("maps independent mock statistics without deriving unrelated metrics", () => {
     const page = readFileSync(resolve(import.meta.dirname, "page.tsx"), "utf8");
 

@@ -62,10 +62,8 @@ function getInitials(name: string) {
 
 function deriveRole(user: AdminUser) {
   const role = user.role.toLowerCase();
-  if (role === "admin" || role === "super_admin") return "Admin";
-  if (role === "lawyer") return "Lawyer";
-  if (role === "user") return "User";
-  return role.replace(/_/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
+  if (role === "document_participant" || role === "user") return "Document Participant";
+  return "Document Issuer";
 }
 
 function getStatus(user: AdminUser): DirectoryUser["statusLabel"] {
@@ -135,7 +133,7 @@ function StatusPill({ status }: { status: DirectoryUser["statusLabel"] }) {
 function ActionsMenu({ user, onView, onEdit, onChangeStatus }: { user: DirectoryUser; onView: () => void; onEdit: () => void; onChangeStatus: () => void }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
-  const isCurrentAdmin = user.email === "admin@lexchain.local";
+  const isCurrentAccount = user.email === "admin@lexchain.local";
 
   useEffect(() => {
     function handleClick(event: MouseEvent) {
@@ -175,19 +173,19 @@ function ActionsMenu({ user, onView, onEdit, onChangeStatus }: { user: Directory
           ))}
           <button
             type="button"
-            disabled={isCurrentAdmin && user.statusLabel === "Active"}
-            aria-label={isCurrentAdmin && user.statusLabel === "Active" ? "Current account cannot be suspended" : undefined}
+            disabled={isCurrentAccount && user.statusLabel === "Active"}
+            aria-label={isCurrentAccount && user.statusLabel === "Active" ? "Current account cannot be suspended" : undefined}
             onClick={() => { setOpen(false); onChangeStatus(); }}
             className={cn(
               "block w-full px-4 py-2.5 text-left text-sm font-bold transition",
-              isCurrentAdmin && user.statusLabel === "Active"
+              isCurrentAccount && user.statusLabel === "Active"
                 ? "cursor-not-allowed text-[#94A3B8]"
                 : user.statusLabel === "Active"
                   ? "text-red-600 hover:bg-red-50"
                   : "text-green-700 hover:bg-green-50",
             )}
           >
-            {isCurrentAdmin && user.statusLabel === "Active"
+            {isCurrentAccount && user.statusLabel === "Active"
               ? "Current account cannot be suspended"
               : user.statusLabel === "Active" ? "Suspend user" : "Reactivate user"}
           </button>
@@ -314,7 +312,7 @@ export function UsersManagementView({ users, total }: { users: AdminUser[]; tota
     { label: "Total Users", value: total || directoryUsers.length, detail: "Registered accounts", icon: <GroupsIcon fontSize="small" />, tone: "blue" as const },
     { label: "Active Users", value: directoryUsers.filter((user) => user.statusLabel === "Active").length, detail: "is_active true", icon: <CheckCircleIcon fontSize="small" />, tone: "green" as const },
     { label: "Suspended Users", value: directoryUsers.filter((user) => user.statusLabel === "Suspended").length, detail: "is_active false", icon: <PersonOffIcon fontSize="small" />, tone: "red" as const },
-    { label: "Lawyers", value: directoryUsers.filter((user) => user.role === "lawyer").length, detail: "role field", icon: <WorkIcon fontSize="small" />, tone: "blue" as const },
+    { label: "Document Issuers", value: directoryUsers.filter((user) => user.roleLabel === "Document Issuer").length, detail: "role field", icon: <WorkIcon fontSize="small" />, tone: "blue" as const },
   ];
 
   return (
@@ -505,7 +503,7 @@ export function UsersManagementView({ users, total }: { users: AdminUser[]; tota
             <Field label="First name"><input className={inputClassName} value={userDraft.f_name ?? ""} onChange={(event) => setUserDraft((draft) => draft ? { ...draft, f_name: event.target.value } : draft)} /></Field>
             <Field label="Last name"><input className={inputClassName} value={userDraft.l_name ?? ""} onChange={(event) => setUserDraft((draft) => draft ? { ...draft, l_name: event.target.value } : draft)} /></Field>
             <Field label="Email"><input className={inputClassName} value={userDraft.email} onChange={(event) => setUserDraft((draft) => draft ? { ...draft, email: event.target.value } : draft)} /></Field>
-            <Field label="Role"><select className={inputClassName} value={userDraft.role} onChange={(event) => setUserDraft((draft) => draft ? { ...draft, role: event.target.value } : draft)}><option value="admin">Admin</option><option value="lawyer">Lawyer</option><option value="user">User</option></select></Field>
+            <Field label="Role"><select className={inputClassName} value={userDraft.role} onChange={(event) => setUserDraft((draft) => draft ? { ...draft, role: event.target.value } : draft)}><option value="document_issuer">Document Issuer</option><option value="document_participant">Document Participant</option></select></Field>
             <p className="text-xs font-semibold text-[#5B6F8A]">Demo mode — changes reset when this page is refreshed.</p>
           </div>
         ) : null}
