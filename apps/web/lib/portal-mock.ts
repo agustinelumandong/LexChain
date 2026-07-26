@@ -1,6 +1,26 @@
 const mockParticipantId = 'mock-user-1';
 const mockIssuerId = 'mock-lawyer';
 
+export type DemoIntegrityState = 'match' | 'mismatch' | 'not-recorded' | 'unavailable';
+
+export type DemoAnchorStatus = 'pending' | 'confirmed' | 'failed';
+
+export type DemoDocumentSnapshot = {
+  id: string;
+  document_id: string;
+  text_hash: string;
+  created_at: string;
+};
+
+export type DemoDocumentLifecycle = {
+  lifecycle: 'draft' | 'finalized' | 'restored';
+  document_hash: string | null;
+  finalized_at: string | null;
+  finalized_by: string | null;
+  anchor_status: DemoAnchorStatus | null;
+  snapshots: DemoDocumentSnapshot[];
+};
+
 type MockDocument = {
   id: string;
   document_id: string;
@@ -17,6 +37,8 @@ type MockDocument = {
   risk_flags: Array<Record<string, string>>;
   created_at: string;
   updated_at: string;
+} & DemoDocumentLifecycle & {
+  integrity_state: DemoIntegrityState;
 };
 
 type MockInvitation = {
@@ -89,6 +111,18 @@ let documents: MockDocument[] = [
     risk_flags: [],
     created_at: '2026-07-10T09:00:00.000Z',
     updated_at: '2026-07-10T09:05:00.000Z',
+    lifecycle: 'finalized',
+    document_hash: 'a'.repeat(64),
+    finalized_at: '2026-07-10T09:05:00.000Z',
+    finalized_by: mockIssuerId,
+    anchor_status: 'confirmed',
+    snapshots: [{
+      id: 'mock-snapshot-1',
+      document_id: 'mock-document-1',
+      text_hash: 'a'.repeat(64),
+      created_at: '2026-07-10T09:05:00.000Z',
+    }],
+    integrity_state: 'match',
   },
   {
     id: 'mock-document-2',
@@ -97,7 +131,7 @@ let documents: MockDocument[] = [
     file_name: 'Certificate of Employment.pdf',
     storage_url: '/mock-documents/certificate-of-employment.pdf',
     content_type: 'application/pdf',
-    status: 'processing',
+    status: 'completed',
     on_chain: false,
     is_latest: true,
     summary: 'A sample certificate of employment issued to Jane Doe.',
@@ -106,8 +140,70 @@ let documents: MockDocument[] = [
     risk_flags: [{ note: 'Awaiting document processing.' }],
     created_at: '2026-07-13T13:30:00.000Z',
     updated_at: '2026-07-13T13:30:00.000Z',
+    lifecycle: 'draft',
+    document_hash: null,
+    finalized_at: null,
+    finalized_by: null,
+    anchor_status: null,
+    snapshots: [],
+    integrity_state: 'not-recorded',
+  },
+  {
+    id: 'mock-document-3',
+    document_id: 'mock-document-3',
+    document_number: 1003,
+    file_name: 'Restoration Review.pdf',
+    storage_url: '/mock-documents/restoration-review.pdf',
+    content_type: 'application/pdf',
+    status: 'anchored',
+    on_chain: true,
+    is_latest: true,
+    summary: 'A seeded document with a deliberately mismatched integrity result for restoration review.',
+    labels: ['restoration', 'integrity'],
+    entities: [{ party: 'Jane Doe' }],
+    risk_flags: [{ note: 'Integrity mismatch detected.' }],
+    created_at: '2026-07-15T10:00:00.000Z',
+    updated_at: '2026-07-15T10:05:00.000Z',
+    lifecycle: 'finalized',
+    document_hash: 'b'.repeat(64),
+    finalized_at: '2026-07-15T10:05:00.000Z',
+    finalized_by: mockIssuerId,
+    anchor_status: 'confirmed',
+    snapshots: [{
+      id: 'mock-snapshot-3',
+      document_id: 'mock-document-3',
+      text_hash: 'b'.repeat(64),
+      created_at: '2026-07-15T10:05:00.000Z',
+    }],
+    integrity_state: 'mismatch',
+  },
+  {
+    id: 'mock-document-4',
+    document_id: 'mock-document-4',
+    document_number: 1004,
+    file_name: 'Participant Shared Draft.pdf',
+    storage_url: '/mock-documents/participant-shared-draft.pdf',
+    content_type: 'application/pdf',
+    status: 'completed',
+    on_chain: false,
+    is_latest: true,
+    summary: 'A completed draft shared with the document participant for read-only review.',
+    labels: ['shared', 'participant'],
+    entities: [{ party: 'Alex User' }],
+    risk_flags: [],
+    created_at: '2026-07-18T09:00:00.000Z',
+    updated_at: '2026-07-18T09:00:00.000Z',
+    lifecycle: 'draft',
+    document_hash: null,
+    finalized_at: null,
+    finalized_by: null,
+    anchor_status: null,
+    snapshots: [],
+    integrity_state: 'not-recorded',
   },
 ];
+
+let documentAudits: Array<Record<string, unknown>> = [];
 
 let notifications = [
   {
@@ -181,7 +277,7 @@ let books: MockBook[] = [
   },
 ];
 
-const sharedDocumentIds = new Set<string>();
+const sharedDocumentIds = new Set(['mock-document-4']);
 
 function json(data: unknown, status = 200) {
   return Response.json(data, { status });
@@ -193,6 +289,24 @@ function error(message: string, status: number) {
 
 function documentFor(id: string) {
   return documents.find((document) => document.id === id);
+}
+
+function deterministicHash(value: string) {
+  return value.split('').map((character) => character.charCodeAt(0).toString(16)).join('').padEnd(64, '0').slice(0, 64);
+}
+
+function documentAuditsFor(document: MockDocument) {
+  return [
+    {
+      id: `mock-audit-${document.id}`,
+      document_id: document.id,
+      user_id: mockIssuerId,
+      action: 'document_created',
+      details: { source: 'mock portal' },
+      created_at: document.created_at,
+    },
+    ...documentAudits.filter((audit) => audit.document_id === document.id),
+  ];
 }
 
 function canAccessDocument(token: string | undefined, document: MockDocument) {
@@ -272,6 +386,14 @@ export function mockPortalGet(path: string, token?: string): Response {
     return json(requestList(filtered));
   }
 
+  const snapshotsMatch = requestPathname.match(/^\/documents\/([^/]+)\/snapshots\/?$/);
+  if (snapshotsMatch) {
+    const document = documentFor(snapshotsMatch[1]);
+    if (!document) return error('Document not found', 404);
+    if (!canAccessDocument(token, document)) return error('Document access required', 403);
+    return json(document.snapshots);
+  }
+
   const documentMatch = documentPaths(path);
   if (documentMatch) {
     const [, id, detail] = documentMatch;
@@ -289,16 +411,7 @@ export function mockPortalGet(path: string, token?: string): Response {
     if (detail === 'versions') {
       return json({ current_document_id: document.id, versions: [document], total_version: 1 });
     }
-    return json([
-      {
-        id: `mock-audit-${document.id}`,
-        document_id: document.id,
-        user_id: mockIssuerId,
-        action: 'document_created',
-        details: { source: 'mock portal' },
-        created_at: document.created_at,
-      },
-    ]);
+    return json(documentAuditsFor(document));
   }
 
   const blockchainMatch = path.match(/^\/blockchain\/verify\/([^/]+)\/?$/);
@@ -314,7 +427,7 @@ export function mockPortalGet(path: string, token?: string): Response {
       issued_by: '0xMockIssuer',
       verified_at: new Date().toISOString(),
       transacttion_link: 'https://example.test/mock-transaction',
-      is_verified: true,
+      is_verified: document.integrity_state !== 'mismatch',
     });
   }
 
@@ -356,6 +469,13 @@ async function uploadDocument(request: Request, path: string) {
     risk_flags: [],
     created_at: now,
     updated_at: now,
+    lifecycle: 'draft',
+    document_hash: null,
+    finalized_at: null,
+    finalized_by: null,
+    anchor_status: null,
+    snapshots: [],
+    integrity_state: 'not-recorded',
   };
   documents = [document, ...documents];
   books = books.map((candidate) => candidate.id === book.id ? {
@@ -437,6 +557,76 @@ export async function mockPortalMutate(method: 'POST' | 'PATCH', path: string, r
   if (method === 'POST' && (requestPathname === '/books' || requestPathname === '/books/')) {
     if (!hasMockIssuerAccess(token)) return error('Document Issuer access required', 403);
     return createBook(request);
+  }
+
+  const finalizeMatch = requestPathname.match(/^\/documents\/([^/]+)\/finalize\/?$/);
+  if (method === 'POST' && finalizeMatch) {
+    if (!hasMockIssuerAccess(token)) return error('Document Issuer access required', 403);
+    const document = documentFor(finalizeMatch[1]);
+    if (!document) return error('Document not found', 404);
+    if (document.lifecycle === 'finalized') return json(document);
+    if (document.status.trim().toUpperCase() !== 'COMPLETED' || document.lifecycle !== 'draft') {
+      return error('Document cannot be finalized', 400);
+    }
+    const now = new Date().toISOString();
+    const documentHash = deterministicHash(document.id);
+    const finalizedDocument: MockDocument = {
+      ...document,
+      lifecycle: 'finalized',
+      document_hash: documentHash,
+      finalized_at: now,
+      finalized_by: mockIssuerId,
+      anchor_status: 'confirmed',
+      snapshots: document.snapshots.length ? document.snapshots : [{
+        id: `mock-snapshot-${document.id}`,
+        document_id: document.id,
+        text_hash: documentHash,
+        created_at: now,
+      }],
+      integrity_state: 'match',
+      updated_at: now,
+    };
+    documents = documents.map((item) => item.id === document.id ? finalizedDocument : item);
+    documentAudits = [...documentAudits, {
+      id: `mock-audit-finalized-${document.id}`,
+      document_id: document.id,
+      user_id: mockIssuerId,
+      action: 'document_finalized',
+      details: { document_hash: documentHash },
+      created_at: now,
+    }];
+    return json(finalizedDocument);
+  }
+
+  const restoreMatch = requestPathname.match(/^\/documents\/([^/]+)\/snapshots\/([^/]+)\/restore\/?$/);
+  if (method === 'POST' && restoreMatch) {
+    if (!hasMockIssuerAccess(token)) return error('Document Issuer access required', 403);
+    const [, documentId, snapshotId] = restoreMatch;
+    const document = documentFor(documentId);
+    if (!document) return error('Document not found', 404);
+    const snapshot = document.snapshots.find((item) => item.id === snapshotId);
+    if (!snapshot) return error('Snapshot not found', 404);
+    const body = await jsonBody(request);
+    const reason = typeof body?.reason === 'string' ? body.reason.trim() : '';
+    if (!reason) return error('A restoration reason is required', 400);
+    const now = new Date().toISOString();
+    const restoredDocument: MockDocument = {
+      ...document,
+      lifecycle: 'restored',
+      document_hash: snapshot.text_hash,
+      integrity_state: 'match',
+      updated_at: now,
+    };
+    documents = documents.map((item) => item.id === document.id ? restoredDocument : item);
+    documentAudits = [...documentAudits, {
+      id: `mock-audit-restored-${document.id}-${Date.now()}`,
+      document_id: document.id,
+      user_id: mockIssuerId,
+      action: 'document_restored',
+      details: { snapshot_id: snapshot.id, reason },
+      created_at: now,
+    }];
+    return json(restoredDocument);
   }
   if (method === 'POST' && path === '/search') return searchDocuments(request);
 
