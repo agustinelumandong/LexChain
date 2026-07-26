@@ -1,3 +1,5 @@
+import { isAdminRole } from "@/lib/admin-role";
+
 export type PortalUiRole = "issuer" | "participant" | "unsupported";
 
 export type PortalProfileRequestShortcut = {
@@ -5,9 +7,13 @@ export type PortalProfileRequestShortcut = {
   href: "/portal/requests" | "/portal/requests/my";
 };
 
+export function isPortalSuperAdminRole(role?: string): boolean {
+  return isAdminRole(role);
+}
+
 export function getPortalUiRole(role?: string): PortalUiRole {
   const normalized = role?.trim().toLowerCase();
-  if (normalized === "lawyer") return "issuer";
+  if (normalized === "lawyer" || isPortalSuperAdminRole(normalized)) return "issuer";
   if (normalized === "user") return "participant";
   return "unsupported";
 }
@@ -17,6 +23,7 @@ export function isSupportedPortalUiRole(role: PortalUiRole): boolean {
 }
 
 export function getPortalRoleLabel(role?: string): string {
+  if (isPortalSuperAdminRole(role)) return "Document Issuer · Super Admin";
   const uiRole = getPortalUiRole(role);
   if (uiRole === "issuer") return "Document Issuer · Super User";
   if (uiRole === "participant") return "Document Participant";

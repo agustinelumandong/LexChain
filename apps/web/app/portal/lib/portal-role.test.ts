@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getPortalLoginRedirect, getPortalProfileRequestShortcut, getPortalRoleLabel, getPortalUiRole, isSupportedPortalUiRole } from "./portal-role";
+import { getPortalLoginRedirect, getPortalProfileRequestShortcut, getPortalRoleLabel, getPortalUiRole, isPortalSuperAdminRole, isSupportedPortalUiRole } from "./portal-role";
 
 describe("portal UI roles", () => {
   it("maps backend lawyer copy to Document Issuer", () => {
@@ -7,14 +7,18 @@ describe("portal UI roles", () => {
     expect(getPortalRoleLabel("lawyer")).toBe("Document Issuer · Super User");
   });
 
+  it("maps Super Admin aliases into the Document Issuer actor", () => {
+    expect(getPortalUiRole("admin")).toBe("issuer");
+    expect(getPortalUiRole("super_admin")).toBe("issuer");
+    expect(getPortalRoleLabel("admin")).toBe("Document Issuer · Super Admin");
+    expect(isPortalSuperAdminRole("admin")).toBe(true);
+    expect(isPortalSuperAdminRole("lawyer")).toBe(false);
+  });
+
   it("routes supported portal accounts to the portal without granting unsupported roles office navigation", () => {
     expect(getPortalLoginRedirect("lawyer")).toBe("/portal/dashboard");
     expect(getPortalLoginRedirect("user")).toBe("/portal/dashboard");
     expect(getPortalLoginRedirect("staff")).toBeUndefined();
-  });
-
-  it("does not expose Super Admin as product copy", () => {
-    expect(getPortalRoleLabel("lawyer")).not.toContain("Admin");
   });
 
   it("maps backend user copy to Document Participant", () => {

@@ -2,8 +2,8 @@ import { describe, expect, it } from "vitest";
 import { getRedirectPath } from "./page";
 
 describe("unified login routing", () => {
-  it("routes admin accounts to the admin dashboard", () => {
-    expect(getRedirectPath({ user: { role: "admin" } })).toBe("/admin/dashboard");
+  it("routes admin accounts to the portal dashboard", () => {
+    expect(getRedirectPath({ user: { role: "admin" } })).toBe("/portal/dashboard");
   });
 
   it("keeps issuer and participant routing unchanged", () => {
