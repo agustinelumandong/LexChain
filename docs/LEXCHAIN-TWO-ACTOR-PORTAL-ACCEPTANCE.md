@@ -1,8 +1,8 @@
 # LexChain Two-Actor Portal Acceptance
 
-Date: 2026-07-26
+Date: 2026-07-27
 
-Verified commit: `05bac78ff25d26d79e5f4f0cf512632071fe5fc1`
+Verified implementation commit: `5a0d7e0d3cd1d4509acb995c94d66e80a6920214`
 
 Mode: production Next.js build with the repository's mock API
 
@@ -27,7 +27,7 @@ was stopped after acceptance, and port `3216` had no remaining listener.
 | Persona | Required result | Observed result | Status |
 | --- | --- | --- | --- |
 | Document Issuer | Exact role label; all five navigation groups; all five System Management pages reachable on desktop and mobile | `issuer@example.com` reached `/portal/dashboard` with exact `Document Issuer` profile copy. `Workspace`, `Integrity`, `Office`, `System Management`, and `Account` were present. Every management destination rendered at both viewports. | Pass |
-| Document Participant | Exact role label; participant navigation only; direct issuer-management URLs safely denied | `participant@example.com` reached `/portal/dashboard` with exact `Document Participant` profile copy and only `Shared Documents`, `Invitations`, `My E-copy Requests`, and `Profile & Security`. Every direct management request returned to the dashboard without management content. | Pass |
+| Document Participant | Exact role label; participant navigation only; direct issuer-management URLs safely denied | `participant@example.com` reached `/portal/dashboard` with exact `Document Participant` profile copy and only `Shared Documents`, `Invitations`, `My E-copy Requests`, and `Profile & Security`; the desktop top bar had no Processing Monitor link. Every direct management request returned to the dashboard without management content. | Pass |
 | Legacy URL | `/admin/*` resolves to its `/portal/*` compatibility target without exposing a separate workspace | `/admin/users` resolved to `/portal/users` for the issuer and rendered the ordinary portal `Users` page. | Pass |
 
 Both mock identities used `Password123`.
@@ -68,6 +68,22 @@ was then set to `document_issuer` while the participant session remained
 active. A fresh request to `/portal/users` was still denied and returned to the
 dashboard, confirming that the client-side role hint did not grant access.
 
+The 2026-07-27 desktop recheck also confirmed that the participant top bar has
+Search, Notifications, Help, and the participant profile only. It does not
+render the issuer-only Processing Monitor link.
+
+## Invitation mutation fix-round recheck
+
+The production server was exercised directly and through the issuer browser
+session. Anonymous invitation `POST` and `DELETE` requests returned `401`.
+Presenting the participant credential as `issuer_token` returned `403` for both
+mutations. The exact issuer credential returned `201` for `POST` and `200` for
+`DELETE`.
+
+In the browser, the signed-in issuer created `round1@example.com` from the
+Issuer Invitations page and revoked the seeded `demo-0` invitation. The
+observed network responses were `201 Created` and `200 OK`, respectively.
+
 ### Document Issuer at `390x844`
 
 The issuer signed in again after resizing the browser. The named mobile portal
@@ -88,7 +104,7 @@ shared-document, notification, account, and search capabilities to
 `document_participant`. There is no conditional issuer tier, no separate
 workspace, and no authorization fallback for obsolete account roles.
 
-The complete automated web suite passed `299` tests across `57` files. The
+The complete automated web suite passed `312` tests across `63` files. The
 browser run specifically exercised authentication labels, role navigation,
 all five management routes, participant denial, the client-cookie bypass
 attempt, the compatibility redirect, and responsive issuer access. It did not
@@ -97,10 +113,9 @@ matrix.
 
 ## Local evidence
 
-Snapshots and screenshots from this run are under
-`output/playwright/task7/final/`, including issuer, participant, compatibility,
-and mobile checkpoints. These generated browser artifacts are local verification
-output and are not committed as product source.
+The 2026-07-27 fix-round snapshots are under
+`output/playwright/task7/fix-round-1/.playwright-cli/`. This generated folder is
+ignored and was not committed as product source.
 
 ## Limitations
 

@@ -139,3 +139,63 @@ committed.
   not interactively execute every document-lifecycle operation in the approved
   19/7 use-case list; that broader boundary is backed by source review and the
   complete automated web suite.
+
+## Fix round 1: review-gate repairs
+
+### RED to GREEN evidence
+
+- The original review identified anonymous mock invitation `POST`/`DELETE`
+  success, participant access, and the server-only mock flag failure. The new
+  route regressions cover anonymous `401`, participant `403`, and exact issuer
+  `201`/`200` results with `USE_MOCK_API=true` and
+  `NEXT_PUBLIC_USE_MOCK_API=false`; these would fail against the reviewed
+  unguarded mock branches.
+- The new top-bar regression requires Processing Monitor to be absent for a
+  participant and present for an issuer. The previous unconditional link would
+  fail the participant assertion.
+- The management-view, register, invite, profile, and canonical-role
+  regressions require the two visible product labels and fail closed to
+  `Unsupported role` for obsolete or unknown account values.
+
+### GREEN verification
+
+| Command | Result |
+| --- | --- |
+| `pnpm --filter @lexchain/web exec vitest run` with the 9 repair test files | Pass: 9 files, 35 tests |
+| `pnpm --filter @lexchain/web test` | Pass: 63 files, 312 tests |
+| `pnpm --filter @lexchain/web lint` | Pass: ESLint exit 0 |
+| `pnpm --filter @lexchain/web build` | Pass: compilation and TypeScript completed |
+| `git diff --check` | Pass |
+
+The configured application and target-document scans returned no target-model
+matches. The legacy fixture scan returned only deliberate obsolete-role
+rejection cases plus the unrelated `'user' | 'ai'` chat-message discriminator.
+The build emitted the existing multiple-worktree-lockfile root-inference
+warning only.
+
+### Production browser and transport verification
+
+The fresh production server used:
+
+```bash
+USE_MOCK_API=true pnpm --filter @lexchain/web start --hostname 127.0.0.1 --port 3216
+```
+
+- Direct transport checks: anonymous `POST`/`DELETE` returned `401`;
+  participant credentials returned `403`; exact issuer credentials returned
+  `201`/`200`.
+- In the issuer Playwright session, `issuer@example.com` / `Password123`
+  created an invitation and revoked a seeded invitation. The observed network
+  responses were `201 Created` and `200 OK`.
+- In the participant Playwright session,
+  `participant@example.com` / `Password123` had no `issuer_token`, reached the
+  Document Participant dashboard, showed no Processing Monitor top-bar link,
+  and direct `/portal/issuer-invitations` navigation returned to
+  `/portal/dashboard`.
+- Both named browser sessions and the inherited default browser session were
+  closed. The server stopped with `SIGINT`; port `3216` had no listener.
+
+### Fix-round commit
+
+- Implementation and tests:
+  `5a0d7e0d3cd1d4509acb995c94d66e80a6920214`
