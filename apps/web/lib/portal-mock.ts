@@ -1,3 +1,5 @@
+import { canFinalizeDocument, canRestoreDocument } from '../app/portal/lib/document-lifecycle-ui';
+
 const mockParticipantId = 'mock-user-1';
 const mockIssuerId = 'mock-lawyer';
 
@@ -37,6 +39,7 @@ type MockDocument = {
   risk_flags: Array<Record<string, string>>;
   created_at: string;
   updated_at: string;
+  audit_log: Array<Record<string, unknown>>;
 } & DemoDocumentLifecycle & {
   integrity_state: DemoIntegrityState;
 };
@@ -76,6 +79,17 @@ type MockBook = {
   updated_at: string | null;
 };
 
+function mockCreationAudit(documentId: string, createdAt: string) {
+  return {
+    id: `mock-audit-${documentId}`,
+    document_id: documentId,
+    user_id: mockIssuerId,
+    action: 'document_created',
+    details: { source: 'mock portal' },
+    created_at: createdAt,
+  };
+}
+
 const issuerProfile = {
   email: 'jane.doe@lexchain.local',
   f_name: 'Jane',
@@ -111,6 +125,7 @@ let documents: MockDocument[] = [
     risk_flags: [],
     created_at: '2026-07-10T09:00:00.000Z',
     updated_at: '2026-07-10T09:05:00.000Z',
+    audit_log: [mockCreationAudit('mock-document-1', '2026-07-10T09:00:00.000Z')],
     lifecycle: 'finalized',
     document_hash: 'a'.repeat(64),
     finalized_at: '2026-07-10T09:05:00.000Z',
@@ -140,6 +155,7 @@ let documents: MockDocument[] = [
     risk_flags: [{ note: 'Awaiting document processing.' }],
     created_at: '2026-07-13T13:30:00.000Z',
     updated_at: '2026-07-13T13:30:00.000Z',
+    audit_log: [mockCreationAudit('mock-document-2', '2026-07-13T13:30:00.000Z')],
     lifecycle: 'draft',
     document_hash: null,
     finalized_at: null,
@@ -164,6 +180,7 @@ let documents: MockDocument[] = [
     risk_flags: [{ note: 'Integrity mismatch detected.' }],
     created_at: '2026-07-15T10:00:00.000Z',
     updated_at: '2026-07-15T10:05:00.000Z',
+    audit_log: [mockCreationAudit('mock-document-3', '2026-07-15T10:00:00.000Z')],
     lifecycle: 'finalized',
     document_hash: 'b'.repeat(64),
     finalized_at: '2026-07-15T10:05:00.000Z',
@@ -193,6 +210,7 @@ let documents: MockDocument[] = [
     risk_flags: [],
     created_at: '2026-07-18T09:00:00.000Z',
     updated_at: '2026-07-18T09:00:00.000Z',
+    audit_log: [mockCreationAudit('mock-document-4', '2026-07-18T09:00:00.000Z')],
     lifecycle: 'draft',
     document_hash: null,
     finalized_at: null,
@@ -202,8 +220,6 @@ let documents: MockDocument[] = [
     integrity_state: 'not-recorded',
   },
 ];
-
-let documentAudits: Array<Record<string, unknown>> = [];
 
 let notifications = [
   {
@@ -295,22 +311,12 @@ function deterministicHash(value: string) {
   return value.split('').map((character) => character.charCodeAt(0).toString(16)).join('').padEnd(64, '0').slice(0, 64);
 }
 
-function documentAuditsFor(document: MockDocument) {
-  return [
-    {
-      id: `mock-audit-${document.id}`,
-      document_id: document.id,
-      user_id: mockIssuerId,
-      action: 'document_created',
-      details: { source: 'mock portal' },
-      created_at: document.created_at,
-    },
-    ...documentAudits.filter((audit) => audit.document_id === document.id),
-  ];
-}
-
 function canAccessDocument(token: string | undefined, document: MockDocument) {
   return !isMockParticipant(token) || sharedDocumentIds.has(document.id);
+}
+
+function canMutateDocumentLifecycle(document: MockDocument) {
+  return !sharedDocumentIds.has(document.id);
 }
 
 function documentPaths(path: string) {
@@ -411,7 +417,7 @@ export function mockPortalGet(path: string, token?: string): Response {
     if (detail === 'versions') {
       return json({ current_document_id: document.id, versions: [document], total_version: 1 });
     }
-    return json(documentAuditsFor(document));
+    return json(document.audit_log);
   }
 
   const blockchainMatch = path.match(/^\/blockchain\/verify\/([^/]+)\/?$/);
@@ -469,6 +475,7 @@ async function uploadDocument(request: Request, path: string) {
     risk_flags: [],
     created_at: now,
     updated_at: now,
+    audit_log: [mockCreationAudit(id, now)],
     lifecycle: 'draft',
     document_hash: null,
     finalized_at: null,
@@ -564,8 +571,9 @@ export async function mockPortalMutate(method: 'POST' | 'PATCH', path: string, r
     if (!hasMockIssuerAccess(token)) return error('Document Issuer access required', 403);
     const document = documentFor(finalizeMatch[1]);
     if (!document) return error('Document not found', 404);
+    if (!canMutateDocumentLifecycle(document)) return error('Shared document lifecycle is read-only', 403);
     if (document.lifecycle === 'finalized') return json(document);
-    if (document.status.trim().toUpperCase() !== 'COMPLETED' || document.lifecycle !== 'draft') {
+    if (!canFinalizeDocument('issuer', document.status, document.lifecycle)) {
       return error('Document cannot be finalized', 400);
     }
     const now = new Date().toISOString();
@@ -585,16 +593,16 @@ export async function mockPortalMutate(method: 'POST' | 'PATCH', path: string, r
       }],
       integrity_state: 'match',
       updated_at: now,
+      audit_log: [...document.audit_log, {
+        id: `mock-audit-finalized-${document.id}`,
+        document_id: document.id,
+        user_id: mockIssuerId,
+        action: 'document_finalized',
+        details: { document_hash: documentHash },
+        created_at: now,
+      }],
     };
     documents = documents.map((item) => item.id === document.id ? finalizedDocument : item);
-    documentAudits = [...documentAudits, {
-      id: `mock-audit-finalized-${document.id}`,
-      document_id: document.id,
-      user_id: mockIssuerId,
-      action: 'document_finalized',
-      details: { document_hash: documentHash },
-      created_at: now,
-    }];
     return json(finalizedDocument);
   }
 
@@ -604,8 +612,12 @@ export async function mockPortalMutate(method: 'POST' | 'PATCH', path: string, r
     const [, documentId, snapshotId] = restoreMatch;
     const document = documentFor(documentId);
     if (!document) return error('Document not found', 404);
+    if (!canMutateDocumentLifecycle(document)) return error('Shared document lifecycle is read-only', 403);
     const snapshot = document.snapshots.find((item) => item.id === snapshotId);
     if (!snapshot) return error('Snapshot not found', 404);
+    if (!canRestoreDocument('issuer', document.integrity_state, document.snapshots)) {
+      return error('Document cannot be restored', 400);
+    }
     const body = await jsonBody(request);
     const reason = typeof body?.reason === 'string' ? body.reason.trim() : '';
     if (!reason) return error('A restoration reason is required', 400);
@@ -616,16 +628,16 @@ export async function mockPortalMutate(method: 'POST' | 'PATCH', path: string, r
       document_hash: snapshot.text_hash,
       integrity_state: 'match',
       updated_at: now,
+      audit_log: [...document.audit_log, {
+        id: `mock-audit-restored-${document.id}-${Date.now()}`,
+        document_id: document.id,
+        user_id: mockIssuerId,
+        action: 'document_restored',
+        details: { snapshot_id: snapshot.id, reason },
+        created_at: now,
+      }],
     };
     documents = documents.map((item) => item.id === document.id ? restoredDocument : item);
-    documentAudits = [...documentAudits, {
-      id: `mock-audit-restored-${document.id}-${Date.now()}`,
-      document_id: document.id,
-      user_id: mockIssuerId,
-      action: 'document_restored',
-      details: { snapshot_id: snapshot.id, reason },
-      created_at: now,
-    }];
     return json(restoredDocument);
   }
   if (method === 'POST' && path === '/search') return searchDocuments(request);

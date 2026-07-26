@@ -70,6 +70,21 @@ describe('portal mock mutations', () => {
     }));
   });
 
+  it('rejects an issuer restore request when the integrity state is not a mismatch', async () => {
+    const response = await mockPortalMutate(
+      'POST',
+      '/documents/mock-document-1/snapshots/mock-snapshot-1/restore',
+      new Request('https://mock.lexchain.local/api/portal/proxy-post', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ reason: 'A matching document cannot be restored.' }),
+      }),
+      'mock-token:mock-lawyer',
+    );
+
+    expect(response.status).toBe(400);
+  });
+
   it('accepts an upload path with the required book and file-name query values', async () => {
     const form = new FormData();
     form.append('file', new File(['PDF'], 'original.pdf', { type: 'application/pdf' }));
@@ -290,6 +305,28 @@ describe('portal mock participant invitations and requests', () => {
         body: JSON.stringify({ reason: 'No access.' }),
       }),
       'mock-token:mock-user',
+    );
+
+    expect(finalize.status).toBe(403);
+    expect(restore.status).toBe(403);
+  });
+
+  it('does not let an issuer mutate the seeded participant-shared document lifecycle', async () => {
+    const finalize = await mockPortalMutate(
+      'POST',
+      '/documents/mock-document-4/finalize',
+      new Request('https://mock.lexchain.local/api/portal/proxy-post', { method: 'POST' }),
+      'mock-token:mock-lawyer',
+    );
+    const restore = await mockPortalMutate(
+      'POST',
+      '/documents/mock-document-4/snapshots/mock-snapshot-4/restore',
+      new Request('https://mock.lexchain.local/api/portal/proxy-post', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ reason: 'Issuer access is still read-only.' }),
+      }),
+      'mock-token:mock-lawyer',
     );
 
     expect(finalize.status).toBe(403);
