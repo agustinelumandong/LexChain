@@ -121,6 +121,31 @@ nor a `Users` heading.
 The sessions were closed with `"$PWCLI" -s=<session-name> close`. The dev
 server was stopped with `Ctrl-C`, and port `3216` had no listener afterward.
 
+## Responsive mobile navigation evidence
+
+A separate responsive pass used the local mock server at `127.0.0.1:3227` and
+Playwright CLI `resize 390 844`. The Super Admin issuer navigated successfully
+to all five privileged destinations:
+
+- `/portal/users`
+- `/portal/issuer-invitations`
+- `/portal/system-reports`
+- `/portal/audit-logs`
+- `/portal/system-statistics`
+
+The standard issuer retained ordinary mobile portal navigation and exposed
+none of those five privileged links.
+
+Stable post-wait evidence:
+
+- `.playwright-cli/final-mobile-admin-dashboard.md`
+- `.playwright-cli/final-mobile-admin-users.md`
+- `.playwright-cli/final-mobile-admin-invitations.md`
+- `.playwright-cli/final-mobile-admin-reports.md`
+- `.playwright-cli/final-mobile-admin-audit.md`
+- `.playwright-cli/final-mobile-admin-statistics.md`
+- `.playwright-cli/final-mobile-lawyer-dashboard.md`
+
 ## Route compatibility
 
 | Legacy page route | Current destination |
