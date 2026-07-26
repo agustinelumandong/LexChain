@@ -9,10 +9,13 @@ import PortalChatbot from '../../components/portal-chatbot';
 import { DocumentWorkspace } from './document-workspace';
 import { getDocumentActions, getDocumentStatusLabel } from '../../lib/document-ui';
 import { verifyRepositoryDocument } from '../../lib/integrity-api';
+import { listDemoSnapshots } from '../../lib/document-lifecycle-api';
+import type { DemoDocumentLifecycle } from '../../lib/document-lifecycle-ui';
 import { getIntegrityUiState } from '../../lib/integrity-ui';
 import { getPortalUiRole } from '../../lib/portal-role';
 
 type DocumentResponse = ApiSchema<'DocumentResponse'>;
+type LifecycleDocumentResponse = DocumentResponse & Partial<DemoDocumentLifecycle>;
 type UserProfile = ApiSchema<'UserProfileResponse'>;
 
 async function getJson<T>(path: string): Promise<T> {
@@ -30,11 +33,12 @@ function statusStyle(status: string) {
 
 export default function DocumentDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const [docQ, chainQ, profileQ] = useQueries({
+  const [docQ, chainQ, profileQ, snapshotsQ] = useQueries({
     queries: [
-      { queryKey: ['portal-doc', id], queryFn: () => getJson<DocumentResponse>(`/documents/${id}`) },
+      { queryKey: ['portal-doc', id], queryFn: () => getJson<LifecycleDocumentResponse>(`/documents/${id}`) },
       { queryKey: ['portal-doc-chain', id], queryFn: () => verifyRepositoryDocument(id), retry: false },
       { queryKey: ['portal-profile'], queryFn: () => getJson<UserProfile | null>('/users/') },
+      { queryKey: ['portal-doc-snapshots', id], queryFn: () => listDemoSnapshots(id), retry: false },
     ],
   });
 
@@ -70,7 +74,17 @@ export default function DocumentDetailPage({ params }: { params: Promise<{ id: s
         </div>
       </header>
 
-      <DocumentWorkspace document={document} role={getPortalUiRole(profileQ.data?.role)} chain={chainQ.data} integrityState={integrityState} onRetry={() => void chainQ.refetch()} />
+      <DocumentWorkspace
+        document={document}
+        role={getPortalUiRole(profileQ.data?.role)}
+        chain={chainQ.data}
+        integrityState={integrityState}
+        snapshots={snapshotsQ.data}
+        snapshotsLoading={snapshotsQ.isLoading}
+        snapshotsError={snapshotsQ.isError}
+        onRetry={() => void chainQ.refetch()}
+        onRetrySnapshots={() => void snapshotsQ.refetch()}
+      />
       <PortalChatbot />
     </div>
   );

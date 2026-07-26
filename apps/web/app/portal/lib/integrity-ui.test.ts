@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { IntegrityResult } from '../components/integrity-result';
 import {
   INTEGRITY_SAFETY_MESSAGE,
+  getDemoIntegrityState,
   getIntegrityUiCopy,
   getIntegrityUiState,
   getIntegrityResult,
@@ -46,6 +47,14 @@ describe('getIntegrityUiState', () => {
 describe('getIntegrityUiCopy', () => {
   it('uses clear copy for an unavailable integrity status', () => {
     expect(getIntegrityUiCopy('unavailable').label).toBe('Integrity status unavailable');
+  });
+});
+
+describe('getDemoIntegrityState', () => {
+  it('normalizes presentation-only integrity states for lifecycle eligibility', () => {
+    expect(getDemoIntegrityState('recorded')).toBe('match');
+    expect(getDemoIntegrityState('not_recorded')).toBe('not-recorded');
+    expect(getDemoIntegrityState('mismatch')).toBe('mismatch');
   });
 });
 
