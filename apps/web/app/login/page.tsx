@@ -28,7 +28,7 @@ function decodeJwtRole(token?: string): string {
   } catch { return ""; }
 }
 
-function getRedirectPath(data: Record<string, unknown> | null): string {
+export function getRedirectPath(data: Record<string, unknown> | null): string {
   if (!data) return "/login";
   const user = (data.user as Record<string, unknown>) ?? data;
   const role = String(
@@ -39,6 +39,7 @@ function getRedirectPath(data: Record<string, unknown> | null): string {
     decodeJwtRole(data.access_token as string) ??
     ""
   ).toLowerCase();
+  if (role === "admin") return "/admin/dashboard";
   return getPortalLoginRedirect(role) ?? "/login";
 }
 
