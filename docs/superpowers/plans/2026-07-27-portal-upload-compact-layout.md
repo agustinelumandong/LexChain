@@ -28,26 +28,15 @@
 - Consumes: the existing `UploadPage` component and its Select PDF, Document information, and Confirm and process sections
 - Produces: the same `UploadPage` behavior with `max-w-5xl` width and a `lg:grid-cols-2` responsive wrapper
 
-- [ ] **Step 1: Write the failing layout test**
+- [x] **Step 1: Record the failing desktop browser behavior**
 
-Add a test that reads the rendered elements and asserts that the page container uses `max-w-5xl`, the Select PDF and Document information sections share a wrapper with `lg:grid-cols-2`, and Confirm and process remains outside that two-column wrapper:
+Run the current page in mock mode at a desktop viewport. Measure the bounding boxes of the regions named Select PDF, Document information, and Confirm and process.
 
-```tsx
-it('uses a compact two-column desktop layout while keeping confirmation full width', () => {
-  const { container } = render(<UploadPage />);
-  const page = container.firstElementChild as HTMLElement;
-  const selectSection = screen.getByRole('region', { name: 'Select PDF' });
-  const informationSection = screen.getByRole('region', { name: 'Document information' });
-  const confirmationSection = screen.getByRole('region', { name: 'Confirm and process' });
-
-  expect(page.className).toContain('max-w-5xl');
-  expect(selectSection.parentElement).toBe(informationSection.parentElement);
-  expect(selectSection.parentElement?.className).toContain('lg:grid-cols-2');
-  expect(confirmationSection.parentElement).toBe(page);
-});
+```text
+RED when Select PDF and Document information have different top coordinates at desktop width and the form remains narrowly capped.
 ```
 
-- [ ] **Step 2: Run the focused test to verify RED**
+- [x] **Step 2: Run the existing focused tests before implementation**
 
 Run:
 
@@ -55,9 +44,9 @@ Run:
 pnpm --filter @lexchain/web test -- app/portal/upload/page.test.tsx
 ```
 
-Expected: FAIL because the page still uses `max-w-xl` and the two input sections do not share a responsive grid wrapper.
+Expected: all existing upload behavior tests pass; the browser observation from Step 1 remains the failing layout requirement.
 
-- [ ] **Step 3: Apply the minimal responsive classes**
+- [x] **Step 3: Apply the minimal responsive classes**
 
 In `UploadPage`:
 
@@ -67,7 +56,11 @@ In `UploadPage`:
 - Change the drop zone from fixed `p-8` to `p-6 sm:p-8`.
 - Do not change event handlers, data fetching, mutation behavior, validation, or copy.
 
-- [ ] **Step 4: Run the focused test to verify GREEN**
+- [x] **Step 4: Verify GREEN in desktop and mobile browsers**
+
+At desktop width, measure that Select PDF and Document information have the same top coordinate and Confirm and process begins below both cards. At mobile width, measure that all three cards have increasing top coordinates and no horizontal overflow.
+
+- [x] **Step 5: Run the focused upload tests**
 
 Run:
 
@@ -77,7 +70,7 @@ pnpm --filter @lexchain/web test -- app/portal/upload/page.test.tsx
 
 Expected: all focused upload-page tests pass.
 
-- [ ] **Step 5: Verify the web workspace**
+- [x] **Step 6: Verify the web workspace**
 
 Run:
 
@@ -89,11 +82,7 @@ pnpm --filter @lexchain/web build
 
 Expected: all tests, lint, TypeScript, and production build pass.
 
-- [ ] **Step 6: Check the responsive result in mock mode**
-
-At desktop width, verify the PDF and metadata cards are side by side and confirmation spans beneath them. At mobile width, verify all three sections remain stacked in their original order without horizontal overflow.
-
-- [ ] **Step 7: Commit the implementation**
+- [x] **Step 7: Commit the implementation**
 
 ```bash
 git add apps/web/app/portal/upload/page.tsx apps/web/app/portal/upload/page.test.tsx docs/superpowers/plans/2026-07-27-portal-upload-compact-layout.md

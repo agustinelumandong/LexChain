@@ -46,8 +46,9 @@ responsive:
 
 ## Verification
 
-- Add one focused source-level layout assertion that fails while the form is
-  still capped at `max-w-xl` and lacks the desktop two-column wrapper.
-- Run the focused upload-page test first, then the full web tests, lint, and
+- Use a real browser check that starts red with vertically stacked desktop
+  cards, then confirms the PDF and metadata cards share a row after the change.
+- Confirm the same cards remain vertically stacked without horizontal overflow
+  at a mobile viewport.
+- Run the existing upload-page tests, then the full web tests, lint, and
   production build.
-- Check the page in desktop and mobile browser viewports using mock mode.
