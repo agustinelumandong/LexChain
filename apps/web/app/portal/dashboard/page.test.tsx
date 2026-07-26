@@ -3,7 +3,7 @@ import { cleanup, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import DashboardPage from './page';
 
-const profile = vi.hoisted(() => ({ role: 'user' }));
+const profile = vi.hoisted(() => ({ role: 'document_participant' }));
 const useQuery = vi.hoisted(() => vi.fn());
 
 vi.mock('@tanstack/react-query', () => ({ useQuery }));
@@ -30,7 +30,7 @@ describe('DashboardPage', () => {
 
   it('labels the issuer dashboard as the Document Issuer Portal', () => {
     useQuery.mockImplementation((options: { queryKey: string[]; enabled?: boolean }) => {
-      if (options.queryKey[0] === 'portal-profile') return { data: { role: 'lawyer' }, isLoading: false };
+      if (options.queryKey[0] === 'portal-profile') return { data: { role: 'document_issuer' }, isLoading: false };
       return { data: [], isLoading: false };
     });
 
@@ -41,7 +41,7 @@ describe('DashboardPage', () => {
 
   it('reassures issuers when no documents need attention', () => {
     useQuery.mockImplementation((options: { queryKey: string[]; enabled?: boolean }) => {
-      if (options.queryKey[0] === 'portal-profile') return { data: { role: 'lawyer' }, isLoading: false };
+      if (options.queryKey[0] === 'portal-profile') return { data: { role: 'document_issuer' }, isLoading: false };
       return { data: [], isLoading: false };
     });
 

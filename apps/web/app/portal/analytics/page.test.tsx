@@ -5,7 +5,7 @@ import { getOfficeInsightMetrics, type PortalDocument } from '../lib/office-insi
 import OfficeAnalyticsPage from './page';
 
 const queryState = vi.hoisted(() => ({
-  role: 'lawyer',
+  role: 'document_issuer',
   documents: [] as Array<Record<string, unknown>>,
   documentsError: false,
   documentsLoading: false,
@@ -20,7 +20,7 @@ afterEach(() => {
   vi.useRealTimers();
 });
 beforeEach(() => {
-  queryState.role = 'lawyer';
+  queryState.role = 'document_issuer';
   queryState.documents = [];
   queryState.documentsError = false;
   queryState.documentsLoading = false;
@@ -101,7 +101,7 @@ describe('OfficeAnalyticsPage', () => {
   it('denies participants before requesting or rendering analytics data', () => {
     useQuery.mockImplementation((options: { queryKey: string[]; enabled?: boolean }) => {
       if (options.queryKey[0] === 'portal-profile') {
-        return { data: { role: 'user' }, isLoading: false, isError: false };
+        return { data: { role: 'document_participant' }, isLoading: false, isError: false };
       }
       if (options.enabled !== false) throw new Error('Participant analytics query must be disabled');
       return { data: undefined, isLoading: false, isError: false };

@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import CloseIcon from "@mui/icons-material/Close";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import ErrorIcon from "@mui/icons-material/Error";
@@ -44,6 +44,7 @@ function ToastIcon({ tone }: { tone: ToastTone }) {
 
 export function MockToastProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
+  const timeoutIds = useRef(new Set<number>());
 
   const removeToast = useCallback((id: number) => {
     setToasts((current) => current.filter((toast) => toast.id !== id));
@@ -55,8 +56,17 @@ export function MockToastProvider({ children }: { children: React.ReactNode }) {
       ...current,
       { id, title: toast.title, detail: toast.detail, tone: toast.tone ?? "success" },
     ]);
-    window.setTimeout(() => removeToast(id), 3200);
+    const timeoutId = window.setTimeout(() => {
+      timeoutIds.current.delete(timeoutId);
+      removeToast(id);
+    }, 3200);
+    timeoutIds.current.add(timeoutId);
   }, [removeToast]);
+
+  useEffect(() => () => {
+    timeoutIds.current.forEach(window.clearTimeout);
+    timeoutIds.current.clear();
+  }, []);
 
   const value = useMemo(() => ({ showToast }), [showToast]);
 

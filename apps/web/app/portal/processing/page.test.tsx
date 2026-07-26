@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import ProcessingMonitorPage from './page';
 
 const queryState = vi.hoisted(() => ({
-  role: 'user',
+  role: 'document_participant',
   documents: [] as Array<Record<string, unknown>>,
   documentsError: false,
   documentsLoading: false,
@@ -18,7 +18,7 @@ afterEach(() => {
   useQuery.mockReset();
 });
 beforeEach(() => {
-  queryState.role = 'user';
+  queryState.role = 'document_participant';
   queryState.documents = [];
   queryState.documentsError = false;
   queryState.documentsLoading = false;
@@ -41,7 +41,7 @@ describe('ProcessingMonitorPage', () => {
   it('denies participants before requesting or rendering monitor data', () => {
     useQuery.mockImplementation((options: { queryKey: string[]; enabled?: boolean }) => {
       if (options.queryKey[0] === 'portal-profile') {
-        return { data: { role: 'user' }, isLoading: false, isError: false };
+        return { data: { role: 'document_participant' }, isLoading: false, isError: false };
       }
       if (options.enabled !== false) throw new Error('Participant document query must be disabled');
       return { data: undefined, isLoading: false, isError: false };
@@ -55,7 +55,7 @@ describe('ProcessingMonitorPage', () => {
   });
 
   it('renders processing rows from the shared document response', () => {
-    queryState.role = 'lawyer';
+    queryState.role = 'document_issuer';
     queryState.documents = [{
       document_id: 'response-failed-document',
       file_name: 'Unreadable filing.pdf',
@@ -77,7 +77,7 @@ describe('ProcessingMonitorPage', () => {
   });
 
   it('shows honest empty and error states for the shared document response', () => {
-    queryState.role = 'lawyer';
+    queryState.role = 'document_issuer';
     const { rerender } = render(<ProcessingMonitorPage />);
 
     expect(screen.getByText('No document processing records are available in this demo.')).toBeTruthy();
@@ -89,7 +89,7 @@ describe('ProcessingMonitorPage', () => {
   });
 
   it('announces when shared processing data is loading', () => {
-    queryState.role = 'lawyer';
+    queryState.role = 'document_issuer';
     queryState.documentsLoading = true;
 
     render(<ProcessingMonitorPage />);
