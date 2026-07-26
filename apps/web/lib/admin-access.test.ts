@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { NextRequest } from "next/server";
 import { getRedirectUrl } from "next/experimental/testing/server";
-import { proxy, SUPER_ADMIN_PORTAL_PATHS } from "../proxy";
+import { ISSUER_MANAGEMENT_PATHS, proxy } from "../proxy";
 
 function adminRequest(path: string, cookie?: string) {
   return new NextRequest(`https://lexchain.test${path}`, {
@@ -9,7 +9,7 @@ function adminRequest(path: string, cookie?: string) {
   });
 }
 
-describe("admin workspace proxy access", () => {
+describe("issuer management proxy access", () => {
   it.each([
     ["/admin/dashboard", "/portal/dashboard"],
     ["/admin/users", "/portal/users"],
@@ -34,8 +34,8 @@ describe("admin workspace proxy access", () => {
     expect(getRedirectUrl(response)).toBeNull();
   });
 
-  it("defines the five privileged portal route prefixes", () => {
-    expect(SUPER_ADMIN_PORTAL_PATHS).toEqual([
+  it("defines the five issuer management portal route prefixes", () => {
+    expect(ISSUER_MANAGEMENT_PATHS).toEqual([
       "/portal/users",
       "/portal/issuer-invitations",
       "/portal/system-reports",
@@ -44,35 +44,41 @@ describe("admin workspace proxy access", () => {
     ]);
   });
 
-  it("allows a Super Admin portal session to continue to privileged routes", () => {
+  it("allows an issuer portal session to continue to management routes", () => {
     const response = proxy(adminRequest(
       "/portal/users",
-      "admin_token=admin-token; portal_token=admin-token",
+      "portal_token=portal-token; issuer_token=issuer-token",
     ));
 
     expect(response.headers.get("x-middleware-next")).toBe("1");
     expect(getRedirectUrl(response)).toBeNull();
   });
 
-  it("redirects a standard issuer away from privileged portal routes", () => {
+  it("redirects a portal-only session away from management routes", () => {
     const response = proxy(adminRequest(
       "/portal/users",
-      "portal_token=lawyer-token",
+      "portal_token=portal-token",
     ));
 
     expect(getRedirectUrl(response)).toBe("https://lexchain.test/portal/dashboard");
   });
 
-  it("redirects a participant away from privileged portal routes", () => {
+  it("does not accept stale admin authority for management routes", () => {
     const response = proxy(adminRequest(
       "/portal/system-reports",
-      "portal_token=participant-token",
+      "admin_token=stale-admin-token; portal_token=portal-token",
     ));
 
     expect(getRedirectUrl(response)).toBe("https://lexchain.test/portal/dashboard");
   });
 
-  it("redirects unauthenticated privileged portal requests to login", () => {
+  it("redirects an issuer token without portal authentication to login", () => {
+    const response = proxy(adminRequest("/portal/users", "issuer_token=issuer-token"));
+
+    expect(getRedirectUrl(response)).toBe("https://lexchain.test/login");
+  });
+
+  it("redirects unauthenticated management requests to login", () => {
     const response = proxy(adminRequest("/portal/users"));
 
     expect(getRedirectUrl(response)).toBe("https://lexchain.test/login");

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-export const SUPER_ADMIN_PORTAL_PATHS = [
+export const ISSUER_MANAGEMENT_PATHS = [
   "/portal/users",
   "/portal/issuer-invitations",
   "/portal/system-reports",
@@ -19,9 +19,9 @@ const LEGACY_ADMIN_REDIRECTS: Record<string, string> = {
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  const adminToken = request.cookies.get("admin_token")?.value;
+  const issuerToken = request.cookies.get("issuer_token")?.value;
   const portalToken = request.cookies.get("portal_token")?.value;
-  const isSuperAdminPortalPath = SUPER_ADMIN_PORTAL_PATHS.some(
+  const isIssuerManagementPath = ISSUER_MANAGEMENT_PATHS.some(
     (path) => pathname === path || pathname.startsWith(`${path}/`),
   );
 
@@ -30,9 +30,9 @@ export function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL(destination, request.url));
   }
 
-  if (isSuperAdminPortalPath) {
+  if (isIssuerManagementPath) {
     if (!portalToken) return NextResponse.redirect(new URL("/login", request.url));
-    if (!adminToken) {
+    if (!issuerToken) {
       return NextResponse.redirect(new URL("/portal/dashboard", request.url));
     }
     return NextResponse.next();

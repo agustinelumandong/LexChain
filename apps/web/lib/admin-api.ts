@@ -29,6 +29,6 @@ export function missingToken() {
 
 export function getTokenFromRequest(request: Request): string | null {
   const cookie = request.headers.get("cookie") ?? "";
-  const match = cookie.match(/admin_token=([^;]+)/);
+  const match = cookie.match(/issuer_token=([^;]+)/);
   return match ? decodeURIComponent(match[1]) : null;
 }

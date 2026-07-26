@@ -4,7 +4,7 @@ import { backendUrl } from "@/lib/admin-api";
 
 export async function adminFetch<T>(path: string, opts?: { revalidate?: number }): Promise<T> {
   const cookieStore = await cookies();
-  const token = cookieStore.get("admin_token")?.value;
+  const token = cookieStore.get("issuer_token")?.value;
   if (!token) redirect("/admin/login");
 
   const res = await fetch(backendUrl(path), {
