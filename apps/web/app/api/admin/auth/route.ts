@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { backendUrl } from "@/lib/admin-api";
+import { isAdminRole } from "@/lib/admin-role";
 
 const useMock = process.env.NEXT_PUBLIC_USE_MOCK_API === "true";
 const mockPassword = "Password123";
@@ -26,6 +27,20 @@ function createSessionResponse(token: string, maxAge: number, user: unknown) {
   return response;
 }
 
+function rejectNonAdmin() {
+  const response = NextResponse.json({ message: "Admin access required." }, { status: 403 });
+  response.cookies.set({
+    name: "admin_token",
+    value: "",
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    maxAge: 0,
+    path: "/",
+  });
+  return response;
+}
+
 export async function POST(request: Request) {
   const apiBase = process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL;
   if (!apiBase && !useMock) {
@@ -48,6 +63,7 @@ export async function POST(request: Request) {
     if (!account || password !== mockPassword) {
       return NextResponse.json({ message: "Invalid mock credentials." }, { status: 401 });
     }
+    if (!isAdminRole(account.role)) return rejectNonAdmin();
 
     return createSessionResponse(
       `mock-admin-token:${account.id}`,
@@ -89,6 +105,27 @@ export async function POST(request: Request) {
   }
 
   const maxAge = payload?.expires_in ?? 60 * 60 * 24;
+  const payloadUser = payload?.user ?? {};
+  let role = payloadUser.role ?? "";
 
-  return createSessionResponse(token, maxAge, payload?.user ?? null);
+  if (!isAdminRole(role)) {
+    try {
+      const profileResponse = await fetch(backendUrl("/users/"), {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "ngrok-skip-browser-warning": "true",
+        },
+        cache: "no-store",
+      });
+      if (profileResponse.ok) {
+        const profile = await profileResponse.json();
+        role = profile?.role ?? "";
+      }
+    } catch {
+      role = "";
+    }
+  }
+
+  if (!isAdminRole(role)) return rejectNonAdmin();
+  return createSessionResponse(token, maxAge, { ...payloadUser, role });
 }
