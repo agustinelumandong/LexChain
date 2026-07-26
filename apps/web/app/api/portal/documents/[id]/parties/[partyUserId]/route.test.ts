@@ -28,3 +28,28 @@ it('does not revoke participant access when the authenticated profile is not an 
     cache: 'no-store',
   });
 });
+
+it('revokes participant access when the authenticated profile is a Super Admin issuer', async () => {
+  const fetchMock = vi.fn()
+    .mockResolvedValueOnce(new Response(JSON.stringify({ role: 'super_admin' }), { status: 200 }))
+    .mockResolvedValueOnce(new Response(JSON.stringify({ removed: true }), { status: 200 }));
+  vi.stubGlobal('fetch', fetchMock);
+
+  const response = await DELETE(
+    new NextRequest('http://localhost/api/portal/documents/document-123/parties/person-456', {
+      headers: { cookie: 'portal_token=portal-token' },
+    }),
+    { params: Promise.resolve({ id: 'document-123', partyUserId: 'person-456' }) },
+  );
+
+  expect(response.status).toBe(200);
+  await expect(response.json()).resolves.toEqual({ removed: true });
+  expect(fetchMock).toHaveBeenLastCalledWith('/documents/document-123/parties/person-456', {
+    method: 'DELETE',
+    headers: {
+      Authorization: 'Bearer portal-token',
+      'ngrok-skip-browser-warning': 'true',
+    },
+    cache: 'no-store',
+  });
+});

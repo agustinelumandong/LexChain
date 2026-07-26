@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { backendUrl } from '@/lib/admin-api';
+import { getPortalUiRole } from '@/app/portal/lib/portal-role';
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -15,7 +16,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
     cache: 'no-store',
   });
   const profileData = await profile.json().catch(() => null);
-  if (profileData?.role?.trim().toLowerCase() !== 'lawyer') {
+  if (getPortalUiRole(profileData?.role) !== 'issuer') {
     return NextResponse.json(
       { message: 'Blockchain anchoring is available to Document Issuers only.' },
       { status: 403 },

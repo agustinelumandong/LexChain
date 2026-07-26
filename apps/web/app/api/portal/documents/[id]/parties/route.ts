@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { backendUrl } from '@/lib/admin-api';
 import { validateParticipantInvitation } from '@/app/portal/lib/participant-access';
+import { getPortalUiRole } from '@/app/portal/lib/portal-role';
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -21,7 +22,7 @@ async function isDocumentIssuer(token: string) {
     cache: 'no-store',
   });
   const profileData = await profile.json().catch(() => null);
-  return profileData?.role?.trim().toLowerCase() === 'lawyer';
+  return getPortalUiRole(profileData?.role) === 'issuer';
 }
 
 async function proxy(request: NextRequest, method: 'GET' | 'POST', context: RouteContext, body?: string) {
