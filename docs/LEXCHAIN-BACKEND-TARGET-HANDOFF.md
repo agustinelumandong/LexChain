@@ -96,7 +96,9 @@ POST /documents/{document_id}/finalize
 
 Required behavior:
 
-1. Require an authenticated `lawyer` who owns the document.
+1. Require an authenticated Document Issuer who owns the document or is
+   otherwise authorized for its lifecycle actions. A Super Admin-capable issuer
+   uses this same rule; the capability does not create ownership.
 2. Require completed OCR/extraction and insights.
 3. Compute the canonical document/content hash on the backend.
 4. Insert one `document_snapshots` row containing extracted text and `text_hash`.
@@ -141,7 +143,8 @@ Snapshot lists must return metadata and `text_hash`, not raw extracted text.
 
 Restore must:
 
-- require the owning lawyer;
+- require a Document Issuer who owns the document or is otherwise authorized
+  for its lifecycle actions; Super Admin capability alone is not authorization;
 - require a non-empty reason;
 - load the snapshot using both document ID and snapshot ID;
 - recompute and securely compare its text hash;
@@ -236,9 +239,10 @@ system-audit
 
 Required authorization:
 
-- lawyer: office reports scoped to documents they own;
-- Document Issuer with the backend `admin` role: system reports;
-- participant: denied.
+- Document Issuer: office reports scoped to owned or otherwise authorized data;
+- Document Issuer with Super Admin capabilities: the same scoped office reports
+  plus system reports;
+- Document Participant: denied.
 
 Required response:
 
@@ -259,18 +263,20 @@ table, scheduler, report history, or generic query builder.
 
 Backend authorization is authoritative:
 
-| Operation | Document Issuer (lawyer role) | Document Participant | Document Issuer (Super Admin capability) |
+| Operation | Document Issuer | Document Participant | Document Issuer with Super Admin capabilities |
 |---|---:|---:|---:|
-| Finalize owned document | Yes | No | No |
-| Restore owned document | Yes | No | No |
-| View shared document | If authorized | Yes, if shared | No implicit ownership |
+| Finalize document | If owned or authorized | No | If owned or authorized |
+| Restore document | If owned or authorized | No | If owned or authorized |
+| View shared document | If authorized | Yes, if shared | If authorized; no implicit ownership |
 | Manage user accounts | No | No | Yes |
-| Office reports | Yes, owned data | No | No |
+| Office reports | Yes, owned or authorized data | No | Yes, owned or authorized data |
 | System reports | No | No | Yes |
 
-The Document Issuer actor is a product grouping. The backend must preserve the
-separate `lawyer` and `admin` permission sets; Super Admin capabilities do not
-grant document ownership, and standard issuer access does not grant management
+The Document Issuer is one actor with an ordinary issuer permission baseline.
+Super Admin capability adds management and system-report authority to that
+baseline; it is not a separate actor and must not remove ordinary issuer
+workflows. It does not grant document ownership or bypass document-level
+authorization, and the ordinary issuer baseline does not grant management
 authority.
 
 Write document actions to `document_audit_logs` and administrative/security
@@ -314,7 +320,9 @@ The backend is ready only when these pass:
     reactivate an allowed user.
 11. A standard Document Issuer cannot call Super Admin user mutations.
 12. The last active admin cannot be suspended or demoted.
-13. Office reports contain only the requesting lawyer's data.
+13. Office reports contain only data owned by or otherwise authorized for the
+    requesting Document Issuer, including an issuer with Super Admin
+    capabilities.
 14. System reports require Document Issuer Super Admin capabilities.
 15. Invalid report types and date ranges are rejected.
 

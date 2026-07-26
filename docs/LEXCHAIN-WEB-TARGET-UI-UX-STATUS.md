@@ -2,22 +2,25 @@
 
 Date: 2026-07-26
 Branch: `feat/two-actor-portal`
-Implementation HEAD reviewed: `a2f0b14e03a07921e7be3f0fb1a4d632a0853dc4`
+Implementation code HEAD reviewed: f279028cb77631f56bd6d4a0ac6164057e870f4b
 
 ## Verification snapshot
 
-- `pnpm --filter @lexchain/web test` — passed (`55` files, `299` tests)
+- `pnpm --filter @lexchain/web test` — passed (`56` files, `301` tests)
 - `pnpm --filter @lexchain/web lint` — passed
 - `pnpm --filter @lexchain/web build` — passed
 - `git diff --check` — passed
 - `git diff --name-only -- apps/mobile openapi-updated.json packages/types/src/generated/schema.ts` — no output
-- Actor terminology scan — no documentation matches treating Admin as a third
-  actor or `/admin/dashboard` as an active workspace
+- Actor terminology scan — no documentation elevates Admin beyond a Document
+  Issuer capability level or presents `/admin/dashboard` as an active workspace
 - Active-navigation scan — three `/admin` references remain inside legacy
   template components; proxy redirects prevent those page components from
   serving as product navigation
 - Playwright CLI acceptance — all Task 5 persona and redirect cases passed in
   mock mode; see `LEXCHAIN-TWO-ACTOR-PORTAL-ACCEPTANCE.md`
+- Responsive Playwright acceptance — passed at `390x844`; the Super Admin
+  issuer reached all five privileged destinations and the standard issuer saw
+  none of those links
 
 The web branch now covers the target UI/UX flow with honest demo behavior. The
 current implementation is suitable for web review in mock mode, but production
@@ -43,6 +46,9 @@ completion still depends on backend work captured in
 
 - A Document Issuer with Super Admin capabilities signs in through `/login` and
   enters the same `/portal/dashboard` workspace as every other issuer.
+- The capability retains ordinary issuer workflows under their existing
+  ownership and authorization rules; it adds management and system reporting
+  without creating document ownership.
 - The `Super Admin` navigation group exposes User Accounts, Issuer Invitations,
   System Reports, Audit Logs, and System Statistics under `/portal/*` routes.
 - Privileged portal routes remain bound to the server-issued `admin_token`; the
