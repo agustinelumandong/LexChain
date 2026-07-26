@@ -8,6 +8,15 @@ export const SUPER_ADMIN_PORTAL_PATHS = [
   "/portal/system-statistics",
 ] as const;
 
+const LEGACY_ADMIN_REDIRECTS: Record<string, string> = {
+  "/admin/dashboard": "/portal/dashboard",
+  "/admin/users": "/portal/users",
+  "/admin/invitations-permissions": "/portal/issuer-invitations",
+  "/admin/generated-reports": "/portal/system-reports",
+  "/admin/audit-logs": "/portal/audit-logs",
+  "/admin/login": "/login",
+};
+
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const adminToken = request.cookies.get("admin_token")?.value;
@@ -16,18 +25,17 @@ export function proxy(request: NextRequest) {
     (path) => pathname === path || pathname.startsWith(`${path}/`),
   );
 
+  if (pathname === "/admin" || pathname.startsWith("/admin/")) {
+    const destination = LEGACY_ADMIN_REDIRECTS[pathname] ?? "/portal/dashboard";
+    return NextResponse.redirect(new URL(destination, request.url));
+  }
+
   if (isSuperAdminPortalPath) {
     if (!portalToken) return NextResponse.redirect(new URL("/login", request.url));
     if (!adminToken) {
       return NextResponse.redirect(new URL("/portal/dashboard", request.url));
     }
     return NextResponse.next();
-  }
-
-  if (pathname.startsWith("/admin")) {
-    if (adminToken) return NextResponse.next();
-    const redirectPath = portalToken ? "/portal/dashboard" : "/login";
-    return NextResponse.redirect(new URL(redirectPath, request.url));
   }
 
   if (!portalToken && pathname.startsWith("/portal")) {

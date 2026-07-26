@@ -10,11 +10,25 @@ function adminRequest(path: string, cookie?: string) {
 }
 
 describe("admin workspace proxy access", () => {
-  it("allows an authenticated admin to continue to admin routes", () => {
+  it.each([
+    ["/admin/dashboard", "/portal/dashboard"],
+    ["/admin/users", "/portal/users"],
+    ["/admin/invitations-permissions", "/portal/issuer-invitations"],
+    ["/admin/generated-reports", "/portal/system-reports"],
+    ["/admin/audit-logs", "/portal/audit-logs"],
+    ["/admin/login", "/login"],
+    ["/admin/unmapped", "/portal/dashboard"],
+  ])("redirects legacy %s pages to %s", (legacyPath, target) => {
     const response = proxy(adminRequest(
-      "/admin/users",
+      legacyPath,
       "admin_token=admin-token; portal_token=admin-token",
     ));
+
+    expect(getRedirectUrl(response)).toBe(`https://lexchain.test${target}`);
+  });
+
+  it("preserves admin API routes", () => {
+    const response = proxy(adminRequest("/api/admin/dashboard"));
 
     expect(response.headers.get("x-middleware-next")).toBe("1");
     expect(getRedirectUrl(response)).toBeNull();
@@ -74,15 +88,15 @@ describe("admin workspace proxy access", () => {
     expect(getRedirectUrl(response)).toBeNull();
   });
 
-  it("redirects unauthenticated admin requests to unified login", () => {
+  it("redirects legacy admin pages before portal authorization", () => {
     const response = proxy(adminRequest("/admin/users"));
 
-    expect(getRedirectUrl(response)).toBe("https://lexchain.test/login");
+    expect(getRedirectUrl(response)).toBe("https://lexchain.test/portal/users");
   });
 
-  it("does not trust a forged admin role from a portal session", () => {
+  it("does not use a forged role to bypass privileged portal guards", () => {
     const response = proxy(adminRequest(
-      "/admin/users",
+      "/portal/users",
       "portal_token=lawyer-token; user_role=admin",
     ));
 
