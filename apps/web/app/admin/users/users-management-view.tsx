@@ -28,11 +28,23 @@ type AdminUser = {
   created_at: string;
 };
 
+type DemoAdminUserChanges = Partial<
+  Pick<AdminUser, "f_name" | "l_name" | "email" | "role" | "is_active">
+>;
+
+export function updateDemoUser(
+  users: AdminUser[],
+  userId: string,
+  changes: DemoAdminUserChanges,
+): AdminUser[] {
+  return users.map((user) => user.id === userId ? { ...user, ...changes } : user);
+}
+
 type DirectoryUser = AdminUser & {
   displayName: string;
   initials: string;
   roleLabel: string;
-  statusLabel: "Active" | "Inactive";
+  statusLabel: "Active" | "Suspended";
 };
 
 function cn(...classes: Array<string | false | undefined>) {
@@ -57,7 +69,7 @@ function deriveRole(user: AdminUser) {
 }
 
 function getStatus(user: AdminUser): DirectoryUser["statusLabel"] {
-  return user.is_active === false ? "Inactive" : "Active";
+  return user.is_active === false ? "Suspended" : "Active";
 }
 
 function enrichUser(user: AdminUser): DirectoryUser {
@@ -111,7 +123,7 @@ function StatusPill({ status }: { status: DirectoryUser["statusLabel"] }) {
       className={cn(
         "inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-black",
         status === "Active" && "bg-[#EAFBF1] text-[#16A34A]",
-        status === "Inactive" && "bg-[#FEECEC] text-[#DC2626]",
+        status === "Suspended" && "bg-[#FEECEC] text-[#DC2626]",
       )}
     >
       <span className="size-1.5 rounded-full bg-current" />
@@ -120,9 +132,10 @@ function StatusPill({ status }: { status: DirectoryUser["statusLabel"] }) {
   );
 }
 
-function ActionsMenu({ user, onView, onEdit, onSuspend }: { user: DirectoryUser; onView: () => void; onEdit: () => void; onSuspend: () => void }) {
+function ActionsMenu({ user, onView, onEdit, onChangeStatus }: { user: DirectoryUser; onView: () => void; onEdit: () => void; onChangeStatus: () => void }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const isCurrentAdmin = user.email === "admin@lexchain.local";
 
   useEffect(() => {
     function handleClick(event: MouseEvent) {
@@ -162,10 +175,21 @@ function ActionsMenu({ user, onView, onEdit, onSuspend }: { user: DirectoryUser;
           ))}
           <button
             type="button"
-            onClick={() => { setOpen(false); onSuspend(); }}
-            className="block w-full px-4 py-2.5 text-left text-sm font-bold text-red-600 transition hover:bg-red-50"
+            disabled={isCurrentAdmin && user.statusLabel === "Active"}
+            aria-label={isCurrentAdmin && user.statusLabel === "Active" ? "Current account cannot be suspended" : undefined}
+            onClick={() => { setOpen(false); onChangeStatus(); }}
+            className={cn(
+              "block w-full px-4 py-2.5 text-left text-sm font-bold transition",
+              isCurrentAdmin && user.statusLabel === "Active"
+                ? "cursor-not-allowed text-[#94A3B8]"
+                : user.statusLabel === "Active"
+                  ? "text-red-600 hover:bg-red-50"
+                  : "text-green-700 hover:bg-green-50",
+            )}
           >
-            Suspend user
+            {isCurrentAdmin && user.statusLabel === "Active"
+              ? "Current account cannot be suspended"
+              : user.statusLabel === "Active" ? "Suspend user" : "Reactivate user"}
           </button>
         </div>
       )}
@@ -269,8 +293,9 @@ export function UsersManagementView({ users, total }: { users: AdminUser[]; tota
   const [modalMode, setModalMode] = useState<"view" | "edit" | "suspend" | null>(null);
   const [selectedUser, setSelectedUser] = useState<DirectoryUser | null>(null);
   const [userDraft, setUserDraft] = useState<AdminUser | null>(null);
+  const [userRows, setUserRows] = useState(users);
 
-  const directoryUsers = useMemo(() => users.map(enrichUser), [users]);
+  const directoryUsers = useMemo(() => userRows.map(enrichUser), [userRows]);
   const roleOptions = useMemo(() => [...new Set(directoryUsers.map((user) => user.roleLabel))], [directoryUsers]);
 
   const filtered = useMemo(() => {
@@ -291,7 +316,7 @@ export function UsersManagementView({ users, total }: { users: AdminUser[]; tota
   const metrics = [
     { label: "Total Users", value: total || directoryUsers.length, detail: "Registered accounts", icon: <GroupsIcon fontSize="small" />, tone: "blue" as const },
     { label: "Active Users", value: directoryUsers.filter((user) => user.statusLabel === "Active").length, detail: "is_active true", icon: <CheckCircleIcon fontSize="small" />, tone: "green" as const },
-    { label: "Inactive Users", value: directoryUsers.filter((user) => user.statusLabel === "Inactive").length, detail: "is_active false", icon: <PersonOffIcon fontSize="small" />, tone: "red" as const },
+    { label: "Suspended Users", value: directoryUsers.filter((user) => user.statusLabel === "Suspended").length, detail: "is_active false", icon: <PersonOffIcon fontSize="small" />, tone: "red" as const },
     { label: "Lawyers", value: directoryUsers.filter((user) => user.role === "lawyer").length, detail: "role field", icon: <WorkIcon fontSize="small" />, tone: "blue" as const },
   ];
 
@@ -350,7 +375,7 @@ export function UsersManagementView({ users, total }: { users: AdminUser[]; tota
               <Dropdown
                 value={statusFilter}
                 onChange={setStatusFilter}
-                options={[{ label: "All Statuses", value: "all" }, { label: "Active", value: "Active" }, { label: "Inactive", value: "Inactive" }]}
+                options={[{ label: "All Statuses", value: "all" }, { label: "Active", value: "Active" }, { label: "Suspended", value: "Suspended" }]}
               />
               <button type="button" onClick={() => setMoreFiltersOpen((value) => !value)} className={cn("inline-flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-black transition", moreFiltersOpen ? "border-[#0985E7] bg-[#EAF3FF] text-[#0879D8]" : "border-[#E4EEF9] bg-white text-[#0C2B49] hover:border-[#0985E7]")}>
                 <FilterListIcon fontSize="small" />
@@ -390,7 +415,7 @@ export function UsersManagementView({ users, total }: { users: AdminUser[]; tota
                         user={user}
                         onView={() => { setSelectedUser(user); setUserDraft(null); setModalMode("view"); }}
                         onEdit={() => { setSelectedUser(user); setUserDraft(user); setModalMode("edit"); }}
-                        onSuspend={() => { setSelectedUser(user); setUserDraft(user); setModalMode("suspend"); }}
+                        onChangeStatus={() => { setSelectedUser(user); setUserDraft(user); setModalMode("suspend"); }}
                       />
                     </td>
                   </tr>
@@ -460,13 +485,19 @@ export function UsersManagementView({ users, total }: { users: AdminUser[]; tota
         open={modalMode === "edit"}
         onClose={() => setModalMode(null)}
         title="Edit User"
-        description="User details come from the admin users backend response."
+        description="Update this account for the current demo session."
         footer={
           <div className="flex gap-3">
             <button type="button" onClick={() => setModalMode(null)} className="flex-1 rounded-xl border border-[#E4EEF9] px-5 py-3 text-sm font-black text-[#0C2B49]">Cancel</button>
             <button type="button" onClick={() => {
-              if (!userDraft) return;
-              showToast({ title: "Backend endpoint needed", detail: "User update is not changed locally.", tone: "info" });
+              if (!userDraft || !selectedUser) return;
+              setUserRows((currentUsers) => updateDemoUser(currentUsers, selectedUser.id, {
+                f_name: userDraft.f_name,
+                l_name: userDraft.l_name,
+                email: userDraft.email,
+                role: userDraft.role,
+              }));
+              showToast({ title: "Demo account updated", detail: "Demo mode — changes reset when this page is refreshed." });
               setModalMode(null);
             }} className="flex-1 rounded-xl bg-[#0985E7] px-5 py-3 text-sm font-black text-white">Save</button>
           </div>
@@ -478,26 +509,36 @@ export function UsersManagementView({ users, total }: { users: AdminUser[]; tota
             <Field label="Last name"><input className={inputClassName} value={userDraft.l_name ?? ""} onChange={(event) => setUserDraft((draft) => draft ? { ...draft, l_name: event.target.value } : draft)} /></Field>
             <Field label="Email"><input className={inputClassName} value={userDraft.email} onChange={(event) => setUserDraft((draft) => draft ? { ...draft, email: event.target.value } : draft)} /></Field>
             <Field label="Role"><select className={inputClassName} value={userDraft.role} onChange={(event) => setUserDraft((draft) => draft ? { ...draft, role: event.target.value } : draft)}><option value="admin">Admin</option><option value="lawyer">Lawyer</option><option value="user">User</option></select></Field>
+            <p className="text-xs font-semibold text-[#5B6F8A]">Demo mode — changes reset when this page is refreshed.</p>
           </div>
         ) : null}
       </MockModal>
       <MockModal
         open={modalMode === "suspend"}
         onClose={() => setModalMode(null)}
-        title={`Suspend ${selectedUser?.displayName ?? "user"}?`}
-        description="User status is controlled by the backend users response."
+        title={`${selectedUser?.statusLabel === "Active" ? "Suspend" : "Reactivate"} ${selectedUser?.displayName ?? "user"}?`}
+        description="Update this account status for the current demo session."
         footer={
           <div className="flex gap-3">
             <button type="button" onClick={() => setModalMode(null)} className="flex-1 rounded-xl border border-[#E4EEF9] px-5 py-3 text-sm font-black text-[#0C2B49]">Cancel</button>
             <button type="button" onClick={() => {
               if (!selectedUser) return;
-              showToast({ title: "Backend endpoint needed", detail: `${selectedUser.displayName} was not changed locally.`, tone: "warning" });
+              setUserRows((currentUsers) => updateDemoUser(currentUsers, selectedUser.id, {
+                is_active: selectedUser.statusLabel !== "Active",
+              }));
+              showToast({ title: "Demo account updated", detail: "Demo mode — changes reset when this page is refreshed." });
               setModalMode(null);
-            }} className="flex-1 rounded-xl bg-red-600 px-5 py-3 text-sm font-black text-white">Suspend</button>
+            }} className={cn(
+              "flex-1 rounded-xl px-5 py-3 text-sm font-black text-white",
+              selectedUser?.statusLabel === "Active" ? "bg-red-600" : "bg-green-700",
+            )}>{selectedUser?.statusLabel === "Active" ? "Suspend" : "Reactivate"}</button>
           </div>
         }
       >
-        <p className="text-sm font-semibold text-[#5B6F8A]">No local fake mutation is applied here. Add a backend user status endpoint to enable this action.</p>
+        <div className="space-y-3 text-sm font-semibold text-[#5B6F8A]">
+          <p>{selectedUser?.statusLabel === "Active" ? "This account will be marked as suspended." : "This account will be marked as active."}</p>
+          <p className="text-xs">Demo mode — changes reset when this page is refreshed.</p>
+        </div>
       </MockModal>
     </div>
   );
