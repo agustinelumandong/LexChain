@@ -8,13 +8,11 @@ import { getPortalNavigationIcon, isPortalRouteActive } from './portal-role-navi
 export function PortalBottomNav({
   pathname,
   role,
-  superAdmin = false,
 }: {
   pathname: string;
   role: PortalUiRole;
-  superAdmin?: boolean;
 }) {
-  const navItems = getPortalNavigation(role, superAdmin).flatMap((group) => group.items);
+  const navItems = getPortalNavigation(role).flatMap((group) => group.items);
 
   return (
     <>
