@@ -16,6 +16,11 @@ const legacyPages = [
   ["audit-logs", "/portal/audit-logs"],
 ] as const;
 
+const managementLinks = [
+  ["users/users-management-view.tsx", "/portal/issuer-invitations", "/admin/invitations-permissions"],
+  ["invitations-permissions/invitations-management-view.tsx", "/portal/audit-logs", "/admin/audit-logs"],
+] as const;
+
 describe("Super Admin portal pages", () => {
   it.each(portalPages)("reuses the existing %s management view", (route, view, importPath) => {
     const page = resolve(import.meta.dirname, "..", route, "page.tsx");
@@ -36,5 +41,15 @@ describe("Super Admin portal pages", () => {
 
     expect(source).toContain('import { redirect } from "next/navigation";');
     expect(source).toContain(`redirect("${target}");`);
+  });
+
+  it.each(managementLinks)("keeps %s navigation inside the portal", (view, target, legacyTarget) => {
+    const source = readFileSync(
+      resolve(import.meta.dirname, "..", "..", "admin", view),
+      "utf8",
+    );
+
+    expect(source).toContain(`href="${target}"`);
+    expect(source).not.toContain(`href="${legacyTarget}"`);
   });
 });
