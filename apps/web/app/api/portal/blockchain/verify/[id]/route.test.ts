@@ -1,5 +1,6 @@
 import { afterEach, expect, it, vi } from 'vitest';
 import { NextRequest } from 'next/server';
+import { mockPortalMutate } from '@/lib/portal-mock';
 import { GET } from './route';
 
 const originalApiUrl = process.env.API_URL;
@@ -67,6 +68,49 @@ it('returns the seeded integrity mismatch in mock mode without calling the backe
     document_id: 'mock-document-3',
     data_hash: '0xmockdatahash',
     is_verified: false,
+  }));
+  expect(fetchMock).not.toHaveBeenCalled();
+});
+
+it('does not reveal an unshared mock integrity record to a participant', async () => {
+  process.env.NEXT_PUBLIC_USE_MOCK_API = 'true';
+  const fetchMock = vi.fn();
+  vi.stubGlobal('fetch', fetchMock);
+
+  const response = await GET(
+    new NextRequest('http://localhost/api/portal/blockchain/verify/mock-document-3', {
+      headers: { cookie: 'portal_token=mock-token:mock-user' },
+    }),
+    { params: Promise.resolve({ id: 'mock-document-3' }) },
+  );
+
+  expect(response.status).toBe(404);
+  await expect(response.json()).resolves.toEqual({ message: 'On-chain record not found' });
+  expect(fetchMock).not.toHaveBeenCalled();
+});
+
+it('allows a participant to verify an on-chain document after accepting its invitation', async () => {
+  process.env.NEXT_PUBLIC_USE_MOCK_API = 'true';
+  await mockPortalMutate(
+    'POST',
+    '/documents/mock-document-1/parties/accept',
+    new Request('http://localhost/documents/mock-document-1/parties/accept', { method: 'POST' }),
+    'mock-token:mock-user',
+  );
+  const fetchMock = vi.fn();
+  vi.stubGlobal('fetch', fetchMock);
+
+  const response = await GET(
+    new NextRequest('http://localhost/api/portal/blockchain/verify/mock-document-1', {
+      headers: { cookie: 'portal_token=mock-token:mock-user' },
+    }),
+    { params: Promise.resolve({ id: 'mock-document-1' }) },
+  );
+
+  expect(response.status).toBe(200);
+  await expect(response.json()).resolves.toEqual(expect.objectContaining({
+    document_id: 'mock-document-1',
+    is_verified: true,
   }));
   expect(fetchMock).not.toHaveBeenCalled();
 });

@@ -263,6 +263,13 @@ describe('portal mock books', () => {
 });
 
 describe('portal mock participant invitations and requests', () => {
+  it('does not reveal an unshared document integrity record to the mock participant', async () => {
+    const response = mockPortalGet('/blockchain/verify/mock-document-3', 'mock-token:mock-user');
+
+    expect(response.status).toBe(404);
+    await expect(response.json()).resolves.toEqual({ message: 'On-chain record not found' });
+  });
+
   it('returns pending invitations only to the mock participant', async () => {
     const participant = mockPortalGet('/documents/invitations', 'mock-token:mock-user');
     const issuer = mockPortalGet('/documents/invitations', 'mock-token:mock-lawyer');
