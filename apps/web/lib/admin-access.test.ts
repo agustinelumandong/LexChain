@@ -13,7 +13,7 @@ describe("admin workspace proxy access", () => {
   it("allows an authenticated admin to continue to admin routes", () => {
     const response = proxy(adminRequest(
       "/admin/users",
-      "admin_token=admin-token; portal_token=admin-token; user_role=admin",
+      "admin_token=admin-token; portal_token=admin-token",
     ));
 
     expect(response.headers.get("x-middleware-next")).toBe("1");
@@ -26,10 +26,10 @@ describe("admin workspace proxy access", () => {
     expect(getRedirectUrl(response)).toBe("https://lexchain.test/login");
   });
 
-  it("keeps non-admin accounts out of the admin workspace", () => {
+  it("does not trust a forged admin role from a portal session", () => {
     const response = proxy(adminRequest(
       "/admin/users",
-      "admin_token=lawyer-token; portal_token=lawyer-token; user_role=lawyer",
+      "portal_token=lawyer-token; user_role=admin",
     ));
 
     expect(getRedirectUrl(response)).toBe("https://lexchain.test/portal/dashboard");

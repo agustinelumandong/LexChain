@@ -4,12 +4,9 @@ export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const adminToken = request.cookies.get("admin_token")?.value;
   const portalToken = request.cookies.get("portal_token")?.value;
-  const role = request.cookies.get("user_role")?.value.trim().toLowerCase();
   if (pathname.startsWith("/admin")) {
-    if (adminToken && role === "admin") return NextResponse.next();
-    const redirectPath = portalToken && (role === "lawyer" || role === "user")
-      ? "/portal/dashboard"
-      : "/login";
+    if (adminToken) return NextResponse.next();
+    const redirectPath = portalToken ? "/portal/dashboard" : "/login";
     return NextResponse.redirect(new URL(redirectPath, request.url));
   }
 
