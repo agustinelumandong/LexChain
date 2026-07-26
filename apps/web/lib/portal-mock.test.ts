@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { isMockPortalToken, mockPortalGet, mockPortalMutate } from './portal-mock';
 
 describe('portal mock mutations', () => {
@@ -263,6 +263,34 @@ describe('portal mock books', () => {
 });
 
 describe('portal mock participant invitations and requests', () => {
+  it('grants document access only when the participant accepts the invitation', async () => {
+    vi.resetModules();
+    const rejectedMock = await import('./portal-mock');
+    const rejected = await rejectedMock.mockPortalMutate(
+      'POST',
+      '/documents/mock-document-1/parties/reject',
+      new Request('https://mock.lexchain.local/api/portal/proxy-post', { method: 'POST' }),
+      'mock-token:mock-user',
+    );
+
+    expect(rejected.status).toBe(204);
+    expect(rejectedMock.mockPortalGet('/documents/mock-document-1', 'mock-token:mock-user').status).toBe(403);
+    expect(rejectedMock.mockPortalGet('/blockchain/verify/mock-document-1', 'mock-token:mock-user').status).toBe(404);
+
+    vi.resetModules();
+    const acceptedMock = await import('./portal-mock');
+    const accepted = await acceptedMock.mockPortalMutate(
+      'POST',
+      '/documents/mock-document-1/parties/accept',
+      new Request('https://mock.lexchain.local/api/portal/proxy-post', { method: 'POST' }),
+      'mock-token:mock-user',
+    );
+
+    expect(accepted.status).toBe(204);
+    expect(acceptedMock.mockPortalGet('/documents/mock-document-1', 'mock-token:mock-user').status).toBe(200);
+    expect(acceptedMock.mockPortalGet('/blockchain/verify/mock-document-1', 'mock-token:mock-user').status).toBe(200);
+  });
+
   it('does not reveal an unshared document integrity record to the mock participant', async () => {
     const response = mockPortalGet('/blockchain/verify/mock-document-3', 'mock-token:mock-user');
 
