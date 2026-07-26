@@ -105,6 +105,7 @@ describe('portal mock mutations', () => {
       'POST',
       '/documents/upload?book_id=mock-book-1&file_name=Deed%20of%20Sale',
       request,
+      'mock-token:mock-document-issuer',
     );
 
     expect(response.status).toBe(201);
@@ -119,6 +120,7 @@ describe('portal mock mutations', () => {
       'POST',
       '/documents/upload?book_id=mock-book-1',
       new Request('https://mock.lexchain.local/api/portal/proxy-post', { method: 'POST', body: form }),
+      'mock-token:mock-document-issuer',
     );
 
     expect(response.status).toBe(400);
@@ -132,6 +134,7 @@ describe('portal mock mutations', () => {
       'POST',
       '/documents/upload?book_id=mock-book-1&file_name=%20%20%20',
       new Request('https://mock.lexchain.local/api/portal/proxy-post', { method: 'POST', body: form }),
+      'mock-token:mock-document-issuer',
     );
 
     expect(response.status).toBe(400);
@@ -145,6 +148,7 @@ describe('portal mock mutations', () => {
       'POST',
       '/documents/upload?book_id=mock-book-1&file_name=Invalid%00title',
       new Request('https://mock.lexchain.local/api/portal/proxy-post', { method: 'POST', body: form }),
+      'mock-token:mock-document-issuer',
     );
 
     expect(response.status).toBe(400);
@@ -158,10 +162,11 @@ describe('portal mock mutations', () => {
       'POST',
       '/documents/upload?book_id=mock-book-1&file_name=Issuer%20document%20title',
       new Request('https://mock.lexchain.local/api/portal/proxy-post', { method: 'POST', body: form }),
+      'mock-token:mock-document-issuer',
     );
 
     const { document_id } = await upload.json() as { document_id: string };
-    await expect(mockPortalGet(`/documents/${document_id}`).json()).resolves.toMatchObject({
+    await expect(mockPortalGet(`/documents/${document_id}`, 'mock-token:mock-document-issuer').json()).resolves.toMatchObject({
       file_name: 'Issuer document title',
     });
   });
@@ -276,6 +281,23 @@ describe('portal mock books', () => {
       'mock-token:mock-document-participant',
     );
     expect(response.status).toBe(403);
+  });
+
+  it('denies issuer-only book data and registration without a session token', async () => {
+    expect(mockPortalGet('/books/').status).toBe(401);
+
+    const response = await mockPortalMutate(
+      'POST',
+      '/books/',
+      new Request('https://mock.lexchain.local/api/portal/proxy-post', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ book_number: 3, series_year: 2026 }),
+      }),
+      undefined,
+    );
+
+    expect(response.status).toBe(401);
   });
 });
 
