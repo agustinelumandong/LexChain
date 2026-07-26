@@ -1,6 +1,7 @@
 import { adminStats } from "../../admin/admin-demo-data";
 import { adminFetch } from "../../admin/components/admin-fetch";
 import type { DashboardResponse } from "@/lib/schemas/admin";
+import { requireDocumentIssuerPage } from "../lib/issuer-page-access";
 import { SystemStatisticsView } from "./system-statistics-view";
 
 const useMock = process.env.USE_MOCK_API === "true";
@@ -22,5 +23,6 @@ async function getDashboard(): Promise<DashboardResponse> {
 }
 
 export default async function PortalSystemStatisticsPage() {
+  await requireDocumentIssuerPage();
   return <SystemStatisticsView dashboard={await getDashboard()} />;
 }

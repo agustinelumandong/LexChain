@@ -30,5 +30,10 @@ export function missingToken() {
 export function getTokenFromRequest(request: Request): string | null {
   const cookie = request.headers.get("cookie") ?? "";
   const match = cookie.match(/(?:^|;\s*)issuer_token=([^;]+)/);
-  return match ? decodeURIComponent(match[1]) : null;
+  if (!match) return null;
+  try {
+    return decodeURIComponent(match[1]);
+  } catch {
+    return null;
+  }
 }

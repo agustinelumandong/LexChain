@@ -1,5 +1,6 @@
 import { adminFetch } from "../../admin/components/admin-fetch";
 import { InvitationsManagementView } from "../../admin/invitations-permissions/invitations-management-view";
+import { requireDocumentIssuerPage } from "../lib/issuer-page-access";
 
 const useMock = process.env.USE_MOCK_API === "true";
 
@@ -35,6 +36,7 @@ async function getInvitations(): Promise<InvitationsData> {
 }
 
 export default async function PortalIssuerInvitationsPage() {
+  await requireDocumentIssuerPage();
   const data = await getInvitations();
 
   return <InvitationsManagementView invitations={data.invitations} mockMode={useMock} />;

@@ -1,13 +1,16 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-function invitationRequest(cookie?: string) {
+function invitationRequest(
+  cookie?: string,
+  body: unknown = { email: "new-issuer@example.com", role: "document_issuer" },
+) {
   return new Request("https://lexchain.test/api/admin/invitations", {
     method: "POST",
     headers: {
       "content-type": "application/json",
       ...(cookie ? { cookie } : {}),
     },
-    body: JSON.stringify({ email: "new-issuer@example.com" }),
+    body: typeof body === "string" ? body : JSON.stringify(body),
   });
 }
 
@@ -62,5 +65,78 @@ describe("POST /api/admin/invitations", () => {
     expect(response.status).toBe(201);
     await expect(response.json()).resolves.toEqual({ message: "Mock invitation accepted." });
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("rejects invalid JSON after authenticating the issuer", async () => {
+    vi.stubEnv("USE_MOCK_API", "true");
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    const { POST } = await import("./route");
+
+    const response = await POST(invitationRequest(
+      "issuer_token=mock-token:mock-document-issuer",
+      "{",
+    ));
+
+    expect(response.status).toBe(400);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["missing", { role: "document_issuer" }],
+    ["blank", { email: "   ", role: "document_issuer" }],
+    ["non-string", { email: 42, role: "document_issuer" }],
+    ["invalid", { email: "not-an-email", role: "document_issuer" }],
+  ])("rejects a %s email before the mock/backend split", async (_case, body) => {
+    vi.stubEnv("USE_MOCK_API", "true");
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    const { POST } = await import("./route");
+
+    const response = await POST(invitationRequest(
+      "issuer_token=mock-token:mock-document-issuer",
+      body,
+    ));
+
+    expect(response.status).toBe(400);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it.each(["lawyer", "admin", "user", "document_participant", "arbitrary_role"])(
+    "rejects a supplied noncanonical %s role",
+    async (role) => {
+      vi.stubEnv("USE_MOCK_API", "true");
+      const fetchMock = vi.fn();
+      vi.stubGlobal("fetch", fetchMock);
+      const { POST } = await import("./route");
+
+      const response = await POST(invitationRequest(
+        "issuer_token=mock-token:mock-document-issuer",
+        { email: "new-issuer@example.com", role },
+      ));
+
+      expect(response.status).toBe(400);
+      expect(fetchMock).not.toHaveBeenCalled();
+    },
+  );
+
+  it("forwards only the trimmed email and canonical issuer role in real mode", async () => {
+    vi.stubEnv("USE_MOCK_API", "false");
+    vi.stubEnv("API_URL", "https://api.lexchain.test");
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ id: "invite-1" }), { status: 201 }));
+    vi.stubGlobal("fetch", fetchMock);
+    const { POST } = await import("./route");
+
+    const response = await POST(invitationRequest(
+      "issuer_token=real-issuer-token",
+      { email: "  new-issuer@example.com  ", role: "document_issuer", ignored: true },
+    ));
+
+    expect(response.status).toBe(201);
+    expect(fetchMock).toHaveBeenCalledOnce();
+    expect(JSON.parse(String(fetchMock.mock.calls[0][1]?.body))).toEqual({
+      email: "new-issuer@example.com",
+      role: "document_issuer",
+    });
   });
 });

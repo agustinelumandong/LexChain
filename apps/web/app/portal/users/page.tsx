@@ -1,5 +1,6 @@
 import { adminFetch } from "../../admin/components/admin-fetch";
 import { UsersManagementView } from "../../admin/users/users-management-view";
+import { requireDocumentIssuerPage } from "../lib/issuer-page-access";
 
 const useMock = process.env.USE_MOCK_API === "true";
 
@@ -36,6 +37,7 @@ async function getUsers(): Promise<UsersData> {
 }
 
 export default async function PortalUsersPage() {
+  await requireDocumentIssuerPage();
   const data = await getUsers();
 
   return <UsersManagementView users={data.users} total={data.total} />;

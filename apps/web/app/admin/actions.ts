@@ -50,31 +50,6 @@ export async function getInvitations() {
   return { data: await res.json() };
 }
 
-export async function createInvitation(formData: FormData): Promise<void> {
-  const cookieStore = await cookies();
-  const token = getToken(cookieStore);
-  if (!token) return;
-
-  const email = formData.get("email") as string;
-  const role = (formData.get("role") as string) || "lawyer";
-
-  if (!email) return;
-
-  const res = await fetch(backendUrl("/admin/invitations"), {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-      "ngrok-skip-browser-warning": "true",
-    },
-    body: JSON.stringify({ email, role }),
-  });
-
-  if (res.ok) {
-    revalidatePath("/admin/invitations-permissions");
-  }
-}
-
 export async function revokeInvitation(formData: FormData): Promise<void> {
   const cookieStore = await cookies();
   const token = getToken(cookieStore);

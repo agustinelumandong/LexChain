@@ -463,7 +463,7 @@ export function UsersManagementView({ users, total }: { users: AdminUser[]; tota
         open={modalMode === "view"}
         onClose={() => setModalMode(null)}
         title={selectedUser?.displayName ?? "User details"}
-        description="User profile details from the admin users response."
+        description="User profile details from the System Management directory."
         footer={<button type="button" onClick={() => setModalMode(null)} className="w-full rounded-xl bg-[#0985E7] px-5 py-3 text-sm font-black text-white">Done</button>}
       >
         {selectedUser ? (

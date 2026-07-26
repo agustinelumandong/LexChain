@@ -19,9 +19,9 @@ describe("portal UI roles", () => {
     }
   });
 
-  it("routes canonical portal accounts to the portal without granting unsupported roles office navigation", () => {
+  it("routes each canonical actor to a useful portal destination", () => {
     expect(getPortalLoginRedirect("document_issuer")).toBe("/portal/dashboard");
-    expect(getPortalLoginRedirect("document_participant")).toBe("/portal/dashboard");
+    expect(getPortalLoginRedirect("document_participant")).toBe("/portal/documents");
     expect(getPortalLoginRedirect("staff")).toBeUndefined();
   });
 

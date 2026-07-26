@@ -10,8 +10,8 @@ const sections = [
     copy: "Account information is used for authentication, authorization, auditability, and controlled access to document workflows.",
   },
   {
-    title: "Admin access",
-    copy: "Administrative actions should remain protected by backend authorization. The frontend never stores backend secrets or service credentials.",
+    title: "Management access",
+    copy: "System Management actions should remain protected by backend authorization. The frontend never stores backend secrets or service credentials.",
   },
 ];
 

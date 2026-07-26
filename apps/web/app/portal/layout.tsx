@@ -13,7 +13,7 @@ import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import { Toaster } from 'sonner';
 import type { ApiSchema } from "@lexchain/types";
-import { getPortalRoleLabel, getPortalUiRole, isSupportedPortalUiRole } from "./lib/portal-role";
+import { getPortalLoginRedirect, getPortalRoleLabel, getPortalUiRole, isSupportedPortalUiRole } from "./lib/portal-role";
 import { getPortalNavigation } from "./lib/portal-dashboard";
 import { getPortalNavigationIcon, isPortalRouteActive } from "./components/portal-role-navigation";
 import { PortalBottomNav } from "./components/portal-bottom-nav";
@@ -51,6 +51,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
   const initials = `${profile?.f_name?.[0] ?? ''}${profile?.l_name?.[0] ?? ''}`.toUpperCase() || '?';
   const fullName = profile ? `${profile.f_name} ${profile.l_name}` : '...';
   const email = profile?.email ?? '...';
+  const portalHome = getPortalLoginRedirect(profile?.role) ?? "/portal/dashboard";
   const processingCount = documents.filter((document) => {
     const status = document.status?.trim().toLowerCase();
     return status === "processing" || status === "pending";
@@ -109,6 +110,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
         {/* Desktop office navigation */}
         <aside className={`relative sticky top-0 hidden h-screen shrink-0 flex-col gap-7 border-r border-[#E8F0F8] bg-white pb-[22px] pt-[26px] transition-all duration-300 md:flex ${collapsed ? "w-[72px] px-3" : "w-[260px] px-[22px]"}`}>
           <button
+            type="button"
             onClick={() => setCollapsed(!collapsed)}
             aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
             className="absolute -right-3 top-7 z-10 flex h-6 w-6 cursor-pointer items-center justify-center rounded-full border border-[#E8F0F8] bg-white text-[#64748b] shadow-sm transition hover:bg-[#EEF4FB] hover:text-[#0C2B49]"
@@ -118,7 +120,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
 
           {/* Logo */}
           <div className="flex min-h-[52px] items-center">
-            <Link className="flex items-center gap-0" href="/portal/dashboard">
+            <Link className="flex items-center gap-0" href={portalHome}>
               <Image src="/lexchain/logo-lexchain.svg" alt="LexChain" width={44} height={44} className="rounded-[14px]" />
               {!collapsed && (
                 <div>
@@ -230,7 +232,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
           {children}
         </section>
       </div>
-      {uiRole === "issuer" ? (
+      {isSupportedPortalUiRole(uiRole) ? (
         <PortalBottomNav pathname={pathname} role={uiRole} />
       ) : null}
       <Toaster position="top-center" richColors />

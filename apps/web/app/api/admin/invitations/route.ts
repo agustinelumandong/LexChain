@@ -1,7 +1,12 @@
 import { adminFetch, getTokenFromRequest, missingApiUrl, missingToken } from "@/lib/admin-api";
 import { isMockDocumentIssuerToken } from "@/lib/portal-mock";
+import { z } from "zod";
 
 const useMock = process.env.USE_MOCK_API === "true";
+const invitationSchema = z.object({
+  email: z.string().trim().min(1).email(),
+  role: z.literal("document_issuer").optional(),
+});
 
 export async function GET(request: Request) {
   const apiBase = process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL;
@@ -25,26 +30,27 @@ export async function POST(request: Request) {
   const token = getTokenFromRequest(request);
   if (!token) return missingToken();
 
-  if (useMock) {
-    if (!isMockDocumentIssuerToken(token)) {
-      return Response.json({ message: "Document Issuer access required." }, { status: 403 });
-    }
-    return Response.json({ message: "Mock invitation accepted." }, { status: 201 });
+  if (useMock && !isMockDocumentIssuerToken(token)) {
+    return Response.json({ message: "Document Issuer access required." }, { status: 403 });
   }
+
+  const body = await request.json().catch(() => null);
+  const parsed = invitationSchema.safeParse(body);
+  if (!parsed.success) {
+    return Response.json({ message: "Enter a valid Document Issuer email." }, { status: 400 });
+  }
+  const invitation = { email: parsed.data.email, role: "document_issuer" as const };
+
+  if (useMock) return Response.json({ message: "Mock invitation accepted." }, { status: 201 });
 
   const apiBase = process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL;
   if (!apiBase) return missingApiUrl();
-
-  const body = await request.json().catch(() => null);
-  if (!body?.email) {
-    return Response.json({ message: "Email is required." }, { status: 400 });
-  }
 
   let upstream: Response;
   try {
     upstream = await adminFetch("/admin/invitations", token, {
       method: "POST",
-      body: JSON.stringify(body),
+      body: JSON.stringify(invitation),
     });
   } catch {
     return Response.json({ message: "Unable to reach the API." }, { status: 502 });
