@@ -21,6 +21,12 @@ The FastAPI source code and database migrations are not in this checkout.
 Backend implementers must first inspect the actual backend repository and its
 local instructions before selecting files or writing migrations.
 
+This handoff documents requirements only. No backend implementation, database,
+OpenAPI contract, or generated type was changed by the two-actor portal work.
+The two registered actors are Document Issuer and Document Participant.
+Super Admin is a Document Issuer capability level, while anonymous verification
+is a public feature rather than a registered actor.
+
 ## 2. Required Backend Updates
 
 These are required to match the approved target system.
@@ -180,7 +186,7 @@ Required fields:
 
 Only a mismatch with a valid snapshot should set `can_restore: true`.
 
-### 2.6 Admin user management
+### 2.6 Document Issuer — Super Admin user management
 
 Required endpoint:
 
@@ -200,7 +206,8 @@ is_active
 
 Required behavior:
 
-- require the `admin` role;
+- require the backend `admin` role that grants a Document Issuer Super Admin
+  capabilities;
 - PATCH only fields included in the request;
 - validate email format and uniqueness;
 - validate allowed role values;
@@ -230,7 +237,7 @@ system-audit
 Required authorization:
 
 - lawyer: office reports scoped to documents they own;
-- admin: system reports;
+- Document Issuer with the backend `admin` role: system reports;
 - participant: denied.
 
 Required response:
@@ -252,7 +259,7 @@ table, scheduler, report history, or generic query builder.
 
 Backend authorization is authoritative:
 
-| Operation | Lawyer | Participant | Admin |
+| Operation | Document Issuer (lawyer role) | Document Participant | Document Issuer (Super Admin capability) |
 |---|---:|---:|---:|
 | Finalize owned document | Yes | No | No |
 | Restore owned document | Yes | No | No |
@@ -261,8 +268,10 @@ Backend authorization is authoritative:
 | Office reports | Yes, owned data | No | No |
 | System reports | No | No | Yes |
 
-The diagram's combined issuer actor is a capability grouping. It must not merge
-lawyer and admin privileges in code.
+The Document Issuer actor is a product grouping. The backend must preserve the
+separate `lawyer` and `admin` permission sets; Super Admin capabilities do not
+grant document ownership, and standard issuer access does not grant management
+authority.
 
 Write document actions to `document_audit_logs` and administrative/security
 actions to `system_audit_logs`.
@@ -301,11 +310,12 @@ The backend is ready only when these pass:
 7. Snapshot restore rejects corrupted hashes.
 8. Restore preserves the snapshot and original PDF while creating history.
 9. Participant and non-owner lifecycle operations are denied.
-10. Admin can edit, suspend, and reactivate an allowed user.
-11. Lawyer cannot call admin user mutations.
+10. A Document Issuer with Super Admin capabilities can edit, suspend, and
+    reactivate an allowed user.
+11. A standard Document Issuer cannot call Super Admin user mutations.
 12. The last active admin cannot be suspended or demoted.
 13. Office reports contain only the requesting lawyer's data.
-14. System reports require admin.
+14. System reports require Document Issuer Super Admin capabilities.
 15. Invalid report types and date ranges are rejected.
 
 ## 5. Nice to Have Later
@@ -368,7 +378,7 @@ Backend target work is complete when:
 - role and ownership authorization is enforced server-side;
 - finalization and restoration preserve data and audit history;
 - password recovery is account-safe and rate-limited;
-- admin mutations protect the last active admin;
+- Super Admin mutations protect the last active backend `admin` account;
 - fixed reports are correctly scoped;
 - generated TypeScript types compile;
 - backend-native tests and `tests/test_api_endpoints.py` pass; and
