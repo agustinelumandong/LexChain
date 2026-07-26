@@ -1,14 +1,20 @@
-# LexChain Target System Architecture and Design
+# LexChain Expanded System Architecture Reference
 
-**Status:** Target design
+**Status:** Expanded reference; not a diagram-only target specification
 
 **Audience:** Project team, developers, reviewers, and advisers
 
 **Last updated:** 2026-07-26
 
+> This document expands beyond the three updated Draw.io diagrams by adding
+> implementation, security, deployment, testing, and current-system decisions.
+> For the target system defined strictly by the diagrams, use
+> `docs/LEXCHAIN-DRAWIO-TARGET-SYSTEM-DESIGN.md`.
+
 ## 1. Purpose
 
-This document defines the intended complete LexChain system without adding
+This document is an expanded architecture reference for LexChain. It combines
+the diagram target with implementation-oriented decisions while avoiding
 features or infrastructure that the product does not need.
 
 It answers four questions:
