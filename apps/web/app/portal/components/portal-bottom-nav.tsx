@@ -34,14 +34,12 @@ export function PortalBottomNav({
                   href={item.href}
                   aria-label={item.label}
                   aria-current={active ? 'page' : undefined}
-                  className={`flex min-h-[56px] min-w-16 shrink-0 flex-col items-center justify-center gap-[3px] rounded-[28px] transition-colors ${active ? 'bg-[var(--portal-surface-soft)]' : ''}`}
+                  className={`flex min-h-[56px] min-w-20 shrink-0 flex-col items-center justify-center gap-[3px] rounded-[28px] px-1 transition-colors ${active ? 'bg-[var(--portal-surface-soft)]' : ''}`}
                 >
                   <span className={active ? 'text-[var(--portal-primary)]' : 'text-[var(--portal-text-muted)]'}>
                     <Icon fontSize="small" />
                   </span>
-                  {active && (
-                    <span className="text-[10px] font-bold leading-[12px] text-[var(--portal-primary)]">{item.label}</span>
-                  )}
+                  <span className={`max-w-[76px] text-center text-[9px] font-bold leading-[10px] ${active ? 'text-[var(--portal-primary)]' : 'text-[var(--portal-text-muted)]'}`}>{item.label}</span>
                 </Link>
               );
             })}

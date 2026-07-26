@@ -198,10 +198,14 @@ describe('portal mock profiles', () => {
 
     await expect(participant.json()).resolves.toMatchObject({
       email: 'participant@example.com',
+      f_name: 'Document',
+      l_name: 'Participant',
       role: 'document_participant',
     });
     await expect(issuer.json()).resolves.toMatchObject({
       email: 'issuer@example.com',
+      f_name: 'Document',
+      l_name: 'Issuer',
       role: 'document_issuer',
     });
     await expect(participantDocuments.json()).resolves.toEqual([

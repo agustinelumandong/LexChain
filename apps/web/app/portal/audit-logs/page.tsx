@@ -1,5 +1,6 @@
 import { adminFetch } from "../../admin/components/admin-fetch";
 import { AuditLogsManagementView } from "../../admin/audit-logs/audit-logs-management-view";
+import { requireDocumentIssuerPage } from "../lib/issuer-page-access";
 
 const useMock = process.env.USE_MOCK_API === "true";
 
@@ -40,6 +41,7 @@ async function getAuditLogs(): Promise<AuditLogsData> {
 }
 
 export default async function PortalAuditLogsPage() {
+  await requireDocumentIssuerPage();
   const data = await getAuditLogs();
 
   return <AuditLogsManagementView logs={data.logs} total={data.total} />;

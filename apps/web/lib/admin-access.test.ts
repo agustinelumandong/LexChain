@@ -44,7 +44,7 @@ describe("issuer management proxy access", () => {
     ]);
   });
 
-  it("allows an issuer portal session to continue to management routes", () => {
+  it("uses cookie presence only as a coarse gate before page-level issuer authorization", () => {
     const response = proxy(adminRequest(
       "/portal/users",
       "portal_token=portal-token; issuer_token=issuer-token",

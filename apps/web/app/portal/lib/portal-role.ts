@@ -23,8 +23,11 @@ export function getPortalRoleLabel(role?: string): string {
   return "Unsupported role";
 }
 
-export function getPortalLoginRedirect(role?: string): "/portal/dashboard" | undefined {
-  return isSupportedPortalUiRole(getPortalUiRole(role)) ? "/portal/dashboard" : undefined;
+export function getPortalLoginRedirect(role?: string): "/portal/dashboard" | "/portal/documents" | undefined {
+  const uiRole = getPortalUiRole(role);
+  if (uiRole === "issuer") return "/portal/dashboard";
+  if (uiRole === "participant") return "/portal/documents";
+  return undefined;
 }
 
 export function getPortalProfileRequestShortcut(

@@ -55,4 +55,30 @@ describe("unified auth session cookies", () => {
     expect(response.status).toBe(200);
     expect(response.cookies.get("issuer_token")?.value).toBe("issuer-token");
   });
+
+  it.each([
+    ["legacy lawyer", "lawyer"],
+    ["legacy admin", "admin"],
+    ["legacy user", "user"],
+    ["canonical participant", "document_participant"],
+    ["unknown", "staff"],
+    ["missing", undefined],
+    ["malformed", { value: "document_issuer" }],
+  ])("does not issue issuer authority for a %s backend profile role", async (_case, role) => {
+    vi.stubEnv("USE_MOCK_API", "false");
+    vi.stubEnv("API_URL", "https://api.lexchain.test");
+    vi.stubGlobal("fetch", vi.fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        access_token: "portal-token",
+        user: { id: "account-1", email: "account@lexchain.test" },
+      }), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ role }), { status: 200 })));
+    const { POST } = await import("./route");
+
+    const response = await POST(credentials("account@lexchain.test"));
+
+    expect(response.status).toBe(200);
+    expect(response.cookies.get("portal_token")?.value).toBe("portal-token");
+    expect(response.cookies.get("issuer_token")?.maxAge).toBe(0);
+  });
 });
