@@ -224,6 +224,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
             fullName={fullName}
             initials={initials}
             roleLabel={roleLabel}
+            role={uiRole}
             processingCount={processingCount}
           />
           {children}

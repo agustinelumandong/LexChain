@@ -40,9 +40,13 @@ const users = [
 ];
 
 function renderUsers() {
+  return renderUserList(users);
+}
+
+function renderUserList(userRows: typeof users) {
   return render(
     <MockToastProvider>
-      <UsersManagementView users={users} total={users.length} />
+      <UsersManagementView users={userRows} total={userRows.length} />
     </MockToastProvider>,
   );
 }
@@ -80,6 +84,25 @@ describe("updateDemoUser", () => {
 });
 
 describe("UsersManagementView demo mutations", () => {
+  it("maps only canonical account roles and marks every other value unsupported", () => {
+    renderUserList([
+      users[1],
+      users[2],
+      { ...users[0], id: "legacy-user", email: "legacy-user@example.com", role: "user" },
+      { ...users[0], id: "legacy-admin", email: "legacy-admin@example.com", role: "admin" },
+      { ...users[0], id: "unknown", email: "unknown@example.com", role: "unexpected" },
+    ]);
+
+    expect(within(rowFor("maria@example.com")).getByText("Document Issuer")).toBeTruthy();
+    expect(within(rowFor("juan@example.com")).getByText("Document Participant")).toBeTruthy();
+    for (const email of ["legacy-user@example.com", "legacy-admin@example.com", "unknown@example.com"]) {
+      const row = within(rowFor(email));
+      expect(row.getByText("Unsupported role")).toBeTruthy();
+      expect(row.queryByText("Document Issuer")).toBeNull();
+      expect(row.queryByText("Document Participant")).toBeNull();
+    }
+  });
+
   it("does not expose legacy role navigation from user management", () => {
     renderUsers();
 

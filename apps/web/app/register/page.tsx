@@ -135,7 +135,7 @@ function RegisterPageContent() {
           <h1 className="text-3xl font-black leading-9 text-[#0C2B49]">Create account</h1>
           <p className="text-sm font-semibold leading-5 text-[#64748b]">
             {inviteToken
-              ? "Complete your LexChain lawyer (document issuer) invitation."
+              ? "Complete your LexChain Document Issuer invitation."
               : "Register to access your documents."}
           </p>
         </div>

@@ -7,13 +7,18 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import ProfilePage from '../profile/page';
 import PortalChatbot from '../components/portal-chatbot';
 
+const profile = vi.hoisted(() => ({ role: 'document_issuer' }));
+
 vi.mock('@tanstack/react-query', () => ({
-  useQuery: () => ({ data: { f_name: 'Ada', l_name: 'Lovelace', email: 'ada@example.com', role: 'document_issuer' }, isLoading: false }),
+  useQuery: () => ({ data: { f_name: 'Ada', l_name: 'Lovelace', email: 'ada@example.com', role: profile.role }, isLoading: false }),
 }));
 
 vi.mock('next/link', () => ({ default: ({ href, children, ...props }: React.ComponentProps<'a'>) => createElement('a', { href, ...props }, children) }));
 
-afterEach(cleanup);
+afterEach(() => {
+  profile.role = 'document_issuer';
+  cleanup();
+});
 
 const appDirectory = path.resolve(process.cwd(), "app");
 
@@ -58,6 +63,14 @@ describe("portal UI source audit", () => {
     render(createElement(ProfilePage));
 
     expect(screen.getByRole('link', { name: /help and support/i }).getAttribute('href')).toBe('mailto:support@lexchain.app');
+  });
+
+  it('uses Document Issuer terminology in participant request guidance', () => {
+    profile.role = 'document_participant';
+    render(createElement(ProfilePage));
+
+    expect(screen.getByText('Track requests sent to your Document Issuer')).toBeTruthy();
+    expect(screen.queryByText(/lawyer/i)).toBeNull();
   });
 
   it('offers safe document-assistant guidance', () => {

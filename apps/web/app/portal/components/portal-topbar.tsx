@@ -3,15 +3,17 @@
 import Link from 'next/link';
 import NotificationsNoneOutlinedIcon from '@mui/icons-material/NotificationsNoneOutlined';
 import SearchIcon from '@mui/icons-material/Search';
+import type { PortalUiRole } from '../lib/portal-role';
 
 type PortalTopBarProps = {
   fullName: string;
   initials: string;
   roleLabel: string;
+  role: PortalUiRole;
   processingCount: number;
 };
 
-export function PortalTopBar({ fullName, initials, roleLabel, processingCount }: PortalTopBarProps) {
+export function PortalTopBar({ fullName, initials, roleLabel, role, processingCount }: PortalTopBarProps) {
   const processingLabel = processingCount === 1 ? '1 document processing' : `${processingCount} documents processing`;
 
   return (
@@ -25,13 +27,15 @@ export function PortalTopBar({ fullName, initials, roleLabel, processingCount }:
           <SearchIcon fontSize="small" />
           <span className="truncate">Search documents</span>
         </Link>
-        <Link
-          href="/portal/processing"
-          aria-label="View processing documents"
-          className="hidden rounded-full bg-[#FFF4DD] px-3 py-1.5 text-xs font-bold text-[#9A6700] transition hover:bg-[#FFE9BD] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0985E7] lg:inline-flex"
-        >
-          {processingLabel}
-        </Link>
+        {role === 'issuer' ? (
+          <Link
+            href="/portal/processing"
+            aria-label="View processing documents"
+            className="hidden rounded-full bg-[#FFF4DD] px-3 py-1.5 text-xs font-bold text-[#9A6700] transition hover:bg-[#FFE9BD] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0985E7] lg:inline-flex"
+          >
+            {processingLabel}
+          </Link>
+        ) : null}
         <div className="flex shrink-0 items-center gap-2">
           <Link
             href="/portal/notifications"

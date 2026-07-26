@@ -17,6 +17,7 @@ import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import { Dropdown } from "../components/dropdown";
 import { Field, MockModal, exportMockRows, inputClassName, useMockToast } from "../components/mock-ui";
+import { getPortalRoleLabel } from "../../portal/lib/portal-role";
 
 type AdminUser = {
   id: string;
@@ -61,9 +62,7 @@ function getInitials(name: string) {
 }
 
 function deriveRole(user: AdminUser) {
-  const role = user.role.toLowerCase();
-  if (role === "document_participant" || role === "user") return "Document Participant";
-  return "Document Issuer";
+  return getPortalRoleLabel(user.role);
 }
 
 function getStatus(user: AdminUser): DirectoryUser["statusLabel"] {

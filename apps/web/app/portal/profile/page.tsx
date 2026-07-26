@@ -50,7 +50,7 @@ export default function ProfilePage() {
   const requestItem = requestShortcut
     ? {
       ...requestShortcut,
-      description: uiRole === 'issuer' ? 'Review participant e-copy requests' : 'Track requests sent to issuing lawyers',
+      description: uiRole === 'issuer' ? 'Review participant e-copy requests' : 'Track requests sent to your Document Issuer',
       icon: RequestPageIcon,
     }
     : undefined;

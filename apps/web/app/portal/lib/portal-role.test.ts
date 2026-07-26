@@ -15,6 +15,7 @@ describe("portal UI roles", () => {
   it("rejects obsolete roles", () => {
     for (const obsoleteRole of ["lawyer", "admin", "super_admin", "owner", "user"]) {
       expect(getPortalUiRole(obsoleteRole)).toBe("unsupported");
+      expect(getPortalRoleLabel(obsoleteRole)).toBe("Unsupported role");
     }
   });
 
