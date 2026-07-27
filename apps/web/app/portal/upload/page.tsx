@@ -30,8 +30,6 @@ async function fetchBooks(): Promise<Book[]> {
   return res.json();
 }
 
-const stepClass = 'rounded-xl border px-3 py-2 text-xs font-black';
-
 function formatFileSize(size: number) {
   return `${(size / (1024 * 1024)).toFixed(1)} MB`;
 }
@@ -95,13 +93,6 @@ export default function UploadPage() {
   }
 
   const error = validationError ?? (mutation.error instanceof Error ? mutation.error.message : null);
-  const activeStep = !file ? 1 : !title.trim() || !bookId ? 2 : 3;
-  const getStepClass = (step: number) => `${stepClass} ${
-    activeStep === step
-      ? 'border-[#0985E7] bg-[#EEF6FF] text-[#0C6BBF]'
-      : 'border-[#D7E4F2] bg-white text-[#64748b]'
-  }`;
-
   if (profileQuery.isPending) return <p className="text-sm font-semibold text-[#64748b]">Loading your upload access…</p>;
   if (!isIssuer) {
     return <section className="max-w-xl rounded-[18px] border border-[#E8F0F8] bg-white p-6"><h1 className="text-xl font-black text-[#0C2B49]">Upload unavailable</h1><p className="mt-2 text-sm text-[#64748b]">Only Document Issuers can upload documents.</p></section>;
@@ -136,13 +127,18 @@ export default function UploadPage() {
         <p className="mt-1 text-sm text-[#64748b]">A guided upload using the fields LexChain currently accepts.</p>
       </div>
 
-      <ol aria-label="Upload steps" className="grid grid-cols-3 gap-2">
-        <li aria-current={activeStep === 1 ? 'step' : undefined} className={getStepClass(1)}>1. Select PDF</li>
-        <li aria-current={activeStep === 2 ? 'step' : undefined} className={getStepClass(2)}>2. Document information</li>
-        <li aria-current={activeStep === 3 ? 'step' : undefined} className={getStepClass(3)}>3. Confirm and process</li>
-      </ol>
+      <div className="flex flex-1 flex-col gap-5">
+        <section aria-labelledby="document-information-heading" className="flex flex-col rounded-[18px] border border-[#E8F0F8] bg-white p-5">
+          <h2 id="document-information-heading" className="font-black text-[#0C2B49]">Document information</h2>
+          <p className="mt-1 text-sm text-[#64748b]">Provide the title and active book required by the upload service.</p>
+          <div className="mt-4 grid gap-4">
+            <label className="flex flex-col gap-1.5 text-sm font-bold text-[#0C2B49]">Document title<input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="e.g. Deed of Sale" className="rounded-xl border border-[#D7E4F2] px-3 py-2.5 text-sm font-medium outline-none focus:border-[#0985E7]" /></label>
+            <label className="flex flex-col gap-1.5 text-sm font-bold text-[#0C2B49]">Register book<select value={bookId} onChange={(event) => setBookId(event.target.value)} disabled={booksQuery.isLoading || availableBooks.length === 0} className="rounded-xl border border-[#D7E4F2] bg-white px-3 py-2.5 text-sm font-medium outline-none focus:border-[#0985E7] disabled:bg-[#F8FBFF]"><option value="">{booksQuery.isLoading ? 'Loading register books...' : availableBooks.length === 0 ? 'No active register books available' : 'Choose a register book'}</option>{availableBooks.map((book) => <option key={book.id} value={book.id}>Register book {book.book_number} — Series {book.series_year}</option>)}</select></label>
+            {booksQuery.isError && <p role="alert" className="text-sm font-bold text-red-600">Unable to load books. Please try again.</p>}
+            {!booksQuery.isLoading && availableBooks.length === 0 && <p className="text-sm text-[#64748b]">Register an active book before uploading a document.</p>}
+          </div>
+        </section>
 
-      <div className="grid gap-5 lg:flex-1 lg:grid-cols-2">
         <section aria-labelledby="select-pdf-heading" className="flex flex-col rounded-[18px] border border-[#E8F0F8] bg-white p-5">
           <h2 id="select-pdf-heading" className="font-black text-[#0C2B49]">Select PDF</h2>
           <p className="mt-1 text-sm text-[#64748b]">PDF only · maximum {defaultOfficeSettings.uploadLimitMegabytes} MB</p>
@@ -159,18 +155,6 @@ export default function UploadPage() {
           </div>
           {file && <div className="mt-4 flex items-center gap-3 rounded-[14px] border border-[#E8F0F8] p-4"><InsertDriveFileIcon sx={{ color: '#0985E7' }} /><span className="flex-1 truncate text-sm font-bold text-[#0C2B49]">{file.name} · {formatFileSize(file.size)}</span><button aria-label="Remove uploaded file" onClick={() => { setFile(null); setValidationError(null); }} type="button"><CloseIcon sx={{ fontSize: 18, color: '#64748b' }} /></button></div>}
         </section>
-
-        <section aria-labelledby="document-information-heading" className="flex flex-col rounded-[18px] border border-[#E8F0F8] bg-white p-5">
-          <h2 id="document-information-heading" className="font-black text-[#0C2B49]">Document information</h2>
-          <p className="mt-1 text-sm text-[#64748b]">Provide the title and active book required by the upload service.</p>
-          <div className="mt-4 grid gap-4">
-            <label className="flex flex-col gap-1.5 text-sm font-bold text-[#0C2B49]">Document title<input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="e.g. Deed of Sale" className="rounded-xl border border-[#D7E4F2] px-3 py-2.5 text-sm font-medium outline-none focus:border-[#0985E7]" /></label>
-            <label className="flex flex-col gap-1.5 text-sm font-bold text-[#0C2B49]">Register book<select value={bookId} onChange={(event) => setBookId(event.target.value)} disabled={booksQuery.isLoading || availableBooks.length === 0} className="rounded-xl border border-[#D7E4F2] bg-white px-3 py-2.5 text-sm font-medium outline-none focus:border-[#0985E7] disabled:bg-[#F8FBFF]"><option value="">{booksQuery.isLoading ? 'Loading register books...' : availableBooks.length === 0 ? 'No active register books available' : 'Choose a register book'}</option>{availableBooks.map((book) => <option key={book.id} value={book.id}>Register book {book.book_number} — Series {book.series_year}</option>)}</select></label>
-            {booksQuery.isError && <p role="alert" className="text-sm font-bold text-red-600">Unable to load books. Please try again.</p>}
-            {!booksQuery.isLoading && availableBooks.length === 0 && <p className="text-sm text-[#64748b]">Register an active book before uploading a document.</p>}
-          </div>
-        </section>
-
       </div>
 
       <section aria-labelledby="confirm-process-heading" className="mt-auto rounded-[18px] border border-[#E8F0F8] bg-white p-5 sm:flex sm:items-center sm:justify-between sm:gap-5">

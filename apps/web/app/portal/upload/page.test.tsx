@@ -83,20 +83,4 @@ describe('UploadPage', () => {
     expect(screen.getByLabelText('Register book')).toBeTruthy();
   });
 
-  it('marks the current upload stage as the user completes the required fields', () => {
-    const { container } = render(<UploadPage />);
-    const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
-
-    expect(screen.getByText('1. Select PDF').getAttribute('aria-current')).toBe('step');
-
-    fireEvent.change(fileInput, {
-      target: { files: [new File(['PDF'], 'Deed of Sale.pdf', { type: 'application/pdf' })] },
-    });
-
-    expect(screen.getByText('2. Document information').getAttribute('aria-current')).toBe('step');
-
-    fireEvent.change(screen.getByLabelText('Register book'), { target: { value: 'book-1' } });
-
-    expect(screen.getByText('3. Confirm and process').getAttribute('aria-current')).toBe('step');
-  });
 });
