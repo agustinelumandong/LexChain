@@ -130,7 +130,7 @@ export default function UploadPage() {
   }
 
   return (
-    <div className="flex w-full max-w-5xl flex-col gap-5">
+    <div className="flex w-full max-w-none flex-col gap-5">
       <div>
         <h1 className="text-[28px] font-black text-[#0C2B49]">Upload Document</h1>
         <p className="mt-1 text-sm text-[#64748b]">A guided upload using the fields LexChain currently accepts.</p>
@@ -142,7 +142,7 @@ export default function UploadPage() {
         <li aria-current={activeStep === 3 ? 'step' : undefined} className={getStepClass(3)}>3. Confirm and process</li>
       </ol>
 
-      <div className="grid gap-5 lg:grid-cols-2">
+      <div className="grid gap-5 lg:grid-cols-2 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)_minmax(280px,0.75fr)]">
         <section aria-labelledby="select-pdf-heading" className="rounded-[18px] border border-[#E8F0F8] bg-white p-5">
           <h2 id="select-pdf-heading" className="font-black text-[#0C2B49]">Select PDF</h2>
           <p className="mt-1 text-sm text-[#64748b]">PDF only · maximum {defaultOfficeSettings.uploadLimitMegabytes} MB</p>
@@ -170,14 +170,14 @@ export default function UploadPage() {
             {!booksQuery.isLoading && availableBooks.length === 0 && <p className="text-sm text-[#64748b]">Register an active book before uploading a document.</p>}
           </div>
         </section>
-      </div>
 
-      <section aria-labelledby="confirm-process-heading" className="rounded-[18px] border border-[#E8F0F8] bg-white p-5">
-        <h2 id="confirm-process-heading" className="font-black text-[#0C2B49]">Confirm and process</h2>
-        <p className="mt-1 text-sm text-[#64748b]">Review the selected PDF, title, and book, then send them for processing.</p>
-        {error && <p role="alert" className="mt-3 rounded-xl bg-red-50 p-3 text-sm font-bold text-red-700">{error}</p>}
-        <button disabled={!file || !title.trim() || !bookId || mutation.isPending} onClick={submit} className="mt-4 rounded-full bg-[#0985E7] px-8 py-3 text-sm font-black text-white transition hover:bg-[#0770c4] disabled:opacity-40">{mutation.isPending ? 'Sending upload...' : 'Confirm and process'}</button>
-      </section>
+        <section aria-labelledby="confirm-process-heading" className="flex flex-col rounded-[18px] border border-[#E8F0F8] bg-white p-5 lg:col-span-2 xl:col-span-1">
+          <h2 id="confirm-process-heading" className="font-black text-[#0C2B49]">Confirm and process</h2>
+          <p className="mt-1 text-sm text-[#64748b]">Review the selected PDF, title, and book, then send them for processing.</p>
+          {error && <p role="alert" className="mt-3 rounded-xl bg-red-50 p-3 text-sm font-bold text-red-700">{error}</p>}
+          <button disabled={!file || !title.trim() || !bookId || mutation.isPending} onClick={submit} className="mt-auto rounded-full bg-[#0985E7] px-8 py-3 text-sm font-black text-white transition hover:bg-[#0770c4] disabled:opacity-40">{mutation.isPending ? 'Sending upload...' : 'Confirm and process'}</button>
+        </section>
+      </div>
     </div>
   );
 }
