@@ -3,8 +3,9 @@
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
+import type { ApiSchema } from '@lexchain/types';
 import {
-  finalizeDemoDocument,
+  finalizeDocument,
   restoreDemoSnapshot,
 } from '../../lib/document-lifecycle-api';
 import {
@@ -104,8 +105,7 @@ type DocumentWorkspaceProps = {
   onRetrySnapshots?: () => void;
 };
 
-const demoDisclaimer = 'Demo only — no production document or blockchain record was changed.';
-const finalizationConfirmation = 'Demo finalization will generate a mock hash, create a text snapshot, and simulate anchoring. No production document or blockchain record is changed.';
+const finalizationConfirmation = 'This will anchor the approved document hash on-chain and finalize the document. This action cannot be undone.';
 
 export function DocumentWorkspace({
   document,
@@ -121,6 +121,7 @@ export function DocumentWorkspace({
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<Tab>('Overview');
   const [lifecycleResult, setLifecycleResult] = useState<DemoDocumentLifecycle>();
+  const [finalizationResult, setFinalizationResult] = useState<ApiSchema<'RecordResponse'>>();
   const [confirmingFinalize, setConfirmingFinalize] = useState(false);
   const [snapshotToRestore, setSnapshotToRestore] = useState<DemoDocumentSnapshot>();
   const [restorationReason, setRestorationReason] = useState('');
@@ -146,11 +147,11 @@ export function DocumentWorkspace({
   }
 
   const finalizeMutation = useMutation({
-    mutationFn: () => finalizeDemoDocument(document.document_id),
+    mutationFn: () => finalizeDocument(document.document_id),
     onSuccess: async (result) => {
-      setLifecycleResult(result);
+      setFinalizationResult(result);
       setConfirmingFinalize(false);
-      setSuccess('Demo document finalized.');
+      setSuccess('Document finalized and anchored on-chain.');
       await refreshLifecycleQueries();
     },
   });
@@ -170,6 +171,7 @@ export function DocumentWorkspace({
   function openFinalizeConfirmation() {
     finalizeMutation.reset();
     setSuccess(undefined);
+    setFinalizationResult(undefined);
     setConfirmingFinalize(true);
   }
 
@@ -210,20 +212,20 @@ export function DocumentWorkspace({
               <div><dt className="font-bold text-[#64748b]">Content type</dt><dd className="mt-1 text-[#0C2B49]">{document.content_type ?? 'Not supplied'}</dd></div>
               <div><dt className="font-bold text-[#64748b]">Lifecycle status</dt><dd className="mt-1 text-[#0C2B49]">{document.status ?? 'Not supplied'}</dd></div>
               <div><dt className="font-bold text-[#64748b]">Integrity status</dt><dd className="mt-1 text-[#0C2B49]">{integrityLabel(integrityState)}</dd></div>
-              <div><dt className="font-bold text-[#64748b]">Demo lifecycle</dt><dd className="mt-1 text-[#0C2B49]">{lifecycleLabel(lifecycle.lifecycle)}</dd></div>
+              <div><dt className="font-bold text-[#64748b]">Document lifecycle</dt><dd className="mt-1 text-[#0C2B49]">{lifecycleLabel(lifecycle.lifecycle)}</dd></div>
               <div><dt className="font-bold text-[#64748b]">Document hash</dt><dd title={lifecycle.document_hash ?? undefined} className="mt-1 font-mono text-[#0C2B49]">{lifecycle.document_hash ? shortenIntegrityHash(lifecycle.document_hash) : 'Not available'}</dd></div>
               <div><dt className="font-bold text-[#64748b]">Text snapshots</dt><dd className="mt-1 text-[#0C2B49]">{currentSnapshots.length}</dd></div>
               <div><dt className="font-bold text-[#64748b]">Finalized</dt><dd className="mt-1 text-[#0C2B49]">{formatDate(lifecycle.finalized_at)}</dd></div>
               <div><dt className="font-bold text-[#64748b]">Anchor state</dt><dd className="mt-1 text-[#0C2B49]">{anchorLabel(lifecycle.anchor_status)}</dd></div>
             </dl>
-            {canFinalize && <button type="button" onClick={openFinalizeConfirmation} className="w-fit rounded-full bg-[#0985E7] px-4 py-2.5 text-sm font-extrabold text-white">Finalize</button>}
+            {canFinalize && !finalizationResult && <button type="button" onClick={openFinalizeConfirmation} className="w-fit rounded-full bg-[#0985E7] px-4 py-2.5 text-sm font-extrabold text-white">Finalize</button>}
             {success && <p role="status" className="rounded-xl border border-[#BCE8CC] bg-[#F1FBF5] px-4 py-3 text-sm font-bold text-[#0C7A3B]">{success}</p>}
-            <p className="text-xs leading-5 text-[#64748b]">{demoDisclaimer}</p>
+            {finalizationResult && <dl className="grid gap-3 rounded-xl bg-[#F8FBFF] p-4 text-sm sm:grid-cols-2"><div><dt className="font-bold text-[#64748b]">Data hash</dt><dd className="mt-1 break-all font-mono text-[#0C2B49]">{finalizationResult.data_hash}</dd></div><div><dt className="font-bold text-[#64748b]">Transaction hash</dt><dd className="mt-1 break-all font-mono text-[#0C2B49]">{finalizationResult.tx_hash}</dd></div></dl>}
             {integrityState === 'unavailable' && onRetry && <button type="button" onClick={onRetry} className="w-fit rounded-full border border-[#D7E4F2] px-4 py-2 text-sm font-bold text-[#0985E7]">Retry integrity lookup</button>}
             <p className="text-sm leading-6 text-[#64748b]">Use this workspace to review the original file, derived assistance, and available integrity information.</p>
             {confirmingFinalize && (
-              <div role="dialog" aria-modal="true" aria-label="Confirm demo finalization" className="rounded-xl border border-[#CFE7FC] bg-[#F1F8FF] p-4">
-                <p className="font-bold text-[#0C2B49]">Finalize this demo document?</p>
+              <div role="dialog" aria-modal="true" aria-label="Confirm finalization" className="rounded-xl border border-[#CFE7FC] bg-[#F1F8FF] p-4">
+                <p className="font-bold text-[#0C2B49]">Finalize this document?</p>
                 <p className="mt-1 text-sm leading-6 text-[#64748b]">{finalizationConfirmation}</p>
                 {finalizeError && <p role="alert" className="mt-3 text-sm font-bold text-[#B42318]">{finalizeError}</p>}
                 <div className="mt-4 flex flex-wrap gap-2">

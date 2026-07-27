@@ -1,3 +1,4 @@
+import type { ApiSchema } from '@lexchain/types';
 import type {
   DemoDocumentLifecycle,
   DemoDocumentSnapshot,
@@ -25,7 +26,7 @@ async function lifecycleFetch<T>(path: string, init?: RequestInit): Promise<T> {
   return response.json() as Promise<T>;
 }
 
-export async function finalizeDemoDocument(documentId: string): Promise<DemoDocumentLifecycle> {
+export async function finalizeDocument(documentId: string): Promise<ApiSchema<'RecordResponse'>> {
   const id = required(documentId, 'Document ID is required');
   return lifecycleFetch(`/documents/${id}/finalize`, { method: 'POST' });
 }

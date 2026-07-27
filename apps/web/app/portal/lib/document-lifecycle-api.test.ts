@@ -1,9 +1,16 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
-  finalizeDemoDocument,
+  finalizeDocument,
   listDemoSnapshots,
   restoreDemoSnapshot,
 } from './document-lifecycle-api';
+
+const record = {
+  document_id: 'document-1',
+  tx_hash: '0xtxhash',
+  onchain_document_id: 'onchain-document-1',
+  data_hash: 'datahash',
+};
 
 const lifecycle = {
   lifecycle: 'finalized',
@@ -25,10 +32,10 @@ afterEach(() => {
 
 describe('document lifecycle client', () => {
   it('finalizes through the existing same-origin mutation proxy', async () => {
-    const fetchMock = vi.fn().mockResolvedValue(Response.json(lifecycle));
+    const fetchMock = vi.fn().mockResolvedValue(Response.json(record));
     vi.stubGlobal('fetch', fetchMock);
 
-    await expect(finalizeDemoDocument('document-1')).resolves.toEqual(lifecycle);
+    await expect(finalizeDocument('document-1')).resolves.toEqual(record);
 
     expect(fetchMock).toHaveBeenCalledWith(
       '/api/portal/proxy-post?path=%2Fdocuments%2Fdocument-1%2Ffinalize',
@@ -64,7 +71,7 @@ describe('document lifecycle client', () => {
   });
 
   it.each([
-    ['finalize document ID', () => finalizeDemoDocument('  '), 'Document ID is required'],
+    ['finalize document ID', () => finalizeDocument('  '), 'Document ID is required'],
     ['snapshot-list document ID', () => listDemoSnapshots(''), 'Document ID is required'],
     ['restore document ID', () => restoreDemoSnapshot('', 'snapshot-1', 'Reason'), 'Document ID is required'],
     ['restore snapshot ID', () => restoreDemoSnapshot('document-1', ' ', 'Reason'), 'Snapshot ID is required'],
@@ -82,6 +89,6 @@ describe('document lifecycle client', () => {
       Response.json({ message: 'Document cannot be finalized' }, { status: 400 }),
     ));
 
-    await expect(finalizeDemoDocument('document-1')).rejects.toThrow('Document cannot be finalized');
+    await expect(finalizeDocument('document-1')).rejects.toThrow('Document cannot be finalized');
   });
 });
