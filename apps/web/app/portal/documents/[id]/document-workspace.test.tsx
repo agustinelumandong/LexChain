@@ -4,13 +4,13 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-li
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { DocumentWorkspace } from './document-workspace';
 
-const { finalizeDemoDocumentMock, restoreDemoSnapshotMock } = vi.hoisted(() => ({
-  finalizeDemoDocumentMock: vi.fn(),
+const { finalizeDocumentMock, restoreDemoSnapshotMock } = vi.hoisted(() => ({
+  finalizeDocumentMock: vi.fn(),
   restoreDemoSnapshotMock: vi.fn(),
 }));
 
 vi.mock('../../lib/document-lifecycle-api', () => ({
-  finalizeDemoDocument: finalizeDemoDocumentMock,
+  finalizeDocument: finalizeDocumentMock,
   restoreDemoSnapshot: restoreDemoSnapshotMock,
 }));
 
@@ -47,6 +47,13 @@ const finalizedLifecycle = {
   finalized_by: 'issuer-1',
   anchor_status: 'confirmed' as const,
   snapshots: [snapshot],
+};
+
+const finalizationRecord = {
+  document_id: 'doc-101',
+  tx_hash: '0xtxhash101',
+  onchain_document_id: 'onchain-doc-101',
+  data_hash: 'datahash101',
 };
 
 function renderWorkspace(props: Partial<React.ComponentProps<typeof DocumentWorkspace>> = {}) {
@@ -175,13 +182,14 @@ describe('DocumentWorkspace', () => {
       },
     });
 
-    expect(screen.getByText('Demo lifecycle').nextElementSibling?.textContent).toBe('Not available');
+    expect(screen.getByText('Document lifecycle').nextElementSibling?.textContent).toBe('Not available');
     expect(screen.queryByRole('button', { name: 'Finalize' })).toBeNull();
   });
 
   it.each([
     ['participant', { role: 'participant' as const }],
     ['processing document', { document: { ...document, status: 'PROCESSING' } }],
+    ['review-ready document', { document: { ...document, status: 'READY_FOR_REVIEW' } }],
     ['already-finalized document', { document: { ...document, ...finalizedLifecycle } }],
   ])('does not offer finalization to a %s', (_label, props) => {
     renderWorkspace(props);
@@ -189,20 +197,18 @@ describe('DocumentWorkspace', () => {
     expect(screen.queryByRole('button', { name: 'Finalize' })).toBeNull();
   });
 
-  it('requires explicit confirmation that names every demo finalization effect', () => {
+  it('requires explicit confirmation of the real finalization effect', () => {
     renderWorkspace();
 
     fireEvent.click(screen.getByRole('button', { name: 'Finalize' }));
 
-    const dialog = screen.getByRole('dialog', { name: 'Confirm demo finalization' });
-    expect(within(dialog).getByText(
-      'Demo finalization will generate a mock hash, create a text snapshot, and simulate anchoring. No production document or blockchain record is changed.',
-    )).toBeTruthy();
-    expect(finalizeDemoDocumentMock).not.toHaveBeenCalled();
+    const dialog = screen.getByRole('dialog', { name: 'Confirm finalization' });
+    expect(within(dialog).getByText(/This will anchor the approved document hash on-chain/)).toBeTruthy();
+    expect(finalizeDocumentMock).not.toHaveBeenCalled();
   });
 
   it('disables the finalization mutation button while the request is pending', async () => {
-    finalizeDemoDocumentMock.mockReturnValue(new Promise(() => undefined));
+    finalizeDocumentMock.mockReturnValue(new Promise(() => undefined));
     renderWorkspace();
     fireEvent.click(screen.getByRole('button', { name: 'Finalize' }));
 
@@ -212,19 +218,15 @@ describe('DocumentWorkspace', () => {
     await waitFor(() => expect(screen.getByRole('button', { name: 'Finalizing…' }).hasAttribute('disabled')).toBe(true));
   });
 
-  it('shows returned lifecycle details and refreshes only affected queries after finalization', async () => {
-    finalizeDemoDocumentMock.mockResolvedValue(finalizedLifecycle);
+  it('shows returned record hashes and refreshes affected queries after finalization', async () => {
+    finalizeDocumentMock.mockResolvedValue(finalizationRecord);
     const { invalidateQueries } = renderWorkspace();
     fireEvent.click(screen.getByRole('button', { name: 'Finalize' }));
     fireEvent.click(screen.getByRole('button', { name: 'Confirm finalization' }));
 
-    expect(await screen.findByText('Demo document finalized.')).toBeTruthy();
-    expect(screen.getByText('Demo lifecycle').nextElementSibling?.textContent).toBe('Finalized');
-    expect(screen.getByText('aaaaaaaaaa…aaaaaaaa')).toBeTruthy();
-    expect(screen.getByText('Confirmed')).toBeTruthy();
-    expect(screen.getByText('1')).toBeTruthy();
-    expect(screen.getByText(/Jul 26, 2026/)).toBeTruthy();
-    expect(screen.getByText('Demo only — no production document or blockchain record was changed.')).toBeTruthy();
+    expect(await screen.findByText('Document finalized and anchored on-chain.')).toBeTruthy();
+    expect(screen.getByText('datahash101')).toBeTruthy();
+    expect(screen.getByText('0xtxhash101')).toBeTruthy();
     expect(invalidateQueries).toHaveBeenCalledTimes(4);
     for (const queryKey of [
       ['portal-doc', 'doc-101'],
@@ -300,14 +302,15 @@ describe('DocumentWorkspace', () => {
   });
 
   it('keeps failed finalization retryable and never claims success', async () => {
-    finalizeDemoDocumentMock.mockRejectedValue(new Error('Document cannot be finalized'));
+    finalizeDocumentMock.mockRejectedValue(new Error('Document cannot be finalized'));
     renderWorkspace();
     fireEvent.click(screen.getByRole('button', { name: 'Finalize' }));
     fireEvent.click(screen.getByRole('button', { name: 'Confirm finalization' }));
 
     expect((await screen.findByRole('alert')).textContent).toContain('Document cannot be finalized');
     expect(screen.getByRole('button', { name: 'Confirm finalization' }).hasAttribute('disabled')).toBe(false);
-    expect(screen.queryByText('Demo document finalized.')).toBeNull();
+    expect(screen.queryByText('Document finalized and anchored on-chain.')).toBeNull();
+    expect(screen.queryByText('datahash101')).toBeNull();
   });
 
   it('keeps failed restoration retryable and never claims success', async () => {
