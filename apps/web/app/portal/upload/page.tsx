@@ -173,11 +173,13 @@ export default function UploadPage() {
 
       </div>
 
-      <section aria-labelledby="confirm-process-heading" className="rounded-[18px] border border-[#E8F0F8] bg-white p-5">
-        <h2 id="confirm-process-heading" className="font-black text-[#0C2B49]">Confirm and process</h2>
-        <p className="mt-1 text-sm text-[#64748b]">Review the selected PDF, title, and book, then send them for processing.</p>
-        {error && <p role="alert" className="mt-3 rounded-xl bg-red-50 p-3 text-sm font-bold text-red-700">{error}</p>}
-        <button disabled={!file || !title.trim() || !bookId || mutation.isPending} onClick={submit} className="mt-4 rounded-full bg-[#0985E7] px-8 py-3 text-sm font-black text-white transition hover:bg-[#0770c4] disabled:opacity-40">{mutation.isPending ? 'Sending upload...' : 'Confirm and process'}</button>
+      <section aria-labelledby="confirm-process-heading" className="rounded-[18px] border border-[#E8F0F8] bg-white p-5 sm:flex sm:items-center sm:justify-between sm:gap-5">
+        <div>
+          <h2 id="confirm-process-heading" className="font-black text-[#0C2B49]">Confirm and process</h2>
+          <p className="mt-1 text-sm text-[#64748b]">Review the selected PDF, title, and book, then send them for processing.</p>
+          {error && <p role="alert" className="mt-3 rounded-xl bg-red-50 p-3 text-sm font-bold text-red-700">{error}</p>}
+        </div>
+        <button disabled={!file || !title.trim() || !bookId || mutation.isPending} onClick={submit} className="mt-4 shrink-0 rounded-full bg-[#0985E7] px-8 py-3 text-sm font-black text-white transition hover:bg-[#0770c4] disabled:opacity-40 sm:mt-0">{mutation.isPending ? 'Sending upload...' : 'Confirm and process'}</button>
       </section>
     </div>
   );
