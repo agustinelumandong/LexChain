@@ -68,12 +68,20 @@ it('proxies audit logs after the authenticated profile confirms a Document Issue
 
 it('returns the current document lifecycle history for a mock issuer without calling the backend', async () => {
   process.env.NEXT_PUBLIC_USE_MOCK_API = 'true';
-  await mockPortalMutate(
+  const approval = await mockPortalMutate(
+    'POST',
+    '/documents/mock-document-2/extraction/approve',
+    new Request('http://localhost/documents/mock-document-2/extraction/approve', { method: 'POST' }),
+    'mock-token:mock-document-issuer',
+  );
+  expect(approval.status).toBe(200);
+  const finalization = await mockPortalMutate(
     'POST',
     '/documents/mock-document-2/finalize',
     new Request('http://localhost/documents/mock-document-2/finalize', { method: 'POST' }),
     'mock-token:mock-document-issuer',
   );
+  expect(finalization.status).toBe(200);
   const fetchMock = vi.fn();
   vi.stubGlobal('fetch', fetchMock);
 

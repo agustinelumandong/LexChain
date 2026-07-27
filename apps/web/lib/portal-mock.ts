@@ -1,4 +1,5 @@
 import { canFinalizeDocument, canRestoreDocument } from '../app/portal/lib/document-lifecycle-ui';
+import type { ApiSchema } from '@lexchain/types';
 
 const mockParticipantId = 'mock-document-participant';
 const mockIssuerId = 'mock-document-issuer';
@@ -79,6 +80,17 @@ type MockBook = {
   updated_at: string | null;
 };
 
+type ExtractionBlock = ApiSchema<'ExtractionBlock'>;
+type ExtractionFlag = ApiSchema<'ExtractionFlag'>;
+type ExtractionReview = ApiSchema<'ExtractionReviewResponse'>;
+type UpdateExtractionRequest = ApiSchema<'UpdateExtractionRequest'>;
+type BlockEdit = ApiSchema<'BlockEdit'>;
+type ApproveExtractionResponse = ApiSchema<'ApproveExtractionResponse'>;
+
+type MockExtraction = Omit<Pick<ExtractionReview,
+  'extraction_id' | 'engine' | 'page_count' | 'confidence_avg' | 'blocks' | 'is_reviewed' | 'reviewed_by' | 'reviewed_at'
+>, 'blocks'> & { blocks: ExtractionBlock[] };
+
 function mockCreationAudit(documentId: string, createdAt: string) {
   return {
     id: `mock-audit-${documentId}`,
@@ -146,7 +158,7 @@ let documents: MockDocument[] = [
     file_name: 'Certificate of Employment.pdf',
     storage_url: '/mock-documents/certificate-of-employment.pdf',
     content_type: 'application/pdf',
-    status: 'completed',
+    status: 'ready_for_review',
     on_chain: false,
     is_latest: true,
     summary: 'A sample certificate of employment issued to Jane Doe.',
@@ -293,6 +305,50 @@ let books: MockBook[] = [
   },
 ];
 
+let extractions: Record<string, MockExtraction> = {
+  'mock-document-2': {
+    extraction_id: 'mock-extraction-2',
+    engine: 'mock-ocr',
+    page_count: 1,
+    confidence_avg: 0.87,
+    blocks: [
+      {
+        index: 0,
+        type: 'text',
+        text: 'Jane Doe is employed by LexChain.',
+        original_text: 'Jane Doe is employed by LexChain.',
+        edited: false,
+        score: 0.96,
+        page_idx: 0,
+        is_html: false,
+      },
+      {
+        index: 1,
+        type: 'text',
+        text: 'Employrnent certificate',
+        original_text: 'Employrnent certificate',
+        edited: false,
+        score: 0.78,
+        page_idx: 0,
+        is_html: false,
+      },
+    ],
+    is_reviewed: false,
+    reviewed_by: null,
+    reviewed_at: null,
+  },
+};
+
+let extractionFlags: Record<string, ExtractionFlag[]> = {
+  'mock-document-2': [{
+    block_index: 1,
+    kind: 'low_confidence',
+    severity: 'medium',
+    message: 'OCR confidence is below the review threshold.',
+    excerpt: 'Employrnent certificate',
+  }],
+};
+
 const sharedDocumentIds = new Set(['mock-document-4']);
 
 function json(data: unknown, status = 200) {
@@ -305,6 +361,21 @@ function error(message: string, status: number) {
 
 function documentFor(id: string) {
   return documents.find((document) => document.id === id);
+}
+
+function extractionReview(documentId: string): ExtractionReview | null {
+  const extraction = extractions[documentId];
+  if (!extraction) return null;
+  const flags = extractionFlags[documentId] ?? [];
+  return {
+    document_id: documentId,
+    ...extraction,
+    status: extraction.is_reviewed ? 'approved' : 'ready_for_review',
+    flags,
+    flag_count: flags.length,
+    high_severity_count: flags.filter((flag) => flag.severity === 'high').length,
+    edited_block_count: extraction.blocks.filter((block) => block.edited).length,
+  };
 }
 
 function deterministicHash(value: string) {
@@ -394,6 +465,13 @@ export function mockPortalGet(path: string, token?: string): Response {
     return json(requestList(filtered));
   }
 
+  const extractionMatch = requestPathname.match(/^\/documents\/([^/]+)\/extraction\/?$/);
+  if (extractionMatch) {
+    if (!hasMockIssuerAccess(token)) return error('Document Issuer access required', 403);
+    const review = extractionReview(extractionMatch[1]);
+    return review ? json(review) : error('Extraction not found', 404);
+  }
+
   const snapshotsMatch = requestPathname.match(/^\/documents\/([^/]+)\/snapshots\/?$/);
   if (snapshotsMatch) {
     const document = documentFor(snapshotsMatch[1]);
@@ -470,7 +548,7 @@ async function uploadDocument(request: Request, path: string) {
     file_name: fileName,
     storage_url: `/mock-documents/${encodeURIComponent(fileName)}`,
     content_type: file.type || 'application/pdf',
-    status: 'completed',
+    status: 'ready_for_review',
     on_chain: false,
     is_latest: true,
     summary: 'A locally uploaded mock document.',
@@ -489,6 +567,28 @@ async function uploadDocument(request: Request, path: string) {
     integrity_state: 'not-recorded',
   };
   documents = [document, ...documents];
+  extractions = {
+    ...extractions,
+    [id]: {
+      extraction_id: `mock-extraction-${id}`,
+      engine: 'mock-ocr',
+      page_count: 1,
+      confidence_avg: 1,
+      blocks: [{
+        index: 0,
+        type: 'text',
+        text: fileName,
+        original_text: fileName,
+        edited: false,
+        score: 1,
+        page_idx: 0,
+        is_html: false,
+      }],
+      is_reviewed: false,
+      reviewed_by: null,
+      reviewed_at: null,
+    },
+  };
   books = books.map((candidate) => candidate.id === book.id ? {
     ...candidate,
     document_count: candidate.document_count + 1,
@@ -559,6 +659,87 @@ async function askDocument(id: string, request: Request, token?: string) {
   return json({ answer: `Mock answer for ${document.file_name}: ${document.summary}` });
 }
 
+async function saveExtractionEdits(documentId: string, request: Request) {
+  const body = await jsonBody(request) as Partial<UpdateExtractionRequest> | null;
+  const edits = body?.edits;
+  if (!Array.isArray(edits) || edits.length === 0) return error('At least one edit is required', 400);
+  const extraction = extractions[documentId];
+  if (!extraction) return error('Extraction not found', 404);
+  if (extraction.is_reviewed) return error('Extraction has already been approved', 409);
+  if (!edits.every((edit) => (
+    typeof edit === 'object'
+    && edit !== null
+    && typeof edit.index === 'number'
+    && Number.isInteger(edit.index)
+    && typeof edit.text === 'string'
+    && extraction.blocks.some((block) => block.index === edit.index)
+  ))) return error('Extraction edit is invalid', 400);
+
+  const validEdits = edits as BlockEdit[];
+  const editedIndexes = new Set(validEdits.map((edit) => edit.index));
+  extractions = {
+    ...extractions,
+    [documentId]: {
+      ...extraction,
+      blocks: extraction.blocks.map((block) => {
+        const edit = validEdits.find((item) => item.index === block.index);
+        return edit ? { ...block, text: edit.text, edited: true } : block;
+      }),
+    },
+  };
+  extractionFlags = {
+    ...extractionFlags,
+    [documentId]: (extractionFlags[documentId] ?? []).filter((flag) => !editedIndexes.has(flag.block_index ?? -1)),
+  };
+  return json(extractionReview(documentId));
+}
+
+function analyzeExtraction(documentId: string) {
+  const extraction = extractions[documentId];
+  if (!extraction) return error('Extraction not found', 404);
+  if (extraction.is_reviewed) return error('Extraction has already been approved', 409);
+  extractionFlags = {
+    ...extractionFlags,
+    [documentId]: [
+      ...(extractionFlags[documentId] ?? []).filter((flag) => !flag.kind.startsWith('llm_')),
+      {
+        block_index: 0,
+        kind: 'llm_missing_space',
+        severity: 'low',
+        message: 'The review pass found a possible missing space.',
+        excerpt: extraction.blocks[0]?.text ?? '',
+      },
+    ],
+  };
+  return json(extractionReview(documentId));
+}
+
+function approveExtraction(documentId: string) {
+  const extraction = extractions[documentId];
+  if (!extraction) return error('Extraction not found', 404);
+  if (extraction.is_reviewed) return error('Extraction has already been approved', 409);
+  if (!extraction.blocks.some((block) => block.text.trim())) return error('Reviewed text is required', 400);
+  const now = new Date().toISOString();
+  extractions = {
+    ...extractions,
+    [documentId]: { ...extraction, is_reviewed: true, reviewed_by: mockIssuerId, reviewed_at: now },
+  };
+  documents = documents.map((document) => document.id === documentId ? {
+    ...document,
+    status: 'completed',
+    updated_at: now,
+  } : document);
+  const reviewed = extractionReview(documentId)!;
+  const response: ApproveExtractionResponse = {
+    document_id: documentId,
+    status: 'approved',
+    edited_block_count: reviewed.edited_block_count,
+    content_hash: deterministicHash(reviewed.blocks.map((block) => block.text).join('\n')),
+    message: 'Extraction review approved.',
+  };
+  return json(response);
+}
+
 export async function mockPortalMutate(method: 'POST' | 'PATCH', path: string, request: Request, token?: string): Promise<Response> {
   if (!token || !isMockPortalToken(token)) return error('Not authenticated', 401);
   const requestPathname = pathname(path);
@@ -571,18 +752,42 @@ export async function mockPortalMutate(method: 'POST' | 'PATCH', path: string, r
     return createBook(request);
   }
 
+  const extractionMatch = requestPathname.match(/^\/documents\/([^/]+)\/extraction\/?$/);
+  if (method === 'PATCH' && extractionMatch) {
+    if (!hasMockIssuerAccess(token)) return error('Document Issuer access required', 403);
+    return saveExtractionEdits(extractionMatch[1], request);
+  }
+  const extractionAnalyzeMatch = requestPathname.match(/^\/documents\/([^/]+)\/extraction\/analyze\/?$/);
+  if (method === 'POST' && extractionAnalyzeMatch) {
+    if (!hasMockIssuerAccess(token)) return error('Document Issuer access required', 403);
+    return analyzeExtraction(extractionAnalyzeMatch[1]);
+  }
+  const extractionApproveMatch = requestPathname.match(/^\/documents\/([^/]+)\/extraction\/approve\/?$/);
+  if (method === 'POST' && extractionApproveMatch) {
+    if (!hasMockIssuerAccess(token)) return error('Document Issuer access required', 403);
+    return approveExtraction(extractionApproveMatch[1]);
+  }
+
   const finalizeMatch = requestPathname.match(/^\/documents\/([^/]+)\/finalize\/?$/);
   if (method === 'POST' && finalizeMatch) {
     if (!hasMockIssuerAccess(token)) return error('Document Issuer access required', 403);
     const document = documentFor(finalizeMatch[1]);
     if (!document) return error('Document not found', 404);
     if (!canMutateDocumentLifecycle(document)) return error('Shared document lifecycle is read-only', 403);
-    if (document.lifecycle === 'finalized') return json(document);
+    const recordResponse = (dataHash: string): ApiSchema<'RecordResponse'> => ({
+      document_id: document.id,
+      tx_hash: `0x${deterministicHash(`tx-${document.id}`)}`,
+      onchain_document_id: `chain-${document.id}`,
+      data_hash: dataHash,
+    });
+    if (document.lifecycle === 'finalized') return json(recordResponse(document.document_hash ?? deterministicHash(document.id)));
+    const extraction = extractions[document.id];
+    if (!extraction?.is_reviewed) return error('Extraction review must be approved before finalization', 400);
     if (!canFinalizeDocument('issuer', document.status, document.lifecycle)) {
       return error('Document cannot be finalized', 400);
     }
     const now = new Date().toISOString();
-    const documentHash = deterministicHash(document.id);
+    const documentHash = deterministicHash(extraction.blocks.map((block) => block.text).join('\n'));
     const finalizedDocument: MockDocument = {
       ...document,
       lifecycle: 'finalized',
@@ -609,7 +814,7 @@ export async function mockPortalMutate(method: 'POST' | 'PATCH', path: string, r
       }],
     };
     documents = documents.map((item) => item.id === document.id ? finalizedDocument : item);
-    return json(finalizedDocument);
+    return json(recordResponse(documentHash));
   }
 
   const restoreMatch = requestPathname.match(/^\/documents\/([^/]+)\/snapshots\/([^/]+)\/restore\/?$/);
