@@ -76,86 +76,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/auth/mfa/setup": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Initiate Google Authenticator MFA setup
-         * @description Generates a new TOTP secret key and provisioning URI for Google Authenticator setup.
-         */
-        post: operations["mfa_setup_auth_mfa_setup_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/auth/mfa/verify-enable": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Verify code and enable MFA
-         * @description Validates a 6-digit TOTP code and activates MFA for the user.
-         */
-        post: operations["mfa_enable_auth_mfa_verify_enable_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/auth/mfa/disable": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Disable MFA
-         * @description Validates a 6-digit TOTP code and deactivates MFA for the user.
-         */
-        post: operations["mfa_disable_auth_mfa_disable_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/auth/mfa/verify-signin": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Complete sign-in by verifying MFA code
-         * @description Authenticates the user using a temporary MFA login token and a 6-digit TOTP code.
-         */
-        post: operations["mfa_verify_signin_auth_mfa_verify_signin_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/users/search": {
         parameters: {
             query?: never;
@@ -221,29 +141,9 @@ export interface paths {
         };
         /**
          * List all documents
-         * @description Return all latest document versions belonging to or shared with the authenticated user.
+         * @description Return the latest version of every document belonging to or shared with the authenticated user.
          */
         get: operations["get_all_user_documents_documents__get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/documents/invitations": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List pending invitations
-         * @description Return all pending document collaboration invitations for the authenticated user.
-         */
-        get: operations["get_pending_invitations_documents_invitations_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -261,7 +161,7 @@ export interface paths {
         };
         /**
          * Get a document
-         * @description Return a single document if the user owns it or is a whitelisted party.
+         * @description Return a single document, plus what the requesting user is permitted to do with it, if they own it or are a whitelisted party.
          */
         get: operations["get_user_document_documents__document_id__get"];
         put?: never;
@@ -271,7 +171,7 @@ export interface paths {
         head?: never;
         /**
          * Rename a document
-         * @description Update the display name of a document. Only the document owner (lawyer) may rename.
+         * @description Update the display name of a draft. Only the document owner (or admin) may rename, and only while the document is a DRAFT.
          */
         patch: operations["rename_document_documents__document_id__patch"];
         trace?: never;
@@ -307,7 +207,7 @@ export interface paths {
         put?: never;
         /**
          * Update a document (new version)
-         * @description Upload a new file as the next version of an existing document. Only the document owner may update.
+         * @description Upload a new file as the next version of an existing document. Only the document owner (or admin) may update, and only from the latest version. A finalized version is never overwritten — it stays immutable and on-chain while the new draft is appended to the chain.
          */
         post: operations["update_document_documents__document_id__update_post"];
         delete?: never;
@@ -325,7 +225,7 @@ export interface paths {
         };
         /**
          * Get version history
-         * @description Return the full version chain for a document (newest → oldest). Accessible by owner or any party.
+         * @description Return the full version chain for a document (newest → oldest), including which version is latest and which are finalized. Accessible by owner, any party, or admin.
          */
         get: operations["get_version_history_documents__document_id__versions_get"];
         put?: never;
@@ -345,13 +245,13 @@ export interface paths {
         };
         /**
          * List document parties
-         * @description Return all whitelisted parties for a document. Accessible by owner or any party.
+         * @description Return the issuer and all whitelisted parties for a document. Accessible by owner, any party, or admin.
          */
         get: operations["get_document_parties_documents__document_id__parties_get"];
         put?: never;
         /**
          * Add a party to a document
-         * @description Whitelist a user by email to access this document. Only the document owner may add parties.
+         * @description Whitelist a user by email to access this document. Only the document owner (or admin) may add parties. Roles: viewer | signer | editor — signer and editor may only be granted to lawyers.
          */
         post: operations["add_document_party_documents__document_id__parties_post"];
         delete?: never;
@@ -372,7 +272,7 @@ export interface paths {
         post?: never;
         /**
          * Remove a party from a document
-         * @description Revoke a user's access to this document. Only the document owner may remove parties.
+         * @description Revoke a user's access to this document. Only the document owner (or admin) may remove parties.
          */
         delete: operations["remove_document_party_documents__document_id__parties__party_user_id__delete"];
         options?: never;
@@ -380,47 +280,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/documents/{document_id}/parties/accept": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Accept a document invitation
-         * @description Accept a pending collaboration invitation for the specified document.
-         */
-        post: operations["accept_document_invitation_documents__document_id__parties_accept_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/documents/{document_id}/parties/reject": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Reject a document invitation
-         * @description Reject/decline a pending collaboration invitation for the specified document.
-         */
-        post: operations["reject_document_invitation_documents__document_id__parties_reject_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/documents/{document_id}/audit-logs": {
+    "/documents/{document_id}/extraction": {
         parameters: {
             query?: never;
             header?: never;
@@ -428,12 +288,76 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Get document audit trail
-         * @description Return the complete history of actions performed on this document. Only accessible by owner or parties.
+         * Get extracted text for review
+         * @description Return the OCR blocks and the flags worth checking, so the issuer can jump to suspect text instead of reading the whole document. Each flag points at a block, and blocks carry page/bbox where the engine reports layout.
          */
-        get: operations["get_document_audit_logs_documents__document_id__audit_logs_get"];
+        get: operations["get_extraction_review_documents__document_id__extraction_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Correct extracted text
+         * @description Save corrections to one or more blocks. Repeatable — this does not approve the document. Flags are recomputed so fixed problems disappear. The raw OCR text is never overwritten.
+         */
+        patch: operations["update_extraction_documents__document_id__extraction_patch"];
+        trace?: never;
+    };
+    "/documents/{document_id}/extraction/analyze": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Ask the LLM for semantic inconsistencies
+         * @description Adds LLM-found issues (name drift between clauses, contradictions, undefined terms, missing annexes) on top of the automatic checks. Optional — the rule-based flags already ran at extraction time, so this costs inference only when asked. Re-running replaces the previous LLM pass.
+         */
+        post: operations["analyze_extraction_documents__document_id__extraction_analyze_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/documents/{document_id}/extraction/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Approve extracted text
+         * @description Freeze the reviewed text and queue chunking, embedding and analysis. Nothing is derived from the text before this point, so the search index and the on-chain snapshot are always built from what the issuer approved.
+         */
+        post: operations["approve_extraction_documents__document_id__extraction_approve_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/documents/{document_id}/finalize": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Finalize a document
+         * @description Freeze the latest draft: create an immutable snapshot of the extracted text, anchor its hash on-chain, and set the finalized/lifecycle fields. This is the only point at which a document is hashed on-chain.
+         */
+        post: operations["finalize_document_documents__document_id__finalize_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -485,48 +409,6 @@ export interface paths {
         put?: never;
         /** Semantic search across all of the user's documents */
         post: operations["search_all_search_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/blockchain/record/{document_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Record a document on-chain
-         * @description Store the document hash on the LexChainNotary smart contract.
-         *         - **Requirement**: Document must be in COMPLETED status.
-         *         - The document's SHA256 hash is written to the blockchain.
-         */
-        post: operations["record_document_blockchain_record__document_id__post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/blockchain/verify/{document_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Verify a document's on-chain record
-         * @description Query the smart contract for the document's stored hash and verify integrity.
-         */
-        get: operations["verify_document_blockchain_verify__document_id__get"];
-        put?: never;
-        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -600,23 +482,6 @@ export interface paths {
         post?: never;
         /** Revoke an invitation */
         delete: operations["revoke_invitation_admin_invitations__invitation_id__delete"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/admin/audit-logs": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get system-wide audit logs */
-        get: operations["get_system_audit_logs_admin_audit_logs_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -762,70 +627,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/requests": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List all document requests (lawyer)
-         * @description Returns all document requests. Optionally filter by status: pending | approved | rejected.
-         */
-        get: operations["get_all_requests_requests_get"];
-        put?: never;
-        /**
-         * Request a digital document copy
-         * @description Any authenticated user can request a digital copy of an existing document. All lawyers are notified via email.
-         */
-        post: operations["submit_document_request_requests_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/requests/my": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List my document requests
-         * @description Returns all document requests submitted by the authenticated user.
-         */
-        get: operations["get_my_requests_requests_my_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/requests/{request_id}/review": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        /**
-         * Approve or reject a document request
-         * @description A lawyer reviews a pending request. The requester is notified via email.
-         */
-        patch: operations["review_request_requests__request_id__review_patch"];
-        trace?: never;
-    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -894,44 +695,48 @@ export interface components {
              */
             created_at: string;
         };
-        /** AskRequest */
-        AskRequest: {
-            /** Question */
-            question: string;
-            /**
-             * History
-             * @default []
-             */
-            history: components["schemas"]["ChatMessage"][];
-        };
         /**
-         * AuditLogResponse
-         * @description Response payload for a single document audit log entry.
+         * ApproveExtractionResponse
+         * @description Result of approving the extracted text.
          */
-        AuditLogResponse: {
-            /**
-             * Id
-             * Format: uuid
-             */
-            id: string;
+        ApproveExtractionResponse: {
             /**
              * Document Id
              * Format: uuid
              */
             document_id: string;
-            /** User Id */
-            user_id?: string | null;
-            /** Action */
-            action: string;
-            /** Details */
-            details?: {
-                [key: string]: unknown;
-            } | null;
+            /** Status */
+            status: string;
+            /** Edited Block Count */
+            edited_block_count: number;
             /**
-             * Created At
-             * Format: date-time
+             * Content Hash
+             * @description Hash of the approved text
              */
-            created_at: string;
+            content_hash: string;
+            /** Message */
+            message: string;
+        };
+        /** AskRequest */
+        AskRequest: {
+            /** Question */
+            question: string;
+        };
+        /**
+         * BlockEdit
+         * @description A correction to one block.
+         */
+        BlockEdit: {
+            /**
+             * Index
+             * @description Index of the block being corrected
+             */
+            index: number;
+            /**
+             * Text
+             * @description Corrected text for the block
+             */
+            text: string;
         };
         /** Body_update_document_documents__document_id__update_post */
         Body_update_document_documents__document_id__update_post: {
@@ -986,30 +791,6 @@ export interface components {
             /** Updated At */
             updated_at?: string | null;
         };
-        /** ChatMessage */
-        ChatMessage: {
-            /** Role */
-            role: string;
-            /** Content */
-            content: string;
-        };
-        /**
-         * CreateDocumentRequestBody
-         * @description Payload from the user to submit a document request.
-         */
-        CreateDocumentRequestBody: {
-            /**
-             * Document Id
-             * Format: uuid
-             * @description ID of the document being requested.
-             */
-            document_id: string;
-            /**
-             * Description
-             * @description Additional context or notes about the request.
-             */
-            description: string;
-        };
         /** CreateInvitationRequest */
         CreateInvitationRequest: {
             /**
@@ -1023,44 +804,6 @@ export interface components {
              * @default lawyer
              */
             role: string;
-        };
-        /**
-         * DocumentInvitationResponse
-         * @description A pending invitation representation for a user
-         */
-        DocumentInvitationResponse: {
-            /**
-             * Id
-             * Format: uuid
-             * @description Invitation/Party record ID.
-             */
-            id: string;
-            /**
-             * Document Id
-             * Format: uuid
-             * @description Document ID.
-             */
-            document_id: string;
-            /**
-             * Document Title
-             * @description Document file name.
-             */
-            document_title: string;
-            /**
-             * Role
-             * @description Role assigned.
-             */
-            role: string;
-            /**
-             * Status
-             * @description Invitation status.
-             */
-            status: string;
-            /**
-             * Created At
-             * Format: date-time
-             */
-            created_at: string;
         };
         /**
          * DocumentPartyListResponse
@@ -1091,9 +834,10 @@ export interface components {
             id: string;
             /**
              * User Id
+             * Format: uuid
              * @description User ID
              */
-            user_id?: string | null;
+            user_id: string;
             /**
              * Email
              * @description User's email
@@ -1115,71 +859,50 @@ export interface components {
              */
             role: string;
             /**
-             * Status
-             * @description Status: pending | accepted | rejected
-             * @default pending
-             */
-            status: string;
-            /**
              * Created At
              * Format: date-time
              */
             created_at: string;
         };
         /**
-         * DocumentRequestListResponse
-         * @description List wrapper for document requests.
+         * DocumentPermissions
+         * @description What the requesting user is allowed to do with this document.
+         *
+         *     Mirrors the server-side checks so the client can hide actions it would be
+         *     rejected for — the API still enforces them independently.
          */
-        DocumentRequestListResponse: {
-            /** Requests */
-            requests: components["schemas"]["DocumentRequestResponse"][];
-            /** Total */
-            total: number;
-        };
-        /**
-         * DocumentRequestResponse
-         * @description Full document request record returned to clients.
-         */
-        DocumentRequestResponse: {
+        DocumentPermissions: {
             /**
-             * Id
-             * Format: uuid
+             * Can View
+             * @description Always true if the document was returned
+             * @default true
              */
-            id: string;
+            can_view: boolean;
             /**
-             * Requester Id
-             * Format: uuid
+             * Can Rename
+             * @description May change the display name
              */
-            requester_id: string;
-            /** Requester Email */
-            requester_email: string;
-            /** Requester Name */
-            requester_name: string;
+            can_rename: boolean;
             /**
-             * Document Id
-             * Format: uuid
+             * Can Create Version
+             * @description May upload a new version
              */
-            document_id: string;
-            /** Document Name */
-            document_name?: string | null;
-            /** Description */
-            description: string;
-            /** Status */
-            status: string;
-            /** Lawyer Id */
-            lawyer_id?: string | null;
-            /** Rejection Reason */
-            rejection_reason?: string | null;
+            can_create_version: boolean;
             /**
-             * Created At
-             * Format: date-time
+             * Can Finalize
+             * @description May snapshot and anchor on-chain
              */
-            created_at: string;
+            can_finalize: boolean;
             /**
-             * Updated At
-             * Format: date-time
+             * Can Share
+             * @description May whitelist other users
              */
-            updated_at: string;
+            can_share: boolean;
+            /**
+             * Can Revoke
+             * @description May remove whitelisted users
+             */
+            can_revoke: boolean;
         };
         /**
          * DocumentResponse
@@ -1192,11 +915,6 @@ export interface components {
              * @description Document identifier.
              */
             document_id: string;
-            /**
-             * Document Number
-             * @description Sequential document number.
-             */
-            document_number: number;
             /**
              * File Name
              * @description Name of the uploaded file
@@ -1223,10 +941,42 @@ export interface components {
              */
             on_chain: boolean;
             /**
+             * Version
+             * @description Version number within its chain
+             */
+            version: number;
+            /**
              * Is Latest
-             * @description Check if document is the latest one
+             * @description Check if document is the latest version
              */
             is_latest: boolean;
+            /**
+             * Lifecycle
+             * @description DRAFT | FINALIZED | ARCHIVED
+             */
+            lifecycle: string;
+            /**
+             * Root Document Id
+             * @description First version of this document's chain
+             */
+            root_document_id?: string | null;
+            /**
+             * Previous Document Id
+             * @description The version this one supersedes
+             */
+            previous_document_id?: string | null;
+            /**
+             * Finalized At
+             * @description When the document was finalized and anchored
+             */
+            finalized_at?: string | null;
+            /**
+             * Finalized By
+             * @description User who finalized the document
+             */
+            finalized_by?: string | null;
+            /** @description What the requesting user may do with this document */
+            permissions: components["schemas"]["DocumentPermissions"];
             /**
              * Summary
              * @description LLM-generated summary
@@ -1293,11 +1043,6 @@ export interface components {
              */
             id: string;
             /**
-             * Document Number
-             * @description Sequential document number.
-             */
-            document_number: number;
-            /**
              * File Name
              * @description Name of the uploaded file
              */
@@ -1318,26 +1063,160 @@ export interface components {
              */
             on_chain: boolean;
             /**
+             * Version
+             * @description Version number within its chain
+             */
+            version: number;
+            /**
+             * Is Latest
+             * @description Check if document is the latest version
+             */
+            is_latest: boolean;
+            /**
+             * Lifecycle
+             * @description DRAFT | FINALIZED | ARCHIVED
+             */
+            lifecycle: string;
+            /**
              * Created At
              * Format: date-time
              * @description When the document was uploaded
              */
             created_at: string;
+        };
+        /**
+         * ExtractionBlock
+         * @description One reviewable piece of the document.
+         */
+        ExtractionBlock: {
             /**
-             * Book Number
-             * @description The book number of the associated book.
+             * Index
+             * @description Position of the block in the document
              */
-            book_number?: number | null;
+            index: number;
             /**
-             * Page Number
-             * @description The page number of the document within the book.
+             * Type
+             * @description Block type reported by the OCR engine
+             * @default text
              */
-            page_number?: number | null;
+            type: string;
             /**
-             * Series
-             * @description The series year of the associated book.
+             * Text
+             * @description Current text — the issuer's edit if edited
              */
-            series?: number | null;
+            text: string;
+            /**
+             * Original Text
+             * @description What the OCR engine produced
+             */
+            original_text: string;
+            /**
+             * Bbox
+             * @description [x0, y0, x1, y1] on the page, if the engine reports layout
+             */
+            bbox?: number[] | null;
+            /**
+             * Page Idx
+             * @description Zero-based page the block sits on
+             */
+            page_idx?: number | null;
+            /**
+             * Text Level
+             * @description Heading level, if a heading
+             */
+            text_level?: number | null;
+            /**
+             * Score
+             * @description OCR confidence for this block
+             */
+            score?: number | null;
+            /**
+             * Is Html
+             * @description Content is HTML (tables) rather than plain text
+             * @default false
+             */
+            is_html: boolean;
+            /**
+             * Edited
+             * @description Whether the issuer changed this block
+             * @default false
+             */
+            edited: boolean;
+        };
+        /**
+         * ExtractionFlag
+         * @description Something the issuer should look at.
+         */
+        ExtractionFlag: {
+            /**
+             * Block Index
+             * @description Block the flag points at; null if document-wide
+             */
+            block_index?: number | null;
+            /**
+             * Kind
+             * @description e.g. low_confidence, missing_space, amount_mismatch
+             */
+            kind: string;
+            /**
+             * Severity
+             * @description high | medium | low
+             */
+            severity: string;
+            /**
+             * Message
+             * @description What looks wrong, in plain terms
+             */
+            message: string;
+            /**
+             * Excerpt
+             * @description The offending text
+             * @default
+             */
+            excerpt: string;
+        };
+        /**
+         * ExtractionReviewResponse
+         * @description Everything the review screen needs.
+         */
+        ExtractionReviewResponse: {
+            /**
+             * Document Id
+             * Format: uuid
+             */
+            document_id: string;
+            /**
+             * Extraction Id
+             * Format: uuid
+             */
+            extraction_id: string;
+            /**
+             * Status
+             * @description Document processing status
+             */
+            status: string;
+            /** Engine */
+            engine: string;
+            /** Page Count */
+            page_count: number;
+            /** Confidence Avg */
+            confidence_avg?: number | null;
+            /** Blocks */
+            blocks: components["schemas"]["ExtractionBlock"][];
+            /** Flags */
+            flags: components["schemas"]["ExtractionFlag"][];
+            /** Flag Count */
+            flag_count: number;
+            /** High Severity Count */
+            high_severity_count: number;
+            /** Edited Block Count */
+            edited_block_count: number;
+            /** Is Reviewed */
+            is_reviewed: boolean;
+            /** Reviewed By */
+            reviewed_by?: string | null;
+            /** Reviewed At */
+            reviewed_at?: string | null;
         };
         /** GlobalSearchHit */
         GlobalSearchHit: {
@@ -1355,8 +1234,6 @@ export interface components {
             chunk_index: number;
             /** Score */
             score: number;
-            /** Text */
-            text: string;
         };
         /** GlobalSearchResponse */
         GlobalSearchResponse: {
@@ -1400,40 +1277,6 @@ export interface components {
             created_at: string;
             /** Magic Link */
             magic_link?: string | null;
-        };
-        /** MFALoginVerifyRequest */
-        MFALoginVerifyRequest: {
-            /**
-             * Mfa Token
-             * @description The temporary MFA token returned during sign-in.
-             */
-            mfa_token: string;
-            /**
-             * Code
-             * @description 6-digit TOTP verification code.
-             */
-            code: string;
-        };
-        /** MFASetupResponse */
-        MFASetupResponse: {
-            /**
-             * Secret
-             * @description The TOTP secret key for manual entry.
-             */
-            secret: string;
-            /**
-             * Provisioning Uri
-             * @description The provisioning URI for scanning as a QR code.
-             */
-            provisioning_uri: string;
-        };
-        /** MFAVerifyRequest */
-        MFAVerifyRequest: {
-            /**
-             * Code
-             * @description 6-digit TOTP verification code.
-             */
-            code: string;
         };
         /** MarkAllReadResponse */
         MarkAllReadResponse: {
@@ -1484,59 +1327,6 @@ export interface components {
          * @enum {string}
          */
         NotificationType: "party_added" | "party_removed" | "document_recorded" | "document_processed" | "document_failed";
-        /**
-         * OnChainVerificationResponse
-         * @description Response returned when verifying an on-chain record.
-         */
-        OnChainVerificationResponse: {
-            /**
-             * Document Id
-             * Format: uuid
-             * @description Document identifier.
-             */
-            document_id: string;
-            /**
-             * Onchain Document Id
-             * @description Document ID on-chain.
-             */
-            onchain_document_id: string;
-            /**
-             * Data Hash
-             * @description Hash stored on-chain.
-             */
-            data_hash: string;
-            /**
-             * Tx Hash
-             * @description Transaction hash of the record on-chain.
-             */
-            tx_hash: string;
-            /**
-             * Onchain Timestamp
-             * @description Unix timestamp when strored.
-             */
-            onchain_timestamp: number;
-            /**
-             * Issued By
-             * @description Address that issued the transaction.
-             */
-            issued_by: string;
-            /**
-             * Verified At
-             * Format: date-time
-             * @description When this verification was performed.
-             */
-            verified_at: string;
-            /**
-             * Transacttion Link
-             * @description Redirect to transaction in baseScan.org
-             */
-            transacttion_link: string;
-            /**
-             * Is Verified
-             * @description True if the actual file hash matches the on-chain hash.
-             */
-            is_verified: boolean;
-        };
         /** PublicVerifyResponse */
         PublicVerifyResponse: {
             /** Status */
@@ -1585,11 +1375,6 @@ export interface components {
              * @description SHA256 hash stored on-chain.
              */
             data_hash: string;
-            /**
-             * Transacttion Link
-             * @description Redirect to transaction in baseScan.org
-             */
-            transacttion_link: string;
         };
         /**
          * RemovePartyResponse
@@ -1601,8 +1386,11 @@ export interface components {
              * Format: uuid
              */
             document_id: string;
-            /** User Id */
-            user_id?: string | null;
+            /**
+             * User Id
+             * Format: uuid
+             */
+            user_id: string;
             /** Message */
             message: string;
         };
@@ -1625,23 +1413,6 @@ export interface components {
              * @description Email address to resend verification to
              */
             email: string;
-        };
-        /**
-         * ReviewRequestBody
-         * @description Payload from a lawyer to approve or reject a document request.
-         */
-        ReviewRequestBody: {
-            /**
-             * Action
-             * @description Decision: approve or reject.
-             * @enum {string}
-             */
-            action: "approve" | "reject";
-            /**
-             * Rejection Reason
-             * @description Required when action is 'reject'.
-             */
-            rejection_reason?: string | null;
         };
         /** SearchHit */
         SearchHit: {
@@ -1694,12 +1465,12 @@ export interface components {
              * Access Token
              * @description JWT access token for API authentication
              */
-            access_token?: string | null;
+            access_token: string;
             /**
              * Refresh Token
              * @description Token used to obtain a new access token
              */
-            refresh_token?: string | null;
+            refresh_token: string;
             /**
              * Token Type
              * @description Token type, always 'bearer'
@@ -1710,25 +1481,14 @@ export interface components {
              * Expires In
              * @description Token expiration time in seconds
              */
-            expires_in?: number | null;
+            expires_in: number;
             /**
              * User
              * @description User information from Supabase
              */
-            user?: {
+            user: {
                 [key: string]: unknown;
-            } | null;
-            /**
-             * Mfa Required
-             * @description True if MFA is enabled for this user
-             * @default false
-             */
-            mfa_required: boolean;
-            /**
-             * Mfa Token
-             * @description Temporary token used to complete MFA verification
-             */
-            mfa_token?: string | null;
+            };
         };
         /** SignUpRequest */
         SignUpRequest: {
@@ -1784,46 +1544,21 @@ export interface components {
              */
             requires_email_confirmation: boolean;
         };
-        /** SystemAuditLogListResponse */
-        SystemAuditLogListResponse: {
-            /** Logs */
-            logs: components["schemas"]["SystemAuditLogResponse"][];
-            /** Total */
-            total: number;
-        };
-        /** SystemAuditLogResponse */
-        SystemAuditLogResponse: {
-            /**
-             * Id
-             * Format: uuid
-             */
-            id: string;
-            /** User Id */
-            user_id: string | null;
-            /** Action */
-            action: string;
-            /** Target Type */
-            target_type: string | null;
-            /** Target Id */
-            target_id: string | null;
-            /** Details */
-            details: {
-                [key: string]: unknown;
-            } | null;
-            /** Ip Address */
-            ip_address: string | null;
-            /** User Agent */
-            user_agent: string | null;
-            /**
-             * Created At
-             * Format: date-time
-             */
-            created_at: string;
-        };
         /** UnreadCountResponse */
         UnreadCountResponse: {
             /** Unread */
             unread: number;
+        };
+        /**
+         * UpdateExtractionRequest
+         * @description Save corrections without approving yet — callable repeatedly.
+         */
+        UpdateExtractionRequest: {
+            /**
+             * Edits
+             * @description Blocks to correct
+             */
+            edits: components["schemas"]["BlockEdit"][];
         };
         /** UserProfileResponse */
         UserProfileResponse: {
@@ -1847,17 +1582,12 @@ export interface components {
              * @description User Avatar
              * @default icon1
              */
-            avatar: string | null;
+            avatar: string;
             /**
              * Role
              * @description User role
              */
             role: string;
-            /**
-             * Mfa Enabled
-             * @description Check if mfa is enable
-             */
-            mfa_enabled: boolean;
         };
         /** UserSearchResponse */
         UserSearchResponse: {
@@ -1888,7 +1618,7 @@ export interface components {
         };
         /**
          * VersionHistoryItem
-         * @description A single entry ion the document's version chain
+         * @description A single entry in the document's version chain
          */
         VersionHistoryItem: {
             /**
@@ -1896,18 +1626,22 @@ export interface components {
              * Format: uuid
              */
             document_id: string;
-            /** Document Number */
-            document_number: number;
+            /** Version */
+            version: number;
             /** File Name */
             file_name: string;
             /** Document Hash */
             document_hash: string;
             /** Status */
             status: string;
+            /** Lifecycle */
+            lifecycle: string;
             /** Tx Hash */
             tx_hash: string | null;
             /** Is Latest */
             is_latest: boolean;
+            /** Finalized At */
+            finalized_at: string | null;
             /**
              * Created At
              * Format: date-time
@@ -1924,6 +1658,16 @@ export interface components {
              * Format: uuid
              */
             current_document_id: string;
+            /**
+             * Root Document Id
+             * Format: uuid
+             */
+            root_document_id: string;
+            /**
+             * Latest Document Id
+             * Format: uuid
+             */
+            latest_document_id: string;
             /** Versions */
             versions: components["schemas"]["VersionHistoryItem"][];
             /** Total Version */
@@ -2107,125 +1851,6 @@ export interface operations {
             };
         };
     };
-    mfa_setup_auth_mfa_setup_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["MFASetupResponse"];
-                };
-            };
-        };
-    };
-    mfa_enable_auth_mfa_verify_enable_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["MFAVerifyRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["MessageResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    mfa_disable_auth_mfa_disable_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["MFAVerifyRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["MessageResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    mfa_verify_signin_auth_mfa_verify_signin_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["MFALoginVerifyRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SignInResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
     search_user_users_search_get: {
         parameters: {
             query: {
@@ -2323,7 +1948,6 @@ export interface operations {
     get_all_user_documents_documents__get: {
         parameters: {
             query?: {
-                book_id?: string | null;
                 limit?: number;
                 offset?: number;
             };
@@ -2357,33 +1981,6 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
-            };
-        };
-    };
-    get_pending_invitations_documents_invitations_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Invitations retrieved */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DocumentInvitationResponse"][];
-                };
-            };
-            /** @description Not authenticated — missing or invalid bearer token */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
             };
         };
     };
@@ -2477,6 +2074,13 @@ export interface operations {
                 };
                 content?: never;
             };
+            /** @description Document is finalized or archived and cannot be modified */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
             /** @description Validation Error */
             422: {
                 headers: {
@@ -2491,8 +2095,8 @@ export interface operations {
     upload_document_documents_upload_post: {
         parameters: {
             query: {
-                book_id: string;
                 file_name: string;
+                book_id: string;
             };
             header?: never;
             path?: never;
@@ -2594,6 +2198,13 @@ export interface operations {
             };
             /** @description Document not found */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description This version has been superseded — update the latest one */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2816,7 +2427,7 @@ export interface operations {
             };
         };
     };
-    accept_document_invitation_documents__document_id__parties_accept_post: {
+    get_extraction_review_documents__document_id__extraction_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -2827,15 +2438,13 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Invitation accepted */
+            /** @description Blocks and flags */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["ExtractionReviewResponse"];
                 };
             };
             /** @description Not authenticated — missing or invalid bearer token */
@@ -2845,7 +2454,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Pending invitation not found */
+            /** @description Document not found, or it has no extraction yet */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -2863,7 +2472,7 @@ export interface operations {
             };
         };
     };
-    reject_document_invitation_documents__document_id__parties_reject_post: {
+    update_extraction_documents__document_id__extraction_patch: {
         parameters: {
             query?: never;
             header?: never;
@@ -2872,18 +2481,27 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateExtractionRequest"];
+            };
+        };
         responses: {
-            /** @description Invitation rejected */
+            /** @description Corrections saved, flags recomputed */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["ExtractionReviewResponse"];
                 };
+            };
+            /** @description Unknown block index, or nothing reviewable */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Not authenticated — missing or invalid bearer token */
             401: {
@@ -2892,8 +2510,22 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Pending invitation not found */
+            /** @description Forbidden — only the document owner may edit */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Document not found, or it has no extraction yet */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Already approved, or document is not awaiting review */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2910,7 +2542,7 @@ export interface operations {
             };
         };
     };
-    get_document_audit_logs_documents__document_id__audit_logs_get: {
+    analyze_extraction_documents__document_id__extraction_analyze_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -2921,14 +2553,21 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Audit trail retrieved */
+            /** @description Flags including the LLM pass */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["AuditLogResponse"][];
+                    "application/json": components["schemas"]["ExtractionReviewResponse"];
                 };
+            };
+            /** @description Nothing reviewable in this extraction */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Not authenticated — missing or invalid bearer token */
             401: {
@@ -2937,8 +2576,154 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Document not found or user has no access */
+            /** @description Forbidden — only the document owner may run this */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Document not found, or it has no extraction yet */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Already approved, or document is not awaiting review */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    approve_extraction_documents__document_id__extraction_approve_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                document_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Approved; enrichment queued */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApproveExtractionResponse"];
+                };
+            };
+            /** @description Approved text is empty */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not authenticated — missing or invalid bearer token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden — only the document owner may approve */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Document not found, or it has no extraction yet */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Already approved, or document is not awaiting review */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    finalize_document_documents__document_id__finalize_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                document_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Finalized document */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecordResponse"];
+                };
+            };
+            /** @description Document is not fully processed yet */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not authenticated — missing or invalid bearer token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden — only the document owner may finalize */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Document not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Document is already finalized, archived, or superseded */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -3046,110 +2831,6 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["GlobalSearchResponse"];
                 };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    record_document_blockchain_record__document_id__post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                document_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Document recorded on-chain */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecordResponse"];
-                };
-            };
-            /** @description Document not ready or already recorded */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Not authenticated */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Not authorized */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Document not found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    verify_document_blockchain_verify__document_id__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                document_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description On-chain record found */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["OnChainVerificationResponse"];
-                };
-            };
-            /** @description Not authenticated */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description No on-chain record found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
             };
             /** @description Validation Error */
             422: {
@@ -3317,45 +2998,6 @@ export interface operations {
             };
             /** @description Not found */
             404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_system_audit_logs_admin_audit_logs_get: {
-        parameters: {
-            query?: {
-                limit?: number;
-                offset?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description List of system audit logs */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SystemAuditLogListResponse"];
-                };
-            };
-            /** @description Not admin */
-            401: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -3720,188 +3362,6 @@ export interface operations {
                 content?: never;
             };
             /** @description Book not found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_all_requests_requests_get: {
-        parameters: {
-            query?: {
-                status?: string | null;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description List of requests */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DocumentRequestListResponse"];
-                };
-            };
-            /** @description Not authenticated */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Lawyer access required */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    submit_document_request_requests_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreateDocumentRequestBody"];
-            };
-        };
-        responses: {
-            /** @description Request submitted */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DocumentRequestResponse"];
-                };
-            };
-            /** @description Not authenticated */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description User or document not found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_my_requests_requests_my_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description List of requests */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DocumentRequestListResponse"];
-                };
-            };
-            /** @description Not authenticated */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    review_request_requests__request_id__review_patch: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                request_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ReviewRequestBody"];
-            };
-        };
-        responses: {
-            /** @description Request reviewed */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DocumentRequestResponse"];
-                };
-            };
-            /** @description Already reviewed or missing rejection reason */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Not authenticated */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Lawyer access required */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Request not found */
             404: {
                 headers: {
                     [name: string]: unknown;

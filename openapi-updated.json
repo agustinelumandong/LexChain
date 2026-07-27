@@ -173,169 +173,6 @@
         }
       }
     },
-    "/auth/mfa/setup": {
-      "post": {
-        "tags": [
-          "Authentication"
-        ],
-        "summary": "Initiate Google Authenticator MFA setup",
-        "description": "Generates a new TOTP secret key and provisioning URI for Google Authenticator setup.",
-        "operationId": "mfa_setup_auth_mfa_setup_post",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MFASetupResponse"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "Bearer Token": []
-          }
-        ]
-      }
-    },
-    "/auth/mfa/verify-enable": {
-      "post": {
-        "tags": [
-          "Authentication"
-        ],
-        "summary": "Verify code and enable MFA",
-        "description": "Validates a 6-digit TOTP code and activates MFA for the user.",
-        "operationId": "mfa_enable_auth_mfa_verify_enable_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/MFAVerifyRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MessageResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "Bearer Token": []
-          }
-        ]
-      }
-    },
-    "/auth/mfa/disable": {
-      "post": {
-        "tags": [
-          "Authentication"
-        ],
-        "summary": "Disable MFA",
-        "description": "Validates a 6-digit TOTP code and deactivates MFA for the user.",
-        "operationId": "mfa_disable_auth_mfa_disable_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/MFAVerifyRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MessageResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "Bearer Token": []
-          }
-        ]
-      }
-    },
-    "/auth/mfa/verify-signin": {
-      "post": {
-        "tags": [
-          "Authentication"
-        ],
-        "summary": "Complete sign-in by verifying MFA code",
-        "description": "Authenticates the user using a temporary MFA login token and a 6-digit TOTP code.",
-        "operationId": "mfa_verify_signin_auth_mfa_verify_signin_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/MFALoginVerifyRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SignInResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/users/search": {
       "get": {
         "tags": [
@@ -445,7 +282,7 @@
           "Documents"
         ],
         "summary": "List all documents",
-        "description": "Return all latest document versions belonging to or shared with the authenticated user.",
+        "description": "Return the latest version of every document belonging to or shared with the authenticated user.",
         "operationId": "get_all_user_documents_documents__get",
         "security": [
           {
@@ -453,22 +290,6 @@
           }
         ],
         "parameters": [
-          {
-            "name": "book_id",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Book Id"
-            }
-          },
           {
             "name": "limit",
             "in": "query",
@@ -521,47 +342,13 @@
         }
       }
     },
-    "/documents/invitations": {
-      "get": {
-        "tags": [
-          "Documents"
-        ],
-        "summary": "List pending invitations",
-        "description": "Return all pending document collaboration invitations for the authenticated user.",
-        "operationId": "get_pending_invitations_documents_invitations_get",
-        "responses": {
-          "200": {
-            "description": "Invitations retrieved",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/DocumentInvitationResponse"
-                  },
-                  "type": "array",
-                  "title": "Response Get Pending Invitations Documents Invitations Get"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Not authenticated — missing or invalid bearer token"
-          }
-        },
-        "security": [
-          {
-            "Bearer Token": []
-          }
-        ]
-      }
-    },
     "/documents/{document_id}": {
       "get": {
         "tags": [
           "Documents"
         ],
         "summary": "Get a document",
-        "description": "Return a single document if the user owns it or is a whitelisted party.",
+        "description": "Return a single document, plus what the requesting user is permitted to do with it, if they own it or are a whitelisted party.",
         "operationId": "get_user_document_documents__document_id__get",
         "security": [
           {
@@ -614,7 +401,7 @@
           "Documents"
         ],
         "summary": "Rename a document",
-        "description": "Update the display name of a document. Only the document owner (lawyer) may rename.",
+        "description": "Update the display name of a draft. Only the document owner (or admin) may rename, and only while the document is a DRAFT.",
         "operationId": "rename_document_documents__document_id__patch",
         "security": [
           {
@@ -663,6 +450,9 @@
           "404": {
             "description": "Document not found"
           },
+          "409": {
+            "description": "Document is finalized or archived and cannot be modified"
+          },
           "422": {
             "description": "Validation Error",
             "content": {
@@ -691,6 +481,15 @@
         ],
         "parameters": [
           {
+            "name": "file_name",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "File Name"
+            }
+          },
+          {
             "name": "book_id",
             "in": "query",
             "required": true,
@@ -698,15 +497,6 @@
               "type": "string",
               "format": "uuid",
               "title": "Book Id"
-            }
-          },
-          {
-            "name": "file_name",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "File Name"
             }
           }
         ],
@@ -759,7 +549,7 @@
           "Documents"
         ],
         "summary": "Update a document (new version)",
-        "description": "Upload a new file as the next version of an existing document. Only the document owner may update.",
+        "description": "Upload a new file as the next version of an existing document. Only the document owner (or admin) may update, and only from the latest version. A finalized version is never overwritten — it stays immutable and on-chain while the new draft is appended to the chain.",
         "operationId": "update_document_documents__document_id__update_post",
         "security": [
           {
@@ -820,6 +610,9 @@
           "404": {
             "description": "Document not found"
           },
+          "409": {
+            "description": "This version has been superseded — update the latest one"
+          },
           "422": {
             "description": "Validation Error",
             "content": {
@@ -839,7 +632,7 @@
           "Documents"
         ],
         "summary": "Get version history",
-        "description": "Return the full version chain for a document (newest → oldest). Accessible by owner or any party.",
+        "description": "Return the full version chain for a document (newest → oldest), including which version is latest and which are finalized. Accessible by owner, any party, or admin.",
         "operationId": "get_version_history_documents__document_id__versions_get",
         "security": [
           {
@@ -894,7 +687,7 @@
           "Documents"
         ],
         "summary": "List document parties",
-        "description": "Return all whitelisted parties for a document. Accessible by owner or any party.",
+        "description": "Return the issuer and all whitelisted parties for a document. Accessible by owner, any party, or admin.",
         "operationId": "get_document_parties_documents__document_id__parties_get",
         "security": [
           {
@@ -947,7 +740,7 @@
           "Documents"
         ],
         "summary": "Add a party to a document",
-        "description": "Whitelist a user by email to access this document. Only the document owner may add parties.",
+        "description": "Whitelist a user by email to access this document. Only the document owner (or admin) may add parties. Roles: viewer | signer | editor — signer and editor may only be granted to lawyers.",
         "operationId": "add_document_party_documents__document_id__parties_post",
         "security": [
           {
@@ -1018,7 +811,7 @@
           "Documents"
         ],
         "summary": "Remove a party from a document",
-        "description": "Revoke a user's access to this document. Only the document owner may remove parties.",
+        "description": "Revoke a user's access to this document. Only the document owner (or admin) may remove parties.",
         "operationId": "remove_document_party_documents__document_id__parties__party_user_id__delete",
         "security": [
           {
@@ -1080,128 +873,14 @@
         }
       }
     },
-    "/documents/{document_id}/parties/accept": {
-      "post": {
-        "tags": [
-          "Documents"
-        ],
-        "summary": "Accept a document invitation",
-        "description": "Accept a pending collaboration invitation for the specified document.",
-        "operationId": "accept_document_invitation_documents__document_id__parties_accept_post",
-        "security": [
-          {
-            "Bearer Token": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "document_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid",
-              "title": "Document Id"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Invitation accepted",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Accept Document Invitation Documents  Document Id  Parties Accept Post"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Not authenticated — missing or invalid bearer token"
-          },
-          "404": {
-            "description": "Pending invitation not found"
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/documents/{document_id}/parties/reject": {
-      "post": {
-        "tags": [
-          "Documents"
-        ],
-        "summary": "Reject a document invitation",
-        "description": "Reject/decline a pending collaboration invitation for the specified document.",
-        "operationId": "reject_document_invitation_documents__document_id__parties_reject_post",
-        "security": [
-          {
-            "Bearer Token": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "document_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid",
-              "title": "Document Id"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Invitation rejected",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Reject Document Invitation Documents  Document Id  Parties Reject Post"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Not authenticated — missing or invalid bearer token"
-          },
-          "404": {
-            "description": "Pending invitation not found"
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/documents/{document_id}/audit-logs": {
+    "/documents/{document_id}/extraction": {
       "get": {
         "tags": [
           "Documents"
         ],
-        "summary": "Get document audit trail",
-        "description": "Return the complete history of actions performed on this document. Only accessible by owner or parties.",
-        "operationId": "get_document_audit_logs_documents__document_id__audit_logs_get",
+        "summary": "Get extracted text for review",
+        "description": "Return the OCR blocks and the flags worth checking, so the issuer can jump to suspect text instead of reading the whole document. Each flag points at a block, and blocks carry page/bbox where the engine reports layout.",
+        "operationId": "get_extraction_review_documents__document_id__extraction_get",
         "security": [
           {
             "Bearer Token": []
@@ -1221,15 +900,11 @@
         ],
         "responses": {
           "200": {
-            "description": "Audit trail retrieved",
+            "description": "Blocks and flags",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/AuditLogResponse"
-                  },
-                  "title": "Response Get Document Audit Logs Documents  Document Id  Audit Logs Get"
+                  "$ref": "#/components/schemas/ExtractionReviewResponse"
                 }
               }
             }
@@ -1238,7 +913,271 @@
             "description": "Not authenticated — missing or invalid bearer token"
           },
           "404": {
-            "description": "Document not found or user has no access"
+            "description": "Document not found, or it has no extraction yet"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Documents"
+        ],
+        "summary": "Correct extracted text",
+        "description": "Save corrections to one or more blocks. Repeatable — this does not approve the document. Flags are recomputed so fixed problems disappear. The raw OCR text is never overwritten.",
+        "operationId": "update_extraction_documents__document_id__extraction_patch",
+        "security": [
+          {
+            "Bearer Token": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "document_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Document Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateExtractionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Corrections saved, flags recomputed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExtractionReviewResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Unknown block index, or nothing reviewable"
+          },
+          "401": {
+            "description": "Not authenticated — missing or invalid bearer token"
+          },
+          "403": {
+            "description": "Forbidden — only the document owner may edit"
+          },
+          "404": {
+            "description": "Document not found, or it has no extraction yet"
+          },
+          "409": {
+            "description": "Already approved, or document is not awaiting review"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/documents/{document_id}/extraction/analyze": {
+      "post": {
+        "tags": [
+          "Documents"
+        ],
+        "summary": "Ask the LLM for semantic inconsistencies",
+        "description": "Adds LLM-found issues (name drift between clauses, contradictions, undefined terms, missing annexes) on top of the automatic checks. Optional — the rule-based flags already ran at extraction time, so this costs inference only when asked. Re-running replaces the previous LLM pass.",
+        "operationId": "analyze_extraction_documents__document_id__extraction_analyze_post",
+        "security": [
+          {
+            "Bearer Token": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "document_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Document Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Flags including the LLM pass",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExtractionReviewResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Nothing reviewable in this extraction"
+          },
+          "401": {
+            "description": "Not authenticated — missing or invalid bearer token"
+          },
+          "403": {
+            "description": "Forbidden — only the document owner may run this"
+          },
+          "404": {
+            "description": "Document not found, or it has no extraction yet"
+          },
+          "409": {
+            "description": "Already approved, or document is not awaiting review"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/documents/{document_id}/extraction/approve": {
+      "post": {
+        "tags": [
+          "Documents"
+        ],
+        "summary": "Approve extracted text",
+        "description": "Freeze the reviewed text and queue chunking, embedding and analysis. Nothing is derived from the text before this point, so the search index and the on-chain snapshot are always built from what the issuer approved.",
+        "operationId": "approve_extraction_documents__document_id__extraction_approve_post",
+        "security": [
+          {
+            "Bearer Token": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "document_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Document Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Approved; enrichment queued",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApproveExtractionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Approved text is empty"
+          },
+          "401": {
+            "description": "Not authenticated — missing or invalid bearer token"
+          },
+          "403": {
+            "description": "Forbidden — only the document owner may approve"
+          },
+          "404": {
+            "description": "Document not found, or it has no extraction yet"
+          },
+          "409": {
+            "description": "Already approved, or document is not awaiting review"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/documents/{document_id}/finalize": {
+      "post": {
+        "tags": [
+          "Documents"
+        ],
+        "summary": "Finalize a document",
+        "description": "Freeze the latest draft: create an immutable snapshot of the extracted text, anchor its hash on-chain, and set the finalized/lifecycle fields. This is the only point at which a document is hashed on-chain.",
+        "operationId": "finalize_document_documents__document_id__finalize_post",
+        "security": [
+          {
+            "Bearer Token": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "document_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Document Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Finalized document",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecordResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Document is not fully processed yet"
+          },
+          "401": {
+            "description": "Not authenticated — missing or invalid bearer token"
+          },
+          "403": {
+            "description": "Forbidden — only the document owner may finalize"
+          },
+          "404": {
+            "description": "Document not found"
+          },
+          "409": {
+            "description": "Document is already finalized, archived, or superseded"
           },
           "422": {
             "description": "Validation Error",
@@ -1413,122 +1352,6 @@
         ]
       }
     },
-    "/blockchain/record/{document_id}": {
-      "post": {
-        "tags": [
-          "Blockchain"
-        ],
-        "summary": "Record a document on-chain",
-        "description": "Store the document hash on the LexChainNotary smart contract.\n    - **Requirement**: Document must be in COMPLETED status.\n    - The document's SHA256 hash is written to the blockchain.",
-        "operationId": "record_document_blockchain_record__document_id__post",
-        "security": [
-          {
-            "Bearer Token": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "document_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid",
-              "title": "Document Id"
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": "Document recorded on-chain",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/RecordResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Document not ready or already recorded"
-          },
-          "401": {
-            "description": "Not authenticated"
-          },
-          "403": {
-            "description": "Not authorized"
-          },
-          "404": {
-            "description": "Document not found"
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/blockchain/verify/{document_id}": {
-      "get": {
-        "tags": [
-          "Blockchain"
-        ],
-        "summary": "Verify a document's on-chain record",
-        "description": "Query the smart contract for the document's stored hash and verify integrity.",
-        "operationId": "verify_document_blockchain_verify__document_id__get",
-        "security": [
-          {
-            "Bearer Token": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "document_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid",
-              "title": "Document Id"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "On-chain record found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OnChainVerificationResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Not authenticated"
-          },
-          "404": {
-            "description": "No on-chain record found"
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/admin/dashboard": {
       "get": {
         "tags": [
@@ -1700,67 +1523,6 @@
           },
           "404": {
             "description": "Not found"
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/admin/audit-logs": {
-      "get": {
-        "tags": [
-          "Admin"
-        ],
-        "summary": "Get system-wide audit logs",
-        "operationId": "get_system_audit_logs_admin_audit_logs_get",
-        "security": [
-          {
-            "Bearer Token": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "limit",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "default": 100,
-              "title": "Limit"
-            }
-          },
-          {
-            "name": "offset",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "default": 0,
-              "title": "Offset"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "List of system audit logs",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SystemAuditLogListResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Not admin"
           },
           "422": {
             "description": "Validation Error",
@@ -2222,219 +1984,6 @@
           }
         }
       }
-    },
-    "/requests": {
-      "post": {
-        "tags": [
-          "Document Requests"
-        ],
-        "summary": "Request a digital document copy",
-        "description": "Any authenticated user can request a digital copy of an existing document. All lawyers are notified via email.",
-        "operationId": "submit_document_request_requests_post",
-        "security": [
-          {
-            "Bearer Token": []
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateDocumentRequestBody"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "Request submitted",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DocumentRequestResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Not authenticated"
-          },
-          "404": {
-            "description": "User or document not found"
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      },
-      "get": {
-        "tags": [
-          "Document Requests"
-        ],
-        "summary": "List all document requests (lawyer)",
-        "description": "Returns all document requests. Optionally filter by status: pending | approved | rejected.",
-        "operationId": "get_all_requests_requests_get",
-        "security": [
-          {
-            "Bearer Token": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "status",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Status"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "List of requests",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DocumentRequestListResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Not authenticated"
-          },
-          "403": {
-            "description": "Lawyer access required"
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/requests/my": {
-      "get": {
-        "tags": [
-          "Document Requests"
-        ],
-        "summary": "List my document requests",
-        "description": "Returns all document requests submitted by the authenticated user.",
-        "operationId": "get_my_requests_requests_my_get",
-        "responses": {
-          "200": {
-            "description": "List of requests",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DocumentRequestListResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Not authenticated"
-          }
-        },
-        "security": [
-          {
-            "Bearer Token": []
-          }
-        ]
-      }
-    },
-    "/requests/{request_id}/review": {
-      "patch": {
-        "tags": [
-          "Document Requests"
-        ],
-        "summary": "Approve or reject a document request",
-        "description": "A lawyer reviews a pending request. The requester is notified via email.",
-        "operationId": "review_request_requests__request_id__review_patch",
-        "security": [
-          {
-            "Bearer Token": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "request_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid",
-              "title": "Request Id"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ReviewRequestBody"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Request reviewed",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DocumentRequestResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Already reviewed or missing rejection reason"
-          },
-          "401": {
-            "description": "Not authenticated"
-          },
-          "403": {
-            "description": "Lawyer access required"
-          },
-          "404": {
-            "description": "Request not found"
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
     }
   },
   "components": {
@@ -2569,19 +2118,47 @@
         ],
         "title": "AdminUserResponse"
       },
+      "ApproveExtractionResponse": {
+        "properties": {
+          "document_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Document Id"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "edited_block_count": {
+            "type": "integer",
+            "title": "Edited Block Count"
+          },
+          "content_hash": {
+            "type": "string",
+            "title": "Content Hash",
+            "description": "Hash of the approved text"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          }
+        },
+        "type": "object",
+        "required": [
+          "document_id",
+          "status",
+          "edited_block_count",
+          "content_hash",
+          "message"
+        ],
+        "title": "ApproveExtractionResponse",
+        "description": "Result of approving the extracted text."
+      },
       "AskRequest": {
         "properties": {
           "question": {
             "type": "string",
             "title": "Question"
-          },
-          "history": {
-            "items": {
-              "$ref": "#/components/schemas/ChatMessage"
-            },
-            "type": "array",
-            "title": "History",
-            "default": []
           }
         },
         "type": "object",
@@ -2590,61 +2167,27 @@
         ],
         "title": "AskRequest"
       },
-      "AuditLogResponse": {
+      "BlockEdit": {
         "properties": {
-          "id": {
+          "index": {
+            "type": "integer",
+            "minimum": 0,
+            "title": "Index",
+            "description": "Index of the block being corrected"
+          },
+          "text": {
             "type": "string",
-            "format": "uuid",
-            "title": "Id"
-          },
-          "document_id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Document Id"
-          },
-          "user_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "User Id"
-          },
-          "action": {
-            "type": "string",
-            "title": "Action"
-          },
-          "details": {
-            "anyOf": [
-              {
-                "additionalProperties": true,
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Details"
-          },
-          "created_at": {
-            "type": "string",
-            "format": "date-time",
-            "title": "Created At"
+            "title": "Text",
+            "description": "Corrected text for the block"
           }
         },
         "type": "object",
         "required": [
-          "id",
-          "document_id",
-          "action",
-          "created_at"
+          "index",
+          "text"
         ],
-        "title": "AuditLogResponse",
-        "description": "Response payload for a single document audit log entry."
+        "title": "BlockEdit",
+        "description": "A correction to one block."
       },
       "Body_update_document_documents__document_id__update_post": {
         "properties": {
@@ -2768,48 +2311,6 @@
         ],
         "title": "BookResponse"
       },
-      "ChatMessage": {
-        "properties": {
-          "role": {
-            "type": "string",
-            "title": "Role"
-          },
-          "content": {
-            "type": "string",
-            "title": "Content"
-          }
-        },
-        "type": "object",
-        "required": [
-          "role",
-          "content"
-        ],
-        "title": "ChatMessage"
-      },
-      "CreateDocumentRequestBody": {
-        "properties": {
-          "document_id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Document Id",
-            "description": "ID of the document being requested."
-          },
-          "description": {
-            "type": "string",
-            "maxLength": 2000,
-            "minLength": 10,
-            "title": "Description",
-            "description": "Additional context or notes about the request."
-          }
-        },
-        "type": "object",
-        "required": [
-          "document_id",
-          "description"
-        ],
-        "title": "CreateDocumentRequestBody",
-        "description": "Payload from the user to submit a document request."
-      },
       "CreateInvitationRequest": {
         "properties": {
           "email": {
@@ -2829,53 +2330,6 @@
           "email"
         ],
         "title": "CreateInvitationRequest"
-      },
-      "DocumentInvitationResponse": {
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Id",
-            "description": "Invitation/Party record ID."
-          },
-          "document_id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Document Id",
-            "description": "Document ID."
-          },
-          "document_title": {
-            "type": "string",
-            "title": "Document Title",
-            "description": "Document file name."
-          },
-          "role": {
-            "type": "string",
-            "title": "Role",
-            "description": "Role assigned."
-          },
-          "status": {
-            "type": "string",
-            "title": "Status",
-            "description": "Invitation status."
-          },
-          "created_at": {
-            "type": "string",
-            "format": "date-time",
-            "title": "Created At"
-          }
-        },
-        "type": "object",
-        "required": [
-          "id",
-          "document_id",
-          "document_title",
-          "role",
-          "status",
-          "created_at"
-        ],
-        "title": "DocumentInvitationResponse",
-        "description": "A pending invitation representation for a user"
       },
       "DocumentPartyListResponse": {
         "properties": {
@@ -2914,15 +2368,8 @@
             "description": "Party record ID."
           },
           "user_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
+            "format": "uuid",
             "title": "User Id",
             "description": "User ID"
           },
@@ -2946,12 +2393,6 @@
             "title": "Role",
             "description": "Role assigned"
           },
-          "status": {
-            "type": "string",
-            "title": "Status",
-            "description": "Status: pending | accepted | rejected",
-            "default": "pending"
-          },
           "created_at": {
             "type": "string",
             "format": "date-time",
@@ -2961,6 +2402,7 @@
         "type": "object",
         "required": [
           "id",
+          "user_id",
           "email",
           "f_name",
           "l_name",
@@ -2970,120 +2412,50 @@
         "title": "DocumentPartyResponse",
         "description": "A single party record on a document"
       },
-      "DocumentRequestListResponse": {
+      "DocumentPermissions": {
         "properties": {
-          "requests": {
-            "items": {
-              "$ref": "#/components/schemas/DocumentRequestResponse"
-            },
-            "type": "array",
-            "title": "Requests"
+          "can_view": {
+            "type": "boolean",
+            "title": "Can View",
+            "description": "Always true if the document was returned",
+            "default": true
           },
-          "total": {
-            "type": "integer",
-            "title": "Total"
+          "can_rename": {
+            "type": "boolean",
+            "title": "Can Rename",
+            "description": "May change the display name"
+          },
+          "can_create_version": {
+            "type": "boolean",
+            "title": "Can Create Version",
+            "description": "May upload a new version"
+          },
+          "can_finalize": {
+            "type": "boolean",
+            "title": "Can Finalize",
+            "description": "May snapshot and anchor on-chain"
+          },
+          "can_share": {
+            "type": "boolean",
+            "title": "Can Share",
+            "description": "May whitelist other users"
+          },
+          "can_revoke": {
+            "type": "boolean",
+            "title": "Can Revoke",
+            "description": "May remove whitelisted users"
           }
         },
         "type": "object",
         "required": [
-          "requests",
-          "total"
+          "can_rename",
+          "can_create_version",
+          "can_finalize",
+          "can_share",
+          "can_revoke"
         ],
-        "title": "DocumentRequestListResponse",
-        "description": "List wrapper for document requests."
-      },
-      "DocumentRequestResponse": {
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Id"
-          },
-          "requester_id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Requester Id"
-          },
-          "requester_email": {
-            "type": "string",
-            "title": "Requester Email"
-          },
-          "requester_name": {
-            "type": "string",
-            "title": "Requester Name"
-          },
-          "document_id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Document Id"
-          },
-          "document_name": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Document Name"
-          },
-          "description": {
-            "type": "string",
-            "title": "Description"
-          },
-          "status": {
-            "type": "string",
-            "title": "Status"
-          },
-          "lawyer_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Lawyer Id"
-          },
-          "rejection_reason": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Rejection Reason"
-          },
-          "created_at": {
-            "type": "string",
-            "format": "date-time",
-            "title": "Created At"
-          },
-          "updated_at": {
-            "type": "string",
-            "format": "date-time",
-            "title": "Updated At"
-          }
-        },
-        "type": "object",
-        "required": [
-          "id",
-          "requester_id",
-          "requester_email",
-          "requester_name",
-          "document_id",
-          "description",
-          "status",
-          "created_at",
-          "updated_at"
-        ],
-        "title": "DocumentRequestResponse",
-        "description": "Full document request record returned to clients."
+        "title": "DocumentPermissions",
+        "description": "What the requesting user is allowed to do with this document.\n\nMirrors the server-side checks so the client can hide actions it would be\nrejected for — the API still enforces them independently."
       },
       "DocumentResponse": {
         "properties": {
@@ -3092,11 +2464,6 @@
             "format": "uuid",
             "title": "Document Id",
             "description": "Document identifier."
-          },
-          "document_number": {
-            "type": "integer",
-            "title": "Document Number",
-            "description": "Sequential document number."
           },
           "file_name": {
             "type": "string",
@@ -3123,10 +2490,76 @@
             "title": "On Chain",
             "description": "Check if document is already recorded on-chain or not"
           },
+          "version": {
+            "type": "integer",
+            "title": "Version",
+            "description": "Version number within its chain"
+          },
           "is_latest": {
             "type": "boolean",
             "title": "Is Latest",
-            "description": "Check if document is the latest one"
+            "description": "Check if document is the latest version"
+          },
+          "lifecycle": {
+            "type": "string",
+            "title": "Lifecycle",
+            "description": "DRAFT | FINALIZED | ARCHIVED"
+          },
+          "root_document_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Root Document Id",
+            "description": "First version of this document's chain"
+          },
+          "previous_document_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Previous Document Id",
+            "description": "The version this one supersedes"
+          },
+          "finalized_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finalized At",
+            "description": "When the document was finalized and anchored"
+          },
+          "finalized_by": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finalized By",
+            "description": "User who finalized the document"
+          },
+          "permissions": {
+            "$ref": "#/components/schemas/DocumentPermissions",
+            "description": "What the requesting user may do with this document"
           },
           "summary": {
             "anyOf": [
@@ -3180,13 +2613,15 @@
         "type": "object",
         "required": [
           "document_id",
-          "document_number",
           "file_name",
           "storage_url",
           "content_type",
           "status",
           "on_chain",
+          "version",
           "is_latest",
+          "lifecycle",
+          "permissions",
           "created_at",
           "updated_at"
         ],
@@ -3229,11 +2664,6 @@
             "title": "Id",
             "description": "Unique identifier of the document."
           },
-          "document_number": {
-            "type": "integer",
-            "title": "Document Number",
-            "description": "Sequential document number."
-          },
           "file_name": {
             "type": "string",
             "title": "File Name",
@@ -3254,61 +2684,291 @@
             "title": "On Chain",
             "description": "Check if doc is on chain"
           },
+          "version": {
+            "type": "integer",
+            "title": "Version",
+            "description": "Version number within its chain"
+          },
+          "is_latest": {
+            "type": "boolean",
+            "title": "Is Latest",
+            "description": "Check if document is the latest version"
+          },
+          "lifecycle": {
+            "type": "string",
+            "title": "Lifecycle",
+            "description": "DRAFT | FINALIZED | ARCHIVED"
+          },
           "created_at": {
             "type": "string",
             "format": "date-time",
             "title": "Created At",
             "description": "When the document was uploaded"
-          },
-          "book_number": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Book Number",
-            "description": "The book number of the associated book."
-          },
-          "page_number": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Page Number",
-            "description": "The page number of the document within the book."
-          },
-          "series": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Series",
-            "description": "The series year of the associated book."
           }
         },
         "type": "object",
         "required": [
           "id",
-          "document_number",
           "file_name",
           "content_type",
           "status",
           "on_chain",
+          "version",
+          "is_latest",
+          "lifecycle",
           "created_at"
         ],
         "title": "DocumentUploadResponse",
         "description": ""
+      },
+      "ExtractionBlock": {
+        "properties": {
+          "index": {
+            "type": "integer",
+            "title": "Index",
+            "description": "Position of the block in the document"
+          },
+          "type": {
+            "type": "string",
+            "title": "Type",
+            "description": "Block type reported by the OCR engine",
+            "default": "text"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text",
+            "description": "Current text — the issuer's edit if edited"
+          },
+          "original_text": {
+            "type": "string",
+            "title": "Original Text",
+            "description": "What the OCR engine produced"
+          },
+          "bbox": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "number"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bbox",
+            "description": "[x0, y0, x1, y1] on the page, if the engine reports layout"
+          },
+          "page_idx": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Page Idx",
+            "description": "Zero-based page the block sits on"
+          },
+          "text_level": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Text Level",
+            "description": "Heading level, if a heading"
+          },
+          "score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Score",
+            "description": "OCR confidence for this block"
+          },
+          "is_html": {
+            "type": "boolean",
+            "title": "Is Html",
+            "description": "Content is HTML (tables) rather than plain text",
+            "default": false
+          },
+          "edited": {
+            "type": "boolean",
+            "title": "Edited",
+            "description": "Whether the issuer changed this block",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "index",
+          "text",
+          "original_text"
+        ],
+        "title": "ExtractionBlock",
+        "description": "One reviewable piece of the document."
+      },
+      "ExtractionFlag": {
+        "properties": {
+          "block_index": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Block Index",
+            "description": "Block the flag points at; null if document-wide"
+          },
+          "kind": {
+            "type": "string",
+            "title": "Kind",
+            "description": "e.g. low_confidence, missing_space, amount_mismatch"
+          },
+          "severity": {
+            "type": "string",
+            "title": "Severity",
+            "description": "high | medium | low"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "description": "What looks wrong, in plain terms"
+          },
+          "excerpt": {
+            "type": "string",
+            "title": "Excerpt",
+            "description": "The offending text",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "required": [
+          "kind",
+          "severity",
+          "message"
+        ],
+        "title": "ExtractionFlag",
+        "description": "Something the issuer should look at."
+      },
+      "ExtractionReviewResponse": {
+        "properties": {
+          "document_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Document Id"
+          },
+          "extraction_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Extraction Id"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "description": "Document processing status"
+          },
+          "engine": {
+            "type": "string",
+            "title": "Engine"
+          },
+          "page_count": {
+            "type": "integer",
+            "title": "Page Count"
+          },
+          "confidence_avg": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Confidence Avg"
+          },
+          "blocks": {
+            "items": {
+              "$ref": "#/components/schemas/ExtractionBlock"
+            },
+            "type": "array",
+            "title": "Blocks"
+          },
+          "flags": {
+            "items": {
+              "$ref": "#/components/schemas/ExtractionFlag"
+            },
+            "type": "array",
+            "title": "Flags"
+          },
+          "flag_count": {
+            "type": "integer",
+            "title": "Flag Count"
+          },
+          "high_severity_count": {
+            "type": "integer",
+            "title": "High Severity Count"
+          },
+          "edited_block_count": {
+            "type": "integer",
+            "title": "Edited Block Count"
+          },
+          "is_reviewed": {
+            "type": "boolean",
+            "title": "Is Reviewed"
+          },
+          "reviewed_by": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reviewed By"
+          },
+          "reviewed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reviewed At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "document_id",
+          "extraction_id",
+          "status",
+          "engine",
+          "page_count",
+          "blocks",
+          "flags",
+          "flag_count",
+          "high_severity_count",
+          "edited_block_count",
+          "is_reviewed"
+        ],
+        "title": "ExtractionReviewResponse",
+        "description": "Everything the review screen needs."
       },
       "GlobalSearchHit": {
         "properties": {
@@ -3329,10 +2989,6 @@
           "score": {
             "type": "number",
             "title": "Score"
-          },
-          "text": {
-            "type": "string",
-            "title": "Text"
           }
         },
         "type": "object",
@@ -3340,8 +2996,7 @@
           "chunk_id",
           "document_id",
           "chunk_index",
-          "score",
-          "text"
+          "score"
         ],
         "title": "GlobalSearchHit"
       },
@@ -3447,64 +3102,6 @@
         ],
         "title": "InvitationResponse"
       },
-      "MFALoginVerifyRequest": {
-        "properties": {
-          "mfa_token": {
-            "type": "string",
-            "title": "Mfa Token",
-            "description": "The temporary MFA token returned during sign-in."
-          },
-          "code": {
-            "type": "string",
-            "maxLength": 6,
-            "minLength": 6,
-            "title": "Code",
-            "description": "6-digit TOTP verification code."
-          }
-        },
-        "type": "object",
-        "required": [
-          "mfa_token",
-          "code"
-        ],
-        "title": "MFALoginVerifyRequest"
-      },
-      "MFASetupResponse": {
-        "properties": {
-          "secret": {
-            "type": "string",
-            "title": "Secret",
-            "description": "The TOTP secret key for manual entry."
-          },
-          "provisioning_uri": {
-            "type": "string",
-            "title": "Provisioning Uri",
-            "description": "The provisioning URI for scanning as a QR code."
-          }
-        },
-        "type": "object",
-        "required": [
-          "secret",
-          "provisioning_uri"
-        ],
-        "title": "MFASetupResponse"
-      },
-      "MFAVerifyRequest": {
-        "properties": {
-          "code": {
-            "type": "string",
-            "maxLength": 6,
-            "minLength": 6,
-            "title": "Code",
-            "description": "6-digit TOTP verification code."
-          }
-        },
-        "type": "object",
-        "required": [
-          "code"
-        ],
-        "title": "MFAVerifyRequest"
-      },
       "MarkAllReadResponse": {
         "properties": {
           "marked_read": {
@@ -3609,71 +3206,6 @@
         ],
         "title": "NotificationType"
       },
-      "OnChainVerificationResponse": {
-        "properties": {
-          "document_id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Document Id",
-            "description": "Document identifier."
-          },
-          "onchain_document_id": {
-            "type": "string",
-            "title": "Onchain Document Id",
-            "description": "Document ID on-chain."
-          },
-          "data_hash": {
-            "type": "string",
-            "title": "Data Hash",
-            "description": "Hash stored on-chain."
-          },
-          "tx_hash": {
-            "type": "string",
-            "title": "Tx Hash",
-            "description": "Transaction hash of the record on-chain."
-          },
-          "onchain_timestamp": {
-            "type": "integer",
-            "title": "Onchain Timestamp",
-            "description": "Unix timestamp when strored."
-          },
-          "issued_by": {
-            "type": "string",
-            "title": "Issued By",
-            "description": "Address that issued the transaction."
-          },
-          "verified_at": {
-            "type": "string",
-            "format": "date-time",
-            "title": "Verified At",
-            "description": "When this verification was performed."
-          },
-          "transacttion_link": {
-            "type": "string",
-            "title": "Transacttion Link",
-            "description": "Redirect to transaction in baseScan.org"
-          },
-          "is_verified": {
-            "type": "boolean",
-            "title": "Is Verified",
-            "description": "True if the actual file hash matches the on-chain hash."
-          }
-        },
-        "type": "object",
-        "required": [
-          "document_id",
-          "onchain_document_id",
-          "data_hash",
-          "tx_hash",
-          "onchain_timestamp",
-          "issued_by",
-          "verified_at",
-          "transacttion_link",
-          "is_verified"
-        ],
-        "title": "OnChainVerificationResponse",
-        "description": "Response returned when verifying an on-chain record."
-      },
       "PublicVerifyResponse": {
         "properties": {
           "status": {
@@ -3775,11 +3307,6 @@
             "type": "string",
             "title": "Data Hash",
             "description": "SHA256 hash stored on-chain."
-          },
-          "transacttion_link": {
-            "type": "string",
-            "title": "Transacttion Link",
-            "description": "Redirect to transaction in baseScan.org"
           }
         },
         "type": "object",
@@ -3787,8 +3314,7 @@
           "document_id",
           "tx_hash",
           "onchain_document_id",
-          "data_hash",
-          "transacttion_link"
+          "data_hash"
         ],
         "title": "RecordResponse",
         "description": "Response returned after recording a document on-chain."
@@ -3801,15 +3327,8 @@
             "title": "Document Id"
           },
           "user_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
+            "format": "uuid",
             "title": "User Id"
           },
           "message": {
@@ -3820,6 +3339,7 @@
         "type": "object",
         "required": [
           "document_id",
+          "user_id",
           "message"
         ],
         "title": "RemovePartyResponse",
@@ -3856,38 +3376,6 @@
           "email"
         ],
         "title": "ResendVerificationRequest"
-      },
-      "ReviewRequestBody": {
-        "properties": {
-          "action": {
-            "type": "string",
-            "enum": [
-              "approve",
-              "reject"
-            ],
-            "title": "Action",
-            "description": "Decision: approve or reject."
-          },
-          "rejection_reason": {
-            "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 1000
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Rejection Reason",
-            "description": "Required when action is 'reject'."
-          }
-        },
-        "type": "object",
-        "required": [
-          "action"
-        ],
-        "title": "ReviewRequestBody",
-        "description": "Payload from a lawyer to approve or reject a document request."
       },
       "SearchHit": {
         "properties": {
@@ -3983,26 +3471,12 @@
       "SignInResponse": {
         "properties": {
           "access_token": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
             "title": "Access Token",
             "description": "JWT access token for API authentication"
           },
           "refresh_token": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
             "title": "Refresh Token",
             "description": "Token used to obtain a new access token"
           },
@@ -4013,50 +3487,24 @@
             "default": "bearer"
           },
           "expires_in": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "integer",
             "title": "Expires In",
             "description": "Token expiration time in seconds"
           },
           "user": {
-            "anyOf": [
-              {
-                "additionalProperties": true,
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "additionalProperties": true,
+            "type": "object",
             "title": "User",
             "description": "User information from Supabase"
-          },
-          "mfa_required": {
-            "type": "boolean",
-            "title": "Mfa Required",
-            "description": "True if MFA is enabled for this user",
-            "default": false
-          },
-          "mfa_token": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Mfa Token",
-            "description": "Temporary token used to complete MFA verification"
           }
         },
         "type": "object",
+        "required": [
+          "access_token",
+          "refresh_token",
+          "expires_in",
+          "user"
+        ],
         "title": "SignInResponse"
       },
       "SignUpRequest": {
@@ -4139,126 +3587,6 @@
         ],
         "title": "SignUpResponse"
       },
-      "SystemAuditLogListResponse": {
-        "properties": {
-          "logs": {
-            "items": {
-              "$ref": "#/components/schemas/SystemAuditLogResponse"
-            },
-            "type": "array",
-            "title": "Logs"
-          },
-          "total": {
-            "type": "integer",
-            "title": "Total"
-          }
-        },
-        "type": "object",
-        "required": [
-          "logs",
-          "total"
-        ],
-        "title": "SystemAuditLogListResponse"
-      },
-      "SystemAuditLogResponse": {
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Id"
-          },
-          "user_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "User Id"
-          },
-          "action": {
-            "type": "string",
-            "title": "Action"
-          },
-          "target_type": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Target Type"
-          },
-          "target_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Target Id"
-          },
-          "details": {
-            "anyOf": [
-              {
-                "additionalProperties": true,
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Details"
-          },
-          "ip_address": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Ip Address"
-          },
-          "user_agent": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "User Agent"
-          },
-          "created_at": {
-            "type": "string",
-            "format": "date-time",
-            "title": "Created At"
-          }
-        },
-        "type": "object",
-        "required": [
-          "id",
-          "user_id",
-          "action",
-          "target_type",
-          "target_id",
-          "details",
-          "ip_address",
-          "user_agent",
-          "created_at"
-        ],
-        "title": "SystemAuditLogResponse"
-      },
       "UnreadCountResponse": {
         "properties": {
           "unread": {
@@ -4271,6 +3599,25 @@
           "unread"
         ],
         "title": "UnreadCountResponse"
+      },
+      "UpdateExtractionRequest": {
+        "properties": {
+          "edits": {
+            "items": {
+              "$ref": "#/components/schemas/BlockEdit"
+            },
+            "type": "array",
+            "minItems": 1,
+            "title": "Edits",
+            "description": "Blocks to correct"
+          }
+        },
+        "type": "object",
+        "required": [
+          "edits"
+        ],
+        "title": "UpdateExtractionRequest",
+        "description": "Save corrections without approving yet — callable repeatedly."
       },
       "UserProfileResponse": {
         "properties": {
@@ -4290,14 +3637,7 @@
             "description": "Valid last name"
           },
           "avatar": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
             "title": "Avatar",
             "description": "User Avatar",
             "default": "icon1"
@@ -4306,11 +3646,6 @@
             "type": "string",
             "title": "Role",
             "description": "User role"
-          },
-          "mfa_enabled": {
-            "type": "boolean",
-            "title": "Mfa Enabled",
-            "description": "Check if mfa is enable"
           }
         },
         "type": "object",
@@ -4318,8 +3653,7 @@
           "email",
           "f_name",
           "l_name",
-          "role",
-          "mfa_enabled"
+          "role"
         ],
         "title": "UserProfileResponse"
       },
@@ -4403,9 +3737,9 @@
             "format": "uuid",
             "title": "Document Id"
           },
-          "document_number": {
+          "version": {
             "type": "integer",
-            "title": "Document Number"
+            "title": "Version"
           },
           "file_name": {
             "type": "string",
@@ -4418,6 +3752,10 @@
           "status": {
             "type": "string",
             "title": "Status"
+          },
+          "lifecycle": {
+            "type": "string",
+            "title": "Lifecycle"
           },
           "tx_hash": {
             "anyOf": [
@@ -4434,6 +3772,18 @@
             "type": "boolean",
             "title": "Is Latest"
           },
+          "finalized_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finalized At"
+          },
           "created_at": {
             "type": "string",
             "format": "date-time",
@@ -4443,16 +3793,18 @@
         "type": "object",
         "required": [
           "document_id",
-          "document_number",
+          "version",
           "file_name",
           "document_hash",
           "status",
+          "lifecycle",
           "tx_hash",
           "is_latest",
+          "finalized_at",
           "created_at"
         ],
         "title": "VersionHistoryItem",
-        "description": "A single entry ion the document's version chain"
+        "description": "A single entry in the document's version chain"
       },
       "VersionHistoryResponse": {
         "properties": {
@@ -4460,6 +3812,16 @@
             "type": "string",
             "format": "uuid",
             "title": "Current Document Id"
+          },
+          "root_document_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Root Document Id"
+          },
+          "latest_document_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Latest Document Id"
           },
           "versions": {
             "items": {
@@ -4476,6 +3838,8 @@
         "type": "object",
         "required": [
           "current_document_id",
+          "root_document_id",
+          "latest_document_id",
           "versions",
           "total_version"
         ],
