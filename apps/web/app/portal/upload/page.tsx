@@ -130,7 +130,7 @@ export default function UploadPage() {
   }
 
   return (
-    <div className="flex w-full max-w-none flex-col gap-5">
+    <div className="flex w-full max-w-none flex-1 flex-col gap-5">
       <div>
         <h1 className="text-[28px] font-black text-[#0C2B49]">Upload Document</h1>
         <p className="mt-1 text-sm text-[#64748b]">A guided upload using the fields LexChain currently accepts.</p>
@@ -173,7 +173,7 @@ export default function UploadPage() {
 
       </div>
 
-      <section aria-labelledby="confirm-process-heading" className="rounded-[18px] border border-[#E8F0F8] bg-white p-5 sm:flex sm:items-center sm:justify-between sm:gap-5">
+      <section aria-labelledby="confirm-process-heading" className="mt-auto rounded-[18px] border border-[#E8F0F8] bg-white p-5 sm:flex sm:items-center sm:justify-between sm:gap-5">
         <div>
           <h2 id="confirm-process-heading" className="font-black text-[#0C2B49]">Confirm and process</h2>
           <p className="mt-1 text-sm text-[#64748b]">Review the selected PDF, title, and book, then send them for processing.</p>
