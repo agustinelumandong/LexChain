@@ -142,15 +142,15 @@ export default function UploadPage() {
         <li aria-current={activeStep === 3 ? 'step' : undefined} className={getStepClass(3)}>3. Confirm and process</li>
       </ol>
 
-      <div className="grid gap-5 lg:grid-cols-2">
-        <section aria-labelledby="select-pdf-heading" className="rounded-[18px] border border-[#E8F0F8] bg-white p-5">
+      <div className="grid gap-5 lg:flex-1 lg:grid-cols-2">
+        <section aria-labelledby="select-pdf-heading" className="flex flex-col rounded-[18px] border border-[#E8F0F8] bg-white p-5">
           <h2 id="select-pdf-heading" className="font-black text-[#0C2B49]">Select PDF</h2>
           <p className="mt-1 text-sm text-[#64748b]">PDF only · maximum {defaultOfficeSettings.uploadLimitMegabytes} MB</p>
           <div
             onDragOver={(event) => { event.preventDefault(); setDrag(true); }}
             onDragLeave={() => setDrag(false)}
             onDrop={(event) => { event.preventDefault(); setDrag(false); pick(event.dataTransfer.files[0] ?? null); }}
-            className={`mt-4 rounded-[18px] border-2 border-dashed p-6 text-center transition sm:p-8 ${drag ? 'border-[#0985E7] bg-[#EEF6FF]' : 'border-[#E8F0F8] bg-[#F8FBFF] hover:border-[#0985E7]'}`}
+            className={`mt-4 flex flex-1 flex-col items-center justify-center rounded-[18px] border-2 border-dashed p-6 text-center transition sm:p-8 ${drag ? 'border-[#0985E7] bg-[#EEF6FF]' : 'border-[#E8F0F8] bg-[#F8FBFF] hover:border-[#0985E7]'}`}
           >
             <UploadFileIcon sx={{ fontSize: 44, color: '#0985E7' }} />
             <p className="mt-2 text-sm font-bold text-[#0C2B49]">Drop your PDF here</p>
@@ -160,7 +160,7 @@ export default function UploadPage() {
           {file && <div className="mt-4 flex items-center gap-3 rounded-[14px] border border-[#E8F0F8] p-4"><InsertDriveFileIcon sx={{ color: '#0985E7' }} /><span className="flex-1 truncate text-sm font-bold text-[#0C2B49]">{file.name} · {formatFileSize(file.size)}</span><button aria-label="Remove uploaded file" onClick={() => { setFile(null); setValidationError(null); }} type="button"><CloseIcon sx={{ fontSize: 18, color: '#64748b' }} /></button></div>}
         </section>
 
-        <section aria-labelledby="document-information-heading" className="rounded-[18px] border border-[#E8F0F8] bg-white p-5">
+        <section aria-labelledby="document-information-heading" className="flex flex-col rounded-[18px] border border-[#E8F0F8] bg-white p-5">
           <h2 id="document-information-heading" className="font-black text-[#0C2B49]">Document information</h2>
           <p className="mt-1 text-sm text-[#64748b]">Provide the title and active book required by the upload service.</p>
           <div className="mt-4 grid gap-4">
