@@ -178,7 +178,7 @@ export default function PdfDocumentViewer({
         className={`relative w-full overflow-hidden ${renderFailed ? 'hidden' : ''}`}
       >
         <canvas ref={canvasRef} className="block max-w-full" />
-        {pageBlocks.map(({ block, style }) => block.editable ? (
+        {pageBlocks.map(({ block, style }) => block.editable !== false ? (
           <button
             key={block.index}
             type="button"
