@@ -314,23 +314,42 @@ let extractions: Record<string, MockExtraction> = {
     blocks: [
       {
         index: 0,
+        editable: true,
         type: 'text',
         text: 'Jane Doe is employed by LexChain.',
         original_text: 'Jane Doe is employed by LexChain.',
-        edited: false,
-        score: 0.96,
+        bbox: [80, 90, 920, 180],
         page_idx: 0,
+        text_level: 1,
+        score: null,
         is_html: false,
+        edited: false,
       },
       {
         index: 1,
+        editable: true,
         type: 'text',
         text: 'Employrnent certificate',
         original_text: 'Employrnent certificate',
-        edited: false,
-        score: 0.78,
+        bbox: [80, 200, 920, 290],
         page_idx: 0,
+        text_level: null,
+        score: 0.78,
         is_html: false,
+        edited: false,
+      },
+      {
+        index: 2,
+        editable: false,
+        type: 'image',
+        text: '',
+        original_text: '',
+        bbox: [650, 700, 900, 900],
+        page_idx: 0,
+        text_level: null,
+        score: null,
+        is_html: false,
+        edited: false,
       },
     ],
     is_reviewed: false,
@@ -365,12 +384,15 @@ function documentFor(id: string) {
 
 function extractionReview(documentId: string): ExtractionReview | null {
   const extraction = extractions[documentId];
-  if (!extraction) return null;
+  const document = documentFor(documentId);
+  if (!extraction || !document) return null;
   const flags = extractionFlags[documentId] ?? [];
   return {
     document_id: documentId,
+    file_name: document.file_name,
+    storage_url: document.storage_url,
     ...extraction,
-    status: extraction.is_reviewed ? 'approved' : 'ready_for_review',
+    status: extraction.is_reviewed ? 'COMPLETED' : 'AWAITING_REVIEW',
     flags,
     flag_count: flags.length,
     high_severity_count: flags.filter((flag) => flag.severity === 'high').length,
@@ -593,13 +615,16 @@ async function uploadDocument(request: Request, path: string) {
       confidence_avg: 1,
       blocks: [{
         index: 0,
+        editable: true,
         type: 'text',
         text: fileName,
         original_text: fileName,
-        edited: false,
-        score: 1,
+        bbox: [80, 90, 920, 180],
         page_idx: 0,
+        text_level: null,
+        score: 1,
         is_html: false,
+        edited: false,
       }],
       is_reviewed: false,
       reviewed_by: null,
@@ -689,7 +714,7 @@ async function saveExtractionEdits(documentId: string, request: Request) {
     && typeof edit.index === 'number'
     && Number.isInteger(edit.index)
     && typeof edit.text === 'string'
-    && extraction.blocks.some((block) => block.index === edit.index)
+    && extraction.blocks.some((block) => block.index === edit.index && block.editable !== false)
   ))) return error('Extraction edit is invalid', 400);
 
   const validEdits = edits as BlockEdit[];
