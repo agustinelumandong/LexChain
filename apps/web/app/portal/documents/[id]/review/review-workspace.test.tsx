@@ -42,7 +42,7 @@ type ExtractionReview = ApiSchema<'ExtractionReviewResponse'>;
 const review: ExtractionReview = {
   document_id: 'doc-1',
   extraction_id: 'extraction-1',
-  status: 'ready_for_review',
+  status: 'AWAITING_REVIEW',
   file_name: 'Deed.pdf',
   storage_url: '/deed.pdf',
   engine: 'LexChain OCR',
@@ -238,6 +238,22 @@ describe('ReviewWorkspace', () => {
     expect(dynamicMocks.viewerProps).toMatchObject({ currentPage: 1, selectedBlockIndex: 1 });
     expect(document.activeElement).toBe(screen.getByLabelText('Reviewed text for block 1'));
     expect(HTMLElement.prototype.scrollIntoView).toHaveBeenCalledWith({ behavior: 'smooth', block: 'center' });
+  });
+
+  it('switches from Source to Review before focusing an issue block on mobile', () => {
+    renderWorkspace({ review: flaggedReview });
+
+    const sourcePane = screen.getByRole('button', { name: 'Source pane' });
+    const reviewPane = screen.getByRole('button', { name: 'Review pane' });
+    fireEvent.click(sourcePane);
+    expect(sourcePane.getAttribute('aria-pressed')).toBe('true');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Issues (4)' }));
+    fireEvent.click(screen.getByRole('button', { name: /High priority.*block 1/i }));
+    flushAnimationFrames();
+
+    expect(reviewPane.getAttribute('aria-pressed')).toBe('true');
+    expect(document.activeElement).toBe(screen.getByLabelText('Reviewed text for block 1'));
   });
 
   it('returns focus to the Issues trigger after a normal drawer close', async () => {

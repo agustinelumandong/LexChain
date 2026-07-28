@@ -9,6 +9,7 @@ import DialogTitle from '@mui/material/DialogTitle';
 import Drawer from '@mui/material/Drawer';
 import dynamic from 'next/dynamic';
 import { useEffect, useState } from 'react';
+import { getDocumentStatusLabel } from '../../../lib/document-ui';
 import type { ExtractionReview } from '../../../lib/extraction-api';
 
 const PdfDocumentViewer = dynamic(() => import('./pdf-document-viewer'), {
@@ -123,6 +124,7 @@ export default function ReviewWorkspace({
     setSelectedBlockIndex(block.index);
     if (block.page_idx !== null && block.page_idx !== undefined) setCurrentPage(block.page_idx);
     if (focusEditor && block.editable !== false) {
+      if (activeTab === 'compare' && mobilePane === 'source') setMobilePane('review');
       requestAnimationFrame(() => {
         document.getElementById(`review-block-input-${block.index}`)?.focus();
         document.getElementById(`review-block-${block.index}`)?.scrollIntoView?.({
@@ -430,7 +432,7 @@ export default function ReviewWorkspace({
             <div><dt className="font-bold text-[#64748b]">Pages</dt><dd className="text-[#0C2B49]">{review.page_count} {review.page_count === 1 ? 'page' : 'pages'}</dd></div>
             <div><dt className="font-bold text-[#64748b]">Average confidence</dt><dd className="text-[#0C2B49]">{review.confidence_avg === null || review.confidence_avg === undefined ? 'Not reported' : `${Math.round(review.confidence_avg * 100)}%`}</dd></div>
             <div><dt className="font-bold text-[#64748b]">Edited blocks</dt><dd className="text-[#0C2B49]">{review.edited_block_count} edited {review.edited_block_count === 1 ? 'block' : 'blocks'}</dd></div>
-            <div><dt className="font-bold text-[#64748b]">Review status</dt><dd className="text-[#0C2B49]">{review.status.replaceAll('_', ' ').replace(/^./, (character) => character.toUpperCase())}</dd></div>
+            <div><dt className="font-bold text-[#64748b]">Review status</dt><dd className="text-[#0C2B49]">{getDocumentStatusLabel(review.status)}</dd></div>
           </dl>
         </aside>
       </Drawer>
