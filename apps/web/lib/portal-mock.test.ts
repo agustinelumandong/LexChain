@@ -46,9 +46,9 @@ describe('portal mock mutations', () => {
 
     const snapshots = mockPortalGet('/documents/mock-document-2/snapshots', 'mock-token:mock-document-issuer');
     await expect(snapshots.json()).resolves.toHaveLength(1);
-    await expect(mockPortalGet('/blockchain/verify/mock-document-2', 'mock-token:mock-document-issuer').json()).resolves.toMatchObject({
+    await expect(mockPortalGet('/documents/mock-document-2/verify', 'mock-token:mock-document-issuer').json()).resolves.toMatchObject({
       document_id: 'mock-document-2',
-      is_verified: true,
+      is_authentic: true,
     });
     const repository = await mockPortalGet('/documents/', 'mock-token:mock-document-issuer').json() as Array<{ document_id: string; on_chain: boolean }>;
     expect(repository.filter((document) => document.on_chain)).toHaveLength(3);
@@ -71,8 +71,8 @@ describe('portal mock mutations', () => {
   });
 
   it('restores a mismatched finalized document from its retained snapshot with a reason', async () => {
-    const integrity = mockPortalGet('/blockchain/verify/mock-document-3', 'mock-token:mock-document-issuer');
-    await expect(integrity.json()).resolves.toMatchObject({ is_verified: false });
+    const integrity = mockPortalGet('/documents/mock-document-3/verify', 'mock-token:mock-document-issuer');
+    await expect(integrity.json()).resolves.toMatchObject({ is_authentic: false });
     const sourceSnapshots = await mockPortalGet('/documents/mock-document-3/snapshots', 'mock-token:mock-document-issuer').json();
     const blankReason = await mockPortalMutate(
       'POST',
@@ -266,6 +266,42 @@ describe('portal mock document isolation', () => {
 });
 
 describe('portal mock books', () => {
+  it('renames a draft document and appends a new PDF version for its issuer', async () => {
+    const uploadForm = new FormData();
+    uploadForm.append('file', new File(['PDF'], 'draft.pdf', { type: 'application/pdf' }));
+    const upload = await mockPortalMutate(
+      'POST',
+      '/documents/upload?book_id=mock-book-1&file_name=Draft%20certificate.pdf',
+      new Request('https://mock.lexchain.local/api/portal/proxy-post', { method: 'POST', body: uploadForm }),
+      'mock-token:mock-document-issuer',
+    );
+    const { document_id: documentId } = await upload.json() as { document_id: string };
+    const rename = await mockPortalMutate(
+      'PATCH',
+      `/documents/${documentId}`,
+      new Request('https://mock.lexchain.local/api/portal/proxy-post', {
+        method: 'PATCH',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ file_name: 'Renamed certificate.pdf' }),
+      }),
+      'mock-token:mock-document-issuer',
+    );
+    expect(rename.status).toBe(200);
+
+    const form = new FormData();
+    form.append('file', new File(['PDF'], 'updated.pdf', { type: 'application/pdf' }));
+    const updated = await mockPortalMutate(
+      'POST',
+      `/documents/${documentId}/update?file_name=Updated%20certificate.pdf`,
+      new Request('https://mock.lexchain.local/api/portal/proxy-post', { method: 'POST', body: form }),
+      'mock-token:mock-document-issuer',
+    );
+    expect(updated.status).toBe(202);
+    const history = await mockPortalGet(`/documents/${documentId}/versions`, 'mock-token:mock-document-issuer').json() as { total_version: number; versions: Array<{ file_name: string; is_latest: boolean }> };
+    expect(history.total_version).toBe(2);
+    expect(history.versions[0]).toMatchObject({ file_name: 'Updated certificate.pdf', is_latest: true });
+  });
+
   it('lists active issuer books and creates a book that can be used for upload', async () => {
     const initial = mockPortalGet('/books/?limit=50&offset=0', 'mock-token:mock-document-issuer');
     expect(initial.status).toBe(200);
@@ -343,7 +379,7 @@ describe('portal mock participant invitations and requests', () => {
 
     expect(rejected.status).toBe(204);
     expect(rejectedMock.mockPortalGet('/documents/mock-document-1', 'mock-token:mock-document-participant').status).toBe(403);
-    expect(rejectedMock.mockPortalGet('/blockchain/verify/mock-document-1', 'mock-token:mock-document-participant').status).toBe(404);
+    expect(rejectedMock.mockPortalGet('/documents/mock-document-1/verify', 'mock-token:mock-document-participant').status).toBe(404);
 
     vi.resetModules();
     const acceptedMock = await import('./portal-mock');
@@ -356,11 +392,11 @@ describe('portal mock participant invitations and requests', () => {
 
     expect(accepted.status).toBe(204);
     expect(acceptedMock.mockPortalGet('/documents/mock-document-1', 'mock-token:mock-document-participant').status).toBe(200);
-    expect(acceptedMock.mockPortalGet('/blockchain/verify/mock-document-1', 'mock-token:mock-document-participant').status).toBe(200);
+    expect(acceptedMock.mockPortalGet('/documents/mock-document-1/verify', 'mock-token:mock-document-participant').status).toBe(200);
   });
 
   it('does not reveal an unshared document integrity record to the mock participant', async () => {
-    const response = mockPortalGet('/blockchain/verify/mock-document-3', 'mock-token:mock-document-participant');
+    const response = mockPortalGet('/documents/mock-document-3/verify', 'mock-token:mock-document-participant');
 
     expect(response.status).toBe(404);
     await expect(response.json()).resolves.toEqual({ message: 'On-chain record not found' });

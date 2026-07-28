@@ -391,7 +391,12 @@ function canMutateDocumentLifecycle(document: MockDocument) {
 }
 
 function documentPaths(path: string) {
-  return path.match(/^\/documents\/([^/]+)(?:\/(parties|versions|audit-logs))?\/?$/);
+  return path.match(/^\/documents\/([^/]+)(?:\/(parties|versions|audit-logs|verify))?\/?$/);
+}
+
+function validFileName(value: string | null) {
+  const fileName = value?.trim();
+  return fileName && !/[\u0000-\u001F\u007F]/.test(fileName) ? fileName : null;
 }
 
 function pathname(path: string) {
@@ -444,6 +449,12 @@ export function mockPortalGet(path: string, token?: string): Response {
     if (!hasMockIssuerAccess(token)) return error('Document Issuer access required', 403);
     return json(books);
   }
+  const bookMatch = requestPathname.match(/^\/books\/([^/]+)\/?$/);
+  if (bookMatch) {
+    if (!hasMockIssuerAccess(token)) return error('Document Issuer access required', 403);
+    const book = books.find((candidate) => candidate.id === bookMatch[1]);
+    return book ? json(book) : error('Book not found', 404);
+  }
   if (path === '/notifications/' || path === '/notifications') {
     return json({ notifications, total: notifications.length });
   }
@@ -485,6 +496,7 @@ export function mockPortalGet(path: string, token?: string): Response {
     const [, id, detail] = documentMatch;
     const document = documentFor(id);
     if (!document) return error('Document not found', 404);
+    if (detail === 'verify' && !canAccessDocument(token, document)) return error('On-chain record not found', 404);
     if (!canAccessDocument(token, document)) return error('Document access required', 403);
     if (!detail) return json(document);
     if (detail === 'parties') {
@@ -495,28 +507,33 @@ export function mockPortalGet(path: string, token?: string): Response {
       });
     }
     if (detail === 'versions') {
-      return json({ current_document_id: document.id, versions: [document], total_version: 1 });
+      const versions = documents
+        .filter((candidate) => candidate.document_number === document.document_number)
+        .sort((left, right) => right.updated_at.localeCompare(left.updated_at))
+        .map((candidate, index, all) => ({ ...candidate, version: all.length - index }));
+      return json({ current_document_id: versions[0]?.document_id ?? document.id, versions, total_version: versions.length });
+    }
+    if (detail === 'verify') {
+      if (!document.on_chain) return error('On-chain record not found', 404);
+      const isAuthentic = document.integrity_state !== 'mismatch';
+      return json({
+        document_id: document.id,
+        status: isAuthentic ? 'AUTHENTIC' : 'TAMPERED',
+        is_authentic: isAuthentic,
+        baseline_trusted: true,
+        onchain_hash: '0xmockdatahash',
+        snapshot_hash: '0xmockdatahash',
+        current_hash: isAuthentic ? '0xmockdatahash' : '0xtamperedhash',
+        tx_hash: '0xmocktransactionhash',
+        onchain_timestamp: Math.floor(new Date(document.updated_at).getTime() / 1000),
+        issued_by: '0xMockIssuer',
+        finalized_at: document.updated_at,
+        verified_at: new Date().toISOString(),
+        tamper_report: isAuthentic ? null : { total_changes: 1, critical_changes: 0, segments: [] },
+        message: isAuthentic ? 'Document matches the anchored hash.' : 'Document content differs from the anchored hash.',
+      });
     }
     return json(document.audit_log);
-  }
-
-  const blockchainMatch = path.match(/^\/blockchain\/verify\/([^/]+)\/?$/);
-  if (blockchainMatch) {
-    const document = documentFor(blockchainMatch[1]);
-    if (!document || !canAccessDocument(token, document) || !document.on_chain) {
-      return error('On-chain record not found', 404);
-    }
-    return json({
-      document_id: document.id,
-      onchain_document_id: `chain-${document.id}`,
-      data_hash: '0xmockdatahash',
-      tx_hash: '0xmocktransactionhash',
-      onchain_timestamp: Math.floor(new Date(document.updated_at).getTime() / 1000),
-      issued_by: '0xMockIssuer',
-      verified_at: new Date().toISOString(),
-      transacttion_link: 'https://example.test/mock-transaction',
-      is_verified: document.integrity_state !== 'mismatch',
-    });
   }
 
   return error('Mock endpoint not found', 404);
@@ -535,8 +552,8 @@ async function uploadDocument(request: Request, path: string) {
 
   const now = new Date().toISOString();
   const requestUrl = new URL(path, 'https://mock.lexchain.local');
-  const fileName = requestUrl.searchParams.get('file_name')?.trim();
-  if (!fileName || /[\u0000-\u001F\u007F]/.test(fileName)) return error('A valid file name is required', 400);
+  const fileName = validFileName(requestUrl.searchParams.get('file_name'));
+  if (!fileName) return error('A valid file name is required', 400);
   const bookId = requestUrl.searchParams.get('book_id');
   const book = books.find((candidate) => candidate.id === bookId && !candidate.is_full);
   if (!book) return error('An active book is required', 400);
@@ -740,7 +757,7 @@ function approveExtraction(documentId: string) {
   return json(response);
 }
 
-export async function mockPortalMutate(method: 'POST' | 'PATCH', path: string, request: Request, token?: string): Promise<Response> {
+export async function mockPortalMutate(method: 'POST' | 'PATCH' | 'DELETE', path: string, request: Request, token?: string): Promise<Response> {
   if (!token || !isMockPortalToken(token)) return error('Not authenticated', 401);
   const requestPathname = pathname(path);
   if (method === 'POST' && (requestPathname === '/documents/upload' || requestPathname === '/documents/upload/')) {
@@ -750,6 +767,65 @@ export async function mockPortalMutate(method: 'POST' | 'PATCH', path: string, r
   if (method === 'POST' && (requestPathname === '/books' || requestPathname === '/books/')) {
     if (!hasMockIssuerAccess(token)) return error('Document Issuer access required', 403);
     return createBook(request);
+  }
+
+  const bookMatch = requestPathname.match(/^\/books\/([^/]+)\/?$/);
+  if (method === 'DELETE' && bookMatch) {
+    if (!hasMockIssuerAccess(token)) return error('Document Issuer access required', 403);
+    if (!books.some((book) => book.id === bookMatch[1])) return error('Book not found', 404);
+    books = books.filter((book) => book.id !== bookMatch[1]);
+    return new Response(null, { status: 204 });
+  }
+
+  const documentMatch = requestPathname.match(/^\/documents\/([^/]+)\/?$/);
+  if (method === 'PATCH' && documentMatch) {
+    if (!hasMockIssuerAccess(token)) return error('Document Issuer access required', 403);
+    const document = documentFor(documentMatch[1]);
+    if (!document) return error('Document not found', 404);
+    if (!canMutateDocumentLifecycle(document) || document.lifecycle !== 'draft') return error('Document cannot be renamed', 409);
+    const body = await jsonBody(request);
+    const fileName = validFileName(typeof body?.file_name === 'string' ? body.file_name : null);
+    if (!fileName) return error('A valid file name is required', 400);
+    const updated = { ...document, file_name: fileName, updated_at: new Date().toISOString() };
+    documents = documents.map((item) => item.id === document.id ? updated : item);
+    return json({ document_id: updated.id, status: updated.status, file_name: updated.file_name });
+  }
+
+  const documentUpdateMatch = requestPathname.match(/^\/documents\/([^/]+)\/update\/?$/);
+  if (method === 'POST' && documentUpdateMatch) {
+    if (!hasMockIssuerAccess(token)) return error('Document Issuer access required', 403);
+    const document = documentFor(documentUpdateMatch[1]);
+    if (!document) return error('Document not found', 404);
+    if (!canMutateDocumentLifecycle(document) || !document.is_latest) return error('This version has been superseded', 409);
+    const form = await request.formData().catch(() => null);
+    const file = form?.get('file');
+    const fileName = validFileName(new URL(path, 'https://mock.lexchain.local').searchParams.get('file_name'));
+    if (!(file instanceof File) || !file.name.toLowerCase().endsWith('.pdf') || !fileName) return error('A PDF file and valid file name are required', 400);
+    const now = new Date().toISOString();
+    const nextId = `${document.id}-v${Date.now()}`;
+    const next = {
+      ...document,
+      id: nextId,
+      document_id: nextId,
+      file_name: fileName,
+      storage_url: `/mock-documents/${encodeURIComponent(fileName)}`,
+      content_type: file.type || 'application/pdf',
+      status: 'ready_for_review',
+      on_chain: false,
+      is_latest: true,
+      created_at: now,
+      updated_at: now,
+      lifecycle: 'draft' as const,
+      document_hash: null,
+      finalized_at: null,
+      finalized_by: null,
+      anchor_status: null,
+      snapshots: [],
+      integrity_state: 'not-recorded' as const,
+      audit_log: [mockCreationAudit(document.id, now)],
+    };
+    documents = [...documents.map((item) => item.id === document.id ? { ...item, is_latest: false } : item), next];
+    return json({ document_id: next.id, status: next.status }, 202);
   }
 
   const extractionMatch = requestPathname.match(/^\/documents\/([^/]+)\/extraction\/?$/);

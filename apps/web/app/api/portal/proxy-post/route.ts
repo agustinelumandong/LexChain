@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { backendUrl } from '@/lib/admin-api';
 import { isMockMode, isMockPortalToken, mockPortalMutate } from '@/lib/portal-mock';
 
-async function handler(request: NextRequest, method: 'POST' | 'PATCH') {
+async function handler(request: NextRequest, method: 'POST' | 'PATCH' | 'DELETE') {
   const token = request.cookies.get('portal_token')?.value;
   if (!token) return NextResponse.json({ message: 'Not authenticated' }, { status: 401 });
 
@@ -47,3 +47,4 @@ async function handler(request: NextRequest, method: 'POST' | 'PATCH') {
 
 export const POST = (request: NextRequest) => handler(request, 'POST');
 export const PATCH = (request: NextRequest) => handler(request, 'PATCH');
+export const DELETE = (request: NextRequest) => handler(request, 'DELETE');
