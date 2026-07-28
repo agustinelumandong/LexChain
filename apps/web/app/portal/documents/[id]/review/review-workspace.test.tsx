@@ -191,19 +191,40 @@ describe('ReviewWorkspace', () => {
     expect(screen.getAllByText('Original OCR text')).toHaveLength(3);
   });
 
-  it('renders the source viewer beside one continuous review surface with a mobile pane switch', () => {
+  it('exposes labeled desktop panes and pressed mobile pane controls', () => {
     renderWorkspace();
 
     expect(screen.getByText('Source PDF viewer')).toBeTruthy();
+    expect(screen.getByRole('region', { name: 'Source document' })).toBeTruthy();
+    expect(screen.getByRole('region', { name: 'Reviewed document' })).toBeTruthy();
     expect(dynamicMocks.viewerProps).toMatchObject({
       sourceUrl: '/deed.pdf',
       pageCount: 2,
       currentPage: 0,
       selectedBlockIndex: null,
     });
-    expect(screen.getByRole('button', { name: 'Review pane' }).getAttribute('aria-pressed')).toBe('true');
+    const sourcePane = screen.getByRole('button', { name: 'Source pane' });
+    const reviewPane = screen.getByRole('button', { name: 'Review pane' });
+    expect(reviewPane.getAttribute('aria-pressed')).toBe('true');
+    expect(sourcePane.getAttribute('aria-pressed')).toBe('false');
+    fireEvent.click(sourcePane);
+    expect(sourcePane.getAttribute('aria-pressed')).toBe('true');
+    expect(reviewPane.getAttribute('aria-pressed')).toBe('false');
+  });
+
+  it('preserves the draft and selected block when switching mobile panes', () => {
+    renderWorkspace();
+
+    fireEvent.change(screen.getByLabelText('Reviewed text for block 1'), {
+      target: { value: 'Corrected body' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Mock select block 1' }));
+    flushAnimationFrames();
     fireEvent.click(screen.getByRole('button', { name: 'Source pane' }));
-    expect(screen.getByRole('button', { name: 'Source pane' }).getAttribute('aria-pressed')).toBe('true');
+    fireEvent.click(screen.getByRole('button', { name: 'Review pane' }));
+
+    expect((screen.getByLabelText('Reviewed text for block 1') as HTMLTextAreaElement).value).toBe('Corrected body');
+    expect(dynamicMocks.viewerProps).toMatchObject({ currentPage: 1, selectedBlockIndex: 1 });
   });
 
   it('uses block identity to synchronize a flag with its page and editor', () => {
