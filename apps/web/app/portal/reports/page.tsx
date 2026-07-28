@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import type { ApiSchema } from '@lexchain/types';
+import { GeneratedReportsManagementView } from '../../admin/generated-reports/generated-reports-management-view';
+import { PortalDropdown } from '../components/portal-dropdown';
 import {
   createDemoReport,
   downloadDemoReport,
@@ -14,6 +16,7 @@ import { portalFetch } from '../lib/portal-fetch';
 import { getPortalUiRole } from '../lib/portal-role';
 
 type UserProfile = ApiSchema<'UserProfileResponse'>;
+type ReportScope = 'document' | 'system';
 
 const reportOptions = [
   {
@@ -35,7 +38,13 @@ const reportLabels: Record<DemoReportType, string> = {
   'system-audit': 'System Audit',
 };
 
+const reportScopeOptions = [
+  { label: 'Document reports', value: 'document' },
+  { label: 'System reports', value: 'system' },
+];
+
 export default function OfficeReportsPage() {
+  const [scope, setScope] = useState<ReportScope>('document');
   const profileQuery = useQuery({
     queryKey: ['portal-profile'],
     queryFn: () => portalFetch<UserProfile | null>('/users/'),
@@ -44,7 +53,7 @@ export default function OfficeReportsPage() {
   const documentsQuery = useQuery<PortalReportDocument[]>({
     queryKey: ['portal-documents'],
     queryFn: () => portalFetch('/documents/'),
-    enabled: isIssuer,
+    enabled: isIssuer && scope === 'document',
   });
   const [reportType, setReportType] = useState<DemoReportType>('office-document-activity');
   const [from, setFrom] = useState('2026-07-01');
@@ -55,10 +64,10 @@ export default function OfficeReportsPage() {
   if (profileQuery.isLoading) return <div className="h-36 animate-pulse rounded-[18px] border border-[#E8F0F8] bg-white" />;
 
   if (!isIssuer) {
-    return <p className="text-sm font-semibold text-[#64748b]">Office Reports are available to Document Issuers only.</p>;
+    return <p className="text-sm font-semibold text-[#64748b]">Reports are available to Document Issuers only.</p>;
   }
 
-  if (documentsQuery.isLoading) {
+  if (scope === 'document' && documentsQuery.isLoading) {
     return <div role="status" className="h-36 animate-pulse rounded-[18px] border border-[#E8F0F8] bg-white"><span className="sr-only">Loading office report data…</span></div>;
   }
 
@@ -73,43 +82,52 @@ export default function OfficeReportsPage() {
   }
 
   const reportLabel = report ? reportLabels[report.reportType] : '';
+  const scopeSelector = (
+    <label className="block text-sm font-black text-[#0C2B49]">
+      Report scope
+      <PortalDropdown
+        ariaLabel="Report scope"
+        value={scope}
+        onChange={(value) => setScope(value as ReportScope)}
+        options={reportScopeOptions}
+      />
+    </label>
+  );
 
   return (
     <div className="flex flex-col gap-5">
       <header>
         <p className="text-xs font-black uppercase tracking-[0.12em] text-[#0985E7]">Document Issuer workspace</p>
-        <h1 className="mt-1 text-[28px] font-black text-[#0C2B49]">Office Reports</h1>
-        <p className="mt-1 text-sm text-[#64748b]">Generate one of the fixed office reports from seeded demo data.</p>
+        <h1 className="mt-1 text-[28px] font-black text-[#0C2B49]">Reports</h1>
+        <p className="mt-1 text-sm text-[#64748b]">Choose document or system reports, then generate a local CSV preview.</p>
       </header>
 
+      {scope === 'system' ? (
+        <section aria-label="Report controls" className="rounded-[18px] border border-[#E8F0F8] bg-white p-5">
+          {scopeSelector}
+          <GeneratedReportsManagementView embedded />
+        </section>
+      ) : <>
       {documentsQuery.isError ? (
         <p role="alert" className="rounded-[18px] border border-[#F5C6C6] bg-[#FFF7F7] p-5 text-sm font-semibold text-[#9B2C2C]">
           We could not load office report data.
         </p>
       ) : null}
 
-      <fieldset className="grid gap-3 sm:grid-cols-2">
-        <legend className="sr-only">Report type</legend>
-        {reportOptions.map((option) => (
-          <label key={option.type} className="flex cursor-pointer gap-3 rounded-[18px] border border-[#E8F0F8] bg-white p-5 has-checked:border-[#0985E7] has-checked:bg-[#F8FBFF]">
-            <input
-              type="radio"
-              name="office-report-type"
-              value={option.type}
-              checked={reportType === option.type}
-              onChange={() => setReportType(option.type)}
-              aria-label={option.label}
-              className="mt-1 accent-[#0985E7]"
+      <section aria-label="Report controls" className="rounded-[18px] border border-[#E8F0F8] bg-white p-5">
+        <div className="grid gap-3 sm:grid-cols-2">
+          {scopeSelector}
+          <label className="block text-sm font-black text-[#0C2B49]">
+            Report type
+            <PortalDropdown
+              ariaLabel="Report type"
+              value={reportType}
+              onChange={(value) => setReportType(value as DemoReportType)}
+              options={reportOptions.map((option) => ({ label: option.label, value: option.type }))}
             />
-            <span>
-              <strong className="block text-base font-black text-[#0C2B49]">{option.label}</strong>
-              <span className="mt-1 block text-sm font-semibold leading-6 text-[#64748b]">{option.description}</span>
-            </span>
           </label>
-        ))}
-      </fieldset>
-
-      <section aria-label="Report dates" className="grid gap-3 rounded-[18px] border border-[#E8F0F8] bg-white p-5 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
+        </div>
+        <div aria-label="Report dates" className="mt-3 grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
         <label className="text-sm font-black text-[#0C2B49]">
           From
           <input required type="date" value={from} onChange={(event) => setFrom(event.target.value)} className="mt-2 block w-full rounded-xl border border-[#D9E5F0] px-3 py-2.5 font-semibold" />
@@ -119,6 +137,7 @@ export default function OfficeReportsPage() {
           <input required type="date" value={to} onChange={(event) => setTo(event.target.value)} className="mt-2 block w-full rounded-xl border border-[#D9E5F0] px-3 py-2.5 font-semibold" />
         </label>
         <button type="button" onClick={generateReport} className="rounded-xl bg-[#0985E7] px-5 py-3 text-sm font-black text-white hover:bg-[#0770C4]">Generate</button>
+        </div>
       </section>
 
       {error ? <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700">{error}</p> : null}
@@ -155,6 +174,7 @@ export default function OfficeReportsPage() {
           ) : <p className="mt-4 text-sm font-semibold text-[#64748b]">No seeded rows fall within this date range.</p>}
         </section>
       ) : null}
+      </>}
     </div>
   );
 }
