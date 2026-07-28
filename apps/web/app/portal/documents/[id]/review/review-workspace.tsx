@@ -38,6 +38,7 @@ export default function ReviewWorkspace({
   const [selectedBlockIndex, setSelectedBlockIndex] = useState<number | null>(null);
   const [currentPage, setCurrentPage] = useState(0);
   const [openDrawer, setOpenDrawer] = useState<'issues' | 'info' | null>(null);
+  const [suppressIssuesRestoreFocus, setSuppressIssuesRestoreFocus] = useState(false);
   const [sanitizedTables, setSanitizedTables] = useState<Record<number, string | null>>({});
   const [savedBaseline, setSavedBaseline] = useState<{
     sourceBlocks: ExtractionReview['blocks'];
@@ -125,6 +126,11 @@ export default function ReviewWorkspace({
     }
   }
 
+  function closeIssues(suppressRestoreFocus = false) {
+    setSuppressIssuesRestoreFocus(suppressRestoreFocus);
+    setOpenDrawer(null);
+  }
+
   return (
     <section className="min-w-0">
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#E8F0F8]">
@@ -146,7 +152,10 @@ export default function ReviewWorkspace({
         <div className="flex gap-2 pb-2 sm:pb-0">
           <button
             type="button"
-            onClick={() => setOpenDrawer('issues')}
+            onClick={() => {
+              setSuppressIssuesRestoreFocus(false);
+              setOpenDrawer('issues');
+            }}
             className="rounded-full border border-[#D7E4F2] px-3 py-2 text-sm font-black text-[#0C2B49]"
           >
             Issues ({review.flag_count})
@@ -329,8 +338,8 @@ export default function ReviewWorkspace({
       <Drawer
         anchor="right"
         open={openDrawer === 'issues'}
-        onClose={() => setOpenDrawer(null)}
-        ModalProps={{ disableRestoreFocus: true }}
+        onClose={() => closeIssues()}
+        ModalProps={{ disableRestoreFocus: suppressIssuesRestoreFocus }}
       >
         <aside aria-label="Issues" className="w-[min(24rem,100vw)] p-5">
           <div className="flex items-center justify-between gap-3">
@@ -338,7 +347,7 @@ export default function ReviewWorkspace({
               <h2 className="text-lg font-black text-[#0C2B49]">Issues</h2>
               <p className="text-sm font-bold text-[#64748b]">{review.flag_count} {review.flag_count === 1 ? 'issue' : 'issues'}</p>
             </div>
-            <button type="button" aria-label="Close issues" onClick={() => setOpenDrawer(null)} className="px-2 py-1 text-xl text-[#64748b]">×</button>
+            <button type="button" aria-label="Close issues" onClick={() => closeIssues()} className="px-2 py-1 text-xl text-[#64748b]">×</button>
           </div>
           <div className="mt-5 flex flex-col gap-3">
             {orderedFlags.map((flag, position) => {
@@ -352,8 +361,10 @@ export default function ReviewWorkspace({
                   aria-label={`${priority}, ${target}: ${flag.message}`}
                   onClick={() => {
                     if (flag.block_index === null || flag.block_index === undefined) return;
-                    setOpenDrawer(null);
-                    selectBlock(flag.block_index);
+                    const block = review.blocks.find((candidate) => candidate.index === flag.block_index);
+                    if (!block) return;
+                    closeIssues(block.editable !== false);
+                    selectBlock(block.index);
                   }}
                   className={`rounded-xl border p-3 text-left ${severity === 'high' ? 'border-red-200 bg-red-50' : severity === 'medium' ? 'border-amber-200 bg-amber-50' : 'border-[#D7E4F2] bg-white'}`}
                 >

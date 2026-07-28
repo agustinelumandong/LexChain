@@ -112,7 +112,7 @@ const flaggedReview: ExtractionReview = {
     },
   ],
   flags: [
-    { block_index: 0, kind: 'wording', severity: 'low', message: 'Check title wording', excerpt: 'DEED' },
+    { block_index: 0, kind: 'wording', severity: 'LoW', message: 'Check title wording', excerpt: 'DEED' },
     { block_index: 1, kind: 'amount_mismatch', severity: 'high', message: 'Check the sale amount', excerpt: 'Original body' },
     { block_index: 3, kind: 'missing_bbox', severity: 'high', message: 'Check unlocated text', excerpt: 'Text without a box' },
     { block_index: null, kind: 'document', severity: 'medium', message: 'Check the whole document', excerpt: '' },
@@ -217,6 +217,17 @@ describe('ReviewWorkspace', () => {
     expect(HTMLElement.prototype.scrollIntoView).toHaveBeenCalledWith({ behavior: 'smooth', block: 'center' });
   });
 
+  it('returns focus to the Issues trigger after a normal drawer close', async () => {
+    renderWorkspace({ review: flaggedReview });
+
+    const issuesButton = screen.getByRole('button', { name: 'Issues (4)' });
+    issuesButton.focus();
+    fireEvent.click(issuesButton);
+    fireEvent.click(screen.getByRole('button', { name: 'Close issues' }));
+
+    await waitFor(() => expect(document.activeElement).toBe(issuesButton));
+  });
+
   it('uses the same selection path for overlays, page controls, Compare, and Raw', () => {
     renderWorkspace({ review: flaggedReview });
 
@@ -262,7 +273,7 @@ describe('ReviewWorkspace', () => {
     expect(animationFrames).toHaveLength(0);
   });
 
-  it('orders issues stably by severity', () => {
+  it('orders issues stably by case-insensitive severity', () => {
     renderWorkspace({ review: flaggedReview });
 
     fireEvent.click(screen.getByRole('button', { name: 'Issues (4)' }));
