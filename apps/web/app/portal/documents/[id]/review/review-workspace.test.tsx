@@ -187,6 +187,8 @@ describe('ReviewWorkspace', () => {
     expect(Array.from(container.querySelectorAll('[data-block-index]'), (block) => block.getAttribute('data-block-index'))).toEqual(['0', '1', '2']);
 
     fireEvent.click(screen.getByRole('tab', { name: 'Raw' }));
+    expect(screen.getByRole('tab', { name: 'Raw' }).getAttribute('aria-selected')).toBe('true');
+    expect(screen.getByRole('tab', { name: 'Compare' }).getAttribute('aria-selected')).toBe('false');
     expect(screen.getByRole('heading', { name: 'Block 0' })).toBeTruthy();
     expect(screen.getAllByText('Original OCR text')).toHaveLength(3);
   });
@@ -266,6 +268,8 @@ describe('ReviewWorkspace', () => {
     fireEvent.click(screen.getByRole('tab', { name: 'Raw' }));
     fireEvent.focus(screen.getByLabelText('Reviewed text for block 1'));
     fireEvent.click(screen.getByRole('tab', { name: 'Compare' }));
+    expect(screen.getByRole('tab', { name: 'Compare' }).getAttribute('aria-selected')).toBe('true');
+    expect(screen.getByRole('tab', { name: 'Raw' }).getAttribute('aria-selected')).toBe('false');
     expect(dynamicMocks.viewerProps).toMatchObject({ currentPage: 1, selectedBlockIndex: 1 });
   });
 
