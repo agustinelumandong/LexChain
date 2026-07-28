@@ -1,11 +1,14 @@
 'use client';
 
-import { useState } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useRef, useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import type { ApiSchema } from '@lexchain/types';
 import {
   finalizeDocument,
+  createDocumentVersion,
+  listDocumentVersions,
+  renameDocument,
   restoreDemoSnapshot,
 } from '../../lib/document-lifecycle-api';
 import {
@@ -119,6 +122,7 @@ export function DocumentWorkspace({
   onRetrySnapshots,
 }: DocumentWorkspaceProps) {
   const queryClient = useQueryClient();
+  const versionInputRef = useRef<HTMLInputElement>(null);
   const [activeTab, setActiveTab] = useState<Tab>('Overview');
   const [lifecycleResult, setLifecycleResult] = useState<DemoDocumentLifecycle>();
   const [finalizationResult, setFinalizationResult] = useState<ApiSchema<'RecordResponse'>>();
@@ -126,6 +130,7 @@ export function DocumentWorkspace({
   const [snapshotToRestore, setSnapshotToRestore] = useState<DemoDocumentSnapshot>();
   const [restorationReason, setRestorationReason] = useState('');
   const [success, setSuccess] = useState<string>();
+  const versionsQuery = useQuery({ queryKey: ['portal-doc-versions', document.document_id], queryFn: () => listDocumentVersions(document.document_id) });
   const hasInsights = Boolean(document.summary || document.labels?.length || document.entities?.length || document.risk_flags?.length);
   const lifecycle = lifecycleResult ?? document;
   const currentSnapshots = lifecycleResult?.snapshots ?? snapshots ?? document.snapshots ?? [];
@@ -167,6 +172,13 @@ export function DocumentWorkspace({
       await refreshLifecycleQueries();
     },
   });
+  const renameMutation = useMutation({ mutationFn: (fileName: string) => renameDocument(document.document_id, fileName), onSuccess: refreshLifecycleQueries });
+  const versionMutation = useMutation({ mutationFn: (file: File) => createDocumentVersion(document.document_id, file), onSuccess: refreshLifecycleQueries });
+
+  function requestRename() {
+    const fileName = window.prompt('Document name', document.file_name ?? '');
+    if (fileName?.trim()) renameMutation.mutate(fileName);
+  }
 
   function openFinalizeConfirmation() {
     finalizeMutation.reset();
@@ -219,6 +231,8 @@ export function DocumentWorkspace({
               <div><dt className="font-bold text-[#64748b]">Anchor state</dt><dd className="mt-1 text-[#0C2B49]">{anchorLabel(lifecycle.anchor_status)}</dd></div>
             </dl>
             {canFinalize && !finalizationResult && <button type="button" onClick={openFinalizeConfirmation} className="w-fit rounded-full bg-[#0985E7] px-4 py-2.5 text-sm font-extrabold text-white">Finalize</button>}
+            {role === 'issuer' && <div className="flex flex-wrap gap-2"><button type="button" onClick={requestRename} disabled={renameMutation.isPending} className="rounded-full border border-[#D7E4F2] px-4 py-2 text-sm font-bold text-[#0C2B49]">Rename document</button><input ref={versionInputRef} type="file" accept="application/pdf" className="hidden" onChange={(event) => { const input = event.currentTarget; const file = input.files?.[0]; if (file) versionMutation.mutate(file); input.value = ''; }} /><button type="button" onClick={() => versionInputRef.current?.click()} disabled={versionMutation.isPending} className="rounded-full border border-[#0985E7] px-4 py-2 text-sm font-bold text-[#0985E7]">{versionMutation.isPending ? 'Uploading version…' : 'Upload new version'}</button></div>}
+            {(renameMutation.error || versionMutation.error) && <p role="alert" className="text-sm font-bold text-[#B42318]">{(renameMutation.error ?? versionMutation.error) instanceof Error ? (renameMutation.error ?? versionMutation.error).message : 'Document update failed.'}</p>}
             {success && <p role="status" className="rounded-xl border border-[#BCE8CC] bg-[#F1FBF5] px-4 py-3 text-sm font-bold text-[#0C7A3B]">{success}</p>}
             {finalizationResult && <dl className="grid gap-3 rounded-xl bg-[#F8FBFF] p-4 text-sm sm:grid-cols-2"><div><dt className="font-bold text-[#64748b]">Data hash</dt><dd className="mt-1 break-all font-mono text-[#0C2B49]">{finalizationResult.data_hash}</dd></div><div><dt className="font-bold text-[#64748b]">Transaction hash</dt><dd className="mt-1 break-all font-mono text-[#0C2B49]">{finalizationResult.tx_hash}</dd></div></dl>}
             {integrityState === 'unavailable' && onRetry && <button type="button" onClick={onRetry} className="w-fit rounded-full border border-[#D7E4F2] px-4 py-2 text-sm font-bold text-[#0985E7]">Retry integrity lookup</button>}
@@ -268,7 +282,10 @@ export function DocumentWorkspace({
 
         {activeTab === 'Versions' && (
           <div className="space-y-4">
-            <div><h2 className="text-lg font-extrabold text-[#0C2B49]">Versions</h2><p className="mt-1 text-sm text-[#64748b]">Text snapshots support this demo restoration flow. The original PDF remains unchanged.</p></div>
+            <div><h2 className="text-lg font-extrabold text-[#0C2B49]">Versions</h2><p className="mt-1 text-sm text-[#64748b]">Each uploaded version remains in the document history.</p></div>
+            {versionsQuery.isLoading && <p className="text-sm text-[#64748b]">Loading versions…</p>}
+            {versionsQuery.isError && <p role="alert" className="text-sm font-bold text-[#B42318]">Unable to load document versions.</p>}
+            {versionsQuery.data?.versions.map((version) => <article key={version.document_id} className="rounded-xl border border-[#E8F0F8] bg-[#F8FBFF] p-4"><p className="font-bold text-[#0C2B49]">Version {version.version}{version.is_latest ? ' · Latest' : ''}</p><p className="mt-1 text-sm text-[#64748b]">{version.file_name} · {version.status}</p></article>)}
             {snapshotsLoading && <p className="text-sm text-[#64748b]">Loading text snapshots…</p>}
             {snapshotsError && <div><p className="text-sm font-bold text-[#B42318]">Unable to load text snapshots.</p>{onRetrySnapshots && <button type="button" onClick={onRetrySnapshots} className="mt-2 rounded-full border border-[#D7E4F2] px-4 py-2 text-sm font-bold text-[#0985E7]">Retry snapshots</button>}</div>}
             {!snapshotsLoading && !snapshotsError && currentSnapshots.length === 0 && <p className="text-sm text-[#64748b]">No text snapshots are available for this document.</p>}

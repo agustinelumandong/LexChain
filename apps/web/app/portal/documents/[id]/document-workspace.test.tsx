@@ -1,16 +1,18 @@
 // @vitest-environment jsdom
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DocumentWorkspace } from './document-workspace';
 
-const { finalizeDocumentMock, restoreDemoSnapshotMock } = vi.hoisted(() => ({
+const { finalizeDocumentMock, restoreDemoSnapshotMock, listDocumentVersionsMock } = vi.hoisted(() => ({
   finalizeDocumentMock: vi.fn(),
   restoreDemoSnapshotMock: vi.fn(),
+  listDocumentVersionsMock: vi.fn(),
 }));
 
 vi.mock('../../lib/document-lifecycle-api', () => ({
   finalizeDocument: finalizeDocumentMock,
+  listDocumentVersions: listDocumentVersionsMock,
   restoreDemoSnapshot: restoreDemoSnapshotMock,
 }));
 
@@ -78,9 +80,20 @@ function renderWorkspace(props: Partial<React.ComponentProps<typeof DocumentWork
 }
 
 describe('DocumentWorkspace', () => {
+  beforeEach(() => {
+    listDocumentVersionsMock.mockResolvedValue({ total_version: 1, versions: [] });
+  });
+
   afterEach(() => {
     cleanup();
     vi.clearAllMocks();
+  });
+
+  it('shows the API version history instead of only demo snapshots', async () => {
+    listDocumentVersionsMock.mockResolvedValue({ total_version: 2, versions: [{ document_id: 'doc-101', version: 2, file_name: 'updated.pdf', status: 'AWAITING_REVIEW', lifecycle: 'DRAFT', is_latest: true, created_at: '2026-07-28T00:00:00Z' }] });
+    renderWorkspace();
+    fireEvent.click(screen.getByRole('tab', { name: 'Versions' }));
+    expect(await screen.findByText('Version 2 · Latest')).toBeTruthy();
   });
 
   it('shows populated document metadata in the Overview tab', () => {
