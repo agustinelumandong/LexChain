@@ -178,13 +178,17 @@ beforeEach(() => {
 
 describe('ReviewWorkspace', () => {
   it('starts in Compare and preserves the original-versus-reviewed Raw cards', () => {
-    const { container } = renderWorkspace();
+    renderWorkspace();
 
     expect(screen.getByRole('tab', { name: 'Compare' }).getAttribute('aria-selected')).toBe('true');
-    expect(screen.getByText('DEED OF ABSOLUTE SALE')).toBeTruthy();
+    expect(screen.getByLabelText('Reviewed text for block 0')).toBeTruthy();
+    expect(screen.queryByLabelText('Reviewed text for block 1')).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Mock page 2' }));
+
+    expect(screen.queryByLabelText('Reviewed text for block 0')).toBeNull();
     expect(screen.getByLabelText('Reviewed text for block 1')).toBeTruthy();
-    expect(screen.queryByLabelText('Reviewed text for block 2')).toBeNull();
-    expect(Array.from(container.querySelectorAll('[data-block-index]'), (block) => block.getAttribute('data-block-index'))).toEqual(['0', '1', '2']);
+    expect(screen.getByText('image region — shown on the source PDF and not editable.')).toBeTruthy();
 
     fireEvent.click(screen.getByRole('tab', { name: 'Raw' }));
     expect(screen.getByRole('tab', { name: 'Raw' }).getAttribute('aria-selected')).toBe('true');
@@ -217,6 +221,7 @@ describe('ReviewWorkspace', () => {
   it('preserves the draft and selected block when switching mobile panes', () => {
     renderWorkspace();
 
+    fireEvent.click(screen.getByRole('button', { name: 'Mock page 2' }));
     fireEvent.change(screen.getByLabelText('Reviewed text for block 1'), {
       target: { value: 'Corrected body' },
     });
@@ -278,7 +283,7 @@ describe('ReviewWorkspace', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Mock page 2' }));
     expect(dynamicMocks.viewerProps).toMatchObject({ currentPage: 1, selectedBlockIndex: 0 });
 
-    fireEvent.focus(screen.getByLabelText('Reviewed text for block 0'));
+    fireEvent.click(screen.getByRole('button', { name: 'Mock select block 0' }));
     expect(dynamicMocks.viewerProps).toMatchObject({ currentPage: 0, selectedBlockIndex: 0 });
 
     fireEvent.click(screen.getByRole('tab', { name: 'Raw' }));
@@ -351,6 +356,7 @@ describe('ReviewWorkspace', () => {
   it('keeps drafts across tabs and saves only changed editable blocks', async () => {
     const { onSave } = renderWorkspace();
 
+    fireEvent.click(screen.getByRole('button', { name: 'Mock page 2' }));
     fireEvent.change(screen.getByLabelText('Reviewed text for block 1'), {
       target: { value: 'Corrected body' },
     });
@@ -370,6 +376,7 @@ describe('ReviewWorkspace', () => {
       .mockReturnValueOnce(acceptedSave.promise);
     renderWorkspace({ onSave });
 
+    fireEvent.click(screen.getByRole('button', { name: 'Mock page 2' }));
     fireEvent.change(screen.getByLabelText('Reviewed text for block 1'), {
       target: { value: 'Corrected body' },
     });
@@ -390,6 +397,7 @@ describe('ReviewWorkspace', () => {
     const onSave = vi.fn().mockReturnValue(pendingSave.promise);
     renderWorkspace({ onSave });
 
+    fireEvent.click(screen.getByRole('button', { name: 'Mock page 2' }));
     fireEvent.change(screen.getByLabelText('Reviewed text for block 1'), {
       target: { value: 'First correction' },
     });
@@ -415,6 +423,7 @@ describe('ReviewWorkspace', () => {
     };
     renderWorkspace({ onSave: vi.fn().mockReturnValue(pendingSave.promise) });
 
+    fireEvent.click(screen.getByRole('button', { name: 'Mock page 2' }));
     fireEvent.change(screen.getByLabelText('Reviewed text for block 1'), {
       target: { value: 'First correction' },
     });
@@ -443,6 +452,7 @@ describe('ReviewWorkspace', () => {
       review: { ...review, blocks: [...review.blocks, tableBlock] },
     });
 
+    fireEvent.click(screen.getByRole('button', { name: 'Mock page 2' }));
     expect(await screen.findByText('Amount')).toBeTruthy();
     expect(container.querySelectorAll('table')).toHaveLength(1);
     expect(container.querySelector('script')).toBeNull();
@@ -460,6 +470,7 @@ describe('ReviewWorkspace', () => {
     expect((screen.getByRole('button', { name: 'Analyzing semantic issues…' }) as HTMLButtonElement).disabled).toBe(true);
     expect((screen.getByRole('button', { name: 'Approve reviewed text' }) as HTMLButtonElement).disabled).toBe(true);
 
+    fireEvent.click(screen.getByRole('button', { name: 'Mock page 2' }));
     rerender(<ReviewWorkspace {...props} isAnalyzing={false} review={{ ...review, is_reviewed: true }} />);
     expect((screen.getByLabelText('Reviewed text for block 1') as HTMLTextAreaElement).disabled).toBe(true);
     expect((screen.getByRole('button', { name: 'Analyze semantic issues' }) as HTMLButtonElement).disabled).toBe(true);
@@ -498,6 +509,7 @@ describe('ReviewWorkspace', () => {
 
   it('keeps the approval dialog closed while edits are unsaved', () => {
     renderWorkspace();
+    fireEvent.click(screen.getByRole('button', { name: 'Mock page 2' }));
     fireEvent.change(screen.getByLabelText('Reviewed text for block 1'), { target: { value: 'Corrected body' } });
 
     const approveButton = screen.getByRole('button', { name: 'Approve reviewed text' }) as HTMLButtonElement;
@@ -525,6 +537,7 @@ describe('ReviewWorkspace', () => {
       is_html: true,
     };
     const { rerender, ...props } = renderWorkspace({ review: { ...review, blocks: [...review.blocks, tableBlock] } });
+    fireEvent.click(screen.getByRole('button', { name: 'Mock page 2' }));
     fireEvent.change(screen.getByLabelText('Reviewed text for block 1'), { target: { value: 'Corrected body' } });
 
     rerender(<ReviewWorkspace {...props} isApproving />);
@@ -542,6 +555,7 @@ describe('ReviewWorkspace', () => {
 
   it('shows the dirty block count beside save', () => {
     renderWorkspace();
+    fireEvent.click(screen.getByRole('button', { name: 'Mock page 2' }));
     fireEvent.change(screen.getByLabelText('Reviewed text for block 1'), { target: { value: 'Corrected body' } });
 
     expect(screen.getByText('1 block changed')).toBeTruthy();
