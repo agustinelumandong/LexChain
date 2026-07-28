@@ -1,6 +1,11 @@
 'use client';
 
 import type { ApiSchema } from '@lexchain/types';
+import Dialog from '@mui/material/Dialog';
+import DialogActions from '@mui/material/DialogActions';
+import DialogContent from '@mui/material/DialogContent';
+import DialogContentText from '@mui/material/DialogContentText';
+import DialogTitle from '@mui/material/DialogTitle';
 import Drawer from '@mui/material/Drawer';
 import dynamic from 'next/dynamic';
 import { useEffect, useState } from 'react';
@@ -19,7 +24,7 @@ export type ReviewWorkspaceProps = {
   isApproving: boolean;
   onSave: (edits: ApiSchema<'BlockEdit'>[]) => Promise<ExtractionReview>;
   onAnalyze: () => Promise<ExtractionReview>;
-  onApprove: () => Promise<void>;
+  onApprove: () => Promise<unknown>;
 };
 
 export default function ReviewWorkspace({
@@ -38,6 +43,7 @@ export default function ReviewWorkspace({
   const [selectedBlockIndex, setSelectedBlockIndex] = useState<number | null>(null);
   const [currentPage, setCurrentPage] = useState(0);
   const [openDrawer, setOpenDrawer] = useState<'issues' | 'info' | null>(null);
+  const [approvalOpen, setApprovalOpen] = useState(false);
   const [suppressIssuesRestoreFocus, setSuppressIssuesRestoreFocus] = useState(false);
   const [sanitizedTables, setSanitizedTables] = useState<Record<number, string | null>>({});
   const [savedBaseline, setSavedBaseline] = useState<{
@@ -53,6 +59,7 @@ export default function ReviewWorkspace({
       : [{ index: block.index, text: draft }];
   });
   const mutationPending = isSaving || isAnalyzing || isApproving;
+  const highSeverityCount = review.high_severity_count;
   const severityRank: Record<string, number> = { high: 0, medium: 1, low: 2 };
   const orderedFlags = review.flags
     .map((flag, position) => ({ flag, position }))
@@ -306,7 +313,7 @@ export default function ReviewWorkspace({
       </div>
 
       {actionError && <p role="alert" className="mt-4 rounded-xl bg-red-50 p-3 text-sm font-bold text-red-700">{actionError}</p>}
-      <div className="mt-5 flex flex-wrap gap-2 rounded-[18px] border border-[#E8F0F8] bg-white p-4">
+      <div className="sticky bottom-20 z-10 mt-5 flex flex-wrap items-center gap-2 rounded-[18px] border border-[#E8F0F8] bg-white p-4 shadow-[0_-4px_12px_rgba(19,59,115,0.05)] md:bottom-0">
         <button
           type="button"
           disabled={edits.length === 0 || mutationPending || review.is_reviewed}
@@ -315,6 +322,7 @@ export default function ReviewWorkspace({
         >
           {isSaving ? 'Saving changes…' : 'Save changes'}
         </button>
+        {edits.length > 0 && <span className="text-xs font-bold text-[#B77900]">{edits.length} {edits.length === 1 ? 'block' : 'blocks'} changed</span>}
         <button
           type="button"
           disabled={edits.length > 0 || mutationPending || review.is_reviewed}
@@ -326,7 +334,7 @@ export default function ReviewWorkspace({
         <button
           type="button"
           disabled={edits.length > 0 || mutationPending || review.is_reviewed}
-          onClick={() => void onApprove().catch(() => undefined)}
+          onClick={() => setApprovalOpen(true)}
           className="rounded-full bg-[#0C2B49] px-4 py-2.5 text-sm font-black text-white disabled:opacity-40"
         >
           {isApproving ? 'Approving reviewed text…' : 'Approve reviewed text'}
@@ -334,6 +342,34 @@ export default function ReviewWorkspace({
       </div>
       {edits.length > 0 && <p className="mt-3 text-xs font-semibold text-[#B77900]">Save changes before analysis or approval.</p>}
       {review.is_reviewed && <p className="mt-3 text-xs font-semibold text-[#12A150]">Reviewed text is approved and frozen.</p>}
+
+      <Dialog open={approvalOpen} onClose={() => !isApproving && setApprovalOpen(false)} aria-labelledby="approval-dialog-title">
+        <DialogTitle id="approval-dialog-title">Approve reviewed text?</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Approval freezes reviewed text and starts processing. You will not be able to edit it afterward.
+          </DialogContentText>
+          {highSeverityCount > 0 && (
+            <DialogContentText className="mt-3 font-bold text-[#B42318]">
+              {highSeverityCount} unresolved high-priority {highSeverityCount === 1 ? 'issue remains.' : 'issues remain.'}
+            </DialogContentText>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <button type="button" disabled={isApproving} onClick={() => setApprovalOpen(false)} className="rounded-full px-4 py-2 text-sm font-black text-[#64748b] disabled:opacity-40">Cancel</button>
+          <button
+            type="button"
+            disabled={isApproving}
+            onClick={() => {
+              setApprovalOpen(false);
+              void onApprove().catch(() => undefined);
+            }}
+            className="rounded-full bg-[#0C2B49] px-4 py-2 text-sm font-black text-white disabled:opacity-40"
+          >
+            {highSeverityCount > 0 ? 'Approve anyway' : 'Approve'}
+          </button>
+        </DialogActions>
+      </Dialog>
 
       <Drawer
         anchor="right"

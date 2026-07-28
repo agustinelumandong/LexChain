@@ -2,6 +2,13 @@ import type { ApiSchema } from '@lexchain/types';
 
 export type ExtractionReview = ApiSchema<'ExtractionReviewResponse'>;
 
+export class ExtractionApiError extends Error {
+  constructor(message: string, public readonly status: number) {
+    super(message);
+    this.name = 'ExtractionApiError';
+  }
+}
+
 async function portalRequest<T>(path: string, init?: RequestInit): Promise<T> {
   const proxy = init?.method ? '/api/portal/proxy-post' : '/api/portal/proxy';
   const response = await fetch(`${proxy}?path=${encodeURIComponent(path)}`, {
@@ -12,7 +19,7 @@ async function portalRequest<T>(path: string, init?: RequestInit): Promise<T> {
 
   if (!response.ok) {
     const error = await response.json().catch(() => null) as { detail?: string; message?: string } | null;
-    throw new Error(error?.detail ?? error?.message ?? `API error: ${response.status}`);
+    throw new ExtractionApiError(error?.detail ?? error?.message ?? `API error: ${response.status}`, response.status);
   }
 
   return response.json() as Promise<T>;
