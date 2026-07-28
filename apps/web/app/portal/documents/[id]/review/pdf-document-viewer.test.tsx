@@ -97,6 +97,10 @@ describe('normalizedBoxStyle', () => {
       height: '60%',
     });
   });
+
+  it('rejects reversed bbox coordinates', () => {
+    expect(normalizedBoxStyle([500, 200, 100, 800])).toBeUndefined();
+  });
 });
 
 describe('PdfDocumentViewer', () => {
@@ -123,6 +127,15 @@ describe('PdfDocumentViewer', () => {
     expect(screen.queryByRole('button', { name: 'Select block 5' })).toBeNull();
   });
 
+  it('treats an omitted editable flag as editable', async () => {
+    const blockWithoutEditable: Partial<ExtractionBlock> = { ...blocks[0] };
+    delete blockWithoutEditable.editable;
+    renderViewer({ blocks: [blockWithoutEditable as ExtractionBlock] });
+
+    expect(await screen.findByRole('button', { name: 'Select block 4' })).toBeTruthy();
+    expect(screen.queryByLabelText('Non-editable block 4')).toBeNull();
+  });
+
   it('shows a source link when the PDF cannot load', async () => {
     pdfMocks.getDocument.mockReturnValue({
       promise: Promise.reject(new Error('load failed')),
@@ -135,5 +148,4 @@ describe('PdfDocumentViewer', () => {
     expect(link.getAttribute('href')).toBe('/source.pdf');
     expect(link.getAttribute('target')).toBe('_blank');
   });
-
 });
