@@ -37,10 +37,17 @@ export default function ReviewWorkspace({
   const [selectedBlockIndex, setSelectedBlockIndex] = useState<number | null>(null);
   const [currentPage, setCurrentPage] = useState(0);
   const [sanitizedTables, setSanitizedTables] = useState<Record<number, string | null>>({});
+  const [savedBaseline, setSavedBaseline] = useState<{
+    sourceBlocks: ExtractionReview['blocks'];
+    texts: Record<number, string>;
+  } | null>(null);
+  const acceptedTexts = savedBaseline?.sourceBlocks === review.blocks ? savedBaseline.texts : undefined;
   const edits = review.blocks.flatMap<ApiSchema<'BlockEdit'>>((block) => {
     if (block.editable === false) return [];
     const draft = drafts[block.index];
-    return draft === undefined || draft === block.text ? [] : [{ index: block.index, text: draft }];
+    return draft === undefined || draft === (acceptedTexts?.[block.index] ?? block.text)
+      ? []
+      : [{ index: block.index, text: draft }];
   });
   const mutationPending = isSaving || isAnalyzing || isApproving;
 
@@ -52,7 +59,10 @@ export default function ReviewWorkspace({
         setSanitizedTables(Object.fromEntries(
           review.blocks
             .filter((block) => block.is_html)
-            .map((block) => [block.index, DOMPurify.sanitize(drafts[block.index] ?? block.text)]),
+            .map((block) => [
+              block.index,
+              DOMPurify.sanitize(drafts[block.index] ?? acceptedTexts?.[block.index] ?? block.text),
+            ]),
         ));
       })
       .catch(() => {
@@ -64,13 +74,17 @@ export default function ReviewWorkspace({
     return () => {
       cancelled = true;
     };
-  }, [drafts, review.blocks]);
+  }, [acceptedTexts, drafts, review.blocks]);
 
   async function saveChanges() {
     if (edits.length === 0) return;
     const savedEdits = edits;
     try {
-      await onSave(savedEdits);
+      const acceptedReview = await onSave(savedEdits);
+      setSavedBaseline({
+        sourceBlocks: review.blocks,
+        texts: Object.fromEntries(acceptedReview.blocks.map((block) => [block.index, block.text])),
+      });
       setDrafts((current) => {
         const remaining = { ...current };
         savedEdits.forEach((edit) => {
@@ -134,8 +148,9 @@ export default function ReviewWorkspace({
 
               <section aria-label="Reviewed document" className={mobilePane === 'review' ? 'min-w-0 rounded-[18px] border border-[#E8F0F8] bg-white p-5 shadow-[0_4px_12px_rgba(19,59,115,0.05)]' : 'hidden min-w-0 rounded-[18px] border border-[#E8F0F8] bg-white p-5 shadow-[0_4px_12px_rgba(19,59,115,0.05)] md:block'}>
                 {review.blocks.map((block) => {
-                  const text = drafts[block.index] ?? block.text;
-                  const dirty = drafts[block.index] !== undefined && drafts[block.index] !== block.text;
+                  const acceptedText = acceptedTexts?.[block.index] ?? block.text;
+                  const text = drafts[block.index] ?? acceptedText;
+                  const dirty = drafts[block.index] !== undefined && drafts[block.index] !== acceptedText;
                   const selected = selectedBlockIndex === block.index;
                   const sanitizedTable = sanitizedTables[block.index];
                   return (
@@ -193,7 +208,7 @@ export default function ReviewWorkspace({
         ) : (
           <div className="flex flex-col gap-4">
             {review.blocks.map((block) => {
-              const text = drafts[block.index] ?? block.text;
+              const text = drafts[block.index] ?? acceptedTexts?.[block.index] ?? block.text;
               return (
                 <section
                   key={block.index}

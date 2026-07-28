@@ -194,6 +194,31 @@ describe('ReviewWorkspace', () => {
     expect(screen.getByText('Save changes before analysis or approval.')).toBeTruthy();
   });
 
+  it('treats pre-save text as dirty after the server accepts a different value', async () => {
+    const pendingSave = deferred<ExtractionReview>();
+    const acceptedReview: ExtractionReview = {
+      ...review,
+      blocks: review.blocks.map((block) => block.index === 1
+        ? { ...block, text: 'First correction' }
+        : block),
+    };
+    renderWorkspace({ onSave: vi.fn().mockReturnValue(pendingSave.promise) });
+
+    fireEvent.change(screen.getByLabelText('Reviewed text for block 1'), {
+      target: { value: 'First correction' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
+    fireEvent.change(screen.getByLabelText('Reviewed text for block 1'), {
+      target: { value: 'Original body' },
+    });
+
+    await act(async () => pendingSave.resolve(acceptedReview));
+
+    expect((screen.getByLabelText('Reviewed text for block 1') as HTMLTextAreaElement).value).toBe('Original body');
+    expect(screen.getByText('Save changes before analysis or approval.')).toBeTruthy();
+    expect((screen.getByRole('button', { name: 'Save changes' }) as HTMLButtonElement).disabled).toBe(false);
+  });
+
   it('sanitizes tables in Compare and keeps their source editable in Raw', async () => {
     const tableSource = '<table><tbody><tr><td onclick="alert(1)">Amount</td></tr></tbody></table><script>alert(1)</script>';
     const tableBlock: ApiSchema<'ExtractionBlock'> = {
