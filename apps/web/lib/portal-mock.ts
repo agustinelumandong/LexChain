@@ -418,7 +418,12 @@ function documentPaths(path: string) {
 
 function validFileName(value: string | null) {
   const fileName = value?.trim();
-  return fileName && !/[\u0000-\u001F\u007F]/.test(fileName) ? fileName : null;
+  return fileName && !/[\/\\\u0000-\u001F\u007F]/.test(fileName) ? fileName : null;
+}
+
+function mockStorageUrl(fileName: string) {
+  const pdfName = fileName.toLowerCase().endsWith('.pdf') ? fileName : `${fileName}.pdf`;
+  return `/mock-documents/${encodeURIComponent(pdfName)}`;
 }
 
 function pathname(path: string) {
@@ -585,7 +590,7 @@ async function uploadDocument(request: Request, path: string) {
     document_id: id,
     document_number: 1000 + documents.length + 1,
     file_name: fileName,
-    storage_url: `/mock-documents/${encodeURIComponent(fileName)}`,
+    storage_url: mockStorageUrl(fileName),
     content_type: file.type || 'application/pdf',
     status: 'ready_for_review',
     on_chain: false,
@@ -833,7 +838,7 @@ export async function mockPortalMutate(method: 'POST' | 'PATCH' | 'DELETE', path
       id: nextId,
       document_id: nextId,
       file_name: fileName,
-      storage_url: `/mock-documents/${encodeURIComponent(fileName)}`,
+      storage_url: mockStorageUrl(fileName),
       content_type: file.type || 'application/pdf',
       status: 'ready_for_review',
       on_chain: false,
