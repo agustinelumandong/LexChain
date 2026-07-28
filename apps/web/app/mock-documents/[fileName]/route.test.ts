@@ -66,6 +66,24 @@ it('keeps an extensionless mock upload title behind a PDF storage URL', async ()
   expect(response.status).toBe(200);
 });
 
+it('serves an extensionless upload title at the 255-character PDF boundary', async () => {
+  const title = 'c'.repeat(251);
+  const upload = await uploadMockDocument(title);
+  expect(upload.status).toBe(201);
+  const { document_id: documentId } = await upload.json() as { document_id: string };
+  const detail = await mockPortalGet(
+    `/documents/${documentId}`,
+    'mock-token:mock-document-issuer',
+  ).json() as { storage_url: string };
+
+  expect(detail.storage_url).toBe(`/mock-documents/${title}.pdf`);
+  const response = await GET(
+    new Request(`http://localhost${detail.storage_url}`),
+    contextFor(detail.storage_url),
+  );
+  expect(response.status).toBe(200);
+});
+
 it('rejects mock upload titles that cannot form one safe PDF path segment', async () => {
   const response = await uploadMockDocument('bad/name');
 
