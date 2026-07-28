@@ -1,6 +1,46 @@
 import { describe, expect, it, vi } from 'vitest';
 import { isMockPortalToken, mockPortalGet, mockPortalMutate } from './portal-mock';
 
+describe('portal mock extraction contract', () => {
+  it('returns the PDF metadata and normalized review regions', async () => {
+    const response = mockPortalGet(
+      '/documents/mock-document-2/extraction',
+      'mock-token:mock-document-issuer',
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      document_id: 'mock-document-2',
+      file_name: 'Certificate of Employment.pdf',
+      storage_url: '/mock-documents/certificate-of-employment.pdf',
+      blocks: expect.arrayContaining([
+        expect.objectContaining({
+          index: 0,
+          editable: true,
+          bbox: [80, 90, 920, 180],
+          page_idx: 0,
+        }),
+        expect.objectContaining({ index: 2, editable: false, type: 'image' }),
+      ]),
+    });
+  });
+
+  it('rejects edits to non-editable review regions', async () => {
+    const response = await mockPortalMutate(
+      'PATCH',
+      '/documents/mock-document-2/extraction',
+      new Request('https://mock.lexchain.local/api/portal/proxy-post', {
+        method: 'PATCH',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ edits: [{ index: 2, text: 'changed seal' }] }),
+      }),
+      'mock-token:mock-document-issuer',
+    );
+
+    expect(response.status).toBe(400);
+  });
+});
+
 describe('portal mock mutations', () => {
   it('requires extraction approval before finalizing once with its snapshot audit trail', async () => {
     const premature = await mockPortalMutate(
@@ -635,6 +675,8 @@ describe('portal mock extraction review', () => {
     expect(review.status).toBe(200);
     await expect(review.json()).resolves.toMatchObject({
       document_id: 'mock-document-2',
+      file_name: 'Certificate of Employment.pdf',
+      storage_url: '/mock-documents/certificate-of-employment.pdf',
       blocks: expect.arrayContaining([expect.objectContaining({ index: 0, edited: false, original_text: expect.any(String) })]),
       flags: expect.any(Array),
       is_reviewed: false,
@@ -676,7 +718,7 @@ describe('portal mock extraction review', () => {
     expect(accepted.status).toBe('ready_for_review');
     await expect(extractionMock.mockPortalGet(`${path}/extraction`, issuerToken).json()).resolves.toMatchObject({
       document_id: accepted.document_id,
-      status: 'ready_for_review',
+      status: 'AWAITING_REVIEW',
       blocks: [expect.objectContaining({ index: 0, text: 'New document', edited: false })],
       is_reviewed: false,
     });
