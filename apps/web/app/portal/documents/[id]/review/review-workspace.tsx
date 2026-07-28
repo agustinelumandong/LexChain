@@ -8,7 +8,7 @@ import DialogContentText from '@mui/material/DialogContentText';
 import DialogTitle from '@mui/material/DialogTitle';
 import Drawer from '@mui/material/Drawer';
 import dynamic from 'next/dynamic';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { getDocumentStatusLabel } from '../../../lib/document-ui';
 import type { ExtractionReview } from '../../../lib/extraction-api';
 
@@ -28,6 +28,11 @@ export type ReviewWorkspaceProps = {
   onApprove: () => Promise<unknown>;
 };
 
+function fitCompareEditor(textarea: HTMLTextAreaElement) {
+  textarea.style.height = 'auto';
+  textarea.style.height = `${textarea.scrollHeight}px`;
+}
+
 export default function ReviewWorkspace({
   review,
   actionError,
@@ -42,6 +47,7 @@ export default function ReviewWorkspace({
   const [mobilePane, setMobilePane] = useState<'source' | 'review'>('review');
   const [drafts, setDrafts] = useState<Record<number, string>>({});
   const [selectedBlockIndex, setSelectedBlockIndex] = useState<number | null>(null);
+  const [hoveredBlockIndex, setHoveredBlockIndex] = useState<number | null>(null);
   const [currentPage, setCurrentPage] = useState(0);
   const [openDrawer, setOpenDrawer] = useState<'issues' | 'info' | null>(null);
   const [approvalOpen, setApprovalOpen] = useState(false);
@@ -51,6 +57,7 @@ export default function ReviewWorkspace({
     sourceBlocks: ExtractionReview['blocks'];
     texts: Record<number, string>;
   } | null>(null);
+  const comparePaneRef = useRef<HTMLElement>(null);
   const acceptedTexts = savedBaseline?.sourceBlocks === review.blocks ? savedBaseline.texts : undefined;
   const edits = review.blocks.flatMap<ApiSchema<'BlockEdit'>>((block) => {
     if (block.editable === false) return [];
@@ -96,6 +103,54 @@ export default function ReviewWorkspace({
     };
   }, [acceptedTexts, drafts, review.blocks]);
 
+  useEffect(() => {
+    if (activeTab !== 'compare') return;
+    comparePaneRef.current?.querySelectorAll<HTMLTextAreaElement>('[data-compare-editor]').forEach(fitCompareEditor);
+  }, [activeTab, currentPage, drafts, mobilePane, review.blocks]);
+
+  function scrollCompareBlockIntoView(blockIndex: number) {
+    const pane = comparePaneRef.current;
+    const block = pane?.querySelector<HTMLElement>(`[data-block-index="${blockIndex}"]`);
+    if (!pane || !block || typeof pane.scrollTo !== 'function') return;
+
+    const paneRect = pane.getBoundingClientRect();
+    const blockRect = block.getBoundingClientRect();
+    const paneHeight = pane.clientHeight || paneRect.height;
+    if (paneHeight <= 0) return;
+
+    pane.scrollTo({
+      behavior: 'smooth',
+      top: Math.max(0, blockRect.top - paneRect.top + pane.scrollTop + blockRect.height / 2 - paneHeight / 2),
+    });
+  }
+
+  function hoverBlock(blockIndex: number | null) {
+    setHoveredBlockIndex(blockIndex);
+  }
+
+  function hoverSourceBlock(blockIndex: number | null) {
+    hoverBlock(blockIndex);
+    if (blockIndex !== null) scrollCompareBlockIntoView(blockIndex);
+  }
+
+  function changeActiveTab(tab: 'compare' | 'raw') {
+    if (tab === activeTab) return;
+    setHoveredBlockIndex(null);
+    setActiveTab(tab);
+  }
+
+  function changeMobilePane(pane: 'source' | 'review') {
+    if (pane === mobilePane) return;
+    setHoveredBlockIndex(null);
+    setMobilePane(pane);
+  }
+
+  function changeCurrentPage(page: number) {
+    if (page === currentPage) return;
+    setHoveredBlockIndex(null);
+    setCurrentPage(page);
+  }
+
   async function saveChanges() {
     if (edits.length === 0) return;
     const savedEdits = edits;
@@ -122,15 +177,12 @@ export default function ReviewWorkspace({
     if (!block) return;
 
     setSelectedBlockIndex(block.index);
-    if (block.page_idx !== null && block.page_idx !== undefined) setCurrentPage(block.page_idx);
+    if (block.page_idx !== null && block.page_idx !== undefined) changeCurrentPage(block.page_idx);
     if (focusEditor && block.editable !== false) {
-      if (activeTab === 'compare' && mobilePane === 'source') setMobilePane('review');
+      if (activeTab === 'compare' && mobilePane === 'source') changeMobilePane('review');
       requestAnimationFrame(() => {
+        if (activeTab === 'compare') scrollCompareBlockIntoView(block.index);
         document.getElementById(`review-block-input-${block.index}`)?.focus();
-        document.getElementById(`review-block-${block.index}`)?.scrollIntoView?.({
-          behavior: 'smooth',
-          block: 'center',
-        });
       });
     }
   }
@@ -153,7 +205,7 @@ export default function ReviewWorkspace({
               role="tab"
               aria-selected={activeTab === tab}
               aria-controls="review-workspace-panel"
-              onClick={() => setActiveTab(tab)}
+              onClick={() => changeActiveTab(tab)}
               className={`border-b-2 px-5 py-3 text-sm font-black ${activeTab === tab ? 'border-[#0985E7] text-[#0985E7]' : 'border-transparent text-[#64748b]'}`}
             >
               {tab === 'compare' ? 'Compare' : 'Raw'}
@@ -191,7 +243,7 @@ export default function ReviewWorkspace({
                   type="button"
                   aria-label={`${pane === 'source' ? 'Source' : 'Review'} pane`}
                   aria-pressed={mobilePane === pane}
-                  onClick={() => setMobilePane(pane)}
+                  onClick={() => changeMobilePane(pane)}
                   className={`rounded-full px-4 py-2 text-sm font-black ${mobilePane === pane ? 'bg-[#0985E7] text-white' : 'border border-[#D7E4F2] text-[#64748b]'}`}
                 >
                   {pane === 'source' ? 'Source' : 'Review'}
@@ -207,25 +259,32 @@ export default function ReviewWorkspace({
                   currentPage={currentPage}
                   blocks={review.blocks}
                   selectedBlockIndex={selectedBlockIndex}
-                  onPageChange={setCurrentPage}
+                  hoveredBlockIndex={hoveredBlockIndex}
+                  onPageChange={changeCurrentPage}
                   onSelectBlock={selectBlock}
+                  onHoverBlockChange={hoverSourceBlock}
                 />
               </section>
 
-              <section aria-label="Reviewed document" className={mobilePane === 'review' ? 'min-w-0 rounded-[18px] border border-[#E8F0F8] bg-white p-5 shadow-[0_4px_12px_rgba(19,59,115,0.05)] md:min-h-0 md:overflow-y-auto' : 'hidden min-w-0 rounded-[18px] border border-[#E8F0F8] bg-white p-5 shadow-[0_4px_12px_rgba(19,59,115,0.05)] md:block md:min-h-0 md:overflow-y-auto'}>
+              <section ref={comparePaneRef} aria-label="Reviewed document" className={mobilePane === 'review' ? 'min-w-0 rounded-[18px] border border-[#E8F0F8] bg-white p-5 shadow-[0_4px_12px_rgba(19,59,115,0.05)] md:min-h-0 md:overflow-y-auto' : 'hidden min-w-0 rounded-[18px] border border-[#E8F0F8] bg-white p-5 shadow-[0_4px_12px_rgba(19,59,115,0.05)] md:block md:min-h-0 md:overflow-y-auto'}>
                 {compareBlocks.map((block) => {
                   const acceptedText = acceptedTexts?.[block.index] ?? block.text;
                   const text = drafts[block.index] ?? acceptedText;
-                  const dirty = drafts[block.index] !== undefined && drafts[block.index] !== acceptedText;
                   const selected = selectedBlockIndex === block.index;
+                  const hovered = hoveredBlockIndex === block.index;
                   const sanitizedTable = sanitizedTables[block.index];
                   return (
                     <section
                       key={block.index}
                       id={`review-block-${block.index}`}
                       data-block-index={block.index}
-                      className={`group rounded-lg px-2 py-1.5 ${selected ? 'bg-[#F5FAFF]' : ''}`}
+                      onMouseEnter={() => hoverBlock(block.index)}
+                      onMouseLeave={() => hoverBlock(null)}
+                      className={`group rounded-lg border px-2 py-1.5 transition-colors ${selected ? 'border-[#0985E7] bg-[#F5FAFF]' : hovered ? 'border-[#98C9F3] bg-[#F8FBFF]' : 'border-[#E8F0F8]'}`}
                     >
+                      <span className="mb-1 block text-[10px] font-black uppercase tracking-wide text-[#64748b]">
+                        {block.type.replace(/[_-]/g, ' ')}
+                      </span>
                       {block.is_html ? (
                         <>
                           {sanitizedTable === undefined && <p className="text-sm text-[#64748b]">Loading table…</p>}
@@ -240,7 +299,7 @@ export default function ReviewWorkspace({
                             type="button"
                             disabled={review.is_reviewed || isApproving || block.editable === false}
                             onClick={() => {
-                              setActiveTab('raw');
+                              changeActiveTab('raw');
                               selectBlock(block.index);
                             }}
                             className="mt-2 text-xs font-black text-[#0985E7] disabled:opacity-40"
@@ -253,12 +312,20 @@ export default function ReviewWorkspace({
                           id={`review-block-input-${block.index}`}
                           aria-label={`Reviewed text for block ${block.index}`}
                           data-selected={selected}
+                          data-compare-editor
                           value={text}
                           rows={block.text_level === 1 ? 1 : Math.max(2, text.split('\n').length)}
                           disabled={review.is_reviewed || isApproving}
-                          onFocus={() => selectBlock(block.index, false)}
-                          onChange={(event) => setDrafts((current) => ({ ...current, [block.index]: event.target.value }))}
-                          className={`w-full resize-y rounded-lg border bg-transparent px-2 py-1.5 leading-7 text-[#0C2B49] outline-none transition-colors hover:border-[#D7E4F2] focus:border-[#0985E7] disabled:resize-none disabled:bg-[#F8FBFF] ${block.text_level === 1 ? 'text-xl font-black' : 'text-sm'} ${dirty || selected ? 'border-[#98C9F3]' : 'border-transparent'}`}
+                          onFocus={() => {
+                            selectBlock(block.index, false);
+                            hoverBlock(block.index);
+                          }}
+                          onBlur={() => hoverBlock(null)}
+                          onChange={(event) => {
+                            setDrafts((current) => ({ ...current, [block.index]: event.target.value }));
+                            fitCompareEditor(event.currentTarget);
+                          }}
+                          className={`field-sizing-content w-full resize-none overflow-hidden rounded-lg border-0 bg-transparent px-2 py-1.5 leading-7 text-[#0C2B49] outline-none ${block.text_level === 1 ? 'text-xl font-black' : 'text-sm'}`}
                         />
                       ) : (
                         <p className="rounded-lg border border-dashed border-[#F5D7A1] bg-[#FFF9EC] px-3 py-2 text-sm text-[#64748b]">
