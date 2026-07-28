@@ -475,6 +475,30 @@ describe('ReviewWorkspace', () => {
     expect((screen.getByRole('button', { name: 'Approve' }) as HTMLButtonElement).disabled).toBe(true);
   });
 
+  it('freezes Compare, Raw, and table editing while approval is pending', () => {
+    const tableBlock: ApiSchema<'ExtractionBlock'> = {
+      ...review.blocks[1],
+      index: 3,
+      text: '<table><tbody><tr><td>Amount</td></tr></tbody></table>',
+      original_text: '<table><tbody><tr><td>Amount</td></tr></tbody></table>',
+      is_html: true,
+    };
+    const { rerender, ...props } = renderWorkspace({ review: { ...review, blocks: [...review.blocks, tableBlock] } });
+    fireEvent.change(screen.getByLabelText('Reviewed text for block 1'), { target: { value: 'Corrected body' } });
+
+    rerender(<ReviewWorkspace {...props} isApproving />);
+
+    expect((screen.getByLabelText('Reviewed text for block 1') as HTMLTextAreaElement).disabled).toBe(true);
+    expect((screen.getByRole('button', { name: 'Edit table in Raw view' }) as HTMLButtonElement).disabled).toBe(true);
+    expect((screen.getByRole('button', { name: 'Save changes' }) as HTMLButtonElement).disabled).toBe(true);
+    expect((screen.getByRole('button', { name: 'Analyze semantic issues' }) as HTMLButtonElement).disabled).toBe(true);
+    expect((screen.getByRole('button', { name: 'Approving reviewed text…' }) as HTMLButtonElement).disabled).toBe(true);
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Raw' }));
+    expect((screen.getByLabelText('Reviewed text for block 1') as HTMLTextAreaElement).disabled).toBe(true);
+    expect((screen.getByLabelText('Reviewed text for block 3') as HTMLTextAreaElement).disabled).toBe(true);
+  });
+
   it('shows the dirty block count beside save', () => {
     renderWorkspace();
     fireEvent.change(screen.getByLabelText('Reviewed text for block 1'), { target: { value: 'Corrected body' } });

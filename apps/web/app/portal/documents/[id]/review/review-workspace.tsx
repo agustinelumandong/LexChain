@@ -234,7 +234,7 @@ export default function ReviewWorkspace({
                           )}
                           <button
                             type="button"
-                            disabled={review.is_reviewed || block.editable === false}
+                            disabled={review.is_reviewed || isApproving || block.editable === false}
                             onClick={() => {
                               setActiveTab('raw');
                               selectBlock(block.index);
@@ -251,7 +251,7 @@ export default function ReviewWorkspace({
                           data-selected={selected}
                           value={text}
                           rows={block.text_level === 1 ? 1 : Math.max(2, text.split('\n').length)}
-                          disabled={review.is_reviewed}
+                          disabled={review.is_reviewed || isApproving}
                           onFocus={() => selectBlock(block.index, false)}
                           onChange={(event) => setDrafts((current) => ({ ...current, [block.index]: event.target.value }))}
                           className={`w-full resize-y rounded-lg border bg-transparent px-2 py-1.5 leading-7 text-[#0C2B49] outline-none transition-colors hover:border-[#D7E4F2] focus:border-[#0985E7] disabled:resize-none disabled:bg-[#F8FBFF] ${block.text_level === 1 ? 'text-xl font-black' : 'text-sm'} ${dirty || selected ? 'border-[#98C9F3]' : 'border-transparent'}`}
@@ -298,7 +298,7 @@ export default function ReviewWorkspace({
                         aria-label={`Reviewed text for block ${block.index}`}
                         value={text}
                         rows={Math.max(3, text.split('\n').length + 1)}
-                        disabled={review.is_reviewed}
+                        disabled={review.is_reviewed || isApproving}
                         onFocus={() => selectBlock(block.index, false)}
                         onChange={(event) => setDrafts((current) => ({ ...current, [block.index]: event.target.value }))}
                         className="mt-1.5 w-full resize-y rounded-xl border border-[#D7E4F2] px-3 py-2.5 font-mono text-sm leading-6 text-[#0C2B49] outline-none focus:border-[#0985E7] disabled:bg-[#F8FBFF]"
