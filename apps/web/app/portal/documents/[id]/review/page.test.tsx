@@ -8,6 +8,14 @@ import ReviewPage from './page';
 
 const extractionMocks = vi.hoisted(() => ({ analyze: vi.fn(), approve: vi.fn(), get: vi.fn(), save: vi.fn() }));
 const navigationMocks = vi.hoisted(() => ({ replace: vi.fn() }));
+const workspaceMocks = vi.hoisted(() => ({
+  props: null as null | {
+    review: ApiSchema<'ExtractionReviewResponse'>;
+    isSaving: boolean;
+    isAnalyzing: boolean;
+    isApproving: boolean;
+  },
+}));
 
 vi.mock('next/navigation', () => ({ useRouter: () => ({ replace: navigationMocks.replace }) }));
 vi.mock('../../../lib/extraction-api', () => ({
@@ -18,25 +26,32 @@ vi.mock('../../../lib/extraction-api', () => ({
 }));
 vi.mock('./review-workspace', () => ({
   default: (props: {
+    review: ApiSchema<'ExtractionReviewResponse'>;
     actionError: string | null;
+    isSaving: boolean;
+    isAnalyzing: boolean;
+    isApproving: boolean;
     onSave: (edits: ApiSchema<'BlockEdit'>[]) => Promise<unknown>;
     onAnalyze: () => Promise<unknown>;
     onApprove: () => Promise<unknown>;
-  }) => (
-    <section aria-label="OCR review workspace">
-      {props.actionError && <p role="alert">{props.actionError}</p>}
-      <button type="button" onClick={() => void props.onSave([{ index: 2, text: 'Corrected OCR output' }]).catch(() => undefined)}>Save workspace changes</button>
-      <button type="button" onClick={() => void props.onAnalyze().catch(() => undefined)}>Analyze workspace changes</button>
-      <button type="button" onClick={() => void props.onApprove().catch(() => undefined)}>Approve workspace changes</button>
-    </section>
-  ),
+  }) => {
+    workspaceMocks.props = props;
+    return (
+      <section aria-label="OCR review workspace">
+        {props.actionError && <p role="alert">{props.actionError}</p>}
+        <button type="button" onClick={() => void props.onSave([{ index: 2, text: 'Corrected OCR output' }]).catch(() => undefined)}>Save workspace changes</button>
+        <button type="button" onClick={() => void props.onAnalyze().catch(() => undefined)}>Analyze workspace changes</button>
+        <button type="button" onClick={() => void props.onApprove().catch(() => undefined)}>Approve workspace changes</button>
+      </section>
+    );
+  },
 }));
 
 type ExtractionReview = ApiSchema<'ExtractionReviewResponse'>;
 type ApproveExtractionResponse = ApiSchema<'ApproveExtractionResponse'>;
 
 const review: ExtractionReview = {
-  document_id: 'doc-1', extraction_id: 'extraction-1', status: 'ready_for_review', file_name: 'Review document.pdf',
+  document_id: 'doc-1', extraction_id: 'extraction-1', status: 'AWAITING_REVIEW', file_name: 'Review document.pdf',
   storage_url: '/mock-documents/review-document.pdf', engine: 'LexChain OCR', page_count: 2, confidence_avg: 0.88,
   blocks: [{ index: 2, editable: true, type: 'text', text: 'OCR output', original_text: '0CR output', bbox: [80, 200, 920, 290], page_idx: 1, text_level: null, score: 0.61, is_html: false, edited: false }],
   flags: [{ block_index: 2, kind: 'low_confidence', severity: 'high', message: 'Check the low-confidence name.', excerpt: '0CR output' }],
@@ -54,19 +69,93 @@ function renderPage() {
   return { invalidate, queryClient };
 }
 
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((finish) => {
+    resolve = finish;
+  });
+  return { promise, resolve };
+}
+
 beforeEach(() => {
+  workspaceMocks.props = null;
   vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json({ role: 'document_issuer' })));
   extractionMocks.get.mockResolvedValue(review);
   extractionMocks.save.mockResolvedValue(review);
   extractionMocks.analyze.mockResolvedValue(review);
   extractionMocks.approve.mockResolvedValue(approval);
 });
-afterEach(() => { cleanup(); vi.clearAllMocks(); vi.unstubAllGlobals(); });
+afterEach(() => {
+  cleanup();
+  workspaceMocks.props = null;
+  vi.clearAllMocks();
+  vi.unstubAllGlobals();
+});
 
 describe('ReviewPage', () => {
   it('renders the compare review workspace for an issuer', async () => {
     renderPage();
     expect(await screen.findByRole('region', { name: 'OCR review workspace' })).toBeTruthy();
+    expect(workspaceMocks.props?.review).toBe(review);
+    expect(workspaceMocks.props).toMatchObject({
+      isSaving: false,
+      isAnalyzing: false,
+      isApproving: false,
+    });
+  });
+
+  it.each(['document_participant', 'auditor'])('keeps the %s role out of issuer review', async (role) => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json({ role })));
+    renderPage();
+
+    expect(await screen.findByRole('heading', { name: 'Review unavailable' })).toBeTruthy();
+    expect(screen.getByText(/only Document Issuers can review extracted text/)).toBeTruthy();
+    expect(screen.queryByRole('region', { name: 'OCR review workspace' })).toBeNull();
+    expect(extractionMocks.get).not.toHaveBeenCalled();
+  });
+
+  it('shows profile loading before checking issuer access', async () => {
+    const profile = deferred<Response>();
+    vi.stubGlobal('fetch', vi.fn().mockReturnValue(profile.promise));
+    renderPage();
+
+    expect(screen.getByText('Loading review access…')).toBeTruthy();
+    expect(extractionMocks.get).not.toHaveBeenCalled();
+
+    await act(async () => profile.resolve(Response.json({ role: 'document_issuer' })));
+    expect(await screen.findByRole('region', { name: 'OCR review workspace' })).toBeTruthy();
+  });
+
+  it('shows profile failures without requesting extraction review', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json({}, { status: 500 })));
+    renderPage();
+
+    expect((await screen.findByRole('alert')).textContent).toContain('Unable to load your review access.');
+    expect(extractionMocks.get).not.toHaveBeenCalled();
+  });
+
+  it('shows a generic extraction failure for an issuer', async () => {
+    extractionMocks.get.mockRejectedValue(new Error('Extraction is not ready.'));
+    renderPage();
+
+    expect((await screen.findByRole('alert')).textContent).toContain('Extraction is not ready.');
+  });
+
+  it.each([
+    ['Save workspace changes', 'save', 'isSaving', review],
+    ['Analyze workspace changes', 'analyze', 'isAnalyzing', review],
+    ['Approve workspace changes', 'approve', 'isApproving', approval],
+  ] as const)('forwards %s pending state to the workspace', async (buttonName, mutation, pendingProp, result) => {
+    const operation = deferred<unknown>();
+    extractionMocks[mutation].mockReturnValue(operation.promise);
+    renderPage();
+    await screen.findByRole('region', { name: 'OCR review workspace' });
+
+    fireEvent.click(screen.getByRole('button', { name: buttonName }));
+
+    await waitFor(() => expect(workspaceMocks.props?.[pendingProp]).toBe(true));
+    await act(async () => operation.resolve(result));
+    await waitFor(() => expect(workspaceMocks.props?.[pendingProp]).toBe(false));
   });
 
   it('replaces cached review flags with the save response before refreshing document data', async () => {
