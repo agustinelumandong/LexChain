@@ -16,7 +16,7 @@ function rowFor(email: string) {
   return within(screen.getByRole("row", { name: new RegExp(email) }));
 }
 
-it("maps only canonical invitation roles and marks every other value unsupported", () => {
+it("maps canonical and backend invitation roles while marking unknown values unsupported", () => {
   render(
     <MockToastProvider>
       <InvitationsManagementView
@@ -34,10 +34,7 @@ it("maps only canonical invitation roles and marks every other value unsupported
 
   expect(rowFor("issuer@example.com").getByText("Document Issuer")).toBeTruthy();
   expect(rowFor("participant@example.com").getByText("Document Participant")).toBeTruthy();
-  for (const email of ["legacy-user@example.com", "legacy-admin@example.com", "unknown@example.com"]) {
-    const row = rowFor(email);
-    expect(row.getByText("Unsupported role")).toBeTruthy();
-    expect(row.queryByText("Document Issuer")).toBeNull();
-    expect(row.queryByText("Document Participant")).toBeNull();
-  }
+  expect(rowFor("legacy-user@example.com").getByText("Document Participant")).toBeTruthy();
+  expect(rowFor("legacy-admin@example.com").getByText("Document Issuer")).toBeTruthy();
+  expect(rowFor("unknown@example.com").getByText("Unsupported role")).toBeTruthy();
 });

@@ -12,16 +12,20 @@ describe("portal UI roles", () => {
     expect(getPortalRoleLabel("document_participant")).toBe("Document Participant");
   });
 
-  it("rejects obsolete roles", () => {
-    for (const obsoleteRole of ["lawyer", "admin", "super_admin", "owner", "user"]) {
-      expect(getPortalUiRole(obsoleteRole)).toBe("unsupported");
-      expect(getPortalRoleLabel(obsoleteRole)).toBe("Unsupported role");
+  it("maps backend account roles to the corresponding portal roles", () => {
+    for (const issuerRole of ["lawyer", "admin", "super_admin"]) {
+      expect(getPortalUiRole(issuerRole)).toBe("issuer");
+      expect(getPortalRoleLabel(issuerRole)).toBe("Document Issuer");
     }
+    expect(getPortalUiRole("user")).toBe("participant");
+    expect(getPortalRoleLabel("user")).toBe("Document Participant");
   });
 
   it("routes each canonical actor to a useful portal destination", () => {
     expect(getPortalLoginRedirect("document_issuer")).toBe("/portal/dashboard");
+    expect(getPortalLoginRedirect("lawyer")).toBe("/portal/dashboard");
     expect(getPortalLoginRedirect("document_participant")).toBe("/portal/documents");
+    expect(getPortalLoginRedirect("user")).toBe("/portal/documents");
     expect(getPortalLoginRedirect("staff")).toBeUndefined();
   });
 

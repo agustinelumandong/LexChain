@@ -56,9 +56,27 @@ describe("unified auth session cookies", () => {
     expect(response.cookies.get("issuer_token")?.value).toBe("issuer-token");
   });
 
+  it("uses the role returned by sign-in when the profile endpoint is unavailable", async () => {
+    vi.stubEnv("USE_MOCK_API", "false");
+    vi.stubEnv("API_URL", "https://api.lexchain.test");
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({
+      access_token: "issuer-token",
+      user: { id: "lawyer-1", email: "lawyer@lexchain.com", role: "lawyer" },
+    }), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+    const { POST } = await import("./route");
+
+    const response = await POST(credentials("lawyer@lexchain.com"));
+
+    expect(response.status).toBe(200);
+    expect(response.cookies.get("issuer_token")?.value).toBe("issuer-token");
+    await expect(response.json()).resolves.toMatchObject({
+      user: { email: "lawyer@lexchain.com", role: "lawyer" },
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
   it.each([
-    ["legacy lawyer", "lawyer"],
-    ["legacy admin", "admin"],
     ["legacy user", "user"],
     ["canonical participant", "document_participant"],
     ["unknown", "staff"],
