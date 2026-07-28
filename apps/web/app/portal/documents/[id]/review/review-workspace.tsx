@@ -273,7 +273,7 @@ export default function ReviewWorkspace({
             </div>
           </div>
         ) : (
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-4 md:min-h-0 md:flex-1 md:overflow-y-auto">
             {review.blocks.map((block) => {
               const text = drafts[block.index] ?? acceptedTexts?.[block.index] ?? block.text;
               return (

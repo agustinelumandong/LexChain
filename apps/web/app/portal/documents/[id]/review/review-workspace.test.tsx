@@ -218,6 +218,15 @@ describe('ReviewWorkspace', () => {
     expect(reviewPane.getAttribute('aria-pressed')).toBe('false');
   });
 
+  it('keeps Raw content independently scrollable on desktop', () => {
+    renderWorkspace();
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Raw' }));
+
+    expect(screen.getByRole('tabpanel').firstElementChild?.className).toContain('md:min-h-0');
+    expect(screen.getByRole('tabpanel').firstElementChild?.className).toContain('md:overflow-y-auto');
+  });
+
   it('preserves the draft and selected block when switching mobile panes', () => {
     renderWorkspace();
 
