@@ -8,7 +8,6 @@ describe("portal navigation", () => {
 
     expect(navigation.map((group) => group.label)).toEqual([
       "Workspace",
-      "Integrity",
       "Office",
       "System Management",
       "Account",
@@ -16,7 +15,7 @@ describe("portal navigation", () => {
     expect(navigation.flatMap((group) => group.items).map((item) => item.href)).not.toContain("/admin");
   });
 
-  it("includes the five system management routes for every issuer", () => {
+  it("includes the three system management routes for every issuer", () => {
     const managementItems = getPortalNavigation("issuer").find(
       (group) => group.label === "System Management",
     )?.items;
@@ -24,19 +23,14 @@ describe("portal navigation", () => {
     expect(managementItems?.map(({ label, href }) => [label, href])).toEqual([
       ["User Accounts", "/portal/users"],
       ["Issuer Invitations", "/portal/issuer-invitations"],
-      ["System Reports", "/portal/system-reports"],
       ["Audit Logs", "/portal/audit-logs"],
-      ["System Statistics", "/portal/system-statistics"],
     ]);
   });
 
   it.each([
     ["/portal/dashboard", "Dashboard"],
     ["/portal/documents", "Documents"],
-    ["/portal/processing", "Processing Monitor"],
-    ["/portal/blockchain-records", "Blockchain Records"],
     ["/portal/categories", "Categories"],
-    ["/portal/analytics", "Analytics"],
     ["/portal/reports", "Reports"],
     ["/portal/upload", "Upload Document"],
     ["/portal/office-settings", "Office Settings"],

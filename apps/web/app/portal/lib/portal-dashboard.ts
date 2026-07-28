@@ -38,17 +38,9 @@ export function getPortalNavigation(role: PortalUiRole): PortalNavigationGroup[]
         ],
       },
       {
-        label: "Integrity",
-        items: [
-          { label: "Processing Monitor", href: "/portal/processing" },
-          { label: "Blockchain Records", href: "/portal/blockchain-records" },
-        ],
-      },
-      {
         label: "Office",
         items: [
           { label: "Categories", href: "/portal/categories" },
-          { label: "Analytics", href: "/portal/analytics" },
           { label: "Reports", href: "/portal/reports" },
         ],
       },
@@ -57,9 +49,7 @@ export function getPortalNavigation(role: PortalUiRole): PortalNavigationGroup[]
         items: [
           { label: "User Accounts", href: "/portal/users" },
           { label: "Issuer Invitations", href: "/portal/issuer-invitations" },
-          { label: "System Reports", href: "/portal/system-reports" },
           { label: "Audit Logs", href: "/portal/audit-logs" },
-          { label: "System Statistics", href: "/portal/system-statistics" },
         ],
       },
       {
@@ -95,14 +85,13 @@ export function getDashboardMetrics(documents: PortalDocument[]): DashboardMetri
       return status === "PROCESSING" || status === "PENDING";
     },
   ).length;
-  const ready = documents.filter((document) => {
-    const status = document.status?.trim().toUpperCase();
-    return status === "COMPLETED" || status === "ANCHORED";
-  }).length;
+  const failed = documents.filter(
+    (document) => document.status?.trim().toUpperCase() === "FAILED",
+  ).length;
   const metrics: DashboardMetric[] = [
     ["Total Documents", documents.length],
     ["Processing", processing],
-    ["Ready Documents", ready],
+    ["Failed Documents", failed],
   ];
 
   if (documents.some((document) => typeof document.on_chain === "boolean")) {
