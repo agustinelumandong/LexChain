@@ -2861,7 +2861,13 @@
           "index": {
             "type": "integer",
             "title": "Index",
-            "description": "Position of the block in the document"
+            "description": "Stable id and reading order; use it when sending edits"
+          },
+          "editable": {
+            "type": "boolean",
+            "title": "Editable",
+            "description": "False for figures, seals and signatures — outline them on the page but they cannot be edited and are excluded from the approved text",
+            "default": true
           },
           "type": {
             "type": "string",
@@ -2892,7 +2898,7 @@
               }
             ],
             "title": "Bbox",
-            "description": "[x0, y0, x1, y1] on the page, if the engine reports layout"
+            "description": "[x0, y0, x1, y1] normalized to a 0-1000 box per page. Both axes are scaled independently, so page aspect ratio is NOT preserved: map with x/1000*renderedWidth and y/1000*renderedHeight separately. Null for engines that report no layout."
           },
           "page_idx": {
             "anyOf": [
@@ -3014,6 +3020,16 @@
             "title": "Status",
             "description": "Document processing status"
           },
+          "file_name": {
+            "type": "string",
+            "title": "File Name",
+            "description": "Display name of the document"
+          },
+          "storage_url": {
+            "type": "string",
+            "title": "Storage Url",
+            "description": "URL of the source PDF, for rendering pages behind the blocks"
+          },
           "engine": {
             "type": "string",
             "title": "Engine"
@@ -3093,6 +3109,8 @@
           "document_id",
           "extraction_id",
           "status",
+          "file_name",
+          "storage_url",
           "engine",
           "page_count",
           "blocks",

@@ -1148,9 +1148,15 @@ export interface components {
         ExtractionBlock: {
             /**
              * Index
-             * @description Position of the block in the document
+             * @description Stable id and reading order; use it when sending edits
              */
             index: number;
+            /**
+             * Editable
+             * @description False for figures, seals and signatures — outline them on the page but they cannot be edited and are excluded from the approved text
+             * @default true
+             */
+            editable: boolean;
             /**
              * Type
              * @description Block type reported by the OCR engine
@@ -1169,7 +1175,7 @@ export interface components {
             original_text: string;
             /**
              * Bbox
-             * @description [x0, y0, x1, y1] on the page, if the engine reports layout
+             * @description [x0, y0, x1, y1] normalized to a 0-1000 box per page. Both axes are scaled independently, so page aspect ratio is NOT preserved: map with x/1000*renderedWidth and y/1000*renderedHeight separately. Null for engines that report no layout.
              */
             bbox?: number[] | null;
             /**
@@ -1252,6 +1258,16 @@ export interface components {
              * @description Document processing status
              */
             status: string;
+            /**
+             * File Name
+             * @description Display name of the document
+             */
+            file_name: string;
+            /**
+             * Storage Url
+             * @description URL of the source PDF, for rendering pages behind the blocks
+             */
+            storage_url: string;
             /** Engine */
             engine: string;
             /** Page Count */
