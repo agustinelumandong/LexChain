@@ -72,6 +72,21 @@ it('rejects mock upload titles that cannot form one safe PDF path segment', asyn
   expect(response.status).toBe(400);
 });
 
+it('rejects an overlong upload title before it can create an unreachable storage URL', async () => {
+  const before = await mockPortalGet(
+    '/documents/',
+    'mock-token:mock-document-issuer',
+  ).json() as Array<{ storage_url: string }>;
+  const response = await uploadMockDocument('a'.repeat(252));
+  const after = await mockPortalGet(
+    '/documents/',
+    'mock-token:mock-document-issuer',
+  ).json() as Array<{ storage_url: string }>;
+
+  expect(response.status).toBe(400);
+  expect(after).toHaveLength(before.length);
+});
+
 it('keeps an extensionless mock version title behind a PDF storage URL', async () => {
   const upload = await uploadMockDocument('Draft record.pdf');
   const { document_id: documentId } = await upload.json() as { document_id: string };
@@ -95,6 +110,26 @@ it('keeps an extensionless mock version title behind a PDF storage URL', async (
     contextFor(detail.storage_url),
   );
   expect(response.status).toBe(200);
+});
+
+it('rejects an overlong version title without appending an unreachable version', async () => {
+  const upload = await uploadMockDocument('Version boundary.pdf');
+  const { document_id: documentId } = await upload.json() as { document_id: string };
+  const form = new FormData();
+  form.append('file', new File(['PDF'], 'updated.pdf', { type: 'application/pdf' }));
+  const response = await mockPortalMutate(
+    'POST',
+    `/documents/${documentId}/update?file_name=${encodeURIComponent('b'.repeat(252))}`,
+    new Request('http://localhost/api/portal/proxy-post', { method: 'POST', body: form }),
+    'mock-token:mock-document-issuer',
+  );
+  const history = await mockPortalGet(
+    `/documents/${documentId}/versions`,
+    'mock-token:mock-document-issuer',
+  ).json() as { total_version: number };
+
+  expect(response.status).toBe(400);
+  expect(history.total_version).toBe(1);
 });
 
 it.each([
