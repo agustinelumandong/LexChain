@@ -1094,6 +1094,26 @@ export interface components {
              */
             document_id: string;
             /**
+             * File Name
+             * @description Display name of the document
+             */
+            file_name?: string | null;
+            /**
+             * Storage Url
+             * @description URL of the document as it stands now, for rendering pages
+             */
+            storage_url?: string | null;
+            /**
+             * Page Count
+             * @description Pages in the current document
+             */
+            page_count?: number | null;
+            /**
+             * Blocks
+             * @description The document as it stands NOW, same shape as the review screen so the same viewer can render it. Tampered blocks are the ones whose index appears as `block_index` in tamper_report.segments.
+             */
+            blocks?: components["schemas"]["ExtractionBlock"][];
+            /**
              * Status
              * @description AUTHENTIC — current text matches the chain; TAMPERED — it does not; SNAPSHOT_COMPROMISED — the stored original was altered too, so no trustworthy baseline exists to diff against; NOT_ANCHORED — the document was never finalized; VERIFICATION_UNAVAILABLE — the document could not be re-read, so integrity is unknown (this is not a tamper result)
              */
@@ -1635,6 +1655,12 @@ export interface components {
              * @description 0-1 similarity between attested and current text
              */
             similarity: number;
+            /**
+             * Localized
+             * @description True when segments carry page coordinates. False for documents finalized before block layout was stored — the diff is then text-only and bbox/page_idx are null
+             * @default true
+             */
+            localized: boolean;
         };
         /**
          * TamperedSegment
@@ -1674,6 +1700,26 @@ export interface components {
             current_line_start: number;
             /** Current Line End */
             current_line_end: number;
+            /**
+             * Block Index
+             * @description Block this change sits in, in the CURRENT document
+             */
+            block_index?: number | null;
+            /**
+             * Original Block Index
+             * @description Block it occupied in the attested original
+             */
+            original_block_index?: number | null;
+            /**
+             * Page Idx
+             * @description Zero-based page of the change
+             */
+            page_idx?: number | null;
+            /**
+             * Bbox
+             * @description [x0, y0, x1, y1] normalized 0-1000 per page, same convention as the review screen — outline this region to show what was altered
+             */
+            bbox?: number[] | null;
             /**
              * Word Diff
              * @description Word-level ops for highlighting the exact edit

@@ -2727,6 +2727,50 @@
             "format": "uuid",
             "title": "Document Id"
           },
+          "file_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "File Name",
+            "description": "Display name of the document"
+          },
+          "storage_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Storage Url",
+            "description": "URL of the document as it stands now, for rendering pages"
+          },
+          "page_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Page Count",
+            "description": "Pages in the current document"
+          },
+          "blocks": {
+            "items": {
+              "$ref": "#/components/schemas/ExtractionBlock"
+            },
+            "type": "array",
+            "title": "Blocks",
+            "description": "The document as it stands NOW, same shape as the review screen so the same viewer can render it. Tampered blocks are the ones whose index appears as `block_index` in tamper_report.segments."
+          },
           "status": {
             "type": "string",
             "title": "Status",
@@ -3721,6 +3765,12 @@
             "type": "number",
             "title": "Similarity",
             "description": "0-1 similarity between attested and current text"
+          },
+          "localized": {
+            "type": "boolean",
+            "title": "Localized",
+            "description": "True when segments carry page coordinates. False for documents finalized before block layout was stored — the diff is then text-only and bbox/page_idx are null",
+            "default": true
           }
         },
         "type": "object",
@@ -3777,6 +3827,57 @@
           "current_line_end": {
             "type": "integer",
             "title": "Current Line End"
+          },
+          "block_index": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Block Index",
+            "description": "Block this change sits in, in the CURRENT document"
+          },
+          "original_block_index": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Original Block Index",
+            "description": "Block it occupied in the attested original"
+          },
+          "page_idx": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Page Idx",
+            "description": "Zero-based page of the change"
+          },
+          "bbox": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "number"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bbox",
+            "description": "[x0, y0, x1, y1] normalized 0-1000 per page, same convention as the review screen — outline this region to show what was altered"
           },
           "word_diff": {
             "items": {
