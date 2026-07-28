@@ -38,11 +38,23 @@ async function createBook(payload: BookCreateRequest): Promise<Book> {
   return response.json();
 }
 
+async function deleteBook(bookId: string) {
+  const response = await fetch(`/api/portal/proxy-post?path=${encodeURIComponent(`/books/${bookId}`)}`, {
+    method: 'DELETE',
+    credentials: 'same-origin',
+  });
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.detail ?? error.message ?? 'Unable to delete book');
+  }
+}
+
 export default function BooksPage() {
   const queryClient = useQueryClient();
   const [bookNumber, setBookNumber] = useState('');
   const [seriesYear, setSeriesYear] = useState(String(new Date().getFullYear()));
   const [isRegistering, setIsRegistering] = useState(false);
+  const [selectedBookId, setSelectedBookId] = useState<string>();
 
   const profileQuery = useQuery<UserProfile | null>({
     queryKey: ['portal-profile'],
@@ -63,6 +75,19 @@ export default function BooksPage() {
       toast.success('Register book created');
     },
   });
+  const bookDetailQuery = useQuery<Book>({
+    queryKey: ['portal-book', selectedBookId],
+    queryFn: () => portalGet(`/books/${selectedBookId}`),
+    enabled: Boolean(selectedBookId),
+  });
+  const deleteBookMutation = useMutation({
+    mutationFn: deleteBook,
+    onSuccess: async () => {
+      setSelectedBookId(undefined);
+      await queryClient.invalidateQueries({ queryKey: ['portal-books'] });
+      toast.success('Book deleted');
+    },
+  });
 
   const parsedBookNumber = Number(bookNumber);
   const parsedSeriesYear = Number(seriesYear);
@@ -76,6 +101,12 @@ export default function BooksPage() {
     event.preventDefault();
     if (!isIssuer || !canSubmit) return;
     createBookMutation.mutate({ book_number: parsedBookNumber, series_year: parsedSeriesYear });
+  }
+
+  function handleDelete(book: Book) {
+    if (window.confirm(`Delete Book ${book.book_number}? This permanently deletes the book and all its documents.`)) {
+      deleteBookMutation.mutate(book.id);
+    }
   }
 
   if (profileQuery.isPending) {
@@ -93,6 +124,7 @@ export default function BooksPage() {
 
   const books = booksQuery.data ?? [];
   const error = createBookMutation.error instanceof Error ? createBookMutation.error.message : null;
+  const deleteError = deleteBookMutation.error instanceof Error ? deleteBookMutation.error.message : null;
 
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-6">
@@ -132,6 +164,12 @@ export default function BooksPage() {
         </form>
       )}
 
+      {selectedBookId && (
+        <section className={`${cardClass} p-5`}>
+          {bookDetailQuery.isLoading ? <p className="text-sm text-[#64748b]">Loading book details…</p> : bookDetailQuery.isError ? <p role="alert" className="text-sm font-bold text-red-600">Unable to load book details.</p> : bookDetailQuery.data && <><h2 className="text-base font-black text-[#0C2B49]">Book details</h2><p className="mt-1 text-sm text-[#64748b]">Created {new Date(bookDetailQuery.data.created_at).toLocaleDateString('en-US', { dateStyle: 'medium' })}</p>{bookDetailQuery.data.updated_at && <p className="mt-1 text-sm text-[#64748b]">Last updated {new Date(bookDetailQuery.data.updated_at).toLocaleDateString('en-US', { dateStyle: 'medium' })}</p>}</>}
+        </section>
+      )}
+
       {booksQuery.isLoading ? (
         <div className={`${cardClass} p-8 text-center text-sm font-semibold text-[#64748b]`}>Loading books…</div>
       ) : booksQuery.isError ? (
@@ -159,11 +197,16 @@ export default function BooksPage() {
                 <div><p className="text-xl font-black text-[#0C2B49]">{book.document_count}</p><p className="text-xs font-medium text-[#64748b]">Documents</p></div>
                 <div><p className="text-xl font-black text-[#0C2B49]">{book.page_count}</p><p className="text-xs font-medium text-[#64748b]">Pages</p></div>
               </div>
+              <div className="mt-4 flex flex-wrap gap-2">
+                <button type="button" onClick={() => setSelectedBookId(book.id)} className="rounded-full border border-[#D7E4F2] px-3 py-1.5 text-sm font-bold text-[#0C2B49]" aria-label={`View details for Book ${book.book_number}`}>Details</button>
+                <button type="button" onClick={() => handleDelete(book)} disabled={deleteBookMutation.isPending} className="rounded-full border border-red-200 px-3 py-1.5 text-sm font-bold text-red-600 disabled:opacity-40" aria-label={`Delete Book ${book.book_number}`}>{deleteBookMutation.isPending ? 'Deleting…' : 'Delete'}</button>
+              </div>
               <p className="mt-4 truncate text-[11px] font-semibold text-[#A0AAB8]" title={book.id}>ID: {book.id}</p>
             </article>
           ))}
         </div>
       )}
+      {deleteError && <p role="alert" className="text-sm font-bold text-red-600">{deleteError}</p>}
     </div>
   );
 }
