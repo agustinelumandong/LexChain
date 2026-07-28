@@ -1128,6 +1128,61 @@
         }
       }
     },
+    "/documents/{document_id}/verify": {
+      "get": {
+        "tags": [
+          "Documents"
+        ],
+        "summary": "Verify a document and show what was tampered with",
+        "description": "Re-extracts the document as it is stored now, hashes it, and compares against the hash anchored on-chain. The verdict is computed server-side.\n\nIf it does not match, the stored original is first re-verified against the chain so the comparison baseline is provably genuine, then the two are diffed and the changed sections are returned with severity — changes to amounts and figures rank `critical`. Each section carries a word-level breakdown so the exact edit can be highlighted.\n\nIf the stored original was altered too, the response says so rather than diffing against a doctored baseline.",
+        "operationId": "verify_document_documents__document_id__verify_get",
+        "security": [
+          {
+            "Bearer Token": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "document_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Document Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Verification result, with a tamper report when applicable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentVerificationResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated — missing or invalid bearer token"
+          },
+          "404": {
+            "description": "Document not found, or it has no on-chain record"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/documents/{document_id}/finalize": {
       "post": {
         "tags": [
@@ -1370,8 +1425,8 @@
               }
             }
           },
-          "401": {
-            "description": "Not admin"
+          "403": {
+            "description": "Not a lawyer"
           }
         },
         "security": [
@@ -1399,8 +1454,8 @@
               }
             }
           },
-          "401": {
-            "description": "Not admin"
+          "403": {
+            "description": "Not a lawyer"
           }
         },
         "security": [
@@ -1428,8 +1483,8 @@
               }
             }
           },
-          "401": {
-            "description": "Not admin"
+          "403": {
+            "description": "Not a lawyer"
           }
         },
         "security": [
@@ -1469,8 +1524,8 @@
           "400": {
             "description": "Invitation already exists"
           },
-          "401": {
-            "description": "Not admin"
+          "403": {
+            "description": "Not a lawyer"
           },
           "422": {
             "description": "Validation Error",
@@ -1518,53 +1573,11 @@
           "204": {
             "description": "Revoked"
           },
-          "401": {
-            "description": "Not admin"
+          "403": {
+            "description": "Not a lawyer"
           },
           "404": {
             "description": "Not found"
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/public/verify": {
-      "post": {
-        "tags": [
-          "Public"
-        ],
-        "summary": "Public document verifier",
-        "description": "Upload a PDF to verify if it matches a document recorded on-chain in the system.\n    - No authentication required.\n    - Extracts text via OCR, hashes it, and compares against the database.\n    - If no exact text match, falls back to semantic similarity search.\n    - Returns on-chain status (tx hash, notary address, timestamp) when found.",
-        "operationId": "verify_public_public_verify_post",
-        "requestBody": {
-          "content": {
-            "multipart/form-data": {
-              "schema": {
-                "$ref": "#/components/schemas/Body_verify_public_public_verify_post"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Verification result",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PublicVerifyResponse"
-                }
-              }
-            }
           },
           "422": {
             "description": "Validation Error",
@@ -2217,20 +2230,6 @@
         ],
         "title": "Body_upload_document_documents_upload_post"
       },
-      "Body_verify_public_public_verify_post": {
-        "properties": {
-          "file": {
-            "type": "string",
-            "contentMediaType": "application/octet-stream",
-            "title": "File"
-          }
-        },
-        "type": "object",
-        "required": [
-          "file"
-        ],
-        "title": "Body_verify_public_public_verify_post"
-      },
       "BookCreateRequest": {
         "properties": {
           "book_number": {
@@ -2721,6 +2720,142 @@
         "title": "DocumentUploadResponse",
         "description": ""
       },
+      "DocumentVerificationResponse": {
+        "properties": {
+          "document_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Document Id"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "description": "AUTHENTIC — current text matches the chain; TAMPERED — it does not; SNAPSHOT_COMPROMISED — the stored original was altered too, so no trustworthy baseline exists to diff against; NOT_ANCHORED — the document was never finalized; VERIFICATION_UNAVAILABLE — the document could not be re-read, so integrity is unknown (this is not a tamper result)"
+          },
+          "is_authentic": {
+            "type": "boolean",
+            "title": "Is Authentic"
+          },
+          "baseline_trusted": {
+            "type": "boolean",
+            "title": "Baseline Trusted",
+            "description": "Whether the stored original still matches the chain"
+          },
+          "onchain_hash": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Onchain Hash",
+            "description": "Hash read back from the chain"
+          },
+          "snapshot_hash": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Hash",
+            "description": "Hash of the stored original"
+          },
+          "current_hash": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current Hash",
+            "description": "Hash of the document as it is now"
+          },
+          "tx_hash": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tx Hash"
+          },
+          "onchain_timestamp": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Onchain Timestamp"
+          },
+          "issued_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Issued By"
+          },
+          "finalized_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finalized At"
+          },
+          "verified_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Verified At"
+          },
+          "tamper_report": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TamperReport"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Present only when tampering was detected and localizable"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "description": "Human-readable verdict"
+          }
+        },
+        "type": "object",
+        "required": [
+          "document_id",
+          "status",
+          "is_authentic",
+          "baseline_trusted",
+          "verified_at",
+          "message"
+        ],
+        "title": "DocumentVerificationResponse",
+        "description": "Result of verifying a finalized document against its on-chain anchor.\n\n`status` is decided server-side by recomputing the hash — never by the\nclient — and `baseline_trusted` says whether the stored original could\nitself be proven genuine before being used as the diff baseline."
+      },
       "ExtractionBlock": {
         "properties": {
           "index": {
@@ -3206,85 +3341,6 @@
         ],
         "title": "NotificationType"
       },
-      "PublicVerifyResponse": {
-        "properties": {
-          "status": {
-            "type": "string",
-            "title": "Status"
-          },
-          "confidence": {
-            "type": "number",
-            "title": "Confidence"
-          },
-          "file_name": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "File Name"
-          },
-          "storage_url": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Storage Url"
-          },
-          "recorded_at": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Recorded At"
-          },
-          "recorded_by": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Recorded By"
-          },
-          "tx_hash": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Tx Hash"
-          },
-          "matched_at": {
-            "type": "string",
-            "format": "date-time",
-            "title": "Matched At"
-          }
-        },
-        "type": "object",
-        "required": [
-          "status",
-          "confidence",
-          "matched_at"
-        ],
-        "title": "PublicVerifyResponse"
-      },
       "RecordResponse": {
         "properties": {
           "document_id": {
@@ -3492,10 +3548,8 @@
             "description": "Token expiration time in seconds"
           },
           "user": {
-            "additionalProperties": true,
-            "type": "object",
-            "title": "User",
-            "description": "User information from Supabase"
+            "$ref": "#/components/schemas/SignInUser",
+            "description": "The signed-in user"
           }
         },
         "type": "object",
@@ -3506,6 +3560,35 @@
           "user"
         ],
         "title": "SignInResponse"
+      },
+      "SignInUser": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id",
+            "description": "Local database user ID"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "title": "Email",
+            "description": "User's email address"
+          },
+          "role": {
+            "type": "string",
+            "title": "Role",
+            "description": "lawyer — full authority (upload, review, finalize, admin panel); user — client, may only view documents they are a party to. Legacy accounts may report 'admin' or 'super_admin', which are treated exactly as 'lawyer'."
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "email",
+          "role"
+        ],
+        "title": "SignInUser",
+        "description": "The signed-in user, as the client needs it."
       },
       "SignUpRequest": {
         "properties": {
@@ -3586,6 +3669,120 @@
           "requires_email_confirmation"
         ],
         "title": "SignUpResponse"
+      },
+      "TamperReport": {
+        "properties": {
+          "segments": {
+            "items": {
+              "$ref": "#/components/schemas/TamperedSegment"
+            },
+            "type": "array",
+            "title": "Segments"
+          },
+          "total_changes": {
+            "type": "integer",
+            "title": "Total Changes"
+          },
+          "critical_changes": {
+            "type": "integer",
+            "title": "Critical Changes"
+          },
+          "replaced": {
+            "type": "integer",
+            "title": "Replaced"
+          },
+          "inserted": {
+            "type": "integer",
+            "title": "Inserted"
+          },
+          "deleted": {
+            "type": "integer",
+            "title": "Deleted"
+          },
+          "similarity": {
+            "type": "number",
+            "title": "Similarity",
+            "description": "0-1 similarity between attested and current text"
+          }
+        },
+        "type": "object",
+        "required": [
+          "total_changes",
+          "critical_changes",
+          "replaced",
+          "inserted",
+          "deleted",
+          "similarity"
+        ],
+        "title": "TamperReport",
+        "description": "Summary of everything that differs from the attested text."
+      },
+      "TamperedSegment": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "title": "Type",
+            "description": "replace | insert | delete"
+          },
+          "severity": {
+            "type": "string",
+            "title": "Severity",
+            "description": "critical (money/figures) | major (dates, references) | minor (wording)"
+          },
+          "reason": {
+            "type": "string",
+            "title": "Reason",
+            "description": "What changed, in plain terms"
+          },
+          "original_text": {
+            "type": "string",
+            "title": "Original Text",
+            "description": "Text as attested on-chain"
+          },
+          "current_text": {
+            "type": "string",
+            "title": "Current Text",
+            "description": "Text as it stands now"
+          },
+          "original_line_start": {
+            "type": "integer",
+            "title": "Original Line Start"
+          },
+          "original_line_end": {
+            "type": "integer",
+            "title": "Original Line End"
+          },
+          "current_line_start": {
+            "type": "integer",
+            "title": "Current Line Start"
+          },
+          "current_line_end": {
+            "type": "integer",
+            "title": "Current Line End"
+          },
+          "word_diff": {
+            "items": {
+              "$ref": "#/components/schemas/WordDiffPart"
+            },
+            "type": "array",
+            "title": "Word Diff",
+            "description": "Word-level ops for highlighting the exact edit"
+          }
+        },
+        "type": "object",
+        "required": [
+          "type",
+          "severity",
+          "reason",
+          "original_text",
+          "current_text",
+          "original_line_start",
+          "original_line_end",
+          "current_line_start",
+          "current_line_end"
+        ],
+        "title": "TamperedSegment",
+        "description": "One part of the document that no longer matches what was attested."
       },
       "UnreadCountResponse": {
         "properties": {
@@ -3845,6 +4042,26 @@
         ],
         "title": "VersionHistoryResponse",
         "description": "The full version chain for a document"
+      },
+      "WordDiffPart": {
+        "properties": {
+          "op": {
+            "type": "string",
+            "title": "Op",
+            "description": "equal | added | removed"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          }
+        },
+        "type": "object",
+        "required": [
+          "op",
+          "text"
+        ],
+        "title": "WordDiffPart",
+        "description": "A run of words inside a changed segment, for inline highlighting."
       }
     },
     "securitySchemes": {

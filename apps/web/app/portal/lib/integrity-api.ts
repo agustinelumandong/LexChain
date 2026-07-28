@@ -1,6 +1,6 @@
 import type { components } from '@lexchain/types';
 
-type OnChainVerification = components['schemas']['OnChainVerificationResponse'];
+type DocumentVerification = components['schemas']['DocumentVerificationResponse'];
 
 async function integrityFetch<T>(path: string, method: 'GET' | 'POST' = 'GET'): Promise<T> {
   const response = await fetch(path, {
@@ -14,5 +14,5 @@ async function integrityFetch<T>(path: string, method: 'GET' | 'POST' = 'GET'): 
 }
 
 export function verifyRepositoryDocument(documentId: string) {
-  return integrityFetch<OnChainVerification>(`/api/portal/blockchain/verify/${documentId}`);
+  return integrityFetch<DocumentVerification>(`/api/portal/proxy?path=${encodeURIComponent(`/documents/${documentId}/verify`)}`);
 }

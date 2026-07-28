@@ -344,6 +344,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/documents/{document_id}/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Verify a document and show what was tampered with
+         * @description Re-extracts the document as it is stored now, hashes it, and compares against the hash anchored on-chain. The verdict is computed server-side.
+         *
+         *     If it does not match, the stored original is first re-verified against the chain so the comparison baseline is provably genuine, then the two are diffed and the changed sections are returned with severity — changes to amounts and figures rank `critical`. Each section carries a word-level breakdown so the exact edit can be highlighted.
+         *
+         *     If the stored original was altered too, the response says so rather than diffing against a doctored baseline.
+         */
+        get: operations["verify_document_documents__document_id__verify_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/documents/{document_id}/finalize": {
         parameters: {
             query?: never;
@@ -482,30 +506,6 @@ export interface paths {
         post?: never;
         /** Revoke an invitation */
         delete: operations["revoke_invitation_admin_invitations__invitation_id__delete"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/public/verify": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Public document verifier
-         * @description Upload a PDF to verify if it matches a document recorded on-chain in the system.
-         *         - No authentication required.
-         *         - Extracts text via OCR, hashes it, and compares against the database.
-         *         - If no exact text match, falls back to semantic similarity search.
-         *         - Returns on-chain status (tx hash, notary address, timestamp) when found.
-         */
-        post: operations["verify_public_public_verify_post"];
-        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -745,11 +745,6 @@ export interface components {
         };
         /** Body_upload_document_documents_upload_post */
         Body_upload_document_documents_upload_post: {
-            /** File */
-            file: string;
-        };
-        /** Body_verify_public_public_verify_post */
-        Body_verify_public_public_verify_post: {
             /** File */
             file: string;
         };
@@ -1085,6 +1080,68 @@ export interface components {
             created_at: string;
         };
         /**
+         * DocumentVerificationResponse
+         * @description Result of verifying a finalized document against its on-chain anchor.
+         *
+         *     `status` is decided server-side by recomputing the hash — never by the
+         *     client — and `baseline_trusted` says whether the stored original could
+         *     itself be proven genuine before being used as the diff baseline.
+         */
+        DocumentVerificationResponse: {
+            /**
+             * Document Id
+             * Format: uuid
+             */
+            document_id: string;
+            /**
+             * Status
+             * @description AUTHENTIC — current text matches the chain; TAMPERED — it does not; SNAPSHOT_COMPROMISED — the stored original was altered too, so no trustworthy baseline exists to diff against; NOT_ANCHORED — the document was never finalized; VERIFICATION_UNAVAILABLE — the document could not be re-read, so integrity is unknown (this is not a tamper result)
+             */
+            status: string;
+            /** Is Authentic */
+            is_authentic: boolean;
+            /**
+             * Baseline Trusted
+             * @description Whether the stored original still matches the chain
+             */
+            baseline_trusted: boolean;
+            /**
+             * Onchain Hash
+             * @description Hash read back from the chain
+             */
+            onchain_hash?: string | null;
+            /**
+             * Snapshot Hash
+             * @description Hash of the stored original
+             */
+            snapshot_hash?: string | null;
+            /**
+             * Current Hash
+             * @description Hash of the document as it is now
+             */
+            current_hash?: string | null;
+            /** Tx Hash */
+            tx_hash?: string | null;
+            /** Onchain Timestamp */
+            onchain_timestamp?: number | null;
+            /** Issued By */
+            issued_by?: string | null;
+            /** Finalized At */
+            finalized_at?: string | null;
+            /**
+             * Verified At
+             * Format: date-time
+             */
+            verified_at: string;
+            /** @description Present only when tampering was detected and localizable */
+            tamper_report?: components["schemas"]["TamperReport"] | null;
+            /**
+             * Message
+             * @description Human-readable verdict
+             */
+            message: string;
+        };
+        /**
          * ExtractionBlock
          * @description One reviewable piece of the document.
          */
@@ -1327,28 +1384,6 @@ export interface components {
          * @enum {string}
          */
         NotificationType: "party_added" | "party_removed" | "document_recorded" | "document_processed" | "document_failed";
-        /** PublicVerifyResponse */
-        PublicVerifyResponse: {
-            /** Status */
-            status: string;
-            /** Confidence */
-            confidence: number;
-            /** File Name */
-            file_name?: string | null;
-            /** Storage Url */
-            storage_url?: string | null;
-            /** Recorded At */
-            recorded_at?: number | null;
-            /** Recorded By */
-            recorded_by?: string | null;
-            /** Tx Hash */
-            tx_hash?: string | null;
-            /**
-             * Matched At
-             * Format: date-time
-             */
-            matched_at: string;
-        };
         /**
          * RecordResponse
          * @description Response returned after recording a document on-chain.
@@ -1482,13 +1517,31 @@ export interface components {
              * @description Token expiration time in seconds
              */
             expires_in: number;
+            /** @description The signed-in user */
+            user: components["schemas"]["SignInUser"];
+        };
+        /**
+         * SignInUser
+         * @description The signed-in user, as the client needs it.
+         */
+        SignInUser: {
             /**
-             * User
-             * @description User information from Supabase
+             * Id
+             * Format: uuid
+             * @description Local database user ID
              */
-            user: {
-                [key: string]: unknown;
-            };
+            id: string;
+            /**
+             * Email
+             * Format: email
+             * @description User's email address
+             */
+            email: string;
+            /**
+             * Role
+             * @description lawyer — full authority (upload, review, finalize, admin panel); user — client, may only view documents they are a party to. Legacy accounts may report 'admin' or 'super_admin', which are treated exactly as 'lawyer'.
+             */
+            role: string;
         };
         /** SignUpRequest */
         SignUpRequest: {
@@ -1543,6 +1596,73 @@ export interface components {
              * @description session will be None until the user verifies their email
              */
             requires_email_confirmation: boolean;
+        };
+        /**
+         * TamperReport
+         * @description Summary of everything that differs from the attested text.
+         */
+        TamperReport: {
+            /** Segments */
+            segments?: components["schemas"]["TamperedSegment"][];
+            /** Total Changes */
+            total_changes: number;
+            /** Critical Changes */
+            critical_changes: number;
+            /** Replaced */
+            replaced: number;
+            /** Inserted */
+            inserted: number;
+            /** Deleted */
+            deleted: number;
+            /**
+             * Similarity
+             * @description 0-1 similarity between attested and current text
+             */
+            similarity: number;
+        };
+        /**
+         * TamperedSegment
+         * @description One part of the document that no longer matches what was attested.
+         */
+        TamperedSegment: {
+            /**
+             * Type
+             * @description replace | insert | delete
+             */
+            type: string;
+            /**
+             * Severity
+             * @description critical (money/figures) | major (dates, references) | minor (wording)
+             */
+            severity: string;
+            /**
+             * Reason
+             * @description What changed, in plain terms
+             */
+            reason: string;
+            /**
+             * Original Text
+             * @description Text as attested on-chain
+             */
+            original_text: string;
+            /**
+             * Current Text
+             * @description Text as it stands now
+             */
+            current_text: string;
+            /** Original Line Start */
+            original_line_start: number;
+            /** Original Line End */
+            original_line_end: number;
+            /** Current Line Start */
+            current_line_start: number;
+            /** Current Line End */
+            current_line_end: number;
+            /**
+             * Word Diff
+             * @description Word-level ops for highlighting the exact edit
+             */
+            word_diff?: components["schemas"]["WordDiffPart"][];
         };
         /** UnreadCountResponse */
         UnreadCountResponse: {
@@ -1672,6 +1792,19 @@ export interface components {
             versions: components["schemas"]["VersionHistoryItem"][];
             /** Total Version */
             total_version: number;
+        };
+        /**
+         * WordDiffPart
+         * @description A run of words inside a changed segment, for inline highlighting.
+         */
+        WordDiffPart: {
+            /**
+             * Op
+             * @description equal | added | removed
+             */
+            op: string;
+            /** Text */
+            text: string;
         };
     };
     responses: never;
@@ -2674,6 +2807,51 @@ export interface operations {
             };
         };
     };
+    verify_document_documents__document_id__verify_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                document_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Verification result, with a tamper report when applicable */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentVerificationResponse"];
+                };
+            };
+            /** @description Not authenticated — missing or invalid bearer token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Document not found, or it has no on-chain record */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     finalize_document_documents__document_id__finalize_post: {
         parameters: {
             query?: never;
@@ -2861,8 +3039,8 @@ export interface operations {
                     "application/json": components["schemas"]["AdminDashboardResponse"];
                 };
             };
-            /** @description Not admin */
-            401: {
+            /** @description Not a lawyer */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2888,8 +3066,8 @@ export interface operations {
                     "application/json": components["schemas"]["AdminUserListResponse"];
                 };
             };
-            /** @description Not admin */
-            401: {
+            /** @description Not a lawyer */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2915,8 +3093,8 @@ export interface operations {
                     "application/json": components["schemas"]["InvitationListResponse"];
                 };
             };
-            /** @description Not admin */
-            401: {
+            /** @description Not a lawyer */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2953,8 +3131,8 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Not admin */
-            401: {
+            /** @description Not a lawyer */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2989,8 +3167,8 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Not admin */
-            401: {
+            /** @description Not a lawyer */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -3002,39 +3180,6 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    verify_public_public_verify_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "multipart/form-data": components["schemas"]["Body_verify_public_public_verify_post"];
-            };
-        };
-        responses: {
-            /** @description Verification result */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PublicVerifyResponse"];
-                };
             };
             /** @description Validation Error */
             422: {

@@ -41,7 +41,6 @@ export {
   useNotifications,
   useUnreadNotificationCount,
 } from './use-notifications';
-export { usePublicVerifyDocument } from './use-public';
 export {
   useCreateDocumentRequest,
   useDocumentRequests,

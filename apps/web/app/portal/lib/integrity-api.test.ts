@@ -16,7 +16,7 @@ it('gets a verification request through the same-origin portal route', async () 
 
   await verifyRepositoryDocument('document-123');
 
-  expect(fetchMock).toHaveBeenCalledWith('/api/portal/blockchain/verify/document-123', {
+  expect(fetchMock).toHaveBeenCalledWith('/api/portal/proxy?path=%2Fdocuments%2Fdocument-123%2Fverify', {
     method: 'GET',
     credentials: 'same-origin',
     cache: 'no-store',
