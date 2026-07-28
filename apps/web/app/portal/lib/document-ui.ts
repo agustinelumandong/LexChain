@@ -17,6 +17,9 @@ export function getDocumentActions(
   document: { status?: string | null; on_chain?: boolean | null },
 ): string[] {
   if (role !== 'issuer') return ['View PDF'];
-  if (document.on_chain) return ['View PDF', 'Verify Integrity'];
-  return ['View PDF'];
+  const actions = ['View PDF'];
+  const status = document.status?.trim().toUpperCase();
+  if (status === 'AWAITING_REVIEW' || status === 'READY_FOR_REVIEW') actions.push('Review extracted text');
+  if (document.on_chain) actions.push('Verify Integrity');
+  return actions;
 }

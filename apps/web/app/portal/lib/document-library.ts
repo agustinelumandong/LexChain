@@ -49,6 +49,8 @@ export function getDocumentStatuses(documents: DocumentListItem[]) {
 export function getDocumentListActions(role: PortalUiRole, document: DocumentListItem) {
   const actions = ['Open'];
   if (document.storage_url) actions.push('View / Download');
+  const status = document.status?.trim().toUpperCase();
+  if (role === 'issuer' && (status === 'AWAITING_REVIEW' || status === 'READY_FOR_REVIEW')) actions.push('Review');
   if (role === 'issuer' && document.on_chain) actions.push('Verify integrity');
   return actions;
 }

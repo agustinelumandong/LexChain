@@ -16,3 +16,8 @@ it('derives the detail integrity state from the repository lookup only', () => {
   expect(pageSource).not.toContain('hasBlockchainStatus');
   expect(pageSource).not.toContain('Blockchain record available');
 });
+
+it('links issuers with an awaiting-review document to extracted text review', () => {
+  expect(pageSource).toContain("actions.includes('Review extracted text')");
+  expect(pageSource).toContain('href={`/portal/documents/${id}/review`}');
+});

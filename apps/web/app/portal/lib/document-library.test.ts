@@ -45,7 +45,18 @@ describe('document library list', () => {
       .toEqual(['document-1']);
   });
 
-  it('offers only existing list actions and never unsupported workflow actions', () => {
+  it('offers review only for issuer documents awaiting OCR review', () => {
+    expect(getDocumentListActions('issuer', { ...documents[0], status: 'AWAITING_REVIEW' }))
+      .toEqual(['Open', 'View / Download', 'Review', 'Verify integrity']);
+    expect(getDocumentListActions('issuer', { ...documents[0], status: 'ready_for_review' }))
+      .toContain('Review');
+    expect(getDocumentListActions('participant', { ...documents[0], status: 'AWAITING_REVIEW' }))
+      .not.toContain('Review');
+    expect(getDocumentListActions('issuer', { ...documents[0], status: 'processing' }))
+      .not.toContain('Review');
+  });
+
+  it('offers only supported list actions', () => {
     const actions = getDocumentListActions('issuer', documents[1]);
 
     expect(actions).toEqual(['Open', 'View / Download', 'Verify integrity']);
