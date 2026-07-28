@@ -7,8 +7,8 @@ export type PortalProfileRequestShortcut = {
 
 export function getPortalUiRole(role?: string): PortalUiRole {
   const normalized = role?.trim().toLowerCase();
-  if (normalized === "document_issuer") return "issuer";
-  if (normalized === "document_participant") return "participant";
+  if (["document_issuer", "lawyer", "admin", "super_admin"].includes(normalized ?? "")) return "issuer";
+  if (["document_participant", "user"].includes(normalized ?? "")) return "participant";
   return "unsupported";
 }
 

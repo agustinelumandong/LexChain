@@ -8,6 +8,10 @@ const mockAccounts = [
   { id: "mock-document-participant", email: "participant@example.com", role: "document_participant", name: "Document Participant" },
 ] as const;
 
+function isIssuerRole(role?: unknown) {
+  return typeof role === "string" && ["document_issuer", "lawyer", "admin", "super_admin"].includes(role.trim().toLowerCase());
+}
+
 function createSessionResponse(token: string, maxAge: number, user: { role?: string; email?: string; name?: string; id?: string }) {
   const response = NextResponse.json({ ok: true, user });
 
@@ -19,7 +23,7 @@ function createSessionResponse(token: string, maxAge: number, user: { role?: str
     path: "/",
   };
 
-  const issuer = user.role === "document_issuer";
+  const issuer = isIssuerRole(user.role);
   response.cookies.set({
     name: "issuer_token",
     value: issuer ? token : "",
@@ -96,21 +100,24 @@ export async function POST(request: Request) {
   const maxAge = payload?.expires_in ?? 60 * 60 * 24;
   const rawUser = payload?.user ?? {};
 
-  // Fetch the actual user profile to get the real app role
-  let appRole = "";
-  try {
-    const meRes = await fetch(backendUrl("/users/"), {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "ngrok-skip-browser-warning": "true",
-      },
-      cache: "no-store",
-    });
-    if (meRes.ok) {
-      const me = await meRes.json();
-      appRole = me?.role ?? "";
-    }
-  } catch { /* ignore */ }
+  // The authenticated sign-in response is the primary role source. Retain the
+  // profile lookup only for older backends that do not return a role there.
+  let appRole = typeof rawUser.role === "string" ? rawUser.role : "";
+  if (!appRole) {
+    try {
+      const meRes = await fetch(backendUrl("/users/"), {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "ngrok-skip-browser-warning": "true",
+        },
+        cache: "no-store",
+      });
+      if (meRes.ok) {
+        const me = await meRes.json();
+        appRole = me?.role ?? "";
+      }
+    } catch { /* ignore */ }
+  }
 
   const name = rawUser.user_metadata?.full_name
     ?? rawUser.user_metadata?.name

@@ -84,7 +84,7 @@ describe("updateDemoUser", () => {
 });
 
 describe("UsersManagementView demo mutations", () => {
-  it("maps only canonical account roles and marks every other value unsupported", () => {
+  it("maps canonical and backend account roles while marking unknown values unsupported", () => {
     renderUserList([
       users[1],
       users[2],
@@ -95,12 +95,9 @@ describe("UsersManagementView demo mutations", () => {
 
     expect(within(rowFor("maria@example.com")).getByText("Document Issuer")).toBeTruthy();
     expect(within(rowFor("juan@example.com")).getByText("Document Participant")).toBeTruthy();
-    for (const email of ["legacy-user@example.com", "legacy-admin@example.com", "unknown@example.com"]) {
-      const row = within(rowFor(email));
-      expect(row.getByText("Unsupported role")).toBeTruthy();
-      expect(row.queryByText("Document Issuer")).toBeNull();
-      expect(row.queryByText("Document Participant")).toBeNull();
-    }
+    expect(within(rowFor("legacy-user@example.com")).getByText("Document Participant")).toBeTruthy();
+    expect(within(rowFor("legacy-admin@example.com")).getByText("Document Issuer")).toBeTruthy();
+    expect(within(rowFor("unknown@example.com")).getByText("Unsupported role")).toBeTruthy();
   });
 
   it("does not expose legacy role navigation from user management", () => {
