@@ -18,13 +18,21 @@ vi.mock('next/dynamic', () => ({
       <div>
         Source PDF viewer
         {[0, 1, 2].map((blockIndex) => (
-          <button
-            key={blockIndex}
-            type="button"
-            onClick={() => (props.onSelectBlock as (index: number) => void)(blockIndex)}
-          >
-            Mock select block {blockIndex}
-          </button>
+          <span key={blockIndex}>
+            <button
+              type="button"
+              onClick={() => (props.onSelectBlock as (index: number) => void)(blockIndex)}
+            >
+              Mock select block {blockIndex}
+            </button>
+            <button
+              type="button"
+              onMouseEnter={() => (props.onHoverBlockChange as (index: number) => void)(blockIndex)}
+              onMouseLeave={() => (props.onHoverBlockChange as (index: number | null) => void)(null)}
+            >
+              Mock hover block {blockIndex}
+            </button>
+          </span>
         ))}
         <button
           type="button"
@@ -251,7 +259,7 @@ describe('ReviewWorkspace', () => {
     flushAnimationFrames();
     expect(dynamicMocks.viewerProps).toMatchObject({ currentPage: 1, selectedBlockIndex: 1 });
     expect(document.activeElement).toBe(screen.getByLabelText('Reviewed text for block 1'));
-    expect(HTMLElement.prototype.scrollIntoView).toHaveBeenCalledWith({ behavior: 'smooth', block: 'center' });
+    expect(HTMLElement.prototype.scrollIntoView).not.toHaveBeenCalled();
   });
 
   it('switches from Source to Review before focusing an issue block on mobile', () => {
@@ -301,6 +309,134 @@ describe('ReviewWorkspace', () => {
     expect(screen.getByRole('tab', { name: 'Compare' }).getAttribute('aria-selected')).toBe('true');
     expect(screen.getByRole('tab', { name: 'Raw' }).getAttribute('aria-selected')).toBe('false');
     expect(dynamicMocks.viewerProps).toMatchObject({ currentPage: 1, selectedBlockIndex: 1 });
+  });
+
+  it('cross-highlights Compare blocks and source overlays only while hovered', () => {
+    renderWorkspace();
+
+    const reviewedPane = screen.getByRole('region', { name: 'Reviewed document' });
+    const scrollTo = vi.fn();
+    Object.assign(reviewedPane, { scrollTo });
+
+    const compareBlock = document.getElementById('review-block-0')!;
+    fireEvent.mouseEnter(compareBlock);
+    expect(dynamicMocks.viewerProps).toMatchObject({ hoveredBlockIndex: 0 });
+    expect(compareBlock.className).toContain('border-[#98C9F3]');
+    expect(scrollTo).not.toHaveBeenCalled();
+
+    fireEvent.mouseLeave(compareBlock);
+    expect(dynamicMocks.viewerProps).toMatchObject({ hoveredBlockIndex: null });
+
+    fireEvent.mouseEnter(screen.getByRole('button', { name: 'Mock hover block 0' }));
+    expect(document.getElementById('review-block-0')!.className).toContain('border-[#98C9F3]');
+    fireEvent.mouseLeave(screen.getByRole('button', { name: 'Mock hover block 0' }));
+    expect(document.getElementById('review-block-0')!.className).not.toContain('border-[#98C9F3]');
+  });
+
+  it('clears a PDF hover when the compared page changes', () => {
+    renderWorkspace();
+
+    fireEvent.mouseEnter(screen.getByRole('button', { name: 'Mock hover block 0' }));
+    expect(dynamicMocks.viewerProps).toMatchObject({ currentPage: 0, hoveredBlockIndex: 0 });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Mock page 2' }));
+    expect(dynamicMocks.viewerProps).toMatchObject({ currentPage: 1, hoveredBlockIndex: null });
+  });
+
+  it('scrolls the reviewed pane and keeps the matching block selected when a PDF overlay is clicked', () => {
+    renderWorkspace();
+
+    const reviewedPane = screen.getByRole('region', { name: 'Reviewed document' });
+    const scrollTo = vi.fn();
+    Object.assign(reviewedPane, { scrollTo });
+    Object.defineProperty(reviewedPane, 'clientHeight', { configurable: true, value: 200 });
+    Object.defineProperty(reviewedPane, 'scrollTop', { configurable: true, writable: true, value: 50 });
+    vi.spyOn(reviewedPane, 'getBoundingClientRect').mockReturnValue({ top: 100, bottom: 300, height: 200 } as DOMRect);
+    vi.spyOn(document.getElementById('review-block-0')!, 'getBoundingClientRect').mockReturnValue({ top: 360, bottom: 400, height: 40 } as DOMRect);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Mock select block 0' }));
+    flushAnimationFrames();
+
+    expect(scrollTo).toHaveBeenCalledWith({ behavior: 'smooth', top: 230 });
+    expect(dynamicMocks.viewerProps).toMatchObject({ selectedBlockIndex: 0 });
+    expect(document.activeElement).toBe(screen.getByLabelText('Reviewed text for block 0'));
+  });
+
+  it('scrolls the reviewed pane when a PDF overlay is hovered', () => {
+    renderWorkspace();
+
+    const reviewedPane = screen.getByRole('region', { name: 'Reviewed document' });
+    const scrollTo = vi.fn();
+    Object.assign(reviewedPane, { scrollTo });
+    Object.defineProperty(reviewedPane, 'clientHeight', { configurable: true, value: 200 });
+    Object.defineProperty(reviewedPane, 'scrollTop', { configurable: true, writable: true, value: 50 });
+    vi.spyOn(reviewedPane, 'getBoundingClientRect').mockReturnValue({ top: 100, bottom: 300, height: 200 } as DOMRect);
+    vi.spyOn(document.getElementById('review-block-0')!, 'getBoundingClientRect').mockReturnValue({ top: 360, bottom: 400, height: 40 } as DOMRect);
+
+    fireEvent.mouseEnter(screen.getByRole('button', { name: 'Mock hover block 0' }));
+
+    expect(scrollTo).toHaveBeenCalledWith({ behavior: 'smooth', top: 230 });
+    expect(dynamicMocks.viewerProps).toMatchObject({ hoveredBlockIndex: 0 });
+  });
+
+  it('uses one card outline and labels the Compare block type', () => {
+    renderWorkspace();
+
+    const card = document.getElementById('review-block-0')!;
+    const editor = screen.getByLabelText('Reviewed text for block 0');
+    expect(card.className).toContain('border');
+    expect(screen.getByText('text')).toBeTruthy();
+    expect(editor.className).toContain('border-0');
+  });
+
+  it('uses non-resizable, content-sized editors in Compare', () => {
+    renderWorkspace();
+
+    const editor = screen.getByLabelText('Reviewed text for block 0');
+    expect(editor.className).toContain('field-sizing-content');
+    expect(editor.className).toContain('resize-none');
+    expect(editor.className).toContain('overflow-hidden');
+  });
+
+  it('cross-highlights Compare editors while focused without clearing selection', () => {
+    renderWorkspace();
+
+    const editor = screen.getByLabelText('Reviewed text for block 0');
+    fireEvent.focus(editor);
+    expect(dynamicMocks.viewerProps).toMatchObject({ hoveredBlockIndex: 0, selectedBlockIndex: 0 });
+
+    fireEvent.blur(editor);
+    expect(dynamicMocks.viewerProps).toMatchObject({ hoveredBlockIndex: null, selectedBlockIndex: 0 });
+  });
+
+  it('grows Compare editors to their content on render and text changes', () => {
+    let scrollHeight = 64;
+    const originalScrollHeight = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'scrollHeight');
+    Object.defineProperty(HTMLTextAreaElement.prototype, 'scrollHeight', {
+      configurable: true,
+      get: () => scrollHeight,
+    });
+
+    try {
+      renderWorkspace();
+      const editor = screen.getByLabelText('Reviewed text for block 0') as HTMLTextAreaElement;
+      expect(editor.style.height).toBe('64px');
+
+      scrollHeight = 112;
+      fireEvent.change(editor, { target: { value: 'A longer reviewed title' } });
+      expect(editor.style.height).toBe('112px');
+
+      scrollHeight = 176;
+      fireEvent.click(screen.getByRole('button', { name: 'Source pane' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Review pane' }));
+      expect(editor.style.height).toBe('176px');
+    } finally {
+      if (originalScrollHeight) {
+        Object.defineProperty(HTMLTextAreaElement.prototype, 'scrollHeight', originalScrollHeight);
+      } else {
+        Reflect.deleteProperty(HTMLTextAreaElement.prototype, 'scrollHeight');
+      }
+    }
   });
 
   it('keeps document-wide flags stationary and focuses editable blocks without boxes', () => {

@@ -55,8 +55,10 @@ function renderViewer(overrides: Partial<React.ComponentProps<typeof PdfDocument
     currentPage: 0,
     blocks,
     selectedBlockIndex: null,
+    hoveredBlockIndex: null,
     onPageChange: vi.fn(),
     onSelectBlock: vi.fn(),
+    onHoverBlockChange: vi.fn(),
     ...overrides,
   };
 
@@ -113,16 +115,44 @@ describe('PdfDocumentViewer', () => {
     expect(onPageChange).toHaveBeenCalledWith(1);
   });
 
+  it('uses thin default borders and temporary hover highlighting without changing selection', async () => {
+    const { onHoverBlockChange } = renderViewer();
+    const overlay = await screen.findByRole('button', { name: 'Select block 4' });
+
+    expect(overlay.className).toContain('border border-blue-400');
+    fireEvent.mouseEnter(overlay);
+    expect(onHoverBlockChange).toHaveBeenCalledWith(4);
+    fireEvent.mouseLeave(overlay);
+    expect(onHoverBlockChange).toHaveBeenLastCalledWith(null);
+
+    renderViewer({ selectedBlockIndex: 4, hoveredBlockIndex: 4 });
+    expect((await screen.findAllByRole('button', { name: 'Select block 4' }))[1].className).toContain('border-2 border-blue-700');
+  });
+
+  it('cross-highlights editable overlays while keyboard focused', async () => {
+    const { onHoverBlockChange } = renderViewer();
+    const overlay = await screen.findByRole('button', { name: 'Select block 4' });
+
+    fireEvent.focus(overlay);
+    expect(onHoverBlockChange).toHaveBeenCalledWith(4);
+    fireEvent.blur(overlay);
+    expect(onHoverBlockChange).toHaveBeenLastCalledWith(null);
+  });
+
   it('omits null bboxes and renders non-editable bboxes as dashed regions', async () => {
-    renderViewer({
+    const { onHoverBlockChange } = renderViewer({
       blocks: [
         { ...blocks[0], bbox: null },
         { ...blocks[0], index: 5, editable: false },
       ],
     });
 
-    expect(await screen.findByLabelText('Non-editable block 5')).toBeTruthy();
-    expect(screen.getByLabelText('Non-editable block 5').className).toContain('border-dashed');
+    const nonEditableOverlay = await screen.findByLabelText('Non-editable block 5');
+    expect(nonEditableOverlay.className).toContain('border-dashed');
+    fireEvent.mouseEnter(nonEditableOverlay);
+    expect(onHoverBlockChange).toHaveBeenCalledWith(5);
+    fireEvent.mouseLeave(nonEditableOverlay);
+    expect(onHoverBlockChange).toHaveBeenLastCalledWith(null);
     expect(screen.queryByRole('button', { name: 'Select block 4' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Select block 5' })).toBeNull();
   });

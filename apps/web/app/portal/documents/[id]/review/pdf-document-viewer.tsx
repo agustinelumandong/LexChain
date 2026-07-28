@@ -11,8 +11,10 @@ export type PdfDocumentViewerProps = {
   currentPage: number;
   blocks: ApiSchema<'ExtractionBlock'>[];
   selectedBlockIndex: number | null;
+  hoveredBlockIndex: number | null;
   onPageChange: (pageIndex: number) => void;
   onSelectBlock: (blockIndex: number) => void;
+  onHoverBlockChange: (blockIndex: number | null) => void;
 };
 
 export function normalizedBoxStyle(bbox?: number[] | null): CSSProperties | undefined {
@@ -39,8 +41,10 @@ export default function PdfDocumentViewer({
   currentPage,
   blocks,
   selectedBlockIndex,
+  hoveredBlockIndex,
   onPageChange,
   onSelectBlock,
+  onHoverBlockChange,
 }: PdfDocumentViewerProps) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -185,19 +189,31 @@ export default function PdfDocumentViewer({
             aria-label={`Select block ${block.index}`}
             className={`absolute bg-transparent ${
               selectedBlockIndex === block.index
-                ? 'border-4 border-blue-700'
-                : 'border-2 border-blue-400'
+                ? 'border-2 border-blue-700 bg-blue-100/20'
+                : hoveredBlockIndex === block.index
+                  ? 'border-2 border-sky-500 bg-sky-100/30'
+                  : 'border border-blue-400'
             }`}
             style={style}
             onClick={() => onSelectBlock(block.index)}
+            onMouseEnter={() => onHoverBlockChange(block.index)}
+            onMouseLeave={() => onHoverBlockChange(null)}
+            onFocus={() => onHoverBlockChange(block.index)}
+            onBlur={() => onHoverBlockChange(null)}
           />
         ) : (
           <div
             key={block.index}
             role="region"
             aria-label={`Non-editable block ${block.index}`}
-            className="pointer-events-none absolute border-2 border-dashed border-amber-500"
+            className={`absolute border border-dashed ${
+              hoveredBlockIndex === block.index
+                ? 'border-2 border-amber-600 bg-amber-100/30'
+                : 'border-amber-500'
+            }`}
             style={style}
+            onMouseEnter={() => onHoverBlockChange(block.index)}
+            onMouseLeave={() => onHoverBlockChange(null)}
           />
         ))}
       </div>
