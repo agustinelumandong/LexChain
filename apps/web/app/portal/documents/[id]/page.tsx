@@ -69,6 +69,7 @@ export default function DocumentDetailPage({ params }: { params: Promise<{ id: s
           </div>
           <div className="flex flex-wrap gap-2">
             {document.storage_url && <a href={document.storage_url} download className="rounded-full bg-[#0985E7] px-4 py-2.5 text-sm font-extrabold text-white">Download</a>}
+            {actions.includes('Review extracted text') && <Link href={`/portal/documents/${id}/review`} className="rounded-full bg-[#0985E7] px-4 py-2.5 text-sm font-extrabold text-white">Review extracted text</Link>}
             {actions.includes('Verify Integrity') && <Link href={`/portal/documents/${id}/verify`} className="rounded-full border border-[#E8F0F8] bg-white px-4 py-2.5 text-sm font-extrabold text-[#0C2B49]">Verify Integrity</Link>}
           </div>
         </div>

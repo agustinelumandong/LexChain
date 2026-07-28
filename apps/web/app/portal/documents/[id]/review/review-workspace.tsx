@@ -252,7 +252,7 @@ export default function ReviewWorkspace({
             </div>
 
             <div className="grid min-w-0 gap-5 md:min-h-0 md:flex-1 md:grid-cols-2">
-              <section aria-label="Source document" className={mobilePane === 'source' ? 'min-w-0 rounded-[18px] border border-[#E8F0F8] bg-white p-4 md:min-h-0 md:overflow-y-auto' : 'hidden min-w-0 rounded-[18px] border border-[#E8F0F8] bg-white p-4 md:block md:min-h-0 md:overflow-y-auto'}>
+              <section aria-label="Source document" className={mobilePane === 'source' ? 'min-w-0 rounded-[18px] border border-[#E8F0F8] bg-white p-4 md:flex md:min-h-0 md:flex-col' : 'hidden min-w-0 rounded-[18px] border border-[#E8F0F8] bg-white p-4 md:flex md:min-h-0 md:flex-col'}>
                 <PdfDocumentViewer
                   sourceUrl={review.storage_url}
                   pageCount={review.page_count}

@@ -17,6 +17,11 @@ export type PdfDocumentViewerProps = {
   onHoverBlockChange: (blockIndex: number | null) => void;
 };
 
+const DEFAULT_ZOOM = 0.85;
+const MIN_ZOOM = 0.5;
+const MAX_ZOOM = 1.5;
+const ZOOM_STEP = 0.1;
+
 export function normalizedBoxStyle(bbox?: number[] | null): CSSProperties | undefined {
   if (
     !bbox
@@ -49,12 +54,13 @@ export default function PdfDocumentViewer({
   const wrapperRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [availableWidth, setAvailableWidth] = useState(0);
+  const [zoom, setZoom] = useState(DEFAULT_ZOOM);
   const [loadResult, setLoadResult] = useState<{
     sourceUrl: string;
     pdf: PDFDocumentProxy | null;
     failed: boolean;
   }>({ sourceUrl, pdf: null, failed: false });
-  const renderKey = `${sourceUrl}:${currentPage}`;
+  const renderKey = `${sourceUrl}:${currentPage}:${zoom}`;
   const [failedRenderKey, setFailedRenderKey] = useState<string | null>(null);
   const pdf = loadResult.sourceUrl === sourceUrl ? loadResult.pdf : null;
   const renderFailed = loadResult.sourceUrl === sourceUrl && loadResult.failed
@@ -111,7 +117,7 @@ export default function PdfDocumentViewer({
         if (disposed) return;
 
         const unscaledViewport = page.getViewport({ scale: 1 });
-        const viewport = page.getViewport({ scale: availableWidth / unscaledViewport.width });
+        const viewport = page.getViewport({ scale: availableWidth / unscaledViewport.width * zoom });
         const outputScale = window.devicePixelRatio || 1;
 
         canvas.width = Math.floor(viewport.width * outputScale);
@@ -134,7 +140,7 @@ export default function PdfDocumentViewer({
       disposed = true;
       renderTask?.cancel();
     };
-  }, [availableWidth, currentPage, pdf, renderKey]);
+  }, [availableWidth, currentPage, pdf, renderKey, zoom]);
 
   const pageBlocks = blocks.flatMap((block) => {
     if (block.page_idx !== currentPage) return [];
@@ -143,32 +149,46 @@ export default function PdfDocumentViewer({
   });
 
   return (
-    <section aria-label="Source PDF">
-      <div className="mb-3 flex items-center justify-between gap-3">
-        <button
-          type="button"
-          aria-label="Previous PDF page"
-          disabled={currentPage <= 0}
-          onClick={() => onPageChange(currentPage - 1)}
-        >
-          Previous
-        </button>
-        <span>Page {currentPage + 1} of {pageCount}</span>
-        <button
-          type="button"
-          aria-label="Next PDF page"
-          disabled={currentPage >= pageCount - 1}
-          onClick={() => onPageChange(currentPage + 1)}
-        >
-          Next
-        </button>
+    <section aria-label="Source PDF" className="flex min-h-0 flex-col md:flex-1">
+      <div role="toolbar" aria-label="PDF controls" className="mb-3 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            aria-label="Previous PDF page"
+            disabled={currentPage <= 0}
+            onClick={() => onPageChange(currentPage - 1)}
+          >
+            Previous
+          </button>
+          <span>Page {currentPage + 1} of {pageCount}</span>
+          <button
+            type="button"
+            aria-label="Next PDF page"
+            disabled={currentPage >= pageCount - 1}
+            onClick={() => onPageChange(currentPage + 1)}
+          >
+            Next
+          </button>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            aria-label="Zoom out"
+            disabled={zoom <= MIN_ZOOM}
+            onClick={() => setZoom((value) => Math.max(MIN_ZOOM, value - ZOOM_STEP))}
+          >
+            Zoom out
+          </button>
+          <button
+            type="button"
+            aria-label="Zoom in"
+            disabled={zoom >= MAX_ZOOM}
+            onClick={() => setZoom((value) => Math.min(MAX_ZOOM, value + ZOOM_STEP))}
+          >
+            Zoom in
+          </button>
+        </div>
       </div>
-
-      {pdf && pdf.numPages !== pageCount ? (
-        <p role="status">
-          PDF page count ({pdf.numPages}) differs from the review record ({pageCount}).
-        </p>
-      ) : null}
 
       {renderFailed ? (
         <div>
@@ -178,11 +198,18 @@ export default function PdfDocumentViewer({
       ) : null}
       <div
         ref={wrapperRef}
+        aria-label="PDF page"
         aria-hidden={renderFailed || undefined}
-        className={`relative w-full overflow-hidden ${renderFailed ? 'hidden' : ''}`}
+        className={`min-h-0 flex-1 overflow-auto ${renderFailed ? 'hidden' : ''}`}
       >
-        <canvas ref={canvasRef} className="block max-w-full" />
-        {pageBlocks.map(({ block, style }) => block.editable !== false ? (
+        {pdf && pdf.numPages !== pageCount ? (
+          <p role="status">
+            PDF page count ({pdf.numPages}) differs from the review record ({pageCount}).
+          </p>
+        ) : null}
+        <div className="relative w-fit">
+          <canvas ref={canvasRef} className="block" />
+          {pageBlocks.map(({ block, style }) => block.editable !== false ? (
           <button
             key={block.index}
             type="button"
@@ -215,7 +242,8 @@ export default function PdfDocumentViewer({
             onMouseEnter={() => onHoverBlockChange(block.index)}
             onMouseLeave={() => onHoverBlockChange(null)}
           />
-        ))}
+          ))}
+        </div>
       </div>
     </section>
   );

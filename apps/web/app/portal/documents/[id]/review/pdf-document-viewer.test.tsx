@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { ApiSchema } from '@lexchain/types';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import PdfDocumentViewer, { normalizedBoxStyle } from './pdf-document-viewer';
@@ -106,6 +106,33 @@ describe('normalizedBoxStyle', () => {
 });
 
 describe('PdfDocumentViewer', () => {
+  it('keeps page and zoom controls in a toolbar above the scrollable PDF content', () => {
+    renderViewer();
+
+    const toolbar = screen.getByRole('toolbar', { name: 'PDF controls' });
+    const pageContent = screen.getByLabelText('PDF page');
+    const viewer = screen.getByRole('region', { name: 'Source PDF' });
+    expect(viewer.className).toContain('md:flex-1');
+    expect(viewer.className).toContain('min-h-0');
+    expect(toolbar.contains(screen.getByRole('button', { name: 'Previous PDF page' }))).toBe(true);
+    expect(toolbar.contains(screen.getByRole('button', { name: 'Zoom out' }))).toBe(true);
+    expect(toolbar.contains(screen.getByRole('button', { name: 'Zoom in' }))).toBe(true);
+    expect(toolbar.nextElementSibling).toBe(pageContent);
+    expect(pageContent.className).toContain('flex-1');
+    expect(pageContent.className).toContain('overflow-auto');
+  });
+
+  it('renders at 85% of the fit-to-pane scale and rerenders when zoomed', async () => {
+    renderViewer();
+
+    await waitFor(() => expect(pdfMocks.render).toHaveBeenCalled());
+    expect(pdfMocks.render.mock.calls.at(-1)?.[0].viewport.width).toBe(425);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Zoom in' }));
+    await waitFor(() => expect(pdfMocks.render).toHaveBeenCalledTimes(2));
+    expect(pdfMocks.render.mock.calls.at(-1)?.[0].viewport.width).toBe(475);
+  });
+
   it('selects editable overlays and requests the next zero-based page', async () => {
     const { onPageChange, onSelectBlock } = renderViewer();
 
