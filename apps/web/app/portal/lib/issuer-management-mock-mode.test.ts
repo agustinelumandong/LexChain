@@ -36,39 +36,33 @@ async function loadManagementPages() {
   const pages = await Promise.all([
     import("../users/page"),
     import("../issuer-invitations/page"),
-    import("../system-reports/page"),
     import("../audit-logs/page"),
-    import("../system-statistics/page"),
   ]);
 
   return pages.map((page) => page.default);
 }
 
 describe("issuer management page authority", () => {
-  it("loads all five server-rendered management pages for the exact mock issuer session", async () => {
+  it("loads all three server-rendered management pages for the exact mock issuer session", async () => {
     vi.stubEnv("USE_MOCK_API", "true");
     vi.stubEnv("NEXT_PUBLIC_USE_MOCK_API", "false");
     session.portalToken = "mock-token:mock-document-issuer";
     session.issuerToken = "mock-token:mock-document-issuer";
 
-    const [usersPage, invitationsPage, reportsPage, auditLogsPage, statisticsPage] = await loadManagementPages();
+    const [usersPage, invitationsPage, auditLogsPage] = await loadManagementPages();
     const usersView = await usersPage();
     const invitationsView = await invitationsPage();
-    const reportsView = await reportsPage();
     const auditLogsView = await auditLogsPage();
-    const statisticsView = await statisticsPage();
 
     expect(usersView.props).toMatchObject({ total: 4 });
     expect(invitationsView.props).toMatchObject({ mockMode: true });
-    expect(reportsView).toBeTruthy();
     expect(auditLogsView.props).toMatchObject({ total: 4 });
-    expect(statisticsView.props).toMatchObject({ dashboard: { total_users: 120 } });
   });
 
   it.each([
     ["a participant token duplicated into both authority cookies", "mock-token:mock-document-participant"],
     ["an arbitrary issuer cookie", "forged-issuer-token"],
-  ])("denies %s before any of the five management pages render", async (_case, issuerToken) => {
+  ])("denies %s before any of the three management pages render", async (_case, issuerToken) => {
     vi.stubEnv("USE_MOCK_API", "true");
     session.portalToken = "mock-token:mock-document-participant";
     session.issuerToken = issuerToken;
@@ -92,19 +86,8 @@ describe("issuer management page authority", () => {
     session.portalToken = "real-token";
     session.issuerToken = "real-token";
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({ role }), { status: 200 })));
-    const { default: SystemReportsPage } = await import("../system-reports/page");
+    const { default: UsersPage } = await import("../users/page");
 
-    await expect(Promise.resolve().then(() => SystemReportsPage())).rejects.toThrow("REDIRECT:/portal/dashboard");
-  });
-
-  it("renders local management content for an exact real document_issuer profile", async () => {
-    vi.stubEnv("USE_MOCK_API", "false");
-    vi.stubEnv("API_URL", "https://api.lexchain.test");
-    session.portalToken = "real-token";
-    session.issuerToken = "real-token";
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({ role: "document_issuer" }), { status: 200 })));
-    const { default: SystemReportsPage } = await import("../system-reports/page");
-
-    await expect(SystemReportsPage()).resolves.toBeTruthy();
+    await expect(Promise.resolve().then(() => UsersPage())).rejects.toThrow("REDIRECT:/portal/dashboard");
   });
 });

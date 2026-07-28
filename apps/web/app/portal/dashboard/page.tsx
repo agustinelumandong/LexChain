@@ -54,7 +54,7 @@ function isAttentionDocument(document: Document) {
 
 function getMetricIcon(label: string) {
   if (label === 'Processing') return ScheduleIcon;
-  if (label === 'Ready Documents' || label === 'On-Chain Records') return VerifiedUserIcon;
+  if (label === 'On-Chain Records') return VerifiedUserIcon;
   return DescriptionIcon;
 }
 
@@ -74,7 +74,6 @@ export default function DashboardPage() {
     queryFn: () => fetchJson('/notifications/unread-count'),
     enabled: isIssuer,
   });
-
   if (profileQuery.isLoading) return <div className="h-36 animate-pulse rounded-[18px] border border-[#E8F0F8] bg-white" />;
 
   if (!isIssuer) {
@@ -117,7 +116,7 @@ export default function DashboardPage() {
 
       {documentsQuery.isLoading ? (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3"><div className={`${cardClass} h-28 animate-pulse`} /><div className={`${cardClass} h-28 animate-pulse`} /><div className={`${cardClass} h-28 animate-pulse`} /></div>
-      ) : (
+      ) : documentsQuery.isError ? null : (
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
           {metrics.map(([label, value]) => {
             const Icon = getMetricIcon(label);
@@ -135,12 +134,12 @@ export default function DashboardPage() {
         <div className="flex flex-col gap-5">
           <section className={`${cardClass} p-5`}>
             <h2 className="mb-3 text-base font-black text-[#0C2B49]">Documents needing attention</h2>
-            {documentsQuery.isLoading ? <p className="text-sm text-[#64748b]">Checking document statuses…</p> : attentionDocuments.length === 0 ? <p className="text-sm text-[#64748b]">No action required. All documents are progressing normally.</p> : <div className="flex flex-col divide-y divide-[#E8F0F8]">{attentionDocuments.slice(0, 3).map((document) => <Link key={document.id} href={`/portal/documents/${document.id}`} className="py-3 first:pt-0 last:pb-0"><span className="block text-sm font-bold text-[#0C2B49]">{document.file_name}</span><span className="mt-1 block text-xs text-[#C24141]">Status: {getDocumentStatusLabel(document.status)}. Open document to review.</span></Link>)}</div>}
+            {documentsQuery.isLoading ? <p className="text-sm text-[#64748b]">Checking document statuses…</p> : documentsQuery.isError ? <p className="text-sm text-[#64748b]">Attention status is unavailable.</p> : attentionDocuments.length === 0 ? <p className="text-sm text-[#64748b]">No action required. All documents are progressing normally.</p> : <div className="flex flex-col divide-y divide-[#E8F0F8]">{attentionDocuments.slice(0, 3).map((document) => <Link key={document.id} href={`/portal/documents/${document.id}`} className="py-3 first:pt-0 last:pb-0"><span className="block text-sm font-bold text-[#0C2B49]">{document.file_name}</span><span className="mt-1 block text-xs text-[#C24141]">Status: {getDocumentStatusLabel(document.status)}. Open document to review.</span></Link>)}</div>}
           </section>
 
           <section className={`${cardClass} p-5`}>
             <h2 className="mb-3 text-base font-black text-[#0C2B49]">Processing</h2>
-            {documentsQuery.isLoading ? <p className="text-sm text-[#64748b]">Checking processing documents…</p> : processingDocuments.length === 0 ? <p className="text-sm text-[#64748b]">No documents are processing right now.</p> : <div className="flex flex-col divide-y divide-[#E8F0F8]">{processingDocuments.slice(0, 3).map((document) => <Link key={document.id} href={`/portal/documents/${document.id}`} className="py-3 first:pt-0 last:pb-0"><span className="block text-sm font-bold text-[#0C2B49]">{document.file_name}</span><span className="mt-1 block text-xs text-[#B77900]">Status: {getDocumentStatusLabel(document.status)}</span></Link>)}</div>}
+            {documentsQuery.isLoading ? <p className="text-sm text-[#64748b]">Checking processing documents…</p> : documentsQuery.isError ? <p className="text-sm text-[#64748b]">Processing status is unavailable.</p> : processingDocuments.length === 0 ? <p className="text-sm text-[#64748b]">No documents are processing right now.</p> : <div className="flex flex-col divide-y divide-[#E8F0F8]">{processingDocuments.slice(0, 3).map((document) => <Link key={document.id} href={`/portal/documents/${document.id}`} className="py-3 first:pt-0 last:pb-0"><span className="block text-sm font-bold text-[#0C2B49]">{document.file_name}</span><span className="mt-1 block text-xs text-[#B77900]">Status: {getDocumentStatusLabel(document.status)}</span></Link>)}</div>}
           </section>
         </div>
       </div>

@@ -14,7 +14,7 @@ describe("issuer management proxy access", () => {
     ["/admin/dashboard", "/portal/dashboard"],
     ["/admin/users", "/portal/users"],
     ["/admin/invitations-permissions", "/portal/issuer-invitations"],
-    ["/admin/generated-reports", "/portal/system-reports"],
+    ["/admin/generated-reports", "/portal/reports"],
     ["/admin/audit-logs", "/portal/audit-logs"],
     ["/admin/login", "/login"],
     ["/admin/unmapped", "/portal/dashboard"],
@@ -34,13 +34,36 @@ describe("issuer management proxy access", () => {
     expect(getRedirectUrl(response)).toBeNull();
   });
 
-  it("defines the five issuer management portal route prefixes", () => {
+  it("redirects retired pages to the consolidated dashboard", () => {
+    for (const path of [
+      "/portal/analytics",
+      "/portal/system-statistics",
+      "/portal/processing",
+      "/portal/blockchain-records",
+    ]) {
+      const response = proxy(adminRequest(
+        path,
+        "portal_token=portal-token; issuer_token=issuer-token",
+      ));
+
+      expect(getRedirectUrl(response)).toBe("https://lexchain.test/portal/dashboard");
+    }
+  });
+
+  it("redirects retired system reports to the unified reports page", () => {
+    const response = proxy(adminRequest(
+      "/portal/system-reports",
+      "portal_token=portal-token; issuer_token=issuer-token",
+    ));
+
+    expect(getRedirectUrl(response)).toBe("https://lexchain.test/portal/reports");
+  });
+
+  it("defines the three issuer management portal route prefixes", () => {
     expect(ISSUER_MANAGEMENT_PATHS).toEqual([
       "/portal/users",
       "/portal/issuer-invitations",
-      "/portal/system-reports",
       "/portal/audit-logs",
-      "/portal/system-statistics",
     ]);
   });
 
@@ -63,13 +86,13 @@ describe("issuer management proxy access", () => {
     expect(getRedirectUrl(response)).toBe("https://lexchain.test/portal/dashboard");
   });
 
-  it("does not accept stale admin authority for management routes", () => {
+  it("redirects retired system reports before checking stale admin authority", () => {
     const response = proxy(adminRequest(
       "/portal/system-reports",
       "admin_token=stale-admin-token; portal_token=portal-token",
     ));
 
-    expect(getRedirectUrl(response)).toBe("https://lexchain.test/portal/dashboard");
+    expect(getRedirectUrl(response)).toBe("https://lexchain.test/portal/reports");
   });
 
   it("redirects an issuer token without portal authentication to login", () => {

@@ -13,13 +13,13 @@ const sharedProps = {
 };
 
 describe("PortalTopBar", () => {
-  it("does not expose Processing Monitor to a participant", () => {
+  it("does not expose the processing summary to a participant", () => {
     render(<PortalTopBar {...sharedProps} role="participant" />);
 
     expect(screen.queryByRole("link", { name: "View processing documents" })).toBeNull();
   });
 
-  it("keeps Processing Monitor available to an issuer", () => {
+  it("links an issuer's processing summary to the consolidated dashboard", () => {
     render(
       <PortalTopBar
         {...sharedProps}
@@ -29,6 +29,6 @@ describe("PortalTopBar", () => {
     );
 
     expect(screen.getByRole("link", { name: "View processing documents" }).getAttribute("href"))
-      .toBe("/portal/processing");
+      .toBe("/portal/dashboard");
   });
 });

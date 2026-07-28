@@ -7,12 +7,15 @@ describe("portal dashboard", () => {
 
     expect(navigation.map((group) => group.label)).toEqual([
       "Workspace",
-      "Integrity",
       "Office",
       "System Management",
       "Account",
     ]);
     expect(navigation[0].items.at(-1)?.label).toBe("Upload Document");
+    expect(navigation.find((group) => group.label === "Office")?.items.map((item) => item.label)).toEqual([
+      "Categories",
+      "Reports",
+    ]);
   });
 
   it("only shows participant routes that exist", () => {
@@ -24,15 +27,13 @@ describe("portal dashboard", () => {
     ]);
   });
 
-  it("gives every issuer the five system management destinations", () => {
+  it("gives every issuer the three system management destinations", () => {
     const navigation = getPortalNavigation("issuer");
 
     expect(navigation.find((group) => group.label === "System Management")?.items.map(({ label, href }) => [label, href])).toEqual([
       ["User Accounts", "/portal/users"],
       ["Issuer Invitations", "/portal/issuer-invitations"],
-      ["System Reports", "/portal/system-reports"],
       ["Audit Logs", "/portal/audit-logs"],
-      ["System Statistics", "/portal/system-statistics"],
     ]);
   });
 
@@ -40,7 +41,7 @@ describe("portal dashboard", () => {
     expect(getDashboardMetrics([])).toEqual([
       ["Total Documents", 0],
       ["Processing", 0],
-      ["Ready Documents", 0],
+      ["Failed Documents", 0],
     ]);
   });
 
@@ -54,7 +55,7 @@ describe("portal dashboard", () => {
     ])).toEqual([
       ["Total Documents", 5],
       ["Processing", 2],
-      ["Ready Documents", 2],
+      ["Failed Documents", 1],
       ["On-Chain Records", 1],
     ]);
   });

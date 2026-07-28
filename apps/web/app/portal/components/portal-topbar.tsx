@@ -29,7 +29,7 @@ export function PortalTopBar({ fullName, initials, roleLabel, role, processingCo
         </Link>
         {role === 'issuer' ? (
           <Link
-            href="/portal/processing"
+            href="/portal/dashboard"
             aria-label="View processing documents"
             className="hidden rounded-full bg-[#FFF4DD] px-3 py-1.5 text-xs font-bold text-[#9A6700] transition hover:bg-[#FFE9BD] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0985E7] lg:inline-flex"
           >

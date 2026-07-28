@@ -5,14 +5,13 @@ import { describe, expect, it } from "vitest";
 const portalPages = [
   ["users", "UsersManagementView", "../../admin/users/users-management-view"],
   ["issuer-invitations", "InvitationsManagementView", "../../admin/invitations-permissions/invitations-management-view"],
-  ["system-reports", "GeneratedReportsManagementView", "../../admin/generated-reports/generated-reports-management-view"],
   ["audit-logs", "AuditLogsManagementView", "../../admin/audit-logs/audit-logs-management-view"],
 ] as const;
 
 const legacyPages = [
   ["users", "/portal/users"],
   ["invitations-permissions", "/portal/issuer-invitations"],
-  ["generated-reports", "/portal/system-reports"],
+  ["generated-reports", "/portal/reports"],
   ["audit-logs", "/portal/audit-logs"],
 ] as const;
 
