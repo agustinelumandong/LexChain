@@ -143,7 +143,7 @@ export default function ReviewWorkspace({
   const compareBlocks = review.blocks.filter((block) => block.page_idx === currentPage);
 
   return (
-    <section className="min-w-0">
+    <section className="min-w-0 md:flex md:min-h-0 md:flex-1 md:flex-col">
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#E8F0F8]">
         <div role="tablist" aria-label="Extraction review view" className="flex">
           {(['compare', 'raw'] as const).map((tab) => (
@@ -181,9 +181,9 @@ export default function ReviewWorkspace({
         </div>
       </div>
 
-      <div id="review-workspace-panel" role="tabpanel" className="pt-5">
+      <div id="review-workspace-panel" role="tabpanel" className="pt-5 md:flex md:min-h-0 md:flex-1 md:flex-col">
         {activeTab === 'compare' ? (
-          <>
+          <div className="md:flex md:min-h-0 md:flex-1 md:flex-col">
             <div aria-label="Mobile review pane" className="mb-3 grid grid-cols-2 gap-2 md:hidden">
               {(['source', 'review'] as const).map((pane) => (
                 <button
@@ -199,8 +199,8 @@ export default function ReviewWorkspace({
               ))}
             </div>
 
-            <div className="grid min-w-0 gap-5 md:grid-cols-2">
-              <section aria-label="Source document" className={mobilePane === 'source' ? 'min-w-0 rounded-[18px] border border-[#E8F0F8] bg-white p-4' : 'hidden min-w-0 rounded-[18px] border border-[#E8F0F8] bg-white p-4 md:block'}>
+            <div className="grid min-w-0 gap-5 md:min-h-0 md:flex-1 md:grid-cols-2">
+              <section aria-label="Source document" className={mobilePane === 'source' ? 'min-w-0 rounded-[18px] border border-[#E8F0F8] bg-white p-4 md:min-h-0 md:overflow-y-auto' : 'hidden min-w-0 rounded-[18px] border border-[#E8F0F8] bg-white p-4 md:block md:min-h-0 md:overflow-y-auto'}>
                 <PdfDocumentViewer
                   sourceUrl={review.storage_url}
                   pageCount={review.page_count}
@@ -212,7 +212,7 @@ export default function ReviewWorkspace({
                 />
               </section>
 
-              <section aria-label="Reviewed document" className={mobilePane === 'review' ? 'min-w-0 rounded-[18px] border border-[#E8F0F8] bg-white p-5 shadow-[0_4px_12px_rgba(19,59,115,0.05)]' : 'hidden min-w-0 rounded-[18px] border border-[#E8F0F8] bg-white p-5 shadow-[0_4px_12px_rgba(19,59,115,0.05)] md:block'}>
+              <section aria-label="Reviewed document" className={mobilePane === 'review' ? 'min-w-0 rounded-[18px] border border-[#E8F0F8] bg-white p-5 shadow-[0_4px_12px_rgba(19,59,115,0.05)] md:min-h-0 md:overflow-y-auto' : 'hidden min-w-0 rounded-[18px] border border-[#E8F0F8] bg-white p-5 shadow-[0_4px_12px_rgba(19,59,115,0.05)] md:block md:min-h-0 md:overflow-y-auto'}>
                 {compareBlocks.map((block) => {
                   const acceptedText = acceptedTexts?.[block.index] ?? block.text;
                   const text = drafts[block.index] ?? acceptedText;
@@ -271,7 +271,7 @@ export default function ReviewWorkspace({
                 {compareBlocks.length === 0 && <p className="text-sm text-[#64748b]">No extracted text is available for this page.</p>}
               </section>
             </div>
-          </>
+          </div>
         ) : (
           <div className="flex flex-col gap-4">
             {review.blocks.map((block) => {

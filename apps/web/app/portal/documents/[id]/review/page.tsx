@@ -118,7 +118,7 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
 
   const actionError = saveMutation.error ?? analyzeMutation.error ?? approveMutation.error;
   return (
-    <div className="flex w-full min-w-0 flex-col gap-5 overflow-x-hidden">
+    <div className="flex w-full min-w-0 flex-col gap-5 overflow-x-hidden md:h-[calc(100dvh-7rem)] md:overflow-hidden">
       <header>
         <Link href={`/portal/documents/${id}`} className="text-sm font-bold text-[#0985E7]">← Back to document</Link>
         <h1 className="mt-3 text-[28px] font-black text-[#0C2B49]">Review extracted text</h1>

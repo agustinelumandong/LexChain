@@ -95,7 +95,9 @@ afterEach(() => {
 describe('ReviewPage', () => {
   it('renders the compare review workspace for an issuer', async () => {
     renderPage();
-    expect(await screen.findByRole('region', { name: 'OCR review workspace' })).toBeTruthy();
+    const workspace = await screen.findByRole('region', { name: 'OCR review workspace' });
+    expect(workspace.parentElement?.className).toContain('md:h-[calc(100dvh-7rem)]');
+    expect(workspace.parentElement?.className).toContain('md:overflow-hidden');
     expect(workspaceMocks.props?.review).toBe(review);
     expect(workspaceMocks.props).toMatchObject({
       isSaving: false,

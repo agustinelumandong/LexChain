@@ -201,8 +201,8 @@ describe('ReviewWorkspace', () => {
     renderWorkspace();
 
     expect(screen.getByText('Source PDF viewer')).toBeTruthy();
-    expect(screen.getByRole('region', { name: 'Source document' })).toBeTruthy();
-    expect(screen.getByRole('region', { name: 'Reviewed document' })).toBeTruthy();
+    expect(screen.getByRole('region', { name: 'Source document' }).className).toContain('md:overflow-y-auto');
+    expect(screen.getByRole('region', { name: 'Reviewed document' }).className).toContain('md:overflow-y-auto');
     expect(dynamicMocks.viewerProps).toMatchObject({
       sourceUrl: '/deed.pdf',
       pageCount: 2,
