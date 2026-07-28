@@ -46,7 +46,7 @@ const review: ExtractionReview = {
       editable: true,
       type: 'text',
       text: 'Original body',
-      original_text: 'Original OCR text',
+      original_text: 'Original OCR body',
       bbox: [80, 200, 920, 500],
       page_idx: 1,
       text_level: null,
@@ -119,7 +119,7 @@ describe('ReviewWorkspace', () => {
 
     fireEvent.click(screen.getByRole('tab', { name: 'Raw' }));
     expect(screen.getByRole('heading', { name: 'Block 0' })).toBeTruthy();
-    expect(screen.getByText('Original OCR text')).toBeTruthy();
+    expect(screen.getAllByText('Original OCR text')).toHaveLength(3);
   });
 
   it('renders the source viewer beside one continuous review surface with a mobile pane switch', () => {
@@ -172,6 +172,26 @@ describe('ReviewWorkspace', () => {
 
     await act(async () => acceptedSave.resolve(review));
     await waitFor(() => expect(screen.queryByText('Save changes before analysis or approval.')).toBeNull());
+  });
+
+  it('keeps newer text dirty when an earlier save resolves', async () => {
+    const pendingSave = deferred<ExtractionReview>();
+    const onSave = vi.fn().mockReturnValue(pendingSave.promise);
+    renderWorkspace({ onSave });
+
+    fireEvent.change(screen.getByLabelText('Reviewed text for block 1'), {
+      target: { value: 'First correction' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
+    expect(onSave).toHaveBeenCalledWith([{ index: 1, text: 'First correction' }]);
+    fireEvent.change(screen.getByLabelText('Reviewed text for block 1'), {
+      target: { value: 'Newer correction' },
+    });
+
+    await act(async () => pendingSave.resolve(review));
+
+    expect((screen.getByLabelText('Reviewed text for block 1') as HTMLTextAreaElement).value).toBe('Newer correction');
+    expect(screen.getByText('Save changes before analysis or approval.')).toBeTruthy();
   });
 
   it('sanitizes tables in Compare and keeps their source editable in Raw', async () => {

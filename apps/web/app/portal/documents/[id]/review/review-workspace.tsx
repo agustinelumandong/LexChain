@@ -68,9 +68,16 @@ export default function ReviewWorkspace({
 
   async function saveChanges() {
     if (edits.length === 0) return;
+    const savedEdits = edits;
     try {
-      await onSave(edits);
-      setDrafts({});
+      await onSave(savedEdits);
+      setDrafts((current) => {
+        const remaining = { ...current };
+        savedEdits.forEach((edit) => {
+          if (current[edit.index] === edit.text) delete remaining[edit.index];
+        });
+        return remaining;
+      });
     } catch {
       // The route exposes the mutation error; retain drafts for correction or retry.
     }
@@ -203,7 +210,7 @@ export default function ReviewWorkspace({
                     </p>
                   </div>
                   <div className="mt-4 rounded-xl bg-[#F8FBFF] p-3">
-                    <p className="text-xs font-black uppercase tracking-wide text-[#64748b]">Original</p>
+                    <p className="text-xs font-black uppercase tracking-wide text-[#64748b]">Original OCR text</p>
                     <p className="mt-1 whitespace-pre-wrap break-words text-sm text-[#475569]">{block.original_text}</p>
                   </div>
                   {block.editable !== false ? (
