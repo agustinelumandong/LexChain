@@ -2,17 +2,38 @@
 
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { ApiSchema } from '@lexchain/types';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import ReviewWorkspace from './review-workspace';
 
 const dynamicMocks = vi.hoisted(() => ({
   viewerProps: null as Record<string, unknown> | null,
 }));
+const animationFrames: FrameRequestCallback[] = [];
+const originalScrollIntoView = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'scrollIntoView');
 
 vi.mock('next/dynamic', () => ({
   default: () => function MockPdfDocumentViewer(props: Record<string, unknown>) {
     dynamicMocks.viewerProps = props;
-    return <div>Source PDF viewer</div>;
+    return (
+      <div>
+        Source PDF viewer
+        {[0, 1, 2].map((blockIndex) => (
+          <button
+            key={blockIndex}
+            type="button"
+            onClick={() => (props.onSelectBlock as (index: number) => void)(blockIndex)}
+          >
+            Mock select block {blockIndex}
+          </button>
+        ))}
+        <button
+          type="button"
+          onClick={() => (props.onPageChange as (index: number) => void)(1)}
+        >
+          Mock page 2
+        </button>
+      </div>
+    );
   },
 }));
 
@@ -77,6 +98,30 @@ const review: ExtractionReview = {
   reviewed_at: null,
 };
 
+const flaggedReview: ExtractionReview = {
+  ...review,
+  blocks: [
+    ...review.blocks,
+    {
+      ...review.blocks[1],
+      index: 3,
+      text: 'Text without a box',
+      original_text: 'Text without a box',
+      bbox: null,
+      page_idx: 0,
+    },
+  ],
+  flags: [
+    { block_index: 0, kind: 'wording', severity: 'low', message: 'Check title wording', excerpt: 'DEED' },
+    { block_index: 1, kind: 'amount_mismatch', severity: 'high', message: 'Check the sale amount', excerpt: 'Original body' },
+    { block_index: 3, kind: 'missing_bbox', severity: 'high', message: 'Check unlocated text', excerpt: 'Text without a box' },
+    { block_index: null, kind: 'document', severity: 'medium', message: 'Check the whole document', excerpt: '' },
+  ],
+  flag_count: 4,
+  high_severity_count: 2,
+  edited_block_count: 1,
+};
+
 function renderWorkspace(overrides: Partial<React.ComponentProps<typeof ReviewWorkspace>> = {}) {
   const props: React.ComponentProps<typeof ReviewWorkspace> = {
     review,
@@ -101,10 +146,34 @@ function deferred<T>() {
   return { promise, resolve };
 }
 
+function flushAnimationFrames() {
+  act(() => {
+    animationFrames.splice(0).forEach((callback) => callback(0));
+  });
+}
+
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();
+  vi.unstubAllGlobals();
   dynamicMocks.viewerProps = null;
+  animationFrames.length = 0;
+  if (originalScrollIntoView) {
+    Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', originalScrollIntoView);
+  } else {
+    Reflect.deleteProperty(HTMLElement.prototype, 'scrollIntoView');
+  }
+});
+
+beforeEach(() => {
+  vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
+    animationFrames.push(callback);
+    return animationFrames.length;
+  });
+  Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
+    configurable: true,
+    value: vi.fn(),
+  });
 });
 
 describe('ReviewWorkspace', () => {
@@ -135,6 +204,96 @@ describe('ReviewWorkspace', () => {
     expect(screen.getByRole('button', { name: 'Review pane' }).getAttribute('aria-pressed')).toBe('true');
     fireEvent.click(screen.getByRole('button', { name: 'Source pane' }));
     expect(screen.getByRole('button', { name: 'Source pane' }).getAttribute('aria-pressed')).toBe('true');
+  });
+
+  it('uses block identity to synchronize a flag with its page and editor', () => {
+    renderWorkspace({ review: flaggedReview });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Issues (4)' }));
+    fireEvent.click(screen.getByRole('button', { name: /High priority.*block 1/i }));
+    flushAnimationFrames();
+    expect(dynamicMocks.viewerProps).toMatchObject({ currentPage: 1, selectedBlockIndex: 1 });
+    expect(document.activeElement).toBe(screen.getByLabelText('Reviewed text for block 1'));
+    expect(HTMLElement.prototype.scrollIntoView).toHaveBeenCalledWith({ behavior: 'smooth', block: 'center' });
+  });
+
+  it('uses the same selection path for overlays, page controls, Compare, and Raw', () => {
+    renderWorkspace({ review: flaggedReview });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Mock select block 0' }));
+    flushAnimationFrames();
+    expect(screen.getByLabelText('Reviewed text for block 0').getAttribute('data-selected')).toBe('true');
+    expect(dynamicMocks.viewerProps).toMatchObject({ currentPage: 0, selectedBlockIndex: 0 });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Mock page 2' }));
+    expect(dynamicMocks.viewerProps).toMatchObject({ currentPage: 1, selectedBlockIndex: 0 });
+
+    fireEvent.focus(screen.getByLabelText('Reviewed text for block 0'));
+    expect(dynamicMocks.viewerProps).toMatchObject({ currentPage: 0, selectedBlockIndex: 0 });
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Raw' }));
+    fireEvent.focus(screen.getByLabelText('Reviewed text for block 1'));
+    fireEvent.click(screen.getByRole('tab', { name: 'Compare' }));
+    expect(dynamicMocks.viewerProps).toMatchObject({ currentPage: 1, selectedBlockIndex: 1 });
+  });
+
+  it('keeps document-wide flags stationary and focuses editable blocks without boxes', () => {
+    renderWorkspace({ review: flaggedReview });
+    fireEvent.click(screen.getByRole('button', { name: 'Mock select block 1' }));
+    flushAnimationFrames();
+    fireEvent.click(screen.getByRole('button', { name: 'Issues (4)' }));
+
+    fireEvent.click(screen.getByRole('button', { name: /Medium priority.*document-wide/i }));
+    expect(screen.getByText('Check the whole document')).toBeTruthy();
+    expect(dynamicMocks.viewerProps).toMatchObject({ currentPage: 1, selectedBlockIndex: 1 });
+
+    fireEvent.click(screen.getByRole('button', { name: /High priority.*block 3/i }));
+    flushAnimationFrames();
+    expect(dynamicMocks.viewerProps).toMatchObject({ currentPage: 0, selectedBlockIndex: 3 });
+    expect(document.activeElement).toBe(screen.getByLabelText('Reviewed text for block 3'));
+  });
+
+  it('selects a non-editable block without focusing or exposing an editor', () => {
+    renderWorkspace({ review: flaggedReview });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Mock select block 2' }));
+    expect(dynamicMocks.viewerProps).toMatchObject({ currentPage: 1, selectedBlockIndex: 2 });
+    expect(screen.queryByLabelText('Reviewed text for block 2')).toBeNull();
+    expect(animationFrames).toHaveLength(0);
+  });
+
+  it('orders issues stably by severity', () => {
+    renderWorkspace({ review: flaggedReview });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Issues (4)' }));
+    expect(screen.getByText('4 issues')).toBeTruthy();
+    expect(screen.getAllByRole('button', { name: /priority/i }).map((button) => button.getAttribute('aria-label'))).toEqual([
+      'High priority, block 1: Check the sale amount',
+      'High priority, block 3: Check unlocated text',
+      'Medium priority, document-wide: Check the whole document',
+      'Low priority, block 0: Check title wording',
+    ]);
+    expect(screen.getByRole('complementary', { name: 'Issues' }).textContent).toContain('Original body');
+  });
+
+  it('exposes extraction-level facts in a drawer', () => {
+    renderWorkspace({ review: flaggedReview });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Extraction info' }));
+    expect(screen.getByRole('heading', { name: 'Extraction info' })).toBeTruthy();
+    expect(screen.getByText('LexChain OCR')).toBeTruthy();
+    expect(screen.getByText('2 pages')).toBeTruthy();
+    expect(screen.getByText('88%')).toBeTruthy();
+    expect(screen.getByText('1 edited block')).toBeTruthy();
+    expect(screen.getByText('Ready for review')).toBeTruthy();
+  });
+
+  it('keeps confidence out of Compare while retaining the Raw legacy label', () => {
+    renderWorkspace();
+
+    expect(screen.queryByText('97% confidence')).toBeNull();
+    fireEvent.click(screen.getByRole('tab', { name: 'Raw' }));
+    expect(screen.getByText(/97% confidence/)).toBeTruthy();
   });
 
   it('keeps drafts across tabs and saves only changed editable blocks', async () => {

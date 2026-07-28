@@ -1,6 +1,7 @@
 'use client';
 
 import type { ApiSchema } from '@lexchain/types';
+import Drawer from '@mui/material/Drawer';
 import dynamic from 'next/dynamic';
 import { useEffect, useState } from 'react';
 import type { ExtractionReview } from '../../../lib/extraction-api';
@@ -36,6 +37,7 @@ export default function ReviewWorkspace({
   const [drafts, setDrafts] = useState<Record<number, string>>({});
   const [selectedBlockIndex, setSelectedBlockIndex] = useState<number | null>(null);
   const [currentPage, setCurrentPage] = useState(0);
+  const [openDrawer, setOpenDrawer] = useState<'issues' | 'info' | null>(null);
   const [sanitizedTables, setSanitizedTables] = useState<Record<number, string | null>>({});
   const [savedBaseline, setSavedBaseline] = useState<{
     sourceBlocks: ExtractionReview['blocks'];
@@ -50,6 +52,15 @@ export default function ReviewWorkspace({
       : [{ index: block.index, text: draft }];
   });
   const mutationPending = isSaving || isAnalyzing || isApproving;
+  const severityRank: Record<string, number> = { high: 0, medium: 1, low: 2 };
+  const orderedFlags = review.flags
+    .map((flag, position) => ({ flag, position }))
+    .sort((a, b) => (
+      (severityRank[a.flag.severity.toLowerCase()] ?? 3)
+      - (severityRank[b.flag.severity.toLowerCase()] ?? 3)
+      || a.position - b.position
+    ))
+    .map(({ flag }) => flag);
 
   useEffect(() => {
     let cancelled = false;
@@ -97,22 +108,57 @@ export default function ReviewWorkspace({
     }
   }
 
+  function selectBlock(blockIndex: number, focusEditor = true) {
+    const block = review.blocks.find((candidate) => candidate.index === blockIndex);
+    if (!block) return;
+
+    setSelectedBlockIndex(block.index);
+    if (block.page_idx !== null && block.page_idx !== undefined) setCurrentPage(block.page_idx);
+    if (focusEditor && block.editable !== false) {
+      requestAnimationFrame(() => {
+        document.getElementById(`review-block-input-${block.index}`)?.focus();
+        document.getElementById(`review-block-${block.index}`)?.scrollIntoView?.({
+          behavior: 'smooth',
+          block: 'center',
+        });
+      });
+    }
+  }
+
   return (
     <section className="min-w-0">
-      <div role="tablist" aria-label="Extraction review view" className="flex border-b border-[#E8F0F8]">
-        {(['compare', 'raw'] as const).map((tab) => (
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#E8F0F8]">
+        <div role="tablist" aria-label="Extraction review view" className="flex">
+          {(['compare', 'raw'] as const).map((tab) => (
+            <button
+              key={tab}
+              type="button"
+              role="tab"
+              aria-selected={activeTab === tab}
+              aria-controls="review-workspace-panel"
+              onClick={() => setActiveTab(tab)}
+              className={`border-b-2 px-5 py-3 text-sm font-black ${activeTab === tab ? 'border-[#0985E7] text-[#0985E7]' : 'border-transparent text-[#64748b]'}`}
+            >
+              {tab === 'compare' ? 'Compare' : 'Raw'}
+            </button>
+          ))}
+        </div>
+        <div className="flex gap-2 pb-2 sm:pb-0">
           <button
-            key={tab}
             type="button"
-            role="tab"
-            aria-selected={activeTab === tab}
-            aria-controls="review-workspace-panel"
-            onClick={() => setActiveTab(tab)}
-            className={`border-b-2 px-5 py-3 text-sm font-black ${activeTab === tab ? 'border-[#0985E7] text-[#0985E7]' : 'border-transparent text-[#64748b]'}`}
+            onClick={() => setOpenDrawer('issues')}
+            className="rounded-full border border-[#D7E4F2] px-3 py-2 text-sm font-black text-[#0C2B49]"
           >
-            {tab === 'compare' ? 'Compare' : 'Raw'}
+            Issues ({review.flag_count})
           </button>
-        ))}
+          <button
+            type="button"
+            onClick={() => setOpenDrawer('info')}
+            className="rounded-full border border-[#D7E4F2] px-3 py-2 text-sm font-black text-[#0C2B49]"
+          >
+            Extraction info
+          </button>
+        </div>
       </div>
 
       <div id="review-workspace-panel" role="tabpanel" className="pt-5">
@@ -142,7 +188,7 @@ export default function ReviewWorkspace({
                   blocks={review.blocks}
                   selectedBlockIndex={selectedBlockIndex}
                   onPageChange={setCurrentPage}
-                  onSelectBlock={setSelectedBlockIndex}
+                  onSelectBlock={selectBlock}
                 />
               </section>
 
@@ -174,8 +220,8 @@ export default function ReviewWorkspace({
                             type="button"
                             disabled={review.is_reviewed || block.editable === false}
                             onClick={() => {
-                              setSelectedBlockIndex(block.index);
                               setActiveTab('raw');
+                              selectBlock(block.index);
                             }}
                             className="mt-2 text-xs font-black text-[#0985E7] disabled:opacity-40"
                           >
@@ -190,7 +236,7 @@ export default function ReviewWorkspace({
                           value={text}
                           rows={block.text_level === 1 ? 1 : Math.max(2, text.split('\n').length)}
                           disabled={review.is_reviewed}
-                          onFocus={() => setSelectedBlockIndex(block.index)}
+                          onFocus={() => selectBlock(block.index, false)}
                           onChange={(event) => setDrafts((current) => ({ ...current, [block.index]: event.target.value }))}
                           className={`w-full resize-y rounded-lg border bg-transparent px-2 py-1.5 leading-7 text-[#0C2B49] outline-none transition-colors hover:border-[#D7E4F2] focus:border-[#0985E7] disabled:resize-none disabled:bg-[#F8FBFF] ${block.text_level === 1 ? 'text-xl font-black' : 'text-sm'} ${dirty || selected ? 'border-[#98C9F3]' : 'border-transparent'}`}
                         />
@@ -237,7 +283,7 @@ export default function ReviewWorkspace({
                         value={text}
                         rows={Math.max(3, text.split('\n').length + 1)}
                         disabled={review.is_reviewed}
-                        onFocus={() => setSelectedBlockIndex(block.index)}
+                        onFocus={() => selectBlock(block.index, false)}
                         onChange={(event) => setDrafts((current) => ({ ...current, [block.index]: event.target.value }))}
                         className="mt-1.5 w-full resize-y rounded-xl border border-[#D7E4F2] px-3 py-2.5 font-mono text-sm leading-6 text-[#0C2B49] outline-none focus:border-[#0985E7] disabled:bg-[#F8FBFF]"
                       />
@@ -279,6 +325,68 @@ export default function ReviewWorkspace({
       </div>
       {edits.length > 0 && <p className="mt-3 text-xs font-semibold text-[#B77900]">Save changes before analysis or approval.</p>}
       {review.is_reviewed && <p className="mt-3 text-xs font-semibold text-[#12A150]">Reviewed text is approved and frozen.</p>}
+
+      <Drawer
+        anchor="right"
+        open={openDrawer === 'issues'}
+        onClose={() => setOpenDrawer(null)}
+        ModalProps={{ disableRestoreFocus: true }}
+      >
+        <aside aria-label="Issues" className="w-[min(24rem,100vw)] p-5">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <h2 className="text-lg font-black text-[#0C2B49]">Issues</h2>
+              <p className="text-sm font-bold text-[#64748b]">{review.flag_count} {review.flag_count === 1 ? 'issue' : 'issues'}</p>
+            </div>
+            <button type="button" aria-label="Close issues" onClick={() => setOpenDrawer(null)} className="px-2 py-1 text-xl text-[#64748b]">×</button>
+          </div>
+          <div className="mt-5 flex flex-col gap-3">
+            {orderedFlags.map((flag, position) => {
+              const severity = flag.severity.toLowerCase();
+              const priority = severity === 'high' ? 'High priority' : severity === 'medium' ? 'Medium priority' : severity === 'low' ? 'Low priority' : `${flag.severity} priority`;
+              const target = flag.block_index === null || flag.block_index === undefined ? 'document-wide' : `block ${flag.block_index}`;
+              return (
+                <button
+                  key={`${flag.kind}-${flag.block_index ?? 'document'}-${position}`}
+                  type="button"
+                  aria-label={`${priority}, ${target}: ${flag.message}`}
+                  onClick={() => {
+                    if (flag.block_index === null || flag.block_index === undefined) return;
+                    setOpenDrawer(null);
+                    selectBlock(flag.block_index);
+                  }}
+                  className={`rounded-xl border p-3 text-left ${severity === 'high' ? 'border-red-200 bg-red-50' : severity === 'medium' ? 'border-amber-200 bg-amber-50' : 'border-[#D7E4F2] bg-white'}`}
+                >
+                  <span className="block text-xs font-black uppercase tracking-wide text-[#64748b]">{priority} · {target}</span>
+                  <span className="mt-1 block text-sm font-bold text-[#0C2B49]">{flag.message}</span>
+                  {flag.excerpt && <span className="mt-1 block text-xs text-[#64748b]">{flag.excerpt}</span>}
+                </button>
+              );
+            })}
+            {orderedFlags.length === 0 && <p className="text-sm text-[#64748b]">No issues reported.</p>}
+          </div>
+        </aside>
+      </Drawer>
+
+      <Drawer
+        anchor="right"
+        open={openDrawer === 'info'}
+        onClose={() => setOpenDrawer(null)}
+      >
+        <aside aria-label="Extraction info" className="w-[min(24rem,100vw)] p-5">
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-lg font-black text-[#0C2B49]">Extraction info</h2>
+            <button type="button" aria-label="Close extraction info" onClick={() => setOpenDrawer(null)} className="px-2 py-1 text-xl text-[#64748b]">×</button>
+          </div>
+          <dl className="mt-5 grid gap-4 text-sm">
+            <div><dt className="font-bold text-[#64748b]">Engine</dt><dd className="text-[#0C2B49]">{review.engine}</dd></div>
+            <div><dt className="font-bold text-[#64748b]">Pages</dt><dd className="text-[#0C2B49]">{review.page_count} {review.page_count === 1 ? 'page' : 'pages'}</dd></div>
+            <div><dt className="font-bold text-[#64748b]">Average confidence</dt><dd className="text-[#0C2B49]">{review.confidence_avg === null || review.confidence_avg === undefined ? 'Not reported' : `${Math.round(review.confidence_avg * 100)}%`}</dd></div>
+            <div><dt className="font-bold text-[#64748b]">Edited blocks</dt><dd className="text-[#0C2B49]">{review.edited_block_count} edited {review.edited_block_count === 1 ? 'block' : 'blocks'}</dd></div>
+            <div><dt className="font-bold text-[#64748b]">Review status</dt><dd className="text-[#0C2B49]">{review.status.replaceAll('_', ' ').replace(/^./, (character) => character.toUpperCase())}</dd></div>
+          </dl>
+        </aside>
+      </Drawer>
     </section>
   );
 }
