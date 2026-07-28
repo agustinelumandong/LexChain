@@ -7,6 +7,7 @@ import {
   type DemoReport,
   type DemoReportType,
 } from "../../portal/lib/office-insight";
+import { PortalDropdown } from "../../portal/components/portal-dropdown";
 
 const reportOptions: ReadonlyArray<{
   type: DemoReportType;
@@ -25,7 +26,7 @@ const reportOptions: ReadonlyArray<{
   },
 ];
 
-export function GeneratedReportsManagementView() {
+export function GeneratedReportsManagementView({ embedded = false }: { embedded?: boolean }) {
   const [reportType, setReportType] = useState<DemoReportType>("system-users");
   const [from, setFrom] = useState("2026-03-01");
   const [to, setTo] = useState("2026-05-31");
@@ -45,14 +46,22 @@ export function GeneratedReportsManagementView() {
   }
 
   return (
-    <div className="flex min-h-[calc(100vh-48px)] w-full flex-col gap-5">
-      <header>
+    <div className={`flex flex-col gap-5 ${embedded ? '' : 'min-h-[calc(100vh-48px)] w-full'}`}>
+      {!embedded ? <header>
         <p className="text-xs font-black uppercase tracking-[0.22em] text-[#0879D8]">LexChain Operations</p>
         <h1 className="mt-1 text-3xl font-black leading-tight text-[#071B33]">Generated Reports</h1>
         <p className="mt-1 text-sm font-semibold text-[#4B6382]">Generate one of two fixed reports from seeded system data.</p>
-      </header>
+      </header> : null}
 
-      <fieldset className="grid gap-4 md:grid-cols-2">
+      {embedded ? <label className="block text-sm font-black text-[#0C2B49]">
+        Report type
+        <PortalDropdown
+          ariaLabel="Report type"
+          value={reportType}
+          onChange={(value) => setReportType(value as DemoReportType)}
+          options={reportOptions.map((option) => ({ label: option.title, value: option.type }))}
+        />
+      </label> : <fieldset className="grid gap-4 md:grid-cols-2">
         <legend className="sr-only">Report type</legend>
         {reportOptions.map((option) => (
           <label
@@ -71,22 +80,24 @@ export function GeneratedReportsManagementView() {
               aria-label={option.title}
               className="accent-[#0985E7]"
             />
-            <span className="ml-3 text-lg font-black text-[#071B33]">{option.title}</span>
-            <span className="mt-2 block text-sm font-semibold leading-6 text-[#5B6F8A]">{option.description}</span>
+            <span className="contents">
+              <span className="ml-3 text-lg font-black text-[#071B33]">{option.title}</span>
+              <span className="mt-2 block text-sm font-semibold leading-6 text-[#5B6F8A]">{option.description}</span>
+            </span>
           </label>
         ))}
-      </fieldset>
+      </fieldset>}
 
-      <section aria-label="Report dates" className="flex flex-wrap items-end gap-3 rounded-2xl border border-[#E4EEF9] bg-white p-5 shadow-sm shadow-[#DDEAF7]/35">
-        <label className="grid gap-1 text-sm font-black text-[#071B33]">
+      <section aria-label="Report dates" className={embedded ? "grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end" : "flex flex-wrap items-end gap-3 rounded-2xl border border-[#E4EEF9] bg-white p-5 shadow-sm shadow-[#DDEAF7]/35"}>
+        <label className={embedded ? "text-sm font-black text-[#0C2B49]" : "grid gap-1 text-sm font-black text-[#071B33]"}>
           From
-          <input type="date" value={from} onChange={(event) => setFrom(event.target.value)} className="rounded-xl border border-[#D7E4F2] px-3 py-2 font-semibold" />
+          <input type="date" value={from} onChange={(event) => setFrom(event.target.value)} className={embedded ? "mt-2 block w-full rounded-xl border border-[#D9E5F0] px-3 py-2.5 font-semibold" : "rounded-xl border border-[#D7E4F2] px-3 py-2 font-semibold"} />
         </label>
-        <label className="grid gap-1 text-sm font-black text-[#071B33]">
+        <label className={embedded ? "text-sm font-black text-[#0C2B49]" : "grid gap-1 text-sm font-black text-[#071B33]"}>
           To
-          <input type="date" value={to} onChange={(event) => setTo(event.target.value)} className="rounded-xl border border-[#D7E4F2] px-3 py-2 font-semibold" />
+          <input type="date" value={to} onChange={(event) => setTo(event.target.value)} className={embedded ? "mt-2 block w-full rounded-xl border border-[#D9E5F0] px-3 py-2.5 font-semibold" : "rounded-xl border border-[#D7E4F2] px-3 py-2 font-semibold"} />
         </label>
-        <button type="button" onClick={generate} className="rounded-xl bg-[#0985E7] px-5 py-2.5 text-sm font-black text-white hover:bg-[#0770C4]">
+        <button type="button" onClick={generate} className={embedded ? "rounded-xl bg-[#0985E7] px-5 py-3 text-sm font-black text-white hover:bg-[#0770C4]" : "rounded-xl bg-[#0985E7] px-5 py-2.5 text-sm font-black text-white hover:bg-[#0770C4]"}>
           Generate
         </button>
       </section>

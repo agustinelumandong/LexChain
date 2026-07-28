@@ -34,14 +34,56 @@ afterEach(() => {
 });
 beforeEach(() => { queryState.role = 'document_issuer'; });
 
-describe('OfficeReportsPage', () => {
-  it('offers the two fixed issuer reports with native date fields', () => {
+describe('ReportsPage', () => {
+  it('lets an issuer choose document or system reports from a dropdown', () => {
     render(<OfficeReportsPage />);
 
-    expect(screen.getByRole('radio', { name: 'Document Activity' })).toBeTruthy();
-    expect(screen.getByRole('radio', { name: 'Integrity' })).toBeTruthy();
+    const scopePicker = screen.getByRole('button', { name: 'Report scope' });
+    expect(scopePicker.textContent).toContain('Document reports');
+    const documentReportPicker = screen.getByRole('button', { name: 'Report type' });
+    expect(documentReportPicker.textContent).toContain('Document Activity');
+    fireEvent.click(documentReportPicker);
+    fireEvent.click(screen.getByRole('option', { name: 'Integrity' }));
+    expect(documentReportPicker.textContent).toContain('Integrity');
+    fireEvent.click(scopePicker);
+    fireEvent.click(screen.getByRole('option', { name: 'System reports' }));
+    const reportPicker = screen.getByRole('button', { name: 'Report type' });
+    expect(reportPicker.textContent).toContain('System Users');
+    fireEvent.click(reportPicker);
+    fireEvent.click(screen.getByRole('option', { name: 'System Audit' }));
+    expect(screen.getByRole('status').textContent).toContain('System Audit');
     expect((screen.getByLabelText('From') as HTMLInputElement).type).toBe('date');
     expect((screen.getByLabelText('To') as HTMLInputElement).type).toBe('date');
+  });
+
+  it('keeps system report dates in the same three-column range layout', () => {
+    render(<OfficeReportsPage />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Report scope' }));
+    fireEvent.click(screen.getByRole('option', { name: 'System reports' }));
+
+    expect(screen.getByRole('region', { name: 'Report dates' }).className).toContain('sm:grid-cols-[1fr_1fr_auto]');
+  });
+
+  it('groups scope, type, and dates in one report controls card for both scopes', () => {
+    render(<OfficeReportsPage />);
+
+    const scopePicker = screen.getByRole('button', { name: 'Report scope' });
+    let controls = screen.getByRole('region', { name: 'Report controls' });
+    expect(controls.contains(scopePicker)).toBe(true);
+    expect(controls.contains(screen.getByRole('button', { name: 'Report type' }))).toBe(true);
+    expect(controls.contains(screen.getByLabelText('From'))).toBe(true);
+    expect(controls.contains(screen.getByLabelText('To'))).toBe(true);
+    expect(controls.contains(screen.getByRole('button', { name: 'Generate' }))).toBe(true);
+
+    fireEvent.click(scopePicker);
+    fireEvent.click(screen.getByRole('option', { name: 'System reports' }));
+    controls = screen.getByRole('region', { name: 'Report controls' });
+    expect(controls.contains(screen.getByRole('button', { name: 'Report scope' }))).toBe(true);
+    expect(controls.contains(screen.getByRole('button', { name: 'Report type' }))).toBe(true);
+    expect(controls.contains(screen.getByLabelText('From'))).toBe(true);
+    expect(controls.contains(screen.getByLabelText('To'))).toBe(true);
+    expect(controls.contains(screen.getByRole('button', { name: 'Generate' }))).toBe(true);
   });
 
   it('generates a compact preview and shows the disclaimer for every result', () => {
@@ -54,7 +96,8 @@ describe('OfficeReportsPage', () => {
     expect(screen.queryByText('Deed of Sale - Lot 18.pdf')).toBeNull();
     expect(screen.getByText('Demo report — generated locally from seeded data and not stored.')).toBeTruthy();
 
-    fireEvent.click(screen.getByRole('radio', { name: 'Integrity' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Report type' }));
+    fireEvent.click(screen.getByRole('option', { name: 'Integrity' }));
     fireEvent.click(screen.getByRole('button', { name: 'Generate' }));
     expect(screen.getByRole('region', { name: 'Integrity report' })).toBeTruthy();
     expect(screen.getByText('Demo report — generated locally from seeded data and not stored.')).toBeTruthy();
@@ -88,7 +131,7 @@ describe('OfficeReportsPage', () => {
     queryState.role = 'document_participant';
     render(<OfficeReportsPage />);
 
-    expect(screen.getByText('Office Reports are available to Document Issuers only.')).toBeTruthy();
+    expect(screen.getByText('Reports are available to Document Issuers only.')).toBeTruthy();
     expect(screen.queryByRole('radio', { name: 'Document Activity' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Generate' })).toBeNull();
   });
