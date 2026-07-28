@@ -1,12 +1,9 @@
 import { buildApiUrl } from "@lexchain/config";
-import type { PublicVerifyResponse } from "@lexchain/types";
 
 type ApiErrorPayload = {
   detail?: unknown;
   message?: unknown;
 };
-
-export type { PublicVerifyResponse } from "@lexchain/types";
 
 export function getApiErrorMessage(payload: ApiErrorPayload | null, fallback: string) {
   if (typeof payload?.message === "string") {
@@ -22,32 +19,6 @@ export function getApiErrorMessage(payload: ApiErrorPayload | null, fallback: st
   }
 
   return fallback;
-}
-
-export async function verifyPublicPdf(file: File, endpoint = "/api/public/verify") {
-  const formData = new FormData();
-  formData.append("file", file);
-
-  let response: Response;
-
-  try {
-    response = await fetch(endpoint, {
-      method: "POST",
-      body: formData,
-    });
-  } catch {
-    throw new Error("Unable to reach the verification API. Check API_URL and try again.");
-  }
-
-  const payload = (await response.json().catch(() => null)) as ApiErrorPayload | null;
-
-  if (!response.ok) {
-    throw new Error(
-      getApiErrorMessage(payload, `Verification failed with status ${response.status}.`),
-    );
-  }
-
-  return payload as PublicVerifyResponse;
 }
 
 export async function proxyFormDataToApi(

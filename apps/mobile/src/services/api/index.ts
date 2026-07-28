@@ -6,7 +6,6 @@ export { booksApi } from './books.api';
 export { blockchainApi } from './blockchain.api';
 export { documentsApi } from './documents.api';
 export { notificationsApi } from './notifications.api';
-export { publicApi } from './public.api';
 export { requestsApi } from './requests.api';
 export { usersApi } from './users.api';
 export type { components, paths } from '@lexchain/types/openapi';
@@ -75,7 +74,6 @@ export type {
   NotificationResponse,
   UnreadCountResponse,
 } from './notifications.api';
-export type { PublicVerifyResponse } from './public.api';
 export type {
   CreateDocumentRequestBody,
   DocumentRequestListResponse,
