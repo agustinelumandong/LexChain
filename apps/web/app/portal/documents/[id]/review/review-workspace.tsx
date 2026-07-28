@@ -140,6 +140,8 @@ export default function ReviewWorkspace({
     setOpenDrawer(null);
   }
 
+  const compareBlocks = review.blocks.filter((block) => block.page_idx === currentPage);
+
   return (
     <section className="min-w-0">
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#E8F0F8]">
@@ -211,7 +213,7 @@ export default function ReviewWorkspace({
               </section>
 
               <section aria-label="Reviewed document" className={mobilePane === 'review' ? 'min-w-0 rounded-[18px] border border-[#E8F0F8] bg-white p-5 shadow-[0_4px_12px_rgba(19,59,115,0.05)]' : 'hidden min-w-0 rounded-[18px] border border-[#E8F0F8] bg-white p-5 shadow-[0_4px_12px_rgba(19,59,115,0.05)] md:block'}>
-                {review.blocks.map((block) => {
+                {compareBlocks.map((block) => {
                   const acceptedText = acceptedTexts?.[block.index] ?? block.text;
                   const text = drafts[block.index] ?? acceptedText;
                   const dirty = drafts[block.index] !== undefined && drafts[block.index] !== acceptedText;
@@ -266,6 +268,7 @@ export default function ReviewWorkspace({
                     </section>
                   );
                 })}
+                {compareBlocks.length === 0 && <p className="text-sm text-[#64748b]">No extracted text is available for this page.</p>}
               </section>
             </div>
           </>
