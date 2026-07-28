@@ -416,14 +416,21 @@ function documentPaths(path: string) {
   return path.match(/^\/documents\/([^/]+)(?:\/(parties|versions|audit-logs|verify))?\/?$/);
 }
 
+function mockPdfFileName(fileName: string) {
+  return fileName.toLowerCase().endsWith('.pdf') ? fileName : `${fileName}.pdf`;
+}
+
 function validFileName(value: string | null) {
   const fileName = value?.trim();
-  return fileName && !/[\/\\\u0000-\u001F\u007F]/.test(fileName) ? fileName : null;
+  return fileName
+    && mockPdfFileName(fileName).length <= 255
+    && !/[\/\\\u0000-\u001F\u007F]/.test(fileName)
+    ? fileName
+    : null;
 }
 
 function mockStorageUrl(fileName: string) {
-  const pdfName = fileName.toLowerCase().endsWith('.pdf') ? fileName : `${fileName}.pdf`;
-  return `/mock-documents/${encodeURIComponent(pdfName)}`;
+  return `/mock-documents/${encodeURIComponent(mockPdfFileName(fileName))}`;
 }
 
 function pathname(path: string) {
