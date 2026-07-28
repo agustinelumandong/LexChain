@@ -31,6 +31,39 @@ export async function finalizeDocument(documentId: string): Promise<ApiSchema<'R
   return lifecycleFetch(`/documents/${id}/finalize`, { method: 'POST' });
 }
 
+type DocumentVersion = {
+  document_id: string;
+  version: number;
+  file_name: string;
+  status: string;
+  lifecycle: string;
+  is_latest: boolean;
+  created_at: string;
+};
+
+export async function renameDocument(documentId: string, fileName: string) {
+  return lifecycleFetch(`/documents/${required(documentId, 'Document ID is required')}`, {
+    method: 'PATCH',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ file_name: required(fileName, 'Document name is required') }),
+  });
+}
+
+export async function listDocumentVersions(documentId: string): Promise<{ versions: DocumentVersion[]; total_version: number }> {
+  return lifecycleFetch(`/documents/${required(documentId, 'Document ID is required')}/versions`);
+}
+
+export async function createDocumentVersion(documentId: string, file: File) {
+  const id = required(documentId, 'Document ID is required');
+  if (file.type !== 'application/pdf') throw new Error('Choose a PDF file.');
+  const data = new FormData();
+  data.append('file', file);
+  return lifecycleFetch(`/documents/${id}/update?file_name=${encodeURIComponent(file.name)}`, {
+    method: 'POST',
+    body: data,
+  });
+}
+
 export async function listDemoSnapshots(documentId: string): Promise<DemoDocumentSnapshot[]> {
   const id = required(documentId, 'Document ID is required');
   return lifecycleFetch(`/documents/${id}/snapshots`);

@@ -12,7 +12,7 @@ type DocumentResponse = ApiSchema<'DocumentResponse'>;
 
 const DONE = new Set(['anchored', 'completed', 'processed']);
 const FAILED = new Set(['failed', 'error']);
-const REVIEW_READY = 'ready_for_review';
+const REVIEW_READY = new Set(['awaiting_review', 'ready_for_review']);
 
 async function fetchDocument(id: string): Promise<DocumentResponse> {
   const res = await fetch(`/api/portal/proxy?path=${encodeURIComponent(`/documents/${id}`)}`, {
@@ -35,13 +35,13 @@ export default function ProcessingPage({
     enabled: !!id,
     refetchInterval: (query) => {
       const currentStatus = query.state.data?.status?.toLowerCase() ?? '';
-      return DONE.has(currentStatus) || FAILED.has(currentStatus) || currentStatus === REVIEW_READY ? false : 2000;
+      return DONE.has(currentStatus) || FAILED.has(currentStatus) || REVIEW_READY.has(currentStatus) ? false : 2000;
     },
   });
 
   const status = data?.status?.toLowerCase() ?? 'processing';
   const done = DONE.has(status);
-  const reviewReady = status === REVIEW_READY;
+  const reviewReady = REVIEW_READY.has(status);
   const lookupError = isError && !!id;
   const failed = FAILED.has(status) || !id;
   const normalizedStatus = getDocumentStatusLabel(data?.status ?? (failed ? 'FAILED' : 'PROCESSING'));

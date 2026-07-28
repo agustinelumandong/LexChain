@@ -32,6 +32,14 @@ afterEach(() => {
 });
 
 describe('ProcessingPage', () => {
+  it('links the live awaiting-review status to the extracted-text review route', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(documentResponse('AWAITING_REVIEW')));
+    renderPage();
+
+    const link = await screen.findByRole('link', { name: 'Review extracted text' });
+    expect(link.getAttribute('href')).toBe('/portal/documents/doc-1/review');
+  });
+
   it('links review-ready documents to the extracted-text review route', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(documentResponse('ready_for_review')));
     renderPage();

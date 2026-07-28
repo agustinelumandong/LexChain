@@ -4,6 +4,8 @@ export function getDocumentStatusLabel(status?: string | null): string {
   const value = status?.trim().toUpperCase();
   if (value === 'QUEUED') return 'Queued';
   if (value === 'PROCESSING') return 'Processing';
+  if (value === 'AWAITING_REVIEW') return 'Ready for review';
+  if (value === 'ENRICHING') return 'Preparing document';
   if (value === 'COMPLETED') return 'Completed';
   if (value === 'ANCHORED') return 'Completed';
   if (value === 'FAILED') return 'Failed';
