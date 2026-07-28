@@ -74,6 +74,17 @@ describe('extraction review client', () => {
     await expect(getExtractionReview('doc-1')).rejects.toThrow('Extraction is not ready');
   });
 
+  it('preserves the response status on extraction API errors', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(
+      Response.json({ message: 'Review state changed' }, { status: 409 }),
+    ));
+
+    await expect(getExtractionReview('doc-1')).rejects.toMatchObject({
+      message: 'Review state changed',
+      status: 409,
+    });
+  });
+
   it('falls back to the HTTP status when the proxy returns null error JSON', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json(null, { status: 502 })));
 

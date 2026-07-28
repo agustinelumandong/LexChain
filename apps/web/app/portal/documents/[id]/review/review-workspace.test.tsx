@@ -424,4 +424,61 @@ describe('ReviewWorkspace', () => {
     expect((screen.getByRole('button', { name: 'Analyze semantic issues' }) as HTMLButtonElement).disabled).toBe(true);
     expect(screen.getByText('Reviewed text is approved and frozen.')).toBeTruthy();
   });
+
+  it('requires an issue-aware confirmation before approving reviewed text', () => {
+    const { onApprove } = renderWorkspace({ review: flaggedReview });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Approve reviewed text' }));
+
+    expect(screen.getByRole('dialog', { name: 'Approve reviewed text?' })).toBeTruthy();
+    expect(screen.getByText('2 unresolved high-priority issues remain.')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Approve anyway' }));
+    expect(onApprove).toHaveBeenCalledTimes(1);
+  });
+
+  it('uses the ordinary approval copy when no high-priority issues remain', () => {
+    renderWorkspace();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Approve reviewed text' }));
+
+    expect(screen.getByRole('dialog', { name: 'Approve reviewed text?' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Approve' })).toBeTruthy();
+  });
+
+  it('cancels approval without calling the route action', async () => {
+    const { onApprove } = renderWorkspace();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Approve reviewed text' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Approve reviewed text?' })).toBeNull());
+    expect(onApprove).not.toHaveBeenCalled();
+  });
+
+  it('keeps the approval dialog closed while edits are unsaved', () => {
+    renderWorkspace();
+    fireEvent.change(screen.getByLabelText('Reviewed text for block 1'), { target: { value: 'Corrected body' } });
+
+    const approveButton = screen.getByRole('button', { name: 'Approve reviewed text' }) as HTMLButtonElement;
+    expect(approveButton.disabled).toBe(true);
+    fireEvent.click(approveButton);
+    expect(screen.queryByRole('dialog', { name: 'Approve reviewed text?' })).toBeNull();
+  });
+
+  it('locks an open approval dialog while approval is pending', () => {
+    const { rerender, ...props } = renderWorkspace();
+    fireEvent.click(screen.getByRole('button', { name: 'Approve reviewed text' }));
+
+    rerender(<ReviewWorkspace {...props} isApproving />);
+
+    expect((screen.getByRole('button', { name: 'Cancel' }) as HTMLButtonElement).disabled).toBe(true);
+    expect((screen.getByRole('button', { name: 'Approve' }) as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it('shows the dirty block count beside save', () => {
+    renderWorkspace();
+    fireEvent.change(screen.getByLabelText('Reviewed text for block 1'), { target: { value: 'Corrected body' } });
+
+    expect(screen.getByText('1 block changed')).toBeTruthy();
+  });
 });
