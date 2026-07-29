@@ -105,7 +105,18 @@ export default function DashboardPage() {
   if (profileQuery.isLoading) return <div className="h-36 animate-pulse rounded-[18px] border border-[#E8F0F8] bg-white" />;
 
   if (!isIssuer) {
-    return <p className="text-sm font-semibold text-[#64748b]">The Document Issuer Portal dashboard is available to Document Issuers only.</p>;
+    return (
+      <div className="flex flex-col gap-6">
+        <div>
+          <h1 className="text-[28px] font-black leading-[34px] text-[#0C2B49]">Document Portal</h1>
+          <p className="mt-1 text-sm font-medium text-[#64748b]">Your shared documents at a glance.</p>
+        </div>
+        <div className={`${cardClass} p-6 text-center`}>
+          <p className="text-sm font-bold text-[#0C2B49]">Welcome to the Document Portal</p>
+          <p className="mt-1 text-sm text-[#64748b]">Browse shared documents, manage invitations, and request e-copies from the navigation menu.</p>
+        </div>
+      </div>
+    );
   }
 
   const documents = documentsQuery.data ?? [];
@@ -134,14 +145,14 @@ export default function DashboardPage() {
           <h1 className="text-[28px] font-black leading-[34px] text-[#0C2B49]">Document Issuer Portal</h1>
           <p className="mt-1 text-sm font-medium text-[#64748b]">Your document workspace at a glance.</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
           <Link href="/portal/notifications" aria-label="View notifications" className="relative flex h-10 w-10 items-center justify-center rounded-full border border-[#E8F0F8] transition hover:bg-[#F5FAFF]">
             <NotificationsNoneIcon sx={{ fontSize: 20, color: '#0C2B49' }} />
             {(notificationsQuery.data?.unread ?? 0) > 0 && <span className="absolute -right-1 -top-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-[#0985E7] px-1 text-[10px] font-black text-white">{notificationsQuery.data!.unread}</span>}
           </Link>
-          <Link href="/portal/upload" className="flex items-center gap-2 rounded-full bg-[#0985E7] px-5 py-2.5 text-sm font-black text-white transition hover:bg-[#0770c4]">
-            <FileUploadIcon sx={{ fontSize: 18 }} />
-            Upload Document
+          <Link href="/portal/upload" className="flex items-center gap-2 rounded-full bg-[#0985E7] px-4 py-2 text-xs font-black text-white transition hover:bg-[#0770c4] sm:px-5 sm:py-2.5 sm:text-sm">
+            <FileUploadIcon sx={{ fontSize: 16 }} />
+            <span className="hidden sm:inline">Upload Document</span>
           </Link>
         </div>
       </div>
@@ -154,17 +165,17 @@ export default function DashboardPage() {
       )}
 
       {!adminMetrics && adminDashboardQuery.isLoading ? (
-        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">{Array.from({ length: 7 }, (_, i) => <div key={i} className={`${cardClass} h-28 animate-pulse`} />)}</div>
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4">{Array.from({ length: 7 }, (_, i) => <div key={i} className={`${cardClass} h-24 animate-pulse sm:h-28`} />)}</div>
       ) : (
-        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4">
           {metrics.map(([label, value]) => {
             const Icon = getMetricIcon(label);
-            return <div key={label} className={`${cardClass} flex items-center gap-4 px-6 py-6`}><div className="flex h-[52px] w-[52px] shrink-0 items-center justify-center rounded-full border border-[#D7EBFF] bg-[#EEF6FF]"><Icon sx={{ fontSize: 24, color: '#0985E7' }} /></div><div><span className="block text-[13px] font-bold text-[#64748b]">{label}</span><span className="text-[40px] font-black leading-[46px] text-[#0C2B49] tabular-nums">{value}</span></div></div>;
+            return <div key={label} className={`${cardClass} flex items-center gap-3 px-4 py-4 sm:px-6 sm:py-6 sm:gap-4`}><div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[#D7EBFF] bg-[#EEF6FF] sm:h-[52px] sm:w-[52px]"><Icon sx={{ fontSize: 20, color: '#0985E7' }} /></div><div className="min-w-0"><span className="block text-[11px] font-bold text-[#64748b] sm:text-[13px]">{label}</span><span className="text-2xl font-black leading-[30px] text-[#0C2B49] tabular-nums sm:text-[40px] sm:leading-[46px]">{value}</span></div></div>;
           })}
         </div>
       )}
 
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-[1fr_360px]">
+      <div className="grid grid-cols-1 gap-5 md:grid-cols-[1fr_360px]">
         <section className={`${cardClass} p-5`}>
           <div className="mb-4 flex items-center justify-between"><h2 className="text-base font-black text-[#0C2B49]">Recent documents</h2><Link href="/portal/documents" className="text-xs font-black text-[#0985E7]">View Documents</Link></div>
           {documentsQuery.isLoading ? <p className="py-4 text-center text-sm text-[#64748b]">Loading recent documents…</p> : documentsQuery.isError ? <p className="py-4 text-center text-sm text-[#64748b]">Recent documents will be available once the repository loads.</p> : recentDocuments.length === 0 ? <div className="py-4 text-center"><p className="text-sm font-bold text-[#0C2B49]">No documents yet</p><p className="mt-1 text-xs text-[#64748b]">Upload a document to start your repository.</p><Link href="/portal/upload" className="mt-4 inline-flex rounded-full bg-[#0985E7] px-4 py-2 text-sm font-black text-white">Upload Document</Link></div> : <div className="flex flex-col divide-y divide-[#E8F0F8]">{recentDocuments.map((document) => <DocumentLink key={document.id} document={document} />)}</div>}
