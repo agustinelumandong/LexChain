@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import SearchIcon from '@mui/icons-material/Search';
 import FilterListIcon from '@mui/icons-material/FilterList';
@@ -11,6 +12,10 @@ import ErrorIcon from '@mui/icons-material/Error';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
+import OpenInNewIcon from '@mui/icons-material/OpenInNew';
+import DownloadIcon from '@mui/icons-material/Download';
+import RateReviewIcon from '@mui/icons-material/RateReview';
+import VerifiedIcon from '@mui/icons-material/Verified';
 import { Dropdown } from '../../admin/components/dropdown';
 import { getDocumentStatusLabel } from '../lib/document-ui';
 import { getPortalUiRole } from '../lib/portal-role';
@@ -64,21 +69,35 @@ function DocumentBadges({ document }: { document: Document }) {
   );
 }
 
+const actionIcons: Record<string, React.ReactNode> = {
+  'Open': <OpenInNewIcon sx={{ fontSize: 18 }} />,
+  'View / Download': <DownloadIcon sx={{ fontSize: 18 }} />,
+  'Review': <RateReviewIcon sx={{ fontSize: 18 }} />,
+  'Verify integrity': <VerifiedIcon sx={{ fontSize: 18 }} />,
+};
+
+const actionHrefs: Record<string, (id: string) => string> = {
+  'Open': (id) => `/portal/documents/${id}`,
+  'View / Download': (id) => `/portal/documents/${id}/viewer`,
+  'Review': (id) => `/portal/documents/${id}/review`,
+  'Verify integrity': (id) => `/portal/documents/${id}/verify`,
+};
+
 function DocumentActions({ document, role }: { document: Document; role: ReturnType<typeof getPortalUiRole> }) {
-  const [showMoreActions, setShowMoreActions] = useState(false);
   const actions = getDocumentListActions(role, document);
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      {actions.filter((action) => action === 'Open').map((action) => {
-        const href = action === 'Open'
-          ? `/portal/documents/${document.id}`
-          : action === 'View / Download'
-            ? `/portal/documents/${document.id}/viewer`
-            : `/portal/documents/${document.id}/verify`;
-        return <Link key={action} href={href} className="text-xs font-black text-[#0985E7] hover:underline">{action}</Link>;
-      })}
-      {actions.length > 1 && <><button type="button" aria-controls={`document-actions-${document.id}`} aria-expanded={showMoreActions} aria-label={`More actions for ${document.file_name}`} onClick={() => setShowMoreActions((current) => !current)} className="text-xs font-black text-[#0985E7] hover:underline">More actions</button>{showMoreActions && <div id={`document-actions-${document.id}`} className="flex flex-wrap gap-2">{actions.filter((action) => action !== 'Open').map((action) => <Link key={action} href={action === 'View / Download' ? `/portal/documents/${document.id}/viewer` : action === 'Review' ? `/portal/documents/${document.id}/review` : `/portal/documents/${document.id}/verify`} className="text-xs font-black text-[#0985E7] hover:underline">{action}</Link>)}</div>}</>}
+    <div className="flex items-center gap-1">
+      {actions.map((action) => (
+        <Link
+          key={action}
+          href={actionHrefs[action]?.(document.id) ?? `/portal/documents/${document.id}`}
+          aria-label={action}
+          className="flex size-8 items-center justify-center rounded-lg text-[#5B6F8A] transition hover:bg-[#EAF3FF] hover:text-[#0985E7]"
+        >
+          {actionIcons[action]}
+        </Link>
+      ))}
     </div>
   );
 }
@@ -164,6 +183,7 @@ function RecentlyUpdated({ docs }: { docs: Document[] }) {
 }
 
 export default function DocumentsPage() {
+  const router = useRouter();
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('all');
   const [sort, setSort] = useState<'newest' | 'oldest' | 'title'>('newest');
@@ -258,7 +278,7 @@ export default function DocumentsPage() {
                   </thead>
                   <tbody>
                     {pagedDocs.map((doc) => (
-                      <tr key={doc.id} className="h-[68px] border-b border-[#F1F5F9] transition hover:bg-[#F8FBFF]">
+                      <tr key={doc.id} onClick={() => router.push(`/portal/documents/${doc.id}`)} className="h-[68px] cursor-pointer border-b border-[#F1F5F9] transition hover:bg-[#F8FBFF]">
                         <td className="max-w-[260px] px-5 py-3">
                           <p className="truncate font-bold text-[#071B33]">{doc.file_name}</p>
                           <p className="mt-0.5 text-xs font-semibold text-[#5B6F8A]">{doc.document_number ? `Reference #${doc.document_number}` : 'Reference unavailable'}</p>
@@ -266,7 +286,7 @@ export default function DocumentsPage() {
                         <td className="px-5 py-3"><DocumentBadges document={doc} /></td>
                         <td className="px-5 py-3 text-xs font-bold text-[#5B6F8A]">{typeof doc.on_chain === 'boolean' ? (doc.on_chain ? 'Repository marked recorded' : 'Repository marked not recorded') : 'Not supplied'}</td>
                         <td className="px-5 py-3 font-semibold text-[#5B6F8A]">{formatDate(doc.updated_at ?? doc.created_at)}</td>
-                        <td className="px-5 py-3"><DocumentActions document={doc} role={uiRole} /></td>
+                        <td className="px-5 py-3" onClick={(e) => e.stopPropagation()}><DocumentActions document={doc} role={uiRole} /></td>
                       </tr>
                     ))}
                     {pagedDocs.length === 0 && (
