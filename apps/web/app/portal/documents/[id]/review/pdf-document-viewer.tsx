@@ -12,6 +12,7 @@ export type PdfDocumentViewerProps = {
   blocks: ApiSchema<'ExtractionBlock'>[];
   selectedBlockIndex: number | null;
   hoveredBlockIndex: number | null;
+  tamperedBlockIndexes?: ReadonlySet<number>;
   onPageChange: (pageIndex: number) => void;
   onSelectBlock: (blockIndex: number) => void;
   onHoverBlockChange: (blockIndex: number | null) => void;
@@ -47,6 +48,7 @@ export default function PdfDocumentViewer({
   blocks,
   selectedBlockIndex,
   hoveredBlockIndex,
+  tamperedBlockIndexes,
   onPageChange,
   onSelectBlock,
   onHoverBlockChange,
@@ -174,18 +176,20 @@ export default function PdfDocumentViewer({
           <button
             type="button"
             aria-label="Zoom out"
+            className="border px-2 leading-none"
             disabled={zoom <= MIN_ZOOM}
             onClick={() => setZoom((value) => Math.max(MIN_ZOOM, value - ZOOM_STEP))}
           >
-            Zoom out
+            −
           </button>
           <button
             type="button"
             aria-label="Zoom in"
+            className="border px-2 leading-none"
             disabled={zoom >= MAX_ZOOM}
             onClick={() => setZoom((value) => Math.min(MAX_ZOOM, value + ZOOM_STEP))}
           >
-            Zoom in
+            +
           </button>
         </div>
       </div>
@@ -207,7 +211,7 @@ export default function PdfDocumentViewer({
             PDF page count ({pdf.numPages}) differs from the review record ({pageCount}).
           </p>
         ) : null}
-        <div className="relative w-fit">
+        <div className="relative mx-auto w-fit">
           <canvas ref={canvasRef} className="block" />
           {pageBlocks.map(({ block, style }) => block.editable !== false ? (
           <button
@@ -215,7 +219,9 @@ export default function PdfDocumentViewer({
             type="button"
             aria-label={`Select block ${block.index}`}
             className={`absolute bg-transparent ${
-              selectedBlockIndex === block.index
+              tamperedBlockIndexes?.has(block.index)
+                ? 'border-2 border-[#D94B66] bg-[#D94B66]/20'
+                : selectedBlockIndex === block.index
                 ? 'border-2 border-blue-700 bg-blue-100/20'
                 : hoveredBlockIndex === block.index
                   ? 'border-2 border-sky-500 bg-sky-100/30'

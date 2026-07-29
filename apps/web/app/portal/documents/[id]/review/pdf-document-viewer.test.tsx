@@ -122,6 +122,18 @@ describe('PdfDocumentViewer', () => {
     expect(pageContent.className).toContain('overflow-auto');
   });
 
+  it('centers the PDF overlay wrapper and uses compact accessible zoom buttons', async () => {
+    renderViewer();
+
+    const canvas = screen.getByLabelText('PDF page').querySelector('canvas');
+    expect(canvas).toBeTruthy();
+    const overlayWrapper = canvas?.parentElement;
+    expect(overlayWrapper?.className).toContain('mx-auto');
+    expect(overlayWrapper?.className).toContain('w-fit');
+    expect(screen.getByRole('button', { name: 'Zoom out' }).textContent).toBe('−');
+    expect(screen.getByRole('button', { name: 'Zoom in' }).textContent).toBe('+');
+  });
+
   it('renders at 85% of the fit-to-pane scale and rerenders when zoomed', async () => {
     renderViewer();
 
