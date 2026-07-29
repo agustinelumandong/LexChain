@@ -4,24 +4,15 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-li
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DocumentWorkspace } from './document-workspace';
 
-const { finalizeDocumentMock, restoreDemoSnapshotMock, listDocumentVersionsMock } = vi.hoisted(() => ({
+const { finalizeDocumentMock, listDocumentVersionsMock } = vi.hoisted(() => ({
   finalizeDocumentMock: vi.fn(),
-  restoreDemoSnapshotMock: vi.fn(),
   listDocumentVersionsMock: vi.fn(),
 }));
 
 vi.mock('../../lib/document-lifecycle-api', () => ({
   finalizeDocument: finalizeDocumentMock,
   listDocumentVersions: listDocumentVersionsMock,
-  restoreDemoSnapshot: restoreDemoSnapshotMock,
 }));
-
-const snapshot = {
-  id: 'snapshot-1',
-  document_id: 'doc-101',
-  text_hash: 'a'.repeat(64),
-  created_at: '2026-07-26T00:00:00.000Z',
-};
 
 const document = {
   document_id: 'doc-101',
@@ -39,7 +30,6 @@ const document = {
   finalized_at: null,
   finalized_by: null,
   anchor_status: null,
-  snapshots: [],
 };
 
 const finalizedLifecycle = {
@@ -48,7 +38,6 @@ const finalizedLifecycle = {
   finalized_at: '2026-07-26T00:00:00.000Z',
   finalized_by: 'issuer-1',
   anchor_status: 'confirmed' as const,
-  snapshots: [snapshot],
 };
 
 const finalizationRecord = {
@@ -240,78 +229,14 @@ describe('DocumentWorkspace', () => {
     expect(await screen.findByText('Document finalized and anchored on-chain.')).toBeTruthy();
     expect(screen.getByText('datahash101')).toBeTruthy();
     expect(screen.getByText('0xtxhash101')).toBeTruthy();
-    expect(invalidateQueries).toHaveBeenCalledTimes(4);
+    expect(invalidateQueries).toHaveBeenCalledTimes(3);
     for (const queryKey of [
       ['portal-doc', 'doc-101'],
       ['portal-doc-chain', 'doc-101'],
-      ['portal-doc-snapshots', 'doc-101'],
       ['portal-document-audit', 'doc-101'],
     ]) {
       expect(invalidateQueries).toHaveBeenCalledWith({ queryKey });
     }
-  });
-
-  it('shows snapshot dates and shortened text hashes in Versions', () => {
-    renderWorkspace({ document: { ...document, ...finalizedLifecycle }, snapshots: [snapshot] });
-
-    fireEvent.click(screen.getByRole('tab', { name: 'Versions' }));
-
-    expect(screen.getByText(/Jul 26, 2026/)).toBeTruthy();
-    expect(screen.getByText('aaaaaaaaaa…aaaaaaaa')).toBeTruthy();
-  });
-
-  it('offers restoration only for an issuer with a mismatch and snapshot', () => {
-    renderWorkspace({
-      document: { ...document, ...finalizedLifecycle },
-      integrityState: 'mismatch',
-      snapshots: [snapshot],
-    });
-
-    fireEvent.click(screen.getByRole('tab', { name: 'Versions' }));
-    expect(screen.getByRole('button', { name: 'Restore' })).toBeTruthy();
-  });
-
-  it('requires a reason and explicit confirmation before restoring', async () => {
-    restoreDemoSnapshotMock.mockResolvedValue({ ...finalizedLifecycle, lifecycle: 'restored' });
-    renderWorkspace({
-      document: { ...document, ...finalizedLifecycle },
-      integrityState: 'mismatch',
-      snapshots: [snapshot],
-    });
-    fireEvent.click(screen.getByRole('tab', { name: 'Versions' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Restore' }));
-
-    const dialog = screen.getByRole('dialog', { name: 'Confirm text snapshot restoration' });
-    const confirm = within(dialog).getByRole('button', { name: 'Confirm restoration' });
-    expect(within(dialog).getByLabelText('Restoration reason').hasAttribute('required')).toBe(true);
-    expect(confirm.hasAttribute('disabled')).toBe(true);
-    expect(restoreDemoSnapshotMock).not.toHaveBeenCalled();
-
-    fireEvent.change(within(dialog).getByLabelText('Restoration reason'), {
-      target: { value: 'Restore the reviewed extracted text.' },
-    });
-    expect(confirm.hasAttribute('disabled')).toBe(false);
-    fireEvent.click(confirm);
-    await waitFor(() => expect(restoreDemoSnapshotMock).toHaveBeenCalledWith(
-        'doc-101',
-        'snapshot-1',
-        'Restore the reviewed extracted text.',
-      ));
-  });
-
-  it('states that restoration changes extracted text rather than the original PDF', async () => {
-    restoreDemoSnapshotMock.mockResolvedValue({ ...finalizedLifecycle, lifecycle: 'restored' });
-    renderWorkspace({
-      document: { ...document, ...finalizedLifecycle },
-      integrityState: 'mismatch',
-      snapshots: [snapshot],
-    });
-    fireEvent.click(screen.getByRole('tab', { name: 'Versions' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Restore' }));
-    fireEvent.change(screen.getByLabelText('Restoration reason'), { target: { value: 'Repair mismatch.' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Confirm restoration' }));
-
-    expect(await screen.findByText('Extracted text was restored from the selected snapshot. The original PDF was not changed.')).toBeTruthy();
   });
 
   it('keeps failed finalization retryable and never claims success', async () => {
@@ -324,23 +249,6 @@ describe('DocumentWorkspace', () => {
     expect(screen.getByRole('button', { name: 'Confirm finalization' }).hasAttribute('disabled')).toBe(false);
     expect(screen.queryByText('Document finalized and anchored on-chain.')).toBeNull();
     expect(screen.queryByText('datahash101')).toBeNull();
-  });
-
-  it('keeps failed restoration retryable and never claims success', async () => {
-    restoreDemoSnapshotMock.mockRejectedValue(new Error('Document cannot be restored'));
-    renderWorkspace({
-      document: { ...document, ...finalizedLifecycle },
-      integrityState: 'mismatch',
-      snapshots: [snapshot],
-    });
-    fireEvent.click(screen.getByRole('tab', { name: 'Versions' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Restore' }));
-    fireEvent.change(screen.getByLabelText('Restoration reason'), { target: { value: 'Repair mismatch.' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Confirm restoration' }));
-
-    expect((await screen.findByRole('alert')).textContent).toContain('Document cannot be restored');
-    expect(screen.getByRole('button', { name: 'Confirm restoration' }).hasAttribute('disabled')).toBe(false);
-    expect(screen.queryByText(/Extracted text was restored/)).toBeNull();
   });
 
   it.each([

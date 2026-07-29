@@ -9,16 +9,12 @@ import {
   createDocumentVersion,
   listDocumentVersions,
   renameDocument,
-  restoreDemoSnapshot,
 } from '../../lib/document-lifecycle-api';
 import {
   canFinalizeDocument,
-  canRestoreDocument,
   type DemoDocumentLifecycle,
-  type DemoDocumentSnapshot,
 } from '../../lib/document-lifecycle-ui';
 import {
-  getDemoIntegrityState,
   shortenIntegrityHash,
   type IntegrityUiState,
 } from '../../lib/integrity-ui';
@@ -54,6 +50,9 @@ function readable(value: unknown): string {
     if (entries.length === 1) {
       const [key, entryValue] = entries[0];
       return `${key} — ${readable(entryValue)}`;
+    }
+    if (entries.length === 2 && 'type' in value && 'value' in value) {
+      return `${readable(value.value)} (${String(value.type).replace(/_/g, ' ').toLowerCase()})`;
     }
   }
   return JSON.stringify(value);
@@ -101,11 +100,7 @@ type DocumentWorkspaceProps = {
   role: PortalUiRole;
   chain?: BlockchainRecord;
   integrityState: IntegrityUiState;
-  snapshots?: DemoDocumentSnapshot[];
-  snapshotsLoading?: boolean;
-  snapshotsError?: boolean;
   onRetry?: () => void;
-  onRetrySnapshots?: () => void;
 };
 
 const finalizationConfirmation = 'This will anchor the approved document hash on-chain and finalize the document. This action cannot be undone.';
@@ -115,11 +110,7 @@ export function DocumentWorkspace({
   role,
   chain,
   integrityState,
-  snapshots,
-  snapshotsLoading = false,
-  snapshotsError = false,
   onRetry,
-  onRetrySnapshots,
 }: DocumentWorkspaceProps) {
   const queryClient = useQueryClient();
   const versionInputRef = useRef<HTMLInputElement>(null);
@@ -127,26 +118,17 @@ export function DocumentWorkspace({
   const [lifecycleResult, setLifecycleResult] = useState<DemoDocumentLifecycle>();
   const [finalizationResult, setFinalizationResult] = useState<ApiSchema<'RecordResponse'>>();
   const [confirmingFinalize, setConfirmingFinalize] = useState(false);
-  const [snapshotToRestore, setSnapshotToRestore] = useState<DemoDocumentSnapshot>();
-  const [restorationReason, setRestorationReason] = useState('');
   const [success, setSuccess] = useState<string>();
   const versionsQuery = useQuery({ queryKey: ['portal-doc-versions', document.document_id], queryFn: () => listDocumentVersions(document.document_id) });
   const hasInsights = Boolean(document.summary || document.labels?.length || document.entities?.length || document.risk_flags?.length);
   const lifecycle = lifecycleResult ?? document;
-  const currentSnapshots = lifecycleResult?.snapshots ?? snapshots ?? document.snapshots ?? [];
   const canFinalize = role !== 'unsupported' && lifecycle.lifecycle !== undefined
     && canFinalizeDocument(role, document.status, lifecycle.lifecycle);
-  const canRestore = role !== 'unsupported' && !success && canRestoreDocument(
-    role,
-    getDemoIntegrityState(integrityState),
-    currentSnapshots,
-  );
 
   async function refreshLifecycleQueries() {
     await Promise.all([
       ['portal-doc', document.document_id],
       ['portal-doc-chain', document.document_id],
-      ['portal-doc-snapshots', document.document_id],
       ['portal-document-audit', document.document_id],
     ].map((queryKey) => queryClient.invalidateQueries({ queryKey })));
   }
@@ -161,17 +143,6 @@ export function DocumentWorkspace({
     },
   });
 
-  const restoreMutation = useMutation({
-    mutationFn: ({ snapshotId, reason }: { snapshotId: string; reason: string }) =>
-      restoreDemoSnapshot(document.document_id, snapshotId, reason),
-    onSuccess: async (result) => {
-      setLifecycleResult(result);
-      setSnapshotToRestore(undefined);
-      setRestorationReason('');
-      setSuccess('Extracted text was restored from the selected snapshot. The original PDF was not changed.');
-      await refreshLifecycleQueries();
-    },
-  });
   const renameMutation = useMutation({ mutationFn: (fileName: string) => renameDocument(document.document_id, fileName), onSuccess: refreshLifecycleQueries });
   const versionMutation = useMutation({ mutationFn: (file: File) => createDocumentVersion(document.document_id, file), onSuccess: refreshLifecycleQueries });
 
@@ -187,15 +158,7 @@ export function DocumentWorkspace({
     setConfirmingFinalize(true);
   }
 
-  function openRestoreConfirmation(snapshot: DemoDocumentSnapshot) {
-    restoreMutation.reset();
-    setSuccess(undefined);
-    setRestorationReason('');
-    setSnapshotToRestore(snapshot);
-  }
-
   const finalizeError = finalizeMutation.error instanceof Error ? finalizeMutation.error.message : null;
-  const restoreError = restoreMutation.error instanceof Error ? restoreMutation.error.message : null;
 
   return (
     <section className="rounded-[18px] border border-[#E8F0F8] bg-white shadow-[0_4px_12px_rgba(19,59,115,0.05)]">
@@ -226,7 +189,6 @@ export function DocumentWorkspace({
               <div><dt className="font-bold text-[#64748b]">Integrity status</dt><dd className="mt-1 text-[#0C2B49]">{integrityLabel(integrityState)}</dd></div>
               <div><dt className="font-bold text-[#64748b]">Document lifecycle</dt><dd className="mt-1 text-[#0C2B49]">{lifecycleLabel(lifecycle.lifecycle)}</dd></div>
               <div><dt className="font-bold text-[#64748b]">Document hash</dt><dd title={lifecycle.document_hash ?? undefined} className="mt-1 font-mono text-[#0C2B49]">{lifecycle.document_hash ? shortenIntegrityHash(lifecycle.document_hash) : 'Not available'}</dd></div>
-              <div><dt className="font-bold text-[#64748b]">Text snapshots</dt><dd className="mt-1 text-[#0C2B49]">{currentSnapshots.length}</dd></div>
               <div><dt className="font-bold text-[#64748b]">Finalized</dt><dd className="mt-1 text-[#0C2B49]">{formatDate(lifecycle.finalized_at)}</dd></div>
               <div><dt className="font-bold text-[#64748b]">Anchor state</dt><dd className="mt-1 text-[#0C2B49]">{anchorLabel(lifecycle.anchor_status)}</dd></div>
             </dl>
@@ -286,42 +248,6 @@ export function DocumentWorkspace({
             {versionsQuery.isLoading && <p className="text-sm text-[#64748b]">Loading versions…</p>}
             {versionsQuery.isError && <p role="alert" className="text-sm font-bold text-[#B42318]">Unable to load document versions.</p>}
             {versionsQuery.data?.versions.map((version) => <article key={version.document_id} className="rounded-xl border border-[#E8F0F8] bg-[#F8FBFF] p-4"><p className="font-bold text-[#0C2B49]">Version {version.version}{version.is_latest ? ' · Latest' : ''}</p><p className="mt-1 text-sm text-[#64748b]">{version.file_name} · {version.status}</p></article>)}
-            {snapshotsLoading && <p className="text-sm text-[#64748b]">Loading text snapshots…</p>}
-            {snapshotsError && <div><p className="text-sm font-bold text-[#B42318]">Unable to load text snapshots.</p>{onRetrySnapshots && <button type="button" onClick={onRetrySnapshots} className="mt-2 rounded-full border border-[#D7E4F2] px-4 py-2 text-sm font-bold text-[#0985E7]">Retry snapshots</button>}</div>}
-            {!snapshotsLoading && !snapshotsError && currentSnapshots.length === 0 && <p className="text-sm text-[#64748b]">No text snapshots are available for this document.</p>}
-            {!snapshotsLoading && !snapshotsError && currentSnapshots.map((snapshot) => (
-              <article key={snapshot.id} className="rounded-xl border border-[#E8F0F8] bg-[#F8FBFF] p-4">
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <p className="text-sm font-bold text-[#0C2B49]">{formatDate(snapshot.created_at)}</p>
-                    <p title={snapshot.text_hash} className="mt-1 font-mono text-xs text-[#64748b]">{shortenIntegrityHash(snapshot.text_hash)}</p>
-                  </div>
-                  {canRestore && <button type="button" onClick={() => openRestoreConfirmation(snapshot)} className="rounded-full border border-[#F5D7A1] px-4 py-2 text-sm font-bold text-[#9A5D00]">Restore</button>}
-                </div>
-              </article>
-            ))}
-            {success && <p role="status" className="rounded-xl border border-[#BCE8CC] bg-[#F1FBF5] px-4 py-3 text-sm font-bold text-[#0C7A3B]">{success}</p>}
-            {snapshotToRestore && (
-              <div role="dialog" aria-modal="true" aria-label="Confirm text snapshot restoration" className="rounded-xl border border-[#F5D7A1] bg-[#FFF9EC] p-4">
-                <p className="font-bold text-[#0C2B49]">Restore extracted text from this snapshot?</p>
-                <p className="mt-1 text-sm leading-6 text-[#64748b]">This restores the demo extracted text only. The original PDF is never replaced or edited.</p>
-                <label className="mt-4 block text-sm font-bold text-[#0C2B49]">Restoration reason
-                  <textarea required value={restorationReason} onChange={(event) => setRestorationReason(event.target.value)} className="mt-1 min-h-24 w-full rounded-xl border border-[#D7E4F2] bg-white px-3 py-2 text-sm font-medium outline-none focus:border-[#0985E7]" />
-                </label>
-                {restoreError && <p role="alert" className="mt-3 text-sm font-bold text-[#B42318]">{restoreError}</p>}
-                <div className="mt-4 flex flex-wrap gap-2">
-                  <button type="button" onClick={() => setSnapshotToRestore(undefined)} disabled={restoreMutation.isPending} className="rounded-lg border border-[#D6E3F1] px-3 py-2 text-sm font-bold text-[#0C2B49] disabled:opacity-60">Cancel</button>
-                  <button
-                    type="button"
-                    onClick={() => restoreMutation.mutate({ snapshotId: snapshotToRestore.id, reason: restorationReason })}
-                    disabled={!restorationReason.trim() || restoreMutation.isPending}
-                    className="rounded-lg bg-[#B45309] px-3 py-2 text-sm font-bold text-white disabled:opacity-60"
-                  >
-                    {restoreMutation.isPending ? 'Restoring…' : 'Confirm restoration'}
-                  </button>
-                </div>
-              </div>
-            )}
           </div>
         )}
 

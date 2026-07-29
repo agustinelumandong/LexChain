@@ -2,7 +2,10 @@
 import { useState, useRef, useEffect } from 'react';
 import ChatIcon from '@mui/icons-material/Chat';
 import CloseIcon from '@mui/icons-material/Close';
+import OpenInFullIcon from '@mui/icons-material/OpenInFull';
 import SendIcon from '@mui/icons-material/Send';
+import { isMockMode } from '../../../lib/portal-mock';
+import { useRouter } from 'next/navigation';
 
 const mockResponses = [
   'Based on the document, the contract term is 12 months with automatic renewal.',
@@ -19,29 +22,66 @@ const suggestedQuestions = [
 
 type Message = { from: 'bot' | 'user'; text: string };
 
-export default function PortalChatbot() {
+async function askDocument(id: string, question: string): Promise<string> {
+  const res = await fetch(
+    `/api/portal/proxy-post?path=${encodeURIComponent(`/documents/${id}/ask`)}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ question }),
+      credentials: 'same-origin',
+    },
+  );
+
+  if (!res.ok) throw new Error('Failed to get answer');
+  const text = await res.text();
+  if (!text) return 'No answer returned.';
+
+  try {
+    const data = JSON.parse(text);
+    return data?.answer ?? data?.response ?? data?.message ?? JSON.stringify(data);
+  } catch {
+    return text;
+  }
+}
+
+export default function PortalChatbot({ documentId }: { documentId: string }) {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
     { from: 'bot', text: 'Hi! Ask me anything about this document.' },
   ]);
   const [input, setInput] = useState('');
+  const [loading, setLoading] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  const send = () => {
+  const send = async () => {
     const text = input.trim();
     if (!text) return;
     setMessages((m) => [...m, { from: 'user', text }]);
     setInput('');
-    setTimeout(() => {
+
+    if (isMockMode()) {
       setMessages((m) => [
         ...m,
         { from: 'bot', text: mockResponses[Math.floor(Math.random() * mockResponses.length)] },
       ]);
-    }, 1000);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const answer = await askDocument(documentId, text);
+      setMessages((m) => [...m, { from: 'bot', text: answer }]);
+    } catch {
+      setMessages((m) => [...m, { from: 'bot', text: 'Sorry, I could not get an answer. Please try again.' }]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (!open) {
@@ -61,9 +101,14 @@ export default function PortalChatbot() {
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--portal-border-soft)]">
         <span className="font-bold text-[var(--portal-navy)]">Ask Document</span>
-        <button onClick={() => setOpen(false)} aria-label="Close document assistant" className="text-[var(--portal-navy)] opacity-60 hover:opacity-100">
-          <CloseIcon fontSize="small" />
-        </button>
+        <div className="flex items-center gap-1">
+          <button onClick={() => router.push(`/portal/documents/${documentId}/ask`)} aria-label="Open full page" className="text-[var(--portal-navy)] opacity-60 hover:opacity-100">
+            <OpenInFullIcon fontSize="small" />
+          </button>
+          <button onClick={() => setOpen(false)} aria-label="Close document assistant" className="text-[var(--portal-navy)] opacity-60 hover:opacity-100">
+            <CloseIcon fontSize="small" />
+          </button>
+        </div>
       </div>
 
       {/* Messages */}
@@ -81,6 +126,14 @@ export default function PortalChatbot() {
             </div>
           </div>
         ))}
+        {loading && (
+          <div className="flex items-center gap-2 text-sm text-[#64748b]">
+            <span className="h-2 w-2 animate-bounce rounded-full bg-[#1689F5]" />
+            <span className="h-2 w-2 animate-bounce rounded-full bg-[#1689F5]" style={{ animationDelay: '0.15s' }} />
+            <span className="h-2 w-2 animate-bounce rounded-full bg-[#1689F5]" style={{ animationDelay: '0.3s' }} />
+            <span className="ml-1">Thinking...</span>
+          </div>
+        )}
         <div>
           <p className="text-xs font-bold uppercase tracking-wide text-[#64748b]">Suggested questions</p>
           <div className="mt-2 flex flex-wrap gap-2">
