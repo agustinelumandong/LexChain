@@ -2,15 +2,19 @@
 
 import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
+import PeopleIcon from '@mui/icons-material/People';
+import GavelIcon from '@mui/icons-material/Gavel';
 import DescriptionIcon from '@mui/icons-material/Description';
-import FileUploadIcon from '@mui/icons-material/FileUpload';
 import ScheduleIcon from '@mui/icons-material/Schedule';
+import ErrorIcon from '@mui/icons-material/Error';
 import VerifiedUserIcon from '@mui/icons-material/VerifiedUser';
+import EmailOutlinedIcon from '@mui/icons-material/EmailOutlined';
+import FileUploadIcon from '@mui/icons-material/FileUpload';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import NotificationsNoneIcon from '@mui/icons-material/NotificationsNone';
 import type { ApiSchema } from '@lexchain/types';
 import { getDocumentStatusLabel } from '../lib/document-ui';
-import { getDashboardMetrics } from '../lib/portal-dashboard';
+import { type DashboardMetric, getDashboardMetrics } from '../lib/portal-dashboard';
 import { getPortalUiRole } from '../lib/portal-role';
 
 interface Document {
@@ -52,9 +56,24 @@ function isAttentionDocument(document: Document) {
   return document.status?.trim().toUpperCase() === 'FAILED';
 }
 
+type AdminDashboardData = {
+  total_users: number;
+  total_lawyers: number;
+  total_documents: number;
+  total_processed: number;
+  total_failed: number;
+  total_on_chain: number;
+  pending_invitations: number;
+};
+
 function getMetricIcon(label: string) {
+  if (label === 'Total Users') return PeopleIcon;
+  if (label === 'Total Lawyers') return GavelIcon;
+  if (label === 'Total Documents') return DescriptionIcon;
   if (label === 'Processing') return ScheduleIcon;
+  if (label === 'Failed') return ErrorIcon;
   if (label === 'On-Chain Records') return VerifiedUserIcon;
+  if (label === 'Pending Invitations') return EmailOutlinedIcon;
   return DescriptionIcon;
 }
 
@@ -74,6 +93,15 @@ export default function DashboardPage() {
     queryFn: () => fetchJson('/notifications/unread-count'),
     enabled: isIssuer,
   });
+  const adminDashboardQuery = useQuery<AdminDashboardData>({
+    queryKey: ['admin-dashboard'],
+    queryFn: async () => {
+      const res = await fetch('/api/admin/dashboard');
+      if (!res.ok) throw new Error('Admin dashboard unavailable');
+      return res.json();
+    },
+    enabled: isIssuer,
+  });
   if (profileQuery.isLoading) return <div className="h-36 animate-pulse rounded-[18px] border border-[#E8F0F8] bg-white" />;
 
   if (!isIssuer) {
@@ -86,7 +114,18 @@ export default function DashboardPage() {
     .slice(0, 5);
   const attentionDocuments = documents.filter(isAttentionDocument);
   const processingDocuments = documents.filter(isProcessing);
-  const metrics = getDashboardMetrics(documents);
+  const adminMetrics = adminDashboardQuery.data;
+  const metrics: DashboardMetric[] = adminMetrics
+    ? [
+        ['Total Users', adminMetrics.total_users],
+        ['Total Lawyers', adminMetrics.total_lawyers],
+        ['Total Documents', adminMetrics.total_documents],
+        ['Processing', adminMetrics.total_processed],
+        ['Failed', adminMetrics.total_failed],
+        ['On-Chain Records', adminMetrics.total_on_chain],
+        ['Pending Invitations', adminMetrics.pending_invitations],
+      ]
+    : getDashboardMetrics(documents);
 
   return (
     <div className="flex flex-col gap-6">
@@ -114,9 +153,9 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {documentsQuery.isLoading ? (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3"><div className={`${cardClass} h-28 animate-pulse`} /><div className={`${cardClass} h-28 animate-pulse`} /><div className={`${cardClass} h-28 animate-pulse`} /></div>
-      ) : documentsQuery.isError ? null : (
+      {!adminMetrics && adminDashboardQuery.isLoading ? (
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">{Array.from({ length: 7 }, (_, i) => <div key={i} className={`${cardClass} h-28 animate-pulse`} />)}</div>
+      ) : (
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
           {metrics.map(([label, value]) => {
             const Icon = getMetricIcon(label);
