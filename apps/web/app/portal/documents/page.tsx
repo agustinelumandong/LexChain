@@ -259,8 +259,8 @@ export default function DocumentsPage() {
                   <tbody>
                     {pagedDocs.map((doc) => (
                       <tr key={doc.id} className="h-[68px] border-b border-[#F1F5F9] transition hover:bg-[#F8FBFF]">
-                        <td className="px-5 py-3">
-                          <p className="font-bold text-[#071B33]">{doc.file_name}</p>
+                        <td className="max-w-[260px] px-5 py-3">
+                          <p className="truncate font-bold text-[#071B33]">{doc.file_name}</p>
                           <p className="mt-0.5 text-xs font-semibold text-[#5B6F8A]">{doc.document_number ? `Reference #${doc.document_number}` : 'Reference unavailable'}</p>
                         </td>
                         <td className="px-5 py-3"><DocumentBadges document={doc} /></td>
