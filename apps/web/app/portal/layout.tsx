@@ -138,18 +138,15 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
                 <div className="flex flex-col gap-0.5">
                   {group.items.map((link) => {
                     const isActive = isPortalRouteActive(pathname, link);
-                    const isUpload = link.href === "/portal/upload";
                     const Icon = getPortalNavigationIcon(link);
                     return (
                       <Link
                         className={[
                           "flex min-h-11 items-center gap-3.5 rounded-xl py-2 text-[13px] font-black leading-4",
                           collapsed ? "justify-center px-2" : "pl-[22px] pr-3",
-                          isUpload
-                            ? "bg-[#0985E7] text-white transition hover:bg-[#0770c4]"
-                            : isActive
-                              ? "bg-[#EEF4FB] text-[#111827]"
-                              : "text-[#A0AAB8] transition hover:bg-[#F5FAFF] hover:text-[#111827]",
+                          isActive
+                            ? "bg-[#EEF4FB] text-[#111827]"
+                            : "text-[#111827] transition hover:bg-[#F5FAFF]",
                         ].join(" ")}
                         href={link.href}
                         key={link.href}
@@ -157,11 +154,11 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
                         aria-label={link.label}
                         title={collapsed ? link.label : undefined}
                       >
-                        <span className={isUpload ? "text-white" : isActive ? "text-[#0985E7]" : "text-[#A7B4C4]"}>
+                        <span className={isActive ? "text-[#0985E7]" : "text-[#64748b]"}>
                           <Icon fontSize="small" />
                         </span>
                         {!collapsed && <span className="flex-1">{link.label}</span>}
-                        {!collapsed && !isUpload && (
+                        {!collapsed && (
                           <span className={["h-6 w-[5px] rounded-full", isActive ? "bg-[#0985E7]" : "bg-transparent"].join(" ")} />
                         )}
                       </Link>
