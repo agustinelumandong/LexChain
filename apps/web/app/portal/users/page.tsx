@@ -1,8 +1,9 @@
 import { adminFetch } from "../../admin/components/admin-fetch";
 import { UsersManagementView } from "../../admin/users/users-management-view";
 import { requireDocumentIssuerPage } from "../lib/issuer-page-access";
+import { isMockMode } from "@/lib/portal-mock";
 
-const useMock = process.env.USE_MOCK_API === "true";
+const useMock = isMockMode();
 
 type AdminUser = {
   id: string;
@@ -33,7 +34,11 @@ async function getUsers(): Promise<UsersData> {
     };
   }
 
-  return adminFetch<UsersData>("/admin/users");
+  try {
+    return await adminFetch<UsersData>("/admin/users");
+  } catch {
+    return { users: [], total: 0 };
+  }
 }
 
 export default async function PortalUsersPage() {

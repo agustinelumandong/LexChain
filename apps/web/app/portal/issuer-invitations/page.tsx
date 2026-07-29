@@ -1,8 +1,9 @@
 import { adminFetch } from "../../admin/components/admin-fetch";
 import { InvitationsManagementView } from "../../admin/invitations-permissions/invitations-management-view";
 import { requireDocumentIssuerPage } from "../lib/issuer-page-access";
+import { isMockMode } from "@/lib/portal-mock";
 
-const useMock = process.env.USE_MOCK_API === "true";
+const useMock = isMockMode();
 
 type Invitation = {
   id: string;
@@ -32,7 +33,11 @@ async function getInvitations(): Promise<InvitationsData> {
     };
   }
 
-  return adminFetch<InvitationsData>("/admin/invitations");
+  try {
+    return await adminFetch<InvitationsData>("/admin/invitations");
+  } catch {
+    return { invitations: [] };
+  }
 }
 
 export default async function PortalIssuerInvitationsPage() {

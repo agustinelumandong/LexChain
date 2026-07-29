@@ -1,8 +1,9 @@
 import { adminFetch } from "../../admin/components/admin-fetch";
 import { AuditLogsManagementView } from "../../admin/audit-logs/audit-logs-management-view";
 import { requireDocumentIssuerPage } from "../lib/issuer-page-access";
+import { isMockMode } from "@/lib/portal-mock";
 
-const useMock = process.env.USE_MOCK_API === "true";
+const useMock = isMockMode();
 
 type SystemAuditLog = {
   id: string;
@@ -37,7 +38,11 @@ async function getAuditLogs(): Promise<AuditLogsData> {
     };
   }
 
-  return adminFetch<AuditLogsData>("/admin/audit-logs");
+  try {
+    return await adminFetch<AuditLogsData>("/admin/audit-logs");
+  } catch {
+    return { logs: [], total: 0 };
+  }
 }
 
 export default async function PortalAuditLogsPage() {

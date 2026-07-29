@@ -26,7 +26,9 @@ export async function requireDocumentIssuerPage() {
     },
     cache: "no-store",
   }).catch(() => null);
-  const profile = response?.ok ? await response.json().catch(() => null) : null;
+  if (!response?.ok) redirect("/portal/dashboard");
 
-  if (profile?.role !== "document_issuer") redirect("/portal/dashboard");
+  const profile = await response.json().catch(() => null);
+  const role = profile?.role?.trim().toLowerCase();
+  if (!role || !["document_issuer", "lawyer", "admin", "super_admin"].includes(role)) redirect("/portal/dashboard");
 }
