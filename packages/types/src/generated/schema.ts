@@ -1327,6 +1327,8 @@ export interface components {
             chunk_index: number;
             /** Score */
             score: number;
+            /** Text */
+            text?: string | null;
         };
         /** GlobalSearchResponse */
         GlobalSearchResponse: {
