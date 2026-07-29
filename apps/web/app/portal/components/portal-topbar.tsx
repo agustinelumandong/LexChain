@@ -2,8 +2,8 @@
 
 import Link from 'next/link';
 import NotificationsNoneOutlinedIcon from '@mui/icons-material/NotificationsNoneOutlined';
-import SearchIcon from '@mui/icons-material/Search';
 import type { PortalUiRole } from '../lib/portal-role';
+import { PortalSearchBar } from './portal-search-bar';
 
 type PortalTopBarProps = {
   fullName: string;
@@ -19,14 +19,7 @@ export function PortalTopBar({ fullName, initials, roleLabel, role, processingCo
   return (
     <header className="sticky top-0 z-40 -mx-6 mb-6 border-b border-[var(--portal-border-soft)] bg-[var(--portal-surface)] px-4 md:px-6">
       <div className="flex min-h-16 items-center gap-3">
-        <Link
-          href="/portal/search"
-          aria-label="Search documents"
-          className="flex min-w-0 flex-1 items-center gap-2 rounded-xl border border-[var(--portal-border-soft)] bg-white px-3 py-2 text-sm font-semibold text-[var(--portal-text-muted)] transition hover:border-[#0985E7] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0985E7]"
-        >
-          <SearchIcon fontSize="small" />
-          <span className="truncate">Search documents</span>
-        </Link>
+        <PortalSearchBar />
         {role === 'issuer' ? (
           <Link
             href="/portal/dashboard"
