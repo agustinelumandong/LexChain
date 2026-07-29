@@ -1,10 +1,17 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
 import SearchIcon from '@mui/icons-material/Search';
+import FilterListIcon from '@mui/icons-material/FilterList';
 import DescriptionIcon from '@mui/icons-material/Description';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import ErrorIcon from '@mui/icons-material/Error';
+import VisibilityIcon from '@mui/icons-material/Visibility';
+import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
+import ChevronRightIcon from '@mui/icons-material/ChevronRight';
+import { Dropdown } from '../../admin/components/dropdown';
 import { getDocumentStatusLabel } from '../lib/document-ui';
 import { getPortalUiRole } from '../lib/portal-role';
 import {
@@ -26,6 +33,10 @@ async function fetchDocuments(): Promise<Document[]> {
   const res = await fetch('/api/portal/proxy?path=%2Fdocuments%2F', { credentials: 'same-origin' });
   if (!res.ok) throw new Error('Failed to fetch');
   return res.json();
+}
+
+function cn(...classes: Array<string | false | undefined>) {
+  return classes.filter(Boolean).join(" ");
 }
 
 function formatDate(iso?: string | null) {
@@ -72,10 +83,92 @@ function DocumentActions({ document, role }: { document: Document; role: ReturnT
   );
 }
 
+function MetricCard({ icon, label, value, detail, color }: { icon: React.ReactNode; label: string; value: number; detail: string; color: string }) {
+  return (
+    <article className="flex min-h-[112px] items-center gap-3 rounded-2xl border border-[#E4EEF9] bg-white p-4 shadow-sm shadow-[#DDEAF7]/40 transition hover:-translate-y-0.5 hover:border-[#C7DBEF]">
+      <div className={`flex size-11 shrink-0 items-center justify-center rounded-full ${color}`}>{icon}</div>
+      <div className="min-w-0">
+        <p className="truncate text-xs font-black text-[#0C2B49]">{label}</p>
+        <p className="mt-1 text-2xl font-black leading-none text-[#071B33]">{value.toLocaleString()}</p>
+        <p className="mt-2 truncate text-xs font-semibold text-[#5B6F8A]">{detail}</p>
+      </div>
+    </article>
+  );
+}
+
+function StatusDistribution({ docs }: { docs: Document[] }) {
+  const colors = ["#0879D8", "#59C878", "#9B6AF3", "#F6B52E", "#22C7D8", "#EF4444"];
+  const groups = [...new Set(docs.map((d) => getDocumentStatusLabel(d.status)))].map((label, i) => ({
+    label, color: colors[i % colors.length],
+    count: docs.filter((d) => getDocumentStatusLabel(d.status) === label).length,
+  }));
+  const total = Math.max(1, docs.length);
+  let cursor = 0;
+  const gradient = groups.map((g) => {
+    const start = cursor;
+    cursor += (g.count / total) * 100;
+    return `${g.color} ${start}% ${cursor}%`;
+  }).join(", ");
+
+  return (
+    <article className="flex h-full flex-col rounded-2xl border border-[#E4EEF9] bg-white p-5 shadow-sm shadow-[#DDEAF7]/35">
+      <h2 className="mb-4 text-lg font-black text-[#071B33]">Status Distribution</h2>
+      <div className="grid flex-1 items-center gap-5 sm:grid-cols-[160px_1fr] xl:grid-cols-1 2xl:grid-cols-[160px_1fr]">
+        <div className="relative mx-auto size-36 rounded-full" style={{ background: `conic-gradient(${gradient})` }}>
+          <div className="absolute inset-6 flex flex-col items-center justify-center rounded-full bg-white text-center">
+            <strong className="text-2xl font-black text-[#071B33]">{total}</strong>
+            <span className="text-xs font-semibold text-[#6B7E95]">Total Documents</span>
+          </div>
+        </div>
+        <div className="space-y-3">
+          {groups.map((g) => (
+            <div key={g.label} className="flex items-center gap-3 text-sm">
+              <span className="size-2.5 rounded-full" style={{ backgroundColor: g.color }} />
+              <span className="min-w-0 flex-1 font-semibold text-[#5B6F8A]">{g.label}</span>
+              <strong className="font-black text-[#071B33]">{g.count}</strong>
+              <span className="text-xs font-semibold text-[#5B6F8A]">({Math.round((g.count / total) * 100)}%)</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </article>
+  );
+}
+
+function RecentlyUpdated({ docs }: { docs: Document[] }) {
+  const recent = [...docs].sort((a, b) => new Date(b.updated_at ?? b.created_at).getTime() - new Date(a.updated_at ?? a.created_at).getTime());
+
+  return (
+    <article className="flex min-h-[260px] flex-col rounded-2xl border border-[#E4EEF9] bg-white p-5 shadow-sm shadow-[#DDEAF7]/35">
+      <div className="mb-4 flex shrink-0 items-center justify-between">
+        <h2 className="text-lg font-black text-[#071B33]">Recently Updated</h2>
+        <span className="text-xs font-black text-[#5B6F8A]">3 latest</span>
+      </div>
+      <div className="scrollbar-hide min-h-0 flex-1 space-y-3 overflow-auto pr-1 max-h-[210px]">
+        {recent.slice(0, 3).map((doc) => (
+          <div key={doc.id} className="grid grid-cols-[40px_1fr] items-center gap-3 rounded-xl p-1.5 transition hover:bg-[#F8FBFF]">
+            <div className="flex size-10 items-center justify-center rounded-xl bg-[#EAF3FF] text-xs font-black text-[#0879D8]">
+              <DescriptionIcon sx={{ fontSize: 18 }} />
+            </div>
+            <div className="min-w-0">
+              <Link href={`/portal/documents/${doc.id}`} className="truncate text-sm font-black text-[#071B33] hover:underline">{doc.file_name.length > 25 ? `${doc.file_name.slice(0, 25)}…` : doc.file_name}</Link>
+              <p className="mt-0.5 text-xs font-semibold text-[#5B6F8A]">{formatDate(doc.updated_at ?? doc.created_at)}</p>
+              {doc.status && <span className={`mt-1 inline-block rounded-md px-2 py-0.5 text-[10px] font-black ${statusStyle(doc.status)}`}>{getDocumentStatusLabel(doc.status)}</span>}
+            </div>
+          </div>
+        ))}
+        {recent.length === 0 ? <p className="text-sm font-semibold text-[#5B6F8A]">No documents available.</p> : null}
+      </div>
+    </article>
+  );
+}
+
 export default function DocumentsPage() {
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('all');
   const [sort, setSort] = useState<'newest' | 'oldest' | 'title'>('newest');
+  const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState("5");
   const documentsQuery = useQuery<Document[]>({ queryKey: ['portal-documents'], queryFn: fetchDocuments });
   const profileQuery = useQuery<UserProfile | null>({
     queryKey: ['portal-profile'],
@@ -96,36 +189,29 @@ export default function DocumentsPage() {
     sort: hasDates ? sort : 'title',
   });
 
+  const metrics = useMemo(() => {
+    const s = documents.map((d) => d.status?.toLowerCase());
+    return [
+      { label: "Total Documents", value: documents.length, detail: "Uploaded documents", icon: <DescriptionIcon fontSize="small" />, color: "bg-[#EAF3FF] text-[#0879D8]" },
+      { label: "Completed", value: s.filter((v) => v === "completed").length, detail: "status completed", icon: <CheckCircleIcon fontSize="small" />, color: "bg-[#EAFBF1] text-[#16A34A]" },
+      { label: "Ready for Review", value: s.filter((v) => v === "ready_for_review").length, detail: "status ready_for_review", icon: <VisibilityIcon fontSize="small" />, color: "bg-[#FFF4DF] text-[#F59E0B]" },
+      { label: "Failed", value: s.filter((v) => v === "failed").length, detail: "status failed", icon: <ErrorIcon fontSize="small" />, color: "bg-[#FEECEC] text-[#EF4444]" },
+    ];
+  }, [documents]);
+
+  const perPage = Number(pageSize);
+  const totalPages = Math.max(1, Math.ceil(visibleDocuments.length / perPage));
+  const safePage = Math.min(page, totalPages - 1);
+  const pagedDocs = visibleDocuments.slice(safePage * perPage, (safePage + 1) * perPage);
+
   return (
-    <div className="flex flex-col gap-5">
-      <div className="flex flex-wrap items-start justify-between gap-4">
+    <div className="flex h-full flex-col gap-5">
+      <div className="shrink-0 flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-[28px] font-black text-[#0C2B49]">Documents</h1>
           <p className="mt-1 text-sm text-[#64748b]">Manage and review documents in the office repository</p>
         </div>
         {isIssuer && <Link href="/portal/upload" className="rounded-full bg-[#0985E7] px-5 py-2.5 text-sm font-black text-white">Upload Document</Link>}
-      </div>
-
-      <div className="flex flex-col gap-3 rounded-[18px] border border-[#E8F0F8] bg-white p-4">
-        <label className="flex items-center gap-2 rounded-full border border-[#E8F0F8] bg-[#F8FBFF] px-4 py-2.5">
-          <SearchIcon sx={{ fontSize: 18, color: '#A0AAB8' }} />
-          <span className="sr-only">Search documents by title or reference</span>
-          <input className="flex-1 bg-transparent text-sm text-[#0C2B49] placeholder:text-[#A0AAB8] outline-none" placeholder="Search by title or reference..." value={search} onChange={(event) => setSearch(event.target.value)} />
-        </label>
-        <div className="grid gap-3 sm:grid-cols-2">
-          {statuses.length > 0 && <label className="text-xs font-bold text-[#64748b]">Status
-            <select value={status} onChange={(event) => setStatus(event.target.value)} className="mt-1 w-full rounded-xl border border-[#E8F0F8] bg-white px-3 py-2 text-sm text-[#0C2B49]">
-              <option value="all">All statuses</option>
-              {statuses.map((value) => <option key={value} value={value}>{getDocumentStatusLabel(value)}</option>)}
-            </select>
-          </label>}
-          <label className="text-xs font-bold text-[#64748b]">Sort
-            <select value={hasDates ? sort : 'title'} onChange={(event) => setSort(event.target.value as typeof sort)} className="mt-1 w-full rounded-xl border border-[#E8F0F8] bg-white px-3 py-2 text-sm text-[#0C2B49]">
-              {hasDates && <><option value="newest">Recently updated</option><option value="oldest">Least recently updated</option></>}
-              <option value="title">Title A–Z</option>
-            </select>
-          </label>
-        </div>
       </div>
 
       {documentsQuery.isLoading ? (
@@ -140,10 +226,77 @@ export default function DocumentsPage() {
         </div>
       ) : (
         <>
-          <p className="text-sm font-bold text-[#64748b]">{visibleDocuments.length} document{visibleDocuments.length === 1 ? '' : 's'}</p>
-          <div className="hidden overflow-x-auto rounded-[18px] border border-[#E8F0F8] bg-white md:block">
-            <table className="min-w-full text-left"><thead className="border-b border-[#E8F0F8] bg-[#F8FBFF] text-xs font-black text-[#64748b]"><tr><th className="px-5 py-3">Document</th><th className="px-5 py-3">Status</th><th className="px-5 py-3">Repository record</th><th className="px-5 py-3">Updated</th><th className="px-5 py-3">Actions</th></tr></thead><tbody>{visibleDocuments.map((document) => <tr key={document.id} className="border-b border-[#E8F0F8] last:border-0"><td className="px-5 py-4"><p className="font-bold text-[#0C2B49]">{document.file_name}</p><p className="mt-1 text-xs text-[#64748b]">{document.document_number ? `Reference #${document.document_number}` : 'Reference unavailable'}</p></td><td className="px-5 py-4"><DocumentBadges document={document} /></td><td className="px-5 py-4 text-xs font-bold text-[#64748b]">{typeof document.on_chain === 'boolean' ? (document.on_chain ? 'Repository marked recorded' : 'Repository marked not recorded') : 'Not supplied'}</td><td className="px-5 py-4 text-xs text-[#64748b]">{formatDate(document.updated_at ?? document.created_at)}</td><td className="px-5 py-4"><DocumentActions document={document} role={uiRole} /></td></tr>)}</tbody></table>
-          </div>
+          <section className="shrink-0 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {metrics.map((metric) => <MetricCard key={metric.label} {...metric} />)}
+          </section>
+          <section className="grid min-h-0 flex-1 gap-4 xl:grid-cols-[minmax(0,1fr)_420px] overflow-hidden">
+            <article className="flex min-h-0 min-w-0 flex-col overflow-hidden rounded-2xl border border-[#E4EEF9] bg-white shadow-sm shadow-[#DDEAF7]/35">
+              <div className="border-b border-[#E4EEF9] p-5">
+                <h2 className="text-lg font-black text-[#071B33]">Document Directory</h2>
+                <div className="mt-4 flex flex-wrap items-center gap-3">
+                  <label className="flex min-w-[240px] flex-1 items-center gap-2 rounded-xl border border-[#E4EEF9] bg-white px-4 py-2.5 focus-within:border-[#0985E7]">
+                    <SearchIcon fontSize="small" className="text-[#4B6382]" />
+                    <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search documents..." className="w-full bg-transparent text-sm font-semibold text-[#0C2B49] outline-none placeholder:text-[#9AAAC0]" />
+                  </label>
+                  <Dropdown value={status} onChange={setStatus} options={[{ label: "All Statuses", value: "all" }, ...statuses.map((value) => ({ label: getDocumentStatusLabel(value), value }))]} />
+                  <button type="button" className="inline-flex items-center gap-2 rounded-xl border border-[#E4EEF9] bg-white px-4 py-2.5 text-sm font-black text-[#0C2B49] transition hover:border-[#0985E7]">
+                    <FilterListIcon fontSize="small" />
+                    More Filters
+                  </button>
+                </div>
+              </div>
+              <div className="admin-table-scroll scrollbar-hide min-h-0 flex-1 overflow-auto">
+                <table className="w-full min-w-[920px] text-sm">
+                  <thead>
+                    <tr className="border-b border-[#D9E5F0] bg-[#F8FBFF] text-left text-xs font-black uppercase tracking-[0.08em] text-[#4B6382]">
+                      <th className="px-5 py-3">Document</th>
+                      <th className="px-5 py-3">Status</th>
+                      <th className="px-5 py-3">Repository record</th>
+                      <th className="px-5 py-3">Updated</th>
+                      <th className="px-5 py-3">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {pagedDocs.map((doc) => (
+                      <tr key={doc.id} className="h-[68px] border-b border-[#F1F5F9] transition hover:bg-[#F8FBFF]">
+                        <td className="px-5 py-3">
+                          <p className="font-bold text-[#071B33]">{doc.file_name}</p>
+                          <p className="mt-0.5 text-xs font-semibold text-[#5B6F8A]">{doc.document_number ? `Reference #${doc.document_number}` : 'Reference unavailable'}</p>
+                        </td>
+                        <td className="px-5 py-3"><DocumentBadges document={doc} /></td>
+                        <td className="px-5 py-3 text-xs font-bold text-[#5B6F8A]">{typeof doc.on_chain === 'boolean' ? (doc.on_chain ? 'Repository marked recorded' : 'Repository marked not recorded') : 'Not supplied'}</td>
+                        <td className="px-5 py-3 font-semibold text-[#5B6F8A]">{formatDate(doc.updated_at ?? doc.created_at)}</td>
+                        <td className="px-5 py-3"><DocumentActions document={doc} role={uiRole} /></td>
+                      </tr>
+                    ))}
+                    {pagedDocs.length === 0 && (
+                      <tr><td colSpan={5} className="px-5 py-10 text-center text-sm font-semibold text-[#5B6F8A]">No documents match the current filters.</td></tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+              <div className="flex flex-col gap-3 border-t border-[#E4EEF9] px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-sm font-semibold text-[#5B6F8A]">Showing {visibleDocuments.length === 0 ? 0 : safePage * perPage + 1}–{Math.min((safePage + 1) * perPage, visibleDocuments.length)} of {visibleDocuments.length} documents</p>
+                <div className="flex flex-wrap items-center gap-2">
+                  <button type="button" onClick={() => setPage((value) => Math.max(0, value - 1))} disabled={safePage === 0} aria-label="Previous page" className="rounded-lg border border-[#E4EEF9] p-2 text-[#4B6382] transition hover:bg-[#EEF4FB] disabled:opacity-35">
+                    <ChevronLeftIcon fontSize="small" />
+                  </button>
+                  {[...Array(Math.min(3, totalPages))].map((_, index) => (
+                    <button key={index} type="button" onClick={() => setPage(index)} className={cn("size-9 rounded-lg border text-sm font-black transition", safePage === index ? "border-[#0985E7] bg-[#EAF3FF] text-[#0879D8]" : "border-[#E4EEF9] text-[#0C2B49] hover:bg-[#EEF4FB]")}>{index + 1}</button>
+                  ))}
+                  {totalPages > 3 && <span className="px-2 text-sm font-black text-[#5B6F8A]">...</span>}
+                  <button type="button" onClick={() => setPage((value) => Math.min(totalPages - 1, value + 1))} disabled={safePage >= totalPages - 1} aria-label="Next page" className="rounded-lg border border-[#E4EEF9] p-2 text-[#4B6382] transition hover:bg-[#EEF4FB] disabled:opacity-35">
+                    <ChevronRightIcon fontSize="small" />
+                  </button>
+                  <Dropdown value={pageSize} onChange={setPageSize} options={[{ label: "5 / page", value: "5" }, { label: "10 / page", value: "10" }, { label: "20 / page", value: "20" }]} />
+                </div>
+              </div>
+            </article>
+            <aside className="hidden gap-4 md:grid xl:h-full xl:grid-rows-[minmax(0,1fr)_auto]">
+              <StatusDistribution docs={documents} />
+              <RecentlyUpdated docs={documents} />
+            </aside>
+          </section>
           <div className="flex flex-col gap-3 md:hidden">{visibleDocuments.map((document) => <article key={document.id} className="rounded-[18px] border border-[#E8F0F8] bg-white p-4"><div className="flex gap-3"><DescriptionIcon sx={{ fontSize: 22, color: '#0985E7' }} /><div className="min-w-0 flex-1"><p className="truncate text-sm font-bold text-[#0C2B49]">{document.file_name}</p><p className="mt-1 text-xs text-[#64748b]">{document.document_number ? `Reference #${document.document_number}` : 'Reference unavailable'} · Updated {formatDate(document.updated_at ?? document.created_at)}</p><div className="mt-2"><DocumentBadges document={document} /></div></div></div><div className="mt-4 border-t border-[#E8F0F8] pt-3"><DocumentActions document={document} role={uiRole} /></div></article>)}</div>
         </>
       )}
