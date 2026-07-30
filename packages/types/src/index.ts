@@ -9,5 +9,3 @@ export type AdminDashboardResponse = ApiSchema<"AdminDashboardResponse">;
 export type AdminUserResponse = ApiSchema<"AdminUserResponse">;
 export type AdminUserListResponse = ApiSchema<"AdminUserListResponse">;
 export type CreateInvitationRequest = ApiSchema<"CreateInvitationRequest">;
-export type InvitationResponse = ApiSchema<"InvitationResponse">;
-export type InvitationListResponse = ApiSchema<"InvitationListResponse">;

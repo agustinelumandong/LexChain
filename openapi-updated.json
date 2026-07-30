@@ -681,6 +681,152 @@
         }
       }
     },
+    "/documents/invitations/mine": {
+      "get": {
+        "tags": [
+          "Documents"
+        ],
+        "summary": "List my pending invitations",
+        "description": "Invitations awaiting this user's response. A pending invitation grants no access — the document does not appear in `GET /documents/` until it is accepted. Any authenticated user may call this; it only ever returns their own invitations.",
+        "operationId": "list_my_invitations_documents_invitations_mine_get",
+        "responses": {
+          "200": {
+            "description": "Pending invitations",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/app__features__documents__schemas__InvitationListResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated — missing or invalid bearer token"
+          }
+        },
+        "security": [
+          {
+            "Bearer Token": []
+          }
+        ]
+      }
+    },
+    "/documents/invitations/{invitation_id}/accept": {
+      "post": {
+        "tags": [
+          "Documents"
+        ],
+        "summary": "Accept an invitation",
+        "description": "Grants access to the document. Only the invitee may accept, and only while the invitation is still pending.",
+        "operationId": "accept_invitation_documents_invitations__invitation_id__accept_post",
+        "security": [
+          {
+            "Bearer Token": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "invitation_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Invitation Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Accepted — the document is now accessible",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvitationActionResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated — missing or invalid bearer token"
+          },
+          "404": {
+            "description": "Invitation not found or addressed to someone else"
+          },
+          "409": {
+            "description": "Already accepted or declined"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/documents/invitations/{invitation_id}/decline": {
+      "post": {
+        "tags": [
+          "Documents"
+        ],
+        "summary": "Decline an invitation",
+        "description": "Refuses the invitation; no access is granted. The refusal is recorded so the owner can see it. The owner may invite again, which reopens it.",
+        "operationId": "decline_invitation_documents_invitations__invitation_id__decline_post",
+        "security": [
+          {
+            "Bearer Token": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "invitation_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Invitation Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Declined",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvitationActionResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated — missing or invalid bearer token"
+          },
+          "404": {
+            "description": "Invitation not found or addressed to someone else"
+          },
+          "409": {
+            "description": "Already accepted or declined"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/documents/{document_id}/parties": {
       "get": {
         "tags": [
@@ -1478,7 +1624,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/InvitationListResponse"
+                  "$ref": "#/components/schemas/app__features__admin__schemas__InvitationListResponse"
                 }
               }
             }
@@ -1516,7 +1662,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/InvitationResponse"
+                  "$ref": "#/components/schemas/app__features__admin__schemas__InvitationResponse"
                 }
               }
             }
@@ -2392,6 +2538,25 @@
             "title": "Role",
             "description": "Role assigned"
           },
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "description": "pending | accepted | declined — the owner is always accepted",
+            "default": "accepted"
+          },
+          "responded_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Responded At",
+            "description": "When this party accepted or declined"
+          },
           "created_at": {
             "type": "string",
             "format": "date-time",
@@ -2682,6 +2847,31 @@
             "type": "boolean",
             "title": "On Chain",
             "description": "Check if doc is on chain"
+          },
+          "is_owner": {
+            "type": "boolean",
+            "title": "Is Owner",
+            "description": "True if the user owns this document, false if invited to it",
+            "default": true
+          },
+          "my_role": {
+            "type": "string",
+            "title": "My Role",
+            "description": "This user's role on the document: owner | viewer | signer | editor",
+            "default": "owner"
+          },
+          "shared_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Shared At",
+            "description": "When the user was invited; null for documents they own"
           },
           "version": {
             "type": "integer",
@@ -3231,73 +3421,36 @@
         "type": "object",
         "title": "HTTPValidationError"
       },
-      "InvitationListResponse": {
+      "InvitationActionResponse": {
         "properties": {
-          "invitations": {
-            "items": {
-              "$ref": "#/components/schemas/InvitationResponse"
-            },
-            "type": "array",
-            "title": "Invitations"
-          }
-        },
-        "type": "object",
-        "required": [
-          "invitations"
-        ],
-        "title": "InvitationListResponse"
-      },
-      "InvitationResponse": {
-        "properties": {
-          "id": {
+          "invitation_id": {
             "type": "string",
             "format": "uuid",
-            "title": "Id"
+            "title": "Invitation Id"
           },
-          "email": {
+          "document_id": {
             "type": "string",
-            "title": "Email"
-          },
-          "role": {
-            "type": "string",
-            "title": "Role"
+            "format": "uuid",
+            "title": "Document Id"
           },
           "status": {
             "type": "string",
             "title": "Status"
           },
-          "expires_at": {
+          "message": {
             "type": "string",
-            "format": "date-time",
-            "title": "Expires At"
-          },
-          "created_at": {
-            "type": "string",
-            "format": "date-time",
-            "title": "Created At"
-          },
-          "magic_link": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Magic Link"
+            "title": "Message"
           }
         },
         "type": "object",
         "required": [
-          "id",
-          "email",
-          "role",
+          "invitation_id",
+          "document_id",
           "status",
-          "expires_at",
-          "created_at"
+          "message"
         ],
-        "title": "InvitationResponse"
+        "title": "InvitationActionResponse",
+        "description": "Result of accepting or declining."
       },
       "MarkAllReadResponse": {
         "properties": {
@@ -4181,6 +4334,155 @@
         ],
         "title": "WordDiffPart",
         "description": "A run of words inside a changed segment, for inline highlighting."
+      },
+      "app__features__admin__schemas__InvitationListResponse": {
+        "properties": {
+          "invitations": {
+            "items": {
+              "$ref": "#/components/schemas/app__features__admin__schemas__InvitationResponse"
+            },
+            "type": "array",
+            "title": "Invitations"
+          }
+        },
+        "type": "object",
+        "required": [
+          "invitations"
+        ],
+        "title": "InvitationListResponse"
+      },
+      "app__features__admin__schemas__InvitationResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "email": {
+            "type": "string",
+            "title": "Email"
+          },
+          "role": {
+            "type": "string",
+            "title": "Role"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Expires At"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "magic_link": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Magic Link"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "email",
+          "role",
+          "status",
+          "expires_at",
+          "created_at"
+        ],
+        "title": "InvitationResponse"
+      },
+      "app__features__documents__schemas__InvitationListResponse": {
+        "properties": {
+          "invitations": {
+            "items": {
+              "$ref": "#/components/schemas/app__features__documents__schemas__InvitationResponse"
+            },
+            "type": "array",
+            "title": "Invitations"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          }
+        },
+        "type": "object",
+        "required": [
+          "total"
+        ],
+        "title": "InvitationListResponse",
+        "description": "Invitations awaiting this user's response."
+      },
+      "app__features__documents__schemas__InvitationResponse": {
+        "properties": {
+          "invitation_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Invitation Id",
+            "description": "Use this to accept or decline"
+          },
+          "document_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Document Id"
+          },
+          "file_name": {
+            "type": "string",
+            "title": "File Name",
+            "description": "Name of the document you were invited to"
+          },
+          "role": {
+            "type": "string",
+            "title": "Role",
+            "description": "Role you would hold: viewer | signer | editor"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "description": "pending | accepted | declined"
+          },
+          "invited_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Invited At",
+            "description": "When the invitation was sent"
+          },
+          "responded_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Responded At",
+            "description": "When you accepted or declined; null while pending"
+          }
+        },
+        "type": "object",
+        "required": [
+          "invitation_id",
+          "document_id",
+          "file_name",
+          "role",
+          "status",
+          "invited_at"
+        ],
+        "title": "InvitationResponse",
+        "description": "An invitation to a document, awaiting the invitee's response."
       }
     },
     "securitySchemes": {
