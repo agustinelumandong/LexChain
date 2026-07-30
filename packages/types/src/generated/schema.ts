@@ -236,6 +236,66 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/documents/invitations/mine": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List my pending invitations
+         * @description Invitations awaiting this user's response. A pending invitation grants no access — the document does not appear in `GET /documents/` until it is accepted. Any authenticated user may call this; it only ever returns their own invitations.
+         */
+        get: operations["list_my_invitations_documents_invitations_mine_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/documents/invitations/{invitation_id}/accept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Accept an invitation
+         * @description Grants access to the document. Only the invitee may accept, and only while the invitation is still pending.
+         */
+        post: operations["accept_invitation_documents_invitations__invitation_id__accept_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/documents/invitations/{invitation_id}/decline": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Decline an invitation
+         * @description Refuses the invitation; no access is granted. The refusal is recorded so the owner can see it. The owner may invite again, which reopens it.
+         */
+        post: operations["decline_invitation_documents_invitations__invitation_id__decline_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/documents/{document_id}/parties": {
         parameters: {
             query?: never;
@@ -854,6 +914,17 @@ export interface components {
              */
             role: string;
             /**
+             * Status
+             * @description pending | accepted | declined — the owner is always accepted
+             * @default accepted
+             */
+            status: string;
+            /**
+             * Responded At
+             * @description When this party accepted or declined
+             */
+            responded_at?: string | null;
+            /**
              * Created At
              * Format: date-time
              */
@@ -1057,6 +1128,23 @@ export interface components {
              * @description Check if doc is on chain
              */
             on_chain: boolean;
+            /**
+             * Is Owner
+             * @description True if the user owns this document, false if invited to it
+             * @default true
+             */
+            is_owner: boolean;
+            /**
+             * My Role
+             * @description This user's role on the document: owner | viewer | signer | editor
+             * @default owner
+             */
+            my_role: string;
+            /**
+             * Shared At
+             * @description When the user was invited; null for documents they own
+             */
+            shared_at?: string | null;
             /**
              * Version
              * @description Version number within its chain
@@ -1327,8 +1415,6 @@ export interface components {
             chunk_index: number;
             /** Score */
             score: number;
-            /** Text */
-            text?: string | null;
         };
         /** GlobalSearchResponse */
         GlobalSearchResponse: {
@@ -1342,36 +1428,25 @@ export interface components {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
         };
-        /** InvitationListResponse */
-        InvitationListResponse: {
-            /** Invitations */
-            invitations: components["schemas"]["InvitationResponse"][];
-        };
-        /** InvitationResponse */
-        InvitationResponse: {
+        /**
+         * InvitationActionResponse
+         * @description Result of accepting or declining.
+         */
+        InvitationActionResponse: {
             /**
-             * Id
+             * Invitation Id
              * Format: uuid
              */
-            id: string;
-            /** Email */
-            email: string;
-            /** Role */
-            role: string;
+            invitation_id: string;
+            /**
+             * Document Id
+             * Format: uuid
+             */
+            document_id: string;
             /** Status */
             status: string;
-            /**
-             * Expires At
-             * Format: date-time
-             */
-            expires_at: string;
-            /**
-             * Created At
-             * Format: date-time
-             */
-            created_at: string;
-            /** Magic Link */
-            magic_link?: string | null;
+            /** Message */
+            message: string;
         };
         /** MarkAllReadResponse */
         MarkAllReadResponse: {
@@ -1869,6 +1944,90 @@ export interface components {
             op: string;
             /** Text */
             text: string;
+        };
+        /** InvitationListResponse */
+        app__features__admin__schemas__InvitationListResponse: {
+            /** Invitations */
+            invitations: components["schemas"]["app__features__admin__schemas__InvitationResponse"][];
+        };
+        /** InvitationResponse */
+        app__features__admin__schemas__InvitationResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Email */
+            email: string;
+            /** Role */
+            role: string;
+            /** Status */
+            status: string;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Magic Link */
+            magic_link?: string | null;
+        };
+        /**
+         * InvitationListResponse
+         * @description Invitations awaiting this user's response.
+         */
+        app__features__documents__schemas__InvitationListResponse: {
+            /** Invitations */
+            invitations?: components["schemas"]["app__features__documents__schemas__InvitationResponse"][];
+            /** Total */
+            total: number;
+        };
+        /**
+         * InvitationResponse
+         * @description An invitation to a document, awaiting the invitee's response.
+         */
+        app__features__documents__schemas__InvitationResponse: {
+            /**
+             * Invitation Id
+             * Format: uuid
+             * @description Use this to accept or decline
+             */
+            invitation_id: string;
+            /**
+             * Document Id
+             * Format: uuid
+             */
+            document_id: string;
+            /**
+             * File Name
+             * @description Name of the document you were invited to
+             */
+            file_name: string;
+            /**
+             * Role
+             * @description Role you would hold: viewer | signer | editor
+             */
+            role: string;
+            /**
+             * Status
+             * @description pending | accepted | declined
+             */
+            status: string;
+            /**
+             * Invited At
+             * Format: date-time
+             * @description When the invitation was sent
+             */
+            invited_at: string;
+            /**
+             * Responded At
+             * @description When you accepted or declined; null while pending
+             */
+            responded_at?: string | null;
         };
     };
     responses: never;
@@ -2447,6 +2606,137 @@ export interface operations {
             };
             /** @description Document not found or user has no access */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_my_invitations_documents_invitations_mine_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Pending invitations */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["app__features__documents__schemas__InvitationListResponse"];
+                };
+            };
+            /** @description Not authenticated — missing or invalid bearer token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    accept_invitation_documents_invitations__invitation_id__accept_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                invitation_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Accepted — the document is now accessible */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvitationActionResponse"];
+                };
+            };
+            /** @description Not authenticated — missing or invalid bearer token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Invitation not found or addressed to someone else */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Already accepted or declined */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    decline_invitation_documents_invitations__invitation_id__decline_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                invitation_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Declined */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvitationActionResponse"];
+                };
+            };
+            /** @description Not authenticated — missing or invalid bearer token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Invitation not found or addressed to someone else */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Already accepted or declined */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -3154,7 +3444,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["InvitationListResponse"];
+                    "application/json": components["schemas"]["app__features__admin__schemas__InvitationListResponse"];
                 };
             };
             /** @description Not a lawyer */
@@ -3185,7 +3475,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["InvitationResponse"];
+                    "application/json": components["schemas"]["app__features__admin__schemas__InvitationResponse"];
                 };
             };
             /** @description Invitation already exists */
