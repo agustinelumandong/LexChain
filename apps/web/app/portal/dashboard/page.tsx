@@ -82,7 +82,7 @@ export default function DashboardPage() {
     queryKey: ['portal-profile'],
     queryFn: () => fetchJson<UserProfile | null>('/users/'),
   });
-  const isIssuer = getPortalUiRole(profileQuery.data?.role) === 'issuer';
+  const isIssuer = getPortalUiRole(profileQuery.data?.role) === 'lawyer';
   const documentsQuery = useQuery<Document[]>({
     queryKey: ['portal-documents'],
     queryFn: () => fetchJson('/documents/'),
@@ -142,7 +142,7 @@ export default function DashboardPage() {
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-[28px] font-black leading-[34px] text-[#0C2B49]">Document Issuer Portal</h1>
+          <h1 className="text-[28px] font-black leading-[34px] text-[#0C2B49]">Lawyer Portal</h1>
           <p className="mt-1 text-sm font-medium text-[#64748b]">Your document workspace at a glance.</p>
         </div>
         <div className="flex items-center gap-2 sm:gap-3">

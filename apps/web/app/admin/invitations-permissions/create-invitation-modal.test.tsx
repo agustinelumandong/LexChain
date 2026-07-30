@@ -14,7 +14,7 @@ describe("CreateInvitationModal", () => {
     fireEvent.change(screen.getByRole("textbox"), { target: { value: "issuer@example.com" } });
     fireEvent.click(screen.getByRole("button", { name: "Send Invitation" }));
 
-    expect(onCreate).toHaveBeenCalledWith({ email: "issuer@example.com", role: "document_issuer" });
+    expect(onCreate).toHaveBeenCalledWith({ email: "issuer@example.com", role: "lawyer" });
     expect(screen.queryByText("Role")).toBeNull();
   });
 });

@@ -131,7 +131,7 @@ describe('ReportsPage', () => {
     queryState.role = 'document_participant';
     render(<OfficeReportsPage />);
 
-    expect(screen.getByText('Reports are available to Document Issuers only.')).toBeTruthy();
+    expect(screen.getByText('Reports are available to Lawyers only.')).toBeTruthy();
     expect(screen.queryByRole('radio', { name: 'Document Activity' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Generate' })).toBeNull();
   });

@@ -65,12 +65,11 @@ describe("portal UI source audit", () => {
     expect(screen.getByRole('link', { name: /help and support/i }).getAttribute('href')).toBe('mailto:support@lexchain.app');
   });
 
-  it('uses Document Issuer terminology in participant request guidance', () => {
+  it('uses Lawyer terminology in participant request guidance', () => {
     profile.role = 'document_participant';
     render(createElement(ProfilePage));
 
-    expect(screen.getByText('Track requests sent to your Document Issuer')).toBeTruthy();
-    expect(screen.queryByText(/lawyer/i)).toBeNull();
+    expect(screen.getByText('Track requests sent to your Lawyer')).toBeTruthy();
   });
 
   it('offers safe document-assistant guidance', () => {

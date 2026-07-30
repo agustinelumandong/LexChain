@@ -1,7 +1,7 @@
 import type { PortalUiRole } from "./portal-role";
 
 export function getRequestActions(role: PortalUiRole, status?: string): string[] {
-  return role === "issuer" && status?.trim().toLowerCase() === "pending"
+  return role === "lawyer" && status?.trim().toLowerCase() === "pending"
     ? ["Approve", "Reject"]
     : [];
 }

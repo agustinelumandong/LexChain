@@ -31,7 +31,7 @@ it('does not proxy audit logs when the authenticated profile is not an issuer', 
   );
 
   expect(response.status).toBe(403);
-  await expect(response.json()).resolves.toEqual({ message: 'Document activity is available to Document Issuers only.' });
+  await expect(response.json()).resolves.toEqual({ message: 'Document activity is available to Lawyers only.' });
   expect(fetchMock).toHaveBeenCalledTimes(1);
   expect(fetchMock).toHaveBeenCalledWith('/users/', {
     headers: {
@@ -115,6 +115,6 @@ it('keeps mock document activity restricted to Document Issuers', async () => {
   );
 
   expect(response.status).toBe(403);
-  await expect(response.json()).resolves.toEqual({ message: 'Document activity is available to Document Issuers only.' });
+  await expect(response.json()).resolves.toEqual({ message: 'Document activity is available to Lawyers only.' });
   expect(fetchMock).not.toHaveBeenCalled();
 });

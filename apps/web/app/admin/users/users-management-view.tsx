@@ -311,7 +311,7 @@ export function UsersManagementView({ users, total }: { users: AdminUser[]; tota
     { label: "Total Users", value: total || directoryUsers.length, detail: "Registered accounts", icon: <GroupsIcon fontSize="small" />, tone: "blue" as const },
     { label: "Active Users", value: directoryUsers.filter((user) => user.statusLabel === "Active").length, detail: "is_active true", icon: <CheckCircleIcon fontSize="small" />, tone: "green" as const },
     { label: "Suspended Users", value: directoryUsers.filter((user) => user.statusLabel === "Suspended").length, detail: "is_active false", icon: <PersonOffIcon fontSize="small" />, tone: "red" as const },
-    { label: "Document Issuers", value: directoryUsers.filter((user) => user.roleLabel === "Document Issuer").length, detail: "role field", icon: <WorkIcon fontSize="small" />, tone: "blue" as const },
+    { label: "Lawyers", value: directoryUsers.filter((user) => user.roleLabel === "Document Issuer").length, detail: "role field", icon: <WorkIcon fontSize="small" />, tone: "blue" as const },
   ];
 
   return (
@@ -502,7 +502,7 @@ export function UsersManagementView({ users, total }: { users: AdminUser[]; tota
             <Field label="First name"><input className={inputClassName} value={userDraft.f_name ?? ""} onChange={(event) => setUserDraft((draft) => draft ? { ...draft, f_name: event.target.value } : draft)} /></Field>
             <Field label="Last name"><input className={inputClassName} value={userDraft.l_name ?? ""} onChange={(event) => setUserDraft((draft) => draft ? { ...draft, l_name: event.target.value } : draft)} /></Field>
             <Field label="Email"><input className={inputClassName} value={userDraft.email} onChange={(event) => setUserDraft((draft) => draft ? { ...draft, email: event.target.value } : draft)} /></Field>
-            <Field label="Role"><select className={inputClassName} value={userDraft.role} onChange={(event) => setUserDraft((draft) => draft ? { ...draft, role: event.target.value } : draft)}><option value="document_issuer">Document Issuer</option><option value="document_participant">Document Participant</option></select></Field>
+            <Field label="Role"><select className={inputClassName} value={userDraft.role} onChange={(event) => setUserDraft((draft) => draft ? { ...draft, role: event.target.value } : draft)}><option value="lawyer">Lawyer</option><option value="user">User</option></select></Field>
             <p className="text-xs font-semibold text-[#5B6F8A]">Demo mode — changes reset when this page is refreshed.</p>
           </div>
         ) : null}

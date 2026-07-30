@@ -31,7 +31,7 @@ export default function DownloadPage() {
               Use LexChain mobile for secure document work.
             </h1>
             <p className="mt-5 max-w-2xl text-base font-semibold leading-7 text-[#64748b]">
-              The website handles public pages, the Document Issuer portal, and verification. The mobile
+              The website handles public pages, the Lawyer portal, and verification. The mobile
               app remains the main place for uploads, camera scans, PDF handling,
               deep links, and user document workflows.
             </p>

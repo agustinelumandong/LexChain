@@ -62,7 +62,7 @@ LexChain/
 | Mobile audit | `docs/LEXCHAIN-MOBILE-MAINTAINABILITY-AUDIT.md` | Code quality report |
 | Web admin pages | `apps/web/app/admin/` | Dashboard, users, invitations/permissions, logs, categories, settings |
 | Web API handlers | `apps/web/app/api/` | Route handlers for admin/public proxying |
-| Web helpers | `apps/web/lib/` | Admin/public verifier API helpers and schemas |
+| Web helpers | `apps/web/lib/` | Web API helpers and schemas |
 | Mobile feature code | `apps/mobile/src/features/` | Auth, dashboard, document, documents, onboarding, profile, upload, verification |
 | Mobile API/query layer | `apps/mobile/src/services/` | API modules, mocks, React Query hooks, query keys |
 | Mobile shared layer | `apps/mobile/src/shared/` | UI primitives, hooks, providers, config, theme, utils |
@@ -72,8 +72,10 @@ LexChain/
 
 | Responsibility | Owner | Notes |
 |----------------|-------|-------|
-| Public document verifier (browser) | `apps/web/app/verify/` | Next.js owns this route |
-| Public verification API proxy | `apps/web/app/api/public/verify/` | Next.js route handler proxies browser upload/verify work |
+| Portal document verify (authenticated) | `apps/web/app/portal/documents/[id]/verify/` | Full verify workspace: tamper report, word-diff, PDF overlay |
+| Portal verification center | `apps/web/app/portal/verification/` | Check integrity by repository document ID |
+| Portal API proxy | `apps/web/app/api/portal/proxy/` | Generic proxy: `?path=/documents/{id}/verify` → backend |
+| Public document verifier (browser) | `apps/web/app/verify/` | **NOT YET IMPLEMENTED** — route does not exist on disk |
 | Admin panel | `apps/web/app/admin/` | Next.js only — mobile must NOT import admin screens |
 | Admin API proxy/routes | `apps/web/app/api/admin/` | Next.js route handlers for admin backend calls |
 | Invite/download/legal pages | `apps/web/app/invite/`, `apps/web/app/download/`, `apps/web/app/terms/`, `apps/web/app/privacy/` | Next.js owns browser fallback/support pages |
@@ -219,3 +221,4 @@ Next.js 16.2.6 | React 19.2 | TypeScript 5 | Tailwind v4 | ESLint (eslint-config
 - No test runner configured in any workspace.
 - CI: single workflow `.github/workflows/react-doctor.yml`.
 - Backend expects Python/FastAPI at `http://localhost:8000` (see `.env.example`).
+- Portal roles simplified to `lawyer` and `user`. Backend roles (`document_issuer`, `document_participant`) still mapped for backward compat via `getPortalUiRole()`.

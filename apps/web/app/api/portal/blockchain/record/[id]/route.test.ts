@@ -62,7 +62,7 @@ it('does not proxy blockchain record requests from participants', async () => {
   );
 
   expect(response.status).toBe(403);
-  await expect(response.json()).resolves.toEqual({ message: 'Blockchain anchoring is available to Document Issuers only.' });
+  await expect(response.json()).resolves.toEqual({ message: 'Blockchain anchoring is available to Lawyers only.' });
   expect(fetchMock).toHaveBeenCalledTimes(1);
   expect(fetchMock).toHaveBeenCalledWith('/users/', {
     headers: {

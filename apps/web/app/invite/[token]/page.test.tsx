@@ -22,6 +22,6 @@ it("uses the canonical Document Issuer name in the invite fallback", async () =>
   });
   render(view);
 
-  expect(screen.getByRole("heading", { name: "You are invited to LexChain as a Document Issuer" })).toBeTruthy();
-  expect(screen.queryByText(/lawyer/i)).toBeNull();
+  expect(screen.getByRole("heading", { name: "You are invited to LexChain as a Lawyer" })).toBeTruthy();
+
 });

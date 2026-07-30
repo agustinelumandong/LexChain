@@ -44,7 +44,7 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
   const extractionQuery = useQuery({
     queryKey: extractionKey,
     queryFn: () => getExtractionReview(id),
-    enabled: role === 'issuer',
+    enabled: role === 'lawyer',
     retry: false,
   });
 
@@ -91,11 +91,11 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
 
   if (profileQuery.isPending) return <p className="text-sm font-semibold text-[#64748b]">Loading review access…</p>;
   if (profileQuery.isError) return <p role="alert" className="text-sm font-semibold text-[#B42318]">{messageFor(profileQuery.error)}</p>;
-  if (role !== 'issuer') {
+  if (role !== 'lawyer') {
     return (
       <section className="max-w-xl rounded-[18px] border border-[#E8F0F8] bg-white p-6">
         <h1 className="text-xl font-black text-[#0C2B49]">Review unavailable</h1>
-        <p className="mt-2 text-sm text-[#64748b]">Document Participants can view shared documents, but only Document Issuers can review extracted text.</p>
+        <p className="mt-2 text-sm text-[#64748b]">Users can view shared documents, but only Lawyers can review extracted text.</p>
       </section>
     );
   }

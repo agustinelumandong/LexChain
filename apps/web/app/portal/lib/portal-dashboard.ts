@@ -27,7 +27,7 @@ export function getStatusOverviewLabel(status?: string | null) {
 }
 
 export function getPortalNavigation(role: PortalUiRole): PortalNavigationGroup[] {
-  if (role === "issuer") {
+  if (role === "lawyer") {
     const navigation: PortalNavigationGroup[] = [
       {
         label: "Workspace",

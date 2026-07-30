@@ -59,9 +59,9 @@ afterEach(cleanup);
 
 describe("updateDemoUser", () => {
   it("changes only the matching row and preserves omitted fields", () => {
-    const result = updateDemoUser(users, "user-1", { f_name: "Mariel", role: "document_participant" });
+    const result = updateDemoUser(users, "user-1", { f_name: "Mariel", role: "user" });
 
-    expect(result[1]).toEqual({ ...users[1], f_name: "Mariel", role: "document_participant" });
+    expect(result[1]).toEqual({ ...users[1], f_name: "Mariel", role: "user" });
     expect(result[0]).toBe(users[0]);
     expect(result[2]).toBe(users[2]);
     expect(result[1].email).toBe("maria@example.com");
@@ -93,10 +93,10 @@ describe("UsersManagementView demo mutations", () => {
       { ...users[0], id: "unknown", email: "unknown@example.com", role: "unexpected" },
     ]);
 
-    expect(within(rowFor("maria@example.com")).getByText("Document Issuer")).toBeTruthy();
-    expect(within(rowFor("juan@example.com")).getByText("Document Participant")).toBeTruthy();
-    expect(within(rowFor("legacy-user@example.com")).getByText("Document Participant")).toBeTruthy();
-    expect(within(rowFor("legacy-admin@example.com")).getByText("Document Issuer")).toBeTruthy();
+    expect(within(rowFor("maria@example.com")).getByText("Lawyer")).toBeTruthy();
+    expect(within(rowFor("juan@example.com")).getByText("User")).toBeTruthy();
+    expect(within(rowFor("legacy-user@example.com")).getByText("User")).toBeTruthy();
+    expect(within(rowFor("legacy-admin@example.com")).getByText("Lawyer")).toBeTruthy();
     expect(within(rowFor("unknown@example.com")).getByText("Unsupported role")).toBeTruthy();
   });
 
@@ -115,10 +115,10 @@ describe("UsersManagementView demo mutations", () => {
     expect((screen.getByLabelText("Last name") as HTMLInputElement).value).toBe("Santos");
     expect((screen.getByLabelText("Email") as HTMLInputElement).value).toBe("maria@example.com");
     const role = screen.getByLabelText("Role") as HTMLSelectElement;
-    expect(role.value).toBe("document_issuer");
+    expect(role.value).toBe("lawyer");
     expect([...role.options].map((option) => [option.value, option.text])).toEqual([
-      ["document_issuer", "Document Issuer"],
-      ["document_participant", "Document Participant"],
+      ["lawyer", "Lawyer"],
+      ["user", "User"],
     ]);
     expect(screen.getByText("Demo mode — changes reset when this page is refreshed.")).toBeTruthy();
   });
@@ -128,12 +128,12 @@ describe("UsersManagementView demo mutations", () => {
     fireEvent.click(within(rowFor("maria@example.com")).getByRole("button", { name: "Edit Maria Santos" }));
 
     fireEvent.change(screen.getByLabelText("First name"), { target: { value: "Mariel" } });
-    fireEvent.change(screen.getByLabelText("Role"), { target: { value: "document_participant" } });
+    fireEvent.change(screen.getByLabelText("Role"), { target: { value: "user" } });
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
 
     const updatedRow = rowFor("maria@example.com");
     expect(within(updatedRow).getByText("Mariel Santos")).toBeTruthy();
-    expect(within(updatedRow).getByText("Document Participant")).toBeTruthy();
+    expect(within(updatedRow).getByText("User")).toBeTruthy();
     expect(screen.getByText("Demo account updated")).toBeTruthy();
     expect(screen.queryByText(["Backend endpoint", "needed"].join(" "))).toBeNull();
   });

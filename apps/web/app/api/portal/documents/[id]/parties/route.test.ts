@@ -72,9 +72,9 @@ it('does not proxy participant management when the authenticated profile is not 
   );
 
   expect(listResponse.status).toBe(403);
-  await expect(listResponse.json()).resolves.toEqual({ message: 'Participant management is available to Document Issuers only.' });
+  await expect(listResponse.json()).resolves.toEqual({ message: 'Participant management is available to Lawyers only.' });
   expect(inviteResponse.status).toBe(403);
-  await expect(inviteResponse.json()).resolves.toEqual({ message: 'Participant management is available to Document Issuers only.' });
+  await expect(inviteResponse.json()).resolves.toEqual({ message: 'Participant management is available to Lawyers only.' });
   expect(fetchMock).toHaveBeenCalledTimes(2);
   expect(fetchMock).toHaveBeenNthCalledWith(1, '/users/', expect.any(Object));
   expect(fetchMock).toHaveBeenNthCalledWith(2, '/users/', expect.any(Object));

@@ -20,7 +20,7 @@ export function PortalTopBar({ fullName, initials, roleLabel, role, processingCo
     <header className="sticky top-0 z-40 -mx-6 mb-6 border-b border-[var(--portal-border-soft)] bg-[var(--portal-surface)] px-4 md:px-6">
       <div className="flex min-h-16 items-center gap-3">
         <PortalSearchBar />
-        {role === 'issuer' ? (
+        {role === 'lawyer' ? (
           <Link
             href="/portal/dashboard"
             aria-label="View processing documents"

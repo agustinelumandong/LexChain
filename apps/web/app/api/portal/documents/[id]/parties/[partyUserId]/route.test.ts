@@ -18,7 +18,7 @@ it('does not revoke participant access when the authenticated profile is not an 
   );
 
   expect(response.status).toBe(403);
-  await expect(response.json()).resolves.toEqual({ message: 'Participant management is available to Document Issuers only.' });
+  await expect(response.json()).resolves.toEqual({ message: 'Participant management is available to Lawyers only.' });
   expect(fetchMock).toHaveBeenCalledTimes(1);
   expect(fetchMock).toHaveBeenCalledWith('/users/', {
     headers: {

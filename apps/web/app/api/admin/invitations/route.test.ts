@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 function invitationRequest(
   cookie?: string,
-  body: unknown = { email: "new-issuer@example.com", role: "document_issuer" },
+  body: unknown = { email: "new-issuer@example.com", role: "lawyer" },
 ) {
   return new Request("https://lexchain.test/api/admin/invitations", {
     method: "POST",
@@ -47,7 +47,7 @@ describe("POST /api/admin/invitations", () => {
     ));
 
     expect(response.status).toBe(403);
-    await expect(response.json()).resolves.toEqual({ message: "Document Issuer access required." });
+    await expect(response.json()).resolves.toEqual({ message: "Lawyer access required." });
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
@@ -83,10 +83,10 @@ describe("POST /api/admin/invitations", () => {
   });
 
   it.each([
-    ["missing", { role: "document_issuer" }],
-    ["blank", { email: "   ", role: "document_issuer" }],
-    ["non-string", { email: 42, role: "document_issuer" }],
-    ["invalid", { email: "not-an-email", role: "document_issuer" }],
+    ["missing", { role: "lawyer" }],
+    ["blank", { email: "   ", role: "lawyer" }],
+    ["non-string", { email: 42, role: "lawyer" }],
+    ["invalid", { email: "not-an-email", role: "lawyer" }],
   ])("rejects a %s email before the mock/backend split", async (_case, body) => {
     vi.stubEnv("USE_MOCK_API", "true");
     const fetchMock = vi.fn();
@@ -102,7 +102,7 @@ describe("POST /api/admin/invitations", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it.each(["lawyer", "admin", "user", "document_participant", "arbitrary_role"])(
+  it.each(["admin", "user", "document_issuer", "document_participant", "arbitrary_role"])(
     "rejects a supplied noncanonical %s role",
     async (role) => {
       vi.stubEnv("USE_MOCK_API", "true");
@@ -129,14 +129,14 @@ describe("POST /api/admin/invitations", () => {
 
     const response = await POST(invitationRequest(
       "issuer_token=real-issuer-token",
-      { email: "  new-issuer@example.com  ", role: "document_issuer", ignored: true },
+      { email: "  new-issuer@example.com  ", role: "lawyer", ignored: true },
     ));
 
     expect(response.status).toBe(201);
     expect(fetchMock).toHaveBeenCalledOnce();
     expect(JSON.parse(String(fetchMock.mock.calls[0][1]?.body))).toEqual({
       email: "new-issuer@example.com",
-      role: "document_issuer",
+      role: "lawyer",
     });
   });
 });

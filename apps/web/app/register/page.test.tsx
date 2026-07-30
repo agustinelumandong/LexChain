@@ -25,6 +25,6 @@ afterEach(cleanup);
 it("uses the canonical Document Issuer name for invited registration", () => {
   render(<RegisterPage />);
 
-  expect(screen.getByText("Complete your LexChain Document Issuer invitation.")).toBeTruthy();
-  expect(screen.queryByText(/lawyer/i)).toBeNull();
+  expect(screen.getByText("Complete your LexChain Lawyer invitation.")).toBeTruthy();
+
 });

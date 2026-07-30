@@ -16,7 +16,7 @@ export function getDocumentActions(
   role: PortalUiRole,
   document: { status?: string | null; on_chain?: boolean | null },
 ): string[] {
-  if (role !== 'issuer') return ['View PDF'];
+  if (role !== 'lawyer') return ['View PDF'];
   const actions = ['View PDF'];
   const status = document.status?.trim().toUpperCase();
   if (status === 'AWAITING_REVIEW' || status === 'READY_FOR_REVIEW') actions.push('Review extracted text');

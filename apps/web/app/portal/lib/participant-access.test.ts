@@ -3,8 +3,8 @@ import { canManageParticipants, isParticipantAccessCapabilityError, validatePart
 
 describe("participant access", () => {
   it("allows only the Document Issuer to manage document participants", () => {
-    expect(canManageParticipants("issuer")).toBe(true);
-    expect(canManageParticipants("participant")).toBe(false);
+    expect(canManageParticipants("lawyer")).toBe(true);
+    expect(canManageParticipants("user")).toBe(false);
     expect(canManageParticipants("unsupported")).toBe(false);
   });
 

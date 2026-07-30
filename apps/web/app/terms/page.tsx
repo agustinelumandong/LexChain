@@ -4,7 +4,7 @@ const terms = [
   "LexChain helps manage, search, and verify legal documents, but it does not replace legal advice.",
   "Users are responsible for uploading documents they are authorized to process.",
   "Blockchain verification confirms hash integrity, not the legal validity of a document.",
-  "Backend authorization remains the source of truth for protected records and Document Issuer management access.",
+  "Backend authorization remains the source of truth for protected records and Lawyer management access.",
 ];
 
 export default function TermsPage() {

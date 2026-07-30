@@ -71,8 +71,8 @@ describe("demo category management", () => {
 
 describe("category access", () => {
   it("allows the document issuer and denies participants", () => {
-    expect(canAccessPortalFeature("issuer", "categories")).toBe(true);
-    expect(canAccessPortalFeature("participant", "categories")).toBe(false);
+    expect(canAccessPortalFeature("lawyer", "categories")).toBe(true);
+    expect(canAccessPortalFeature("user", "categories")).toBe(false);
   });
 
   it('confirms category deactivation before changing local data', () => {

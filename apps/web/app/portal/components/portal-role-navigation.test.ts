@@ -4,7 +4,7 @@ import { isPortalRouteActive } from "./portal-role-navigation";
 
 describe("portal navigation", () => {
   it("keeps the complete issuer workspace focused on portal destinations", () => {
-    const navigation = getPortalNavigation("issuer");
+    const navigation = getPortalNavigation("lawyer");
 
     expect(navigation.map((group) => group.label)).toEqual([
       "Workspace",
@@ -16,7 +16,7 @@ describe("portal navigation", () => {
   });
 
   it("includes the three system management routes for every issuer", () => {
-    const managementItems = getPortalNavigation("issuer").find(
+    const managementItems = getPortalNavigation("lawyer").find(
       (group) => group.label === "System Management",
     )?.items;
 
@@ -35,7 +35,7 @@ describe("portal navigation", () => {
     ["/portal/upload", "Upload Document"],
     ["/portal/office-settings", "Office Settings"],
   ])("marks %s as the active %s destination", (pathname, label) => {
-    const item = getPortalNavigation("issuer").flatMap((group) => group.items).find((navigationItem) => navigationItem.label === label);
+    const item = getPortalNavigation("lawyer").flatMap((group) => group.items).find((navigationItem) => navigationItem.label === label);
 
     expect(item).toBeDefined();
     expect(isPortalRouteActive(pathname, item!)).toBe(true);

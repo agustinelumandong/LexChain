@@ -15,7 +15,7 @@ export async function DELETE(request: Request, { params }: RouteContext) {
 
   if (useMock) {
     if (!isMockDocumentIssuerToken(token)) {
-      return Response.json({ message: "Document Issuer access required." }, { status: 403 });
+      return Response.json({ message: "Lawyer access required." }, { status: 403 });
     }
     return Response.json({ message: "Mock invitation revoked.", id });
   }

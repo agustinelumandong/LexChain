@@ -12,17 +12,17 @@ export type {
 } from '@/lib/portal-mock';
 
 export function canFinalizeDocument(
-  role: 'issuer' | 'participant',
+  role: 'lawyer' | 'user',
   status: string | null | undefined,
   lifecycle: DemoDocumentLifecycle['lifecycle'],
 ): boolean {
-  return role === 'issuer' && status?.trim().toUpperCase() === 'COMPLETED' && lifecycle === 'draft';
+  return role === 'lawyer' && status?.trim().toUpperCase() === 'COMPLETED' && lifecycle?.toLowerCase() === 'draft';
 }
 
 export function canRestoreDocument(
-  role: 'issuer' | 'participant',
+  role: 'lawyer' | 'user',
   integrityState: DemoIntegrityState,
   snapshots: DemoDocumentSnapshot[],
 ): boolean {
-  return role === 'issuer' && integrityState === 'mismatch' && snapshots.length > 0;
+  return role === 'lawyer' && integrityState === 'mismatch' && snapshots.length > 0;
 }

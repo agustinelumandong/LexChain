@@ -74,7 +74,7 @@ export function AdminShell({ activeHref = "/admin/dashboard", children }: AdminS
               {!collapsed && (
                 <div>
                   <p className="text-[25px] font-black leading-8">Lex<span className="text-[#0985E7]">Chain</span></p>
-                  <p className="text-[11px] font-black uppercase leading-4 text-[#9AA8B8]">Document Issuer</p>
+                  <p className="text-[11px] font-black uppercase leading-4 text-[#9AA8B8]">Lawyer</p>
                 </div>
               )}
             </Link>

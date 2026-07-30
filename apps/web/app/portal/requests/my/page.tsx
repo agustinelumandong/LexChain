@@ -21,7 +21,7 @@ export default function MyRequestsPage() {
   const { data, error, isLoading } = useQuery<RequestList>({ queryKey: ["portal-my-requests"], queryFn: () => portalFetch<RequestList>("/requests/my"), enabled: isParticipant });
   const requests = data?.requests ?? [];
   if (profileQuery.isPending) return <p className="text-sm font-semibold text-[#64748b]">Loading your request access…</p>;
-  if (!isParticipant) return <section className="rounded-[18px] border border-[#E8F0F8] bg-white p-6"><h1 className="text-xl font-black text-[#0C2B49]">E-copy requests unavailable</h1><p className="mt-2 text-sm text-[#64748b]">Document Participants can view their submitted e-copy requests.</p></section>;
+  if (!isParticipant) return <section className="rounded-[18px] border border-[#E8F0F8] bg-white p-6"><h1 className="text-xl font-black text-[#0C2B49]">E-copy requests unavailable</h1><p className="mt-2 text-sm text-[#64748b]">Users can view their submitted e-copy requests.</p></section>;
   return <div className="flex max-w-3xl flex-col gap-5"><div><p className="text-xs font-black tracking-wider text-[#0985E7]">E-COPY REQUESTS</p><h1 className="mt-1 text-[28px] font-black text-[#0C2B49]">My E-copy Requests</h1><p className="mt-1 text-sm font-semibold text-[#64748b]">Track the status of e-copy requests you submitted.</p></div>
     {isLoading ? <p className="text-sm font-semibold text-[#64748b]">Loading requests…</p> : null}
     {error ? <p className="rounded-xl bg-red-50 p-4 text-sm font-semibold text-red-700">Unable to load requests. Please try again.</p> : null}

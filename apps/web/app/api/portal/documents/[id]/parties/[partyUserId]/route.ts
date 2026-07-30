@@ -16,9 +16,9 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
     cache: 'no-store',
   });
   const profileData = await profile.json().catch(() => null);
-  if (getPortalUiRole(profileData?.role) !== 'issuer') {
+  if (getPortalUiRole(profileData?.role) !== 'lawyer') {
     return NextResponse.json(
-      { message: 'Participant management is available to Document Issuers only.' },
+      { message: 'Participant management is available to Lawyers only.' },
       { status: 403 },
     );
   }

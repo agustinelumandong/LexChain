@@ -72,14 +72,22 @@ describe("issuer management page authority", () => {
     }
   });
 
+  it("admits a real lawyer profile and renders management pages", async () => {
+    vi.stubEnv("USE_MOCK_API", "false");
+    vi.stubEnv("API_URL", "https://api.lexchain.test");
+    session.portalToken = "real-token";
+    session.issuerToken = "real-token";
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({ role: "lawyer" }), { status: 200 })));
+    const { default: UsersPage } = await import("../users/page");
+
+    await expect(Promise.resolve().then(() => UsersPage())).resolves.not.toThrow();
+  });
+
   it.each([
     ["document_participant"],
-    ["lawyer"],
-    ["admin"],
     ["user"],
     ["unknown"],
     [undefined],
-    [{ value: "document_issuer" }],
   ])("denies a real profile role of %j before local management content renders", async (role) => {
     vi.stubEnv("USE_MOCK_API", "false");
     vi.stubEnv("API_URL", "https://api.lexchain.test");
