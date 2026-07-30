@@ -70,7 +70,7 @@ export default function DocumentActivityPage({ params }: { params: Promise<{ id:
   );
 
   if (profileQuery.isPending) return <div className="h-40 animate-pulse rounded-[18px] border border-[#E8F0F8] bg-white" />;
-  if (role !== 'issuer') return <p className="text-sm font-semibold text-[#64748b]">Document activity is available to Document Issuers only.</p>;
+  if (role !== 'lawyer') return <p className="text-sm font-semibold text-[#64748b]">Document activity is available to Lawyers only.</p>;
 
   return (
     <div className="flex w-full min-w-0 flex-col gap-5 overflow-x-hidden">

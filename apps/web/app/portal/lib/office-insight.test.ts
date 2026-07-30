@@ -104,7 +104,7 @@ describe('office insights', () => {
     expect(users.rows[0]).toEqual({
       Name: 'Atty. Maria Santos',
       Email: 'maria.santos@davaolaw.ph',
-      Role: 'document_issuer',
+      Role: 'lawyer',
       Status: 'active',
       Created: '2026-04-12',
     });

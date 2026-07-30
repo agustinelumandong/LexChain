@@ -268,13 +268,13 @@ describe('portal mock profiles', () => {
       email: 'participant@example.com',
       f_name: 'Document',
       l_name: 'Participant',
-      role: 'document_participant',
+      role: 'user',
     });
     await expect(issuer.json()).resolves.toMatchObject({
       email: 'issuer@example.com',
       f_name: 'Document',
       l_name: 'Issuer',
-      role: 'document_issuer',
+      role: 'lawyer',
     });
     await expect(participantDocuments.json()).resolves.toEqual([
       expect.objectContaining({ id: 'mock-document-4' }),
@@ -289,7 +289,7 @@ describe('portal mock profiles', () => {
         f_name: 'Document',
         l_name: 'Issuer',
         email: 'issuer@example.com',
-        role: 'issuer',
+        role: 'lawyer',
       },
     });
   });

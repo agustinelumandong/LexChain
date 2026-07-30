@@ -117,7 +117,7 @@ export default function BooksPage() {
     return (
       <section className={`${cardClass} max-w-xl p-6`}>
         <h1 className="text-xl font-black text-[#0C2B49]">Books unavailable</h1>
-        <p className="mt-2 text-sm text-[#64748b]">Register books are available to Document Issuers only.</p>
+        <p className="mt-2 text-sm text-[#64748b]">Register books are available to Lawyers only.</p>
       </section>
     );
   }

@@ -22,12 +22,12 @@ export function CreateInvitationModal({ label = "Create Invitation", className, 
     setError("");
     try {
       if (onCreate) {
-        onCreate({ email, role: "document_issuer" });
+        onCreate({ email, role: "lawyer" });
       } else {
         const response = await fetch("/api/admin/invitations", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, role: "document_issuer" }),
+          body: JSON.stringify({ email, role: "lawyer" }),
         });
         if (!response.ok) {
           const payload = await response.json().catch(() => null);
@@ -56,7 +56,7 @@ export function CreateInvitationModal({ label = "Create Invitation", className, 
       </button>
       <Modal open={open} onClose={() => setOpen(false)} title="Create Invitation">
         <p className="text-sm font-semibold text-[#64748b]">
-          Send a magic-link invitation to a Document Issuer to join the platform.
+          Send a magic-link invitation to a Lawyer to join the platform.
         </p>
         <form onSubmit={handleSubmit} className="mt-4 space-y-4">
           {error ? (

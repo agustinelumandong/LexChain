@@ -59,7 +59,6 @@ describe("Issuer management portal pages", () => {
     );
 
     expect(source).toContain("Issuer Invitations");
-    expect(source).toContain("Manage Document Issuer invitations");
-    expect(source).not.toContain(["Manage", "lawyer invitations"].join(" "));
+    expect(source).toContain("Manage Lawyer invitations");
   });
 });

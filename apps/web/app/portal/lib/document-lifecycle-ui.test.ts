@@ -13,17 +13,18 @@ const snapshot: DemoDocumentSnapshot = {
 };
 
 describe('document lifecycle UI', () => {
-  it('allows an issuer to finalize a completed draft', () => {
-    expect(canFinalizeDocument('issuer', 'COMPLETED', 'draft')).toBe(true);
-    expect(canFinalizeDocument('participant', 'COMPLETED', 'draft')).toBe(false);
-    expect(canFinalizeDocument('issuer', 'PROCESSING', 'draft')).toBe(false);
-    expect(canFinalizeDocument('issuer', 'COMPLETED', 'finalized')).toBe(false);
+  it('allows a lawyer to finalize a completed draft', () => {
+    expect(canFinalizeDocument('lawyer', 'COMPLETED', 'draft')).toBe(true);
+    expect(canFinalizeDocument('lawyer', 'COMPLETED', 'DRAFT')).toBe(true);
+    expect(canFinalizeDocument('user', 'COMPLETED', 'draft')).toBe(false);
+    expect(canFinalizeDocument('lawyer', 'PROCESSING', 'draft')).toBe(false);
+    expect(canFinalizeDocument('lawyer', 'COMPLETED', 'finalized')).toBe(false);
   });
 
   it('allows an issuer to restore only a mismatched document with a snapshot', () => {
-    expect(canRestoreDocument('issuer', 'mismatch', [snapshot])).toBe(true);
-    expect(canRestoreDocument('participant', 'mismatch', [snapshot])).toBe(false);
-    expect(canRestoreDocument('issuer', 'match', [snapshot])).toBe(false);
-    expect(canRestoreDocument('issuer', 'mismatch', [])).toBe(false);
+    expect(canRestoreDocument('lawyer', 'mismatch', [snapshot])).toBe(true);
+    expect(canRestoreDocument('user', 'mismatch', [snapshot])).toBe(false);
+    expect(canRestoreDocument('lawyer', 'match', [snapshot])).toBe(false);
+    expect(canRestoreDocument('lawyer', 'mismatch', [])).toBe(false);
   });
 });

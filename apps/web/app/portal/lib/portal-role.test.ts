@@ -3,22 +3,22 @@ import { getPortalLoginRedirect, getPortalProfileRequestShortcut, getPortalRoleL
 
 describe("portal UI roles", () => {
   it("maps the canonical Document Issuer role", () => {
-    expect(getPortalUiRole("document_issuer")).toBe("issuer");
-    expect(getPortalRoleLabel("document_issuer")).toBe("Document Issuer");
+    expect(getPortalUiRole("document_issuer")).toBe("lawyer");
+    expect(getPortalRoleLabel("document_issuer")).toBe("Lawyer");
   });
 
   it("maps the canonical Document Participant role", () => {
-    expect(getPortalUiRole("document_participant")).toBe("participant");
-    expect(getPortalRoleLabel("document_participant")).toBe("Document Participant");
+    expect(getPortalUiRole("document_participant")).toBe("user");
+    expect(getPortalRoleLabel("document_participant")).toBe("User");
   });
 
   it("maps backend account roles to the corresponding portal roles", () => {
     for (const issuerRole of ["lawyer", "admin", "super_admin"]) {
-      expect(getPortalUiRole(issuerRole)).toBe("issuer");
-      expect(getPortalRoleLabel(issuerRole)).toBe("Document Issuer");
+      expect(getPortalUiRole(issuerRole)).toBe("lawyer");
+      expect(getPortalRoleLabel(issuerRole)).toBe("Lawyer");
     }
-    expect(getPortalUiRole("user")).toBe("participant");
-    expect(getPortalRoleLabel("user")).toBe("Document Participant");
+    expect(getPortalUiRole("user")).toBe("user");
+    expect(getPortalRoleLabel("user")).toBe("User");
   });
 
   it("routes each canonical actor to a useful portal destination", () => {
@@ -38,11 +38,11 @@ describe("portal UI roles", () => {
   });
 
   it("maps profile shortcuts only for supported portal roles", () => {
-    expect(getPortalProfileRequestShortcut("issuer")).toEqual({
+    expect(getPortalProfileRequestShortcut("lawyer")).toEqual({
       label: "Document Requests",
       href: "/portal/requests",
     });
-    expect(getPortalProfileRequestShortcut("participant")).toEqual({
+    expect(getPortalProfileRequestShortcut("user")).toEqual({
       label: "My E-copy Requests",
       href: "/portal/requests/my",
     });

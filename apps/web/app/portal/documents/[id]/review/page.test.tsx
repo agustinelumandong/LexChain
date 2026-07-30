@@ -106,12 +106,12 @@ describe('ReviewPage', () => {
     });
   });
 
-  it.each(['document_participant', 'auditor'])('keeps the %s role out of issuer review', async (role) => {
+  it.each(['user', 'auditor'])('keeps the %s role out of issuer review', async (role) => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json({ role })));
     renderPage();
 
     expect(await screen.findByRole('heading', { name: 'Review unavailable' })).toBeTruthy();
-    expect(screen.getByText(/only Document Issuers can review extracted text/)).toBeTruthy();
+    expect(screen.getByText(/only Lawyers can review extracted text/)).toBeTruthy();
     expect(screen.queryByRole('region', { name: 'OCR review workspace' })).toBeNull();
     expect(extractionMocks.get).not.toHaveBeenCalled();
   });

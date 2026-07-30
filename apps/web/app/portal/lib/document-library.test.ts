@@ -46,18 +46,18 @@ describe('document library list', () => {
   });
 
   it('offers review only for issuer documents awaiting OCR review', () => {
-    expect(getDocumentListActions('issuer', { ...documents[0], status: 'AWAITING_REVIEW' }))
+    expect(getDocumentListActions('lawyer', { ...documents[0], status: 'AWAITING_REVIEW' }))
       .toEqual(['Open', 'View / Download', 'Review', 'Verify integrity']);
-    expect(getDocumentListActions('issuer', { ...documents[0], status: 'ready_for_review' }))
+    expect(getDocumentListActions('lawyer', { ...documents[0], status: 'ready_for_review' }))
       .toContain('Review');
-    expect(getDocumentListActions('participant', { ...documents[0], status: 'AWAITING_REVIEW' }))
+    expect(getDocumentListActions('user', { ...documents[0], status: 'AWAITING_REVIEW' }))
       .not.toContain('Review');
-    expect(getDocumentListActions('issuer', { ...documents[0], status: 'processing' }))
+    expect(getDocumentListActions('lawyer', { ...documents[0], status: 'processing' }))
       .not.toContain('Review');
   });
 
   it('offers only supported list actions', () => {
-    const actions = getDocumentListActions('issuer', documents[1]);
+    const actions = getDocumentListActions('lawyer', documents[1]);
 
     expect(actions).toEqual(['Open', 'View / Download', 'Verify integrity']);
     expect(actions).not.toContain('Delete');
@@ -68,7 +68,7 @@ describe('document library list', () => {
   });
 
   it('does not offer integrity verification to participants for on-chain documents', () => {
-    expect(getDocumentListActions('participant', documents[1]))
+    expect(getDocumentListActions('user', documents[1]))
       .toEqual(['Open', 'View / Download']);
   });
 

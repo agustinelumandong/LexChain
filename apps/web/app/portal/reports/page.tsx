@@ -49,7 +49,7 @@ export default function OfficeReportsPage() {
     queryKey: ['portal-profile'],
     queryFn: () => portalFetch<UserProfile | null>('/users/'),
   });
-  const isIssuer = getPortalUiRole(profileQuery.data?.role) === 'issuer';
+  const isIssuer = getPortalUiRole(profileQuery.data?.role) === 'lawyer';
   const documentsQuery = useQuery<PortalReportDocument[]>({
     queryKey: ['portal-documents'],
     queryFn: () => portalFetch('/documents/'),
@@ -64,7 +64,7 @@ export default function OfficeReportsPage() {
   if (profileQuery.isLoading) return <div className="h-36 animate-pulse rounded-[18px] border border-[#E8F0F8] bg-white" />;
 
   if (!isIssuer) {
-    return <p className="text-sm font-semibold text-[#64748b]">Reports are available to Document Issuers only.</p>;
+    return <p className="text-sm font-semibold text-[#64748b]">Reports are available to Lawyers only.</p>;
   }
 
   if (scope === 'document' && documentsQuery.isLoading) {
@@ -97,7 +97,7 @@ export default function OfficeReportsPage() {
   return (
     <div className="flex flex-col gap-5">
       <header>
-        <p className="text-xs font-black uppercase tracking-[0.12em] text-[#0985E7]">Document Issuer workspace</p>
+        <p className="text-xs font-black uppercase tracking-[0.12em] text-[#0985E7]">Lawyer workspace</p>
         <h1 className="mt-1 text-[28px] font-black text-[#0C2B49]">Reports</h1>
         <p className="mt-1 text-sm text-[#64748b]">Choose document or system reports, then generate a local CSV preview.</p>
       </header>

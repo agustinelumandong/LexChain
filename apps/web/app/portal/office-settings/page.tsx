@@ -48,8 +48,8 @@ export default function OfficeSettingsPage() {
     return <p className="py-10 text-sm font-semibold text-[#64748b]">Loading office settings access…</p>;
   }
 
-  if (getPortalUiRole(profileQuery.data?.role) !== 'issuer') {
-    return <p className="text-sm font-semibold text-[#64748b]">Office Settings are available to Document Issuers only.</p>;
+  if (getPortalUiRole(profileQuery.data?.role) !== 'lawyer') {
+    return <p className="text-sm font-semibold text-[#64748b]">Office Settings are available to Lawyers only.</p>;
   }
 
   return <OfficeSettingsForm />;
@@ -84,7 +84,7 @@ function OfficeSettingsForm() {
   return (
     <div className="flex max-w-3xl flex-col gap-5">
       <header>
-        <p className="text-xs font-black uppercase tracking-[0.12em] text-[#0985E7]">Document Issuer workspace</p>
+        <p className="text-xs font-black uppercase tracking-[0.12em] text-[#0985E7]">Lawyer workspace</p>
         <h1 className="mt-1 text-[28px] font-black text-[#0C2B49]">Office Settings</h1>
         <p className="mt-1 text-sm text-[#64748b]">Set local defaults for invitations, uploads, and office sessions.</p>
       </header>

@@ -15,7 +15,7 @@ describe('OfficeSettingsPage', () => {
   it('denies participants before rendering local office settings data', () => {
     render(<OfficeSettingsPage />);
 
-    expect(screen.getByText('Office Settings are available to Document Issuers only.')).toBeTruthy();
+    expect(screen.getByText('Office Settings are available to Lawyers only.')).toBeTruthy();
     expect(screen.queryByLabelText('Office settings')).toBeNull();
     expect(screen.queryByText('Demo data — changes reset when this page is refreshed.')).toBeNull();
   });

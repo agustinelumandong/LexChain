@@ -11,9 +11,9 @@ describe('getDocumentStatusLabel', () => {
   });
 
   it('offers review only to issuers when OCR has finished', () => {
-    expect(getDocumentActions('issuer', { status: ' awaiting_review ' })).toContain('Review extracted text');
-    expect(getDocumentActions('issuer', { status: 'ready_for_review' })).toContain('Review extracted text');
-    expect(getDocumentActions('participant', { status: 'AWAITING_REVIEW' })).not.toContain('Review extracted text');
-    expect(getDocumentActions('issuer', { status: 'COMPLETED' })).not.toContain('Review extracted text');
+    expect(getDocumentActions('lawyer', { status: ' awaiting_review ' })).toContain('Review extracted text');
+    expect(getDocumentActions('lawyer', { status: 'ready_for_review' })).toContain('Review extracted text');
+    expect(getDocumentActions('user', { status: 'AWAITING_REVIEW' })).not.toContain('Review extracted text');
+    expect(getDocumentActions('lawyer', { status: 'COMPLETED' })).not.toContain('Review extracted text');
   });
 });

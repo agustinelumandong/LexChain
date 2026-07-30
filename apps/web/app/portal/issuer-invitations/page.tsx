@@ -24,7 +24,7 @@ async function getInvitations(): Promise<InvitationsData> {
       invitations: adminInvitations.map((invitation, index) => ({
         id: `demo-${index}`,
         email: invitation.participant_email,
-        role: "document_issuer",
+        role: "lawyer",
         status: invitation.status,
         expires_at: invitation.sent_at,
         created_at: invitation.sent_at,

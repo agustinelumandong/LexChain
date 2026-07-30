@@ -37,6 +37,9 @@ beforeEach(() => {
     if (options.queryKey[0] === 'portal-notif-count') {
       return { data: { unread: 0 }, isLoading: false, isError: false };
     }
+    if (options.queryKey[0] === 'admin-dashboard') {
+      return { data: null, isLoading: false, isError: false };
+    }
     throw new Error(`Unexpected query: ${options.queryKey[0]}`);
   });
 });
@@ -52,15 +55,15 @@ describe('DashboardPage', () => {
 
     render(<DashboardPage />);
 
-    expect(screen.getByText('The Document Issuer Portal dashboard is available to Document Issuers only.')).toBeTruthy();
-    expect(screen.queryByText('Recent documents')).toBeNull();
-    expect(screen.queryByText('Documents needing attention')).toBeNull();
+    expect(screen.getByRole('heading', { name: 'Document Portal' })).toBeTruthy();
+    expect(screen.getByText('Welcome to the Document Portal')).toBeTruthy();
+    expect(screen.getByText('Browse shared documents, manage invitations, and request e-copies from the navigation menu.')).toBeTruthy();
   });
 
   it('labels the issuer dashboard as the Document Issuer Portal', () => {
     render(<DashboardPage />);
 
-    expect(screen.getByRole('heading', { name: 'Document Issuer Portal' })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Lawyer Portal' })).toBeTruthy();
   });
 
   it('reassures issuers when no documents need attention', () => {
@@ -87,7 +90,7 @@ describe('DashboardPage', () => {
     render(<DashboardPage />);
 
     expect(screen.getByRole('alert').textContent).toContain('We could not load your document repository.');
-    expect(screen.queryByText('Total Documents')).toBeNull();
+    expect(screen.getByText('Total Documents')).toBeTruthy();
     expect(screen.queryByText('No action required. All documents are progressing normally.')).toBeNull();
     expect(screen.queryByText('No documents are processing right now.')).toBeNull();
     expect(screen.getByText('Attention status is unavailable.')).toBeTruthy();

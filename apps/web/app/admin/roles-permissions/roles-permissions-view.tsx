@@ -46,15 +46,15 @@ type PermissionRow = {
 const roles: RoleRow[] = [
   { id: "role_super_admin", name: "Operations Administrator", users: 2, scope: "Global", permissions: "Full Access", status: "Active", updated: "Today", category: "admin", access: "Full Access" },
   { id: "role_admin", name: "Admin", users: 16, scope: "System", permissions: "User & report management", status: "Active", updated: "2h ago", category: "admin", access: "Administrative" },
-  { id: "role_issuer", name: "Document Issuer", users: 40, scope: "Owned documents", permissions: "Upload, manage, invite", status: "Active", updated: "25m ago", category: "issuer", access: "Issuer" },
+  { id: "role_issuer", name: "Lawyer", users: 40, scope: "Owned documents", permissions: "Upload, manage, invite", status: "Active", updated: "25m ago", category: "issuer", access: "Issuer" },
   { id: "role_participant", name: "Participant", users: 96, scope: "Shared documents", permissions: "View / comment", status: "Active", updated: "1h ago", category: "participant", access: "Participant" },
   { id: "role_verifier", name: "Public Verifier", users: 12, scope: "Verification portal", permissions: "Verify only", status: "Active", updated: "3h ago", category: "verifier", access: "Verifier" },
   { id: "role_reviewer", name: "Compliance Reviewer", users: 4, scope: "Audit and reports", permissions: "Read-only compliance access", status: "Pending Review", updated: "Yesterday", category: "review", access: "Review" },
 ];
 
 const permissions: PermissionRow[] = [
-  { id: "perm_documents_upload", name: "Upload Documents", group: "Documents", scope: "Owned documents", assignedRoles: "Document Issuer, Admin", rule: "Create and submit records", status: "Active", updated: "15m ago" },
-  { id: "perm_documents_share", name: "Invite Document Viewers", group: "Invitations", scope: "Owned documents", assignedRoles: "Document Issuer", rule: "Invite participant access", status: "Active", updated: "28m ago" },
+  { id: "perm_documents_upload", name: "Upload Documents", group: "Documents", scope: "Owned documents", assignedRoles: "Lawyer, Admin", rule: "Create and submit records", status: "Active", updated: "15m ago" },
+  { id: "perm_documents_share", name: "Invite Document Viewers", group: "Invitations", scope: "Owned documents", assignedRoles: "Lawyer", rule: "Invite participant access", status: "Active", updated: "28m ago" },
   { id: "perm_verify_public", name: "Run Public Verification", group: "Documents", scope: "Verification portal", assignedRoles: "Public Verifier, Participant", rule: "Verify authenticity only", status: "Active", updated: "1h ago" },
   { id: "perm_reports_export", name: "Export Reports", group: "Reports", scope: "Admin reports", assignedRoles: "Operations Administrator, Admin", rule: "Download PDF / CSV / TXT", status: "Active", updated: "2h ago" },
   { id: "perm_audit_review", name: "Review Audit Logs", group: "Audit", scope: "Compliance logs", assignedRoles: "Operations Administrator, Compliance Reviewer", rule: "Read-only trace review", status: "Pending Review", updated: "Yesterday" },
@@ -267,7 +267,7 @@ export function RolesPermissionsView() {
   const metrics = [
     { label: "Total Roles", value: roleRows.length, detail: "System-defined roles", icon: <ShieldIcon fontSize="small" />, tone: "blue" as const },
     { label: "Admins", value: 18, detail: "Administrative accounts", icon: <ManageAccountsIcon fontSize="small" />, tone: "green" as const },
-    { label: "Document Issuers", value: 40, detail: "Active issuer accounts", icon: <DescriptionIcon fontSize="small" />, tone: "purple" as const },
+    { label: "Lawyers", value: 40, detail: "Active issuer accounts", icon: <DescriptionIcon fontSize="small" />, tone: "purple" as const },
     { label: "Participants", value: 96, detail: "Shared-access users", icon: <GroupsIcon fontSize="small" />, tone: "orange" as const },
     { label: "Public Verifiers", value: 12, detail: "Verification-only accounts", icon: <VerifiedUserIcon fontSize="small" />, tone: "cyan" as const },
     { label: "Custom Permissions", value: 24, detail: "Granular access rules", icon: <TuneIcon fontSize="small" />, tone: "blue" as const },
@@ -293,7 +293,7 @@ export function RolesPermissionsView() {
         name: "",
         group: "Documents",
         scope: "Owned documents",
-        assignedRoles: "Document Issuer",
+        assignedRoles: "Lawyer",
         rule: "",
         status: "Active",
         updated: "Now",

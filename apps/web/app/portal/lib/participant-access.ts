@@ -14,7 +14,7 @@ export type ParticipantInvitationValidation =
   | { valid: false; message: string };
 
 export function canManageParticipants(role: PortalUiRole): boolean {
-  return role === "issuer";
+  return role === "lawyer";
 }
 
 export function validateParticipantInvitation(

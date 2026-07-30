@@ -8,13 +8,13 @@ afterEach(cleanup);
 const sharedProps = {
   fullName: "Ada Lovelace",
   initials: "AL",
-  roleLabel: "Document Participant",
+  roleLabel: "User",
   processingCount: 2,
 };
 
 describe("PortalTopBar", () => {
   it("does not expose the processing summary to a participant", () => {
-    render(<PortalTopBar {...sharedProps} role="participant" />);
+    render(<PortalTopBar {...sharedProps} role="user" />);
 
     expect(screen.queryByRole("link", { name: "View processing documents" })).toBeNull();
   });
@@ -23,8 +23,8 @@ describe("PortalTopBar", () => {
     render(
       <PortalTopBar
         {...sharedProps}
-        role="issuer"
-        roleLabel="Document Issuer"
+        role="lawyer"
+        roleLabel="Lawyer"
       />,
     );
 

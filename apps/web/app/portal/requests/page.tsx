@@ -39,7 +39,7 @@ export default function RequestsPage() {
   const path = filter === "all" ? "/requests" : `/requests?status=${filter}`;
   const profileQuery = useQuery<UserProfile>({ queryKey: ["portal-profile"], queryFn: () => portalFetch<UserProfile>("/users/") });
   const uiRole = getPortalUiRole(profileQuery.data?.role);
-  const isIssuer = uiRole === "issuer";
+  const isIssuer = uiRole === "lawyer";
   const { data, error, isLoading } = useQuery<RequestList>({ queryKey: ["portal-requests", filter], queryFn: () => portalFetch<RequestList>(path), enabled: isIssuer });
   const requests = data?.requests ?? [];
 

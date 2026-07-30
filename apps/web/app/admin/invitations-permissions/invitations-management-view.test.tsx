@@ -22,8 +22,8 @@ it("maps canonical and backend invitation roles while marking unknown values uns
       <InvitationsManagementView
         mockMode
         invitations={[
-          { ...invitation, id: "issuer", email: "issuer@example.com", role: "document_issuer" },
-          { ...invitation, id: "participant", email: "participant@example.com", role: "document_participant" },
+          { ...invitation, id: "issuer", email: "issuer@example.com", role: "lawyer" },
+          { ...invitation, id: "participant", email: "participant@example.com", role: "user" },
           { ...invitation, id: "legacy-user", email: "legacy-user@example.com", role: "user" },
           { ...invitation, id: "legacy-admin", email: "legacy-admin@example.com", role: "admin" },
           { ...invitation, id: "unknown", email: "unknown@example.com", role: "unexpected" },
@@ -32,9 +32,9 @@ it("maps canonical and backend invitation roles while marking unknown values uns
     </MockToastProvider>,
   );
 
-  expect(rowFor("issuer@example.com").getByText("Document Issuer")).toBeTruthy();
-  expect(rowFor("participant@example.com").getByText("Document Participant")).toBeTruthy();
-  expect(rowFor("legacy-user@example.com").getByText("Document Participant")).toBeTruthy();
-  expect(rowFor("legacy-admin@example.com").getByText("Document Issuer")).toBeTruthy();
+  expect(rowFor("issuer@example.com").getByText("Lawyer")).toBeTruthy();
+  expect(rowFor("participant@example.com").getByText("User")).toBeTruthy();
+  expect(rowFor("legacy-user@example.com").getByText("User")).toBeTruthy();
+  expect(rowFor("legacy-admin@example.com").getByText("Lawyer")).toBeTruthy();
   expect(rowFor("unknown@example.com").getByText("Unsupported role")).toBeTruthy();
 });

@@ -42,7 +42,7 @@ describe("DELETE /api/admin/invitations/[id]", () => {
     ), context);
 
     expect(response.status).toBe(403);
-    await expect(response.json()).resolves.toEqual({ message: "Document Issuer access required." });
+    await expect(response.json()).resolves.toEqual({ message: "Lawyer access required." });
     expect(fetchMock).not.toHaveBeenCalled();
   });
 

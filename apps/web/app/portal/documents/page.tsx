@@ -202,7 +202,7 @@ export default function DocumentsPage() {
   const statuses = getDocumentStatuses(documents);
   const hasDates = documents.some((document) => document.updated_at || document.created_at);
   const uiRole = getPortalUiRole(profileQuery.data?.role);
-  const isIssuer = uiRole === 'issuer';
+  const isIssuer = uiRole === 'lawyer';
   const visibleDocuments = getVisibleDocuments(documents, {
     query: search,
     status,

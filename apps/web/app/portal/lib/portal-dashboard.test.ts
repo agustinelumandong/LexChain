@@ -3,7 +3,7 @@ import { getDashboardMetrics, getPortalNavigation, getRecentActivityStatus, getS
 
 describe("portal dashboard", () => {
   it("gives issuers the enabled office workspace navigation", () => {
-    const navigation = getPortalNavigation("issuer");
+    const navigation = getPortalNavigation("lawyer");
 
     expect(navigation.map((group) => group.label)).toEqual([
       "Workspace",
@@ -19,7 +19,7 @@ describe("portal dashboard", () => {
   });
 
   it("only shows participant routes that exist", () => {
-    expect(getPortalNavigation("participant").flatMap((group) => group.items).map((item) => item.label)).toEqual([
+    expect(getPortalNavigation("user").flatMap((group) => group.items).map((item) => item.label)).toEqual([
       "Shared Documents",
       "Invitations",
       "My E-copy Requests",
@@ -28,7 +28,7 @@ describe("portal dashboard", () => {
   });
 
   it("gives every issuer the three system management destinations", () => {
-    const navigation = getPortalNavigation("issuer");
+    const navigation = getPortalNavigation("lawyer");
 
     expect(navigation.find((group) => group.label === "System Management")?.items.map(({ label, href }) => [label, href])).toEqual([
       ["User Accounts", "/portal/users"],

@@ -13,7 +13,7 @@ const systemManagementTools = [
 
 describe("PortalBottomNav", () => {
   it("exposes the three distinct system management tools for every issuer", () => {
-    render(<PortalBottomNav pathname="/portal/dashboard" role="issuer" />);
+    render(<PortalBottomNav pathname="/portal/dashboard" role="lawyer" />);
 
     for (const label of systemManagementTools) {
       expect(screen.getByRole("link", { name: label })).toBeTruthy();
@@ -32,7 +32,7 @@ describe("PortalBottomNav", () => {
   });
 
   it("exposes visible participant navigation labels on mobile", () => {
-    render(<PortalBottomNav pathname="/portal/documents" role="participant" />);
+    render(<PortalBottomNav pathname="/portal/documents" role="user" />);
 
     for (const label of ["Shared Documents", "Invitations", "My E-copy Requests", "Profile & Security"]) {
       expect(screen.getByRole("link", { name: label })).toBeTruthy();

@@ -59,7 +59,7 @@ function renderWorkspace(props: Partial<React.ComponentProps<typeof DocumentWork
     <QueryClientProvider client={queryClient}>
       <DocumentWorkspace
         document={document}
-        role="issuer"
+        role="lawyer"
         integrityState="recorded"
         {...props}
       />
@@ -189,7 +189,7 @@ describe('DocumentWorkspace', () => {
   });
 
   it.each([
-    ['participant', { role: 'participant' as const }],
+    ['user', { role: 'user' as const }],
     ['processing document', { document: { ...document, status: 'PROCESSING' } }],
     ['review-ready document', { document: { ...document, status: 'READY_FOR_REVIEW' } }],
     ['already-finalized document', { document: { ...document, ...finalizedLifecycle } }],
@@ -265,7 +265,7 @@ describe('DocumentWorkspace', () => {
     ['Access', 'Manage document participants'],
     ['Activity', 'View document activity'],
   ] as const)('does not show the issuer-only %s link to participants', (tab, label) => {
-    renderWorkspace({ role: 'participant' });
+    renderWorkspace({ role: 'user' });
 
     fireEvent.click(screen.getByRole('tab', { name: tab }));
     expect(screen.queryByRole('link', { name: label })).toBeNull();

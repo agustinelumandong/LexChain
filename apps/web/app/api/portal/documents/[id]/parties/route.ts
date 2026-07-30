@@ -22,7 +22,7 @@ async function isDocumentIssuer(token: string) {
     cache: 'no-store',
   });
   const profileData = await profile.json().catch(() => null);
-  return getPortalUiRole(profileData?.role) === 'issuer';
+  return getPortalUiRole(profileData?.role) === 'lawyer';
 }
 
 async function proxy(request: NextRequest, method: 'GET' | 'POST', context: RouteContext, body?: string) {
@@ -31,7 +31,7 @@ async function proxy(request: NextRequest, method: 'GET' | 'POST', context: Rout
 
   if (!await isDocumentIssuer(token)) {
     return NextResponse.json(
-      { message: 'Participant management is available to Document Issuers only.' },
+      { message: 'Participant management is available to Lawyers only.' },
       { status: 403 },
     );
   }

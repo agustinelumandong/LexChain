@@ -107,7 +107,7 @@ const issuerProfile = {
   f_name: 'Document',
   l_name: 'Issuer',
   avatar: 'icon1',
-  role: 'document_issuer',
+  role: 'lawyer',
   mfa_enabled: false,
 };
 
@@ -116,7 +116,7 @@ const participantProfile = {
   f_name: 'Document',
   l_name: 'Participant',
   avatar: 'icon2',
-  role: 'document_participant',
+  role: 'user',
   mfa_enabled: false,
 };
 
@@ -480,12 +480,12 @@ export function mockPortalGet(path: string, token?: string): Response {
     return json(isMockParticipant(token) ? documents.filter((document) => sharedDocumentIds.has(document.id)) : documents);
   }
   if (requestPathname === '/books' || requestPathname === '/books/') {
-    if (!hasMockIssuerAccess(token)) return error('Document Issuer access required', 403);
+    if (!hasMockIssuerAccess(token)) return error('Lawyer access required', 403);
     return json(books);
   }
   const bookMatch = requestPathname.match(/^\/books\/([^/]+)\/?$/);
   if (bookMatch) {
-    if (!hasMockIssuerAccess(token)) return error('Document Issuer access required', 403);
+    if (!hasMockIssuerAccess(token)) return error('Lawyer access required', 403);
     const book = books.find((candidate) => candidate.id === bookMatch[1]);
     return book ? json(book) : error('Book not found', 404);
   }
@@ -496,15 +496,15 @@ export function mockPortalGet(path: string, token?: string): Response {
     return json({ unread: notifications.filter((notification) => !notification.is_read).length });
   }
   if (requestPathname === '/documents/invitations') {
-    if (!isMockParticipant(token)) return error('Document Participant access required', 403);
+    if (!isMockParticipant(token)) return error('User access required', 403);
     return json(invitations.filter((invitation) => invitation.status === 'pending'));
   }
   if (requestPathname === '/requests/my') {
-    if (!isMockParticipant(token)) return error('Document Participant access required', 403);
+    if (!isMockParticipant(token)) return error('User access required', 403);
     return json(requestList(documentRequests.filter((request) => request.requester_id === mockParticipantId)));
   }
   if (requestPathname === '/requests') {
-    if (!isMockDocumentIssuerToken(token)) return error('Document Issuer access required', 403);
+    if (!isMockDocumentIssuerToken(token)) return error('Lawyer access required', 403);
     const status = searchParams.get('status');
     const filtered = status ? documentRequests.filter((request) => request.status === status) : documentRequests;
     return json(requestList(filtered));
@@ -512,7 +512,7 @@ export function mockPortalGet(path: string, token?: string): Response {
 
   const extractionMatch = requestPathname.match(/^\/documents\/([^/]+)\/extraction\/?$/);
   if (extractionMatch) {
-    if (!hasMockIssuerAccess(token)) return error('Document Issuer access required', 403);
+    if (!hasMockIssuerAccess(token)) return error('Lawyer access required', 403);
     const review = extractionReview(extractionMatch[1]);
     return review ? json(review) : error('Extraction not found', 404);
   }
@@ -536,7 +536,7 @@ export function mockPortalGet(path: string, token?: string): Response {
     if (detail === 'parties') {
       return json({
         document_id: document.id,
-        issuer: { id: mockIssuerId, f_name: issuerProfile.f_name, l_name: issuerProfile.l_name, email: issuerProfile.email, role: 'issuer' },
+        issuer: { id: mockIssuerId, f_name: issuerProfile.f_name, l_name: issuerProfile.l_name, email: issuerProfile.email, role: 'lawyer' },
         parties: [{ id: 'mock-party-1', f_name: 'Sample', l_name: 'Tenant', email: 'tenant@example.test', role: 'tenant' }],
       });
     }
@@ -798,17 +798,17 @@ export async function mockPortalMutate(method: 'POST' | 'PATCH' | 'DELETE', path
   if (!token || !isMockPortalToken(token)) return error('Not authenticated', 401);
   const requestPathname = pathname(path);
   if (method === 'POST' && (requestPathname === '/documents/upload' || requestPathname === '/documents/upload/')) {
-    if (!hasMockIssuerAccess(token)) return error('Document Issuer access required', 403);
+    if (!hasMockIssuerAccess(token)) return error('Lawyer access required', 403);
     return uploadDocument(request, path);
   }
   if (method === 'POST' && (requestPathname === '/books' || requestPathname === '/books/')) {
-    if (!hasMockIssuerAccess(token)) return error('Document Issuer access required', 403);
+    if (!hasMockIssuerAccess(token)) return error('Lawyer access required', 403);
     return createBook(request);
   }
 
   const bookMatch = requestPathname.match(/^\/books\/([^/]+)\/?$/);
   if (method === 'DELETE' && bookMatch) {
-    if (!hasMockIssuerAccess(token)) return error('Document Issuer access required', 403);
+    if (!hasMockIssuerAccess(token)) return error('Lawyer access required', 403);
     if (!books.some((book) => book.id === bookMatch[1])) return error('Book not found', 404);
     books = books.filter((book) => book.id !== bookMatch[1]);
     return new Response(null, { status: 204 });
@@ -816,7 +816,7 @@ export async function mockPortalMutate(method: 'POST' | 'PATCH' | 'DELETE', path
 
   const documentMatch = requestPathname.match(/^\/documents\/([^/]+)\/?$/);
   if (method === 'PATCH' && documentMatch) {
-    if (!hasMockIssuerAccess(token)) return error('Document Issuer access required', 403);
+    if (!hasMockIssuerAccess(token)) return error('Lawyer access required', 403);
     const document = documentFor(documentMatch[1]);
     if (!document) return error('Document not found', 404);
     if (!canMutateDocumentLifecycle(document) || document.lifecycle !== 'draft') return error('Document cannot be renamed', 409);
@@ -830,7 +830,7 @@ export async function mockPortalMutate(method: 'POST' | 'PATCH' | 'DELETE', path
 
   const documentUpdateMatch = requestPathname.match(/^\/documents\/([^/]+)\/update\/?$/);
   if (method === 'POST' && documentUpdateMatch) {
-    if (!hasMockIssuerAccess(token)) return error('Document Issuer access required', 403);
+    if (!hasMockIssuerAccess(token)) return error('Lawyer access required', 403);
     const document = documentFor(documentUpdateMatch[1]);
     if (!document) return error('Document not found', 404);
     if (!canMutateDocumentLifecycle(document) || !document.is_latest) return error('This version has been superseded', 409);
@@ -867,23 +867,23 @@ export async function mockPortalMutate(method: 'POST' | 'PATCH' | 'DELETE', path
 
   const extractionMatch = requestPathname.match(/^\/documents\/([^/]+)\/extraction\/?$/);
   if (method === 'PATCH' && extractionMatch) {
-    if (!hasMockIssuerAccess(token)) return error('Document Issuer access required', 403);
+    if (!hasMockIssuerAccess(token)) return error('Lawyer access required', 403);
     return saveExtractionEdits(extractionMatch[1], request);
   }
   const extractionAnalyzeMatch = requestPathname.match(/^\/documents\/([^/]+)\/extraction\/analyze\/?$/);
   if (method === 'POST' && extractionAnalyzeMatch) {
-    if (!hasMockIssuerAccess(token)) return error('Document Issuer access required', 403);
+    if (!hasMockIssuerAccess(token)) return error('Lawyer access required', 403);
     return analyzeExtraction(extractionAnalyzeMatch[1]);
   }
   const extractionApproveMatch = requestPathname.match(/^\/documents\/([^/]+)\/extraction\/approve\/?$/);
   if (method === 'POST' && extractionApproveMatch) {
-    if (!hasMockIssuerAccess(token)) return error('Document Issuer access required', 403);
+    if (!hasMockIssuerAccess(token)) return error('Lawyer access required', 403);
     return approveExtraction(extractionApproveMatch[1]);
   }
 
   const finalizeMatch = requestPathname.match(/^\/documents\/([^/]+)\/finalize\/?$/);
   if (method === 'POST' && finalizeMatch) {
-    if (!hasMockIssuerAccess(token)) return error('Document Issuer access required', 403);
+    if (!hasMockIssuerAccess(token)) return error('Lawyer access required', 403);
     const document = documentFor(finalizeMatch[1]);
     if (!document) return error('Document not found', 404);
     if (!canMutateDocumentLifecycle(document)) return error('Shared document lifecycle is read-only', 403);
@@ -896,7 +896,7 @@ export async function mockPortalMutate(method: 'POST' | 'PATCH' | 'DELETE', path
     if (document.lifecycle === 'finalized') return json(recordResponse(document.document_hash ?? deterministicHash(document.id)));
     const extraction = extractions[document.id];
     if (!extraction?.is_reviewed) return error('Extraction review must be approved before finalization', 400);
-    if (!canFinalizeDocument('issuer', document.status, document.lifecycle)) {
+    if (!canFinalizeDocument('lawyer', document.status, document.lifecycle)) {
       return error('Document cannot be finalized', 400);
     }
     const now = new Date().toISOString();
@@ -932,14 +932,14 @@ export async function mockPortalMutate(method: 'POST' | 'PATCH' | 'DELETE', path
 
   const restoreMatch = requestPathname.match(/^\/documents\/([^/]+)\/snapshots\/([^/]+)\/restore\/?$/);
   if (method === 'POST' && restoreMatch) {
-    if (!hasMockIssuerAccess(token)) return error('Document Issuer access required', 403);
+    if (!hasMockIssuerAccess(token)) return error('Lawyer access required', 403);
     const [, documentId, snapshotId] = restoreMatch;
     const document = documentFor(documentId);
     if (!document) return error('Document not found', 404);
     if (!canMutateDocumentLifecycle(document)) return error('Shared document lifecycle is read-only', 403);
     const snapshot = document.snapshots.find((item) => item.id === snapshotId);
     if (!snapshot) return error('Snapshot not found', 404);
-    if (!canRestoreDocument('issuer', document.integrity_state, document.snapshots)) {
+    if (!canRestoreDocument('lawyer', document.integrity_state, document.snapshots)) {
       return error('Document cannot be restored', 400);
     }
     const body = await jsonBody(request);
@@ -971,7 +971,7 @@ export async function mockPortalMutate(method: 'POST' | 'PATCH' | 'DELETE', path
 
   const invitationMatch = requestPathname.match(/^\/documents\/([^/]+)\/parties\/(accept|reject)$/);
   if (method === 'POST' && invitationMatch) {
-    if (!isMockParticipant(token)) return error('Document Participant access required', 403);
+    if (!isMockParticipant(token)) return error('User access required', 403);
     const [, documentId, action] = invitationMatch;
     const invitation = invitations.find((item) => item.document_id === documentId && item.status === 'pending');
     if (!invitation) return error('Invitation not found', 404);
@@ -982,7 +982,7 @@ export async function mockPortalMutate(method: 'POST' | 'PATCH' | 'DELETE', path
 
   const reviewMatch = requestPathname.match(/^\/requests\/([^/]+)\/review$/);
   if (method === 'PATCH' && reviewMatch) {
-    if (!isMockDocumentIssuerToken(token)) return error('Document Issuer access required', 403);
+    if (!isMockDocumentIssuerToken(token)) return error('Lawyer access required', 403);
     const body = await jsonBody(request);
     const action = body?.action;
     const rejectionReason = typeof body?.rejection_reason === 'string' ? body.rejection_reason.trim() : '';
