@@ -142,7 +142,6 @@ function OfficeSettingsForm() {
           </button>
           <button
             type="button"
-            disabled={!isDirty}
             onClick={handleCancel}
             className="rounded-full border border-[#D7E4F2] bg-white px-5 py-2.5 text-sm font-black text-[#0C2B49] transition hover:border-[#0985E7] disabled:cursor-not-allowed disabled:opacity-50"
           >

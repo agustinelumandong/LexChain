@@ -34,7 +34,6 @@ export function getPortalNavigation(role: PortalUiRole): PortalNavigationGroup[]
         items: [
           { label: "Dashboard", href: "/portal/dashboard" },
           { label: "Documents", href: "/portal/documents" },
-          { label: "Upload Document", href: "/portal/upload" },
         ],
       },
       {
@@ -57,7 +56,6 @@ export function getPortalNavigation(role: PortalUiRole): PortalNavigationGroup[]
         items: [
           { label: "Notifications", href: "/portal/notifications" },
           { label: "Office Settings", href: "/portal/office-settings" },
-          { label: "Profile & Security", href: "/portal/profile" },
         ],
       },
     ];
@@ -74,7 +72,6 @@ export function getPortalNavigation(role: PortalUiRole): PortalNavigationGroup[]
         { label: "My E-copy Requests", href: "/portal/requests/my" },
       ],
     },
-    { label: "Account", items: [{ label: "Profile & Security", href: "/portal/profile" }] },
   ];
 }
 

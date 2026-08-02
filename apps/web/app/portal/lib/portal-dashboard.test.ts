@@ -11,7 +11,7 @@ describe("portal dashboard", () => {
       "System Management",
       "Account",
     ]);
-    expect(navigation[0].items.at(-1)?.label).toBe("Upload Document");
+    expect(navigation[0].items.map((item) => item.label)).toEqual(["Dashboard", "Documents"]);
     expect(navigation.find((group) => group.label === "Office")?.items.map((item) => item.label)).toEqual([
       "Categories",
       "Reports",
@@ -23,7 +23,6 @@ describe("portal dashboard", () => {
       "Shared Documents",
       "Invitations",
       "My E-copy Requests",
-      "Profile & Security",
     ]);
   });
 

@@ -1,7 +1,9 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { PortalTopBar } from "./portal-topbar";
+
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }));
 
 afterEach(cleanup);
 
@@ -10,6 +12,7 @@ const sharedProps = {
   initials: "AL",
   roleLabel: "User",
   processingCount: 2,
+  onSignOut: vi.fn(),
 };
 
 describe("PortalTopBar", () => {
@@ -30,5 +33,16 @@ describe("PortalTopBar", () => {
 
     expect(screen.getByRole("link", { name: "View processing documents" }).getAttribute("href"))
       .toBe("/portal/dashboard");
+  });
+
+  it("opens the profile dropdown with Profile and Sign Out", () => {
+    render(<PortalTopBar {...sharedProps} role="user" />);
+    const onSignOut = sharedProps.onSignOut;
+
+    fireEvent.click(screen.getByRole("button", { name: "Open profile menu" }));
+
+    expect(screen.getByRole("link", { name: "Profile" }).getAttribute("href")).toBe("/portal/profile");
+    fireEvent.click(screen.getByRole("button", { name: "Sign Out" }));
+    expect(onSignOut).toHaveBeenCalledOnce();
   });
 });

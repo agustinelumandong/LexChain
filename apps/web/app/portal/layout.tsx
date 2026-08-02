@@ -1,16 +1,13 @@
 "use client";
 
 import './portal.css';
-import { useEffect, useRef, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import SettingsIcon from "@mui/icons-material/Settings";
-import LogoutIcon from "@mui/icons-material/Logout";
 import MenuIcon from "@mui/icons-material/Menu";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
-import MoreVertIcon from "@mui/icons-material/MoreVert";
 import { Toaster } from 'sonner';
 import type { ApiSchema } from "@lexchain/types";
 import { getPortalLoginRedirect, getPortalRoleLabel, getPortalUiRole, isSupportedPortalUiRole } from "./lib/portal-role";
@@ -21,12 +18,12 @@ import { PortalTopBar } from "./components/portal-topbar";
 
 type UserProfile = ApiSchema<'UserProfileResponse'>;
 type PortalDocument = { status?: string | null };
+type PortalNotification = { id: string; title: string; body: string; is_read: boolean; created_at: string };
 
 export default function PortalLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const queryClient = useQueryClient();
   const [collapsed, setCollapsed] = useState(false);
-  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
-  const profileMenuRef = useRef<HTMLDivElement>(null);
   const { data: profile, isError, isPending } = useQuery<UserProfile | null>({
     queryKey: ['portal-profile'],
     queryFn: async () => {
@@ -42,6 +39,27 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
     },
     enabled: Boolean(profile),
   });
+  const { data: unreadData } = useQuery<number | { unread: number }>({
+    queryKey: ['portal-notif-count'],
+    queryFn: async () => {
+      const res = await fetch('/api/portal/proxy?path=%2Fnotifications%2Funread-count', { credentials: 'same-origin' });
+      if (!res.ok) return 0;
+      const body = await res.json();
+      return typeof body === 'number' ? body : (body.unread ?? 0);
+    },
+    enabled: Boolean(profile),
+  });
+  const unreadCount = typeof unreadData === 'number' ? unreadData : (unreadData?.unread ?? 0);
+  const { data: notifications = [] } = useQuery<PortalNotification[]>({
+    queryKey: ['portal-shell-notifications'],
+    queryFn: async () => {
+      const res = await fetch('/api/portal/proxy?path=%2Fnotifications%2F', { credentials: 'same-origin' });
+      if (!res.ok) return [];
+      const body = await res.json();
+      return body.notifications ?? [];
+    },
+    enabled: Boolean(profile),
+  });
 
   const uiRole = getPortalUiRole(profile?.role);
   const roleLabel = getPortalRoleLabel(profile?.role);
@@ -50,26 +68,27 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
     : [];
   const initials = `${profile?.f_name?.[0] ?? ''}${profile?.l_name?.[0] ?? ''}`.toUpperCase() || '?';
   const fullName = profile ? `${profile.f_name} ${profile.l_name}` : '...';
-  const email = profile?.email ?? '...';
   const portalHome = getPortalLoginRedirect(profile?.role) ?? "/portal/dashboard";
   const processingCount = documents.filter((document) => {
     const status = document.status?.trim().toLowerCase();
     return status === "processing" || status === "pending";
   }).length;
 
-  useEffect(() => {
-    function handleClick(event: MouseEvent) {
-      if (profileMenuRef.current && !profileMenuRef.current.contains(event.target as Node)) {
-        setProfileMenuOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
-  }, []);
-
   async function handleLogout() {
     await fetch("/api/portal/logout", { method: "POST" });
     window.location.href = "/login";
+  }
+
+  async function markAllNotificationsRead() {
+    await fetch("/api/portal/proxy-post?path=%2Fnotifications%2Fread-all", {
+      method: "PATCH",
+      credentials: "same-origin",
+    });
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ["portal-shell-notifications"] }),
+      queryClient.invalidateQueries({ queryKey: ["portal-notif-count"] }),
+      queryClient.invalidateQueries({ queryKey: ["portal-notifications"] }),
+    ]);
   }
 
   if (isPending) {
@@ -168,63 +187,20 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
               </section>
             ))}
           </nav>
-
-          {/* Profile */}
-          <div ref={profileMenuRef} className="relative border-t border-[#E8F0F8] pt-4">
-            <div className={`flex min-h-[58px] items-center gap-3 rounded-2xl bg-[#F8FBFF] px-3 py-2 ${collapsed ? "justify-center" : ""}`}>
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#0985E7] text-sm font-black text-white">
-                {initials}
-              </div>
-              {!collapsed && (
-                <>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-black leading-5 text-[#0C2B49]">{fullName}</p>
-                    <p className="truncate text-xs font-semibold leading-4 text-[#64748b]">{roleLabel}</p>
-                    <p className="truncate text-xs font-semibold leading-4 text-[#64748b]">{email}</p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setProfileMenuOpen((o) => !o)}
-                    aria-label="Open profile menu"
-                    className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-[#64748b] transition hover:bg-white hover:text-[#0C2B49]"
-                  >
-                    <MoreVertIcon fontSize="small" />
-                  </button>
-                </>
-              )}
-            </div>
-
-            {profileMenuOpen && (
-              <div className="absolute bottom-[74px] left-0 z-50 w-full overflow-hidden rounded-2xl border border-[#E4EEF9] bg-white shadow-[0_16px_40px_rgba(12,43,73,0.14)]">
-                <Link
-                  href="/portal/profile"
-                  onClick={() => setProfileMenuOpen(false)}
-                  className="flex w-full cursor-pointer items-center gap-3 px-4 py-3 text-left text-sm font-bold text-[#0C2B49] transition hover:bg-[#F5FAFF]"
-                >
-                  <SettingsIcon fontSize="small" className="text-[#64748b]" />
-                  Profile
-                </Link>
-                <button
-                  type="button"
-                  onClick={handleLogout}
-                  className="flex w-full cursor-pointer items-center gap-3 px-4 py-3 text-left text-sm font-bold text-red-600 transition hover:bg-red-50"
-                >
-                  <LogoutIcon fontSize="small" />
-                  Sign Out
-                </button>
-              </div>
-            )}
-          </div>
         </aside>
 
         {/* Main content */}
-        <section id="portal-content" tabIndex={-1} className="flex min-w-0 flex-1 flex-col overflow-x-hidden px-6 pb-24 pt-0 md:pb-6">
+        <section id="portal-content" tabIndex={-1} className="flex min-w-0 flex-1 flex-col overflow-x-clip px-6 pb-24 pt-0 md:pb-6">
           <PortalTopBar
             fullName={fullName}
             initials={initials}
             roleLabel={roleLabel}
             role={uiRole}
             processingCount={processingCount}
+            unreadCount={unreadCount}
+            notifications={notifications}
+            onMarkAllRead={markAllNotificationsRead}
+            onSignOut={handleLogout}
           />
           {children}
         </section>
