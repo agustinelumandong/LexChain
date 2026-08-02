@@ -3,6 +3,7 @@
 import { useRef, useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import UploadFileIcon from '@mui/icons-material/UploadFile';
 import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile';
 import CloseIcon from '@mui/icons-material/Close';
@@ -16,6 +17,7 @@ import {
 } from '../lib/portal-upload';
 import { canAccessPortalFeature } from '../lib/portal-access';
 import { getPortalUiRole } from '../lib/portal-role';
+import { PortalDropdown } from '../components/portal-dropdown';
 import { defaultOfficeSettings } from '../lib/office-settings-schema';
 import type { ApiSchema } from '@lexchain/types';
 
@@ -123,7 +125,8 @@ export default function UploadPage() {
   return (
     <div className="flex w-full max-w-none flex-1 flex-col gap-5">
       <div>
-        <h1 className="text-[28px] font-black text-[#0C2B49]">Upload Document</h1>
+        <Link href="/portal/documents" className="text-sm font-bold text-[#0985E7]">← Back to documents</Link>
+        <h1 className="mt-3 text-[28px] font-black text-[#0C2B49]">Upload Document</h1>
         <p className="mt-1 text-sm text-[#64748b]">A guided upload using the fields LexChain currently accepts.</p>
       </div>
 
@@ -133,7 +136,17 @@ export default function UploadPage() {
           <p className="mt-1 text-sm text-[#64748b]">Provide the title and active book required by the upload service.</p>
           <div className="mt-4 grid gap-4">
             <label className="flex flex-col gap-1.5 text-sm font-bold text-[#0C2B49]">Document title<input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="e.g. Deed of Sale" className="rounded-xl border border-[#D7E4F2] px-3 py-2.5 text-sm font-medium outline-none focus:border-[#0985E7]" /></label>
-            <label className="flex flex-col gap-1.5 text-sm font-bold text-[#0C2B49]">Register book<select value={bookId} onChange={(event) => setBookId(event.target.value)} disabled={booksQuery.isLoading || availableBooks.length === 0} className="rounded-xl border border-[#D7E4F2] bg-white px-3 py-2.5 text-sm font-medium outline-none focus:border-[#0985E7] disabled:bg-[#F8FBFF]"><option value="">{booksQuery.isLoading ? 'Loading register books...' : availableBooks.length === 0 ? 'No active register books available' : 'Choose a register book'}</option>{availableBooks.map((book) => <option key={book.id} value={book.id}>Register book {book.book_number} — Series {book.series_year}</option>)}</select></label>
+            <label className="flex flex-col gap-1.5 text-sm font-bold text-[#0C2B49]">Register book
+              <PortalDropdown
+                ariaLabel="Register book"
+                placeholder="Choose a register book"
+                emptyLabel={booksQuery.isLoading ? 'Loading register books...' : 'No active register books available'}
+                options={availableBooks.map((book) => ({ label: `Register book ${book.book_number} — Series ${book.series_year}`, value: book.id }))}
+                value={bookId}
+                onChange={setBookId}
+                disabled={booksQuery.isLoading || availableBooks.length === 0}
+              />
+            </label>
             {booksQuery.isError && <p role="alert" className="text-sm font-bold text-red-600">Unable to load books. Please try again.</p>}
             {!booksQuery.isLoading && availableBooks.length === 0 && <p className="text-sm text-[#64748b]">Register an active book before uploading a document.</p>}
           </div>
