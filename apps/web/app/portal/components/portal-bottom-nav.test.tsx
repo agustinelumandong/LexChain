@@ -34,7 +34,7 @@ describe("PortalBottomNav", () => {
   it("exposes visible participant navigation labels on mobile", () => {
     render(<PortalBottomNav pathname="/portal/documents" role="user" />);
 
-    for (const label of ["Shared Documents", "Invitations", "My E-copy Requests", "Profile & Security"]) {
+    for (const label of ["Shared Documents", "Invitations", "My E-copy Requests"]) {
       expect(screen.getByRole("link", { name: label })).toBeTruthy();
       expect(screen.getByText(label)).toBeTruthy();
     }

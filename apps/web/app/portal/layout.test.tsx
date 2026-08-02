@@ -5,8 +5,14 @@ import PortalLayout from "./layout";
 
 const useQuery = vi.hoisted(() => vi.fn());
 
-vi.mock("@tanstack/react-query", () => ({ useQuery }));
-vi.mock("next/navigation", () => ({ usePathname: () => "/portal/documents" }));
+vi.mock("@tanstack/react-query", () => ({
+  useQuery,
+  useQueryClient: () => ({ invalidateQueries: vi.fn() }),
+}));
+vi.mock("next/navigation", () => ({
+  usePathname: () => "/portal/documents",
+  useRouter: () => ({ push: vi.fn() }),
+}));
 
 afterEach(() => {
   cleanup();
