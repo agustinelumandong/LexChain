@@ -14,14 +14,27 @@ export async function GET(request: NextRequest) {
     return mockPortalGet(path, token);
   }
 
-  const upstream = await fetch(backendUrl(path), {
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'ngrok-skip-browser-warning': 'true',
-    },
-    cache: 'no-store',
-  });
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 120_000);
 
-  const data = await upstream.json().catch(() => null);
-  return NextResponse.json(data, { status: upstream.status });
+  try {
+    const upstream = await fetch(backendUrl(path), {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'ngrok-skip-browser-warning': 'true',
+      },
+      cache: 'no-store',
+      signal: controller.signal,
+    });
+
+    const data = await upstream.json().catch(() => null);
+    return NextResponse.json(data, { status: upstream.status });
+  } catch (error) {
+    const message = error instanceof Error && error.name === 'AbortError'
+      ? 'Backend request timed out'
+      : 'Backend request failed';
+    return NextResponse.json({ message, detail: error instanceof Error ? error.message : String(error) }, { status: 502 });
+  } finally {
+    clearTimeout(timeout);
+  }
 }

@@ -1,13 +1,14 @@
 'use client';
 
-import { use } from 'react';
-import { useQueries } from '@tanstack/react-query';
+import { use, useState } from 'react';
+import { useMutation, useQueries, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import type { ApiSchema } from '@lexchain/types';
 import PortalChatbot from '../../components/portal-chatbot';
 import { DocumentWorkspace } from './document-workspace';
 import { getDocumentActions, getDocumentStatusLabel } from '../../lib/document-ui';
+import { renameDocument } from '../../lib/document-lifecycle-api';
 import { verifyRepositoryDocument } from '../../lib/integrity-api';
 import type { DemoDocumentLifecycle } from '../../lib/document-lifecycle-ui';
 import { getIntegrityUiState } from '../../lib/integrity-ui';
@@ -32,6 +33,8 @@ function statusStyle(status: string) {
 
 export default function DocumentDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
+  const queryClient = useQueryClient();
+  const [renamePending, setRenamePending] = useState(false);
   const [docQ, chainQ, profileQ] = useQueries({
     queries: [
       { queryKey: ['portal-doc', id], queryFn: () => getJson<LifecycleDocumentResponse>(`/documents/${id}`) },
@@ -46,6 +49,19 @@ export default function DocumentDetailPage({ params }: { params: Promise<{ id: s
   const document = docQ.data;
   const actions = getDocumentActions(getPortalUiRole(profileQ.data?.role), document);
   const integrityState = getIntegrityUiState({ record: chainQ.data, requestFailed: chainQ.isError });
+  const role = getPortalUiRole(profileQ.data?.role);
+
+  async function requestRename() {
+    const fileName = window.prompt('Document name', document.file_name ?? '');
+    if (!fileName?.trim()) return;
+    setRenamePending(true);
+    try {
+      await renameDocument(id, fileName);
+      await docQ.refetch();
+    } finally {
+      setRenamePending(false);
+    }
+  }
 
   return (
     <div className="flex w-full min-w-0 flex-col gap-5 overflow-x-hidden">
@@ -58,7 +74,7 @@ export default function DocumentDetailPage({ params }: { params: Promise<{ id: s
             <span className="text-xs font-bold uppercase tracking-[0.5px] text-[#0985E7]">Document review</span>
             <h1 className="mt-1 text-2xl font-extrabold leading-[30px] text-[#0C2B49]">{document.file_name}</h1>
             <div className="mt-2 flex flex-wrap items-center gap-2 text-[13px] font-medium text-[#64748b]">
-              <span>Reference #{document.document_number}</span>
+              {document.document_number != null && <span>Reference #{document.document_number}</span>}
               <span className={`${statusStyle(document.status)} rounded-full px-2.5 py-0.5 text-[11px] font-bold`}>{getDocumentStatusLabel(document.status)}</span>
               {integrityState === 'recorded' && <span className="rounded-full bg-[#EAF8F0] px-2.5 py-0.5 text-[11px] font-bold text-[#12A150]">Integrity record available</span>}
               {integrityState === 'unavailable' && <span className="rounded-full bg-[#FFF4DD] px-2.5 py-0.5 text-[11px] font-bold text-[#B77900]">Integrity status unavailable</span>}
@@ -66,6 +82,7 @@ export default function DocumentDetailPage({ params }: { params: Promise<{ id: s
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
+            {role === 'lawyer' && <button type="button" onClick={requestRename} disabled={renamePending} className="rounded-full border border-[#D7E4F2] px-4 py-2.5 text-sm font-extrabold text-[#0C2B49]">Rename document</button>}
             {document.storage_url && <a href={document.storage_url} download className="rounded-full bg-[#0985E7] px-4 py-2.5 text-sm font-extrabold text-white">Download</a>}
             {actions.includes('Review extracted text') && <Link href={`/portal/documents/${id}/review`} className="rounded-full bg-[#0985E7] px-4 py-2.5 text-sm font-extrabold text-white">Review extracted text</Link>}
             {actions.includes('Verify Integrity') && <Link href={`/portal/documents/${id}/verify`} className="rounded-full border border-[#E8F0F8] bg-white px-4 py-2.5 text-sm font-extrabold text-[#0C2B49]">Verify Integrity</Link>}
