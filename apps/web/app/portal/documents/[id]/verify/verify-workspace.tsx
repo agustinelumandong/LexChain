@@ -91,7 +91,7 @@ export default function VerifyWorkspace({ result, onRetry }: { result: Verificat
     return <div className="[&_table]:w-full [&_td]:border [&_td]:border-[#D7E4F2] [&_td]:p-2 [&_th]:border [&_th]:border-[#D7E4F2] [&_th]:p-2" dangerouslySetInnerHTML={{ __html: html }} />;
   }
 
-  return <section className="space-y-5">
+  return <section className="flex flex-col gap-5 md:min-h-0 md:flex-1">
     <div className={`rounded-[18px] border p-5 ${authentic ? 'border-green-200 bg-green-50' : neutral ? 'border-amber-200 bg-amber-50' : 'border-red-200 bg-red-50'}`}>
       <div className="flex items-start gap-3">
         {authentic ? <CheckCircleIcon className="text-[#12A150]" sx={{ fontSize: 38 }} /> : <ErrorIcon className={neutral ? 'text-[#B77900]' : 'text-[#D94B66]'} sx={{ fontSize: 38 }} />}
@@ -100,10 +100,10 @@ export default function VerifyWorkspace({ result, onRetry }: { result: Verificat
       {(unavailable || result.status === 'NOT_ANCHORED') && <button type="button" onClick={onRetry} className="mt-4 rounded-full border border-[#0985E7] bg-white px-4 py-2 text-sm font-black text-[#0985E7]">Retry verification</button>}
     </div>
 
-    {result.status === 'TAMPERED' && report && <div className="space-y-4">
+    {result.status === 'TAMPERED' && report && <div className="flex flex-col gap-4 md:min-h-0 md:flex-1">
       <div className="flex flex-wrap items-baseline justify-between gap-2"><h2 className="text-lg font-black text-[#0C2B49]">{report.total_changes} change{report.total_changes === 1 ? '' : 's'} found</h2><p className="text-sm text-[#64748b]">{report.critical_changes} critical · {(report.similarity * 100).toFixed(1)}% unchanged</p></div>
-      <div className={`grid min-w-0 gap-5 ${hasPdf ? 'md:grid-cols-2' : ''}`}>
-        {hasPdf && <section aria-label="Current document" className="min-w-0 rounded-[18px] border border-[#E8F0F8] bg-white p-4">
+      <div className={`grid min-w-0 gap-5 md:min-h-0 md:flex-1 ${hasPdf ? 'md:grid-cols-2' : ''}`}>
+        {hasPdf && <section aria-label="Current document" className="min-w-0 rounded-[18px] border border-[#E8F0F8] bg-white p-4 md:min-h-0 md:overflow-y-auto">
           <PdfDocumentViewer sourceUrl={result.storage_url!} pageCount={result.page_count ?? 1} currentPage={currentPage} blocks={blocks} selectedBlockIndex={selectedBlockIndex} hoveredBlockIndex={hoveredBlockIndex} tamperedBlockIndexes={tamperedBlockIndexes} onPageChange={setCurrentPage} onSelectBlock={setSelectedBlockIndex} onHoverBlockChange={setHoveredBlockIndex} />
         </section>}
         <SegmentList segments={segments} selectedBlockIndex={selectedBlockIndex} localized={localized} onSelect={selectSegment} onHover={setHoveredBlockIndex} sanitizedHtml={sanitizedHtml} />
@@ -119,7 +119,7 @@ export default function VerifyWorkspace({ result, onRetry }: { result: Verificat
 }
 
 function SegmentList({ segments, selectedBlockIndex, localized, onSelect, onHover, sanitizedHtml }: { segments: TamperedSegment[]; selectedBlockIndex: number | null; localized: boolean; onSelect: (segment: TamperedSegment) => void; onHover: (blockIndex: number | null) => void; sanitizedHtml: (text: string, key: string) => ReactNode }) {
-  return <section aria-label="Changed sections" className="space-y-3 rounded-[18px] border border-[#E8F0F8] bg-white p-5">
+  return <section aria-label="Changed sections" className="min-w-0 space-y-3 rounded-[18px] border border-[#E8F0F8] bg-white p-5 md:min-h-0 md:overflow-y-auto">
     {!localized && <p className="text-sm text-[#64748b]">This older document has no stored layout, so changes are shown as text only.</p>}
     {segments.map((segment, i) => <button key={`${segment.type}-${i}`} type="button" disabled={segment.block_index == null} onClick={() => onSelect(segment)} onMouseEnter={() => onHover(segment.block_index ?? null)} onMouseLeave={() => onHover(null)} className={`block w-full rounded-xl border p-4 text-left disabled:cursor-default ${selectedBlockIndex === segment.block_index ? 'border-[#D94B66] bg-red-50' : 'border-[#E8F0F8] hover:border-[#F3A6B5]'}`}>
       <p className={`text-xs font-black uppercase tracking-wide ${severityClass(segment.severity)}`}>{segment.severity} · {segment.page_idx == null ? 'Text diff' : `Page ${segment.page_idx + 1}`}</p>
