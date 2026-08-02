@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import SearchIcon from '@mui/icons-material/Search';
+import FileUploadIcon from '@mui/icons-material/FileUpload';
 import FilterListIcon from '@mui/icons-material/FilterList';
 import DescriptionIcon from '@mui/icons-material/Description';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
@@ -17,6 +18,7 @@ import DownloadIcon from '@mui/icons-material/Download';
 import RateReviewIcon from '@mui/icons-material/RateReview';
 import VerifiedIcon from '@mui/icons-material/Verified';
 import { Dropdown } from '../../admin/components/dropdown';
+import { MetricCard } from '../components/portal-metric-card';
 import { getDocumentStatusLabel } from '../lib/document-ui';
 import { getPortalUiRole } from '../lib/portal-role';
 import {
@@ -99,19 +101,6 @@ function DocumentActions({ document, role }: { document: Document; role: ReturnT
         </Link>
       ))}
     </div>
-  );
-}
-
-function MetricCard({ icon, label, value, detail, color }: { icon: React.ReactNode; label: string; value: number; detail: string; color: string }) {
-  return (
-    <article className="flex min-h-[112px] items-center gap-3 rounded-2xl border border-[#E4EEF9] bg-white p-4 shadow-sm shadow-[#DDEAF7]/40 transition hover:-translate-y-0.5 hover:border-[#C7DBEF]">
-      <div className={`flex size-11 shrink-0 items-center justify-center rounded-full ${color}`}>{icon}</div>
-      <div className="min-w-0">
-        <p className="truncate text-xs font-black text-[#0C2B49]">{label}</p>
-        <p className="mt-1 text-2xl font-black leading-none text-[#071B33]">{value.toLocaleString()}</p>
-        <p className="mt-2 truncate text-xs font-semibold text-[#5B6F8A]">{detail}</p>
-      </div>
-    </article>
   );
 }
 
@@ -231,7 +220,7 @@ export default function DocumentsPage() {
           <h1 className="text-[28px] font-black text-[#0C2B49]">Documents</h1>
           <p className="mt-1 text-sm text-[#64748b]">Manage and review documents in the office repository</p>
         </div>
-        {isIssuer && <Link href="/portal/upload" className="rounded-full bg-[#0985E7] px-5 py-2.5 text-sm font-black text-white">Upload Document</Link>}
+        {isIssuer && <Link href="/portal/upload" className="inline-flex items-center gap-2 rounded-full bg-[#0985E7] px-5 py-2.5 text-sm font-black text-white"><FileUploadIcon sx={{ fontSize: 16 }} />Upload Document</Link>}
       </div>
 
       {documentsQuery.isLoading ? (

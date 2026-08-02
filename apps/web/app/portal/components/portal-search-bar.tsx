@@ -114,6 +114,7 @@ export function PortalSearchBar() {
           onKeyDown={onKeyDown}
           onFocus={() => { if (results.length > 0) setOpen(true); }}
           placeholder="Search documents..."
+          aria-label="Search documents"
           role="combobox"
           aria-expanded={open}
           aria-controls="search-results"

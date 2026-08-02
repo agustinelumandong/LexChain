@@ -11,8 +11,8 @@ import VerifiedUserIcon from '@mui/icons-material/VerifiedUser';
 import EmailOutlinedIcon from '@mui/icons-material/EmailOutlined';
 import FileUploadIcon from '@mui/icons-material/FileUpload';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
-import NotificationsNoneIcon from '@mui/icons-material/NotificationsNone';
 import type { ApiSchema } from '@lexchain/types';
+import { MetricCard } from '../components/portal-metric-card';
 import { getDocumentStatusLabel } from '../lib/document-ui';
 import { type DashboardMetric, getDashboardMetrics } from '../lib/portal-dashboard';
 import { getPortalUiRole } from '../lib/portal-role';
@@ -58,7 +58,6 @@ function isAttentionDocument(document: Document) {
 
 type AdminDashboardData = {
   total_users: number;
-  total_lawyers: number;
   total_documents: number;
   total_processed: number;
   total_failed: number;
@@ -77,6 +76,26 @@ function getMetricIcon(label: string) {
   return DescriptionIcon;
 }
 
+function getMetricColor(label: string) {
+  if (label === 'Total Users') return 'bg-[#EAF3FF] text-[#0879D8]';
+  if (label === 'Total Documents') return 'bg-[#EAF3FF] text-[#0879D8]';
+  if (label === 'Processing') return 'bg-[#FFF4DF] text-[#F59E0B]';
+  if (label === 'Failed' || label === 'Failed Documents') return 'bg-[#FEECEC] text-[#EF4444]';
+  if (label === 'On-Chain Records') return 'bg-[#EAFBF1] text-[#16A34A]';
+  if (label === 'Pending Invitations') return 'bg-[#EAF3FF] text-[#0879D8]';
+  return 'bg-[#EAF3FF] text-[#0879D8]';
+}
+
+function getMetricDetail(label: string) {
+  if (label === 'Total Users') return 'Registered accounts';
+  if (label === 'Total Documents') return 'Uploaded documents';
+  if (label === 'Processing') return 'status processing';
+  if (label === 'Failed' || label === 'Failed Documents') return 'status failed';
+  if (label === 'On-Chain Records') return 'anchored records';
+  if (label === 'Pending Invitations') return 'awaiting acceptance';
+  return '—';
+}
+
 export default function DashboardPage() {
   const profileQuery = useQuery({
     queryKey: ['portal-profile'],
@@ -86,11 +105,6 @@ export default function DashboardPage() {
   const documentsQuery = useQuery<Document[]>({
     queryKey: ['portal-documents'],
     queryFn: () => fetchJson('/documents/'),
-    enabled: isIssuer,
-  });
-  const notificationsQuery = useQuery<{ unread: number }>({
-    queryKey: ['portal-notif-count'],
-    queryFn: () => fetchJson('/notifications/unread-count'),
     enabled: isIssuer,
   });
   const adminDashboardQuery = useQuery<AdminDashboardData>({
@@ -106,7 +120,7 @@ export default function DashboardPage() {
 
   if (!isIssuer) {
     return (
-      <div className="flex flex-col gap-6">
+      <div className="flex h-full min-h-0 flex-col gap-5">
         <div>
           <h1 className="text-[28px] font-black leading-[34px] text-[#0C2B49]">Document Portal</h1>
           <p className="mt-1 text-sm font-medium text-[#64748b]">Your shared documents at a glance.</p>
@@ -129,7 +143,6 @@ export default function DashboardPage() {
   const metrics: DashboardMetric[] = adminMetrics
     ? [
         ['Total Users', adminMetrics.total_users],
-        ['Total Lawyers', adminMetrics.total_lawyers],
         ['Total Documents', adminMetrics.total_documents],
         ['Processing', adminMetrics.total_processed],
         ['Failed', adminMetrics.total_failed],
@@ -139,17 +152,13 @@ export default function DashboardPage() {
     : getDashboardMetrics(documents);
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-wrap items-start justify-between gap-4">
+    <div className="flex h-full min-h-0 flex-col gap-5">
+      <div className="shrink-0 flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-[28px] font-black leading-[34px] text-[#0C2B49]">Lawyer Portal</h1>
           <p className="mt-1 text-sm font-medium text-[#64748b]">Your document workspace at a glance.</p>
         </div>
         <div className="flex items-center gap-2 sm:gap-3">
-          <Link href="/portal/notifications" aria-label="View notifications" className="relative flex h-10 w-10 items-center justify-center rounded-full border border-[#E8F0F8] transition hover:bg-[#F5FAFF]">
-            <NotificationsNoneIcon sx={{ fontSize: 20, color: '#0C2B49' }} />
-            {(notificationsQuery.data?.unread ?? 0) > 0 && <span className="absolute -right-1 -top-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-[#0985E7] px-1 text-[10px] font-black text-white">{notificationsQuery.data!.unread}</span>}
-          </Link>
           <Link href="/portal/upload" className="flex items-center gap-2 rounded-full bg-[#0985E7] px-4 py-2 text-xs font-black text-white transition hover:bg-[#0770c4] sm:px-5 sm:py-2.5 sm:text-sm">
             <FileUploadIcon sx={{ fontSize: 16 }} />
             <span className="hidden sm:inline">Upload Document</span>
@@ -165,31 +174,31 @@ export default function DashboardPage() {
       )}
 
       {!adminMetrics && adminDashboardQuery.isLoading ? (
-        <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4">{Array.from({ length: 7 }, (_, i) => <div key={i} className={`${cardClass} h-24 animate-pulse sm:h-28`} />)}</div>
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3">{Array.from({ length: 6 }, (_, i) => <div key={i} className={`${cardClass} h-24 animate-pulse sm:h-28`} />)}</div>
       ) : (
-        <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4">
+        <div className="shrink-0 grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3">
           {metrics.map(([label, value]) => {
             const Icon = getMetricIcon(label);
-            return <div key={label} className={`${cardClass} flex items-center gap-3 px-4 py-4 sm:px-6 sm:py-6 sm:gap-4`}><div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[#D7EBFF] bg-[#EEF6FF] sm:h-[52px] sm:w-[52px]"><Icon sx={{ fontSize: 20, color: '#0985E7' }} /></div><div className="min-w-0"><span className="block text-[11px] font-bold text-[#64748b] sm:text-[13px]">{label}</span><span className="text-2xl font-black leading-[30px] text-[#0C2B49] tabular-nums sm:text-[40px] sm:leading-[46px]">{value}</span></div></div>;
+            return <MetricCard key={label} icon={<Icon fontSize="small" />} label={label} value={value} detail={getMetricDetail(label)} color={getMetricColor(label)} />;
           })}
         </div>
       )}
 
-      <div className="grid grid-cols-1 gap-5 md:grid-cols-[1fr_360px]">
-        <section className={`${cardClass} p-5`}>
-          <div className="mb-4 flex items-center justify-between"><h2 className="text-base font-black text-[#0C2B49]">Recent documents</h2><Link href="/portal/documents" className="text-xs font-black text-[#0985E7]">View Documents</Link></div>
-          {documentsQuery.isLoading ? <p className="py-4 text-center text-sm text-[#64748b]">Loading recent documents…</p> : documentsQuery.isError ? <p className="py-4 text-center text-sm text-[#64748b]">Recent documents will be available once the repository loads.</p> : recentDocuments.length === 0 ? <div className="py-4 text-center"><p className="text-sm font-bold text-[#0C2B49]">No documents yet</p><p className="mt-1 text-xs text-[#64748b]">Upload a document to start your repository.</p><Link href="/portal/upload" className="mt-4 inline-flex rounded-full bg-[#0985E7] px-4 py-2 text-sm font-black text-white">Upload Document</Link></div> : <div className="flex flex-col divide-y divide-[#E8F0F8]">{recentDocuments.map((document) => <DocumentLink key={document.id} document={document} />)}</div>}
+      <div className="grid min-h-0 flex-1 gap-5 overflow-hidden md:grid-cols-[minmax(0,1fr)_360px]">
+        <section className={`${cardClass} flex min-h-0 flex-col p-5`}>
+          <div className="mb-4 flex shrink-0 items-center justify-between"><h2 className="text-base font-black text-[#0C2B49]">Recent documents</h2><Link href="/portal/documents" className="text-xs font-black text-[#0985E7]">View Documents</Link></div>
+          {documentsQuery.isLoading ? <p className="py-4 text-center text-sm text-[#64748b]">Loading recent documents…</p> : documentsQuery.isError ? <p className="py-4 text-center text-sm text-[#64748b]">Recent documents will be available once the repository loads.</p> : recentDocuments.length === 0 ? <div className="py-4 text-center"><p className="text-sm font-bold text-[#0C2B49]">No documents yet</p><p className="mt-1 text-xs text-[#64748b]">Upload a document to start your repository.</p><Link href="/portal/upload" className="mt-4 inline-flex rounded-full bg-[#0985E7] px-4 py-2 text-sm font-black text-white">Upload Document</Link></div> : <div className="admin-table-scroll min-h-0 flex-1 overflow-y-auto"><div className="flex flex-col divide-y divide-[#E8F0F8]">{recentDocuments.map((document) => <DocumentLink key={document.id} document={document} />)}</div></div>}
         </section>
 
-        <div className="flex flex-col gap-5">
-          <section className={`${cardClass} p-5`}>
-            <h2 className="mb-3 text-base font-black text-[#0C2B49]">Documents needing attention</h2>
-            {documentsQuery.isLoading ? <p className="text-sm text-[#64748b]">Checking document statuses…</p> : documentsQuery.isError ? <p className="text-sm text-[#64748b]">Attention status is unavailable.</p> : attentionDocuments.length === 0 ? <p className="text-sm text-[#64748b]">No action required. All documents are progressing normally.</p> : <div className="flex flex-col divide-y divide-[#E8F0F8]">{attentionDocuments.slice(0, 3).map((document) => <Link key={document.id} href={`/portal/documents/${document.id}`} className="py-3 first:pt-0 last:pb-0"><span className="block text-sm font-bold text-[#0C2B49]">{document.file_name}</span><span className="mt-1 block text-xs text-[#C24141]">Status: {getDocumentStatusLabel(document.status)}. Open document to review.</span></Link>)}</div>}
+        <div className="flex min-h-0 flex-col gap-5">
+          <section className={`${cardClass} flex min-h-0 flex-1 flex-col p-5`}>
+            <h2 className="mb-3 shrink-0 text-base font-black text-[#0C2B49]">Documents needing attention</h2>
+            {documentsQuery.isLoading ? <p className="text-sm text-[#64748b]">Checking document statuses…</p> : documentsQuery.isError ? <p className="text-sm text-[#64748b]">Attention status is unavailable.</p> : attentionDocuments.length === 0 ? <p className="text-sm text-[#64748b]">No action required. All documents are progressing normally.</p> : <div className="table-scroll-thin min-h-0 flex-1 overflow-y-auto"><div className="flex flex-col divide-y divide-[#E8F0F8]">{attentionDocuments.slice(0, 3).map((document) => <DocumentLink document={document} key={document.id} />)}</div></div>}
           </section>
 
-          <section className={`${cardClass} p-5`}>
-            <h2 className="mb-3 text-base font-black text-[#0C2B49]">Processing</h2>
-            {documentsQuery.isLoading ? <p className="text-sm text-[#64748b]">Checking processing documents…</p> : documentsQuery.isError ? <p className="text-sm text-[#64748b]">Processing status is unavailable.</p> : processingDocuments.length === 0 ? <p className="text-sm text-[#64748b]">No documents are processing right now.</p> : <div className="flex flex-col divide-y divide-[#E8F0F8]">{processingDocuments.slice(0, 3).map((document) => <Link key={document.id} href={`/portal/documents/${document.id}`} className="py-3 first:pt-0 last:pb-0"><span className="block text-sm font-bold text-[#0C2B49]">{document.file_name}</span><span className="mt-1 block text-xs text-[#B77900]">Status: {getDocumentStatusLabel(document.status)}</span></Link>)}</div>}
+          <section className={`${cardClass} flex min-h-0 flex-1 flex-col p-5`}>
+            <h2 className="mb-3 shrink-0 text-base font-black text-[#0C2B49]">Processing</h2>
+            {documentsQuery.isLoading ? <p className="text-sm text-[#64748b]">Checking processing documents…</p> : documentsQuery.isError ? <p className="text-sm text-[#64748b]">Processing status is unavailable.</p> : processingDocuments.length === 0 ? <p className="text-sm text-[#64748b]">No documents are processing right now.</p> : <div className="admin-table-scroll min-h-0 flex-1 overflow-y-auto"><div className="flex flex-col divide-y divide-[#E8F0F8]">{processingDocuments.slice(0, 3).map((document) => <DocumentLink document={document} key={document.id} />)}</div></div>}
           </section>
         </div>
       </div>

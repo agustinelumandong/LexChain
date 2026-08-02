@@ -42,7 +42,8 @@ vi.mock('@tanstack/react-query', async () => {
 function completeUploadForm(container: HTMLElement) {
   const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
   fireEvent.change(fileInput, { target: { files: [new File(['PDF'], 'deed.pdf', { type: 'application/pdf' })] } });
-  fireEvent.change(screen.getByLabelText('Register book'), { target: { value: 'book-1' } });
+  fireEvent.click(screen.getByLabelText('Register book'));
+  fireEvent.click(screen.getByRole('option', { name: /Register book 42 — Series 2026/ }));
   fireEvent.click(screen.getByRole('button', { name: 'Confirm and process' }));
 }
 
