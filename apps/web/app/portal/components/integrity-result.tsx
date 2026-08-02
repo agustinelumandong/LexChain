@@ -5,7 +5,7 @@ import {
   INTEGRITY_SAFETY_MESSAGE,
 } from '../lib/integrity-ui';
 
-type OnChainVerification = ApiSchema<'OnChainVerificationResponse'>;
+type OnChainVerification = ApiSchema<'DocumentVerificationResponse'>;
 
 const toneClasses = {
   success: 'border-[#BCE8CC] bg-[#F1FBF5] text-[#0C7A3B]',
@@ -13,11 +13,11 @@ const toneClasses = {
   neutral: 'border-[#D7E4F2] bg-[#F8FBFF] text-[#45627D]',
 };
 
-function Detail({ label, value }: { label: string; value: string }) {
+function Detail({ label, value }: { label: string; value: string | null | undefined }) {
   return (
     <div>
       <dt className="font-bold text-[#64748b]">{label}</dt>
-      <dd className="mt-1 break-all text-[#0C2B49]">{value}</dd>
+      <dd className="mt-1 break-all text-[#0C2B49]">{value || '—'}</dd>
     </div>
   );
 }
@@ -43,13 +43,13 @@ export function IntegrityResult({
       {record && (
         <dl className="mt-5 grid gap-4 rounded-xl bg-white/80 p-4 text-sm sm:grid-cols-2">
           <Detail label="Document ID" value={record.document_id} />
-          <Detail label="On-chain document ID" value={record.onchain_document_id} />
-          <Detail label="Data hash" value={record.data_hash} />
+          <Detail label="On-chain hash" value={record.onchain_hash} />
+          <Detail label="Snapshot hash" value={record.snapshot_hash} />
+          <Detail label="Current hash" value={record.current_hash} />
           <Detail label="Transaction hash" value={record.tx_hash} />
           <Detail label="On-chain timestamp" value={String(record.onchain_timestamp)} />
           <Detail label="Issued by" value={record.issued_by} />
           <Detail label="Verified at" value={record.verified_at} />
-          <Detail label="Transaction link" value={record.transacttion_link} />
         </dl>
       )}
 

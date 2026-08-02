@@ -5,7 +5,7 @@ import type { ApiSchema } from '@lexchain/types';
 import { IntegrityResult } from '../components/integrity-result';
 import { verifyRepositoryDocument } from '../lib/integrity-api';
 
-type OnChainVerification = ApiSchema<'OnChainVerificationResponse'>;
+type OnChainVerification = ApiSchema<'DocumentVerificationResponse'>;
 
 export default function VerificationPage() {
   const [documentId, setDocumentId] = useState('');
@@ -62,8 +62,13 @@ export default function VerificationPage() {
           />
         </label>
         {error && <p role="alert" className="mt-3 text-sm font-bold text-red-700">{error}</p>}
-        <button type="button" onClick={checkIntegrity} disabled={isChecking} className="mt-4 rounded-full bg-[#0985E7] px-6 py-3 text-sm font-black text-white disabled:opacity-40">
-          {isChecking ? 'Checking integrity...' : 'Check integrity'}
+        <button type="button" onClick={checkIntegrity} disabled={isChecking} className="mt-4 inline-flex items-center gap-2 rounded-full bg-[#0985E7] px-6 py-3 text-sm font-black text-white disabled:opacity-40">
+          {isChecking ? (
+            <>
+              <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+              Checking integrity… can take up to a minute
+            </>
+          ) : 'Check integrity'}
         </button>
       </section>
 
