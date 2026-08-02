@@ -1,6 +1,6 @@
 import type { DemoIntegrityState } from './document-lifecycle-ui';
 
-type IntegrityRecord = { data_hash?: string | null; is_verified?: boolean | null } | null | undefined;
+type IntegrityRecord = { onchain_hash?: string | null; is_authentic?: boolean } | null | undefined;
 
 export type IntegrityUiState = 'recorded' | 'not_recorded' | 'unavailable' | 'match' | 'mismatch';
 
@@ -12,8 +12,8 @@ export type IntegrityUiInput = {
 export function getIntegrityUiState({ record, requestFailed }: IntegrityUiInput): IntegrityUiState {
   if (requestFailed) return 'unavailable';
   if (!record) return 'not_recorded';
-  if (record.is_verified === false) return 'mismatch';
-  return record.data_hash ? 'recorded' : 'not_recorded';
+  if (record.is_authentic === false) return 'mismatch';
+  return record.onchain_hash ? 'recorded' : 'not_recorded';
 }
 
 export function getDemoIntegrityState(state: IntegrityUiState): DemoIntegrityState {
@@ -82,7 +82,7 @@ export function getIntegrityResult(record: IntegrityRecord): IntegrityResult {
     };
   }
 
-  if (record.is_verified) {
+  if (record.onchain_hash && record.is_authentic !== false) {
     return {
       label: 'Match',
       description: 'The returned repository record reports a hash match.',

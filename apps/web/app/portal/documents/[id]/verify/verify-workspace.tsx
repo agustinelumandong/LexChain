@@ -4,7 +4,7 @@ import type { ApiSchema } from '@lexchain/types';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ErrorIcon from '@mui/icons-material/Error';
 import dynamic from 'next/dynamic';
-import { useState } from 'react';
+import { type ReactNode, useEffect, useMemo, useState } from 'react';
 
 const PdfDocumentViewer = dynamic(() => import('../review/pdf-document-viewer'), {
   ssr: false,
@@ -13,6 +13,10 @@ const PdfDocumentViewer = dynamic(() => import('../review/pdf-document-viewer'),
 
 type VerificationResult = ApiSchema<'DocumentVerificationResponse'>;
 type TamperedSegment = ApiSchema<'TamperedSegment'>;
+
+function looksLikeHtml(text: string) {
+  return text.includes('<') && text.includes('>') && /<\/?[a-z][a-z0-9]*[\s>]/i.test(text);
+}
 
 function statusHeading(result: VerificationResult) {
   if (result.status === 'AUTHENTIC' && result.is_authentic) return 'Document is authentic';
@@ -41,21 +45,50 @@ function SegmentDiff({ segment }: { segment: TamperedSegment }) {
 
 export default function VerifyWorkspace({ result, onRetry }: { result: VerificationResult; onRetry: () => void }) {
   const report = result.tamper_report;
-  const segments = report?.segments ?? [];
+  const segments = useMemo(() => report?.segments ?? [], [report]);
   const [selectedBlockIndex, setSelectedBlockIndex] = useState<number | null>(null);
   const [hoveredBlockIndex, setHoveredBlockIndex] = useState<number | null>(null);
   const [currentPage, setCurrentPage] = useState(0);
+  const [sanitized, setSanitized] = useState<Record<string, string | null>>({});
   const localized = report?.localized !== false;
   const blocks = result.blocks ?? [];
-  const tamperedBlockIndexes = new Set(segments.flatMap((segment) => segment.block_index === null || segment.block_index === undefined ? [] : [segment.block_index]));
+  const hasPdf = Boolean(result.storage_url && blocks.length > 0);
+  const tamperedBlockIndexes = useMemo(() => new Set(
+    segments.flatMap((s) => s.block_index == null ? [] : [s.block_index]),
+  ), [segments]);
   const authentic = result.status === 'AUTHENTIC' && result.is_authentic;
   const unavailable = result.status === 'VERIFICATION_UNAVAILABLE';
   const neutral = unavailable || result.status === 'NOT_ANCHORED';
 
+  useEffect(() => {
+    let cancelled = false;
+    void import('dompurify')
+      .then(({ default: DOMPurify }) => {
+        if (cancelled) return;
+        const map: Record<string, string | null> = {};
+        segments.forEach((seg, i) => {
+          const origKey = `o-${i}`;
+          if (seg.original_text && looksLikeHtml(seg.original_text)) map[origKey] = DOMPurify.sanitize(seg.original_text);
+          const currKey = `c-${i}`;
+          if (seg.current_text && looksLikeHtml(seg.current_text)) map[currKey] = DOMPurify.sanitize(seg.current_text);
+        });
+        setSanitized(map);
+      })
+      .catch(() => undefined);
+    return () => { cancelled = true; };
+  }, [segments]);
+
   function selectSegment(segment: TamperedSegment) {
-    if (segment.block_index === null || segment.block_index === undefined) return;
+    if (segment.block_index == null) return;
     setSelectedBlockIndex(segment.block_index);
-    if (segment.page_idx !== null && segment.page_idx !== undefined) setCurrentPage(segment.page_idx);
+    if (segment.page_idx != null) setCurrentPage(segment.page_idx);
+  }
+
+  function sanitizedHtml(text: string, key: string): ReactNode {
+    const html = sanitized[key];
+    if (html === undefined) return text;
+    if (html === null) return text;
+    return <div className="[&_table]:w-full [&_td]:border [&_td]:border-[#D7E4F2] [&_td]:p-2 [&_th]:border [&_th]:border-[#D7E4F2] [&_th]:p-2" dangerouslySetInnerHTML={{ __html: html }} />;
   }
 
   return <section className="space-y-5">
@@ -69,12 +102,12 @@ export default function VerifyWorkspace({ result, onRetry }: { result: Verificat
 
     {result.status === 'TAMPERED' && report && <div className="space-y-4">
       <div className="flex flex-wrap items-baseline justify-between gap-2"><h2 className="text-lg font-black text-[#0C2B49]">{report.total_changes} change{report.total_changes === 1 ? '' : 's'} found</h2><p className="text-sm text-[#64748b]">{report.critical_changes} critical · {(report.similarity * 100).toFixed(1)}% unchanged</p></div>
-      {localized && result.storage_url && blocks.length > 0 ? <div className="grid min-w-0 gap-5 md:grid-cols-2">
-        <section aria-label="Current document" className="min-w-0 rounded-[18px] border border-[#E8F0F8] bg-white p-4">
-          <PdfDocumentViewer sourceUrl={result.storage_url} pageCount={result.page_count ?? 1} currentPage={currentPage} blocks={blocks} selectedBlockIndex={selectedBlockIndex} hoveredBlockIndex={hoveredBlockIndex} tamperedBlockIndexes={tamperedBlockIndexes} onPageChange={setCurrentPage} onSelectBlock={setSelectedBlockIndex} onHoverBlockChange={setHoveredBlockIndex} />
-        </section>
-        <SegmentList segments={segments} selectedBlockIndex={selectedBlockIndex} onSelect={selectSegment} onHover={setHoveredBlockIndex} />
-      </div> : <SegmentList segments={segments} selectedBlockIndex={selectedBlockIndex} onSelect={selectSegment} onHover={setHoveredBlockIndex} textOnly />}
+      <div className={`grid min-w-0 gap-5 ${hasPdf ? 'md:grid-cols-2' : ''}`}>
+        {hasPdf && <section aria-label="Current document" className="min-w-0 rounded-[18px] border border-[#E8F0F8] bg-white p-4">
+          <PdfDocumentViewer sourceUrl={result.storage_url!} pageCount={result.page_count ?? 1} currentPage={currentPage} blocks={blocks} selectedBlockIndex={selectedBlockIndex} hoveredBlockIndex={hoveredBlockIndex} tamperedBlockIndexes={tamperedBlockIndexes} onPageChange={setCurrentPage} onSelectBlock={setSelectedBlockIndex} onHoverBlockChange={setHoveredBlockIndex} />
+        </section>}
+        <SegmentList segments={segments} selectedBlockIndex={selectedBlockIndex} localized={localized} onSelect={selectSegment} onHover={setHoveredBlockIndex} sanitizedHtml={sanitizedHtml} />
+      </div>
     </div>}
 
     <div className="flex flex-wrap gap-x-4 gap-y-1 rounded-xl border border-[#E8F0F8] bg-white p-4 text-xs text-[#64748b]">
@@ -85,14 +118,15 @@ export default function VerifyWorkspace({ result, onRetry }: { result: Verificat
   </section>;
 }
 
-function SegmentList({ segments, selectedBlockIndex, onSelect, onHover, textOnly = false }: { segments: TamperedSegment[]; selectedBlockIndex: number | null; onSelect: (segment: TamperedSegment) => void; onHover: (blockIndex: number | null) => void; textOnly?: boolean }) {
-  return <section aria-label={textOnly ? 'Text changes' : 'Changed sections'} className="space-y-3 rounded-[18px] border border-[#E8F0F8] bg-white p-5">
-    {textOnly && <p className="text-sm text-[#64748b]">This older document has no stored layout, so changes are shown as text only.</p>}
-    {segments.map((segment, index) => <button key={`${segment.type}-${index}`} type="button" disabled={segment.block_index === null || segment.block_index === undefined} onClick={() => onSelect(segment)} onMouseEnter={() => onHover(segment.block_index ?? null)} onMouseLeave={() => onHover(null)} className={`block w-full rounded-xl border p-4 text-left disabled:cursor-default ${selectedBlockIndex === segment.block_index ? 'border-[#D94B66] bg-red-50' : 'border-[#E8F0F8] hover:border-[#F3A6B5]'}`}>
-      <p className={`text-xs font-black uppercase tracking-wide ${severityClass(segment.severity)}`}>{segment.severity} · {segment.page_idx === null || segment.page_idx === undefined ? 'Text diff' : `Page ${segment.page_idx + 1}`}</p>
+function SegmentList({ segments, selectedBlockIndex, localized, onSelect, onHover, sanitizedHtml }: { segments: TamperedSegment[]; selectedBlockIndex: number | null; localized: boolean; onSelect: (segment: TamperedSegment) => void; onHover: (blockIndex: number | null) => void; sanitizedHtml: (text: string, key: string) => ReactNode }) {
+  return <section aria-label="Changed sections" className="space-y-3 rounded-[18px] border border-[#E8F0F8] bg-white p-5">
+    {!localized && <p className="text-sm text-[#64748b]">This older document has no stored layout, so changes are shown as text only.</p>}
+    {segments.map((segment, i) => <button key={`${segment.type}-${i}`} type="button" disabled={segment.block_index == null} onClick={() => onSelect(segment)} onMouseEnter={() => onHover(segment.block_index ?? null)} onMouseLeave={() => onHover(null)} className={`block w-full rounded-xl border p-4 text-left disabled:cursor-default ${selectedBlockIndex === segment.block_index ? 'border-[#D94B66] bg-red-50' : 'border-[#E8F0F8] hover:border-[#F3A6B5]'}`}>
+      <p className={`text-xs font-black uppercase tracking-wide ${severityClass(segment.severity)}`}>{segment.severity} · {segment.page_idx == null ? 'Text diff' : `Page ${segment.page_idx + 1}`}</p>
       <p className="mt-1 font-bold text-[#0C2B49]">{segment.reason}</p>
       <SegmentDiff segment={segment} />
-      <div className="mt-3 grid gap-2 text-sm"><p className="rounded bg-red-50 p-2 text-[#B42318]"><span className="font-bold">Original: </span>{segment.original_text}</p><p className="rounded bg-green-50 p-2 text-[#067647]"><span className="font-bold">Current: </span>{segment.current_text}</p></div>
+      {segment.original_text != null && <div className="mt-3 grid gap-2 text-sm"><div className="rounded bg-red-50 p-2 text-[#B42318]"><span className="font-bold">Original: </span>{sanitizedHtml(segment.original_text, `o-${i}`)}</div></div>}
+      {segment.current_text != null && <div className="mt-3 grid gap-2 text-sm"><div className="rounded bg-green-50 p-2 text-[#067647]"><span className="font-bold">Current: </span>{sanitizedHtml(segment.current_text, `c-${i}`)}</div></div>}
     </button>)}
   </section>;
 }
