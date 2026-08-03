@@ -453,6 +453,47 @@ describe('portal mock participant invitations and requests', () => {
     expect(issuer.status).toBe(403);
   });
 
+  it('serves the participant invitation list contract with the new field names', async () => {
+    const response = mockPortalGet('/documents/invitations/mine', 'mock-token:mock-document-participant');
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      total: 1,
+      invitations: [
+        { invitation_id: 'mock-invitation-1', document_id: 'mock-document-1', file_name: 'Lease Agreement.pdf', role: 'viewer', status: 'pending', invited_at: '2026-07-12T10:00:00.000Z' },
+      ],
+    });
+  });
+
+  it('accepts an invitation through the invitation-scoped endpoint', async () => {
+    vi.resetModules();
+    const freshMock = await import('./portal-mock');
+    const response = await freshMock.mockPortalMutate(
+      'POST',
+      '/documents/invitations/mock-invitation-1/accept',
+      new Request('https://mock.lexchain.local/api/portal/proxy-post', { method: 'POST' }),
+      'mock-token:mock-document-participant',
+    );
+
+    expect(response.status).toBe(200);
+    await expect(freshMock.mockPortalGet('/documents/invitations/mine', 'mock-token:mock-document-participant').json()).resolves.toMatchObject({ total: 0 });
+    await expect(freshMock.mockPortalGet('/documents/mock-document-1', 'mock-token:mock-document-participant').json()).resolves.toMatchObject({
+      document_id: 'mock-document-1',
+    });
+  });
+
+  it('restores a tampered document through the restore endpoint', async () => {
+    const response = await mockPortalMutate(
+      'POST',
+      '/documents/mock-document-1/restore',
+      new Request('https://mock.lexchain.local/api/portal/proxy-post', { method: 'POST' }),
+      'mock-token:mock-document-issuer',
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({ document_id: 'mock-document-1' });
+  });
+
   it('accepts a participant invitation and leaves its document available for navigation', async () => {
     const response = await mockPortalMutate(
       'POST',
