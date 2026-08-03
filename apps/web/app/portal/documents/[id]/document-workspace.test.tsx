@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DocumentWorkspace } from './document-workspace';
 
@@ -30,14 +30,6 @@ const document = {
   finalized_at: null,
   finalized_by: null,
   anchor_status: null,
-};
-
-const finalizedLifecycle = {
-  lifecycle: 'finalized' as const,
-  document_hash: 'a'.repeat(64),
-  finalized_at: '2026-07-26T00:00:00.000Z',
-  finalized_by: 'issuer-1',
-  anchor_status: 'confirmed' as const,
 };
 
 const finalizationRecord = {
@@ -165,12 +157,6 @@ describe('DocumentWorkspace', () => {
     expect(screen.getByText('name — Acme Legal')).toBeTruthy();
   });
 
-  it('offers finalization only to an issuer with a completed draft', () => {
-    renderWorkspace();
-
-    expect(screen.getByRole('button', { name: 'Finalize' })).toBeTruthy();
-  });
-
   it('keeps a non-demo document response read-only when lifecycle fields are absent', () => {
     renderWorkspace({
       document: {
@@ -188,64 +174,41 @@ describe('DocumentWorkspace', () => {
     expect(screen.queryByRole('button', { name: 'Finalize' })).toBeNull();
   });
 
-  it.each([
-    ['user', { role: 'user' as const }],
-    ['processing document', { document: { ...document, status: 'PROCESSING' } }],
-    ['review-ready document', { document: { ...document, status: 'READY_FOR_REVIEW' } }],
-    ['already-finalized document', { document: { ...document, ...finalizedLifecycle } }],
-  ])('does not offer finalization to a %s', (_label, props) => {
-    renderWorkspace(props);
-
-    expect(screen.queryByRole('button', { name: 'Finalize' })).toBeNull();
-  });
-
-  it('requires explicit confirmation of the real finalization effect', () => {
-    renderWorkspace();
-
-    fireEvent.click(screen.getByRole('button', { name: 'Finalize' }));
+  it('renders the confirmation dialog when the parent opens it', () => {
+    const onCancelFinalize = vi.fn();
+    const onConfirmFinalize = vi.fn();
+    renderWorkspace({ confirmingFinalize: true, onCancelFinalize, onConfirmFinalize });
 
     const dialog = screen.getByRole('dialog', { name: 'Confirm finalization' });
     expect(within(dialog).getByText(/This will anchor the approved document hash on-chain/)).toBeTruthy();
+
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
+    expect(onCancelFinalize).toHaveBeenCalledOnce();
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Confirm finalization' }));
+    expect(onConfirmFinalize).toHaveBeenCalledOnce();
     expect(finalizeDocumentMock).not.toHaveBeenCalled();
   });
 
-  it('disables the finalization mutation button while the request is pending', async () => {
-    finalizeDocumentMock.mockReturnValue(new Promise(() => undefined));
-    renderWorkspace();
-    fireEvent.click(screen.getByRole('button', { name: 'Finalize' }));
+  it('disables the finalization mutation button while the parent reports it pending', () => {
+    renderWorkspace({ confirmingFinalize: true, isFinalizing: true, onCancelFinalize: vi.fn(), onConfirmFinalize: vi.fn() });
 
-    const confirm = screen.getByRole('button', { name: 'Confirm finalization' });
-    fireEvent.click(confirm);
-
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Finalizing…' }).hasAttribute('disabled')).toBe(true));
+    const confirm = screen.getByRole('button', { name: 'Finalizing…' });
+    expect(confirm.hasAttribute('disabled')).toBe(true);
+    expect(screen.getByRole('button', { name: 'Cancel' }).hasAttribute('disabled')).toBe(true);
   });
 
-  it('shows returned record hashes and refreshes affected queries after finalization', async () => {
-    finalizeDocumentMock.mockResolvedValue(finalizationRecord);
-    const { invalidateQueries } = renderWorkspace();
-    fireEvent.click(screen.getByRole('button', { name: 'Finalize' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Confirm finalization' }));
+  it('shows returned record hashes and success copy from the parent', () => {
+    renderWorkspace({ finalizationResult: finalizationRecord, success: 'Document finalized and anchored on-chain.' });
 
-    expect(await screen.findByText('Document finalized and anchored on-chain.')).toBeTruthy();
+    expect(screen.getByText('Document finalized and anchored on-chain.')).toBeTruthy();
     expect(screen.getByText('datahash101')).toBeTruthy();
     expect(screen.getByText('0xtxhash101')).toBeTruthy();
-    expect(invalidateQueries).toHaveBeenCalledTimes(3);
-    for (const queryKey of [
-      ['portal-doc', 'doc-101'],
-      ['portal-doc-chain', 'doc-101'],
-      ['portal-document-audit', 'doc-101'],
-    ]) {
-      expect(invalidateQueries).toHaveBeenCalledWith({ queryKey });
-    }
   });
 
-  it('keeps failed finalization retryable and never claims success', async () => {
-    finalizeDocumentMock.mockRejectedValue(new Error('Document cannot be finalized'));
-    renderWorkspace();
-    fireEvent.click(screen.getByRole('button', { name: 'Finalize' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Confirm finalization' }));
+  it('keeps failed finalization retryable and never claims success', () => {
+    renderWorkspace({ confirmingFinalize: true, finalizeError: 'Document cannot be finalized', onCancelFinalize: vi.fn(), onConfirmFinalize: vi.fn() });
 
-    expect((await screen.findByRole('alert')).textContent).toContain('Document cannot be finalized');
+    expect(screen.getByRole('alert').textContent).toContain('Document cannot be finalized');
     expect(screen.getByRole('button', { name: 'Confirm finalization' }).hasAttribute('disabled')).toBe(false);
     expect(screen.queryByText('Document finalized and anchored on-chain.')).toBeNull();
     expect(screen.queryByText('datahash101')).toBeNull();
