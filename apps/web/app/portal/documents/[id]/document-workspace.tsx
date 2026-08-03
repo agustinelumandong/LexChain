@@ -1,18 +1,11 @@
 'use client';
 
-import { useRef, useState } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 import type { ApiSchema } from '@lexchain/types';
-import {
-  finalizeDocument,
-  createDocumentVersion,
-  listDocumentVersions,
-} from '../../lib/document-lifecycle-api';
-import {
-  canFinalizeDocument,
-  type DemoDocumentLifecycle,
-} from '../../lib/document-lifecycle-ui';
+import { listDocumentVersions } from '../../lib/document-lifecycle-api';
+import type { DemoDocumentLifecycle } from '../../lib/document-lifecycle-ui';
 import {
   shortenIntegrityHash,
   type IntegrityUiState,
@@ -105,6 +98,14 @@ type DocumentWorkspaceProps = {
   chain?: BlockchainRecord;
   integrityState: IntegrityUiState;
   onRetry?: () => void;
+  finalizationResult?: ApiSchema<'RecordResponse'>;
+  confirmingFinalize?: boolean;
+  isFinalizing?: boolean;
+  finalizeError?: string | null;
+  onCancelFinalize?: () => void;
+  onConfirmFinalize?: () => void;
+  success?: string;
+  versionError?: string | null;
 };
 
 const finalizationConfirmation = 'This will anchor the approved document hash on-chain and finalize the document. This action cannot be undone.';
@@ -115,48 +116,19 @@ export function DocumentWorkspace({
   chain,
   integrityState,
   onRetry,
+  finalizationResult,
+  confirmingFinalize = false,
+  isFinalizing = false,
+  finalizeError = null,
+  onCancelFinalize,
+  onConfirmFinalize,
+  success,
+  versionError = null,
 }: DocumentWorkspaceProps) {
-  const queryClient = useQueryClient();
-  const versionInputRef = useRef<HTMLInputElement>(null);
   const [activeTab, setActiveTab] = useState<Tab>('Overview');
-  const [lifecycleResult, setLifecycleResult] = useState<DemoDocumentLifecycle>();
-  const [finalizationResult, setFinalizationResult] = useState<ApiSchema<'RecordResponse'>>();
-  const [confirmingFinalize, setConfirmingFinalize] = useState(false);
-  const [success, setSuccess] = useState<string>();
   const versionsQuery = useQuery({ queryKey: ['portal-doc-versions', document.document_id], queryFn: () => listDocumentVersions(document.document_id) });
   const hasInsights = Boolean(document.summary || document.labels?.length || document.entities?.length || document.risk_flags?.length);
-  const lifecycle = lifecycleResult ?? document;
-  const canFinalize = role !== 'unsupported' && lifecycle.lifecycle !== undefined
-    && canFinalizeDocument(role, document.status, lifecycle.lifecycle);
-
-  async function refreshLifecycleQueries() {
-    await Promise.all([
-      ['portal-doc', document.document_id],
-      ['portal-doc-chain', document.document_id],
-      ['portal-document-audit', document.document_id],
-    ].map((queryKey) => queryClient.invalidateQueries({ queryKey })));
-  }
-
-  const finalizeMutation = useMutation({
-    mutationFn: () => finalizeDocument(document.document_id),
-    onSuccess: async (result) => {
-      setFinalizationResult(result);
-      setConfirmingFinalize(false);
-      setSuccess('Document finalized and anchored on-chain.');
-      await refreshLifecycleQueries();
-    },
-  });
-
-  const versionMutation = useMutation({ mutationFn: (file: File) => createDocumentVersion(document.document_id, file), onSuccess: refreshLifecycleQueries });
-
-  function openFinalizeConfirmation() {
-    finalizeMutation.reset();
-    setSuccess(undefined);
-    setFinalizationResult(undefined);
-    setConfirmingFinalize(true);
-  }
-
-  const finalizeError = finalizeMutation.error instanceof Error ? finalizeMutation.error.message : null;
+  const lifecycle = document;
 
   return (
     <section className="rounded-[18px] border border-[#E8F0F8] bg-white shadow-[0_4px_12px_rgba(19,59,115,0.05)]">
@@ -196,8 +168,7 @@ export function DocumentWorkspace({
               <InsightGroup title="Entities" items={document.entities} />
               <InsightGroup title="Risk flags" items={document.risk_flags} />
             </div>}
-            {role === 'lawyer' && <div className="flex flex-wrap gap-2">{canFinalize && !finalizationResult && <button type="button" onClick={openFinalizeConfirmation} className="rounded-full bg-[#0985E7] px-4 py-2.5 text-sm font-extrabold text-white">Finalize</button>}{lifecycle.lifecycle?.toUpperCase() !== 'FINALIZED' && <><input ref={versionInputRef} type="file" accept="application/pdf" className="hidden" onChange={(event) => { const input = event.currentTarget; const file = input.files?.[0]; if (file) versionMutation.mutate(file); input.value = ''; }} /><button type="button" onClick={() => versionInputRef.current?.click()} disabled={versionMutation.isPending} className="rounded-full border border-[#0985E7] px-4 py-2 text-sm font-bold text-[#0985E7]">{versionMutation.isPending ? 'Uploading version…' : 'Upload new version'}</button></>}</div>}
-            {versionMutation.error && <p role="alert" className="text-sm font-bold text-[#B42318]">{versionMutation.error instanceof Error ? versionMutation.error.message : 'Upload failed.'}</p>}
+            {versionError && <p role="alert" className="text-sm font-bold text-[#B42318]">{versionError}</p>}
             {success && <p role="status" className="rounded-xl border border-[#BCE8CC] bg-[#F1FBF5] px-4 py-3 text-sm font-bold text-[#0C7A3B]">{success}</p>}
             {finalizationResult && <dl className="grid gap-3 rounded-xl bg-[#F8FBFF] p-4 text-sm sm:grid-cols-2"><div><dt className="font-bold text-[#64748b]">Data hash</dt><dd className="mt-1 break-all font-mono text-[#0C2B49]">{finalizationResult.data_hash}</dd></div><div><dt className="font-bold text-[#64748b]">Transaction hash</dt><dd className="mt-1 break-all font-mono text-[#0C2B49]">{finalizationResult.tx_hash}</dd></div></dl>}
             {integrityState === 'unavailable' && onRetry && <button type="button" onClick={onRetry} className="w-fit rounded-full border border-[#D7E4F2] px-4 py-2 text-sm font-bold text-[#0985E7]">Retry integrity lookup</button>}
@@ -208,8 +179,8 @@ export function DocumentWorkspace({
                 <p className="mt-1 text-sm leading-6 text-[#64748b]">{finalizationConfirmation}</p>
                 {finalizeError && <p role="alert" className="mt-3 text-sm font-bold text-[#B42318]">{finalizeError}</p>}
                 <div className="mt-4 flex flex-wrap gap-2">
-                  <button type="button" onClick={() => setConfirmingFinalize(false)} disabled={finalizeMutation.isPending} className="rounded-lg border border-[#D6E3F1] px-3 py-2 text-sm font-bold text-[#0C2B49] disabled:opacity-60">Cancel</button>
-                  <button type="button" onClick={() => finalizeMutation.mutate()} disabled={finalizeMutation.isPending} className="rounded-lg bg-[#0985E7] px-3 py-2 text-sm font-bold text-white disabled:opacity-60">{finalizeMutation.isPending ? 'Finalizing…' : 'Confirm finalization'}</button>
+                  <button type="button" onClick={onCancelFinalize} disabled={isFinalizing} className="rounded-lg border border-[#D6E3F1] px-3 py-2 text-sm font-bold text-[#0C2B49] disabled:opacity-60">Cancel</button>
+                  <button type="button" onClick={onConfirmFinalize} disabled={isFinalizing} className="rounded-lg bg-[#0985E7] px-3 py-2 text-sm font-bold text-white disabled:opacity-60">{isFinalizing ? 'Finalizing…' : 'Confirm finalization'}</button>
                 </div>
               </div>
             )}
