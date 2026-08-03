@@ -695,7 +695,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/app__features__documents__schemas__InvitationListResponse"
+                  "$ref": "#/components/schemas/DocumentInvitationListResponse"
                 }
               }
             }
@@ -742,7 +742,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/InvitationActionResponse"
+                  "$ref": "#/components/schemas/DocumentInvitationActionResponse"
                 }
               }
             }
@@ -800,7 +800,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/InvitationActionResponse"
+                  "$ref": "#/components/schemas/DocumentInvitationActionResponse"
                 }
               }
             }
@@ -1329,6 +1329,67 @@
         }
       }
     },
+    "/documents/{document_id}/restore": {
+      "post": {
+        "tags": [
+          "Documents"
+        ],
+        "summary": "Restore a document from its archived original",
+        "description": "Replaces the stored file with the archived original. Deliberately manual: run it after `verify` reports tampering, having reviewed what changed.\n\nThe archived copy is re-read and checked against the blockchain hash before it is trusted — a backup that does not match the chain is refused rather than restored. The file being replaced is preserved first, since on a notarised document the tampered copy may be evidence.\n\nSlow: verifying the archive costs a full OCR pass.",
+        "operationId": "restore_document_documents__document_id__restore_post",
+        "security": [
+          {
+            "Bearer Token": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "document_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Document Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Restored and verified against the chain",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RestoreResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated — missing or invalid bearer token"
+          },
+          "403": {
+            "description": "Forbidden — only the document owner may restore"
+          },
+          "404": {
+            "description": "Document not found, no archived copy, or no on-chain record"
+          },
+          "409": {
+            "description": "Not finalized, or the archive does not match the chain"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/documents/{document_id}/finalize": {
       "post": {
         "tags": [
@@ -1624,7 +1685,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/app__features__admin__schemas__InvitationListResponse"
+                  "$ref": "#/components/schemas/InvitationListResponse"
                 }
               }
             }
@@ -1662,7 +1723,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/app__features__admin__schemas__InvitationResponse"
+                  "$ref": "#/components/schemas/InvitationResponse"
                 }
               }
             }
@@ -2475,6 +2536,118 @@
           "email"
         ],
         "title": "CreateInvitationRequest"
+      },
+      "DocumentInvitationActionResponse": {
+        "properties": {
+          "invitation_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Invitation Id"
+          },
+          "document_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Document Id"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          }
+        },
+        "type": "object",
+        "required": [
+          "invitation_id",
+          "document_id",
+          "status",
+          "message"
+        ],
+        "title": "DocumentInvitationActionResponse",
+        "description": "Result of accepting or declining."
+      },
+      "DocumentInvitationListResponse": {
+        "properties": {
+          "invitations": {
+            "items": {
+              "$ref": "#/components/schemas/DocumentInvitationResponse"
+            },
+            "type": "array",
+            "title": "Invitations"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          }
+        },
+        "type": "object",
+        "required": [
+          "total"
+        ],
+        "title": "DocumentInvitationListResponse",
+        "description": "Invitations awaiting this user's response."
+      },
+      "DocumentInvitationResponse": {
+        "properties": {
+          "invitation_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Invitation Id",
+            "description": "Use this to accept or decline"
+          },
+          "document_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Document Id"
+          },
+          "file_name": {
+            "type": "string",
+            "title": "File Name",
+            "description": "Name of the document you were invited to"
+          },
+          "role": {
+            "type": "string",
+            "title": "Role",
+            "description": "Role you would hold: viewer | signer | editor"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "description": "pending | accepted | declined"
+          },
+          "invited_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Invited At",
+            "description": "When the invitation was sent"
+          },
+          "responded_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Responded At",
+            "description": "When you accepted or declined; null while pending"
+          }
+        },
+        "type": "object",
+        "required": [
+          "invitation_id",
+          "document_id",
+          "file_name",
+          "role",
+          "status",
+          "invited_at"
+        ],
+        "title": "DocumentInvitationResponse",
+        "description": "An invitation to a document, awaiting the invitee's response."
       },
       "DocumentPartyListResponse": {
         "properties": {
@@ -3421,36 +3594,73 @@
         "type": "object",
         "title": "HTTPValidationError"
       },
-      "InvitationActionResponse": {
+      "InvitationListResponse": {
         "properties": {
-          "invitation_id": {
+          "invitations": {
+            "items": {
+              "$ref": "#/components/schemas/InvitationResponse"
+            },
+            "type": "array",
+            "title": "Invitations"
+          }
+        },
+        "type": "object",
+        "required": [
+          "invitations"
+        ],
+        "title": "InvitationListResponse"
+      },
+      "InvitationResponse": {
+        "properties": {
+          "id": {
             "type": "string",
             "format": "uuid",
-            "title": "Invitation Id"
+            "title": "Id"
           },
-          "document_id": {
+          "email": {
             "type": "string",
-            "format": "uuid",
-            "title": "Document Id"
+            "title": "Email"
+          },
+          "role": {
+            "type": "string",
+            "title": "Role"
           },
           "status": {
             "type": "string",
             "title": "Status"
           },
-          "message": {
+          "expires_at": {
             "type": "string",
-            "title": "Message"
+            "format": "date-time",
+            "title": "Expires At"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "magic_link": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Magic Link"
           }
         },
         "type": "object",
         "required": [
-          "invitation_id",
-          "document_id",
+          "id",
+          "email",
+          "role",
           "status",
-          "message"
+          "expires_at",
+          "created_at"
         ],
-        "title": "InvitationActionResponse",
-        "description": "Result of accepting or declining."
+        "title": "InvitationResponse"
       },
       "MarkAllReadResponse": {
         "properties": {
@@ -3647,6 +3857,50 @@
           "email"
         ],
         "title": "ResendVerificationRequest"
+      },
+      "RestoreResponse": {
+        "properties": {
+          "document_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Document Id"
+          },
+          "restored_from": {
+            "type": "string",
+            "title": "Restored From",
+            "description": "Archive key the original came from"
+          },
+          "evidence_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Evidence Key",
+            "description": "Where the replaced (tampered) file was preserved before restoring; null if it could not be read, e.g. it had been deleted"
+          },
+          "verified_hash": {
+            "type": "string",
+            "title": "Verified Hash",
+            "description": "Hash of the restored file, matched against the chain"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          }
+        },
+        "type": "object",
+        "required": [
+          "document_id",
+          "restored_from",
+          "verified_hash",
+          "message"
+        ],
+        "title": "RestoreResponse",
+        "description": "Result of restoring a document from its archived original."
       },
       "SearchHit": {
         "properties": {
@@ -4334,155 +4588,6 @@
         ],
         "title": "WordDiffPart",
         "description": "A run of words inside a changed segment, for inline highlighting."
-      },
-      "app__features__admin__schemas__InvitationListResponse": {
-        "properties": {
-          "invitations": {
-            "items": {
-              "$ref": "#/components/schemas/app__features__admin__schemas__InvitationResponse"
-            },
-            "type": "array",
-            "title": "Invitations"
-          }
-        },
-        "type": "object",
-        "required": [
-          "invitations"
-        ],
-        "title": "InvitationListResponse"
-      },
-      "app__features__admin__schemas__InvitationResponse": {
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Id"
-          },
-          "email": {
-            "type": "string",
-            "title": "Email"
-          },
-          "role": {
-            "type": "string",
-            "title": "Role"
-          },
-          "status": {
-            "type": "string",
-            "title": "Status"
-          },
-          "expires_at": {
-            "type": "string",
-            "format": "date-time",
-            "title": "Expires At"
-          },
-          "created_at": {
-            "type": "string",
-            "format": "date-time",
-            "title": "Created At"
-          },
-          "magic_link": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Magic Link"
-          }
-        },
-        "type": "object",
-        "required": [
-          "id",
-          "email",
-          "role",
-          "status",
-          "expires_at",
-          "created_at"
-        ],
-        "title": "InvitationResponse"
-      },
-      "app__features__documents__schemas__InvitationListResponse": {
-        "properties": {
-          "invitations": {
-            "items": {
-              "$ref": "#/components/schemas/app__features__documents__schemas__InvitationResponse"
-            },
-            "type": "array",
-            "title": "Invitations"
-          },
-          "total": {
-            "type": "integer",
-            "title": "Total"
-          }
-        },
-        "type": "object",
-        "required": [
-          "total"
-        ],
-        "title": "InvitationListResponse",
-        "description": "Invitations awaiting this user's response."
-      },
-      "app__features__documents__schemas__InvitationResponse": {
-        "properties": {
-          "invitation_id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Invitation Id",
-            "description": "Use this to accept or decline"
-          },
-          "document_id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Document Id"
-          },
-          "file_name": {
-            "type": "string",
-            "title": "File Name",
-            "description": "Name of the document you were invited to"
-          },
-          "role": {
-            "type": "string",
-            "title": "Role",
-            "description": "Role you would hold: viewer | signer | editor"
-          },
-          "status": {
-            "type": "string",
-            "title": "Status",
-            "description": "pending | accepted | declined"
-          },
-          "invited_at": {
-            "type": "string",
-            "format": "date-time",
-            "title": "Invited At",
-            "description": "When the invitation was sent"
-          },
-          "responded_at": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "date-time"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Responded At",
-            "description": "When you accepted or declined; null while pending"
-          }
-        },
-        "type": "object",
-        "required": [
-          "invitation_id",
-          "document_id",
-          "file_name",
-          "role",
-          "status",
-          "invited_at"
-        ],
-        "title": "InvitationResponse",
-        "description": "An invitation to a document, awaiting the invitee's response."
       }
     },
     "securitySchemes": {

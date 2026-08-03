@@ -428,6 +428,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/documents/{document_id}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Restore a document from its archived original
+         * @description Replaces the stored file with the archived original. Deliberately manual: run it after `verify` reports tampering, having reviewed what changed.
+         *
+         *     The archived copy is re-read and checked against the blockchain hash before it is trusted — a backup that does not match the chain is refused rather than restored. The file being replaced is preserved first, since on a notarised document the tampered copy may be evidence.
+         *
+         *     Slow: verifying the archive costs a full OCR pass.
+         */
+        post: operations["restore_document_documents__document_id__restore_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/documents/{document_id}/finalize": {
         parameters: {
             query?: never;
@@ -859,6 +883,79 @@ export interface components {
              * @default lawyer
              */
             role: string;
+        };
+        /**
+         * DocumentInvitationActionResponse
+         * @description Result of accepting or declining.
+         */
+        DocumentInvitationActionResponse: {
+            /**
+             * Invitation Id
+             * Format: uuid
+             */
+            invitation_id: string;
+            /**
+             * Document Id
+             * Format: uuid
+             */
+            document_id: string;
+            /** Status */
+            status: string;
+            /** Message */
+            message: string;
+        };
+        /**
+         * DocumentInvitationListResponse
+         * @description Invitations awaiting this user's response.
+         */
+        DocumentInvitationListResponse: {
+            /** Invitations */
+            invitations?: components["schemas"]["DocumentInvitationResponse"][];
+            /** Total */
+            total: number;
+        };
+        /**
+         * DocumentInvitationResponse
+         * @description An invitation to a document, awaiting the invitee's response.
+         */
+        DocumentInvitationResponse: {
+            /**
+             * Invitation Id
+             * Format: uuid
+             * @description Use this to accept or decline
+             */
+            invitation_id: string;
+            /**
+             * Document Id
+             * Format: uuid
+             */
+            document_id: string;
+            /**
+             * File Name
+             * @description Name of the document you were invited to
+             */
+            file_name: string;
+            /**
+             * Role
+             * @description Role you would hold: viewer | signer | editor
+             */
+            role: string;
+            /**
+             * Status
+             * @description pending | accepted | declined
+             */
+            status: string;
+            /**
+             * Invited At
+             * Format: date-time
+             * @description When the invitation was sent
+             */
+            invited_at: string;
+            /**
+             * Responded At
+             * @description When you accepted or declined; null while pending
+             */
+            responded_at?: string | null;
         };
         /**
          * DocumentPartyListResponse
@@ -1428,25 +1525,36 @@ export interface components {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
         };
-        /**
-         * InvitationActionResponse
-         * @description Result of accepting or declining.
-         */
-        InvitationActionResponse: {
+        /** InvitationListResponse */
+        InvitationListResponse: {
+            /** Invitations */
+            invitations: components["schemas"]["InvitationResponse"][];
+        };
+        /** InvitationResponse */
+        InvitationResponse: {
             /**
-             * Invitation Id
+             * Id
              * Format: uuid
              */
-            invitation_id: string;
-            /**
-             * Document Id
-             * Format: uuid
-             */
-            document_id: string;
+            id: string;
+            /** Email */
+            email: string;
+            /** Role */
+            role: string;
             /** Status */
             status: string;
-            /** Message */
-            message: string;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Magic Link */
+            magic_link?: string | null;
         };
         /** MarkAllReadResponse */
         MarkAllReadResponse: {
@@ -1561,6 +1669,34 @@ export interface components {
              * @description Email address to resend verification to
              */
             email: string;
+        };
+        /**
+         * RestoreResponse
+         * @description Result of restoring a document from its archived original.
+         */
+        RestoreResponse: {
+            /**
+             * Document Id
+             * Format: uuid
+             */
+            document_id: string;
+            /**
+             * Restored From
+             * @description Archive key the original came from
+             */
+            restored_from: string;
+            /**
+             * Evidence Key
+             * @description Where the replaced (tampered) file was preserved before restoring; null if it could not be read, e.g. it had been deleted
+             */
+            evidence_key?: string | null;
+            /**
+             * Verified Hash
+             * @description Hash of the restored file, matched against the chain
+             */
+            verified_hash: string;
+            /** Message */
+            message: string;
         };
         /** SearchHit */
         SearchHit: {
@@ -1944,90 +2080,6 @@ export interface components {
             op: string;
             /** Text */
             text: string;
-        };
-        /** InvitationListResponse */
-        app__features__admin__schemas__InvitationListResponse: {
-            /** Invitations */
-            invitations: components["schemas"]["app__features__admin__schemas__InvitationResponse"][];
-        };
-        /** InvitationResponse */
-        app__features__admin__schemas__InvitationResponse: {
-            /**
-             * Id
-             * Format: uuid
-             */
-            id: string;
-            /** Email */
-            email: string;
-            /** Role */
-            role: string;
-            /** Status */
-            status: string;
-            /**
-             * Expires At
-             * Format: date-time
-             */
-            expires_at: string;
-            /**
-             * Created At
-             * Format: date-time
-             */
-            created_at: string;
-            /** Magic Link */
-            magic_link?: string | null;
-        };
-        /**
-         * InvitationListResponse
-         * @description Invitations awaiting this user's response.
-         */
-        app__features__documents__schemas__InvitationListResponse: {
-            /** Invitations */
-            invitations?: components["schemas"]["app__features__documents__schemas__InvitationResponse"][];
-            /** Total */
-            total: number;
-        };
-        /**
-         * InvitationResponse
-         * @description An invitation to a document, awaiting the invitee's response.
-         */
-        app__features__documents__schemas__InvitationResponse: {
-            /**
-             * Invitation Id
-             * Format: uuid
-             * @description Use this to accept or decline
-             */
-            invitation_id: string;
-            /**
-             * Document Id
-             * Format: uuid
-             */
-            document_id: string;
-            /**
-             * File Name
-             * @description Name of the document you were invited to
-             */
-            file_name: string;
-            /**
-             * Role
-             * @description Role you would hold: viewer | signer | editor
-             */
-            role: string;
-            /**
-             * Status
-             * @description pending | accepted | declined
-             */
-            status: string;
-            /**
-             * Invited At
-             * Format: date-time
-             * @description When the invitation was sent
-             */
-            invited_at: string;
-            /**
-             * Responded At
-             * @description When you accepted or declined; null while pending
-             */
-            responded_at?: string | null;
         };
     };
     responses: never;
@@ -2637,7 +2689,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["app__features__documents__schemas__InvitationListResponse"];
+                    "application/json": components["schemas"]["DocumentInvitationListResponse"];
                 };
             };
             /** @description Not authenticated — missing or invalid bearer token */
@@ -2666,7 +2718,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["InvitationActionResponse"];
+                    "application/json": components["schemas"]["DocumentInvitationActionResponse"];
                 };
             };
             /** @description Not authenticated — missing or invalid bearer token */
@@ -2718,7 +2770,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["InvitationActionResponse"];
+                    "application/json": components["schemas"]["DocumentInvitationActionResponse"];
                 };
             };
             /** @description Not authenticated — missing or invalid bearer token */
@@ -3206,6 +3258,65 @@ export interface operations {
             };
         };
     };
+    restore_document_documents__document_id__restore_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                document_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Restored and verified against the chain */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RestoreResponse"];
+                };
+            };
+            /** @description Not authenticated — missing or invalid bearer token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden — only the document owner may restore */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Document not found, no archived copy, or no on-chain record */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not finalized, or the archive does not match the chain */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     finalize_document_documents__document_id__finalize_post: {
         parameters: {
             query?: never;
@@ -3444,7 +3555,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["app__features__admin__schemas__InvitationListResponse"];
+                    "application/json": components["schemas"]["InvitationListResponse"];
                 };
             };
             /** @description Not a lawyer */
@@ -3475,7 +3586,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["app__features__admin__schemas__InvitationResponse"];
+                    "application/json": components["schemas"]["InvitationResponse"];
                 };
             };
             /** @description Invitation already exists */
