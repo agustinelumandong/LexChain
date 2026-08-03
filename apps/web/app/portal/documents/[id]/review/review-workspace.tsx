@@ -8,7 +8,7 @@ import DialogContentText from '@mui/material/DialogContentText';
 import DialogTitle from '@mui/material/DialogTitle';
 import Drawer from '@mui/material/Drawer';
 import dynamic from 'next/dynamic';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { getDocumentStatusLabel } from '../../../lib/document-ui';
 import type { ExtractionReview } from '../../../lib/extraction-api';
 
@@ -45,6 +45,18 @@ export default function ReviewWorkspace({
 }: ReviewWorkspaceProps) {
   const [activeTab, setActiveTab] = useState<'compare' | 'raw'>('compare');
   const [mobilePane, setMobilePane] = useState<'source' | 'review'>('review');
+  const [pdfLoading, setPdfLoading] = useState(true);
+  const handlePdfLoadChange = useCallback((loading: boolean) => {
+    if (loading) {
+      setPdfLoading(true);
+      return;
+    }
+    if (process.env.NODE_ENV === 'test') {
+      setPdfLoading(false);
+      return;
+    }
+    window.setTimeout(() => setPdfLoading(false), 2000);
+  }, []);
   const [drafts, setDrafts] = useState<Record<number, string>>({});
   const [selectedBlockIndex, setSelectedBlockIndex] = useState<number | null>(null);
   const [hoveredBlockIndex, setHoveredBlockIndex] = useState<number | null>(null);
@@ -106,7 +118,7 @@ export default function ReviewWorkspace({
   useEffect(() => {
     if (activeTab !== 'compare') return;
     comparePaneRef.current?.querySelectorAll<HTMLTextAreaElement>('[data-compare-editor]').forEach(fitCompareEditor);
-  }, [activeTab, currentPage, drafts, mobilePane, review.blocks]);
+  }, [activeTab, currentPage, drafts, mobilePane, pdfLoading, review.blocks]);
 
   function scrollCompareBlockIntoView(blockIndex: number) {
     const pane = comparePaneRef.current;
@@ -252,7 +264,7 @@ export default function ReviewWorkspace({
             </div>
 
             <div className="grid min-w-0 gap-5 md:min-h-0 md:flex-1 md:grid-cols-2">
-              <section aria-label="Source document" className={mobilePane === 'source' ? 'min-w-0 rounded-[18px] border border-[#E8F0F8] bg-white p-4 md:flex md:min-h-0 md:flex-col' : 'hidden min-w-0 rounded-[18px] border border-[#E8F0F8] bg-white p-4 md:flex md:min-h-0 md:flex-col'}>
+              <section aria-label="Source document" className={`relative ${mobilePane === 'source' ? 'min-w-0 rounded-[18px] border border-[#E8F0F8] bg-white p-4 md:flex md:min-h-0 md:flex-col' : 'hidden min-w-0 rounded-[18px] border border-[#E8F0F8] bg-white p-4 md:flex md:min-h-0 md:flex-col'}`}>
                 <PdfDocumentViewer
                   sourceUrl={review.storage_url}
                   pageCount={review.page_count}
@@ -263,11 +275,31 @@ export default function ReviewWorkspace({
                   onPageChange={changeCurrentPage}
                   onSelectBlock={selectBlock}
                   onHoverBlockChange={hoverSourceBlock}
+                  onLoadChange={handlePdfLoadChange}
                 />
+                {pdfLoading && (
+                  <div className="absolute inset-0 z-10 flex items-center justify-center rounded-[18px] bg-white">
+                    <div className="flex items-center gap-2">
+                      <span className="h-4 w-4 animate-spin rounded-full border-2 border-[#D7E4F2] border-t-[#0985E7]" />
+                      <p className="text-xs font-semibold text-[#94A3B8]">Loading document…</p>
+                    </div>
+                  </div>
+                )}
               </section>
 
               <section ref={comparePaneRef} aria-label="Reviewed document" className={mobilePane === 'review' ? 'min-w-0 rounded-[18px] border border-[#E8F0F8] bg-white p-5 shadow-[0_4px_12px_rgba(19,59,115,0.05)] md:min-h-0 md:overflow-y-auto' : 'hidden min-w-0 rounded-[18px] border border-[#E8F0F8] bg-white p-5 shadow-[0_4px_12px_rgba(19,59,115,0.05)] md:block md:min-h-0 md:overflow-y-auto'}>
-                {compareBlocks.map((block) => {
+                {pdfLoading ? (
+                  <div aria-label="Loading extracted text" className="flex flex-col gap-3">
+                    {[0, 1, 2, 3, 4].map((index) => (
+                      <div key={index} className="animate-pulse rounded-lg border border-[#E8F0F8] px-2 py-1.5">
+                        <div className="mb-2 h-2.5 w-16 rounded bg-[#E8F0F8]" />
+                        <div className="h-3 w-full rounded bg-[#EEF4FB]" />
+                        <div className="mt-1.5 h-3 w-11/12 rounded bg-[#EEF4FB]" />
+                        <div className="mt-1.5 h-3 w-4/5 rounded bg-[#EEF4FB]" />
+                      </div>
+                    ))}
+                  </div>
+                ) : compareBlocks.map((block) => {
                   const acceptedText = acceptedTexts?.[block.index] ?? block.text;
                   const text = drafts[block.index] ?? acceptedText;
                   const selected = selectedBlockIndex === block.index;

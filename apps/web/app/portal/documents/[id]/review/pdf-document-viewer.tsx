@@ -16,6 +16,7 @@ export type PdfDocumentViewerProps = {
   onPageChange: (pageIndex: number) => void;
   onSelectBlock: (blockIndex: number) => void;
   onHoverBlockChange: (blockIndex: number | null) => void;
+  onLoadChange?: (loading: boolean) => void;
 };
 
 const DEFAULT_ZOOM = 0.85;
@@ -52,6 +53,7 @@ export default function PdfDocumentViewer({
   onPageChange,
   onSelectBlock,
   onHoverBlockChange,
+  onLoadChange,
 }: PdfDocumentViewerProps) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -95,8 +97,10 @@ export default function PdfDocumentViewer({
 
         if (disposed) return;
         setLoadResult({ sourceUrl, pdf: loadedPdf, failed: false });
+        onLoadChange?.(false);
       } catch {
         if (!disposed) setLoadResult({ sourceUrl, pdf: null, failed: true });
+        onLoadChange?.(false);
       }
     })();
 
@@ -104,7 +108,7 @@ export default function PdfDocumentViewer({
       disposed = true;
       void loadingTask?.destroy();
     };
-  }, [sourceUrl]);
+  }, [sourceUrl, onLoadChange]);
 
   useEffect(() => {
     const canvas = canvasRef.current;

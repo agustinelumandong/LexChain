@@ -11,10 +11,15 @@ const dynamicMocks = vi.hoisted(() => ({
 const animationFrames: FrameRequestCallback[] = [];
 const originalScrollIntoView = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'scrollIntoView');
 
-vi.mock('next/dynamic', () => ({
-  default: () => function MockPdfDocumentViewer(props: Record<string, unknown>) {
-    dynamicMocks.viewerProps = props;
-    return (
+vi.mock('next/dynamic', async () => {
+  const { useEffect } = await import('react');
+  return {
+    default: () => function MockPdfDocumentViewer(props: Record<string, unknown>) {
+      dynamicMocks.viewerProps = props;
+      useEffect(() => {
+        (props.onLoadChange as ((loading: boolean) => void) | undefined)?.(false);
+      }, [props.onLoadChange]);
+      return (
       <div>
         Source PDF viewer
         {[0, 1, 2].map((blockIndex) => (
@@ -42,8 +47,9 @@ vi.mock('next/dynamic', () => ({
         </button>
       </div>
     );
-  },
-}));
+    },
+  };
+});
 
 type ExtractionReview = ApiSchema<'ExtractionReviewResponse'>;
 
@@ -410,7 +416,7 @@ describe('ReviewWorkspace', () => {
     expect(dynamicMocks.viewerProps).toMatchObject({ hoveredBlockIndex: null, selectedBlockIndex: 0 });
   });
 
-  it('grows Compare editors to their content on render and text changes', () => {
+  it('grows Compare editors to their content on render and text changes', async () => {
     let scrollHeight = 64;
     const originalScrollHeight = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'scrollHeight');
     Object.defineProperty(HTMLTextAreaElement.prototype, 'scrollHeight', {
@@ -421,7 +427,7 @@ describe('ReviewWorkspace', () => {
     try {
       renderWorkspace();
       const editor = screen.getByLabelText('Reviewed text for block 0') as HTMLTextAreaElement;
-      expect(editor.style.height).toBe('64px');
+      await waitFor(() => expect(editor.style.height).toBe('64px'));
 
       scrollHeight = 112;
       fireEvent.change(editor, { target: { value: 'A longer reviewed title' } });
