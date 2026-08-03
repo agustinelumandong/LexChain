@@ -93,8 +93,44 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
 
   if (isPending) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-[#F5FAFF] p-6 text-[#0C2B49]">
-        <p className="text-sm font-semibold">Loading your portal…</p>
+      <main className="min-h-screen bg-[#F5FAFF] text-[#111827]" role="status" aria-label="Loading portal">
+        <div className="flex min-h-screen">
+          <aside className="hidden w-[260px] shrink-0 flex-col gap-7 border-r border-[#E8F0F8] bg-white px-[22px] pb-[22px] pt-[26px] md:flex">
+            <div className="flex min-h-[52px] items-center gap-2">
+              <Image src="/lexchain/logo-lexchain.svg" alt="" width={44} height={44} className="rounded-[14px]" />
+              <div className="h-7 w-24 animate-pulse rounded bg-[#E8F0F8]" />
+            </div>
+            <div className="flex flex-1 flex-col gap-4">
+              {[0, 1, 2, 3, 4, 5, 6].map((index) => (
+                <div key={index} className="h-11 animate-pulse rounded-xl bg-[#EEF4FB]" />
+              ))}
+            </div>
+          </aside>
+          <section className="flex min-w-0 flex-1 flex-col overflow-x-clip px-6 pb-24 pt-0 md:pb-6">
+            <header className="sticky top-0 z-40 -mx-6 mb-6 border-b border-[#E8F0F8] bg-white px-4 md:px-6">
+              <div className="flex min-h-16 items-center gap-3">
+                <div className="h-10 flex-1 animate-pulse rounded-xl bg-[#EEF4FB]" />
+                <div className="h-10 w-10 shrink-0 animate-pulse rounded-full bg-[#EEF4FB]" />
+                <div className="h-10 w-10 shrink-0 animate-pulse rounded-full bg-[#EEF4FB]" />
+              </div>
+            </header>
+            <div className="flex flex-col gap-5">
+              <div className="h-8 w-56 animate-pulse rounded bg-[#E8F0F8]" />
+              <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
+                {[0, 1, 2, 3, 4, 5].map((index) => (
+                  <div key={index} className="h-28 animate-pulse rounded-2xl border border-[#E8F0F8] bg-white" />
+                ))}
+              </div>
+              <div className="grid gap-5 md:grid-cols-[minmax(0,1fr)_360px]">
+                <div className="h-72 animate-pulse rounded-2xl border border-[#E8F0F8] bg-white" />
+                <div className="flex flex-col gap-5">
+                  <div className="h-36 animate-pulse rounded-2xl border border-[#E8F0F8] bg-white" />
+                  <div className="h-36 animate-pulse rounded-2xl border border-[#E8F0F8] bg-white" />
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
       </main>
     );
   }
