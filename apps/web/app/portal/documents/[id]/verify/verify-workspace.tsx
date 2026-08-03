@@ -52,7 +52,7 @@ export default function VerifyWorkspace({ result, onRetry }: { result: Verificat
   const [sanitized, setSanitized] = useState<Record<string, string | null>>({});
   const localized = report?.localized !== false;
   const blocks = result.blocks ?? [];
-  const hasPdf = Boolean(result.storage_url && blocks.length > 0);
+  const hasPdf = Boolean(result.storage_url);
   const tamperedBlockIndexes = useMemo(() => new Set(
     segments.flatMap((s) => s.block_index == null ? [] : [s.block_index]),
   ), [segments]);
@@ -102,7 +102,7 @@ export default function VerifyWorkspace({ result, onRetry }: { result: Verificat
 
     {result.status === 'TAMPERED' && report && <div className="flex flex-col gap-4 md:min-h-0 md:flex-1">
       <div className="flex flex-wrap items-baseline justify-between gap-2"><h2 className="text-lg font-black text-[#0C2B49]">{report.total_changes} change{report.total_changes === 1 ? '' : 's'} found</h2><p className="text-sm text-[#64748b]">{report.critical_changes} critical · {(report.similarity * 100).toFixed(1)}% unchanged</p></div>
-      <div className={`grid min-w-0 gap-5 md:min-h-0 md:flex-1 ${hasPdf ? 'md:grid-cols-2' : ''}`}>
+      <div className="grid min-w-0 gap-5 md:min-h-0 md:flex-1 md:grid-cols-2">
         {hasPdf && <section aria-label="Current document" className="min-w-0 rounded-[18px] border border-[#E8F0F8] bg-white p-4 md:min-h-0 md:overflow-y-auto">
           <PdfDocumentViewer sourceUrl={result.storage_url!} pageCount={result.page_count ?? 1} currentPage={currentPage} blocks={blocks} selectedBlockIndex={selectedBlockIndex} hoveredBlockIndex={hoveredBlockIndex} tamperedBlockIndexes={tamperedBlockIndexes} onPageChange={setCurrentPage} onSelectBlock={setSelectedBlockIndex} onHoverBlockChange={setHoveredBlockIndex} />
         </section>}
@@ -110,12 +110,52 @@ export default function VerifyWorkspace({ result, onRetry }: { result: Verificat
       </div>
     </div>}
 
-    <div className="flex flex-wrap gap-x-4 gap-y-1 rounded-xl border border-[#E8F0F8] bg-white p-4 text-xs text-[#64748b]">
-      {result.onchain_hash && <span>On-chain {result.onchain_hash}</span>}
-      {result.current_hash && <span>Current {result.current_hash}</span>}
-      {result.tx_hash && <span>Transaction {result.tx_hash}</span>}
+    {result.status !== 'TAMPERED' && (
+      <div className="grid min-w-0 gap-5 md:min-h-0 md:flex-1 md:grid-cols-2">
+        {hasPdf && <section aria-label="Current document" className="min-w-0 rounded-[18px] border border-[#E8F0F8] bg-white p-4 md:min-h-0 md:overflow-y-auto">
+          <PdfDocumentViewer sourceUrl={result.storage_url!} pageCount={result.page_count ?? 1} currentPage={currentPage} blocks={blocks} selectedBlockIndex={selectedBlockIndex} hoveredBlockIndex={hoveredBlockIndex} tamperedBlockIndexes={tamperedBlockIndexes} onPageChange={setCurrentPage} onSelectBlock={setSelectedBlockIndex} onHoverBlockChange={setHoveredBlockIndex} />
+        </section>}
+        <section aria-label="Verification result" className="min-w-0 rounded-[18px] border border-[#E8F0F8] bg-white p-5 md:min-h-0 md:overflow-y-auto">
+          <div className="space-y-3">
+            {result.onchain_hash && <HashRow label="On-chain" hash={result.onchain_hash} />}
+            {result.current_hash && <HashRow label="Current" hash={result.current_hash} />}
+            {result.tx_hash && <HashRow label="Transaction" hash={result.tx_hash} />}
+          </div>
+          <div className="mt-4 space-y-3">
+            <div className="flex items-center gap-2 rounded-xl bg-[#F8FBFF] p-3 text-sm text-[#0C2B49]"><CheckCircleIcon className="text-[#12A150]" sx={{ fontSize: 20 }} /><span>{result.message}</span></div>
+          </div>
+        </section>
+      </div>
+    )}
+
+    <div className="flex flex-wrap items-center gap-x-5 gap-y-2 rounded-xl border border-[#E8F0F8] bg-white p-3 text-xs text-[#64748b]">
+      <span className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full bg-[#12A150]" />Green = authentic — the document matches its anchored on-chain record.</span>
+      <span className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full bg-[#D94B66]" />Red = tampered — the document differs from the anchored original.</span>
     </div>
   </section>;
+}
+
+function HashRow({ label, hash }: { label: string; hash: string }) {
+  const [copied, setCopied] = useState(false);
+  const shortened = hash.length > 18 ? `${hash.slice(0, 10)}…${hash.slice(-6)}` : hash;
+
+  async function copyHash() {
+    await navigator.clipboard?.writeText(hash);
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 1500);
+  }
+
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-xl border border-[#E8F0F8] bg-[#F8FBFF] px-3 py-2.5">
+      <div className="min-w-0">
+        <p className="text-[11px] font-black uppercase tracking-wide text-[#64748b]">{label}</p>
+        <p className="mt-0.5 truncate font-mono text-xs font-semibold text-[#0C2B49]" title={hash}>{shortened}</p>
+      </div>
+      <button type="button" onClick={() => void copyHash()} className="shrink-0 rounded-full border border-[#D7E4F2] bg-white px-3 py-1 text-[11px] font-black text-[#0985E7] transition hover:bg-[#EAF4FF]">
+        {copied ? 'Copied' : 'Copy'}
+      </button>
+    </div>
+  );
 }
 
 function SegmentList({ segments, selectedBlockIndex, localized, onSelect, onHover, sanitizedHtml }: { segments: TamperedSegment[]; selectedBlockIndex: number | null; localized: boolean; onSelect: (segment: TamperedSegment) => void; onHover: (blockIndex: number | null) => void; sanitizedHtml: (text: string, key: string) => ReactNode }) {
