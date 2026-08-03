@@ -47,4 +47,14 @@ describe("PortalLayout mobile navigation", () => {
     expect(screen.getByRole("button", { name: "Collapse sidebar" }).getAttribute("type"))
       .toBe("button");
   });
+
+  it("renders the skeleton shell while the profile is loading", () => {
+    useQuery.mockImplementation(() => ({ data: undefined, isError: false, isPending: true }));
+
+    render(<PortalLayout><p>Shared workspace</p></PortalLayout>);
+
+    const skeleton = screen.getByRole("status", { name: "Loading portal" });
+    expect(skeleton.querySelectorAll(".animate-pulse").length).toBeGreaterThan(0);
+    expect(screen.queryByText("Shared workspace")).toBeNull();
+  });
 });
