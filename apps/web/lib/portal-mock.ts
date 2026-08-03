@@ -495,6 +495,21 @@ export function mockPortalGet(path: string, token?: string): Response {
   if (path === '/notifications/unread-count') {
     return json({ unread: notifications.filter((notification) => !notification.is_read).length });
   }
+  if (requestPathname === '/documents/invitations/mine') {
+    if (!isMockParticipant(token)) return error('User access required', 403);
+    const pending = invitations.filter((invitation) => invitation.status === 'pending');
+    return json({
+      invitations: pending.map((invitation) => ({
+        invitation_id: invitation.id,
+        document_id: invitation.document_id,
+        file_name: invitation.document_title,
+        role: invitation.role,
+        status: invitation.status,
+        invited_at: invitation.created_at,
+      })),
+      total: pending.length,
+    });
+  }
   if (requestPathname === '/documents/invitations') {
     if (!isMockParticipant(token)) return error('User access required', 403);
     return json(invitations.filter((invitation) => invitation.status === 'pending'));
@@ -524,6 +539,7 @@ export function mockPortalGet(path: string, token?: string): Response {
     if (!canAccessDocument(token, document)) return error('Document access required', 403);
     return json(document.snapshots);
   }
+
 
   const documentMatch = documentPaths(path);
   if (documentMatch) {
@@ -797,6 +813,28 @@ function approveExtraction(documentId: string) {
 export async function mockPortalMutate(method: 'POST' | 'PATCH' | 'DELETE', path: string, request: Request, token?: string): Promise<Response> {
   if (!token || !isMockPortalToken(token)) return error('Not authenticated', 401);
   const requestPathname = pathname(path);
+  const documentRestoreMatch = requestPathname.match(/^\/documents\/([^/]+)\/restore\/?$/);
+  if (method === 'POST' && documentRestoreMatch) {
+    if (!isMockDocumentIssuerToken(token)) return error('Lawyer access required', 403);
+    const document = documentFor(documentRestoreMatch[1]);
+    if (!document) return error('Document not found', 404);
+    return json({
+      document_id: document.id,
+      restored_from: 'mock-archive',
+      evidence_key: null,
+      verified_hash: document.document_hash ?? `0x${deterministicHash(document.id)}`,
+    });
+  }
+  const invitationActionMatch = requestPathname.match(/^\/documents\/invitations\/([^/]+)\/(accept|decline)$/);
+  if (method === 'POST' && invitationActionMatch) {
+    if (!isMockParticipant(token)) return error('User access required', 403);
+    const [, invitationId, action] = invitationActionMatch;
+    const invitation = invitations.find((item) => item.id === invitationId);
+    if (!invitation || invitation.status !== 'pending') return error('Invitation not found', 404);
+    invitations = invitations.filter((item) => item.id !== invitationId);
+    if (action === 'accept') sharedDocumentIds.add(invitation.document_id);
+    return json({ message: `Invitation ${action}ed` });
+  }
   if (method === 'POST' && (requestPathname === '/documents/upload' || requestPathname === '/documents/upload/')) {
     if (!hasMockIssuerAccess(token)) return error('Lawyer access required', 403);
     return uploadDocument(request, path);

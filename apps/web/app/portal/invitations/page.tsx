@@ -8,7 +8,8 @@ import { portalFetch } from "../lib/portal-fetch";
 import { canAccessPortalFeature } from "../lib/portal-access";
 import { getPortalUiRole } from "../lib/portal-role";
 
-type Invitation = components["schemas"]["app__features__documents__schemas__InvitationResponse"];
+type Invitation = components["schemas"]["DocumentInvitationResponse"];
+type InvitationList = components["schemas"]["DocumentInvitationListResponse"];
 type UserProfile = components["schemas"]["UserProfileResponse"];
 
 function formatDate(value: string) {
@@ -34,7 +35,7 @@ export default function InvitationsPage() {
   const isParticipant = canAccessPortalFeature(getPortalUiRole(profileQuery.data?.role), "invitations");
   const { data: list, error, isLoading } = useQuery({
     queryKey: ["portal-invitations"],
-    queryFn: () => portalFetch<components["schemas"]["app__features__documents__schemas__InvitationListResponse"]>("/documents/invitations/mine"),
+    queryFn: () => portalFetch<InvitationList>("/documents/invitations/mine"),
     enabled: isParticipant,
   });
   const invitations = list?.invitations ?? [];
