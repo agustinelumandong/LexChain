@@ -3,18 +3,20 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 const pageSource = readFileSync(resolve(import.meta.dirname, 'page.tsx'), 'utf8');
+const workspaceSource = readFileSync(resolve(import.meta.dirname, 'document-workspace.tsx'), 'utf8');
 
-it('loads document integrity through the dedicated verification client', () => {
-  expect(pageSource).toContain("import { verifyRepositoryDocument } from '../../lib/integrity-api';");
-  expect(pageSource).toContain("queryFn: () => verifyRepositoryDocument(id)");
+it('does not auto-run the on-chain verification on page load', () => {
+  expect(pageSource).not.toContain("import { verifyRepositoryDocument } from '../../lib/integrity-api';");
+  expect(pageSource).not.toContain("queryFn: () => verifyRepositoryDocument(id)");
+  expect(pageSource).not.toContain('Integrity record available');
+  expect(pageSource).not.toContain('Integrity mismatch');
+  expect(pageSource).not.toContain('Integrity status unavailable');
 });
 
-it('derives the detail integrity state from the repository lookup only', () => {
-  expect(pageSource).toContain("getIntegrityUiState({ record: chainQ.data, requestFailed: chainQ.isError })");
-  expect(pageSource).toContain('integrityState={integrityState}');
-  expect(pageSource).toContain('onRetry={() => void chainQ.refetch()}');
-  expect(pageSource).not.toContain('hasBlockchainStatus');
-  expect(pageSource).not.toContain('Blockchain record available');
+it('shows the document hash from the document record only', () => {
+  expect(workspaceSource).toContain('document.document_hash');
+  expect(pageSource).not.toContain('content_hash');
+  expect(workspaceSource).not.toContain('content_hash');
 });
 
 it('links issuers with an awaiting-review document to extracted text review', () => {

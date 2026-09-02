@@ -6,10 +6,7 @@ import Link from 'next/link';
 import type { ApiSchema } from '@lexchain/types';
 import { listDocumentVersions } from '../../lib/document-lifecycle-api';
 import type { DemoDocumentLifecycle } from '../../lib/document-lifecycle-ui';
-import {
-  shortenIntegrityHash,
-  type IntegrityUiState,
-} from '../../lib/integrity-ui';
+import { shortenIntegrityHash } from '../../lib/integrity-ui';
 import type { PortalUiRole } from '../../lib/portal-role';
 
 type WorkspaceDocument = Partial<DemoDocumentLifecycle> & {
@@ -24,13 +21,6 @@ type WorkspaceDocument = Partial<DemoDocumentLifecycle> & {
   entities?: unknown[] | null;
   risk_flags?: unknown[] | null;
 };
-
-type BlockchainRecord = {
-  onchain_hash?: string | null;
-  current_hash?: string | null;
-  tx_hash?: string | null;
-  onchain_timestamp?: number | null;
-} | null | undefined;
 
 const tabs = ['Overview', 'Original PDF', 'Blockchain', 'Versions', 'Access', 'Activity'] as const;
 type Tab = typeof tabs[number];
@@ -52,14 +42,6 @@ function readable(value: unknown): string {
     }
   }
   return JSON.stringify(value);
-}
-
-function integrityLabel(state: IntegrityUiState) {
-  if (state === 'recorded') return 'Integrity record available';
-  if (state === 'unavailable') return 'Integrity status unavailable';
-  if (state === 'mismatch') return 'Integrity mismatch';
-  if (state === 'match') return 'Integrity match';
-  return 'No integrity record';
 }
 
 function lifecycleLabel(value: DemoDocumentLifecycle['lifecycle'] | undefined) {
@@ -95,9 +77,6 @@ function InsightGroup({ title, items }: { title: string; items?: unknown[] | nul
 type DocumentWorkspaceProps = {
   document: WorkspaceDocument;
   role: PortalUiRole;
-  chain?: BlockchainRecord;
-  integrityState: IntegrityUiState;
-  onRetry?: () => void;
   finalizationResult?: ApiSchema<'RecordResponse'>;
   confirmingFinalize?: boolean;
   isFinalizing?: boolean;
@@ -113,9 +92,6 @@ const finalizationConfirmation = 'This will anchor the approved document hash on
 export function DocumentWorkspace({
   document,
   role,
-  chain,
-  integrityState,
-  onRetry,
   finalizationResult,
   confirmingFinalize = false,
   isFinalizing = false,
@@ -155,9 +131,8 @@ export function DocumentWorkspace({
               <div><dt className="font-bold text-[#64748b]">Filename</dt><dd className="mt-1 text-[#0C2B49]">{document.file_name ?? 'Not supplied'}</dd></div>
               <div><dt className="font-bold text-[#64748b]">Content type</dt><dd className="mt-1 text-[#0C2B49]">{document.content_type ?? 'Not supplied'}</dd></div>
               <div><dt className="font-bold text-[#64748b]">Lifecycle status</dt><dd className="mt-1 text-[#0C2B49]">{document.status ?? 'Not supplied'}</dd></div>
-              <div><dt className="font-bold text-[#64748b]">Integrity status</dt><dd className="mt-1 text-[#0C2B49]">{integrityLabel(integrityState)}</dd></div>
               <div><dt className="font-bold text-[#64748b]">Document lifecycle</dt><dd className="mt-1 text-[#0C2B49]">{lifecycleLabel(lifecycle.lifecycle)}</dd></div>
-              <div><dt className="font-bold text-[#64748b]">Document hash</dt><dd title={chain?.onchain_hash ?? undefined} className="mt-1 break-all font-mono text-[#0C2B49]">{chain?.onchain_hash ? shortenIntegrityHash(chain.onchain_hash) : 'Not available'}</dd></div>
+              <div><dt className="font-bold text-[#64748b]">Document hash</dt><dd title={document.document_hash ?? undefined} className="mt-1 break-all font-mono text-[#0C2B49]">{document.document_hash ? shortenIntegrityHash(document.document_hash) : 'Not available'}</dd></div>
               <div><dt className="font-bold text-[#64748b]">Finalized</dt><dd className="mt-1 text-[#0C2B49]">{formatDate(lifecycle.finalized_at)}</dd></div>
               <div><dt className="font-bold text-[#64748b]">Anchor state</dt><dd className="mt-1 text-[#0C2B49]">{anchorLabel(lifecycle.lifecycle, document.on_chain)}</dd></div>
             </dl>
@@ -171,16 +146,17 @@ export function DocumentWorkspace({
             {versionError && <p role="alert" className="text-sm font-bold text-[#B42318]">{versionError}</p>}
             {success && <p role="status" className="rounded-xl border border-[#BCE8CC] bg-[#F1FBF5] px-4 py-3 text-sm font-bold text-[#0C7A3B]">{success}</p>}
             {finalizationResult && <dl className="grid gap-3 rounded-xl bg-[#F8FBFF] p-4 text-sm sm:grid-cols-2"><div><dt className="font-bold text-[#64748b]">Data hash</dt><dd className="mt-1 break-all font-mono text-[#0C2B49]">{finalizationResult.data_hash}</dd></div><div><dt className="font-bold text-[#64748b]">Transaction hash</dt><dd className="mt-1 break-all font-mono text-[#0C2B49]">{finalizationResult.tx_hash}</dd></div></dl>}
-            {integrityState === 'unavailable' && onRetry && <button type="button" onClick={onRetry} className="w-fit rounded-full border border-[#D7E4F2] px-4 py-2 text-sm font-bold text-[#0985E7]">Retry integrity lookup</button>}
             <p className="text-sm leading-6 text-[#64748b]">Use this workspace to review the original file, derived assistance, and available integrity information.</p>
             {confirmingFinalize && (
-              <div role="dialog" aria-modal="true" aria-label="Confirm finalization" className="rounded-xl border border-[#CFE7FC] bg-[#F1F8FF] p-4">
-                <p className="font-bold text-[#0C2B49]">Finalize this document?</p>
-                <p className="mt-1 text-sm leading-6 text-[#64748b]">{finalizationConfirmation}</p>
-                {finalizeError && <p role="alert" className="mt-3 text-sm font-bold text-[#B42318]">{finalizeError}</p>}
-                <div className="mt-4 flex flex-wrap gap-2">
-                  <button type="button" onClick={onCancelFinalize} disabled={isFinalizing} className="rounded-lg border border-[#D6E3F1] px-3 py-2 text-sm font-bold text-[#0C2B49] disabled:opacity-60">Cancel</button>
-                  <button type="button" onClick={onConfirmFinalize} disabled={isFinalizing} className="rounded-lg bg-[#0985E7] px-3 py-2 text-sm font-bold text-white disabled:opacity-60">{isFinalizing ? 'Finalizing…' : 'Confirm finalization'}</button>
+              <div role="dialog" aria-modal="true" aria-label="Confirm finalization" className="fixed inset-0 z-50 flex items-center justify-center bg-[#0C2B49]/40 p-4">
+                <div className="w-full max-w-md rounded-2xl border border-[#CFE7FC] bg-white p-6 shadow-[0_16px_40px_rgba(12,43,73,0.25)]">
+                  <p className="text-lg font-black text-[#0C2B49]">Finalize this document?</p>
+                  <p className="mt-2 text-sm leading-6 text-[#64748b]">{finalizationConfirmation}</p>
+                  {finalizeError && <p role="alert" className="mt-3 rounded-xl bg-red-50 p-3 text-sm font-bold text-[#B42318]">{finalizeError}</p>}
+                  <div className="mt-5 flex flex-wrap justify-end gap-2">
+                    <button type="button" onClick={onCancelFinalize} disabled={isFinalizing} className="rounded-full border border-[#D6E3F1] px-4 py-2 text-sm font-bold text-[#0C2B49] disabled:opacity-60">Cancel</button>
+                    <button type="button" onClick={onConfirmFinalize} disabled={isFinalizing} className="rounded-full bg-[#0985E7] px-4 py-2 text-sm font-bold text-white disabled:opacity-60">{isFinalizing ? 'Finalizing…' : 'Confirm finalization'}</button>
+                  </div>
                 </div>
               </div>
             )}
@@ -200,11 +176,9 @@ export function DocumentWorkspace({
 
 
 
-        {activeTab === 'Blockchain' && (integrityState === 'unavailable' ? (
-          <div className="space-y-4"><p className="text-sm text-[#64748b]">Integrity status unavailable</p>{onRetry && <button type="button" onClick={onRetry} className="rounded-full border border-[#D7E4F2] px-4 py-2 text-sm font-bold text-[#0985E7]">Retry integrity lookup</button>}</div>
-        ) : chain?.onchain_hash ? (
-          <div className="space-y-4"><div><h2 className="text-lg font-extrabold text-[#0C2B49]">Blockchain</h2><p className={`mt-2 w-fit rounded-full px-2.5 py-0.5 text-[11px] font-bold ${integrityState === 'mismatch' ? 'bg-[#FFF4DD] text-[#B77900]' : 'bg-[#EAF8F0] text-[#12A150]'}`}>{integrityLabel(integrityState)}</p><p className="mt-1 text-sm leading-6 text-[#64748b]">A hash record supports integrity checking, not legal validity.</p></div><dl className="space-y-3 text-sm"><div><dt className="font-bold text-[#64748b]">On-chain hash</dt><dd className="mt-1 break-all font-mono text-[#0C2B49]">{chain.onchain_hash}</dd></div>{chain.tx_hash && <div><dt className="font-bold text-[#64748b]">Transaction hash</dt><dd className="mt-1 break-all font-mono text-[#0C2B49]">{chain.tx_hash}</dd></div>}</dl></div>
-        ) : <p className="text-sm text-[#64748b]">No blockchain record is available in the current document record.</p>)}
+        {activeTab === 'Blockchain' && (
+          <div className="space-y-4"><p className="text-sm text-[#64748b]">No blockchain record is available in the current document record.</p></div>
+        )}
 
         {activeTab === 'Versions' && (
           <div className="space-y-4">
