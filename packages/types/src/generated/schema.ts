@@ -1104,6 +1104,16 @@ export interface components {
              */
             on_chain: boolean;
             /**
+             * Document Hash
+             * @description SHA-256 of the uploaded PDF bytes, taken at upload. Identifies the file itself — two uploads of the same PDF share this value.
+             */
+            document_hash: string;
+            /**
+             * Content Hash
+             * @description SHA-256 of the approved extracted text, set when the issuer approves the review. This is the value anchored on-chain at finalize, so it is what verification compares against. Null until the review is approved.
+             */
+            content_hash?: string | null;
+            /**
              * Version
              * @description Version number within its chain
              */
