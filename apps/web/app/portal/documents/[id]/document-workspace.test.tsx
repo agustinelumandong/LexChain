@@ -16,7 +16,6 @@ vi.mock('../../lib/document-lifecycle-api', () => ({
 
 const document = {
   document_id: 'doc-101',
-  document_number: 101,
   file_name: 'service-agreement.pdf',
   status: 'COMPLETED',
   content_type: 'application/pdf',
@@ -52,7 +51,6 @@ function renderWorkspace(props: Partial<React.ComponentProps<typeof DocumentWork
       <DocumentWorkspace
         document={document}
         role="lawyer"
-        integrityState="recorded"
         {...props}
       />
     </QueryClientProvider>,
@@ -83,77 +81,64 @@ describe('DocumentWorkspace', () => {
     const overview = screen.getByRole('tabpanel');
     expect(within(overview).getByRole('heading', { name: 'Overview' })).toBeTruthy();
     expect(within(overview).getByText('Filename').nextElementSibling?.textContent).toBe('service-agreement.pdf');
-    expect(within(overview).getByText('Reference').nextElementSibling?.textContent).toBe('101');
     expect(within(overview).getByText('Content type').nextElementSibling?.textContent).toBe('application/pdf');
     expect(within(overview).getByText('Lifecycle status').nextElementSibling?.textContent).toBe('COMPLETED');
-    expect(within(overview).getByText('Integrity status').nextElementSibling?.textContent).toBe('Integrity record available');
   });
 
   it('marks missing Overview metadata as not supplied', () => {
-    renderWorkspace({ document: { ...document, document_number: null, content_type: null, storage_url: null } });
+    renderWorkspace({ document: { ...document, content_type: null, storage_url: null } });
 
     const overview = screen.getByRole('tabpanel');
-    expect(within(overview).getByText('Reference').nextElementSibling?.textContent).toBe('Not supplied');
     expect(within(overview).getByText('Content type').nextElementSibling?.textContent).toBe('Not supplied');
   });
 
-  it('keeps original files, derived insights, and integrity data in separate tabs', () => {
-    renderWorkspace({ chain: { data_hash: '0xabc', tx_hash: '0xdef', onchain_timestamp: 1_700_000_000 } });
+  it('keeps original files and derived insights in separate tabs', () => {
+    renderWorkspace();
 
     expect(screen.getByRole('tab', { name: 'Overview' })).toBeTruthy();
+    expect(screen.getByText(/AI-generated assistance/i)).toBeTruthy();
+    expect(screen.getByText(/original document remains authoritative/i)).toBeTruthy();
+
     fireEvent.click(screen.getByRole('tab', { name: 'Original PDF' }));
     expect(screen.getByRole('link', { name: 'Open original PDF' }).getAttribute('href')).toBe(document.storage_url);
     expect(screen.getByRole('link', { name: 'Download original PDF' }).hasAttribute('download')).toBe(true);
 
-    fireEvent.click(screen.getByRole('tab', { name: 'Insights' }));
-    expect(screen.getByText(/AI-generated assistance/i)).toBeTruthy();
-    expect(screen.getByText(/original document remains authoritative/i)).toBeTruthy();
-
     fireEvent.click(screen.getByRole('tab', { name: 'Blockchain' }));
-    expect(screen.getByText(/supports integrity checking, not legal validity/i)).toBeTruthy();
-    expect(screen.getByText('0xabc')).toBeTruthy();
-    expect(screen.getByText('Integrity record available')).toBeTruthy();
+    expect(screen.getByText(/no blockchain record is available/i)).toBeTruthy();
   });
 
   it('explains unavailable data without inventing controls or restricted workflow actions', () => {
-    renderWorkspace({ document: { ...document, status: 'PROCESSING', storage_url: '', summary: null, labels: [], entities: [], risk_flags: [] }, integrityState: 'not_recorded' });
+    renderWorkspace({ document: { ...document, status: 'PROCESSING', storage_url: '', summary: null, labels: [], entities: [], risk_flags: [] } });
 
     fireEvent.click(screen.getByRole('tab', { name: 'Original PDF' }));
     expect(screen.getByText(/original PDF is not available/i)).toBeTruthy();
     expect(screen.queryByRole('link', { name: /original PDF/i })).toBeNull();
-
-    fireEvent.click(screen.getByRole('tab', { name: 'Insights' }));
-    expect(screen.getByText(/no derived insights are available/i)).toBeTruthy();
+    expect(screen.queryByText(/AI-generated assistance/i)).toBeNull();
 
     fireEvent.click(screen.getByRole('tab', { name: 'Blockchain' }));
     expect(screen.getByText(/no blockchain record is available/i)).toBeTruthy();
     expect(screen.queryByText(/Anchor to Blockchain|Finali[sz]e|Confirm record/i)).toBeNull();
   });
 
-  it('shows an unavailable integrity state with a retry action instead of a record claim', () => {
-    const onRetry = vi.fn();
-    renderWorkspace({ integrityState: 'unavailable', onRetry });
+  it('shows the document hash from the document record in Overview', () => {
+    renderWorkspace({ document: { ...document, document_hash: 'a'.repeat(64) } });
 
-    expect(screen.getByText('Integrity status unavailable')).toBeTruthy();
-    expect(screen.queryByText('Blockchain record available')).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: 'Retry integrity lookup' }));
-    expect(onRetry).toHaveBeenCalledOnce();
+    const hashRow = screen.getByText('Document hash');
+    expect(hashRow.nextElementSibling?.textContent).toContain('…');
+    expect(hashRow.nextElementSibling?.getAttribute('title')).toBe('a'.repeat(64));
   });
 
   it('renders a mismatched integrity record with the warning treatment', () => {
-    renderWorkspace({ chain: { data_hash: '0xabc' }, integrityState: 'mismatch' });
+    renderWorkspace({ document: { ...document, document_hash: 'a'.repeat(64) } });
 
     fireEvent.click(screen.getByRole('tab', { name: 'Blockchain' }));
-    const mismatch = screen.getByText('Integrity mismatch');
-    expect(mismatch.className).toContain('bg-[#FFF4DD]');
-    expect(mismatch.className).toContain('text-[#B77900]');
-    expect(mismatch.className).not.toContain('text-[#12A150]');
+    const mismatch = screen.getByText('No blockchain record is available in the current document record.');
+    expect(mismatch).toBeTruthy();
   });
 
   it('renders one-key insight objects as readable key-value details', () => {
     renderWorkspace();
 
-    fireEvent.click(screen.getByRole('tab', { name: 'Insights' }));
     expect(screen.getByText('name — Acme Legal')).toBeTruthy();
   });
 
