@@ -4,11 +4,9 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import SearchIcon from '@mui/icons-material/Search';
 import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile';
-import type { ApiSchema } from '@lexchain/types';
+import type { PortalSearchHit } from '../lib/portal-compat-types';
 
-type GlobalSearchHit = ApiSchema<'GlobalSearchHit'>;
-
-async function searchDocuments(query: string): Promise<GlobalSearchHit[]> {
+async function searchDocuments(query: string): Promise<PortalSearchHit[]> {
   const res = await fetch(
     `/api/portal/proxy-post?path=${encodeURIComponent('/search')}`,
     {
@@ -26,12 +24,12 @@ async function searchDocuments(query: string): Promise<GlobalSearchHit[]> {
 export function PortalSearchBar() {
   const router = useRouter();
   const [input, setInput] = useState('');
-  const [results, setResults] = useState<GlobalSearchHit[]>([]);
+  const [results, setResults] = useState<PortalSearchHit[]>([]);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const containerRef = useRef<HTMLDivElement>(null);
-  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   const doSearch = useCallback(async (query: string) => {
     if (!query.trim()) {
@@ -77,7 +75,7 @@ export function PortalSearchBar() {
     setInput('');
   };
 
-  const navigateToDocument = (hit: GlobalSearchHit) => {
+  const navigateToDocument = (hit: PortalSearchHit) => {
     router.push(`/portal/documents/${hit.document_id}`);
     setOpen(false);
     setInput('');

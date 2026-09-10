@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
@@ -144,7 +144,7 @@ function StatusDistribution({ docs }: { docs: Document[] }) {
 }
 
 function RecentlyUpdated({ docs }: { docs: Document[] }) {
-  const recent = [...docs].sort((a, b) => new Date(b.updated_at ?? b.created_at).getTime() - new Date(a.updated_at ?? a.created_at).getTime());
+  const recent = [...docs].sort((a, b) => new Date(b.updated_at ?? b.created_at ?? 0).getTime() - new Date(a.updated_at ?? a.created_at ?? 0).getTime());
 
   return (
     <article className="flex min-h-[260px] flex-col rounded-2xl border border-[#E4EEF9] bg-white p-5 shadow-sm shadow-[#DDEAF7]/35">
@@ -175,7 +175,6 @@ export default function DocumentsPage() {
   const router = useRouter();
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('all');
-  const [sort, setSort] = useState<'newest' | 'oldest' | 'title'>('newest');
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState("5");
   const documentsQuery = useQuery<Document[]>({ queryKey: ['portal-documents'], queryFn: fetchDocuments });
@@ -195,18 +194,16 @@ export default function DocumentsPage() {
   const visibleDocuments = getVisibleDocuments(documents, {
     query: search,
     status,
-    sort: hasDates ? sort : 'title',
+    sort: hasDates ? 'newest' : 'title',
   });
 
-  const metrics = useMemo(() => {
-    const s = documents.map((d) => d.status?.toLowerCase());
-    return [
-      { label: "Total Documents", value: documents.length, detail: "Uploaded documents", icon: <DescriptionIcon fontSize="small" />, color: "bg-[#EAF3FF] text-[#0879D8]" },
-      { label: "Completed", value: s.filter((v) => v === "completed").length, detail: "status completed", icon: <CheckCircleIcon fontSize="small" />, color: "bg-[#EAFBF1] text-[#16A34A]" },
-      { label: "Ready for Review", value: s.filter((v) => v === "ready_for_review").length, detail: "status ready_for_review", icon: <VisibilityIcon fontSize="small" />, color: "bg-[#FFF4DF] text-[#F59E0B]" },
-      { label: "Failed", value: s.filter((v) => v === "failed").length, detail: "status failed", icon: <ErrorIcon fontSize="small" />, color: "bg-[#FEECEC] text-[#EF4444]" },
-    ];
-  }, [documents]);
+  const documentStatuses = documents.map((document) => document.status?.toLowerCase());
+  const metrics = [
+    { label: "Total Documents", value: documents.length, detail: "Uploaded documents", icon: <DescriptionIcon fontSize="small" />, color: "bg-[#EAF3FF] text-[#0879D8]" },
+    { label: "Completed", value: documentStatuses.filter((value) => value === "completed").length, detail: "status completed", icon: <CheckCircleIcon fontSize="small" />, color: "bg-[#EAFBF1] text-[#16A34A]" },
+    { label: "Ready for Review", value: documentStatuses.filter((value) => value === "ready_for_review").length, detail: "status ready_for_review", icon: <VisibilityIcon fontSize="small" />, color: "bg-[#FFF4DF] text-[#F59E0B]" },
+    { label: "Failed", value: documentStatuses.filter((value) => value === "failed").length, detail: "status failed", icon: <ErrorIcon fontSize="small" />, color: "bg-[#FEECEC] text-[#EF4444]" },
+  ];
 
   const perPage = Number(pageSize);
   const totalPages = Math.max(1, Math.ceil(visibleDocuments.length / perPage));

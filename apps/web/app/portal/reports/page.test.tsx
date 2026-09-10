@@ -29,8 +29,8 @@ vi.mock('@tanstack/react-query', () => ({
 afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
-  delete (URL as typeof URL & { createObjectURL?: unknown }).createObjectURL;
-  delete (URL as typeof URL & { revokeObjectURL?: unknown }).revokeObjectURL;
+  Object.defineProperty(URL, 'createObjectURL', { configurable: true, value: undefined });
+  Object.defineProperty(URL, 'revokeObjectURL', { configurable: true, value: undefined });
 });
 beforeEach(() => { queryState.role = 'document_issuer'; });
 
@@ -107,7 +107,7 @@ describe('ReportsPage', () => {
     let downloadedFilename = '';
     Object.defineProperty(URL, 'createObjectURL', { configurable: true, value: vi.fn(() => 'blob:demo-report') });
     Object.defineProperty(URL, 'revokeObjectURL', { configurable: true, value: vi.fn() });
-    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function captureFilename() {
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function captureFilename(this: HTMLAnchorElement) {
       downloadedFilename = this.download;
     });
     render(<OfficeReportsPage />);

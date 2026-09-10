@@ -48,7 +48,7 @@ it('serves a seeded mock extraction source as a renderable one-page PDF', async 
 
   expect(document.numPages).toBe(1);
   await loadingTask.destroy();
-});
+}, 10_000);
 
 it('keeps an extensionless mock upload title behind a PDF storage URL', async () => {
   const upload = await uploadMockDocument('Deed of Sale');

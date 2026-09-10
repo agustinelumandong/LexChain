@@ -1,10 +1,10 @@
 import type { components } from '@lexchain/types';
+import type { PortalAuditLog } from './portal-compat-types';
 
 type DocumentPartyList = components['schemas']['DocumentPartyListResponse'];
 type AddPartyRequest = components['schemas']['AddPartyRequest'];
 type DocumentParty = components['schemas']['DocumentPartyResponse'];
 type RemovePartyResponse = components['schemas']['RemovePartyResponse'];
-type AuditLog = components['schemas']['AuditLogResponse'];
 
 async function portalAccessFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(path, {
@@ -36,5 +36,5 @@ export function revokeDocumentParty(documentId: string, partyUserId: string) {
 }
 
 export function listDocumentAuditLogs(documentId: string) {
-  return portalAccessFetch<AuditLog[]>(`/api/portal/documents/${documentId}/audit-logs`);
+  return portalAccessFetch<PortalAuditLog[]>(`/api/portal/documents/${documentId}/audit-logs`);
 }

@@ -14,6 +14,7 @@ vi.mock('@tanstack/react-query', () => ({
 }));
 
 vi.mock('next/link', () => ({ default: ({ href, children, ...props }: React.ComponentProps<'a'>) => createElement('a', { href, ...props }, children) }));
+vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn() }) }));
 
 afterEach(() => {
   profile.role = 'document_issuer';
@@ -41,12 +42,12 @@ describe("portal UI source audit", () => {
   });
 
   it("names the notification and uploaded-file removal controls", async () => {
-    const [dashboard, upload] = await Promise.all([
-      readFile(path.join(appDirectory, "portal/dashboard/page.tsx"), "utf8"),
+    const [topbar, upload] = await Promise.all([
+      readFile(path.join(appDirectory, "portal/components/portal-topbar.tsx"), "utf8"),
       readFile(path.join(appDirectory, "portal/upload/page.tsx"), "utf8"),
     ]);
 
-    expect(dashboard).toContain('aria-label="View notifications"');
+    expect(topbar).toContain('aria-label="View notifications"');
     expect(upload).toContain('aria-label="Remove uploaded file"');
   });
 

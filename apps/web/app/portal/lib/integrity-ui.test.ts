@@ -13,30 +13,33 @@ import {
 
 const matchingRecord = {
   document_id: 'document-123',
-  onchain_document_id: 'chain-document-456',
-  data_hash: 'data-hash',
+  status: 'AUTHENTIC',
+  is_authentic: true,
+  baseline_trusted: true,
+  onchain_hash: 'data-hash',
+  snapshot_hash: 'data-hash',
+  current_hash: 'data-hash',
   tx_hash: 'transaction-hash',
   onchain_timestamp: 1_700_000_000,
   issued_by: 'issuer-address',
   verified_at: '2026-07-19T00:00:00Z',
-  transacttion_link: 'https://example.com/transaction',
-  is_verified: true,
+  message: 'Document is authentic.',
 };
 
 afterEach(cleanup);
 
 describe('getIntegrityUiState', () => {
   it('reports a returned hash as recorded', () => {
-    expect(getIntegrityUiState({ record: { data_hash: '0xabc' }, requestFailed: false })).toBe('recorded');
+    expect(getIntegrityUiState({ record: { onchain_hash: '0xabc' }, requestFailed: false })).toBe('recorded');
   });
 
   it('reports a failed request as unavailable instead of a positive state', () => {
     expect(getIntegrityUiState({ record: undefined, requestFailed: true })).toBe('unavailable');
-    expect(getIntegrityUiState({ record: { data_hash: '0xabc' }, requestFailed: true })).toBe('unavailable');
+    expect(getIntegrityUiState({ record: { onchain_hash: '0xabc' }, requestFailed: true })).toBe('unavailable');
   });
 
   it('reports an explicit verification failure as mismatch', () => {
-    expect(getIntegrityUiState({ record: { data_hash: '0xabc', is_verified: false }, requestFailed: false })).toBe('mismatch');
+    expect(getIntegrityUiState({ record: { onchain_hash: '0xabc', is_authentic: false }, requestFailed: false })).toBe('mismatch');
   });
 
   it('reports a missing record as not recorded', () => {
@@ -60,11 +63,11 @@ describe('getDemoIntegrityState', () => {
 
 describe('getIntegrityResult', () => {
   it('labels a verified repository response as Match', () => {
-    expect(getIntegrityResult({ is_verified: true })).toMatchObject({ label: 'Match' });
+    expect(getIntegrityResult({ onchain_hash: '0xabc', is_authentic: true })).toMatchObject({ label: 'Match' });
   });
 
   it('labels an unverified repository response as Mismatch', () => {
-    expect(getIntegrityResult({ is_verified: false })).toMatchObject({ label: 'Mismatch' });
+    expect(getIntegrityResult({ onchain_hash: '0xabc', is_authentic: false })).toMatchObject({ label: 'Mismatch' });
   });
 
   it('labels a missing repository response as No Record', () => {
@@ -95,7 +98,7 @@ describe('IntegrityResult', () => {
   });
 
   it('renders a Mismatch result for a non-matching repository record', () => {
-    render(createElement(IntegrityResult, { record: { ...matchingRecord, is_verified: false } }));
+    render(createElement(IntegrityResult, { record: { ...matchingRecord, status: 'TAMPERED', is_authentic: false } }));
 
     expect(screen.getByText('Mismatch')).toBeTruthy();
     expect(screen.getByText(/reports a hash mismatch/i)).toBeTruthy();
@@ -116,7 +119,7 @@ describe('IntegrityResult', () => {
     expect(screen.getByText('Integrity status unavailable')).toBeTruthy();
     expect(screen.queryByRole('button', { name: /retry/i })).toBeNull();
 
-    rerender(createElement(IntegrityResult, { record: { ...matchingRecord, is_verified: false }, onRetry: () => undefined }));
+    rerender(createElement(IntegrityResult, { record: { ...matchingRecord, status: 'TAMPERED', is_authentic: false }, onRetry: () => undefined }));
 
     expect(screen.getByRole('alert')).toBeTruthy();
     expect(screen.getByRole('button', { name: /retry integrity check/i })).toBeTruthy();

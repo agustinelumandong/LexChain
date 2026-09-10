@@ -7,11 +7,11 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import HistoryIcon from '@mui/icons-material/History';
 import type { ApiSchema } from '@lexchain/types';
 import { listDocumentAuditLogs } from '../../../lib/portal-access-api';
+import type { PortalAuditLog } from '../../../lib/portal-compat-types';
 import { formatAuditEvent } from '../../../lib/activity-log';
 import { canLoadDocumentActivity } from '../../../lib/document-activity-access';
 import { getPortalUiRole } from '../../../lib/portal-role';
 
-type AuditLog = ApiSchema<'AuditLogResponse'>;
 type DocumentResponse = ApiSchema<'DocumentResponse'>;
 type UserProfile = ApiSchema<'UserProfileResponse'>;
 
@@ -38,7 +38,7 @@ function formatTime(value: string) {
   });
 }
 
-function getResult(details: AuditLog['details']): string {
+function getResult(details: PortalAuditLog['details']): string {
   if (!details || typeof details !== 'object') return '—';
   const result = details.result ?? details.status;
   return typeof result === 'string' || typeof result === 'number' || typeof result === 'boolean'

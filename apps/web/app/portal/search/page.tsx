@@ -7,8 +7,11 @@ import Link from 'next/link';
 import SearchIcon from '@mui/icons-material/Search';
 import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile';
 import type { ApiSchema } from '@lexchain/types';
+import type { PortalSearchHit } from '../lib/portal-compat-types';
 
-type GlobalSearchResponse = ApiSchema<'GlobalSearchResponse'>;
+type GlobalSearchResponse = Omit<ApiSchema<'GlobalSearchResponse'>, 'results'> & {
+  results: PortalSearchHit[];
+};
 
 async function globalSearch(query: string): Promise<GlobalSearchResponse> {
   const res = await fetch(

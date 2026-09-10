@@ -4,11 +4,11 @@ import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { ApiSchema } from "@lexchain/types";
 import { RequestStatus } from "../components/request-status";
+import type { PortalDocumentRequestList } from "../lib/portal-compat-types";
 import { portalFetch } from "../lib/portal-fetch";
 import { getPortalUiRole } from "../lib/portal-role";
 import { getRequestActionError, getRequestActions } from "../lib/request-ui";
 
-type RequestList = ApiSchema<"DocumentRequestListResponse">;
 type UserProfile = ApiSchema<"UserProfileResponse">;
 type RequestStatusFilter = "pending" | "approved" | "rejected";
 
@@ -40,7 +40,7 @@ export default function RequestsPage() {
   const profileQuery = useQuery<UserProfile>({ queryKey: ["portal-profile"], queryFn: () => portalFetch<UserProfile>("/users/") });
   const uiRole = getPortalUiRole(profileQuery.data?.role);
   const isIssuer = uiRole === "lawyer";
-  const { data, error, isLoading } = useQuery<RequestList>({ queryKey: ["portal-requests", filter], queryFn: () => portalFetch<RequestList>(path), enabled: isIssuer });
+  const { data, error, isLoading } = useQuery<PortalDocumentRequestList>({ queryKey: ["portal-requests", filter], queryFn: () => portalFetch<PortalDocumentRequestList>(path), enabled: isIssuer });
   const requests = data?.requests ?? [];
 
   async function decide(requestId: string, action: "approve" | "reject") {

@@ -32,7 +32,7 @@ describe("portal navigation", () => {
     ["/portal/documents", "Documents"],
     ["/portal/categories", "Categories"],
     ["/portal/reports", "Reports"],
-    ["/portal/upload", "Upload Document"],
+    ["/portal/notifications", "Notifications"],
     ["/portal/office-settings", "Office Settings"],
   ])("marks %s as the active %s destination", (pathname, label) => {
     const item = getPortalNavigation("lawyer").flatMap((group) => group.items).find((navigationItem) => navigationItem.label === label);

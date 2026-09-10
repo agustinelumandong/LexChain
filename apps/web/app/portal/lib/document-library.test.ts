@@ -11,6 +11,10 @@ vi.mock('@tanstack/react-query', () => ({
     : { data: { role: 'document_issuer' }, isLoading: false, isError: false },
 }));
 
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ push: vi.fn() }),
+}));
+
 const documents = [
   {
     id: 'document-1',
@@ -72,10 +76,11 @@ describe('document library list', () => {
       .toEqual(['Open', 'View / Download']);
   });
 
-  it('states the result count and keeps secondary actions in an accessible control', () => {
+  it('states the result count and gives secondary actions accessible names', () => {
     render(createElement(DocumentsPage));
 
-    expect(screen.getByText('2 documents')).toBeTruthy();
-    expect(within(screen.getByRole('table')).getByRole('button', { name: 'More actions for Lease Agreement.pdf' })).toBeTruthy();
+    expect(screen.getByText('Showing 1–2 of 2 documents')).toBeTruthy();
+    const leaseRow = within(screen.getByRole('table')).getByRole('row', { name: /Lease Agreement\.pdf/ });
+    expect(within(leaseRow).getByRole('link', { name: 'View / Download' })).toBeTruthy();
   });
 });

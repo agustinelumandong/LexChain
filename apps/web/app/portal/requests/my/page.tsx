@@ -3,11 +3,11 @@
 import { useQuery } from "@tanstack/react-query";
 import type { ApiSchema } from "@lexchain/types";
 import { RequestStatus } from "../../components/request-status";
+import type { PortalDocumentRequestList } from "../../lib/portal-compat-types";
 import { portalFetch } from "../../lib/portal-fetch";
 import { canAccessPortalFeature } from "../../lib/portal-access";
 import { getPortalUiRole } from "../../lib/portal-role";
 
-type RequestList = ApiSchema<"DocumentRequestListResponse">;
 type UserProfile = ApiSchema<"UserProfileResponse">;
 
 function formatDate(value: string) {
@@ -18,7 +18,7 @@ function formatDate(value: string) {
 export default function MyRequestsPage() {
   const profileQuery = useQuery<UserProfile | null>({ queryKey: ["portal-profile"], queryFn: () => portalFetch<UserProfile | null>("/users/") });
   const isParticipant = canAccessPortalFeature(getPortalUiRole(profileQuery.data?.role), "my-requests");
-  const { data, error, isLoading } = useQuery<RequestList>({ queryKey: ["portal-my-requests"], queryFn: () => portalFetch<RequestList>("/requests/my"), enabled: isParticipant });
+  const { data, error, isLoading } = useQuery<PortalDocumentRequestList>({ queryKey: ["portal-my-requests"], queryFn: () => portalFetch<PortalDocumentRequestList>("/requests/my"), enabled: isParticipant });
   const requests = data?.requests ?? [];
   if (profileQuery.isPending) return <p className="text-sm font-semibold text-[#64748b]">Loading your request access…</p>;
   if (!isParticipant) return <section className="rounded-[18px] border border-[#E8F0F8] bg-white p-6"><h1 className="text-xl font-black text-[#0C2B49]">E-copy requests unavailable</h1><p className="mt-2 text-sm text-[#64748b]">Users can view their submitted e-copy requests.</p></section>;

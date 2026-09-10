@@ -15,6 +15,7 @@ const snapshot: DemoDocumentSnapshot = {
 describe('document lifecycle UI', () => {
   it('allows a lawyer to finalize a completed draft', () => {
     expect(canFinalizeDocument('lawyer', 'COMPLETED', 'draft')).toBe(true);
+    // @ts-expect-error Exercises normalization of an unchecked backend value.
     expect(canFinalizeDocument('lawyer', 'COMPLETED', 'DRAFT')).toBe(true);
     expect(canFinalizeDocument('user', 'COMPLETED', 'draft')).toBe(false);
     expect(canFinalizeDocument('lawyer', 'PROCESSING', 'draft')).toBe(false);

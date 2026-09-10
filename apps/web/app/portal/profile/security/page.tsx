@@ -8,11 +8,9 @@ import PhonelinkLockIcon from '@mui/icons-material/PhonelinkLock';
 import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
 import PasswordIcon from '@mui/icons-material/Password';
 import { useQuery } from '@tanstack/react-query';
-import type { ApiSchema } from '@lexchain/types';
+import type { PortalUserProfile } from '../../lib/portal-compat-types';
 
-type UserProfile = ApiSchema<'UserProfileResponse'>;
-
-async function fetchProfile(): Promise<UserProfile> {
+async function fetchProfile(): Promise<PortalUserProfile> {
   const response = await fetch('/api/portal/proxy?path=%2Fusers%2F', { credentials: 'same-origin' });
   if (!response.ok) throw new Error('Failed to load profile');
   return response.json();
