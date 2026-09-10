@@ -3,7 +3,7 @@ import { Suspense } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import ProcessingPage from './page';
+import ProcessingPage from '@/features/documents/pages/upload-processing-page';
 
 function documentResponse(status: string) {
   return Response.json({ document_id: 'doc-1', status });

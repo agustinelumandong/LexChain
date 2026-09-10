@@ -2,7 +2,7 @@
 import React from "react";
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
-import RegisterPage from "./page";
+import RegisterPage from "@/features/auth/pages/register-page";
 
 vi.mock("next/navigation", () => ({
   useSearchParams: () => new URLSearchParams("token=invite-token&email=issuer@example.com"),

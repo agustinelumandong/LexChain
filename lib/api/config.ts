@@ -3,14 +3,14 @@ export function trimTrailingSlash(value: string) {
 }
 
 export function getApiBaseUrl(env: Record<string, string | undefined>) {
-  return trimTrailingSlash(env.API_URL ?? env.NEXT_PUBLIC_API_URL ?? env.EXPO_PUBLIC_API_URL ?? "");
+  return trimTrailingSlash(env.API_URL ?? env.NEXT_PUBLIC_API_URL ?? "");
 }
 
 export function requireApiBaseUrl(env: Record<string, string | undefined>) {
   const apiBaseUrl = getApiBaseUrl(env);
 
   if (!apiBaseUrl) {
-    throw new Error("Missing API_URL, NEXT_PUBLIC_API_URL, or EXPO_PUBLIC_API_URL.");
+    throw new Error("Missing API_URL or NEXT_PUBLIC_API_URL.");
   }
 
   return apiBaseUrl;

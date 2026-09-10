@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import ResetPasswordPage from "./page";
+import ResetPasswordPage from "@/features/auth/pages/reset-password-page";
 
 beforeEach(() => vi.stubEnv("NEXT_PUBLIC_USE_MOCK_API", "true"));
 

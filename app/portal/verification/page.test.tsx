@@ -1,13 +1,13 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import VerificationPage from './page';
+import VerificationPage from '@/features/verification/pages/verification-page';
 
 const { verifyRepositoryDocumentMock } = vi.hoisted(() => ({
   verifyRepositoryDocumentMock: vi.fn(),
 }));
 
-vi.mock('../lib/integrity-api', () => ({
+vi.mock('@/features/verification/integrity-api', () => ({
   verifyRepositoryDocument: verifyRepositoryDocumentMock,
 }));
 

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { cleanup, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import PortalLayout from "./layout";
+import PortalLayout from "@/features/portal/portal-layout";
 
 const useQuery = vi.hoisted(() => vi.fn());
 

@@ -3,10 +3,17 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 const pageSource = readFileSync(resolve(import.meta.dirname, 'page.tsx'), 'utf8');
-const workspaceSource = readFileSync(resolve(import.meta.dirname, 'document-workspace.tsx'), 'utf8');
+const documentPageSource = readFileSync(
+  resolve(process.cwd(), 'features/documents/pages/documents-id-page.tsx'),
+  'utf8',
+);
+const workspaceSource = readFileSync(
+  resolve(process.cwd(), 'features/documents/components/document-workspace.tsx'),
+  'utf8',
+);
 
 it('does not auto-run the on-chain verification on page load', () => {
-  expect(pageSource).not.toContain("import { verifyRepositoryDocument } from '../../lib/integrity-api';");
+  expect(pageSource).not.toContain("import { verifyRepositoryDocument } from '@/features/verification/integrity-api';");
   expect(pageSource).not.toContain("queryFn: () => verifyRepositoryDocument(id)");
   expect(pageSource).not.toContain('Integrity record available');
   expect(pageSource).not.toContain('Integrity mismatch');
@@ -20,6 +27,6 @@ it('shows the document hash from the document record only', () => {
 });
 
 it('links issuers with an awaiting-review document to extracted text review', () => {
-  expect(pageSource).toContain("actions.includes('Review extracted text')");
-  expect(pageSource).toContain('href={`/portal/documents/${id}/review`}');
+  expect(documentPageSource).toContain("actions.includes('Review extracted text')");
+  expect(documentPageSource).toContain('href={`/portal/documents/${id}/review`}');
 });

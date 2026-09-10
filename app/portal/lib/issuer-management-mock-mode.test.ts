@@ -20,7 +20,7 @@ vi.mock("next/navigation", () => ({
   },
 }));
 
-vi.mock("../../admin/components/admin-fetch", () => ({
+vi.mock("@/features/admin/server/fetch", () => ({
   adminFetch: () => Promise.reject(new Error("Mock-mode pages must not call the backend.")),
 }));
 
@@ -34,9 +34,9 @@ afterEach(() => {
 
 async function loadManagementPages() {
   const pages = await Promise.all([
-    import("../users/page"),
-    import("../issuer-invitations/page"),
-    import("../audit-logs/page"),
+    import("@/features/office/pages/users-page"),
+    import("@/features/access/pages/issuer-invitations-page"),
+    import("@/features/office/pages/audit-logs-page"),
   ]);
 
   return pages.map((page) => page.default);
@@ -78,7 +78,7 @@ describe("issuer management page authority", () => {
     session.portalToken = "real-token";
     session.issuerToken = "real-token";
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({ role: "lawyer" }), { status: 200 })));
-    const { default: UsersPage } = await import("../users/page");
+    const { default: UsersPage } = await import("@/features/office/pages/users-page");
 
     await expect(Promise.resolve().then(() => UsersPage())).resolves.not.toThrow();
   });
@@ -94,7 +94,7 @@ describe("issuer management page authority", () => {
     session.portalToken = "real-token";
     session.issuerToken = "real-token";
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({ role }), { status: 200 })));
-    const { default: UsersPage } = await import("../users/page");
+    const { default: UsersPage } = await import("@/features/office/pages/users-page");
 
     await expect(Promise.resolve().then(() => UsersPage())).rejects.toThrow("REDIRECT:/portal/dashboard");
   });

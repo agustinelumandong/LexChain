@@ -2,7 +2,7 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import DocumentVerifyPage from './page';
+import DocumentVerifyPage from '@/features/documents/pages/documents-id-verify-page';
 
 vi.mock('next/navigation', () => ({ useParams: () => ({ id: 'doc-1' }) }));
 

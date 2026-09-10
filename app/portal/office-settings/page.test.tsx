@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import OfficeSettingsPage from './page';
+import OfficeSettingsPage from '@/features/office/pages/office-settings-page';
 
 const profile = vi.hoisted(() => ({ role: 'document_participant' }));
 

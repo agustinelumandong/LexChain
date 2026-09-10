@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import UploadPage from './page';
+import UploadPage from '@/features/documents/pages/upload-page';
 
 const { uploadDocumentMock } = vi.hoisted(() => ({ uploadDocumentMock: vi.fn() }));
 
@@ -10,8 +10,8 @@ vi.mock('@mui/icons-material/UploadFile', () => ({ default: () => null }));
 vi.mock('@mui/icons-material/InsertDriveFile', () => ({ default: () => null }));
 vi.mock('@mui/icons-material/Close', () => ({ default: () => null }));
 vi.mock('@mui/icons-material/CheckCircle', () => ({ default: () => null }));
-vi.mock('../lib/portal-upload', async (importOriginal) => ({
-  ...await importOriginal<typeof import('../lib/portal-upload')>(),
+vi.mock('@/features/documents/portal-upload', async (importOriginal) => ({
+  ...await importOriginal<typeof import('@/features/documents/portal-upload')>(),
   uploadDocument: uploadDocumentMock,
 }));
 vi.mock('@tanstack/react-query', async () => {

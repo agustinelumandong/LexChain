@@ -1,5 +1,5 @@
-import { adminFetch, getTokenFromRequest, missingApiUrl, missingToken } from "@/lib/admin-api";
-import { isMockDocumentIssuerToken } from "@/lib/portal-mock";
+import { adminFetch, getTokenFromRequest, missingApiUrl, missingToken } from "@/lib/api/server";
+import { isMockDocumentIssuerToken } from "@/lib/mocks/portal";
 
 const useMock = process.env.USE_MOCK_API === "true";
 

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { backendUrl } from '@/lib/admin-api';
-import { isMockMode, isMockPortalToken, mockPortalMutate } from '@/lib/portal-mock';
+import { backendUrl } from '@/lib/api/server';
+import { isMockPortalToken, mockPortalMutate } from '@/lib/mocks/portal';
+import { isMockMode } from '@/lib/mocks/mode';
 
 async function handler(request: NextRequest, method: 'POST' | 'PATCH' | 'DELETE') {
   const token = request.cookies.get('portal_token')?.value;

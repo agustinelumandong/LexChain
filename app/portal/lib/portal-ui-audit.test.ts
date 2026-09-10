@@ -4,8 +4,8 @@ import path from "node:path";
 import { createElement } from 'react';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from "vitest";
-import ProfilePage from '../profile/page';
-import PortalChatbot from '../components/portal-chatbot';
+import ProfilePage from '@/features/account/pages/profile-page';
+import PortalChatbot from '@/features/portal/components/portal-chatbot';
 
 const profile = vi.hoisted(() => ({ role: 'document_issuer' }));
 
@@ -22,6 +22,7 @@ afterEach(() => {
 });
 
 const appDirectory = path.resolve(process.cwd(), "app");
+const featuresDirectory = path.resolve(process.cwd(), "features");
 
 async function sourceFiles(directory: string): Promise<string[]> {
   const entries = await readdir(directory, { withFileTypes: true });
@@ -43,8 +44,8 @@ describe("portal UI source audit", () => {
 
   it("names the notification and uploaded-file removal controls", async () => {
     const [topbar, upload] = await Promise.all([
-      readFile(path.join(appDirectory, "portal/components/portal-topbar.tsx"), "utf8"),
-      readFile(path.join(appDirectory, "portal/upload/page.tsx"), "utf8"),
+      readFile(path.join(featuresDirectory, "portal/components/portal-topbar.tsx"), "utf8"),
+      readFile(path.join(featuresDirectory, "documents/pages/upload-page.tsx"), "utf8"),
     ]);
 
     expect(topbar).toContain('aria-label="View notifications"');
@@ -52,7 +53,7 @@ describe("portal UI source audit", () => {
   });
 
   it("provides a keyboard-reachable PDF chooser", async () => {
-    const upload = await readFile(path.join(appDirectory, "portal/upload/page.tsx"), "utf8");
+    const upload = await readFile(path.join(featuresDirectory, "documents/pages/upload-page.tsx"), "utf8");
 
     const chooser = upload.match(/<button[\s\S]*?Choose a PDF[\s\S]*?<\/button>/)?.[0];
 

@@ -1,5 +1,5 @@
-import { AdminShell } from "../admin-shell";
-import { Skeleton } from "../components/skeleton";
+import { AdminShell } from "@/features/admin/admin-shell";
+import { Skeleton } from "@/features/admin/components/skeleton";
 
 export default function DashboardLoading() {
   return (

@@ -1,7 +1,7 @@
-import { MockResourcePage } from "../mock-resource-page";
+import { MockResourcePage } from "@/features/admin/mock-resource-page";
 
 export default async function AdminCategoriesPage() {
-  const { adminCategories } = await import("../admin-demo-data");
+  const { adminCategories } = await import("@/features/admin/admin-demo-data");
 
   return (
     <MockResourcePage resource="categories" rows={adminCategories} />

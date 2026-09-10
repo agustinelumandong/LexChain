@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { backendUrl } from "@/lib/admin-api";
+import { backendUrl } from "@/lib/api/server";
 
 type ApiErrorPayload = {
   detail?: unknown;

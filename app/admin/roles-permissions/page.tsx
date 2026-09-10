@@ -1,5 +1,5 @@
-import { AdminShell } from "../admin-shell";
-import { RolesPermissionsView } from "./roles-permissions-view";
+import { AdminShell } from "@/features/admin/admin-shell";
+import { RolesPermissionsView } from "@/features/admin/roles-permissions/roles-permissions-view";
 
 export default function AdminRolesPermissionsPage() {
   return (

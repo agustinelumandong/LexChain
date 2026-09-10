@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { backendUrl } from '@/lib/admin-api';
-import { isMockMode, isMockPortalToken, mockPortalGet } from '@/lib/portal-mock';
-import { getPortalUiRole } from '@/app/portal/lib/portal-role';
+import { backendUrl } from '@/lib/api/server';
+import { isMockPortalToken, mockPortalGet } from '@/lib/mocks/portal';
+import { isMockMode } from '@/lib/mocks/mode';
+import { getPortalUiRole } from '@/features/access/portal-role';
 
 type RouteContext = { params: Promise<{ id: string }> };
 

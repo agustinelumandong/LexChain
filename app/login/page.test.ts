@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getRedirectPath } from "./page";
+import { getRedirectPath } from "@/features/auth/pages/login-page";
 
 describe("unified login routing", () => {
   it("routes the issuer to the dashboard and the participant to shared documents", () => {

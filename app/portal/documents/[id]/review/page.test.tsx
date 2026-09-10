@@ -4,7 +4,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-libra
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { ApiSchema } from '@/lib/types';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import ReviewPage from './page';
+import ReviewPage from '@/features/documents/pages/documents-id-review-page';
 
 const extractionMocks = vi.hoisted(() => ({ analyze: vi.fn(), approve: vi.fn(), get: vi.fn(), save: vi.fn() }));
 const navigationMocks = vi.hoisted(() => ({ replace: vi.fn() }));
@@ -18,13 +18,13 @@ const workspaceMocks = vi.hoisted(() => ({
 }));
 
 vi.mock('next/navigation', () => ({ useRouter: () => ({ replace: navigationMocks.replace }) }));
-vi.mock('../../../lib/extraction-api', () => ({
+vi.mock('@/features/documents/extraction-api', () => ({
   analyzeExtraction: extractionMocks.analyze,
   approveExtraction: extractionMocks.approve,
   getExtractionReview: extractionMocks.get,
   saveExtractionEdits: extractionMocks.save,
 }));
-vi.mock('./review-workspace', () => ({
+vi.mock('@/features/documents/components/review-workspace', () => ({
   default: (props: {
     review: ApiSchema<'ExtractionReviewResponse'>;
     actionError: string | null;

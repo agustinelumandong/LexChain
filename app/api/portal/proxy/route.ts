@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { backendUrl } from '@/lib/admin-api';
-import { isMockMode, isMockPortalToken, mockPortalGet } from '@/lib/portal-mock';
+import { backendUrl } from '@/lib/api/server';
+import { isMockPortalToken, mockPortalGet } from '@/lib/mocks/portal';
+import { isMockMode } from '@/lib/mocks/mode';
 
 export async function GET(request: NextRequest) {
   const token = request.cookies.get('portal_token')?.value;

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { PwaRegistration } from "@/components/pwa-registration";
 import { Providers } from "./providers";
 import "./globals.css";
 
@@ -19,6 +20,7 @@ export default function RootLayout({
     <html lang="en" className="h-full antialiased">
       <body className="min-h-full flex flex-col" suppressHydrationWarning>
         <Providers>{children}</Providers>
+        <PwaRegistration />
       </body>
     </html>
   );

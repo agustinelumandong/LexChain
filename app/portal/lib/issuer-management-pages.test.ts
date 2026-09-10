@@ -3,9 +3,9 @@ import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
 const portalPages = [
-  ["users", "UsersManagementView", "../../admin/users/users-management-view"],
-  ["issuer-invitations", "InvitationsManagementView", "../../admin/invitations-permissions/invitations-management-view"],
-  ["audit-logs", "AuditLogsManagementView", "../../admin/audit-logs/audit-logs-management-view"],
+  ["users", "@/features/office/pages/users-page"],
+  ["issuer-invitations", "@/features/access/pages/issuer-invitations-page"],
+  ["audit-logs", "@/features/office/pages/audit-logs-page"],
 ] as const;
 
 const legacyPages = [
@@ -21,15 +21,14 @@ const managementLinks = [
 ] as const;
 
 describe("Issuer management portal pages", () => {
-  it.each(portalPages)("reuses the existing %s management view", (route, view, importPath) => {
+  it.each(portalPages)("routes %s to its feature view", (route, importPath) => {
     const page = resolve(import.meta.dirname, "..", route, "page.tsx");
 
     expect(existsSync(page)).toBe(true);
     if (!existsSync(page)) return;
 
     const source = readFileSync(page, "utf8");
-    expect(source).toContain(`import { ${view} } from "${importPath}";`);
-    expect(source).not.toContain(`function ${view}(`);
+    expect(source).toContain(`export { default } from '${importPath}';`);
   });
 
   it.each(legacyPages)("redirects legacy /admin/%s", (route, target) => {
@@ -44,7 +43,7 @@ describe("Issuer management portal pages", () => {
 
   it.each(managementLinks)("keeps %s navigation inside the portal", (view, target, legacyTarget) => {
     const source = readFileSync(
-      resolve(import.meta.dirname, "..", "..", "admin", view),
+      resolve(process.cwd(), "features", "admin", view),
       "utf8",
     );
 

@@ -1,224 +1,94 @@
-# PROJECT KNOWLEDGE BASE — LexChain
+# LexChain — Agent Instructions
 
-**Generated:** 2026-05-19
-**Commit:** 5714b5e
-**Branch:** lexchain-web/dev
-**Monorepo:** pnpm workspaces | 2 apps + 3 packages
+LexChain is one root Next.js application for document workflows, verification and administration, with an installable PWA and a separate Python/FastAPI backend. Start with [README.md](README.md) and [docs/ROOT-WEB-ARCHITECTURE.md](docs/ROOT-WEB-ARCHITECTURE.md). Older monorepo and Expo documents are historical references, not current setup instructions.
 
-## OVERVIEW
+## Working rules
 
-LexChain is a document verification platform with ECC cryptography. Monorepo with Expo mobile app, Next.js web app, and shared packages for types/API/config. Backend: Python/FastAPI (contract at `openapi-updated.json`).
+- Plan nontrivial work and delegate independent, bounded tasks when useful. Preserve concurrent edits and ignored local files.
+- Trace the full affected flow and its callers before editing. Reuse existing functions, types and UI before adding code or dependencies.
+- Keep changes small and readable. No empty feature scaffolding, mandatory barrels, one-use abstractions or unrelated cleanup.
+- Add or update a focused regression test for behavior changes. Moving a test must preserve its assertions and discovery; source-reading tests must follow the moved implementation.
+- Use TypeScript with strict mode. Keep secrets and generated output out of handwritten source changes.
+- Review diffs for correctness and sensitive data, then run the relevant project checks before finishing. Report failed or unperformed checks separately from passing results.
+- Preserve route URLs, role mappings, cookies, upload encoding, request methods, error contracts, redirects and cache behavior unless changing them is explicitly part of the task.
 
-## STRUCTURE
+## Code discovery
 
-```
-LexChain/
-├── .agents/              # Root agent support docs/config
-├── .claude/              # Claude-side plans and notes
-├── .codex/               # Codex-side workspace config
-├── apps/
-│   ├── mobile/           # Expo RN app (React Native 0.81, SDK 54) — see apps/mobile/AGENTS.md
-│   │   ├── app/          # Expo Router routes: auth, tabs, document, profile, upload/camera, verify
-│   │   ├── src/          # features, services, shared components/hooks/theme/utils, tw, types
-│   │   ├── assets/       # Mobile images/icons
-│   │   ├── docs/         # Mobile integration notes, TODOs, Expo LLM docs
-│   │   ├── android/      # Native Android project
-│   │   ├── ios/          # Native iOS project
-│   │   ├── scripts/      # Mobile helper scripts
-│   │   ├── graphify-out/ # Local graphify cache/chunks
-│   │   ├── dist*/        # Generated local build/check output; do not treat as source
-│   │   ├── app.json      # Expo app config
-│   │   ├── eas.json      # EAS build config
-│   │   └── package.json  # @lexchain/mobile scripts/dependencies
-│   └── web/              # Next.js 16 app — see apps/web/AGENTS.md
-│       ├── app/          # App Router: landing, admin, verifier, invite, download, terms/privacy, API routes
-│       ├── lib/          # Web API helpers and schemas
-│       ├── public/       # Static web assets, including public/lexchain brand assets
-│       ├── proxy.ts      # Next proxy/middleware entrypoint
-│       ├── next.config.ts
-│       └── package.json  # @lexchain/web scripts/dependencies
-├── packages/
-│   ├── types/            # @lexchain/types — src/index.ts exports generated/shared types
-│   ├── api/              # @lexchain/api — src/index.ts shared API utilities
-│   └── config/           # @lexchain/config — src/index.ts shared configuration
-├── docs/                 # System docs: architecture, workflow, audit reports
-├── todo-with-web.md      # Root planning/TODO note for web work
-├── openapi-updated.json  # Backend API contract (OpenAPI 3.x)
-├── pnpm-workspace.yaml   # Workspace definition
-├── pnpm-lock.yaml        # pnpm lockfile
-└── package.json          # Root scripts: pnpm -r, filter commands
-```
+Prefer the codebase-memory-mcp knowledge graph for code discovery:
 
-## WHERE TO LOOK
+1. `search_graph` to locate functions, classes, routes and variables.
+2. `trace_path` to inspect callers and dependencies.
+3. `get_code_snippet` to read specific source.
+4. `query_graph` for complex relationships.
+5. `get_architecture` for a high-level summary.
 
-| Task | Location | Notes |
-|------|----------|-------|
-| Mobile app guidance | `apps/mobile/AGENTS.md` | 925 lines — Expo conventions, anti-patterns, god nodes |
-| Web app guidance | `apps/web/AGENTS.md` | Next.js 16 routes, API handlers, env |
-| Type generation | `packages/types/` | `pnpm run generate:api-types` → `openapi-typescript` |
-| Root API contract | `openapi-updated.json` | Backend OpenAPI 3.x contract used by shared types |
-| System architecture | `docs/LEXCHAIN-SYSTEM-UNDERSTANDING.md` | High-level system doc |
-| Workflow docs | `docs/LEXCHAIN-SYSTEM-WORKFLOW.md`, `docs/LEXCHAIN-WORKFLOW-FLOWCHARTS.md` | Process flows |
-| Mobile audit | `docs/LEXCHAIN-MOBILE-MAINTAINABILITY-AUDIT.md` | Code quality report |
-| Web admin pages | `apps/web/app/admin/` | Dashboard, users, invitations/permissions, logs, categories, settings |
-| Web API handlers | `apps/web/app/api/` | Route handlers for admin/public proxying |
-| Web helpers | `apps/web/lib/` | Web API helpers and schemas |
-| Mobile feature code | `apps/mobile/src/features/` | Auth, dashboard, document, documents, onboarding, profile, upload, verification |
-| Mobile API/query layer | `apps/mobile/src/services/` | API modules, mocks, React Query hooks, query keys |
-| Mobile shared layer | `apps/mobile/src/shared/` | UI primitives, hooks, providers, config, theme, utils |
-| Mobile native projects | `apps/mobile/android/`, `apps/mobile/ios/` | Generated/native project files; change only when native config requires it |
+Use `rg` for string literals, error messages, configuration and non-code files, or when graph tools are unavailable, stale or insufficient. Never treat a pre-migration graph path as proof that the file still exists.
 
-## CROSS-APP BOUNDARIES
+## Current layout and ownership
 
-| Responsibility | Owner | Notes |
-|----------------|-------|-------|
-| Portal document verify (authenticated) | `apps/web/app/portal/documents/[id]/verify/` | Full verify workspace: tamper report, word-diff, PDF overlay |
-| Portal verification center | `apps/web/app/portal/verification/` | Check integrity by repository document ID |
-| Portal API proxy | `apps/web/app/api/portal/proxy/` | Generic proxy: `?path=/documents/{id}/verify` → backend |
-| Public document verifier (browser) | `apps/web/app/verify/` | **NOT YET IMPLEMENTED** — route does not exist on disk |
-| Admin panel | `apps/web/app/admin/` | Next.js only — mobile must NOT import admin screens |
-| Admin API proxy/routes | `apps/web/app/api/admin/` | Next.js route handlers for admin backend calls |
-| Invite/download/legal pages | `apps/web/app/invite/`, `apps/web/app/download/`, `apps/web/app/terms/`, `apps/web/app/privacy/` | Next.js owns browser fallback/support pages |
-| Landing/marketing page | `apps/web/app/page.tsx` | Next.js owns |
-| Mobile-native upload/camera | `apps/mobile/app/upload.tsx`, `camera-capture.tsx` | Expo owns |
-| Mobile-native document detail | `apps/mobile/app/document/[id].tsx` | Expo owns |
-| Mobile-native profile/account screens | `apps/mobile/app/profile/`, `apps/mobile/src/features/profile/` | Expo owns |
-| Mobile-native document verification | `apps/mobile/app/verify/[id].tsx`, `apps/mobile/src/features/verification/` | Expo owns internal/native verification |
-| Shared types | `packages/types/` | Generated from `openapi-updated.json` |
-| Shared API client | `packages/api/` | Used by both apps |
-| Shared config | `packages/config/` | Used by workspace packages/apps |
+| Location | Responsibility |
+| --- | --- |
+| `app/` | Next route entry points, layouts, metadata, API handlers and route integration tests |
+| `features/documents/` | Library, upload, review, lifecycle and document activity |
+| `features/verification/` | Integrity results and document verification views |
+| `features/access/` | Invitations, requests, participants and portal role access |
+| `features/office/` | Books, categories, reports and office settings |
+| `features/account/`, `features/auth/` | Profile and authentication views |
+| `features/admin/` | Admin views and server rendering helpers |
+| `features/portal/` | Dashboard and portal shell/navigation |
+| `components/` | Shared UI and PWA registration |
+| `lib/api/client.ts` | Browser transport to same-origin Next routes |
+| `lib/api/server.ts` | Server backend URL, token and request helpers |
+| `lib/api/config.ts` | Pure configuration functions receiving an environment map |
+| `lib/api/shared.ts` | Existing shared helpers while consumed |
+| `lib/types/` | Public backend type exports and generated schema |
+| `lib/mocks/` | Local mock data and mock-mode helpers |
+| `public/` | Static assets, PWA icons, service worker and offline fallback |
+| `scripts/`, `e2e/` | Contract maintenance and browser checks |
 
-## CONVENTIONS
+## Next.js and dependency boundaries
 
-- **Package manager**: `pnpm` only. Root `package.json` has `packageManager: "pnpm@10.33.0"`.
-- **Workspace protocol**: `pnpm --filter <name> <cmd>` or `pnpm -r <cmd>`.
-- **Type generation**: `pnpm run generate:api-types` runs `openapi-typescript` on `openapi-updated.json`.
-- **Transpilation**: Next.js config transpiles `@lexchain/api`, `@lexchain/config`, `@lexchain/types` (ESM packages).
-- **lightningcss**: Pinned to `1.30.1` in root `pnpm.overrides` — do NOT drift.
+- Before Next.js implementation, read the relevant installed documentation under `node_modules/next/dist/docs/`; resolve the installed package location if needed. Use official Next.js documentation when local docs are absent.
+- Use the App Router and server components by default. Preserve `"use client"`, `"use server"` and Next-specific route exports at their valid boundaries.
+- Route UI composes feature views; feature modules must not import route implementations from `app/`.
+- Shared `lib/` and shared UI must not import feature or route implementations. Domain-to-domain imports must be explicit and limited to the functions/types needed.
+- Client API operations call same-origin Next route handlers. Server-rendered views and server actions may call server helpers directly.
+- Never import `lib/api/server.ts` or `features/*/server/**` into client modules. Keep mock fixtures out of client bundles; browser mock checks should import only the lightweight flag helper.
+- Keep backend/generated types in `lib/types/` and UI-specific types with their feature. Do not hand-edit `lib/types/generated/schema.ts`.
+- Preserve existing React Query keys, enabled conditions and invalidation. Extract hooks only where they separate substantive data behavior from rendering.
+- Use the root `@/` alias. There are no active `apps/`, `packages/` or `@lexchain/*` workspace imports.
+- Never import `.agents/`, `.agent/` or local design/tooling artifacts into runtime code.
 
-## ANTI-PATTERNS
+## Security and offline behavior
 
-- **Do NOT** import `.agents/` or `.agent/` files into runtime code (mobile app rule).
-- **Do NOT** reintroduce Expo web-only routes for admin/public verifier — Next.js owns these.
-- **Do NOT** modify lockfiles with npm/yarn — pnpm only.
-- **Do NOT** change `lightningcss` version without explicit approval — breaks NativeWind.
+- Treat backend authorization as authoritative; client access checks are only UI behavior. Validate inputs at route boundaries before forwarding them.
+- Keep credentials, tokens and private keys on the server. Never hardcode backend URLs; configure them through the environment.
+- PWA CacheStorage contains only the static offline fallback. Do not cache API responses, authenticated navigation responses, PDFs, uploads, tokens or user data.
+- Do not add offline mutation queues, background sync or forced worker activation/reloads during document work.
+- Keep service-worker registration production-only and nonblocking. Remove only obsolete caches owned by this worker.
 
-## COMMANDS
+## Tooling and checks
+
+Use Node **24.12.0 or newer** and **pnpm 11.13.0**, as declared in `package.json`. Use pnpm only. `pnpm-workspace.yaml` contains package-manager settings, not child workspaces; retain its `lightningcss: 1.30.1` override unless a separate change is approved.
+
+Run commands from the repository root:
 
 ```bash
-# Root-level
-pnpm install                    # Install all workspaces
-pnpm -r lint                    # Lint all workspaces
-pnpm run mobile                 # Start mobile dev server
-pnpm run web                    # Start web dev server
-pnpm run web:build              # Build web for production
-pnpm run generate:api-types     # Regenerate types from OpenAPI spec
-
-# Per-workspace
-pnpm --filter @lexchain/mobile lint       # Mobile ESLint
-pnpm --filter @lexchain/web lint          # Web ESLint
-pnpm --filter @lexchain/web build         # Web production build
-pnpm --filter @lexchain/types generate  # Regenerate schema.ts
+pnpm install --frozen-lockfile
+pnpm dev
+pnpm test
+pnpm test:scripts
+pnpm typecheck
+pnpm lint
+pnpm build
 ```
 
-## SOFTWARE ENGINEERING PRINCIPLES
+Vitest discovers tests under `app/`, `features/`, `components/` and `lib/`. Script tests use Node's built-in test runner. Use `pnpm start` to serve a production build; the PWA browser check is `node e2e/pwa.mjs` against that server.
 
-- **Readability first**: Code a student teammate can understand later.
-- **KISS**: Simplest solution that fully solves the task.
-- **DRY carefully**: Extract only when reuse is clear and proven.
-- **YAGNI**: Build only what is required right now.
-- **Single responsibility**: One clear purpose per function, component, hook, service, module.
-- **Consistency over new abstractions**: Follow existing patterns before inventing.
-- **Minimize blast radius**: Smallest safe change preserving existing behavior.
-- **Reuse before create**: Check existing components, hooks, services, types before adding.
-- **No unjustified dependencies**: Don't add libraries for simple helpers or formatting.
-- **Prefer explicit over magic**: Avoid hidden side effects and unclear abstractions.
+`pnpm generate:api-types` uses the checked-in `openapi-updated.json` without a network refresh. Refresh explicitly with `OPENAPI_URL='http://localhost:8000/openapi.json' pnpm refresh:api-contract`, review the contract diff, then regenerate types. See README for setup and test-backend requirements.
 
-### Do
-- Small, reviewable changes. Boring, predictable code over clever code.
-- Explain tradeoffs in comments only when code isn't self-explanatory.
-- Follow existing project patterns (mobile: `apps/mobile/AGENTS.md`, web: `apps/web/AGENTS.md`).
+## Archive and handoff
 
-### Don't
-- Rewrite whole features to change one behavior.
-- Create generic abstractions for one-time use.
-- Change unrelated files for style preference.
-- Introduce architecture the current feature doesn't need.
+The published archive `codex/backup-expo-before-web-pwa-2026-09-09` preserves Expo at `1d3852c74c5162d1cb30f5aa5782acafe7e17b57`. Do not modify the archive or restore it wholesale onto the active branch. Revert the relevant migration commit for rollback; inspect the archive in a separate worktree if needed.
 
----
-
-## EXPO REACT NATIVE + WEB RULES (Mobile)
-
-**Full details:** `apps/mobile/AGENTS.md` (925 lines). Summary below.
-
-### Stack
-Expo SDK 54 | React Native 0.81 | React 19 | NativeWind v5 + Tailwind v4 | TanStack Query | Zod v4 | ECC crypto (`ecc-universal` v1.9.0)
-
-### Core Rules
-- **TypeScript** for all new code. Functional components + hooks only.
-- **Expo Router** for navigation — file-based routing, route groups, layouts. No custom navigation abstractions.
-- **NativeWind v5** via `@/tw` utilities. `StyleSheet.create` only when NativeWind is awkward.
-- **React Query** for all server state. Hooks in `src/services/query/`. No raw `fetch` in screens.
-- **Zod v4** + `react-hook-form` for validation. Schemas in `src/features/*/schemas/`.
-- **Import aliases**: `@/` path aliases. Never relative paths for shared modules.
-- **Feature-first**: New features in `src/features/<name>/`. Shared code in `src/shared/`.
-- **Index exports**: Every feature/service has `index.ts` re-exporting public members.
-
-### Navigation
-- `router.replace(...)` for auth transitions (prevents screen stacking).
-- `router.push(...)` only when previous screen should stay in history.
-- Route names must match actual files in `app/`.
-
-### Anti-Patterns (Mobile)
-- **BottomSheet**: Must use `default` import from `@gorhom/bottom-sheet`. Named import crashes.
-- **lightningcss**: Must stay pinned to `1.30.1`. Drift breaks NativeWind.
-- **Agent files**: Never import `.agents/` or `.agent/` into runtime code.
-- **Themed primitives**: Never bypass `ThemedText`/`ThemedView` for routine UI.
-- **Web routes**: Do NOT reintroduce Expo web-only landing/admin/public verifier routes.
-
-### Security (Mobile)
-- No secrets, private keys, or backend credentials in frontend code.
-- Client-side checks are UX only — backend is source of truth.
-- Secure storage centralized in `src/shared/utils/secure-storage.ts`.
-
----
-
-## NEXT.JS WEB RULES
-
-**Full details:** `apps/web/AGENTS.md`. Summary below.
-
-### Stack
-Next.js 16.2.6 | React 19.2 | TypeScript 5 | Tailwind v4 | ESLint (eslint-config-next)
-
-### Core Rules
-- **App Router**: Server components by default. Read `node_modules/next/dist/docs/` for breaking changes.
-- **Tailwind v4**: `@tailwindcss/postcss` — CSS-first configuration.
-- **Workspace packages**: `@lexchain/api`, `@lexchain/config`, `@lexchain/types` transpiled via `next.config.ts`.
-- **API routes**: Route handlers in `app/api/` proxy to FastAPI backend at `http://localhost:8000`.
-- **TypeScript strict mode** enabled.
-
-### Environment
-- `NEXT_PUBLIC_API_URL` — client-accessible backend URL.
-- `API_URL` — server-side backend URL.
-- Never hardcode backend URLs — always use env vars.
-
-### Anti-Patterns (Web)
-- **Do NOT** reintroduce Expo web-only routes — Next.js owns admin/public verifier exclusively.
-- **Do NOT** bypass route handlers for direct backend calls from client components.
-- **Do NOT** import mobile-specific code (`apps/mobile/`) into web app.
-- **Do NOT** hardcode `http://localhost:8000` — use env vars.
-
-### Security (Web)
-- Server-side route handlers for sensitive operations (admin, auth proxying).
-- Never expose backend credentials or API keys in client components.
-- Validate all user input server-side before forwarding to backend.
-
----
-
-## NOTES
-
-- Branch: `feat/monorepo-restructuring` — active restructuring in progress.
-- No test runner configured in any workspace.
-- CI: single workflow `.github/workflows/react-doctor.yml`.
-- Backend expects Python/FastAPI at `http://localhost:8000` (see `.env.example`).
-- Portal roles simplified to `lawyer` and `user`. Backend roles (`document_issuer`, `document_participant`) still mapped for backward compat via `getPortalUiRole()`.
+Deployment uses repository root `.`. A passing local build does not verify hosting-dashboard settings, deployed CI, real backend flows or installation on physical Android/iOS devices. Record those checks explicitly when performed.

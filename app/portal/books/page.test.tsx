@@ -2,7 +2,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import BooksPage from './page';
+import BooksPage from '@/features/office/pages/books-page';
 
 const book = {
   id: 'book-1',

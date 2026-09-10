@@ -1,6 +1,6 @@
 import { afterEach, expect, it, vi } from 'vitest';
 import { NextRequest } from 'next/server';
-import { mockPortalMutate } from '@/lib/portal-mock';
+import { mockPortalMutate } from '@/lib/mocks/portal';
 import { GET } from './route';
 
 const originalApiUrl = process.env.API_URL;

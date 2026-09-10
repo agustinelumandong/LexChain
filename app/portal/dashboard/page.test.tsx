@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { cleanup, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import DashboardPage from './page';
+import DashboardPage from '@/features/portal/pages/dashboard-page';
 
 const queryState = vi.hoisted(() => ({
   role: 'document_issuer',

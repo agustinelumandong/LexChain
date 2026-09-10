@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest';
-import { mockPortalGet, mockPortalMutate } from '@/lib/portal-mock';
+import { mockPortalGet, mockPortalMutate } from '@/lib/mocks/portal';
 import { GET } from './route';
 
 type RouteContext = { params: Promise<{ fileName: string }> };
