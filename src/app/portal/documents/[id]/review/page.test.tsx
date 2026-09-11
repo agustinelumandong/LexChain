@@ -2,7 +2,7 @@
 import { Suspense } from 'react';
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import type { ApiSchema } from '@/lib/types';
+import type { ApiSchema } from '@/shared/types';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import ReviewPage from '@/features/documents/pages/documents-id-review-page';
 

@@ -1,4 +1,4 @@
-import type { ApiSchema } from '@/lib/types/index';
+import type { ApiSchema } from '@/shared/types/index';
 import type {
   DemoDocumentLifecycle,
   DemoDocumentSnapshot,

@@ -3,8 +3,8 @@
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
-import type { components } from "@/lib/types/index";
-import { portalFetch } from "@/lib/api/client";
+import type { components } from "@/shared/types/index";
+import { portalFetch } from "@/shared/api/client";
 import { canAccessPortalFeature } from "@/features/access/portal-access";
 import { getPortalUiRole } from "@/features/access/portal-role";
 

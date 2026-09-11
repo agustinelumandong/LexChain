@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import type { ApiSchema } from '@/lib/types/index';
+import type { ApiSchema } from '@/shared/types/index';
 import {
   defaultOfficeSettings,
   invitationExpiryDays,

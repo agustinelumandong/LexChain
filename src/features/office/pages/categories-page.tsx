@@ -5,7 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import AddIcon from '@mui/icons-material/Add';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import BlockOutlinedIcon from '@mui/icons-material/BlockOutlined';
-import type { ApiSchema } from '@/lib/types/index';
+import type { ApiSchema } from '@/shared/types/index';
 import { canAccessPortalFeature } from '@/features/access/portal-access';
 import {
   createDemoCategory,

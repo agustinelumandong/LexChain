@@ -6,7 +6,7 @@ import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 import SearchIcon from '@mui/icons-material/Search';
 import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile';
-import type { ApiSchema } from '@/lib/types/index';
+import type { ApiSchema } from '@/shared/types/index';
 import type { PortalSearchHit } from '@/features/access/portal-compat-types';
 
 type GlobalSearchResponse = Omit<ApiSchema<'GlobalSearchResponse'>, 'results'> & {

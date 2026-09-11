@@ -1,10 +1,10 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import type { ApiSchema } from "@/lib/types/index";
+import type { ApiSchema } from "@/shared/types/index";
 import { RequestStatus } from "@/features/access/components/request-status";
 import type { PortalDocumentRequestList } from "@/features/access/portal-compat-types";
-import { portalFetch } from "@/lib/api/client";
+import { portalFetch } from "@/shared/api/client";
 import { canAccessPortalFeature } from "@/features/access/portal-access";
 import { getPortalUiRole } from "@/features/access/portal-role";
 

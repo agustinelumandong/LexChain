@@ -1,6 +1,6 @@
 'use client';
 
-import type { ApiSchema } from '@/lib/types/index';
+import type { ApiSchema } from '@/shared/types/index';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ErrorIcon from '@mui/icons-material/Error';
 import dynamic from 'next/dynamic';

@@ -2,7 +2,7 @@ import {
   adminAuditLogs,
   adminUsers,
 } from '@/features/admin/admin-demo-data';
-import type { ApiSchema } from '@/lib/types/index';
+import type { ApiSchema } from '@/shared/types/index';
 
 export type OfficeDateRange = {
   id: '7-days' | '30-days' | '90-days';

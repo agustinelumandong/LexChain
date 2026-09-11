@@ -1,4 +1,4 @@
-import { buildApiUrl } from "@/lib/api/config";
+import { buildApiUrl } from "@/config/api";
 
 type ApiErrorPayload = {
   detail?: unknown;

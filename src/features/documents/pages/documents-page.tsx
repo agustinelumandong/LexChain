@@ -27,7 +27,7 @@ import {
   getVisibleDocuments,
   type DocumentListItem,
 } from '@/features/documents/document-library';
-import type { ApiSchema } from '@/lib/types/index';
+import type { ApiSchema } from '@/shared/types/index';
 
 type Document = DocumentListItem & {
   id: string;

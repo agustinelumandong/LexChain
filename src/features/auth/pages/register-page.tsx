@@ -10,7 +10,7 @@ import { z } from "zod";
 import { useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
 
-import { getEmailFromInviteToken } from "@/lib/invite-token";
+import { getEmailFromInviteToken } from "@/shared/utils/invite-token";
 
 const registerSchema = z.object({
   firstName: z.string().trim().min(1, "First name is required."),

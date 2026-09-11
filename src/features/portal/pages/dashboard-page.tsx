@@ -11,7 +11,7 @@ import VerifiedUserIcon from '@mui/icons-material/VerifiedUser';
 import EmailOutlinedIcon from '@mui/icons-material/EmailOutlined';
 import FileUploadIcon from '@mui/icons-material/FileUpload';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
-import type { ApiSchema } from '@/lib/types/index';
+import type { ApiSchema } from '@/shared/types/index';
 import { MetricCard } from '@/features/portal/components/portal-metric-card';
 import { getDocumentStatusLabel } from '@/features/documents/document-ui';
 import { type DashboardMetric, getDashboardMetrics } from '@/features/portal/portal-dashboard';

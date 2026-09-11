@@ -1,4 +1,4 @@
-import { adminFetch, getTokenFromRequest, missingApiUrl, missingToken } from "@/lib/api/server";
+import { adminFetch, getTokenFromRequest, missingApiUrl, missingToken } from "@/server/api/backend";
 import { isMockDocumentIssuerToken } from "@/lib/mocks/portal";
 import { z } from "zod";
 

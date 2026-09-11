@@ -1,4 +1,4 @@
-import type { components } from '@/lib/types/index';
+import type { components } from '@/shared/types/index';
 import type { PortalAuditLog } from '@/features/access/portal-compat-types';
 
 type DocumentPartyList = components['schemas']['DocumentPartyListResponse'];

@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 
-import { getEmailFromInviteToken } from "@/lib/invite-token";
+import { getEmailFromInviteToken } from "@/shared/utils/invite-token";
 
 type InvitePageProps = {
   params: Promise<{

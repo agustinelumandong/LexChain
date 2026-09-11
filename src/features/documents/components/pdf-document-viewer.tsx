@@ -1,6 +1,6 @@
 'use client';
 
-import type { ApiSchema } from '@/lib/types/index';
+import type { ApiSchema } from '@/shared/types/index';
 import type { PDFDocumentLoadingTask, PDFDocumentProxy, RenderTask } from 'pdfjs-dist';
 import { useEffect, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';

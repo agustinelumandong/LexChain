@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { backendUrl } from "@/lib/api/server";
+import { backendUrl } from "@/server/api/backend";
 import { isMockDocumentIssuerToken } from "@/lib/mocks/portal";
 import { isMockMode } from "@/lib/mocks/mode";
 

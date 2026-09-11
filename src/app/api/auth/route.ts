@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { backendUrl } from "@/lib/api/server";
+import { backendUrl } from "@/server/api/backend";
 
 const useMock = process.env.NEXT_PUBLIC_USE_MOCK_API === "true" || process.env.USE_MOCK_API === "true";
 const mockPassword = "Password123";

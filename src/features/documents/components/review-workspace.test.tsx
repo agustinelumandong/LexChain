@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
-import type { ApiSchema } from '@/lib/types/index';
+import type { ApiSchema } from '@/shared/types/index';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import ReviewWorkspace from '@/features/documents/components/review-workspace';
 

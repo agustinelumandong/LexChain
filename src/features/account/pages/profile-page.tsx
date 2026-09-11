@@ -10,7 +10,7 @@ import NotificationsNoneIcon from '@mui/icons-material/NotificationsNone';
 import PolicyIcon from '@mui/icons-material/Policy';
 import HelpOutlineIcon from '@mui/icons-material/HelpOutlineOutlined';
 import RequestPageIcon from '@mui/icons-material/RequestPage';
-import type { ApiSchema } from '@/lib/types/index';
+import type { ApiSchema } from '@/shared/types/index';
 import { getPortalProfileRequestShortcut, getPortalRoleLabel, getPortalUiRole } from '@/features/access/portal-role';
 
 type UserProfile = ApiSchema<'UserProfileResponse'>;

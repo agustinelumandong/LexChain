@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { backendUrl } from "@/lib/api/server";
+import { backendUrl } from "@/server/api/backend";
 
 export async function adminFetch<T>(path: string, opts?: { revalidate?: number }): Promise<T> {
   const cookieStore = await cookies();

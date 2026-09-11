@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ErrorIcon from '@mui/icons-material/Error';
-import type { ApiSchema } from '@/lib/types/index';
+import type { ApiSchema } from '@/shared/types/index';
 import { getDocumentStatusLabel } from '@/features/documents/document-ui';
 
 type DocumentResponse = ApiSchema<'DocumentResponse'>;

@@ -1,4 +1,4 @@
-import { buildApiUrl, getApiBaseUrl } from "@/lib/api/config";
+import { buildApiUrl, getApiBaseUrl } from "@/config/api";
 
 const apiBase = getApiBaseUrl(process.env);
 

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { backendUrl } from "@/lib/api/server";
+import { backendUrl } from "@/server/api/backend";
 
 export async function POST(request: Request) {
   const apiBase = process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL;

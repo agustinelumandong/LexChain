@@ -5,7 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import HistoryIcon from '@mui/icons-material/History';
-import type { ApiSchema } from '@/lib/types/index';
+import type { ApiSchema } from '@/shared/types/index';
 import { listDocumentAuditLogs } from '@/features/access/portal-access-api';
 import type { PortalAuditLog } from '@/features/access/portal-compat-types';
 import { formatAuditEvent } from '@/features/documents/activity-log';

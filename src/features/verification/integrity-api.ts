@@ -1,4 +1,4 @@
-import type { components } from '@/lib/types/index';
+import type { components } from '@/shared/types/index';
 
 type DocumentVerification = components['schemas']['DocumentVerificationResponse'];
 

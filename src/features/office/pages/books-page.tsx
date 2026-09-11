@@ -5,7 +5,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import AddIcon from '@mui/icons-material/Add';
 import MenuBookIcon from '@mui/icons-material/MenuBook';
 import RefreshIcon from '@mui/icons-material/Refresh';
-import type { ApiSchema } from '@/lib/types/index';
+import type { ApiSchema } from '@/shared/types/index';
 import { toast } from 'sonner';
 import { getPortalUiRole } from '@/features/access/portal-role';
 import { canAccessPortalFeature } from '@/features/access/portal-access';

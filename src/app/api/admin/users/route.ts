@@ -1,4 +1,4 @@
-import { adminFetch, getTokenFromRequest, missingApiUrl, missingToken } from "@/lib/api/server";
+import { adminFetch, getTokenFromRequest, missingApiUrl, missingToken } from "@/server/api/backend";
 
 export async function GET(request: Request) {
   const apiBase = process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL;

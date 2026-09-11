@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { backendUrl } from '@/lib/api/server';
+import { backendUrl } from '@/server/api/backend';
 import { getPortalUiRole } from '@/features/access/portal-role';
 
 type RouteContext = { params: Promise<{ id: string }> };

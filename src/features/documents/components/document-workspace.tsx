@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
-import type { ApiSchema } from '@/lib/types/index';
+import type { ApiSchema } from '@/shared/types/index';
 import { listDocumentVersions } from '@/features/documents/document-lifecycle-api';
 import type { DemoDocumentLifecycle } from '@/features/documents/document-lifecycle-ui';
 import { shortenIntegrityHash } from '@/features/verification/integrity-ui';

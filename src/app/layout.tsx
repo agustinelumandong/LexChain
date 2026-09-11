@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { PwaRegistration } from "@/components/pwa-registration";
+import { PwaRegistration } from "@/pwa/pwa-registration";
 import { Providers } from "./providers";
 import "./globals.css";
 

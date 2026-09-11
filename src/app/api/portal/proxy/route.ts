@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { backendUrl } from '@/lib/api/server';
+import { backendUrl } from '@/server/api/backend';
 import { isMockPortalToken, mockPortalGet } from '@/lib/mocks/portal';
 import { isMockMode } from '@/lib/mocks/mode';
 

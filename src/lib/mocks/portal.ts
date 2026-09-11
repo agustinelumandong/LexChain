@@ -1,4 +1,4 @@
-import type { ApiSchema } from '@/lib/types/index';
+import type { ApiSchema } from '@/shared/types/index';
 export { isMockMode } from "./mode";
 
 const mockParticipantId = 'mock-document-participant';

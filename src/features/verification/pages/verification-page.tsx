@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import type { ApiSchema } from '@/lib/types/index';
+import type { ApiSchema } from '@/shared/types/index';
 import { IntegrityResult } from '@/features/verification/components/integrity-result';
 import { verifyRepositoryDocument } from '@/features/verification/integrity-api';
 

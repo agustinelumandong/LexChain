@@ -2,7 +2,7 @@
 
 import { use } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import type { ApiSchema } from '@/lib/types/index';
+import type { ApiSchema } from '@/shared/types/index';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {

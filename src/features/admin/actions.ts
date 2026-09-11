@@ -2,7 +2,7 @@
 
 import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
-import { backendUrl } from "@/lib/api/server";
+import { backendUrl } from "@/server/api/backend";
 
 function getToken(cookieStore: Awaited<ReturnType<typeof cookies>>) {
   return cookieStore.get("issuer_token")?.value;

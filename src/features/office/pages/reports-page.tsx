@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import type { ApiSchema } from '@/lib/types/index';
+import type { ApiSchema } from '@/shared/types/index';
 import { GeneratedReportsManagementView } from '@/features/admin/generated-reports/generated-reports-management-view';
 import { PortalDropdown } from '@/features/portal/components/portal-dropdown';
 import {
@@ -12,7 +12,7 @@ import {
   type DemoReportType,
   type PortalReportDocument,
 } from '@/features/office/office-insight';
-import { portalFetch } from '@/lib/api/client';
+import { portalFetch } from '@/shared/api/client';
 import { getPortalUiRole } from '@/features/access/portal-role';
 
 type UserProfile = ApiSchema<'UserProfileResponse'>;

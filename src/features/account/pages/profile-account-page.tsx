@@ -3,7 +3,7 @@
 import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import type { ApiSchema } from '@/lib/types/index';
+import type { ApiSchema } from '@/shared/types/index';
 
 type UserProfile = ApiSchema<'UserProfileResponse'>;
 

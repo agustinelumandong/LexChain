@@ -2,10 +2,10 @@
 
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import type { ApiSchema } from "@/lib/types/index";
+import type { ApiSchema } from "@/shared/types/index";
 import { RequestStatus } from "@/features/access/components/request-status";
 import type { PortalDocumentRequestList } from "@/features/access/portal-compat-types";
-import { portalFetch } from "@/lib/api/client";
+import { portalFetch } from "@/shared/api/client";
 import { getPortalUiRole } from "@/features/access/portal-role";
 import { getRequestActionError, getRequestActions } from "@/features/access/request-ui";
 

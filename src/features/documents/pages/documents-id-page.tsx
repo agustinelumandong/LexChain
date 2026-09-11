@@ -4,7 +4,7 @@ import { use, useRef, useState } from 'react';
 import { useMutation, useQueries, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import type { ApiSchema } from '@/lib/types/index';
+import type { ApiSchema } from '@/shared/types/index';
 import PortalChatbot from '@/features/portal/components/portal-chatbot';
 import { DocumentWorkspace } from '@/features/documents/components/document-workspace';
 import { getDocumentActions, getDocumentStatusLabel } from '@/features/documents/document-ui';
