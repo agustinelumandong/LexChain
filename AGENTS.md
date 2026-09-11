@@ -1,6 +1,6 @@
 # LexChain — Agent Instructions
 
-LexChain is one root Next.js application for document workflows, verification and administration, with an installable PWA and a separate Python/FastAPI backend. Start with [README.md](README.md) and [docs/ROOT-WEB-ARCHITECTURE.md](docs/ROOT-WEB-ARCHITECTURE.md). Older monorepo and Expo documents are historical references, not current setup instructions.
+LexChain is one root Next.js application for document workflows, verification and administration, with an installable PWA and a separate Python/FastAPI backend. Start with [README.md](README.md) and [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). The Expo application is preserved only on the backup branch.
 
 ## Working rules
 

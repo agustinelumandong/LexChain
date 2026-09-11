@@ -86,4 +86,4 @@ Set the hosting project's root directory to **`.`**, install with `pnpm install 
 
 The root CI workflow runs tests, script tests, lint, typecheck and build. Repository configuration alone does not confirm that the workflow ran or that the hosting dashboard uses the new root. Real backend workflows, deployed CI and physical Android/iOS installation remain unverified until separately recorded.
 
-See [the architecture guide](docs/ROOT-WEB-ARCHITECTURE.md) for module ownership, boundaries and rollback, [AGENTS.md](AGENTS.md) for contribution rules, and [the migration baseline](docs/root-web-migration-baseline.md) for the original check results.
+See [the architecture guide](docs/ARCHITECTURE.md) for module ownership, boundaries and rollback, and [AGENTS.md](AGENTS.md) for contribution rules.

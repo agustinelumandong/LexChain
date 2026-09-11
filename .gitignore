@@ -124,11 +124,7 @@ openapi.json
 # Active root web documentation
 !README.md
 !AGENTS.md
-!docs/root-web-migration-baseline.md
-!docs/root-web-api-inventory.md
-!docs/ROOT-WEB-ARCHITECTURE.md
-!docs/superpowers/plans/2026-09-09-root-web-architecture.md
-!docs/superpowers/specs/2026-09-09-root-web-architecture.md
+!docs/ARCHITECTURE.md
 # Local agent execution artifacts
 .superpowers/
 next-env.d.ts
