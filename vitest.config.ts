@@ -2,9 +2,9 @@ import { defineConfig } from "vitest/config";
 import path from "node:path";
 
 export default defineConfig({
-  resolve: { alias: { "@": path.resolve(__dirname, ".") } },
+  resolve: { alias: { "@": path.resolve(__dirname, "src") } },
   test: {
     environment: "node",
-    include: ["app/**/*.test.{ts,tsx}", "features/**/*.test.{ts,tsx}", "components/**/*.test.{ts,tsx}", "lib/**/*.test.{ts,tsx}"],
+    include: ["src/**/*.test.{ts,tsx}"],
   },
 });

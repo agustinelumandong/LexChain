@@ -9,7 +9,7 @@
     "lint": "eslint",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "generate:api-types": "openapi-typescript openapi-updated.json -o lib/types/generated/schema.ts",
+    "generate:api-types": "openapi-typescript openapi-updated.json -o src/lib/types/generated/schema.ts",
     "refresh:api-contract": "node scripts/fetch-openapi.mjs",
     "test:scripts": "node --test scripts/*.test.mjs"
   },

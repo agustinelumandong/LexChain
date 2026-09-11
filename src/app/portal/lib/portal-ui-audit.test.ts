@@ -21,8 +21,8 @@ afterEach(() => {
   cleanup();
 });
 
-const appDirectory = path.resolve(process.cwd(), "app");
-const featuresDirectory = path.resolve(process.cwd(), "features");
+const appDirectory = path.resolve(process.cwd(), "src", "app");
+const featuresDirectory = path.resolve(process.cwd(), "src", "features");
 
 async function sourceFiles(directory: string): Promise<string[]> {
   const entries = await readdir(directory, { withFileTypes: true });

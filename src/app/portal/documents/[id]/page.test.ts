@@ -4,11 +4,11 @@ import { resolve } from 'node:path';
 
 const pageSource = readFileSync(resolve(import.meta.dirname, 'page.tsx'), 'utf8');
 const documentPageSource = readFileSync(
-  resolve(process.cwd(), 'features/documents/pages/documents-id-page.tsx'),
+  resolve(process.cwd(), 'src/features/documents/pages/documents-id-page.tsx'),
   'utf8',
 );
 const workspaceSource = readFileSync(
-  resolve(process.cwd(), 'features/documents/components/document-workspace.tsx'),
+  resolve(process.cwd(), 'src/features/documents/components/document-workspace.tsx'),
   'utf8',
 );
 

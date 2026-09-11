@@ -43,7 +43,7 @@ describe("Issuer management portal pages", () => {
 
   it.each(managementLinks)("keeps %s navigation inside the portal", (view, target, legacyTarget) => {
     const source = readFileSync(
-      resolve(process.cwd(), "features", "admin", view),
+      resolve(process.cwd(), "src", "features", "admin", view),
       "utf8",
     );
 
