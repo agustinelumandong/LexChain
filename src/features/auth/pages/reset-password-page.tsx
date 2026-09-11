@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useState, type ReactNode } from "react";
-import { demoResetToken, webResetPasswordSchema } from "@/lib/schemas/auth";
+import { demoResetToken, webResetPasswordSchema } from "@/features/auth/schemas/auth";
 
 const unavailableMessage = "Password recovery is not connected yet. The backend password-recovery endpoints are required before this can send a real email.";
 

@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
-import { demoResetToken, type DemoForgotPasswordResult } from "@/lib/schemas/auth";
+import { demoResetToken, type DemoForgotPasswordResult } from "@/features/auth/schemas/auth";
 
 const resetMessage = "If an account exists for that email, a reset link has been sent." as const;
 const unavailableMessage = "Password recovery is not connected yet. The backend password-recovery endpoints are required before this can send a real email.";
