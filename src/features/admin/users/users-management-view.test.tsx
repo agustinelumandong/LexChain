@@ -84,6 +84,78 @@ describe("updateDemoUser", () => {
 });
 
 describe("UsersManagementView demo mutations", () => {
+  it("fills the remaining dynamic viewport height on desktop", () => {
+    renderUsers();
+
+    const header = screen.getByRole("heading", { name: "Users", level: 1 }).closest("header");
+    const view = header?.parentElement;
+    const directorySection = screen.getByRole("heading", { name: "User Directory" }).closest("article")?.parentElement;
+
+    expect(view?.className).toContain("xl:h-[calc(100dvh-113px)]");
+    expect(directorySection?.className).toContain("xl:flex-1");
+  });
+
+  it("stacks the sidebar cards without stretching or excess padding", () => {
+    renderUsers();
+
+    const roleCard = screen.getByRole("heading", { name: "Role Distribution" }).closest("article");
+    const recentHeading = screen.getByRole("heading", { name: "Recently Created Accounts" });
+    const recentCard = recentHeading.closest("article");
+    const sidebar = roleCard?.parentElement;
+
+    expect(sidebar?.className).toContain("content-start");
+    expect(sidebar?.className).toContain("xl:h-full");
+    expect(sidebar?.className).toContain("xl:grid-rows-[auto_minmax(0,1fr)]");
+    expect(recentCard?.parentElement).toBe(sidebar);
+    expect(recentCard?.className).toContain("p-3");
+    expect(recentCard?.className).toContain("min-h-0");
+    expect(recentHeading.parentElement?.className).toContain("mb-2");
+  });
+
+  it("fills the directory row on desktop while sizing to content on mobile", () => {
+    renderUsers();
+
+    const heading = screen.getByRole("heading", { name: "User Directory" });
+    const card = heading.closest("article");
+
+    expect(card?.className).toContain("h-fit");
+    expect(card?.className).toContain("xl:h-full");
+  });
+
+  it("sizes the Role Distribution card to its content", () => {
+    renderUsers();
+
+    const heading = screen.getByRole("heading", { name: "Role Distribution" });
+    const card = heading.closest("article");
+    const content = card?.querySelector(":scope > div");
+
+    expect(card?.className).toContain("h-fit");
+    expect(card?.className).toContain("self-start");
+    expect(card?.className).toContain("p-3");
+    expect(heading.className).toContain("mb-2");
+    expect(content?.className).not.toContain("flex-1");
+  });
+
+  it("keeps recent accounts scrollable within the available card height", () => {
+    const userRows = [
+      ...users,
+      { ...users[0], id: "user-3", email: "user3@example.com", created_at: "2026-01-04T00:00:00Z" },
+      { ...users[0], id: "user-4", email: "user4@example.com", created_at: "2026-01-05T00:00:00Z" },
+      { ...users[0], id: "user-5", email: "user5@example.com", created_at: "2026-01-06T00:00:00Z" },
+    ];
+
+    renderUserList(userRows);
+
+    const heading = screen.getByRole("heading", { name: "Recently Created Accounts" });
+    const list = heading.closest("article")?.querySelector(".admin-table-scroll");
+
+    expect(list?.className).toContain("max-h-64");
+    expect(list?.className).toContain("overflow-y-auto");
+    expect(list?.className).toContain("xl:max-h-none");
+    expect(list?.className).toContain("xl:flex-1");
+    expect(list?.children).toHaveLength(userRows.length);
+  });
+
   it("maps canonical and backend account roles while marking unknown values unsupported", () => {
     renderUserList([
       users[1],
@@ -147,6 +219,17 @@ describe("UsersManagementView demo mutations", () => {
 
     expect(within(rowFor("maria@example.com")).getByText("Maria Santos")).toBeTruthy();
     expect(screen.queryByText("Changed Santos")).toBeNull();
+  });
+
+  it("starts a fresh draft when an edit dialog is reopened", () => {
+    renderUsers();
+    const edit = within(rowFor("maria@example.com")).getByRole("button", { name: "Edit Maria Santos" });
+    fireEvent.click(edit);
+    fireEvent.change(screen.getByLabelText("First name"), { target: { value: "Discarded" } });
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    fireEvent.click(edit);
+
+    expect((screen.getByLabelText("First name") as HTMLInputElement).value).toBe("Maria");
   });
 
   it("suspends an active account in demo mode", () => {
