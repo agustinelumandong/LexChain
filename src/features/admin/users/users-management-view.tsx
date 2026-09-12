@@ -283,6 +283,7 @@ export function UsersManagementView({ users, total }: { users: AdminUser[]; tota
                 <ChevronRightIcon fontSize="small" />
               </button>
               <Dropdown
+                openUp
                 value={pageSize}
                 onChange={setPageSize}
                 options={[{ label: "6 / page", value: "6" }, { label: "10 / page", value: "10" }, { label: "20 / page", value: "20" }]}

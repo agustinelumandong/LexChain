@@ -10,9 +10,10 @@ type DropdownProps = {
   value: string;
   onChange: (value: string) => void;
   icon?: React.ReactNode;
+  openUp?: boolean;
 };
 
-export function Dropdown({ options, value, onChange, icon }: DropdownProps) {
+export function Dropdown({ options, value, onChange, icon, openUp = false }: DropdownProps) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -38,7 +39,7 @@ export function Dropdown({ options, value, onChange, icon }: DropdownProps) {
         <KeyboardArrowDownIcon fontSize="small" className={`text-[#64748b] transition ${open ? "rotate-180" : ""}`} />
       </button>
       {open && (
-        <div className="absolute left-0 top-full z-50 mt-1 min-w-full overflow-hidden rounded-xl border border-[#E4EEF9] bg-white shadow-lg">
+        <div className={`absolute left-0 z-50 min-w-full overflow-hidden rounded-xl border border-[#E4EEF9] bg-white shadow-lg ${openUp ? "bottom-full mb-1" : "top-full mt-1"}`}>
           {options.map((option) => (
             <button
               key={option.value}

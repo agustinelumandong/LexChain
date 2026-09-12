@@ -119,9 +119,9 @@ function StatusDistribution({ docs }: { docs: Document[] }) {
   }).join(", ");
 
   return (
-    <article className="flex h-full flex-col rounded-2xl border border-[#E4EEF9] bg-white p-5 shadow-sm shadow-[#DDEAF7]/35">
+    <article className="flex h-fit self-start flex-col rounded-2xl border border-[#E4EEF9] bg-white p-5 shadow-sm shadow-[#DDEAF7]/35">
       <h2 className="mb-4 text-lg font-black text-[#071B33]">Status Distribution</h2>
-      <div className="grid flex-1 items-center gap-5 sm:grid-cols-[160px_1fr] xl:grid-cols-1 2xl:grid-cols-[160px_1fr]">
+      <div className="grid items-center gap-5 sm:grid-cols-[160px_1fr] xl:grid-cols-1 2xl:grid-cols-[160px_1fr]">
         <div className="relative mx-auto size-36 rounded-full" style={{ background: `conic-gradient(${gradient})` }}>
           <div className="absolute inset-6 flex flex-col items-center justify-center rounded-full bg-white text-center">
             <strong className="text-2xl font-black text-[#071B33]">{total}</strong>
@@ -147,12 +147,12 @@ function RecentlyUpdated({ docs }: { docs: Document[] }) {
   const recent = [...docs].sort((a, b) => new Date(b.updated_at ?? b.created_at ?? 0).getTime() - new Date(a.updated_at ?? a.created_at ?? 0).getTime());
 
   return (
-    <article className="flex min-h-[260px] flex-col rounded-2xl border border-[#E4EEF9] bg-white p-5 shadow-sm shadow-[#DDEAF7]/35">
+    <article className="flex h-fit self-start flex-col rounded-2xl border border-[#E4EEF9] bg-white p-5 shadow-sm shadow-[#DDEAF7]/35">
       <div className="mb-4 flex shrink-0 items-center justify-between">
         <h2 className="text-lg font-black text-[#071B33]">Recently Updated</h2>
         <span className="text-xs font-black text-[#5B6F8A]">3 latest</span>
       </div>
-      <div className="scrollbar-hide min-h-0 flex-1 space-y-3 overflow-auto pr-1 max-h-[210px]">
+      <div className="space-y-3 pr-1">
         {recent.slice(0, 3).map((doc) => (
           <div key={doc.id} className="grid grid-cols-[40px_1fr] items-center gap-3 rounded-xl p-1.5 transition hover:bg-[#F8FBFF]">
             <div className="flex size-10 items-center justify-center rounded-xl bg-[#EAF3FF] text-xs font-black text-[#0879D8]">
@@ -281,7 +281,7 @@ export default function DocumentsPage() {
                   </tbody>
                 </table>
               </div>
-              <div className="flex flex-col gap-3 border-t border-[#E4EEF9] px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex shrink-0 flex-col gap-3 border-t border-[#E4EEF9] px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
                 <p className="text-sm font-semibold text-[#5B6F8A]">Showing {visibleDocuments.length === 0 ? 0 : safePage * perPage + 1}–{Math.min((safePage + 1) * perPage, visibleDocuments.length)} of {visibleDocuments.length} documents</p>
                 <div className="flex flex-wrap items-center gap-2">
                   <button type="button" onClick={() => setPage((value) => Math.max(0, value - 1))} disabled={safePage === 0} aria-label="Previous page" className="rounded-lg border border-[#E4EEF9] p-2 text-[#4B6382] transition hover:bg-[#EEF4FB] disabled:opacity-35">
@@ -294,11 +294,11 @@ export default function DocumentsPage() {
                   <button type="button" onClick={() => setPage((value) => Math.min(totalPages - 1, value + 1))} disabled={safePage >= totalPages - 1} aria-label="Next page" className="rounded-lg border border-[#E4EEF9] p-2 text-[#4B6382] transition hover:bg-[#EEF4FB] disabled:opacity-35">
                     <ChevronRightIcon fontSize="small" />
                   </button>
-                  <Dropdown value={pageSize} onChange={setPageSize} options={[{ label: "5 / page", value: "5" }, { label: "10 / page", value: "10" }, { label: "20 / page", value: "20" }]} />
+                  <Dropdown openUp value={pageSize} onChange={setPageSize} options={[{ label: "5 / page", value: "5" }, { label: "10 / page", value: "10" }, { label: "20 / page", value: "20" }]} />
                 </div>
               </div>
             </article>
-            <aside className="hidden gap-4 md:grid xl:h-full xl:grid-rows-[minmax(0,1fr)_auto]">
+            <aside className="hidden content-start gap-4 md:grid">
               <StatusDistribution docs={documents} />
               <RecentlyUpdated docs={documents} />
             </aside>
