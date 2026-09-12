@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useRef, useState, useEffect } from "react";
+import { useMemo, useState } from "react";
+import { usePopup } from "@/shared/components/ui/use-popup";
 import SearchIcon from "@mui/icons-material/Search";
 import FilterListIcon from "@mui/icons-material/FilterList";
 import DownloadIcon from "@mui/icons-material/Download";
@@ -11,8 +12,9 @@ import StorageIcon from "@mui/icons-material/Storage";
 import ScheduleIcon from "@mui/icons-material/Schedule";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
+import { toast } from "sonner";
 import { Dropdown } from "@/features/admin/components/dropdown";
-import { MockModal, exportMockRows, useMockToast } from "@/features/admin/components/mock-ui";
+import { MockModal, exportMockRows } from "@/features/admin/components/mock-ui";
 
 type AuditLog = {
   id: string;
@@ -115,22 +117,14 @@ function RowActions({
   row,
   onView,
   onExport,
+  onCopy,
 }: {
   row: AuditRow;
   onView: () => void;
   onExport: () => void;
+  onCopy: () => void;
 }) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    function handleClick(event: MouseEvent) {
-      if (ref.current && !ref.current.contains(event.target as Node))
-        setOpen(false);
-    }
-    document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
-  }, []);
+  const { open, setOpen, ref } = usePopup();
 
   return (
     <div ref={ref} className="relative flex items-center justify-end gap-2">
@@ -153,6 +147,7 @@ function RowActions({
       <button
         type="button"
         aria-label={`More actions for audit event ${row.id}`}
+        aria-expanded={open}
         onClick={() => setOpen((value) => !value)}
         className="rounded-lg p-1.5 text-[#4B6382] transition hover:bg-[#EEF4FB] hover:text-[#0985E7]"
       >
@@ -174,7 +169,7 @@ function RowActions({
             type="button"
             onClick={() => {
               setOpen(false);
-              onExport();
+              onCopy();
             }}
             className="block w-full px-4 py-2.5 text-left text-sm font-bold text-[#0C2B49] transition hover:bg-[#EEF4FB]"
           >
@@ -193,13 +188,18 @@ export function AuditLogsManagementView({
   logs: AuditLog[];
   total: number;
 }) {
-  const { showToast } = useMockToast();
+  const showToast = ({ title, detail, tone }: { title: string; detail?: string; tone?: string }) => {
+    if (tone === "error") toast.error(title, { description: detail });
+    else toast.success(title, { description: detail });
+  };
   const [headerSearch, setHeaderSearch] = useState("");
   const [tableSearch, setTableSearch] = useState("");
   const [targetFilter, setTargetFilter] = useState("all");
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState("10");
-  const [moreFiltersOpen, setMoreFiltersOpen] = useState(false);
+  const { open: moreFiltersOpen, setOpen: setMoreFiltersOpen, ref: filtersRef } = usePopup();
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
   const [selectedRow, setSelectedRow] = useState<AuditRow | null>(null);
   const [modalMode, setModalMode] = useState<"view" | null>(null);
 
@@ -223,7 +223,11 @@ export function AuditLogsManagementView({
   };
 
   const filtered = useMemo(() => {
-    const query = `${headerSearch} ${tableSearch}`.trim().toLowerCase();
+    const queries = [headerSearch, tableSearch].map((value) => value.trim().toLowerCase()).filter(Boolean);
+    const start = fromDate ? new Date(`${fromDate}T00:00:00`).getTime() : -Infinity;
+    const endDate = toDate ? new Date(`${toDate}T00:00:00`) : null;
+    // Advance the calendar day rather than 24 hours to include DST transition days.
+    const end = endDate ? endDate.setDate(endDate.getDate() + 1) : Infinity;
     return rows.filter((row) => {
       const values = [
         row.id,
@@ -236,13 +240,14 @@ export function AuditLogsManagementView({
         row.detailsLabel,
       ];
       const matchesSearch =
-        !query ||
-        values.some((value) => (value ?? "").toLowerCase().includes(query));
+        queries.every((query) => values.some((value) => (value ?? "").toLowerCase().includes(query)));
       const matchesTarget =
         targetFilter === "all" || row.target_type === targetFilter;
-      return matchesSearch && matchesTarget;
+      const timestamp = new Date(row.created_at).getTime();
+      const matchesDate = (!fromDate && !toDate) || (timestamp >= start && timestamp < end);
+      return matchesSearch && matchesTarget && matchesDate;
     });
-  }, [headerSearch, rows, tableSearch, targetFilter]);
+  }, [headerSearch, rows, tableSearch, targetFilter, fromDate, toDate]);
 
   const perPage = Number(pageSize);
   const totalPages = Math.max(1, Math.ceil(filtered.length / perPage));
@@ -291,8 +296,8 @@ export function AuditLogsManagementView({
   ];
 
   return (
-    <div className="flex min-h-[calc(100vh-48px)] w-full flex-col gap-5">
-      <header className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+    <div className="flex w-full flex-col gap-5 xl:h-[calc(100dvh-113px)] xl:min-h-0">
+      <header className="flex shrink-0 flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
         <div>
           <p className="text-xs font-black uppercase tracking-[0.22em] text-[#0879D8]">
             LexChain Operations
@@ -309,22 +314,18 @@ export function AuditLogsManagementView({
           <label className="flex min-w-[340px] items-center gap-2 rounded-xl border border-[#E4EEF9] bg-white px-4 py-3 shadow-sm shadow-[#DDEAF7]/35 focus-within:border-[#0985E7]">
             <SearchIcon fontSize="small" className="text-[#4B6382]" />
             <input
+              aria-label="Search logs"
               value={headerSearch}
-              onChange={(event) => setHeaderSearch(event.target.value)}
+              onChange={(event) => { setHeaderSearch(event.target.value); setPage(0); }}
               placeholder="Search logs by user, action, document, or IP..."
               className="w-full bg-transparent text-sm font-semibold text-[#0C2B49] outline-none placeholder:text-[#9AAAC0]"
             />
           </label>
           <button
             type="button"
-            onClick={() => {
-              setMoreFiltersOpen((value) => !value);
-              showToast({
-                title: "Filters toggled",
-                detail: "Use audit trail filters below.",
-                tone: "info",
-              });
-            }}
+            aria-expanded={moreFiltersOpen}
+            aria-controls="audit-date-filters"
+            onClick={(event) => { event.stopPropagation(); setMoreFiltersOpen(true); filtersRef.current?.querySelector("button")?.focus(); }}
             className="inline-flex items-center gap-2 rounded-xl border border-[#E4EEF9] bg-white px-4 py-3 text-sm font-black text-[#0C2B49] shadow-sm shadow-[#DDEAF7]/35 transition hover:border-[#0985E7]"
           >
             <FilterListIcon fontSize="small" />
@@ -347,29 +348,30 @@ export function AuditLogsManagementView({
         </div>
       </header>
 
-      <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+      <section className="grid shrink-0 gap-3 sm:grid-cols-2 lg:grid-cols-5">
         {metrics.map((metric) => (
           <MetricCard key={metric.label} {...metric} />
         ))}
       </section>
 
-      <section className="grid min-h-0 flex-1 gap-4">
-        <article className="flex min-h-[560px] min-w-0 flex-col overflow-hidden rounded-2xl border border-[#E4EEF9] bg-white shadow-sm shadow-[#DDEAF7]/35 xl:min-h-0">
-          <div className="border-b border-[#E4EEF9] p-5">
-            <h2 className="text-lg font-black text-[#071B33]">Audit Trail</h2>
-            <div className="mt-4 flex flex-wrap items-center gap-3">
-              <label className="flex min-w-[260px] flex-1 items-center gap-2 rounded-xl border border-[#E4EEF9] bg-white px-4 py-2.5 focus-within:border-[#0985E7]">
+      <section className="grid min-h-0 gap-4 xl:flex-1">
+        <article className="flex min-h-[560px] min-w-0 flex-col overflow-hidden rounded-2xl border border-[#E4EEF9] bg-white shadow-sm shadow-[#DDEAF7]/35 xl:h-full xl:min-h-0">
+          <div className="shrink-0 border-b border-[#E4EEF9] p-5">
+            <div className="flex flex-wrap items-center gap-3 [&>div>button]:py-2.5">
+              <h2 className="mr-auto shrink-0 text-lg font-black text-[#071B33]">Audit Trail</h2>
+              <label className="flex w-full items-center gap-2 rounded-xl border border-[#E4EEF9] bg-white px-4 py-2.5 focus-within:border-[#0985E7] sm:w-72">
                 <SearchIcon fontSize="small" className="text-[#4B6382]" />
                 <input
+                  aria-label="Search audit trail"
                   value={tableSearch}
-                  onChange={(event) => setTableSearch(event.target.value)}
+                  onChange={(event) => { setTableSearch(event.target.value); setPage(0); }}
                   placeholder="Search audit trail..."
                   className="w-full bg-transparent text-sm font-semibold text-[#0C2B49] outline-none placeholder:text-[#9AAAC0]"
                 />
               </label>
               <Dropdown
                 value={targetFilter}
-                onChange={setTargetFilter}
+                onChange={(value) => { setTargetFilter(value); setPage(0); }}
                 options={[
                   { label: "Target Type", value: "all" },
                   ...targetTypes.map((target) => ({
@@ -378,8 +380,11 @@ export function AuditLogsManagementView({
                   })),
                 ]}
               />
+              <div ref={filtersRef} className="relative">
               <button
                 type="button"
+                aria-expanded={moreFiltersOpen}
+                aria-controls="audit-date-filters"
                 onClick={() => setMoreFiltersOpen((value) => !value)}
                 className={cn(
                   "inline-flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-black transition",
@@ -391,6 +396,20 @@ export function AuditLogsManagementView({
                 <FilterListIcon fontSize="small" />
                 More Filters
               </button>
+            {moreFiltersOpen ? (
+              <div id="audit-date-filters" role="region" aria-label="Audit filters" className="absolute right-0 top-full z-50 mt-2 grid w-[min(440px,calc(100vw-3rem))] grid-cols-1 gap-4 rounded-xl border border-[#E4EEF9] bg-white p-4 text-sm font-semibold text-[#0C2B49] shadow-lg sm:grid-cols-2">
+                <label className="grid gap-1.5 text-sm font-semibold text-[#4B6382]">
+                  From date
+                  <input type="date" value={fromDate} max={toDate || undefined} onChange={(event) => { setFromDate(event.target.value); setPage(0); }} className="min-w-0 rounded-lg border border-[#E4EEF9] bg-[#F8FBFF] px-3 py-2" />
+                </label>
+                <label className="grid gap-1.5 text-sm font-semibold text-[#4B6382]">
+                  To date
+                  <input type="date" value={toDate} min={fromDate || undefined} onChange={(event) => { setToDate(event.target.value); setPage(0); }} className="min-w-0 rounded-lg border border-[#E4EEF9] bg-[#F8FBFF] px-3 py-2" />
+                </label>
+                <button type="button" onClick={() => { setFromDate(""); setToDate(""); setHeaderSearch(""); setTableSearch(""); setTargetFilter("all"); setPage(0); }} className="rounded-xl bg-[#EEF4FB] py-2.5 text-[#0879D8] sm:col-span-2">Reset filters</button>
+              </div>
+            ) : null}
+              </div>
             </div>
           </div>
 
@@ -430,6 +449,14 @@ export function AuditLogsManagementView({
                     <td className="px-5 py-3">
                       <RowActions
                         row={row}
+                        onCopy={async () => {
+                          try {
+                            await navigator.clipboard.writeText(row.id);
+                            showToast({ title: "Event ID copied" });
+                          } catch {
+                            showToast({ title: "Could not copy event ID", detail: "Copy the ID from event details instead.", tone: "error" });
+                          }
+                        }}
                         onView={() => {
                           setSelectedRow(row);
                           setModalMode("view");
@@ -452,7 +479,7 @@ export function AuditLogsManagementView({
                 {visibleRows.length === 0 ? (
                   <tr>
                     <td
-                      colSpan={9}
+                      colSpan={6}
                       className="px-5 py-10 text-center text-sm font-semibold text-[#5B6F8A]"
                     >
                       No audit events match the current filters.
@@ -463,7 +490,7 @@ export function AuditLogsManagementView({
             </table>
           </div>
 
-          <div className="flex flex-col gap-3 border-t border-[#E4EEF9] px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex shrink-0 flex-col gap-3 border-t border-[#E4EEF9] px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-sm font-semibold text-[#5B6F8A]">
               Showing {filtered.length === 0 ? 0 : safePage * perPage + 1}-
               {Math.min((safePage + 1) * perPage, filtered.length)} of{" "}
@@ -472,7 +499,8 @@ export function AuditLogsManagementView({
             <div className="flex flex-wrap items-center gap-2">
               <button
                 type="button"
-                onClick={() => setPage((value) => Math.max(0, value - 1))}
+                aria-label="Previous page"
+                onClick={() => setPage(Math.max(0, safePage - 1))}
                 disabled={safePage === 0}
                 className="rounded-lg border border-[#E4EEF9] px-3 py-2 text-sm font-black text-[#0C2B49] transition hover:bg-[#EEF4FB] disabled:opacity-35"
               >
@@ -500,8 +528,9 @@ export function AuditLogsManagementView({
               )}
               <button
                 type="button"
+                aria-label="Next page"
                 onClick={() =>
-                  setPage((value) => Math.min(totalPages - 1, value + 1))
+                  setPage(Math.min(totalPages - 1, safePage + 1))
                 }
                 disabled={safePage >= totalPages - 1}
                 className="rounded-lg border border-[#E4EEF9] px-3 py-2 text-sm font-black text-[#0C2B49] transition hover:bg-[#EEF4FB] disabled:opacity-35"
@@ -510,7 +539,8 @@ export function AuditLogsManagementView({
               </button>
               <Dropdown
                 value={pageSize}
-                onChange={setPageSize}
+                openUp
+                onChange={(value) => { setPageSize(value); setPage(0); }}
                 options={[
                   { label: "10 / page", value: "10" },
                   { label: "20 / page", value: "20" },

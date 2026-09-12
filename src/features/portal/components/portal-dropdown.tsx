@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useId, useRef, useState } from 'react';
+import { useId, useRef, useState } from 'react';
+import { usePopup } from '@/shared/components/ui/use-popup';
 import CheckIcon from '@mui/icons-material/Check';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 
@@ -20,21 +21,11 @@ type PortalDropdownProps = {
 };
 
 export function PortalDropdown({ ariaLabel, options, value, onChange, placeholder = 'Select an option', disabled = false, emptyLabel = 'No options available' }: PortalDropdownProps) {
-  const [open, setOpen] = useState(false);
+  const { open, setOpen, ref: rootRef } = usePopup();
   const selectedIndex = Math.max(options.findIndex((option) => option.value === value), 0);
   const [activeIndex, setActiveIndex] = useState(selectedIndex);
-  const rootRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const listboxId = useId();
-
-  useEffect(() => {
-    function closeOnOutsideClick(event: MouseEvent) {
-      if (rootRef.current && !rootRef.current.contains(event.target as Node)) setOpen(false);
-    }
-
-    document.addEventListener('mousedown', closeOnOutsideClick);
-    return () => document.removeEventListener('mousedown', closeOnOutsideClick);
-  }, []);
 
   function close(returnFocus = false) {
     setOpen(false);

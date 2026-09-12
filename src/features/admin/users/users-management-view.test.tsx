@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MockToastProvider } from "@/features/admin/components/mock-ui";
 import { AdminShell } from "@/features/admin/admin-shell";
 import { updateDemoUser, UsersManagementView } from "@/features/admin/users/users-management-view";
@@ -55,7 +55,7 @@ function rowFor(email: string) {
   return screen.getByRole("row", { name: new RegExp(email) });
 }
 
-afterEach(cleanup);
+afterEach(() => { cleanup(); vi.useRealTimers(); });
 
 describe("updateDemoUser", () => {
   it("changes only the matching row and preserves omitted fields", () => {
@@ -84,6 +84,66 @@ describe("updateDemoUser", () => {
 });
 
 describe("UsersManagementView demo mutations", () => {
+  it("dismisses sibling popups while keeping nested filters usable", () => {
+    renderUsers();
+    const more = screen.getByText("More Filters");
+    fireEvent.click(more);
+    fireEvent.click(screen.getByRole("button", { name: "All Roles" }));
+    fireEvent.click(screen.getByRole("button", { name: "All Statuses" }));
+    expect(screen.queryByRole("button", { name: "Document Issuer" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Suspended" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Active" }));
+    expect(more.closest("details")?.open).toBe(true);
+    fireEvent.click(screen.getByRole("button", { name: "Newest first" }));
+    expect(more.closest("details")?.open).toBe(false);
+    fireEvent.click(more);
+    expect(screen.queryByRole("button", { name: "Oldest first" })).toBeNull();
+    fireEvent.pointerDown(document.body, { pointerType: "touch" });
+    expect(more.closest("details")?.open).toBe(false);
+    fireEvent.click(more);
+    fireEvent.keyDown(more, { key: "Escape" });
+    expect(more.closest("details")?.open).toBe(false);
+    expect(document.activeElement).toBe(more);
+  });
+
+  it("filters inclusive creation dates, sorts results, and resets filters", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-01-15T12:00:00"));
+    renderUsers();
+    expect(screen.queryByText("Sort by")).toBeNull();
+    expect(screen.getByRole("button", { name: "Newest first" })).toBeTruthy();
+    expect(screen.getAllByRole("row")[1].textContent).toContain("juan@example.com");
+    fireEvent.click(screen.getByText("More Filters"));
+    fireEvent.click(screen.getAllByRole("button", { name: "Choose date" })[0]);
+    fireEvent.click(screen.getByRole("gridcell", { name: "2" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    fireEvent.click(screen.getByRole("button", { name: "Choose date" }));
+    fireEvent.click(screen.getByRole("gridcell", { name: "3" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    expect(screen.queryByRole("row", { name: /admin@lexchain.local/ })).toBeNull();
+    expect(rowFor("maria@example.com")).toBeTruthy();
+    expect(screen.getAllByRole("row")[1].textContent).toContain("juan@example.com");
+    fireEvent.click(screen.getByRole("button", { name: "Newest first" }));
+    fireEvent.click(screen.getByRole("button", { name: "Name Z–A" }));
+    expect(screen.getAllByRole("row")[1].textContent).toContain("maria@example.com");
+    fireEvent.click(screen.getByText(/More Filters/));
+    fireEvent.click(screen.getByRole("button", { name: "Reset filters" }));
+    expect(screen.getAllByRole("row")).toHaveLength(users.length + 1);
+    expect(screen.getByRole("button", { name: "Newest first" })).toBeTruthy();
+    expect(screen.getAllByRole("row")[1].textContent).toContain("juan@example.com");
+  });
+
+  it("keeps directory search while removing duplicate header controls and export", () => {
+    renderUsers();
+    expect(screen.queryByPlaceholderText("Search users by name or email...")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Filter" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Export" })).toBeNull();
+    expect(screen.getByRole("link", { name: "Invite User" })).toBeTruthy();
+    fireEvent.change(screen.getByPlaceholderText("Search users..."), { target: { value: "maria@example.com" } });
+    expect(rowFor("maria@example.com")).toBeTruthy();
+    expect(screen.queryByRole("row", { name: /juan@example.com/ })).toBeNull();
+  });
+
   it("fills the remaining dynamic viewport height on desktop", () => {
     renderUsers();
 

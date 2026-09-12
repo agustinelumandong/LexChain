@@ -1,7 +1,12 @@
 'use client';
 
 import { useState } from 'react';
+import { FilterDetails } from '@/shared/components/ui/filter-details';
 import Link from 'next/link';
+import dayjs from 'dayjs';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import SearchIcon from '@mui/icons-material/Search';
@@ -26,12 +31,20 @@ import {
   getDocumentStatuses,
   getVisibleDocuments,
   type DocumentListItem,
+  type DocumentListFilters,
 } from '@/features/documents/document-library';
 import type { ApiSchema } from '@/shared/types/index';
 
 type Document = DocumentListItem & {
   id: string;
   file_name: string;
+};
+
+const datePickerSlotProps = {
+  textField: { size: 'small' as const, fullWidth: true, sx: { '& .MuiPickersOutlinedInput-root': { borderRadius: 3, backgroundColor: '#F8FBFF', color: '#0C2B49' } } },
+  field: { clearable: true },
+  popper: { disablePortal: true },
+  desktopPaper: { sx: { borderRadius: 3, border: '1px solid #E4EEF9' } },
 };
 
 type UserProfile = ApiSchema<'UserProfileResponse'>;
@@ -175,6 +188,9 @@ export default function DocumentsPage() {
   const router = useRouter();
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('all');
+  const [sort, setSort] = useState<DocumentListFilters['sort']>('newest');
+  const [updatedFrom, setUpdatedFrom] = useState('');
+  const [updatedThrough, setUpdatedThrough] = useState('');
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState("5");
   const documentsQuery = useQuery<Document[]>({ queryKey: ['portal-documents'], queryFn: fetchDocuments });
@@ -188,13 +204,14 @@ export default function DocumentsPage() {
   });
   const documents = documentsQuery.data ?? [];
   const statuses = getDocumentStatuses(documents);
-  const hasDates = documents.some((document) => document.updated_at || document.created_at);
   const uiRole = getPortalUiRole(profileQuery.data?.role);
   const isIssuer = uiRole === 'lawyer';
   const visibleDocuments = getVisibleDocuments(documents, {
     query: search,
     status,
-    sort: hasDates ? 'newest' : 'title',
+    sort,
+    updatedFrom,
+    updatedThrough,
   });
 
   const documentStatuses = documents.map((document) => document.status?.toLowerCase());
@@ -224,7 +241,7 @@ export default function DocumentsPage() {
         <div className="flex flex-col gap-3" aria-label="Loading documents">{[1, 2, 3].map((index) => <div key={index} className="h-[80px] animate-pulse rounded-[18px] border border-[#E8F0F8] bg-white" />)}</div>
       ) : documentsQuery.isError ? (
         <div role="alert" className="rounded-[18px] border border-[#E8F0F8] bg-white p-8 text-center"><p className="text-sm font-bold text-[#0C2B49]">Unable to load documents.</p><p className="mt-1 text-xs text-[#64748b]">Check your connection and try again.</p><button type="button" onClick={() => void documentsQuery.refetch()} className="mt-4 rounded-full border border-[#D7E4F2] px-4 py-2 text-sm font-black text-[#0985E7]">Retry</button></div>
-      ) : visibleDocuments.length === 0 ? (
+      ) : documents.length === 0 ? (
         <div className="rounded-[18px] border border-[#E8F0F8] bg-white p-8 text-center">
           <p className="text-sm font-bold text-[#0C2B49]">{search || status !== 'all' ? 'No documents match your search or filter' : 'No documents yet'}</p>
           <p className="mt-1 text-xs text-[#64748b]">{isIssuer ? 'Upload your first document to get started.' : 'No documents are available yet.'}</p>
@@ -238,17 +255,34 @@ export default function DocumentsPage() {
           <section className="grid min-h-0 flex-1 gap-4 xl:grid-cols-[minmax(0,1fr)_420px] overflow-hidden">
             <article className="flex min-h-0 min-w-0 flex-col overflow-hidden rounded-2xl border border-[#E4EEF9] bg-white shadow-sm shadow-[#DDEAF7]/35">
               <div className="border-b border-[#E4EEF9] p-5">
-                <h2 className="text-lg font-black text-[#071B33]">Document Directory</h2>
-                <div className="mt-4 flex flex-wrap items-center gap-3">
-                  <label className="flex min-w-[240px] flex-1 items-center gap-2 rounded-xl border border-[#E4EEF9] bg-white px-4 py-2.5 focus-within:border-[#0985E7]">
+                <div className="flex flex-wrap items-center gap-3">
+                  <h2 className="mr-auto shrink-0 text-lg font-black text-[#071B33]">Document Directory</h2>
+                  <label className="flex w-full items-center gap-2 rounded-xl border border-[#E4EEF9] bg-white px-4 py-2.5 focus-within:border-[#0985E7] sm:w-72">
                     <SearchIcon fontSize="small" className="text-[#4B6382]" />
                     <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search documents..." className="w-full bg-transparent text-sm font-semibold text-[#0C2B49] outline-none placeholder:text-[#9AAAC0]" />
                   </label>
-                  <Dropdown value={status} onChange={setStatus} options={[{ label: "All Statuses", value: "all" }, ...statuses.map((value) => ({ label: getDocumentStatusLabel(value), value }))]} />
-                  <button type="button" className="inline-flex items-center gap-2 rounded-xl border border-[#E4EEF9] bg-white px-4 py-2.5 text-sm font-black text-[#0C2B49] transition hover:border-[#0985E7]">
-                    <FilterListIcon fontSize="small" />
-                    More Filters
-                  </button>
+                  <div className="[&>div>button]:py-2.5">
+                    <Dropdown value={sort} onChange={(value) => { setSort(value as DocumentListFilters['sort']); setPage(0); }} options={[{ label: "Newest first", value: "newest" }, { label: "Oldest first", value: "oldest" }, { label: "Name A–Z", value: "title" }]} />
+                  </div>
+                  <FilterDetails summary={<>
+                      <FilterListIcon fontSize="small" />
+                      More Filters{status !== 'all' || updatedFrom || updatedThrough ? ' •' : ''}
+                    </>}>
+                    <div className="absolute right-0 top-full z-50 mt-2 grid w-[min(440px,calc(100vw-3rem))] grid-cols-1 gap-4 rounded-xl border border-[#E4EEF9] bg-white p-4 text-sm font-semibold text-[#0C2B49] shadow-lg sm:grid-cols-2">
+                      <div className="grid gap-1.5 sm:col-span-2 [&>div>button]:w-full [&>div>button]:justify-between"><span>Status</span>
+                        <Dropdown value={status} onChange={(value) => { setStatus(value); setPage(0); }} options={[{ label: "All Statuses", value: "all" }, ...statuses.map((value) => ({ label: getDocumentStatusLabel(value), value }))]} />
+                      </div>
+                      <LocalizationProvider dateAdapter={AdapterDayjs}>
+                        <DatePicker label="Updated from" format="MM/DD/YYYY" value={updatedFrom ? dayjs(updatedFrom) : null} maxDate={updatedThrough ? dayjs(updatedThrough) : undefined}
+                          onChange={(value, context) => { if (context.validationError) return; setUpdatedFrom(value?.format('YYYY-MM-DD') ?? ''); setPage(0); }}
+                          slotProps={datePickerSlotProps} />
+                        <DatePicker label="Updated through" format="MM/DD/YYYY" value={updatedThrough ? dayjs(updatedThrough) : null} minDate={updatedFrom ? dayjs(updatedFrom) : undefined}
+                          onChange={(value, context) => { if (context.validationError) return; setUpdatedThrough(value?.format('YYYY-MM-DD') ?? ''); setPage(0); }}
+                          slotProps={datePickerSlotProps} />
+                      </LocalizationProvider>
+                      <button type="button" onClick={() => { setStatus('all'); setUpdatedFrom(''); setUpdatedThrough(''); setSearch(''); setSort('newest'); setPage(0); }} className="rounded-xl bg-[#EEF4FB] py-2.5 text-[#0879D8] sm:col-span-2">Reset filters</button>
+                    </div>
+                  </FilterDetails>
                 </div>
               </div>
               <div className="admin-table-scroll scrollbar-hide min-h-0 flex-1 overflow-auto">

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import AddIcon from '@mui/icons-material/Add';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
@@ -29,16 +29,19 @@ export default function CategoriesPage() {
   const [editingCategory, setEditingCategory] = useState<DemoCategory | null>(null);
   const [categoryToDeactivate, setCategoryToDeactivate] = useState<DemoCategory | null>(null);
   const [draftName, setDraftName] = useState('');
+  const categoryNameRef = useRef<HTMLInputElement>(null);
   const isIssuer = canAccessPortalFeature(getPortalUiRole(profileQuery.data?.role), 'categories');
 
   function openCreate() {
     setEditingCategory(null);
     setDraftName('');
+    categoryNameRef.current?.focus();
   }
 
   function openEdit(category: DemoCategory) {
     setEditingCategory(category);
     setDraftName(category.name);
+    categoryNameRef.current?.focus();
   }
 
   function saveCategory(event: React.FormEvent<HTMLFormElement>) {
@@ -87,7 +90,7 @@ export default function CategoriesPage() {
         <h2 className="text-base font-black text-[#0C2B49]">{isEditing ? 'Edit Category' : 'Create Category'}</h2>
         <label className="mt-4 block text-xs font-bold text-[#64748b]" htmlFor="category-name">Category name</label>
         <div className="mt-1 flex flex-wrap gap-3">
-          <input id="category-name" value={draftName} onChange={(event) => setDraftName(event.target.value)} placeholder="e.g. Affidavits" className="min-w-0 flex-1 rounded-xl border border-[#D7E4F2] px-3 py-2.5 text-sm text-[#0C2B49] outline-none focus:border-[#0985E7]" />
+          <input ref={categoryNameRef} id="category-name" value={draftName} onChange={(event) => setDraftName(event.target.value)} placeholder="e.g. Affidavits" className="min-w-0 flex-1 rounded-xl border border-[#D7E4F2] px-3 py-2.5 text-sm text-[#0C2B49] outline-none focus:border-[#0985E7]" />
           <button type="submit" disabled={!draftName.trim()} className="rounded-xl bg-[#0C2B49] px-4 py-2.5 text-sm font-black text-white disabled:cursor-not-allowed disabled:opacity-50">{isEditing ? 'Save Changes' : 'Add Category'}</button>
           {isEditing && <button type="button" onClick={openCreate} className="rounded-xl border border-[#D7E4F2] px-4 py-2.5 text-sm font-black text-[#0C2B49]">Cancel</button>}
         </div>

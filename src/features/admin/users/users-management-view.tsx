@@ -1,10 +1,13 @@
 "use client";
 
-import { useMemo, useRef, useState, useEffect } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
+import dayjs from "dayjs";
+import { DatePicker } from "@mui/x-date-pickers/DatePicker";
+import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
+import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import SearchIcon from "@mui/icons-material/Search";
 import FilterListIcon from "@mui/icons-material/FilterList";
-import DownloadIcon from "@mui/icons-material/Download";
 import PersonAddIcon from "@mui/icons-material/PersonAdd";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import EditIcon from "@mui/icons-material/Edit";
@@ -12,11 +15,20 @@ import MoreVertIcon from "@mui/icons-material/MoreVert";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import { Dropdown } from "@/features/admin/components/dropdown";
-import { exportMockRows, useMockToast } from "@/features/admin/components/mock-ui";
+import { FilterDetails } from "@/shared/components/ui/filter-details";
+import { usePopup } from "@/shared/components/ui/use-popup";
+import { useMockToast } from "@/features/admin/components/mock-ui";
 import { getPortalRoleLabel } from "@/features/access";
 import { UsersMetrics, RoleDistribution, RecentlyCreatedAccounts, StatusPill } from "./users-summary";
 import { UserDialogs, type UserDialogSelection } from "./user-dialogs";
 import type { AdminUser, DemoAdminUserChanges, DirectoryUser } from "./users-types";
+
+const datePickerSlotProps = {
+  textField: { size: "small" as const, fullWidth: true },
+  field: { clearable: true },
+  popper: { disablePortal: true },
+  desktopPaper: { sx: { borderRadius: 3, border: "1px solid #E4EEF9" } },
+};
 
 export function updateDemoUser(
   users: AdminUser[],
@@ -59,17 +71,8 @@ function enrichUser(user: AdminUser): DirectoryUser {
 }
 
 function ActionsMenu({ user, onView, onEdit, onChangeStatus }: { user: DirectoryUser; onView: () => void; onEdit: () => void; onChangeStatus: () => void }) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
+  const { open, setOpen, ref } = usePopup();
   const isCurrentAccount = user.email === "admin@lexchain.local";
-
-  useEffect(() => {
-    function handleClick(event: MouseEvent) {
-      if (ref.current && !ref.current.contains(event.target as Node)) setOpen(false);
-    }
-    document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
-  }, []);
 
   return (
     <div ref={ref} className="relative flex items-center justify-end gap-1">
@@ -82,6 +85,7 @@ function ActionsMenu({ user, onView, onEdit, onChangeStatus }: { user: Directory
       <button
         type="button"
         aria-label={`More actions for ${user.displayName}`}
+        aria-expanded={open}
         onClick={() => setOpen((value) => !value)}
         className="rounded-lg p-1.5 text-[#7C8DA5] transition hover:bg-[#EEF4FB] hover:text-[#0985E7]"
       >
@@ -125,13 +129,14 @@ function ActionsMenu({ user, onView, onEdit, onChangeStatus }: { user: Directory
 
 export function UsersManagementView({ users, total }: { users: AdminUser[]; total: number }) {
   const { showToast } = useMockToast();
-  const [headerSearch, setHeaderSearch] = useState("");
   const [tableSearch, setTableSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState("6");
-  const [moreFiltersOpen, setMoreFiltersOpen] = useState(false);
+  const [createdFrom, setCreatedFrom] = useState("");
+  const [createdTo, setCreatedTo] = useState("");
+  const [sortOrder, setSortOrder] = useState("created-desc");
   const [dialogSelection, setDialogSelection] = useState<UserDialogSelection | null>(null);
   const [userRows, setUserRows] = useState(users);
 
@@ -139,14 +144,22 @@ export function UsersManagementView({ users, total }: { users: AdminUser[]; tota
   const roleOptions = useMemo(() => [...new Set(directoryUsers.map((user) => user.roleLabel))], [directoryUsers]);
 
   const filtered = useMemo(() => {
-    const query = `${headerSearch} ${tableSearch}`.trim().toLowerCase();
+    const query = tableSearch.trim().toLowerCase();
     return directoryUsers.filter((user) => {
       const matchesSearch = !query || user.displayName.toLowerCase().includes(query) || user.email.toLowerCase().includes(query);
       const matchesRole = roleFilter === "all" || user.roleLabel === roleFilter;
       const matchesStatus = statusFilter === "all" || user.statusLabel === statusFilter;
-      return matchesSearch && matchesRole && matchesStatus;
+      const created = new Date(user.created_at);
+      const date = `${created.getFullYear()}-${String(created.getMonth() + 1).padStart(2, "0")}-${String(created.getDate()).padStart(2, "0")}`;
+      const matchesDate = (!createdFrom || date >= createdFrom) && (!createdTo || date <= createdTo);
+      return matchesSearch && matchesRole && matchesStatus && matchesDate;
+    }).sort((a, b) => {
+      const direction = sortOrder.endsWith("desc") ? -1 : 1;
+      if (sortOrder.startsWith("created")) return direction * (new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+      const field = sortOrder.startsWith("email") ? "email" : "displayName";
+      return direction * a[field].localeCompare(b[field]);
     });
-  }, [directoryUsers, headerSearch, roleFilter, statusFilter, tableSearch]);
+  }, [directoryUsers, roleFilter, statusFilter, tableSearch, createdFrom, createdTo, sortOrder]);
 
   const perPage = Number(pageSize);
   const totalPages = Math.max(1, Math.ceil(filtered.length / perPage));
@@ -162,23 +175,6 @@ export function UsersManagementView({ users, total }: { users: AdminUser[]; tota
           <p className="mt-1 text-sm font-semibold text-[#4B6382]">Manage registered accounts, roles, and access permissions.</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <label className="flex min-w-[280px] items-center gap-2 rounded-xl border border-[#E4EEF9] bg-white px-4 py-3 shadow-sm shadow-[#DDEAF7]/35 focus-within:border-[#0985E7]">
-            <SearchIcon fontSize="small" className="text-[#4B6382]" />
-            <input
-              value={headerSearch}
-              onChange={(event) => setHeaderSearch(event.target.value)}
-              placeholder="Search users by name or email..."
-              className="w-full bg-transparent text-sm font-semibold text-[#0C2B49] outline-none placeholder:text-[#9AAAC0]"
-            />
-          </label>
-          <button type="button" onClick={() => { setMoreFiltersOpen((value) => !value); showToast({ title: "Filters toggled", detail: "Use the table filters below to refine users.", tone: "info" }); }} className="inline-flex items-center gap-2 rounded-xl border border-[#E4EEF9] bg-white px-4 py-3 text-sm font-black text-[#0C2B49] shadow-sm shadow-[#DDEAF7]/35 transition hover:border-[#0985E7]">
-            <FilterListIcon fontSize="small" />
-            Filter
-          </button>
-          <button type="button" onClick={() => { exportMockRows("lexchain-users", filtered, "csv"); showToast({ title: "Users exported", detail: `${filtered.length} users downloaded.` }); }} className="inline-flex items-center gap-2 rounded-xl border border-[#E4EEF9] bg-white px-4 py-3 text-sm font-black text-[#0C2B49] shadow-sm shadow-[#DDEAF7]/35 transition hover:border-[#0985E7]">
-            <DownloadIcon fontSize="small" />
-            Export
-          </button>
           <Link href="/portal/issuer-invitations" className="inline-flex items-center gap-2 rounded-xl bg-[#0985E7] px-5 py-3 text-sm font-black text-white shadow-sm shadow-[#0985E7]/25 transition hover:bg-[#0770C4]">
             <PersonAddIcon fontSize="small" />
             Invite User
@@ -191,9 +187,9 @@ export function UsersManagementView({ users, total }: { users: AdminUser[]; tota
       <section className="grid min-h-0 gap-4 xl:flex-1 xl:grid-cols-[minmax(0,1fr)_420px]">
         <article className="flex h-fit min-h-[520px] min-w-0 self-start flex-col overflow-hidden rounded-2xl border border-[#E4EEF9] bg-white shadow-sm shadow-[#DDEAF7]/35 xl:h-full xl:min-h-0">
           <div className="shrink-0 border-b border-[#E4EEF9] p-5">
-            <h2 className="text-lg font-black text-[#071B33]">User Directory</h2>
-            <div className="mt-4 flex flex-wrap items-center gap-3">
-              <label className="flex min-w-[240px] flex-1 items-center gap-2 rounded-xl border border-[#E4EEF9] bg-white px-4 py-2.5 focus-within:border-[#0985E7]">
+            <div className="flex flex-wrap items-center gap-3">
+              <h2 className="mr-auto shrink-0 text-lg font-black text-[#071B33]">User Directory</h2>
+              <label className="flex w-full items-center gap-2 rounded-xl border border-[#E4EEF9] bg-white px-4 py-2.5 focus-within:border-[#0985E7] sm:w-72">
                 <SearchIcon fontSize="small" className="text-[#4B6382]" />
                 <input
                   value={tableSearch}
@@ -202,16 +198,50 @@ export function UsersManagementView({ users, total }: { users: AdminUser[]; tota
                   className="w-full bg-transparent text-sm font-semibold text-[#0C2B49] outline-none placeholder:text-[#9AAAC0]"
                 />
               </label>
-              <Dropdown value={roleFilter} onChange={setRoleFilter} options={[{ label: "All Roles", value: "all" }, ...roleOptions.map((role) => ({ label: role, value: role }))]} />
-              <Dropdown
-                value={statusFilter}
-                onChange={setStatusFilter}
-                options={[{ label: "All Statuses", value: "all" }, { label: "Active", value: "Active" }, { label: "Suspended", value: "Suspended" }]}
-              />
-              <button type="button" onClick={() => setMoreFiltersOpen((value) => !value)} className={cn("inline-flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-black transition", moreFiltersOpen ? "border-[#0985E7] bg-[#EAF3FF] text-[#0879D8]" : "border-[#E4EEF9] bg-white text-[#0C2B49] hover:border-[#0985E7]")}>
-                <FilterListIcon fontSize="small" />
-                More Filters
-              </button>
+              <div className="flex items-center gap-2 text-sm font-semibold text-[#4B6382] [&>div>button]:py-2.5">
+                <Dropdown value={sortOrder} onChange={(value) => { setSortOrder(value); setPage(0); }} options={[
+                  { label: "Newest first", value: "created-desc" },
+                  { label: "Oldest first", value: "created-asc" },
+                  { label: "Name A–Z", value: "name-asc" },
+                  { label: "Name Z–A", value: "name-desc" },
+                  { label: "Email A–Z", value: "email-asc" },
+                  { label: "Email Z–A", value: "email-desc" },
+                ]} />
+              </div>
+              <FilterDetails summary={<>
+                  <FilterListIcon fontSize="small" />
+                  More Filters{roleFilter !== "all" || statusFilter !== "all" || createdFrom || createdTo ? " •" : ""}
+                </>}>
+                <div className="absolute right-0 top-full z-50 mt-2 grid w-[min(440px,calc(100vw-3rem))] grid-cols-1 gap-x-3 gap-y-4 rounded-xl sm:grid-cols-2 border border-[#E4EEF9] bg-white p-4 text-sm font-semibold text-[#0C2B49] shadow-lg">
+                  <div className="grid gap-1.5 [&>div>button]:w-full [&>div>button]:justify-between"><span>Role</span>
+                    <Dropdown value={roleFilter} onChange={(value) => { setRoleFilter(value); setPage(0); }} options={[{ label: "All Roles", value: "all" }, ...roleOptions.map((role) => ({ label: role, value: role }))]} />
+                  </div>
+                  <div className="grid gap-1.5 [&>div>button]:w-full [&>div>button]:justify-between"><span>Status</span>
+                    <Dropdown value={statusFilter} onChange={(value) => { setStatusFilter(value); setPage(0); }} options={[{ label: "All Statuses", value: "all" }, { label: "Active", value: "Active" }, { label: "Suspended", value: "Suspended" }]} />
+                  </div>
+                  <LocalizationProvider dateAdapter={AdapterDayjs}>
+                    <DatePicker
+                      sx={{ "& .MuiPickersOutlinedInput-root": { borderRadius: 3, backgroundColor: "#F8FBFF", color: "#0C2B49" } }}
+                      label="Created from"
+                      format="MM/DD/YYYY"
+                      value={createdFrom ? dayjs(createdFrom) : null}
+                      maxDate={createdTo ? dayjs(createdTo) : undefined}
+                      onChange={(value, context) => { if (context.validationError) return; setCreatedFrom(value?.format("YYYY-MM-DD") ?? ""); setPage(0); }}
+                      slotProps={datePickerSlotProps}
+                    />
+                    <DatePicker
+                      sx={{ "& .MuiPickersOutlinedInput-root": { borderRadius: 3, backgroundColor: "#F8FBFF", color: "#0C2B49" } }}
+                      label="Created through"
+                      format="MM/DD/YYYY"
+                      value={createdTo ? dayjs(createdTo) : null}
+                      minDate={createdFrom ? dayjs(createdFrom) : undefined}
+                      onChange={(value, context) => { if (context.validationError) return; setCreatedTo(value?.format("YYYY-MM-DD") ?? ""); setPage(0); }}
+                      slotProps={datePickerSlotProps}
+                    />
+                  </LocalizationProvider>
+                  <button type="button" onClick={() => { setCreatedFrom(""); setCreatedTo(""); setSortOrder("created-desc"); setTableSearch(""); setRoleFilter("all"); setStatusFilter("all"); setPage(0); }} className="rounded-xl border-t border-[#E4EEF9] bg-[#EEF4FB] py-2.5 text-[#0879D8] sm:col-span-2">Reset filters</button>
+                </div>
+              </FilterDetails>
             </div>
           </div>
 

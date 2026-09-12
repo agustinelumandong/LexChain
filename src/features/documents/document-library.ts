@@ -16,6 +16,8 @@ export type DocumentListFilters = {
   query: string;
   status: string;
   sort: 'newest' | 'oldest' | 'title';
+  updatedFrom?: string;
+  updatedThrough?: string;
 };
 
 function searchableReference(document: DocumentListItem) {
@@ -35,6 +37,13 @@ export function getVisibleDocuments<T extends DocumentListItem>(documents: T[], 
   return documents
     .filter((document) => !query || document.file_name?.toLowerCase().includes(query) || searchableReference(document).includes(query))
     .filter((document) => filters.status === 'all' || document.status?.trim().toLowerCase() === filters.status)
+    .filter((document) => {
+      if (!filters.updatedFrom && !filters.updatedThrough) return true;
+      const date = new Date(documentDate(document));
+      if (Number.isNaN(date.getTime()) || (!document.updated_at && !document.created_at)) return false;
+      const day = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+      return (!filters.updatedFrom || day >= filters.updatedFrom) && (!filters.updatedThrough || day <= filters.updatedThrough);
+    })
     .sort((left, right) => {
       if (filters.sort === 'title') return (left.file_name ?? '').localeCompare(right.file_name ?? '');
       const difference = documentDate(left) - documentDate(right);

@@ -125,6 +125,14 @@ describe('office insights', () => {
       .toThrow('Start date must be on or before end date.');
   });
 
+  it.each([
+    ['', '2026-05-31'],
+    ['2026-05-01', ''],
+  ])('rejects an incomplete date range (%j to %j)', (from, to) => {
+    expect(() => createDemoReport('system-audit', from, to))
+      .toThrow('Select both a start and end date.');
+  });
+
   it('escapes quotes, commas, and newlines in CSV values', () => {
     const report: DemoReport = {
       reportType: 'system-audit',

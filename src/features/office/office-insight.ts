@@ -93,6 +93,7 @@ export function createDemoReport(
   to: string,
   portalDocuments: PortalReportDocument[] = [],
 ): DemoReport {
+  if (!from || !to) throw new Error('Select both a start and end date.');
   if (from > to) throw new Error('Start date must be on or before end date.');
 
   switch (type) {

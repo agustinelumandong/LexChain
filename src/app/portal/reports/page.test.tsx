@@ -103,6 +103,16 @@ describe('ReportsPage', () => {
     expect(screen.getByText('Demo report — generated locally from seeded data and not stored.')).toBeTruthy();
   });
 
+  it('requires both report dates before generating', () => {
+    render(<OfficeReportsPage />);
+
+    fireEvent.change(screen.getByLabelText('From'), { target: { value: '' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Generate' }));
+
+    expect(screen.getByRole('alert').textContent).toContain('Select both a start and end date.');
+    expect(screen.queryByRole('region', { name: 'Document Activity report' })).toBeNull();
+  });
+
   it('downloads CSV with the report type and dates in the filename', () => {
     let downloadedFilename = '';
     Object.defineProperty(URL, 'createObjectURL', { configurable: true, value: vi.fn(() => 'blob:demo-report') });

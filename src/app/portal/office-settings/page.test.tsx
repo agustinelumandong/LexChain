@@ -36,4 +36,15 @@ describe('OfficeSettingsPage', () => {
 
     expect(screen.getByRole('status').textContent).toContain('Unsaved changes');
   });
+
+  it('keeps a cleared numeric field empty while reporting its validation error', () => {
+    profile.role = 'document_issuer';
+    render(<OfficeSettingsPage />);
+
+    const input = screen.getByLabelText('Invitation expiry') as HTMLInputElement;
+    fireEvent.change(input, { target: { value: '' } });
+
+    expect(input.value).toBe('');
+    expect(screen.getByText(/Invitation expiry must be a whole number/)).toBeTruthy();
+  });
 });

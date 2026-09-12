@@ -31,5 +31,5 @@ export async function requireDocumentIssuerPage() {
 
   const profile = await response.json().catch(() => null);
   const role = profile?.role?.trim().toLowerCase();
-  if (!role || !["lawyer", "admin", "super_admin"].includes(role)) redirect("/portal/dashboard");
+  if (!role || !["lawyer", "document_issuer", "admin", "super_admin"].includes(role)) redirect("/portal/dashboard");
 }

@@ -72,12 +72,12 @@ describe("issuer management page authority", () => {
     }
   });
 
-  it("admits a real lawyer profile and renders management pages", async () => {
+  it.each([["lawyer"], ["document_issuer"]])("admits a real %s profile and renders management pages", async (role) => {
     vi.stubEnv("USE_MOCK_API", "false");
     vi.stubEnv("API_URL", "https://api.lexchain.test");
     session.portalToken = "real-token";
     session.issuerToken = "real-token";
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({ role: "lawyer" }), { status: 200 })));
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({ role }), { status: 200 })));
     const { default: UsersPage } = await import("@/features/office/pages/users-page");
 
     await expect(Promise.resolve().then(() => UsersPage())).resolves.not.toThrow();

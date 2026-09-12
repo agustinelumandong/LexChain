@@ -54,7 +54,6 @@ export function getPortalNavigation(role: PortalUiRole): PortalNavigationGroup[]
       {
         label: "Account",
         items: [
-          { label: "Notifications", href: "/portal/notifications" },
           { label: "Office Settings", href: "/portal/office-settings" },
         ],
       },

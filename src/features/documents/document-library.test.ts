@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { createElement } from 'react';
-import { render, screen, within } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { getDocumentListActions, getVisibleDocuments } from '@/features/documents/document-library';
 import DocumentsPage from '@/features/documents/pages/documents-page';
 
@@ -36,6 +36,8 @@ const documents = [
   },
 ];
 
+afterEach(cleanup);
+
 describe('document library list', () => {
   it('finds documents by title or reference and sorts the matching payload locally', () => {
     expect(getVisibleDocuments(documents, { query: '101', status: 'all', sort: 'newest' }).map((document) => document.id))
@@ -47,6 +49,27 @@ describe('document library list', () => {
   it('filters by status only when the payload includes statuses', () => {
     expect(getVisibleDocuments(documents, { query: '', status: 'processing', sort: 'newest' }).map((document) => document.id))
       .toEqual(['document-1']);
+  });
+
+  it('includes both date boundaries and excludes missing dates when filtering', () => {
+    const rows = [...documents, { id: 'undated', file_name: 'Undated.pdf' }];
+    expect(getVisibleDocuments(rows, { query: '', status: 'all', sort: 'newest', updatedFrom: '2026-07-10', updatedThrough: '2026-07-13' }).map((document) => document.id))
+      .toEqual(['document-1', 'document-2']);
+    expect(getVisibleDocuments(rows, { query: '', status: 'all', sort: 'newest', updatedFrom: '2026-07-11' }).map((document) => document.id))
+      .toEqual(['document-1']);
+  });
+
+  it('keeps filters available with no matches and resets search and sorting', () => {
+    render(createElement(DocumentsPage));
+    fireEvent.click(screen.getByRole('button', { name: 'Newest first' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Oldest first' }));
+    expect(screen.getAllByRole('row')[1].textContent).toContain('Certificate of Employment.pdf');
+    fireEvent.change(screen.getByPlaceholderText('Search documents...'), { target: { value: 'missing' } });
+    expect(screen.getByText('No documents match the current filters.')).toBeTruthy();
+    fireEvent.click(screen.getByText('More Filters'));
+    fireEvent.click(screen.getByRole('button', { name: 'Reset filters' }));
+    expect(screen.getByRole('button', { name: 'Newest first' })).toBeTruthy();
+    expect(screen.getByText('Showing 1–2 of 2 documents')).toBeTruthy();
   });
 
   it('offers review only for issuer documents awaiting OCR review', () => {

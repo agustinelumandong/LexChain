@@ -13,6 +13,7 @@ import {
 import { getPortalUiRole } from "@/features/access";
 
 type NumberSettingField = keyof OfficeSettings;
+type OfficeSettingsDraft = { [Key in NumberSettingField]: OfficeSettings[Key] | '' };
 type UserProfile = ApiSchema<'UserProfileResponse'>;
 
 const fields: Array<{
@@ -57,9 +58,12 @@ export default function OfficeSettingsPage() {
 
 function OfficeSettingsForm() {
   const [savedSettings, setSavedSettings] = useState<OfficeSettings>(defaultOfficeSettings);
-  const [settings, setSettings] = useState<OfficeSettings>(defaultOfficeSettings);
+  const [settings, setSettings] = useState<OfficeSettingsDraft>(defaultOfficeSettings);
   const [savedMessage, setSavedMessage] = useState(false);
-  const errors = useMemo(() => validateOfficeSettings(settings), [settings]);
+  const errors = useMemo(() => validateOfficeSettings({
+    invitationExpiryDays: Number(settings.invitationExpiryDays),
+    uploadLimitMegabytes: Number(settings.uploadLimitMegabytes),
+  }), [settings]);
   const hasErrors = Object.values(errors).some(Boolean);
   const isDirty = Object.keys(settings).some((key) => (
     settings[key as NumberSettingField] !== savedSettings[key as NumberSettingField]
@@ -67,12 +71,17 @@ function OfficeSettingsForm() {
 
   function updateSetting(key: NumberSettingField, value: string) {
     setSavedMessage(false);
-    setSettings((current) => ({ ...current, [key]: Number(value) }));
+    setSettings((current) => ({ ...current, [key]: value === '' ? '' : Number(value) }));
   }
 
   function handleSave() {
     if (hasErrors || !isDirty) return;
-    setSavedSettings(settings);
+    const nextSettings: OfficeSettings = {
+      invitationExpiryDays: Number(settings.invitationExpiryDays),
+      uploadLimitMegabytes: Number(settings.uploadLimitMegabytes),
+    };
+    setSavedSettings(nextSettings);
+    setSettings(nextSettings);
     setSavedMessage(true);
   }
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { usePopup } from "@/shared/components/ui/use-popup";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 
 type Option = { label: string; value: string };
@@ -14,16 +14,7 @@ type DropdownProps = {
 };
 
 export function Dropdown({ options, value, onChange, icon, openUp = false }: DropdownProps) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    function handleClick(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
-    }
-    document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
-  }, []);
+  const { open, setOpen, ref } = usePopup();
 
   const selected = options.find((o) => o.value === value);
 
@@ -31,8 +22,9 @@ export function Dropdown({ options, value, onChange, icon, openUp = false }: Dro
     <div ref={ref} className="relative">
       <button
         type="button"
+        aria-expanded={open}
         onClick={() => setOpen(!open)}
-        className="flex cursor-pointer items-center gap-2 rounded-xl border border-[#E4EEF9] bg-[#F8FBFF] px-3 py-2 text-sm font-semibold text-[#0C2B49] transition hover:border-[#0985E7]"
+        className="flex cursor-pointer items-center gap-2 rounded-xl border border-[#E4EEF9] bg-[#F8FBFF] px-3 py-2 text-sm font-semibold text-[#0C2B49] outline-none transition hover:border-[#0985E7] focus-visible:ring-2 focus-visible:ring-[#0985E7]/30"
       >
         {icon}
         <span>{selected?.label ?? "Select"}</span>
@@ -44,7 +36,7 @@ export function Dropdown({ options, value, onChange, icon, openUp = false }: Dro
             <button
               key={option.value}
               type="button"
-              onClick={() => { onChange(option.value); setOpen(false); }}
+              onClick={() => { onChange(option.value); setOpen(false); ref.current?.querySelector("button")?.focus(); }}
               className={`flex w-full cursor-pointer px-4 py-2.5 text-left text-sm font-semibold transition hover:bg-[#EEF4FB] ${
                 option.value === value ? "bg-[#EEF4FB] text-[#0985E7]" : "text-[#0C2B49]"
               }`}

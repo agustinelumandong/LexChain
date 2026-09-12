@@ -16,6 +16,25 @@ const sharedProps = {
 };
 
 describe("PortalTopBar", () => {
+  it("switches menus and dismisses them on Escape, outside taps, and focus leaving", () => {
+    render(<PortalTopBar {...sharedProps} role="user" />);
+    const profile = screen.getByRole("button", { name: "Open profile menu" });
+    const notifications = screen.getByRole("button", { name: "View notifications" });
+    fireEvent.click(profile);
+    fireEvent.click(notifications);
+    expect(screen.queryByRole("link", { name: "Profile" })).toBeNull();
+    expect(screen.getByText("No unread notifications")).toBeTruthy();
+    fireEvent.keyDown(notifications, { key: "Escape" });
+    expect(screen.queryByText("No unread notifications")).toBeNull();
+    expect(document.activeElement).toBe(notifications);
+    fireEvent.click(profile);
+    fireEvent.pointerDown(document.body);
+    expect(screen.queryByRole("link", { name: "Profile" })).toBeNull();
+    fireEvent.click(profile);
+    fireEvent.focusIn(screen.getByRole("combobox", { name: "Search documents" }));
+    expect(screen.queryByRole("link", { name: "Profile" })).toBeNull();
+  });
+
   it("does not expose the processing summary to a participant", () => {
     render(<PortalTopBar {...sharedProps} role="user" />);
 

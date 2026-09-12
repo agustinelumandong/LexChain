@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { usePopup } from '@/shared/components/ui/use-popup';
 import Link from 'next/link';
 import SettingsIcon from '@mui/icons-material/Settings';
 import LogoutIcon from '@mui/icons-material/Logout';
@@ -28,24 +28,9 @@ function formatDate(iso: string) {
 
 export function PortalTopBar({ fullName, initials, roleLabel, role, processingCount, unreadCount = 0, notifications = [], onMarkAllRead, onSignOut }: PortalTopBarProps) {
   const processingLabel = processingCount === 1 ? '1 document processing' : `${processingCount} documents processing`;
-  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
-  const [notificationMenuOpen, setNotificationMenuOpen] = useState(false);
-  const profileMenuRef = useRef<HTMLDivElement>(null);
-  const notificationMenuRef = useRef<HTMLDivElement>(null);
+  const { open: profileMenuOpen, setOpen: setProfileMenuOpen, ref: profileMenuRef } = usePopup();
+  const { open: notificationMenuOpen, setOpen: setNotificationMenuOpen, ref: notificationMenuRef } = usePopup();
   const unreadNotifications = notifications.filter((n) => !n.is_read);
-
-  useEffect(() => {
-    function handleClick(event: MouseEvent) {
-      if (profileMenuRef.current && !profileMenuRef.current.contains(event.target as Node)) {
-        setProfileMenuOpen(false);
-      }
-      if (notificationMenuRef.current && !notificationMenuRef.current.contains(event.target as Node)) {
-        setNotificationMenuOpen(false);
-      }
-    }
-    document.addEventListener('mousedown', handleClick);
-    return () => document.removeEventListener('mousedown', handleClick);
-  }, []);
 
   return (
     <header className="sticky top-0 z-40 -mx-6 mb-6 border-b border-[var(--portal-border-soft)] bg-[var(--portal-surface)] px-4 md:px-6">

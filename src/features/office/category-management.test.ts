@@ -82,4 +82,15 @@ describe("category access", () => {
 
     expect(screen.getByRole('dialog', { name: 'Deactivate Contracts category' })).toBeTruthy();
   });
+
+  it('moves focus to the category name field for create and edit', () => {
+    render(createElement(CategoriesPage));
+
+    const nameInput = screen.getByLabelText('Category name');
+    fireEvent.click(screen.getByRole('button', { name: 'Create Category' }));
+    expect(document.activeElement).toBe(nameInput);
+
+    fireEvent.click(screen.getAllByRole('button', { name: 'Edit' })[0]);
+    expect(document.activeElement).toBe(nameInput);
+  });
 });

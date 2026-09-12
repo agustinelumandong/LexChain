@@ -12,6 +12,7 @@ describe("portal dashboard", () => {
       "Account",
     ]);
     expect(navigation[0].items.map((item) => item.label)).toEqual(["Dashboard", "Documents"]);
+    expect(navigation.flatMap((group) => group.items).map((item) => item.href)).not.toContain("/portal/notifications");
     expect(navigation.find((group) => group.label === "Office")?.items.map((item) => item.label)).toEqual([
       "Categories",
       "Reports",
