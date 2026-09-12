@@ -13,9 +13,9 @@ import FileUploadIcon from '@mui/icons-material/FileUpload';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import type { ApiSchema } from '@/shared/types/index';
 import { MetricCard } from '@/features/portal/components/portal-metric-card';
-import { getDocumentStatusLabel } from '@/features/documents/document-ui';
+import { getDocumentStatusLabel } from "@/features/documents";
 import { type DashboardMetric, getDashboardMetrics } from '@/features/portal/portal-dashboard';
-import { getPortalUiRole } from '@/features/access/portal-role';
+import { getPortalUiRole } from "@/features/access";
 
 interface Document {
   id: string;

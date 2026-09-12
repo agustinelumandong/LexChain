@@ -1,1 +1,1 @@
-export { default } from '@/features/documents/pages/documents-id-ask-page';
+export { AskPage as default } from "@/features/documents/pages";

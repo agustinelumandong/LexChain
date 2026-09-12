@@ -1,5 +1,5 @@
-import { adminFetch } from "@/features/admin/server/fetch";
-import { InvitationsManagementView } from "@/features/admin/invitations-permissions/invitations-management-view";
+import { adminFetch } from "@/features/admin/server";
+import { InvitationsManagementView } from "@/features/admin/invitations-permissions";
 import { requireDocumentIssuerPage } from "@/features/access/server/issuer-page-access";
 import { isMockMode } from "@/lib/mocks/mode";
 

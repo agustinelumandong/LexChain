@@ -6,11 +6,9 @@ import Link from 'next/link';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import HistoryIcon from '@mui/icons-material/History';
 import type { ApiSchema } from '@/shared/types/index';
-import { listDocumentAuditLogs } from '@/features/access/portal-access-api';
-import type { PortalAuditLog } from '@/features/access/portal-compat-types';
+import { listDocumentAuditLogs, type PortalAuditLog, getPortalUiRole } from "@/features/access";
 import { formatAuditEvent } from '@/features/documents/activity-log';
 import { canLoadDocumentActivity } from '@/features/documents/document-activity-access';
-import { getPortalUiRole } from '@/features/access/portal-role';
 
 type DocumentResponse = ApiSchema<'DocumentResponse'>;
 type UserProfile = ApiSchema<'UserProfileResponse'>;

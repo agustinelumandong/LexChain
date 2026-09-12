@@ -1,1 +1,1 @@
-export { default } from '@/features/verification/pages/verification-page';
+export { VerificationPage as default } from "@/features/verification/pages";

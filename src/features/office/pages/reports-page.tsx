@@ -3,8 +3,8 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import type { ApiSchema } from '@/shared/types/index';
-import { GeneratedReportsManagementView } from '@/features/admin/generated-reports/generated-reports-management-view';
-import { PortalDropdown } from '@/features/portal/components/portal-dropdown';
+import { GeneratedReportsManagementView } from "@/features/admin/generated-reports";
+import { PortalDropdown } from "@/features/portal/components";
 import {
   createDemoReport,
   downloadDemoReport,
@@ -13,7 +13,7 @@ import {
   type PortalReportDocument,
 } from '@/features/office/office-insight';
 import { portalFetch } from '@/shared/api/client';
-import { getPortalUiRole } from '@/features/access/portal-role';
+import { getPortalUiRole } from "@/features/access";
 
 type UserProfile = ApiSchema<'UserProfileResponse'>;
 type ReportScope = 'document' | 'system';

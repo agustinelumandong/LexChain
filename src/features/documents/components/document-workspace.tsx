@@ -6,8 +6,8 @@ import Link from 'next/link';
 import type { ApiSchema } from '@/shared/types/index';
 import { listDocumentVersions } from '@/features/documents/document-lifecycle-api';
 import type { DemoDocumentLifecycle } from '@/features/documents/document-lifecycle-ui';
-import { shortenIntegrityHash } from '@/features/verification/integrity-ui';
-import type { PortalUiRole } from '@/features/access/portal-role';
+import { shortenIntegrityHash } from "@/features/verification";
+import type { PortalUiRole } from "@/features/access";
 
 type WorkspaceDocument = Partial<DemoDocumentLifecycle> & {
   document_id: string;

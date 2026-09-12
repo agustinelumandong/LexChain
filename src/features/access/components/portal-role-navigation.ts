@@ -11,7 +11,7 @@ import NotificationsNoneOutlinedIcon from "@mui/icons-material/NotificationsNone
 import ScheduleIcon from "@mui/icons-material/Schedule";
 import AssessmentOutlinedIcon from "@mui/icons-material/AssessmentOutlined";
 import SettingsIcon from "@mui/icons-material/Settings";
-import type { PortalNavigationItem } from "@/features/portal/portal-dashboard";
+import type { PortalNavigationItem } from "@/features/portal";
 
 type PortalNavigationIcon = ComponentType<{ fontSize?: "small" }>;
 

@@ -11,7 +11,7 @@ import PolicyIcon from '@mui/icons-material/Policy';
 import HelpOutlineIcon from '@mui/icons-material/HelpOutlineOutlined';
 import RequestPageIcon from '@mui/icons-material/RequestPage';
 import type { ApiSchema } from '@/shared/types/index';
-import { getPortalProfileRequestShortcut, getPortalRoleLabel, getPortalUiRole } from '@/features/access/portal-role';
+import { getPortalProfileRequestShortcut, getPortalRoleLabel, getPortalUiRole } from "@/features/access";
 
 type UserProfile = ApiSchema<'UserProfileResponse'>;
 

@@ -17,7 +17,7 @@ import MoreVertIcon from "@mui/icons-material/MoreVert";
 import { Dropdown } from "@/features/admin/components/dropdown";
 import { MockModal, exportMockRows, useMockToast } from "@/features/admin/components/mock-ui";
 import { CreateInvitationModal } from "@/features/admin/invitations-permissions/create-invitation-modal";
-import { getPortalRoleLabel } from "@/features/access/portal-role";
+import { getPortalRoleLabel } from "@/features/access";
 
 type Invitation = {
   id: string;

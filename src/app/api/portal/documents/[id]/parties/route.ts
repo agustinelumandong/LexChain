@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { backendUrl } from '@/server/api/backend';
-import { validateParticipantInvitation } from '@/features/access/participant-access';
-import { getPortalUiRole } from '@/features/access/portal-role';
+import { validateParticipantInvitation, getPortalUiRole } from "@/features/access";
 
 type RouteContext = { params: Promise<{ id: string }> };
 

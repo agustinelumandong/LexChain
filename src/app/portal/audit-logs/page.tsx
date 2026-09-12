@@ -1,1 +1,1 @@
-export { default } from '@/features/office/pages/audit-logs-page';
+export { PortalAuditLogsPage as default } from "@/features/office/pages/server";

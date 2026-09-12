@@ -8,7 +8,7 @@ import PhonelinkLockIcon from '@mui/icons-material/PhonelinkLock';
 import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
 import PasswordIcon from '@mui/icons-material/Password';
 import { useQuery } from '@tanstack/react-query';
-import type { PortalUserProfile } from '@/features/access/portal-compat-types';
+import type { PortalUserProfile } from "@/features/access";
 
 async function fetchProfile(): Promise<PortalUserProfile> {
   const response = await fetch('/api/portal/proxy?path=%2Fusers%2F', { credentials: 'same-origin' });

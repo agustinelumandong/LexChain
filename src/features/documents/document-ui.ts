@@ -1,4 +1,4 @@
-import type { PortalUiRole } from '@/features/access/portal-role';
+import type { PortalUiRole } from "@/features/access";
 
 export function getDocumentStatusLabel(status?: string | null): string {
   const value = status?.trim().toUpperCase();

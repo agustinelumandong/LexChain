@@ -6,7 +6,7 @@ import AddIcon from '@mui/icons-material/Add';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import BlockOutlinedIcon from '@mui/icons-material/BlockOutlined';
 import type { ApiSchema } from '@/shared/types/index';
-import { canAccessPortalFeature } from '@/features/access/portal-access';
+import { canAccessPortalFeature, getPortalUiRole } from "@/features/access";
 import {
   createDemoCategory,
   deactivateDemoCategory,
@@ -14,7 +14,6 @@ import {
   initialDemoCategories,
   type DemoCategory,
 } from '@/features/office/category-management';
-import { getPortalUiRole } from '@/features/access/portal-role';
 
 type UserProfile = ApiSchema<'UserProfileResponse'>;
 

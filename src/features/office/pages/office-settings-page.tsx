@@ -10,7 +10,7 @@ import {
   validateOfficeSettings,
   type OfficeSettings,
 } from '@/features/office/office-settings-schema';
-import { getPortalUiRole } from '@/features/access/portal-role';
+import { getPortalUiRole } from "@/features/access";
 
 type NumberSettingField = keyof OfficeSettings;
 type UserProfile = ApiSchema<'UserProfileResponse'>;

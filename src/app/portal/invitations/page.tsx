@@ -1,1 +1,1 @@
-export { default } from '@/features/access/pages/invitations-page';
+export { InvitationsPage as default } from "@/features/access/pages";

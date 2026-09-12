@@ -1,1 +1,1 @@
-export { default } from '@/features/admin/pages/system-settings-page';
+export { AdminSystemSettingsPage as default } from "@/features/admin/pages";

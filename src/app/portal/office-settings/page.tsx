@@ -1,1 +1,1 @@
-export { default } from '@/features/office/pages/office-settings-page';
+export { OfficeSettingsPage as default } from "@/features/office/pages";

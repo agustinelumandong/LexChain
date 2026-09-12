@@ -1,4 +1,4 @@
-import type { DemoIntegrityState } from '@/features/documents/document-lifecycle-ui';
+import type { DemoIntegrityState } from "@/features/documents";
 
 type IntegrityRecord = { onchain_hash?: string | null; is_authentic?: boolean } | null | undefined;
 

@@ -1,1 +1,1 @@
-export { default } from '@/features/portal/pages/notifications-page';
+export { NotificationsPage as default } from "@/features/portal/pages";

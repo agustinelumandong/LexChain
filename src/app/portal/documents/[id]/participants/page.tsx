@@ -1,1 +1,1 @@
-export { default } from '@/features/documents/pages/documents-id-participants-page';
+export { DocumentParticipantsPage as default } from "@/features/documents/pages";

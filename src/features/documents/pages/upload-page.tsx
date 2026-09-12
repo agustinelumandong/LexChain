@@ -15,10 +15,9 @@ import {
   type UploadOutcome,
   uploadDocument,
 } from '@/features/documents/portal-upload';
-import { canAccessPortalFeature } from '@/features/access/portal-access';
-import { getPortalUiRole } from '@/features/access/portal-role';
-import { PortalDropdown } from '@/features/portal/components/portal-dropdown';
-import { defaultOfficeSettings } from '@/features/office/office-settings-schema';
+import { canAccessPortalFeature, getPortalUiRole } from "@/features/access";
+import { PortalDropdown } from "@/features/portal/components";
+import { defaultOfficeSettings } from "@/features/office";
 import type { ApiSchema } from '@/shared/types/index';
 
 type Book = ApiSchema<'BookResponse'>;

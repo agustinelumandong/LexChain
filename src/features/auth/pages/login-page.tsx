@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { getPortalLoginRedirect } from "@/features/access/portal-role";
+import { getPortalLoginRedirect } from "@/features/access";
 
 async function signIn(data: { email: string; password: string }) {
   const res = await fetch("/api/auth", {

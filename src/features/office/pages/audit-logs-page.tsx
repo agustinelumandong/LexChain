@@ -1,6 +1,6 @@
-import { adminFetch } from "@/features/admin/server/fetch";
-import { AuditLogsManagementView } from "@/features/admin/audit-logs/audit-logs-management-view";
-import { requireDocumentIssuerPage } from "@/features/access/server/issuer-page-access";
+import { adminFetch } from "@/features/admin/server";
+import { AuditLogsManagementView } from "@/features/admin/audit-logs";
+import { requireDocumentIssuerPage } from "@/features/access/server";
 import { isMockMode } from "@/lib/mocks/mode";
 
 const useMock = isMockMode();

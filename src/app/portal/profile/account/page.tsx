@@ -1,1 +1,1 @@
-export { default } from '@/features/account/pages/profile-account-page';
+export { AccountPage as default } from "@/features/account/pages";

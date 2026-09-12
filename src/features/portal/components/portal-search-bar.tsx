@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import SearchIcon from '@mui/icons-material/Search';
 import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile';
-import type { PortalSearchHit } from '@/features/access/portal-compat-types';
+import type { PortalSearchHit } from "@/features/access";
 
 async function searchDocuments(query: string): Promise<PortalSearchHit[]> {
   const res = await fetch(

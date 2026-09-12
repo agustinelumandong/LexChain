@@ -13,7 +13,7 @@ import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import { Dropdown } from "@/features/admin/components/dropdown";
 import { exportMockRows, useMockToast } from "@/features/admin/components/mock-ui";
-import { getPortalRoleLabel } from "@/features/access/portal-role";
+import { getPortalRoleLabel } from "@/features/access";
 import { UsersMetrics, RoleDistribution, RecentlyCreatedAccounts, StatusPill } from "./users-summary";
 import { UserDialogs, type UserDialogSelection } from "./user-dialogs";
 import type { AdminUser, DemoAdminUserChanges, DirectoryUser } from "./users-types";

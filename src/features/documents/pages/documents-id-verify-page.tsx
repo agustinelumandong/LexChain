@@ -4,8 +4,8 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import RestoreIcon from '@mui/icons-material/Restore';
-import { verifyRepositoryDocument } from '@/features/verification/integrity-api';
-import VerifyWorkspace from '@/features/verification/components/verify-workspace';
+import { verifyRepositoryDocument } from "@/features/verification";
+import { VerifyWorkspace as VerifyWorkspace } from "@/features/verification/components";
 
 export default function DocumentVerifyPage() {
   const { id } = useParams<{ id: string }>();

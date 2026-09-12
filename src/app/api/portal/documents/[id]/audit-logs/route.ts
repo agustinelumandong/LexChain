@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { backendUrl } from '@/server/api/backend';
 import { isMockPortalToken, mockPortalGet } from '@/lib/mocks/portal';
 import { isMockMode } from '@/lib/mocks/mode';
-import { getPortalUiRole } from '@/features/access/portal-role';
+import { getPortalUiRole } from "@/features/access";
 
 type RouteContext = { params: Promise<{ id: string }> };
 

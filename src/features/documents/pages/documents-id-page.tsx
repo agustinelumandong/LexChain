@@ -5,12 +5,12 @@ import { useMutation, useQueries, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import type { ApiSchema } from '@/shared/types/index';
-import PortalChatbot from '@/features/portal/components/portal-chatbot';
+import { PortalChatbot as PortalChatbot } from "@/features/portal/components";
 import { DocumentWorkspace } from '@/features/documents/components/document-workspace';
 import { getDocumentActions, getDocumentStatusLabel } from '@/features/documents/document-ui';
 import { renameDocument, finalizeDocument, createDocumentVersion } from '@/features/documents/document-lifecycle-api';
 import { canFinalizeDocument, type DemoDocumentLifecycle } from '@/features/documents/document-lifecycle-ui';
-import { getPortalUiRole } from '@/features/access/portal-role';
+import { getPortalUiRole } from "@/features/access";
 
 type DocumentResponse = ApiSchema<'DocumentResponse'>;
 type LifecycleDocumentResponse = DocumentResponse & Partial<DemoDocumentLifecycle>;

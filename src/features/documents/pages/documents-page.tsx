@@ -17,10 +17,10 @@ import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import DownloadIcon from '@mui/icons-material/Download';
 import RateReviewIcon from '@mui/icons-material/RateReview';
 import VerifiedIcon from '@mui/icons-material/Verified';
-import { Dropdown } from '@/features/admin/components/dropdown';
-import { MetricCard } from '@/features/portal/components/portal-metric-card';
+import { Dropdown } from "@/features/admin/components";
+import { MetricCard } from "@/features/portal/components";
 import { getDocumentStatusLabel } from '@/features/documents/document-ui';
-import { getPortalUiRole } from '@/features/access/portal-role';
+import { getPortalUiRole } from "@/features/access";
 import {
   getDocumentListActions,
   getDocumentStatuses,

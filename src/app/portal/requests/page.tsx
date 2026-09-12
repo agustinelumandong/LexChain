@@ -1,1 +1,1 @@
-export { default } from '@/features/access/pages/requests-page';
+export { RequestsPage as default } from "@/features/access/pages";

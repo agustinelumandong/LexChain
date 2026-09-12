@@ -1,1 +1,1 @@
-export { default } from '@/features/documents/pages/documents-id-viewer-page';
+export { PdfViewerPage as default } from "@/features/documents/pages";

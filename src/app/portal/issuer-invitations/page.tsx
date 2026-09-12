@@ -1,1 +1,1 @@
-export { default } from '@/features/access/pages/issuer-invitations-page';
+export { PortalIssuerInvitationsPage as default } from "@/features/access/pages/server";

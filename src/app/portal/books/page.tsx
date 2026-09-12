@@ -1,1 +1,1 @@
-export { default } from '@/features/office/pages/books-page';
+export { BooksPage as default } from "@/features/office/pages";

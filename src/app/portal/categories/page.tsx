@@ -1,1 +1,1 @@
-export { default } from '@/features/office/pages/categories-page';
+export { CategoriesPage as default } from "@/features/office/pages";

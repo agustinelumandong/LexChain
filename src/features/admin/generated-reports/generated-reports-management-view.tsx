@@ -1,13 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import {
-  createDemoReport,
-  downloadDemoReport,
-  type DemoReport,
-  type DemoReportType,
-} from "@/features/office/office-insight";
-import { PortalDropdown } from "@/features/portal/components/portal-dropdown";
+import { createDemoReport, downloadDemoReport, type DemoReport, type DemoReportType } from "@/features/office/reports";
+import { PortalDropdown } from "@/features/portal/components";
 
 const reportOptions: ReadonlyArray<{
   type: DemoReportType;

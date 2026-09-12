@@ -7,7 +7,7 @@ import Link from 'next/link';
 import SearchIcon from '@mui/icons-material/Search';
 import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile';
 import type { ApiSchema } from '@/shared/types/index';
-import type { PortalSearchHit } from '@/features/access/portal-compat-types';
+import type { PortalSearchHit } from "@/features/access";
 
 type GlobalSearchResponse = Omit<ApiSchema<'GlobalSearchResponse'>, 'results'> & {
   results: PortalSearchHit[];

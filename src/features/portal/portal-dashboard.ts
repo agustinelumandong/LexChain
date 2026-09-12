@@ -1,5 +1,5 @@
-import type { PortalUiRole } from "@/features/access/portal-role";
-import { getDocumentStatusLabel } from "@/features/documents/document-ui";
+import type { PortalUiRole } from "@/features/access";
+import { getDocumentStatusLabel } from "@/features/documents";
 
 export type PortalDocument = {
   status?: string | null;

@@ -5,7 +5,7 @@ import Link from 'next/link';
 import SettingsIcon from '@mui/icons-material/Settings';
 import LogoutIcon from '@mui/icons-material/Logout';
 import NotificationsNoneOutlinedIcon from '@mui/icons-material/NotificationsNoneOutlined';
-import type { PortalUiRole } from '@/features/access/portal-role';
+import type { PortalUiRole } from "@/features/access";
 import { PortalSearchBar } from '@/features/portal/components/portal-search-bar';
 
 type PortalNotification = { id: string; title: string; body: string; is_read: boolean; created_at: string };

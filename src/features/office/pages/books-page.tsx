@@ -7,8 +7,7 @@ import MenuBookIcon from '@mui/icons-material/MenuBook';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import type { ApiSchema } from '@/shared/types/index';
 import { toast } from 'sonner';
-import { getPortalUiRole } from '@/features/access/portal-role';
-import { canAccessPortalFeature } from '@/features/access/portal-access';
+import { getPortalUiRole, canAccessPortalFeature } from "@/features/access";
 
 type Book = ApiSchema<'BookResponse'>;
 type BookCreateRequest = ApiSchema<'BookCreateRequest'>;

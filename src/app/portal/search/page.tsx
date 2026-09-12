@@ -1,1 +1,1 @@
-export { default } from '@/features/documents/pages/search-page';
+export { SearchPage as default } from "@/features/documents/pages";

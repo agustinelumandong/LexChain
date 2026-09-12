@@ -1,1 +1,1 @@
-export { default } from '@/features/documents/pages/documents-id-review-page';
+export { ReviewPage as default } from "@/features/documents/pages";

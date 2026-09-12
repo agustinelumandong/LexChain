@@ -11,7 +11,7 @@ import {
   getExtractionReview,
   saveExtractionEdits,
 } from '@/features/documents/extraction-api';
-import { getPortalUiRole } from '@/features/access/portal-role';
+import { getPortalUiRole } from "@/features/access";
 import ReviewWorkspace from '@/features/documents/components/review-workspace';
 
 type BlockEdit = ApiSchema<'BlockEdit'>;

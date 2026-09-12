@@ -1,1 +1,1 @@
-export { default } from '@/features/documents/pages/documents-id-activity-page';
+export { DocumentActivityPage as default } from "@/features/documents/pages";

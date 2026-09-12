@@ -25,6 +25,14 @@ scripts/, e2e/             Contract maintenance and browser checks
 
 ## API and type boundaries
 
+### Feature entry points
+
+Feature barrels use explicit named exports for symbols consumed outside their feature. Import public helpers from `@/features/<feature>`, reusable feature UI from its `components` entry point, and route views from its `pages` entry point. Admin management views have their own entry points, such as `@/features/admin/users`.
+
+Internal modules keep direct implementation imports. Tests may also import implementations directly to exercise or mock a focused module. Keep server helpers in `server/index.ts` and server-rendered route views in `pages/server.ts`; never re-export them from a browser-safe entry point. Preserve direct lazy imports for PDF viewers and mock fixtures so barrels do not change when those modules load. The office `reports.ts` entry point keeps demo report generation separate from office settings.
+
+Do not use `export *` or add an entry point without an outside consumer. The architecture script follows runtime imports and re-exports to prevent client modules from reaching server modules through a barrel.
+
 Configure backend URLs with `API_URL` and `NEXT_PUBLIC_API_URL`; never hardcode credentials or backend URLs. Backend types are generated from `openapi-updated.json` into `lib/types/generated/schema.ts`:
 
 ```bash

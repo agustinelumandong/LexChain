@@ -2,8 +2,8 @@
 
 import Link from 'next/link';
 import { getPortalNavigation } from '@/features/portal/portal-dashboard';
-import type { PortalUiRole } from '@/features/access/portal-role';
-import { getPortalNavigationIcon, isPortalRouteActive } from '@/features/access/components/portal-role-navigation';
+import type { PortalUiRole } from "@/features/access";
+import { getPortalNavigationIcon, isPortalRouteActive } from "@/features/access/components";
 
 export function PortalBottomNav({
   pathname,

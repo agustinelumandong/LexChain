@@ -1,1 +1,1 @@
-export { default } from '@/features/office/pages/users-page';
+export { PortalUsersPage as default } from "@/features/office/pages/server";

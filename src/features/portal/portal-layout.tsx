@@ -10,9 +10,9 @@ import MenuIcon from "@mui/icons-material/Menu";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import { Toaster } from 'sonner';
 import type { ApiSchema } from "@/shared/types/index";
-import { getPortalLoginRedirect, getPortalRoleLabel, getPortalUiRole, isSupportedPortalUiRole } from "@/features/access/portal-role";
+import { getPortalLoginRedirect, getPortalRoleLabel, getPortalUiRole, isSupportedPortalUiRole } from "@/features/access";
 import { getPortalNavigation } from "@/features/portal/portal-dashboard";
-import { getPortalNavigationIcon, isPortalRouteActive } from "@/features/access/components/portal-role-navigation";
+import { getPortalNavigationIcon, isPortalRouteActive } from "@/features/access/components";
 import { PortalBottomNav } from "@/features/portal/components/portal-bottom-nav";
 import { PortalTopBar } from "@/features/portal/components/portal-topbar";
 

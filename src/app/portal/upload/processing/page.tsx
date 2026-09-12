@@ -1,1 +1,1 @@
-export { default } from '@/features/documents/pages/upload-processing-page';
+export { ProcessingPage as default } from "@/features/documents/pages";

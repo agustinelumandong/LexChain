@@ -1,1 +1,1 @@
-export { default } from '@/features/office/pages/reports-page';
+export { OfficeReportsPage as default } from "@/features/office/pages";

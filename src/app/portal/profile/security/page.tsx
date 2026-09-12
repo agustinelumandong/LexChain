@@ -1,1 +1,1 @@
-export { default } from '@/features/account/pages/profile-security-page';
+export { SecurityPage as default } from "@/features/account/pages";

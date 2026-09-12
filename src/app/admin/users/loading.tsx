@@ -1,5 +1,5 @@
-import { AdminShell } from "@/features/admin/admin-shell";
-import { Skeleton } from "@/features/admin/components/skeleton";
+import { AdminShell } from "@/features/admin";
+import { Skeleton } from "@/features/admin/components";
 
 export default function UsersLoading() {
   return (

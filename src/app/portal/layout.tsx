@@ -1,1 +1,1 @@
-export { default } from '@/features/portal/portal-layout';
+export { PortalLayout as default } from "@/features/portal";

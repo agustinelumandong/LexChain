@@ -5,12 +5,9 @@ import Link from 'next/link';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { components } from '@/shared/types/index';
-import { InviteParticipantForm } from '@/features/access/components/invite-participant-form';
-import { ParticipantAccessTable } from '@/features/access/components/participant-access-table';
-import { inviteDocumentParty, listDocumentParties, revokeDocumentParty } from '@/features/access/portal-access-api';
-import { canManageParticipants, isParticipantAccessCapabilityError } from '@/features/access/participant-access';
+import { InviteParticipantForm, ParticipantAccessTable } from "@/features/access/components";
+import { inviteDocumentParty, listDocumentParties, revokeDocumentParty, canManageParticipants, isParticipantAccessCapabilityError, getPortalUiRole } from "@/features/access";
 import { portalFetch } from '@/shared/api/client';
-import { getPortalUiRole } from '@/features/access/portal-role';
 
 type UserProfile = components['schemas']['UserProfileResponse'];
 type DocumentParty = components['schemas']['DocumentPartyResponse'];
