@@ -310,7 +310,20 @@ export default function DocumentsPage() {
                       </tr>
                     ))}
                     {pagedDocs.length === 0 && (
-                      <tr><td colSpan={5} className="px-5 py-10 text-center text-sm font-semibold text-[#5B6F8A]">No documents match the current filters.</td></tr>
+                      <tr>
+                        <td colSpan={5} className="px-5 py-10 text-center text-sm font-semibold text-[#5B6F8A]">
+                          <p>{search.trim() ? 'No matching documents' : 'No documents match the current filters.'}</p>
+                          {search.trim() && (
+                            <button
+                              type="button"
+                              onClick={() => { setSearch(''); setPage(0); }}
+                              className="mt-4 rounded-full border border-[#D7E4F2] px-4 py-2 text-sm font-black text-[#0985E7] hover:bg-[#EEF4FB] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0985E7]"
+                            >
+                              Clear search
+                            </button>
+                          )}
+                        </td>
+                      </tr>
                     )}
                   </tbody>
                 </table>

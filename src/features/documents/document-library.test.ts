@@ -7,7 +7,7 @@ import DocumentsPage from '@/features/documents/pages/documents-page';
 
 vi.mock('@tanstack/react-query', () => ({
   useQuery: ({ queryKey }: { queryKey: string[] }) => queryKey[0] === 'portal-documents'
-    ? { data: documents, isLoading: false, isError: false }
+    ? { data: documents, ...documentQueryState }
     : { data: { role: 'document_issuer' }, isLoading: false, isError: false },
 }));
 
@@ -36,7 +36,12 @@ const documents = [
   },
 ];
 
-afterEach(cleanup);
+let documentQueryState = { isLoading: false, isError: false };
+
+afterEach(() => {
+  cleanup();
+  documentQueryState = { isLoading: false, isError: false };
+});
 
 describe('document library list', () => {
   it('finds documents by title or reference and sorts the matching payload locally', () => {
@@ -65,11 +70,66 @@ describe('document library list', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Oldest first' }));
     expect(screen.getAllByRole('row')[1].textContent).toContain('Certificate of Employment.pdf');
     fireEvent.change(screen.getByPlaceholderText('Search documents...'), { target: { value: 'missing' } });
-    expect(screen.getByText('No documents match the current filters.')).toBeTruthy();
+    expect(screen.getByText('No matching documents')).toBeTruthy();
     fireEvent.click(screen.getByText('More Filters'));
     fireEvent.click(screen.getByRole('button', { name: 'Reset filters' }));
     expect(screen.getByRole('button', { name: 'Newest first' })).toBeTruthy();
     expect(screen.getByText('Showing 1–2 of 2 documents')).toBeTruthy();
+  });
+
+  it('clears an unmatched search and restores documents while preserving status and sorting', () => {
+    render(createElement(DocumentsPage));
+    fireEvent.click(screen.getByRole('button', { name: 'Newest first' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Oldest first' }));
+    fireEvent.click(screen.getByText('More Filters'));
+    fireEvent.click(screen.getByRole('button', { name: 'All Statuses' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Processing' }));
+    const search = screen.getByPlaceholderText('Search documents...') as HTMLInputElement;
+    fireEvent.change(search, { target: { value: 'missing' } });
+
+    expect(screen.getByText('No matching documents')).toBeTruthy();
+    expect(screen.getByText('Showing 0–0 of 0 documents')).toBeTruthy();
+    const clear = screen.getByRole('button', { name: 'Clear search' });
+    expect(clear.tagName).toBe('BUTTON');
+    expect(clear.tabIndex).toBe(0);
+    clear.focus();
+    expect(document.activeElement).toBe(clear);
+    fireEvent.click(clear);
+
+    expect(search.value).toBe('');
+    expect(screen.queryByText('No matching documents')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Clear search' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Oldest first' })).toBeTruthy();
+    fireEvent.click(screen.getByText(/More Filters/));
+    expect(screen.getByRole('button', { name: 'Processing' })).toBeTruthy();
+    const table = within(screen.getByRole('table'));
+    expect(table.getByRole('row', { name: /Lease Agreement/ })).toBeTruthy();
+    expect(table.queryByRole('row', { name: /Certificate of Employment/ })).toBeNull();
+    expect(screen.getByText('Showing 1–1 of 1 documents')).toBeTruthy();
+  });
+
+  it('does not treat whitespace as an unmatched search', () => {
+    render(createElement(DocumentsPage));
+    fireEvent.change(screen.getByPlaceholderText('Search documents...'), { target: { value: '   ' } });
+    expect(screen.queryByRole('button', { name: 'Clear search' })).toBeNull();
+    expect(screen.getByText('Showing 1–2 of 2 documents')).toBeTruthy();
+  });
+
+  it.each(['loading', 'error'] as const)('keeps an active unmatched search distinct from the request %s state', (state) => {
+    const view = render(createElement(DocumentsPage));
+    fireEvent.change(screen.getByPlaceholderText('Search documents...'), { target: { value: 'missing' } });
+    documentQueryState = { isLoading: state === 'loading', isError: state === 'error' };
+    view.rerender(createElement(DocumentsPage));
+
+    expect(screen.queryByText('No matching documents')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Clear search' })).toBeNull();
+    if (state === 'loading') {
+      expect(screen.getByLabelText('Loading documents')).toBeTruthy();
+      expect(screen.queryByRole('alert')).toBeNull();
+    } else {
+      expect(screen.getByRole('alert').textContent).toContain('Unable to load documents.');
+      expect(screen.getByRole('button', { name: 'Retry' })).toBeTruthy();
+    }
   });
 
   it('offers review only for issuer documents awaiting OCR review', () => {
