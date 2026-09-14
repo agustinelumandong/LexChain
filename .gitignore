@@ -128,3 +128,4 @@ openapi.json
 # Local agent execution artifacts
 .superpowers/
 next-env.d.ts
+output
