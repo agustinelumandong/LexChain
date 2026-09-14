@@ -4,6 +4,7 @@ import { useRef, useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { toast } from 'sonner';
 import UploadFileIcon from '@mui/icons-material/UploadFile';
 import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile';
 import CloseIcon from '@mui/icons-material/Close';
@@ -63,7 +64,10 @@ export default function UploadPage() {
       if (metadataError) throw new Error(metadataError);
       return uploadDocument({ file, title: title.trim(), bookId });
     },
-    onSuccess: (data) => setOutcome(getUploadOutcome(data)),
+    onSuccess: (data) => {
+      setOutcome(getUploadOutcome(data));
+      toast.success('Upload accepted. Your document has been submitted for processing.');
+    },
   });
 
   function pick(candidate: File | null) {
@@ -79,6 +83,7 @@ export default function UploadPage() {
   }
 
   function submit() {
+    if (mutation.isPending) return;
     setValidationError(null);
     mutation.reset();
     if (!file) {
@@ -93,7 +98,9 @@ export default function UploadPage() {
     mutation.mutate();
   }
 
-  const error = validationError ?? (mutation.error instanceof Error ? mutation.error.message : null);
+  const error = validationError ?? (mutation.isError
+    ? `${mutation.error instanceof Error ? mutation.error.message : 'Upload failed.'} Your selected PDF and information have been kept. Review the error and check your connection if needed, then select Confirm and process to retry.`
+    : null);
   if (profileQuery.isPending) return <p className="text-sm font-semibold text-[#64748b]">Loading your upload access…</p>;
   if (!isIssuer) {
     return <section className="max-w-xl rounded-[18px] border border-[#E8F0F8] bg-white p-6"><h1 className="text-xl font-black text-[#0C2B49]">Upload unavailable</h1><p className="mt-2 text-sm text-[#64748b]">Only Document Issuers can upload documents.</p></section>;
@@ -105,7 +112,7 @@ export default function UploadPage() {
         <div className="flex items-start gap-3">
           <CheckCircleIcon sx={{ fontSize: 32, color: '#12A150' }} />
           <div>
-            <p className="text-lg font-black text-[#0C2B49]">Upload accepted</p>
+            <p role="status" className="text-lg font-black text-[#0C2B49]">Upload accepted</p>
             <p className="mt-1 text-sm text-[#64748b]">{outcome.message || 'No additional processing detail was returned.'}</p>
             <p className="mt-1 text-sm text-[#64748b]">You can leave this page. Processing continues in the background.</p>
           </div>
@@ -173,9 +180,10 @@ export default function UploadPage() {
         <div>
           <h2 id="confirm-process-heading" className="font-black text-[#0C2B49]">Confirm and process</h2>
           <p className="mt-1 text-sm text-[#64748b]">Review the selected PDF, title, and book, then send them for processing.</p>
+          <p role="status" aria-atomic="true" className="mt-1 text-sm font-bold text-[#0985E7]">{mutation.isPending ? 'Uploading… Please wait while your PDF is submitted.' : ''}</p>
           {error && <p role="alert" className="mt-3 rounded-xl bg-red-50 p-3 text-sm font-bold text-red-700">{error}</p>}
         </div>
-        <button disabled={!file || !title.trim() || !bookId || mutation.isPending} onClick={submit} className="mt-4 shrink-0 rounded-full bg-[#0985E7] px-8 py-3 text-sm font-black text-white transition hover:bg-[#0770c4] disabled:opacity-40 sm:mt-0">{mutation.isPending ? 'Sending upload...' : 'Confirm and process'}</button>
+        <button disabled={!file || !title.trim() || !bookId || mutation.isPending} onClick={submit} className="mt-4 shrink-0 rounded-full bg-[#0985E7] px-8 py-3 text-sm font-black text-white transition hover:bg-[#0770c4] disabled:opacity-40 sm:mt-0">{mutation.isPending ? 'Uploading…' : 'Confirm and process'}</button>
       </section>
     </div>
   );
