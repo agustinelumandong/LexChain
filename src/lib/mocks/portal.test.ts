@@ -1,5 +1,7 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { isMockPortalToken, mockPortalGet, mockPortalMutate } from '@/lib/mocks/portal';
+
+afterEach(() => vi.restoreAllMocks());
 
 describe('portal mock extraction contract', () => {
   it('returns the PDF metadata and normalized review regions', async () => {
@@ -306,7 +308,8 @@ describe('portal mock document isolation', () => {
 });
 
 describe('portal mock books', () => {
-  it('renames a draft document and appends a new PDF version for its issuer', async () => {
+  it('lists the latest PDF version first when an issuer renames and updates within the same millisecond', async () => {
+    vi.spyOn(Date.prototype, 'toISOString').mockReturnValue('2026-09-14T00:00:00.000Z');
     const uploadForm = new FormData();
     uploadForm.append('file', new File(['PDF'], 'draft.pdf', { type: 'application/pdf' }));
     const upload = await mockPortalMutate(

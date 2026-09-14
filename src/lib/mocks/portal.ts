@@ -563,7 +563,7 @@ export function mockPortalGet(path: string, token?: string): Response {
     if (detail === 'versions') {
       const versions = documents
         .filter((candidate) => candidate.document_number === document.document_number)
-        .sort((left, right) => right.updated_at.localeCompare(left.updated_at))
+        .sort((left, right) => Number(right.is_latest) - Number(left.is_latest) || right.updated_at.localeCompare(left.updated_at))
         .map((candidate, index, all) => ({ ...candidate, version: all.length - index }));
       return json({ current_document_id: versions[0]?.document_id ?? document.id, versions, total_version: versions.length });
     }
