@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { createElement } from 'react';
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from "vitest";
 import CategoriesPage from '@/features/office/pages/categories-page';
 import {
@@ -70,6 +70,20 @@ describe("demo category management", () => {
 });
 
 describe("category access", () => {
+  it('uses the portal management layout for the category directory', () => {
+    render(createElement(CategoriesPage));
+
+    const heading = screen.getByRole('heading', { name: 'Categories', level: 1 });
+    const view = heading.closest('header')?.parentElement;
+    const directory = screen.getByRole('heading', { name: 'Category Directory' }).closest('article');
+
+    expect(view?.className).toContain('xl:h-[calc(100dvh-113px)]');
+    expect(screen.getByRole('button', { name: 'Create Category' })).toBeTruthy();
+    expect(screen.getByText('Total Categories')).toBeTruthy();
+    expect(directory?.className).toContain('xl:h-full');
+    expect(screen.queryByRole('heading', { name: 'Category Editor' })).toBeNull();
+  });
+
   it("allows the document issuer and denies participants", () => {
     expect(canAccessPortalFeature("lawyer", "categories")).toBe(true);
     expect(canAccessPortalFeature("user", "categories")).toBe(false);
@@ -78,19 +92,35 @@ describe("category access", () => {
   it('confirms category deactivation before changing local data', () => {
     render(createElement(CategoriesPage));
 
-    fireEvent.click(screen.getAllByRole('button', { name: 'Deactivate' })[0]);
+    fireEvent.click(screen.getAllByRole('button', { name: /^Deactivate / })[0]);
 
     expect(screen.getByRole('dialog', { name: 'Deactivate Contracts category' })).toBeTruthy();
+  });
+
+  it('opens the category editor in a modal for create and edit', () => {
+    render(createElement(CategoriesPage));
+
+    expect(screen.queryByRole('dialog', { name: 'Create Category' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Create Category' }));
+
+    const createDialog = screen.getByRole('dialog', { name: 'Create Category' });
+    expect(within(createDialog).getByLabelText('Category name')).toBeTruthy();
+    fireEvent.click(within(createDialog).getByRole('button', { name: 'Cancel' }));
+    expect(screen.queryByRole('dialog', { name: 'Create Category' })).toBeNull();
+
+    fireEvent.click(screen.getAllByRole('button', { name: /^Edit / })[0]);
+    expect(screen.getByRole('dialog', { name: 'Edit Category' })).toBeTruthy();
   });
 
   it('moves focus to the category name field for create and edit', () => {
     render(createElement(CategoriesPage));
 
-    const nameInput = screen.getByLabelText('Category name');
     fireEvent.click(screen.getByRole('button', { name: 'Create Category' }));
+    const nameInput = screen.getByLabelText('Category name');
     expect(document.activeElement).toBe(nameInput);
 
-    fireEvent.click(screen.getAllByRole('button', { name: 'Edit' })[0]);
-    expect(document.activeElement).toBe(nameInput);
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    fireEvent.click(screen.getAllByRole('button', { name: /^Edit / })[0]);
+    expect(document.activeElement).toBe(screen.getByLabelText('Category name'));
   });
 });

@@ -12,6 +12,8 @@ import StorageIcon from "@mui/icons-material/Storage";
 import ScheduleIcon from "@mui/icons-material/Schedule";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
+import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
+import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import { toast } from "sonner";
 import { Dropdown } from "@/features/admin/components/dropdown";
 import { MockModal, exportMockRows } from "@/features/admin/components/mock-ui";
@@ -192,7 +194,6 @@ export function AuditLogsManagementView({
     if (tone === "error") toast.error(title, { description: detail });
     else toast.success(title, { description: detail });
   };
-  const [headerSearch, setHeaderSearch] = useState("");
   const [tableSearch, setTableSearch] = useState("");
   const [targetFilter, setTargetFilter] = useState("all");
   const [page, setPage] = useState(0);
@@ -223,7 +224,7 @@ export function AuditLogsManagementView({
   };
 
   const filtered = useMemo(() => {
-    const queries = [headerSearch, tableSearch].map((value) => value.trim().toLowerCase()).filter(Boolean);
+    const queries = [tableSearch].map((value) => value.trim().toLowerCase()).filter(Boolean);
     const start = fromDate ? new Date(`${fromDate}T00:00:00`).getTime() : -Infinity;
     const endDate = toDate ? new Date(`${toDate}T00:00:00`) : null;
     // Advance the calendar day rather than 24 hours to include DST transition days.
@@ -247,7 +248,7 @@ export function AuditLogsManagementView({
       const matchesDate = (!fromDate && !toDate) || (timestamp >= start && timestamp < end);
       return matchesSearch && matchesTarget && matchesDate;
     });
-  }, [headerSearch, rows, tableSearch, targetFilter, fromDate, toDate]);
+  }, [rows, tableSearch, targetFilter, fromDate, toDate]);
 
   const perPage = Number(pageSize);
   const totalPages = Math.max(1, Math.ceil(filtered.length / perPage));
@@ -297,7 +298,7 @@ export function AuditLogsManagementView({
 
   return (
     <div className="flex w-full flex-col gap-5 xl:h-[calc(100dvh-113px)] xl:min-h-0">
-      <header className="flex shrink-0 flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+      <header className="shrink-0">
         <div>
           <p className="text-xs font-black uppercase tracking-[0.22em] text-[#0879D8]">
             LexChain Operations
@@ -310,42 +311,6 @@ export function AuditLogsManagementView({
             security-relevant actions across the platform.
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-3">
-          <label className="flex min-w-[340px] items-center gap-2 rounded-xl border border-[#E4EEF9] bg-white px-4 py-3 shadow-sm shadow-[#DDEAF7]/35 focus-within:border-[#0985E7]">
-            <SearchIcon fontSize="small" className="text-[#4B6382]" />
-            <input
-              aria-label="Search logs"
-              value={headerSearch}
-              onChange={(event) => { setHeaderSearch(event.target.value); setPage(0); }}
-              placeholder="Search logs by user, action, document, or IP..."
-              className="w-full bg-transparent text-sm font-semibold text-[#0C2B49] outline-none placeholder:text-[#9AAAC0]"
-            />
-          </label>
-          <button
-            type="button"
-            aria-expanded={moreFiltersOpen}
-            aria-controls="audit-date-filters"
-            onClick={(event) => { event.stopPropagation(); setMoreFiltersOpen(true); filtersRef.current?.querySelector("button")?.focus(); }}
-            className="inline-flex items-center gap-2 rounded-xl border border-[#E4EEF9] bg-white px-4 py-3 text-sm font-black text-[#0C2B49] shadow-sm shadow-[#DDEAF7]/35 transition hover:border-[#0985E7]"
-          >
-            <FilterListIcon fontSize="small" />
-            Filter
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              exportMockRows("lexchain-audit-logs", filtered, "csv");
-              showToast({
-                title: "Audit logs exported",
-                detail: `${filtered.length} events downloaded.`,
-              });
-            }}
-            className="inline-flex items-center gap-2 rounded-xl border border-[#E4EEF9] bg-white px-4 py-3 text-sm font-black text-[#0C2B49] shadow-sm shadow-[#DDEAF7]/35 transition hover:border-[#0985E7]"
-          >
-            <DownloadIcon fontSize="small" />
-            Export
-          </button>
-        </div>
       </header>
 
       <section className="grid shrink-0 gap-3 sm:grid-cols-2 lg:grid-cols-5">
@@ -355,7 +320,7 @@ export function AuditLogsManagementView({
       </section>
 
       <section className="grid min-h-0 gap-4 xl:flex-1">
-        <article className="flex min-h-[560px] min-w-0 flex-col overflow-hidden rounded-2xl border border-[#E4EEF9] bg-white shadow-sm shadow-[#DDEAF7]/35 xl:h-full xl:min-h-0">
+        <article className="flex h-fit min-h-[520px] min-w-0 self-start flex-col overflow-hidden rounded-2xl border border-[#E4EEF9] bg-white shadow-sm shadow-[#DDEAF7]/35 xl:h-full xl:min-h-0">
           <div className="shrink-0 border-b border-[#E4EEF9] p-5">
             <div className="flex flex-wrap items-center gap-3 [&>div>button]:py-2.5">
               <h2 className="mr-auto shrink-0 text-lg font-black text-[#071B33]">Audit Trail</h2>
@@ -406,10 +371,24 @@ export function AuditLogsManagementView({
                   To date
                   <input type="date" value={toDate} min={fromDate || undefined} onChange={(event) => { setToDate(event.target.value); setPage(0); }} className="min-w-0 rounded-lg border border-[#E4EEF9] bg-[#F8FBFF] px-3 py-2" />
                 </label>
-                <button type="button" onClick={() => { setFromDate(""); setToDate(""); setHeaderSearch(""); setTableSearch(""); setTargetFilter("all"); setPage(0); }} className="rounded-xl bg-[#EEF4FB] py-2.5 text-[#0879D8] sm:col-span-2">Reset filters</button>
+                <button type="button" onClick={() => { setFromDate(""); setToDate(""); setTableSearch(""); setTargetFilter("all"); setPage(0); }} className="rounded-xl bg-[#EEF4FB] py-2.5 text-[#0879D8] sm:col-span-2">Reset filters</button>
               </div>
             ) : null}
               </div>
+              <button
+                type="button"
+                onClick={() => {
+                  exportMockRows("lexchain-audit-logs", filtered, "csv");
+                  showToast({
+                    title: "Audit logs exported",
+                    detail: `${filtered.length} events downloaded.`,
+                  });
+                }}
+                className="inline-flex items-center gap-2 rounded-xl border border-[#E4EEF9] bg-white px-4 py-2.5 text-sm font-black text-[#0C2B49] transition hover:border-[#0985E7]"
+              >
+                <DownloadIcon fontSize="small" />
+                Export
+              </button>
             </div>
           </div>
 
@@ -502,9 +481,9 @@ export function AuditLogsManagementView({
                 aria-label="Previous page"
                 onClick={() => setPage(Math.max(0, safePage - 1))}
                 disabled={safePage === 0}
-                className="rounded-lg border border-[#E4EEF9] px-3 py-2 text-sm font-black text-[#0C2B49] transition hover:bg-[#EEF4FB] disabled:opacity-35"
+                className="rounded-lg border border-[#E4EEF9] p-2 text-[#4B6382] transition hover:bg-[#EEF4FB] disabled:opacity-35"
               >
-                ‹
+                <ChevronLeftIcon fontSize="small" />
               </button>
               {[...Array(Math.min(3, totalPages))].map((_, index) => (
                 <button
@@ -533,9 +512,9 @@ export function AuditLogsManagementView({
                   setPage(Math.min(totalPages - 1, safePage + 1))
                 }
                 disabled={safePage >= totalPages - 1}
-                className="rounded-lg border border-[#E4EEF9] px-3 py-2 text-sm font-black text-[#0C2B49] transition hover:bg-[#EEF4FB] disabled:opacity-35"
+                className="rounded-lg border border-[#E4EEF9] p-2 text-[#4B6382] transition hover:bg-[#EEF4FB] disabled:opacity-35"
               >
-                ›
+                <ChevronRightIcon fontSize="small" />
               </button>
               <Dropdown
                 value={pageSize}

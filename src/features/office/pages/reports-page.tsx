@@ -95,15 +95,15 @@ export default function OfficeReportsPage() {
   );
 
   return (
-    <div className="flex flex-col gap-5">
-      <header>
-        <p className="text-xs font-black uppercase tracking-[0.12em] text-[#0985E7]">Lawyer workspace</p>
-        <h1 className="mt-1 text-[28px] font-black text-[#0C2B49]">Reports</h1>
-        <p className="mt-1 text-sm text-[#64748b]">Choose document or system reports, then generate a local CSV preview.</p>
+    <div className="flex w-full flex-col gap-5 xl:min-h-[calc(100dvh-113px)]">
+      <header className="shrink-0">
+        <p className="text-xs font-black uppercase tracking-[0.22em] text-[#0879D8]">LexChain Operations</p>
+        <h1 className="mt-1 text-3xl font-black leading-tight text-[#071B33]">Reports</h1>
+        <p className="mt-1 text-sm font-semibold text-[#4B6382]">Choose document or system reports, then generate a local CSV preview.</p>
       </header>
 
       {scope === 'system' ? (
-        <section aria-label="Report controls" className="rounded-[18px] border border-[#E8F0F8] bg-white p-5">
+        <section aria-label="Report controls" className="rounded-2xl border border-[#E4EEF9] bg-white p-5 shadow-sm shadow-[#DDEAF7]/35">
           {scopeSelector}
           <GeneratedReportsManagementView embedded />
         </section>
@@ -114,7 +114,7 @@ export default function OfficeReportsPage() {
         </p>
       ) : null}
 
-      <section aria-label="Report controls" className="rounded-[18px] border border-[#E8F0F8] bg-white p-5">
+      <section aria-label="Report controls" className="rounded-2xl border border-[#E4EEF9] bg-white p-5 shadow-sm shadow-[#DDEAF7]/35">
         <div className="grid gap-3 sm:grid-cols-2">
           {scopeSelector}
           <label className="block text-sm font-black text-[#0C2B49]">
@@ -143,7 +143,7 @@ export default function OfficeReportsPage() {
       {error ? <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700">{error}</p> : null}
 
       {report ? (
-        <section aria-label={`${reportLabel} report`} className="rounded-[18px] border border-[#E8F0F8] bg-white p-5">
+        <section aria-label={`${reportLabel} report`} className="overflow-hidden rounded-2xl border border-[#E4EEF9] bg-white shadow-sm shadow-[#DDEAF7]/35">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <p className="text-xs font-black uppercase tracking-[0.1em] text-[#0985E7]">{report.from} to {report.to}</p>

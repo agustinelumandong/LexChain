@@ -27,13 +27,16 @@ export function Modal({ open, onClose, title, children }: ModalProps) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={onClose}>
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
         ref={ref}
         onClick={(e) => e.stopPropagation()}
         className="w-full max-w-md rounded-2xl border border-[#E4EEF9] bg-white p-6 shadow-xl"
       >
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-black text-[#0C2B49]">{title}</h2>
-          <button type="button" onClick={onClose} className="cursor-pointer rounded-lg p-1 text-[#64748b] transition hover:bg-[#EEF4FB]">
+          <button type="button" onClick={onClose} aria-label="Close modal" className="cursor-pointer rounded-lg p-1 text-[#64748b] transition hover:bg-[#EEF4FB]">
             <CloseIcon fontSize="small" />
           </button>
         </div>

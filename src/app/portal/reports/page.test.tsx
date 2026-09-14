@@ -86,6 +86,18 @@ describe('ReportsPage', () => {
     expect(controls.contains(screen.getByRole('button', { name: 'Generate' }))).toBe(true);
   });
 
+  it('uses the portal report shell and elevated cards', () => {
+    render(<OfficeReportsPage />);
+
+    const heading = screen.getByRole('heading', { name: 'Reports', level: 1 });
+    const view = heading.closest('header')?.parentElement;
+    const controls = screen.getByRole('region', { name: 'Report controls' });
+
+    expect(view?.className).toContain('xl:min-h-[calc(100dvh-113px)]');
+    expect(controls.className).toContain('rounded-2xl');
+    expect(controls.className).toContain('shadow-sm');
+  });
+
   it('generates a compact preview and shows the disclaimer for every result', () => {
     render(<OfficeReportsPage />);
 

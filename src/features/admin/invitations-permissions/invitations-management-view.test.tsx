@@ -38,3 +38,25 @@ it("maps canonical and backend invitation roles while marking unknown values uns
   expect(rowFor("legacy-admin@example.com").getByText("Lawyer")).toBeTruthy();
   expect(rowFor("unknown@example.com").getByText("Unsupported role")).toBeTruthy();
 });
+
+it("matches the portal management layout without duplicate header controls", () => {
+  render(
+    <MockToastProvider>
+      <InvitationsManagementView mockMode invitations={[]} />
+    </MockToastProvider>,
+  );
+
+  const view = screen.getByRole("heading", { name: "Issuer Invitations" }).closest("header")?.parentElement;
+  const directory = screen.getByRole("heading", { name: "Invitation Directory" }).closest("article");
+  const activityList = screen.getByRole("heading", { name: "Recent Invitation Activity" }).closest("article")?.querySelector(".admin-table-scroll");
+
+  expect(view?.className).toContain("xl:h-[calc(100dvh-113px)]");
+  expect(view?.className).toContain("xl:min-h-0");
+  expect(directory?.parentElement?.className).toContain("xl:flex-1");
+  expect(directory?.className).toContain("xl:h-full");
+  expect(activityList?.className).toContain("xl:flex-1");
+  expect(screen.getByPlaceholderText("Search invitations...")).toBeTruthy();
+  expect(screen.queryByPlaceholderText("Search by email or role...")).toBeNull();
+  expect(screen.queryByRole("button", { name: "Filter" })).toBeNull();
+  expect(screen.queryByText("More Filters")).toBeNull();
+});

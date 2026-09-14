@@ -18,9 +18,9 @@ const logs = Array.from({ length: 25 }, (_, index) => ({
 
 afterEach(() => { cleanup(); vi.restoreAllMocks(); });
 
-it("coordinates header filters, dropdowns, outside taps, and focus dismissal", () => {
+it("coordinates trail filters, dropdowns, outside taps, and focus dismissal", () => {
   render(<AuditLogsManagementView logs={logs} total={25} />);
-  fireEvent.click(screen.getByRole("button", { name: "Filter" }));
+  fireEvent.click(screen.getByRole("button", { name: "More Filters" }));
   expect(screen.getByRole("region", { name: "Audit filters" })).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "Target Type" }));
   expect(screen.queryByRole("region", { name: "Audit filters" })).toBeNull();
@@ -33,14 +33,31 @@ it("coordinates header filters, dropdowns, outside taps, and focus dismissal", (
   expect(screen.queryByRole("region", { name: "Audit filters" })).toBeNull();
 });
 
-it("combines independent searches and resets pagination when filters change", () => {
+it("searches the audit trail and resets pagination when filters change", () => {
   render(<AuditLogsManagementView logs={logs} total={25} />);
   fireEvent.click(screen.getByRole("button", { name: "Next page" }));
-  fireEvent.change(screen.getByPlaceholderText("Search logs by user, action, document, or IP..."), { target: { value: "user-1" } });
+  fireEvent.change(screen.getByPlaceholderText("Search audit trail..."), { target: { value: "user-1" } });
   expect(screen.getByRole("button", { name: "View audit event event-0" })).toBeTruthy();
   fireEvent.change(screen.getByPlaceholderText("Search audit trail..."), { target: { value: "Uploaded" } });
   expect(screen.getByRole("button", { name: "View audit event event-0" })).toBeTruthy();
   expect(screen.getAllByRole("row")).toHaveLength(2);
+});
+
+it("keeps audit controls in the trail card without duplicate header controls", () => {
+  render(<AuditLogsManagementView logs={logs} total={25} />);
+
+  expect(screen.queryByPlaceholderText("Search logs by user, action, document, or IP...")).toBeNull();
+  expect(screen.queryByRole("button", { name: "Filter" })).toBeNull();
+  expect(screen.getByPlaceholderText("Search audit trail...")).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Export" })).toBeTruthy();
+
+  const heading = screen.getByRole("heading", { name: "Audit Logs", level: 1 });
+  const view = heading.closest("header")?.parentElement;
+  const card = screen.getByRole("heading", { name: "Audit Trail" }).closest("article");
+
+  expect(view?.className).toContain("xl:h-[calc(100dvh-113px)]");
+  expect(card?.className).toContain("h-fit");
+  expect(card?.className).toContain("xl:h-full");
 });
 
 it("reveals inclusive date filters and resets them", () => {
