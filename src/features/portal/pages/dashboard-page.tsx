@@ -11,11 +11,10 @@ import VerifiedUserIcon from '@mui/icons-material/VerifiedUser';
 import EmailOutlinedIcon from '@mui/icons-material/EmailOutlined';
 import FileUploadIcon from '@mui/icons-material/FileUpload';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
-import type { ApiSchema } from '@/shared/types/index';
 import { MetricCard } from '@/features/portal/components/portal-metric-card';
 import { getDocumentStatusLabel } from "@/features/documents";
 import { type DashboardMetric, getDashboardMetrics } from '@/features/portal/portal-dashboard';
-import { getPortalUiRole } from "@/features/access";
+import { usePortalRole } from "@/features/access/components";
 
 interface Document {
   id: string;
@@ -24,8 +23,6 @@ interface Document {
   on_chain?: boolean | null;
   created_at: string;
 }
-
-type UserProfile = ApiSchema<'UserProfileResponse'>;
 
 async function fetchJson<T>(path: string): Promise<T> {
   const response = await fetch(`/api/portal/proxy?path=${encodeURIComponent(path)}`, { credentials: 'same-origin' });
@@ -97,11 +94,8 @@ function getMetricDetail(label: string) {
 }
 
 export default function DashboardPage() {
-  const profileQuery = useQuery({
-    queryKey: ['portal-profile'],
-    queryFn: () => fetchJson<UserProfile | null>('/users/'),
-  });
-  const isIssuer = getPortalUiRole(profileQuery.data?.role) === 'lawyer';
+  const role = usePortalRole();
+  const isIssuer = role === 'lawyer';
   const documentsQuery = useQuery<Document[]>({
     queryKey: ['portal-documents'],
     queryFn: () => fetchJson('/documents/'),
@@ -116,8 +110,6 @@ export default function DashboardPage() {
     },
     enabled: isIssuer,
   });
-  if (profileQuery.isLoading) return <div className="h-36 animate-pulse rounded-[18px] border border-[#E8F0F8] bg-white" />;
-
   if (!isIssuer) {
     return (
       <div className="flex h-full min-h-0 flex-col gap-5">

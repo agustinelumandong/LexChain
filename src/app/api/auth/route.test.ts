@@ -70,6 +70,7 @@ describe("unified auth session cookies", () => {
 
     expect(response.status).toBe(200);
     expect(response.cookies.get("issuer_token")?.value).toBe("issuer-token");
+    expect(response.cookies.get("user_role")?.value).toBe("lawyer");
     await expect(response.json()).resolves.toMatchObject({
       user: { email: "lawyer@lexchain.com", role: "lawyer" },
     });

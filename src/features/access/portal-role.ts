@@ -12,6 +12,13 @@ export function getPortalUiRole(role?: string): PortalUiRole {
   return "unsupported";
 }
 
+export function getPortalSessionUiRole(roleHint?: string): PortalUiRole {
+  const normalized = roleHint?.trim().toLowerCase();
+  if (normalized === "lawyer") return "lawyer";
+  if (["user", "document_participant"].includes(normalized ?? "")) return "user";
+  return "unsupported";
+}
+
 export function isSupportedPortalUiRole(role: PortalUiRole): boolean {
   return role !== "unsupported";
 }

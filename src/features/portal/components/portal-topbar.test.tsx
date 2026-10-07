@@ -18,19 +18,19 @@ const sharedProps = {
 describe("PortalTopBar", () => {
   it("switches menus and dismisses them on Escape, outside taps, and focus leaving", () => {
     render(<PortalTopBar {...sharedProps} role="user" />);
-    const profile = screen.getByRole("button", { name: "Open profile menu" });
+    const account = screen.getByRole("button", { name: "Open account menu" });
     const notifications = screen.getByRole("button", { name: "View notifications" });
-    fireEvent.click(profile);
+    fireEvent.click(account);
     fireEvent.click(notifications);
     expect(screen.queryByRole("link", { name: "Profile" })).toBeNull();
     expect(screen.getByText("No unread notifications")).toBeTruthy();
     fireEvent.keyDown(notifications, { key: "Escape" });
     expect(screen.queryByText("No unread notifications")).toBeNull();
     expect(document.activeElement).toBe(notifications);
-    fireEvent.click(profile);
+    fireEvent.click(account);
     fireEvent.pointerDown(document.body);
     expect(screen.queryByRole("link", { name: "Profile" })).toBeNull();
-    fireEvent.click(profile);
+    fireEvent.click(account);
     fireEvent.focusIn(screen.getByRole("combobox", { name: "Search documents" }));
     expect(screen.queryByRole("link", { name: "Profile" })).toBeNull();
   });
@@ -54,13 +54,13 @@ describe("PortalTopBar", () => {
       .toBe("/portal/dashboard");
   });
 
-  it("opens the profile dropdown with Profile and Sign Out", () => {
+  it("opens the account dropdown with Sign Out and no profile link", () => {
     render(<PortalTopBar {...sharedProps} role="user" />);
     const onSignOut = sharedProps.onSignOut;
 
-    fireEvent.click(screen.getByRole("button", { name: "Open profile menu" }));
+    fireEvent.click(screen.getByRole("button", { name: "Open account menu" }));
 
-    expect(screen.getByRole("link", { name: "Profile" }).getAttribute("href")).toBe("/portal/profile");
+    expect(screen.queryByRole("link", { name: "Profile" })).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Sign Out" }));
     expect(onSignOut).toHaveBeenCalledOnce();
   });

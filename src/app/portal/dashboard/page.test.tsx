@@ -2,9 +2,10 @@
 import { cleanup, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import DashboardPage from '@/features/portal/pages/dashboard-page';
+import { PortalRoleProvider } from '@/features/access/components';
 
 const queryState = vi.hoisted(() => ({
-  role: 'document_issuer',
+  role: 'lawyer',
   documents: [] as Array<Record<string, unknown>>,
   documentsError: false,
 }));
@@ -12,19 +13,20 @@ const useQuery = vi.hoisted(() => vi.fn());
 
 vi.mock('@tanstack/react-query', () => ({ useQuery }));
 
+function renderDashboard() {
+  return render(<PortalRoleProvider roleHint={queryState.role}><DashboardPage /></PortalRoleProvider>);
+}
+
 afterEach(() => {
   cleanup();
   useQuery.mockReset();
 });
 
 beforeEach(() => {
-  queryState.role = 'document_issuer';
+  queryState.role = 'lawyer';
   queryState.documents = [];
   queryState.documentsError = false;
   useQuery.mockImplementation((options: { queryKey: string[]; enabled?: boolean }) => {
-    if (options.queryKey[0] === 'portal-profile') {
-      return { data: { role: queryState.role }, isLoading: false, isError: false };
-    }
     if (options.enabled === false) return { data: undefined, isLoading: false, isError: false };
     if (options.queryKey[0] === 'portal-documents') {
       return {
@@ -48,26 +50,27 @@ describe('DashboardPage', () => {
   it('denies participants before requesting or rendering issuer dashboard data', () => {
     queryState.role = 'document_participant';
     useQuery.mockImplementation((options: { queryKey: string[]; enabled?: boolean }) => {
-      if (options.queryKey[0] === 'portal-profile') return { data: { role: queryState.role }, isLoading: false };
       if (options.enabled !== false) throw new Error(`Issuer query should be disabled: ${options.queryKey[0]}`);
       return { data: undefined, isLoading: false };
     });
 
-    render(<DashboardPage />);
+    renderDashboard();
 
     expect(screen.getByRole('heading', { name: 'Document Portal' })).toBeTruthy();
     expect(screen.getByText('Welcome to the Document Portal')).toBeTruthy();
     expect(screen.getByText('Browse shared documents, manage invitations, and request e-copies from the navigation menu.')).toBeTruthy();
+    expect(useQuery).not.toHaveBeenCalledWith(expect.objectContaining({ queryKey: ['portal-profile'] }));
   });
 
-  it('labels the issuer dashboard as the Document Issuer Portal', () => {
-    render(<DashboardPage />);
+  it('uses the sign-in role hint for its dashboard without a profile request', () => {
+    renderDashboard();
 
     expect(screen.getByRole('heading', { name: 'Lawyer Portal' })).toBeTruthy();
+    expect(useQuery).not.toHaveBeenCalledWith(expect.objectContaining({ queryKey: ['portal-profile'] }));
   });
 
   it('reassures issuers when no documents need attention', () => {
-    render(<DashboardPage />);
+    renderDashboard();
 
     expect(screen.getByText('No action required. All documents are progressing normally.')).toBeTruthy();
   });
@@ -77,7 +80,7 @@ describe('DashboardPage', () => {
       { id: 'failed', file_name: 'Failed.pdf', status: 'FAILED', created_at: '2026-07-24T00:00:00.000Z', on_chain: false },
     ];
 
-    render(<DashboardPage />);
+    renderDashboard();
 
     expect(screen.getByText('Failed Documents').parentElement?.textContent).toContain('1');
     expect(screen.queryByRole('heading', { name: 'Office activity' })).toBeNull();
@@ -87,7 +90,7 @@ describe('DashboardPage', () => {
   it('does not present repository failures as zero totals or healthy document states', () => {
     queryState.documentsError = true;
 
-    render(<DashboardPage />);
+    renderDashboard();
 
     expect(screen.getByRole('alert').textContent).toContain('We could not load your document repository.');
     expect(screen.getByText('Total Documents')).toBeTruthy();

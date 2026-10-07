@@ -94,7 +94,9 @@ describe("category access", () => {
 
     fireEvent.click(screen.getAllByRole('button', { name: /^Deactivate / })[0]);
 
-    expect(screen.getByRole('dialog', { name: 'Deactivate Contracts category' })).toBeTruthy();
+    const dialog = screen.getByRole('dialog', { name: 'Deactivate Contracts?' });
+    expect(dialog).toBeTruthy();
+    expect(dialog.parentElement?.className).toContain('bg-black/40');
   });
 
   it('opens the category editor in a modal for create and edit', () => {

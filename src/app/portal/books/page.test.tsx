@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import BooksPage from '@/features/office/pages/books-page';
+import { PortalRoleProvider } from '@/features/access/components';
 
 const book = {
   id: 'book-1',
@@ -17,9 +18,9 @@ const book = {
 
 vi.mock('sonner', () => ({ toast: { success: vi.fn() } }));
 
-function renderPage() {
+function renderPage(roleHint?: string) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
-  return render(<QueryClientProvider client={queryClient}><BooksPage /></QueryClientProvider>);
+  return render(<QueryClientProvider client={queryClient}><PortalRoleProvider roleHint={roleHint}><BooksPage /></PortalRoleProvider></QueryClientProvider>);
 }
 
 describe('BooksPage', () => {
@@ -29,25 +30,25 @@ describe('BooksPage', () => {
   });
 
   it('shows API-backed book details when requested', async () => {
-    vi.stubGlobal('fetch', vi.fn((input: RequestInfo | URL) => {
+    const fetchMock = vi.fn((input: RequestInfo | URL) => {
       const url = String(input);
-      if (url.includes('%2Fusers%2F')) return Promise.resolve(Response.json({ role: 'document_issuer' }));
       if (url.includes('%2Fbooks%2F%3Flimit')) return Promise.resolve(Response.json([book]));
       if (url.includes('%2Fbooks%2Fbook-1')) return Promise.resolve(Response.json(book));
       return Promise.resolve(new Response(null, { status: 404 }));
-    }));
+    });
+    vi.stubGlobal('fetch', fetchMock);
 
-    renderPage();
+    renderPage('lawyer');
     fireEvent.click(await screen.findByRole('button', { name: 'View details for Book 1' }));
 
     expect(await screen.findByText('Book details')).toBeTruthy();
     expect(screen.getByText('Created Jul 1, 2026')).toBeTruthy();
+    expect(fetchMock).not.toHaveBeenCalledWith(expect.stringContaining('%2Fusers%2F'), expect.anything());
   });
 
   it('requires confirmation before deleting a book and its documents', async () => {
     const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
       const url = String(input);
-      if (url.includes('%2Fusers%2F')) return Promise.resolve(Response.json({ role: 'document_issuer' }));
       if (url.includes('%2Fbooks%2F%3Flimit')) return Promise.resolve(Response.json([book]));
       if (url.includes('%2Fbooks%2Fbook-1') && init?.method === 'DELETE') return Promise.resolve(new Response(null, { status: 204 }));
       return Promise.resolve(new Response(null, { status: 404 }));
@@ -55,7 +56,7 @@ describe('BooksPage', () => {
     vi.stubGlobal('fetch', fetchMock);
     vi.spyOn(window, 'confirm').mockReturnValue(false);
 
-    renderPage();
+    renderPage('lawyer');
     fireEvent.click(await screen.findByRole('button', { name: 'Delete Book 1' }));
     expect(fetchMock).not.toHaveBeenCalledWith(expect.stringContaining('book-1'), expect.objectContaining({ method: 'DELETE' }));
 
@@ -65,5 +66,16 @@ describe('BooksPage', () => {
       '/api/portal/proxy-post?path=%2Fbooks%2Fbook-1',
       expect.objectContaining({ method: 'DELETE' }),
     ));
+  });
+
+  it.each(['document_participant', 'document_issuer', 'admin', 'super_admin', 'staff', undefined])('does not show lawyer controls for role hint %j', async (roleHint) => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+
+    renderPage(roleHint);
+
+    expect(screen.getByRole('heading', { name: 'Books unavailable' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Register book' })).toBeNull();
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });
