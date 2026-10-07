@@ -10,12 +10,12 @@ import { z } from "zod";
 import { useMutation } from "@tanstack/react-query";
 
 import { getEmailFromInviteToken } from "@/shared/utils/invite-token";
-import { signUpNameSchema, signUpPasswordSchema, signUpResponseSchema } from "@/features/auth/schemas/auth";
+import { authEmailSchema, signUpNameSchema, signUpPasswordSchema, signUpResponseSchema } from "@/features/auth/schemas/auth";
 
 const registerSchema = z.object({
   firstName: signUpNameSchema,
   lastName: signUpNameSchema,
-  email: z.string().trim().min(1, "Email is required.").email("Enter a valid email."),
+  email: authEmailSchema,
   password: signUpPasswordSchema,
   confirmPassword: z.string().min(1, "Confirm your password."),
 }).refine((v) => v.password === v.confirmPassword, { message: "Passwords do not match.", path: ["confirmPassword"] });

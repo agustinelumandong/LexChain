@@ -20,6 +20,8 @@ export const signInResponseSchema = z.object({
 
 export type SignInResponse = z.infer<typeof signInResponseSchema>;
 
+export const authEmailSchema = z.string().trim().min(1, "Email is required.").email("Enter a valid email.");
+
 export const signUpNameSchema = z.string().trim()
   .min(1, "Enter a name.")
   .max(50, "Names must be 1–50 characters.")
@@ -32,7 +34,7 @@ export const signUpPasswordSchema = z.string()
   .regex(/[0-9]/, "Add at least one number.");
 
 export const signUpRequestSchema = z.strictObject({
-  email: z.string().trim().email("Enter a valid email."),
+  email: authEmailSchema,
   password: signUpPasswordSchema,
   f_name: signUpNameSchema,
   l_name: signUpNameSchema,
@@ -44,7 +46,7 @@ export const signUpResponseSchema = z.looseObject({
 });
 
 export const resendVerificationRequestSchema = z.strictObject({
-  email: z.string().trim().email("Enter a valid email."),
+  email: authEmailSchema,
 });
 
 export type DemoForgotPasswordResult = {
