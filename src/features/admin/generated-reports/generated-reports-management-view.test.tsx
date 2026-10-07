@@ -32,6 +32,20 @@ describe('GeneratedReportsManagementView', () => {
     expect((screen.getByLabelText('To') as HTMLInputElement).type).toBe('date');
   });
 
+  it('keeps the embedded system builder easy to scan', () => {
+    render(
+      <MockToastProvider>
+        <View embedded />
+      </MockToastProvider>,
+    );
+
+    expect(screen.getByRole('heading', { name: 'Choose a system report', level: 3 })).toBeTruthy();
+    expect(screen.getByRole('status').textContent).toContain('Choose a date range');
+    expect(screen.getByRole('group', { name: 'From' })).toBeTruthy();
+    expect(screen.getByRole('group', { name: 'To' })).toBeTruthy();
+    expect(screen.getAllByRole('button', { name: /Choose date/ })).toHaveLength(2);
+  });
+
   it('generates a compact seeded preview with an honest demo disclaimer', () => {
     renderReports();
 

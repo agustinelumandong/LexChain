@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import OfficeReportsPage from '@/features/office/pages/reports-page';
 
@@ -52,8 +52,9 @@ describe('ReportsPage', () => {
     fireEvent.click(reportPicker);
     fireEvent.click(screen.getByRole('option', { name: 'System Audit' }));
     expect(screen.getByRole('status').textContent).toContain('System Audit');
-    expect((screen.getByLabelText('From') as HTMLInputElement).type).toBe('date');
-    expect((screen.getByLabelText('To') as HTMLInputElement).type).toBe('date');
+    expect(screen.getByRole('group', { name: 'From' })).toBeTruthy();
+    expect(screen.getByRole('group', { name: 'To' })).toBeTruthy();
+    expect(screen.getAllByRole('button', { name: /Choose date/ })).toHaveLength(2);
   });
 
   it('keeps system report dates in the same three-column range layout', () => {
@@ -62,7 +63,8 @@ describe('ReportsPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Report scope' }));
     fireEvent.click(screen.getByRole('option', { name: 'System reports' }));
 
-    expect(screen.getByRole('region', { name: 'Report dates' }).className).toContain('sm:grid-cols-[1fr_1fr_auto]');
+    const dateRegion = screen.getByRole('region', { name: 'Report dates' });
+    expect([...dateRegion.querySelectorAll<HTMLElement>('[class]')].some((element) => element.className.includes('sm:grid-cols-[1fr_1fr_auto]'))).toBe(true);
   });
 
   it('groups scope, type, and dates in one report controls card for both scopes', () => {
@@ -72,8 +74,8 @@ describe('ReportsPage', () => {
     let controls = screen.getByRole('region', { name: 'Report controls' });
     expect(controls.contains(scopePicker)).toBe(true);
     expect(controls.contains(screen.getByRole('button', { name: 'Report type' }))).toBe(true);
-    expect(controls.contains(screen.getByLabelText('From'))).toBe(true);
-    expect(controls.contains(screen.getByLabelText('To'))).toBe(true);
+    expect(controls.contains(screen.getByRole('group', { name: 'From' }))).toBe(true);
+    expect(controls.contains(screen.getByRole('group', { name: 'To' }))).toBe(true);
     expect(controls.contains(screen.getByRole('button', { name: 'Generate' }))).toBe(true);
 
     fireEvent.click(scopePicker);
@@ -81,8 +83,8 @@ describe('ReportsPage', () => {
     controls = screen.getByRole('region', { name: 'Report controls' });
     expect(controls.contains(screen.getByRole('button', { name: 'Report scope' }))).toBe(true);
     expect(controls.contains(screen.getByRole('button', { name: 'Report type' }))).toBe(true);
-    expect(controls.contains(screen.getByLabelText('From'))).toBe(true);
-    expect(controls.contains(screen.getByLabelText('To'))).toBe(true);
+    expect(controls.contains(screen.getByRole('group', { name: 'From' }))).toBe(true);
+    expect(controls.contains(screen.getByRole('group', { name: 'To' }))).toBe(true);
     expect(controls.contains(screen.getByRole('button', { name: 'Generate' }))).toBe(true);
   });
 
@@ -96,6 +98,18 @@ describe('ReportsPage', () => {
     expect(view?.className).toContain('xl:min-h-[calc(100dvh-113px)]');
     expect(controls.className).toContain('rounded-2xl');
     expect(controls.className).toContain('shadow-sm');
+  });
+
+  it('guides the user from report setup into a finished preview state', () => {
+    render(<OfficeReportsPage />);
+
+    expect(screen.getByRole('heading', { name: 'Build a report', level: 2 })).toBeTruthy();
+    expect(screen.getByRole('status').textContent).toContain('Your preview will appear here');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Generate' }));
+
+    expect(screen.getByText('CSV preview')).toBeTruthy();
+    expect(screen.getByText(/in this preview/i)).toBeTruthy();
   });
 
   it('generates a compact preview and shows the disclaimer for every result', () => {
@@ -118,7 +132,7 @@ describe('ReportsPage', () => {
   it('requires both report dates before generating', () => {
     render(<OfficeReportsPage />);
 
-    fireEvent.change(screen.getByLabelText('From'), { target: { value: '' } });
+    fireEvent.click(within(screen.getByRole('group', { name: 'From' })).getByTitle('Clear'));
     fireEvent.click(screen.getByRole('button', { name: 'Generate' }));
 
     expect(screen.getByRole('alert').textContent).toContain('Select both a start and end date.');
@@ -134,8 +148,6 @@ describe('ReportsPage', () => {
     });
     render(<OfficeReportsPage />);
 
-    fireEvent.change(screen.getByLabelText('From'), { target: { value: '2026-07-01' } });
-    fireEvent.change(screen.getByLabelText('To'), { target: { value: '2026-07-31' } });
     fireEvent.click(screen.getByRole('button', { name: 'Generate' }));
     fireEvent.click(screen.getByRole('button', { name: 'Download CSV' }));
 
