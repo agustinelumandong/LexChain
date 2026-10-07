@@ -172,7 +172,6 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
         {/* Main content */}
         <section id="portal-content" tabIndex={-1} className="flex min-w-0 flex-1 flex-col overflow-x-clip px-6 pb-24 pt-0 md:pb-6">
           <PortalTopBar
-            fullName=""
             initials="?"
             roleLabel={roleLabel}
             role={uiRole}

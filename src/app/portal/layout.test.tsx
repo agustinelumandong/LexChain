@@ -64,7 +64,13 @@ describe("portal layout role hint", () => {
     expect(fetchMock).not.toHaveBeenCalledWith(expect.stringContaining("%2Fusers%2F"), expect.anything());
   });
 
-  it.each([["missing", undefined], ["unsupported", "staff"]])(
+  it.each([
+    ["missing", undefined],
+    ["unsupported", "staff"],
+    ["issuer alias", "document_issuer"],
+    ["admin", "admin"],
+    ["super admin", "super_admin"],
+  ])(
     "does not expose portal content or Books for a %s role hint",
     async (_label, role) => {
       await renderPortal(role);

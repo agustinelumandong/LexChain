@@ -5,7 +5,7 @@ import DashboardPage from '@/features/portal/pages/dashboard-page';
 import { PortalRoleProvider } from '@/features/access/components';
 
 const queryState = vi.hoisted(() => ({
-  role: 'document_issuer',
+  role: 'lawyer',
   documents: [] as Array<Record<string, unknown>>,
   documentsError: false,
 }));
@@ -23,7 +23,7 @@ afterEach(() => {
 });
 
 beforeEach(() => {
-  queryState.role = 'document_issuer';
+  queryState.role = 'lawyer';
   queryState.documents = [];
   queryState.documentsError = false;
   useQuery.mockImplementation((options: { queryKey: string[]; enabled?: boolean }) => {

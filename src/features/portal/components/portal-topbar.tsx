@@ -2,7 +2,6 @@
 
 import { usePopup } from '@/shared/components/ui/use-popup';
 import Link from 'next/link';
-import SettingsIcon from '@mui/icons-material/Settings';
 import LogoutIcon from '@mui/icons-material/Logout';
 import NotificationsNoneOutlinedIcon from '@mui/icons-material/NotificationsNoneOutlined';
 import type { PortalUiRole } from "@/features/access";
@@ -11,7 +10,7 @@ import { PortalSearchBar } from '@/features/portal/components/portal-search-bar'
 type PortalNotification = { id: string; title: string; body: string; is_read: boolean; created_at: string };
 
 type PortalTopBarProps = {
-  fullName: string;
+  fullName?: string;
   initials: string;
   roleLabel: string;
   role: PortalUiRole;
@@ -28,7 +27,7 @@ function formatDate(iso: string) {
 
 export function PortalTopBar({ fullName, initials, roleLabel, role, processingCount, unreadCount = 0, notifications = [], onMarkAllRead, onSignOut }: PortalTopBarProps) {
   const processingLabel = processingCount === 1 ? '1 document processing' : `${processingCount} documents processing`;
-  const { open: profileMenuOpen, setOpen: setProfileMenuOpen, ref: profileMenuRef } = usePopup();
+  const { open: accountMenuOpen, setOpen: setAccountMenuOpen, ref: accountMenuRef } = usePopup();
   const { open: notificationMenuOpen, setOpen: setNotificationMenuOpen, ref: notificationMenuRef } = usePopup();
   const unreadNotifications = notifications.filter((n) => !n.is_read);
 
@@ -106,11 +105,12 @@ export function PortalTopBar({ fullName, initials, roleLabel, role, processingCo
           >
             <span aria-hidden="true" className="text-base font-black leading-none text-[var(--portal-navy)]">?</span>
           </a>
-          <div ref={profileMenuRef} className="relative">            <button
+          <div ref={accountMenuRef} className="relative">
+            <button
               type="button"
-              onClick={() => setProfileMenuOpen((open) => !open)}
-              aria-label="Open profile menu"
-              aria-expanded={profileMenuOpen}
+              onClick={() => setAccountMenuOpen((open) => !open)}
+              aria-label="Open account menu"
+              aria-expanded={accountMenuOpen}
               className="flex items-center gap-2 rounded-full p-1 transition hover:bg-[var(--portal-surface-soft)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0985E7]"
             >
               <span className="hidden min-w-0 text-right lg:block">
@@ -122,20 +122,12 @@ export function PortalTopBar({ fullName, initials, roleLabel, role, processingCo
               </span>
             </button>
 
-            {profileMenuOpen && (
+            {accountMenuOpen && (
               <div className="absolute right-0 top-full mt-2 w-56 overflow-hidden rounded-2xl border border-[var(--portal-border-soft)] bg-white shadow-[0_16px_40px_rgba(12,43,73,0.14)]">
                 <div className="border-b border-[var(--portal-border-soft)] px-4 py-3">
                   {fullName && <p className="truncate text-sm font-black text-[var(--portal-navy)]">{fullName}</p>}
                   <p className="truncate text-xs font-semibold text-[var(--portal-text-muted)]">{roleLabel}</p>
                 </div>
-                <Link
-                  href="/portal/profile"
-                  onClick={() => setProfileMenuOpen(false)}
-                  className="flex w-full cursor-pointer items-center gap-3 px-4 py-3 text-left text-sm font-bold text-[var(--portal-navy)] transition hover:bg-[var(--portal-surface-soft)]"
-                >
-                  <SettingsIcon fontSize="small" className="text-[var(--portal-text-muted)]" />
-                  Profile
-                </Link>
                 <button
                   type="button"
                   onClick={onSignOut}

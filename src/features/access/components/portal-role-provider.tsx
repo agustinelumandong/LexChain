@@ -1,13 +1,13 @@
 "use client";
 
 import { createContext, useContext, type ReactNode } from "react";
-import { getPortalUiRole, type PortalUiRole } from "@/features/access/portal-role";
+import { getPortalSessionUiRole, type PortalUiRole } from "@/features/access/portal-role";
 
 const PortalRoleContext = createContext<PortalUiRole>("unsupported");
 
 export function PortalRoleProvider({ roleHint, children }: { roleHint?: string; children: ReactNode }) {
   return (
-    <PortalRoleContext.Provider value={getPortalUiRole(roleHint)}>
+    <PortalRoleContext.Provider value={getPortalSessionUiRole(roleHint)}>
       {children}
     </PortalRoleContext.Provider>
   );

@@ -38,7 +38,7 @@ describe('BooksPage', () => {
     });
     vi.stubGlobal('fetch', fetchMock);
 
-    renderPage('document_issuer');
+    renderPage('lawyer');
     fireEvent.click(await screen.findByRole('button', { name: 'View details for Book 1' }));
 
     expect(await screen.findByText('Book details')).toBeTruthy();
@@ -56,7 +56,7 @@ describe('BooksPage', () => {
     vi.stubGlobal('fetch', fetchMock);
     vi.spyOn(window, 'confirm').mockReturnValue(false);
 
-    renderPage('document_issuer');
+    renderPage('lawyer');
     fireEvent.click(await screen.findByRole('button', { name: 'Delete Book 1' }));
     expect(fetchMock).not.toHaveBeenCalledWith(expect.stringContaining('book-1'), expect.objectContaining({ method: 'DELETE' }));
 
@@ -68,7 +68,7 @@ describe('BooksPage', () => {
     ));
   });
 
-  it.each(['document_participant', 'staff', undefined])('does not show lawyer controls for role hint %j', async (roleHint) => {
+  it.each(['document_participant', 'document_issuer', 'admin', 'super_admin', 'staff', undefined])('does not show lawyer controls for role hint %j', async (roleHint) => {
     const fetchMock = vi.fn();
     vi.stubGlobal('fetch', fetchMock);
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getPortalLoginRedirect, getPortalProfileRequestShortcut, getPortalRoleLabel, getPortalUiRole, isSupportedPortalUiRole } from "@/features/access/portal-role";
+import { getPortalLoginRedirect, getPortalProfileRequestShortcut, getPortalRoleLabel, getPortalSessionUiRole, getPortalUiRole, isSupportedPortalUiRole } from "@/features/access/portal-role";
 
 describe("portal UI roles", () => {
   it("maps the canonical Document Issuer role", () => {
@@ -19,6 +19,13 @@ describe("portal UI roles", () => {
     }
     expect(getPortalUiRole("user")).toBe("user");
     expect(getPortalRoleLabel("user")).toBe("User");
+  });
+
+  it("accepts only the exact lawyer role from the sign-in hint", () => {
+    expect(getPortalSessionUiRole("lawyer")).toBe("lawyer");
+    for (const role of ["admin", "super_admin", "document_issuer", "staff"]) {
+      expect(getPortalSessionUiRole(role)).toBe("unsupported");
+    }
   });
 
   it("routes each canonical actor to a useful portal destination", () => {
