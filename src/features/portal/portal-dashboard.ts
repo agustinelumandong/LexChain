@@ -39,6 +39,7 @@ export function getPortalNavigation(role: PortalUiRole): PortalNavigationGroup[]
       {
         label: "Office",
         items: [
+          { label: "Books", href: "/portal/books" },
           { label: "Categories", href: "/portal/categories" },
           { label: "Reports", href: "/portal/reports" },
         ],

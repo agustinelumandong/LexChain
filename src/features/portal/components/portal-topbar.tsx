@@ -114,7 +114,7 @@ export function PortalTopBar({ fullName, initials, roleLabel, role, processingCo
               className="flex items-center gap-2 rounded-full p-1 transition hover:bg-[var(--portal-surface-soft)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0985E7]"
             >
               <span className="hidden min-w-0 text-right lg:block">
-                <span className="block truncate text-sm font-black text-[var(--portal-navy)]">{fullName}</span>
+                {fullName && <span className="block truncate text-sm font-black text-[var(--portal-navy)]">{fullName}</span>}
                 <span className="block truncate text-xs font-semibold text-[var(--portal-text-muted)]">{roleLabel}</span>
               </span>
               <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--portal-surface-soft)] text-xs font-bold text-[var(--portal-primary)]">
@@ -125,7 +125,7 @@ export function PortalTopBar({ fullName, initials, roleLabel, role, processingCo
             {profileMenuOpen && (
               <div className="absolute right-0 top-full mt-2 w-56 overflow-hidden rounded-2xl border border-[var(--portal-border-soft)] bg-white shadow-[0_16px_40px_rgba(12,43,73,0.14)]">
                 <div className="border-b border-[var(--portal-border-soft)] px-4 py-3">
-                  <p className="truncate text-sm font-black text-[var(--portal-navy)]">{fullName}</p>
+                  {fullName && <p className="truncate text-sm font-black text-[var(--portal-navy)]">{fullName}</p>}
                   <p className="truncate text-xs font-semibold text-[var(--portal-text-muted)]">{roleLabel}</p>
                 </div>
                 <Link

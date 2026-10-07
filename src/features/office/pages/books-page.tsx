@@ -7,11 +7,11 @@ import MenuBookIcon from '@mui/icons-material/MenuBook';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import type { ApiSchema } from '@/shared/types/index';
 import { toast } from 'sonner';
-import { getPortalUiRole, canAccessPortalFeature } from "@/features/access";
+import { canAccessPortalFeature } from "@/features/access";
+import { usePortalRole } from "@/features/access/components";
 
 type Book = ApiSchema<'BookResponse'>;
 type BookCreateRequest = ApiSchema<'BookCreateRequest'>;
-type UserProfile = ApiSchema<'UserProfileResponse'>;
 
 const cardClass = 'rounded-[18px] border border-[#E8F0F8] bg-white shadow-[0_4px_12px_rgba(19,59,115,0.05)]';
 
@@ -50,16 +50,13 @@ async function deleteBook(bookId: string) {
 
 export default function BooksPage() {
   const queryClient = useQueryClient();
+  const role = usePortalRole();
   const [bookNumber, setBookNumber] = useState('');
   const [seriesYear, setSeriesYear] = useState(String(new Date().getFullYear()));
   const [isRegistering, setIsRegistering] = useState(false);
   const [selectedBookId, setSelectedBookId] = useState<string>();
 
-  const profileQuery = useQuery<UserProfile | null>({
-    queryKey: ['portal-profile'],
-    queryFn: () => portalGet('/users/'),
-  });
-  const isIssuer = canAccessPortalFeature(getPortalUiRole(profileQuery.data?.role), 'books');
+  const isIssuer = canAccessPortalFeature(role, 'books');
   const booksQuery = useQuery<Book[]>({
     queryKey: ['portal-books'],
     queryFn: () => portalGet('/books/?limit=50&offset=0'),
@@ -106,10 +103,6 @@ export default function BooksPage() {
     if (window.confirm(`Delete Book ${book.book_number}? This permanently deletes the book and all its documents.`)) {
       deleteBookMutation.mutate(book.id);
     }
-  }
-
-  if (profileQuery.isPending) {
-    return <p className="text-sm font-semibold text-[#64748b]">Loading your books…</p>;
   }
 
   if (!isIssuer) {

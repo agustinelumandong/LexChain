@@ -1,60 +1,78 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen, within } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
-import PortalLayout from "@/features/portal/portal-layout";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { cleanup, render, screen } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import PortalRouteLayout from "./layout";
 
-const useQuery = vi.hoisted(() => vi.fn());
+const roleCookie = vi.hoisted(() => ({ value: undefined as string | undefined }));
 
-vi.mock("@tanstack/react-query", () => ({
-  useQuery,
-  useQueryClient: () => ({ invalidateQueries: vi.fn() }),
+vi.mock("next/headers", () => ({
+  cookies: async () => ({
+    get: (name: string) => name === "user_role" && roleCookie.value
+      ? { name, value: roleCookie.value }
+      : undefined,
+  }),
 }));
 vi.mock("next/navigation", () => ({
   usePathname: () => "/portal/documents",
   useRouter: () => ({ push: vi.fn() }),
 }));
 
-afterEach(() => {
-  cleanup();
-  useQuery.mockReset();
+let fetchMock: ReturnType<typeof vi.fn>;
+
+beforeEach(() => {
+  fetchMock = vi.fn((input: RequestInfo | URL) => {
+    const url = String(input);
+    if (url.includes("%2Fdocuments%2F")) return Promise.resolve(Response.json([]));
+    if (url.includes("unread-count")) return Promise.resolve(Response.json({ unread: 0 }));
+    if (url.includes("%2Fnotifications%2F")) return Promise.resolve(Response.json({ notifications: [] }));
+    return Promise.resolve(new Response(null, { status: 404 }));
+  });
+  vi.stubGlobal("fetch", fetchMock);
 });
 
-describe("PortalLayout mobile navigation", () => {
-  it("renders the role-generic bottom navigation for a Document Participant", () => {
-    useQuery.mockImplementation(({ queryKey }: { queryKey: string[] }) => {
-      if (queryKey[0] === "portal-profile") {
-        return {
-          data: {
-            role: "document_participant",
-            f_name: "Document",
-            l_name: "Participant",
-            email: "participant@example.com",
-          },
-          isError: false,
-          isPending: false,
-        };
-      }
-      return { data: [], isError: false, isPending: false };
-    });
+afterEach(() => {
+  cleanup();
+  vi.unstubAllGlobals();
+  roleCookie.value = undefined;
+});
 
-    render(<PortalLayout><p>Shared workspace</p></PortalLayout>);
+async function renderPortal(role?: string) {
+  roleCookie.value = role;
+  const layout = await PortalRouteLayout({ children: <p>Portal content</p> });
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return render(<QueryClientProvider client={queryClient}>{layout}</QueryClientProvider>);
+}
 
-    const mobileNavigation = screen.getByRole("navigation", { name: "Mobile portal navigation" });
-    expect(within(mobileNavigation).getByRole("link", { name: "My E-copy Requests" })).toBeTruthy();
-    expect(within(mobileNavigation).queryByRole("link", { name: "Processing Monitor" })).toBeNull();
-    expect(within(screen.getByRole("complementary")).getByRole("link", { name: /LexChain/ }).getAttribute("href"))
-      .toBe("/portal/documents");
-    expect(screen.getByRole("button", { name: "Collapse sidebar" }).getAttribute("type"))
-      .toBe("button");
+describe("portal layout role hint", () => {
+  it("renders lawyer navigation and Books without a successful profile request", async () => {
+    await renderPortal("lawyer");
+
+    expect(screen.getByText("Portal content")).toBeTruthy();
+    expect(screen.getAllByRole("link", { name: "Books" }).length).toBeGreaterThan(0);
+    expect(screen.getByText("Lawyer")).toBeTruthy();
+    expect(screen.queryByText("undefined undefined")).toBeNull();
+    expect(screen.queryByText("...")).toBeNull();
+    expect(fetchMock).not.toHaveBeenCalledWith(expect.stringContaining("%2Fusers%2F"), expect.anything());
   });
 
-  it("renders the skeleton shell while the profile is loading", () => {
-    useQuery.mockImplementation(() => ({ data: undefined, isError: false, isPending: true }));
+  it("renders participant navigation without lawyer-only Books", async () => {
+    await renderPortal("document_participant");
 
-    render(<PortalLayout><p>Shared workspace</p></PortalLayout>);
-
-    const skeleton = screen.getByRole("status", { name: "Loading portal" });
-    expect(skeleton.querySelectorAll(".animate-pulse").length).toBeGreaterThan(0);
-    expect(screen.queryByText("Shared workspace")).toBeNull();
+    expect(screen.getAllByRole("link", { name: "My E-copy Requests" }).length).toBeGreaterThan(0);
+    expect(screen.queryByRole("link", { name: "Books" })).toBeNull();
+    expect(fetchMock).not.toHaveBeenCalledWith(expect.stringContaining("%2Fusers%2F"), expect.anything());
   });
+
+  it.each([["missing", undefined], ["unsupported", "staff"]])(
+    "does not expose portal content or Books for a %s role hint",
+    async (_label, role) => {
+      await renderPortal(role);
+
+      expect(screen.getByRole("heading", { name: "Portal access unavailable" })).toBeTruthy();
+      expect(screen.queryByText("Portal content")).toBeNull();
+      expect(screen.queryByRole("link", { name: "Books" })).toBeNull();
+      expect(fetchMock).not.toHaveBeenCalled();
+    },
+  );
 });
