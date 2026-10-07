@@ -20,6 +20,33 @@ export const signInResponseSchema = z.object({
 
 export type SignInResponse = z.infer<typeof signInResponseSchema>;
 
+export const signUpNameSchema = z.string().trim()
+  .min(1, "Enter a name.")
+  .max(50, "Names must be 1–50 characters.")
+  .regex(/^[\p{L}][\p{L} '\-]*$/u, "Start with a letter and use letters, spaces, hyphens, or apostrophes.");
+
+export const signUpPasswordSchema = z.string()
+  .min(8, "Use at least 8 characters.")
+  .regex(/[A-Z]/, "Add at least one uppercase letter.")
+  .regex(/[a-z]/, "Add at least one lowercase letter.")
+  .regex(/[0-9]/, "Add at least one number.");
+
+export const signUpRequestSchema = z.strictObject({
+  email: z.string().trim().email("Enter a valid email."),
+  password: signUpPasswordSchema,
+  f_name: signUpNameSchema,
+  l_name: signUpNameSchema,
+});
+
+export const signUpResponseSchema = z.looseObject({
+  requires_email_confirmation: z.boolean(),
+  message: z.string(),
+});
+
+export const resendVerificationRequestSchema = z.strictObject({
+  email: z.string().trim().email("Enter a valid email."),
+});
+
 export type DemoForgotPasswordResult = {
   message: "If an account exists for that email, a reset link has been sent.";
   demoResetHref: string;

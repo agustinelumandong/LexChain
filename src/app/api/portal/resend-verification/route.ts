@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { backendUrl } from "@/server/api/backend";
+import { resendVerificationRequestSchema } from "@/features/auth";
 
 type ApiErrorPayload = {
   detail?: unknown;
@@ -36,6 +37,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ message: "Invalid request body." }, { status: 400 });
   }
 
+  const resendRequest = resendVerificationRequestSchema.safeParse(body);
+  if (!resendRequest.success) {
+    return NextResponse.json({ message: resendRequest.error.issues[0]?.message ?? "Enter a valid email address." }, { status: 400 });
+  }
+
   let upstream: Response;
   try {
     upstream = await fetch(backendUrl("/auth/resend-verification"), {
@@ -44,7 +50,7 @@ export async function POST(request: Request) {
         "Content-Type": "application/json",
         "ngrok-skip-browser-warning": "true",
       },
-      body: JSON.stringify(body),
+      body: JSON.stringify(resendRequest.data),
     });
   } catch {
     return NextResponse.json({ message: "Unable to reach the API." }, { status: 502 });
@@ -59,5 +65,5 @@ export async function POST(request: Request) {
     );
   }
 
-  return NextResponse.json(payload ?? { message: "Verification email sent." });
+  return NextResponse.json(payload ?? { message: "If the account is eligible, verification instructions will be sent." });
 }
