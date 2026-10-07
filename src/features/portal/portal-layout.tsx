@@ -200,7 +200,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
                           "flex min-h-11 items-center gap-3.5 rounded-xl py-2 text-[13px] font-black leading-4",
                           collapsed ? "justify-center px-2" : "pl-[22px] pr-3",
                           isActive
-                            ? "bg-[#EEF4FB] text-[#111827]"
+                            ? "bg-[#0985E7]/15 text-[#0C2B49]"
                             : "text-[#111827] transition hover:bg-[#F5FAFF]",
                         ].join(" ")}
                         href={link.href}

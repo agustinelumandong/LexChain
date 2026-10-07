@@ -148,14 +148,17 @@ export default function CategoriesPage() {
         <p role="status" className="mt-5 rounded-xl border border-[#CFE7FC] bg-[#F1F8FF] px-4 py-3 text-sm font-semibold text-[#0C5B9C]">Demo data — changes reset when this page is refreshed.</p>
       </Modal>
       {categoryToDeactivate && (
-        <dialog open aria-modal="true" aria-label={`Deactivate ${categoryToDeactivate.name} category`} className="fixed inset-0 m-auto w-[calc(100%-2rem)] max-w-md rounded-2xl border border-[#E4EEF9] bg-white p-5 shadow-xl shadow-[#183B6B]/10">
-          <p className="font-black text-[#0C2B49]">Deactivate {categoryToDeactivate.name}?</p>
+        <Modal
+          open
+          onClose={() => setCategoryToDeactivate(null)}
+          title={`Deactivate ${categoryToDeactivate.name}?`}
+        >
           <p className="mt-2 text-sm text-[#64748b]">Documents already using this category keep their existing label.</p>
           <div className="mt-5 flex justify-end gap-3">
             <button type="button" onClick={() => setCategoryToDeactivate(null)} className="rounded-xl border border-[#D9E5F0] px-4 py-2 text-sm font-black text-[#0C2B49]">Cancel</button>
             <button type="button" onClick={() => { setCategories((current) => deactivateDemoCategory(current, categoryToDeactivate.id)); setCategoryToDeactivate(null); }} className="rounded-xl bg-[#B45309] px-4 py-2 text-sm font-black text-white">Deactivate category</button>
           </div>
-        </dialog>
+        </Modal>
       )}
     </div>
   );
