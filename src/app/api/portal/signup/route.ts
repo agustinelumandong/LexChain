@@ -7,6 +7,14 @@ function getErrorMessage(payload: unknown) {
   const body = payload as Record<string, unknown>;
   if (typeof body.detail === "string") return body.detail;
   if (typeof body.message === "string") return body.message;
+  if (Array.isArray(body.detail)) {
+    const messages = body.detail.flatMap((issue) =>
+      typeof issue === "object" && issue !== null && "msg" in issue && typeof issue.msg === "string"
+        ? [issue.msg]
+        : [],
+    );
+    if (messages.length) return messages.join(" ");
+  }
   return "Sign up failed. Check your details and try again.";
 }
 
