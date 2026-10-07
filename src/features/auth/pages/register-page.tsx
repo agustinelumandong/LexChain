@@ -8,34 +8,27 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMutation } from "@tanstack/react-query";
-import { toast } from "sonner";
 
 import { getEmailFromInviteToken } from "@/shared/utils/invite-token";
+import { authEmailSchema, signUpNameSchema, signUpPasswordSchema, signUpResponseSchema } from "@/features/auth/schemas/auth";
 
 const registerSchema = z.object({
-  firstName: z.string().trim().min(1, "First name is required."),
-  lastName: z.string().trim().min(1, "Last name is required."),
-  email: z.string().trim().min(1, "Email is required.").email("Enter a valid email."),
-  password: z.string().min(1, "Password is required.").refine(
-    (v) => v.length >= 8 && /\d/.test(v) && /[A-Z]/.test(v) && /[a-z]/.test(v) && /[^A-Za-z0-9]/.test(v),
-    "8+ chars, uppercase, lowercase, number, and special character.",
-  ),
+  firstName: signUpNameSchema,
+  lastName: signUpNameSchema,
+  email: authEmailSchema,
+  password: signUpPasswordSchema,
   confirmPassword: z.string().min(1, "Confirm your password."),
 }).refine((v) => v.password === v.confirmPassword, { message: "Passwords do not match.", path: ["confirmPassword"] });
 
 type RegisterForm = z.infer<typeof registerSchema>;
 
-type SignUpResponse = {
-  requires_email_confirmation?: boolean;
-  message?: string;
-};
-
 type CreatedAccount = {
   email: string;
   requiresEmailConfirmation: boolean;
+  message?: string;
 };
 
-async function signUp(data: RegisterForm & { token?: string }) {
+async function signUp(data: RegisterForm) {
   const res = await fetch("/api/portal/signup", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -44,13 +37,18 @@ async function signUp(data: RegisterForm & { token?: string }) {
       password: data.password,
       f_name: data.firstName,
       l_name: data.lastName,
-      phone_number: null,
-      ...(data.token ? { token: data.token } : null),
     }),
   });
-  const payload = await res.json().catch(() => null);
-  if (!res.ok) throw new Error(payload?.message ?? "Sign up failed.");
-  return payload as SignUpResponse;
+  const payload: unknown = await res.json().catch(() => null);
+  const parsed = signUpResponseSchema.safeParse(payload);
+  if (!res.ok) {
+    const message = typeof payload === "object" && payload !== null && "message" in payload && typeof payload.message === "string"
+      ? payload.message
+      : "Sign up failed. Check your details and try again.";
+    throw new Error(message);
+  }
+  if (!parsed.success) throw new Error("Sign up returned an unexpected response.");
+  return parsed.data;
 }
 
 function RegisterPageContent() {
@@ -59,6 +57,7 @@ function RegisterPageContent() {
   const inviteEmail = searchParams.get("email")?.trim() || getEmailFromInviteToken(inviteToken);
   const hasInviteEmail = inviteEmail.length > 0;
   const [createdAccount, setCreatedAccount] = useState<CreatedAccount | null>(null);
+  const [submissionError, setSubmissionError] = useState<string | null>(null);
   const { register, handleSubmit, setValue, formState: { errors } } = useForm<RegisterForm>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
@@ -69,21 +68,21 @@ function RegisterPageContent() {
   const mutation = useMutation({
     mutationFn: signUp,
     onSuccess: (response, values) => {
-      const requiresEmailConfirmation = response.requires_email_confirmation !== false;
+      const requiresEmailConfirmation = response.requires_email_confirmation;
       setCreatedAccount({
         email: values.email,
         requiresEmailConfirmation,
+        message: response.message?.trim() || undefined,
       });
-      toast.success(
-        requiresEmailConfirmation
-          ? "Account created. Check your email to verify it."
-          : "Account created. You can now sign in.",
-      );
     },
-    onError: (error: Error) => toast.error(error.message),
+    onError: (error: Error) => setSubmissionError(error.message),
   });
 
-  const onSubmit = handleSubmit((values) => mutation.mutate({ ...values, token: inviteToken || undefined }));
+  const onSubmit = handleSubmit((values) => {
+    setSubmissionError(null);
+    if (inviteToken) return;
+    mutation.mutate(values);
+  });
   const inputClass = "mt-2 min-h-12 w-full rounded-[14px] border border-[#E4EEF9] bg-[#F5FAFF] px-3.5 text-sm font-semibold text-[#0C2B49] outline-none focus:border-[#0985E7]";
   const emailInputClass = hasInviteEmail
     ? `${inputClass} cursor-not-allowed bg-[#EEF4FB] text-[#4B6382]`
@@ -109,8 +108,8 @@ function RegisterPageContent() {
             </h1>
             <p className="mt-3 text-sm font-semibold leading-5 text-[#4B6382]">
               {createdAccount.requiresEmailConfirmation
-                ? `We sent a verification link to ${createdAccount.email}. Verify your email before signing in.`
-                : `Your account for ${createdAccount.email} is ready. You can now sign in.`}
+                ? createdAccount.message ?? `Your account for ${createdAccount.email} was created. Check your email to verify it before signing in.`
+                : createdAccount.message ?? `Your account for ${createdAccount.email} is ready. You can now sign in.`}
             </p>
           </div>
           <Link
@@ -135,12 +134,21 @@ function RegisterPageContent() {
           <h1 className="text-3xl font-black leading-9 text-[#0C2B49]">Create account</h1>
           <p className="text-sm font-semibold leading-5 text-[#64748b]">
             {inviteToken
-              ? "Complete your LexChain Lawyer invitation."
+              ? "Invitation registration is not supported yet."
               : "Register to access your documents."}
           </p>
         </div>
 
-        <form className="mt-6 space-y-3.5" onSubmit={onSubmit}>
+        {inviteToken ? (
+          <div role="alert" className="mt-4 rounded-[14px] border border-[#F2D4A7] bg-[#FFF8EA] p-3 text-sm font-semibold text-[#74521A]">
+            <p>The invitation token has not been submitted or accepted.</p>
+            <Link href="/register" className="mt-2 inline-flex font-black text-[#0985E7] underline underline-offset-2">
+              Start regular signup
+            </Link>
+          </div>
+        ) : null}
+
+        <form className="mt-6 space-y-3.5" onSubmit={onSubmit} noValidate>
           <div className="grid grid-cols-2 gap-3">
             <label className="block">
               <span className="text-[13px] font-black text-[#0C2B49]">First Name</span>
@@ -170,6 +178,7 @@ function RegisterPageContent() {
 
           <label className="block">
             <span className="text-[13px] font-black text-[#0C2B49]">Password</span>
+            <span className="block text-xs font-medium text-[#64748b]">At least 8 characters, with uppercase, lowercase, and a number.</span>
             <input {...register("password")} type="password" className={inputClass} />
             {errors.password && <p className="text-xs text-red-500 mt-1">{errors.password.message}</p>}
           </label>
@@ -180,9 +189,11 @@ function RegisterPageContent() {
             {errors.confirmPassword && <p className="text-xs text-red-500 mt-1">{errors.confirmPassword.message}</p>}
           </label>
 
+          {submissionError ? <p role="alert" className="text-sm font-semibold text-red-700">{submissionError}</p> : null}
+
           <button
             type="submit"
-            disabled={mutation.isPending}
+            disabled={mutation.isPending || Boolean(inviteToken)}
             className="mt-2 flex min-h-[52px] w-full items-center justify-center rounded-full bg-[#0985E7] px-5 py-3.5 text-[15px] font-black text-white transition hover:bg-[#0770c4] disabled:opacity-60"
           >
             {mutation.isPending ? "Creating account…" : "Create account"}

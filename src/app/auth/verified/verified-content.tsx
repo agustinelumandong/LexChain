@@ -3,11 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
-import { z } from "zod";
-
-const resendSchema = z.object({
-  email: z.string().trim().min(1, "Email is required.").email("Enter a valid email."),
-});
+import { resendVerificationRequestSchema } from "@/features/auth";
 
 type ResendState = {
   status: "idle" | "success" | "error";
@@ -20,13 +16,16 @@ async function resendVerification(email: string) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email }),
   });
-  const payload = await res.json().catch(() => null);
+  const payload: unknown = await res.json().catch(() => null);
+  const message = typeof payload === "object" && payload !== null && "message" in payload && typeof payload.message === "string"
+    ? payload.message
+    : undefined;
 
   if (!res.ok) {
-    throw new Error(payload?.message ?? "Could not resend verification email.");
+    throw new Error(message ?? "Could not resend verification email.");
   }
 
-  return payload?.message ?? "Verification email sent.";
+  return message ?? "If the account is eligible, verification instructions will be sent.";
 }
 
 export function VerifiedContent() {
@@ -40,7 +39,7 @@ export function VerifiedContent() {
   async function handleResend(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    const parsed = resendSchema.safeParse({ email });
+    const parsed = resendVerificationRequestSchema.safeParse({ email });
     if (!parsed.success) {
       setResendState({
         status: "error",
@@ -112,12 +111,12 @@ export function VerifiedContent() {
           Go to login
         </Link>
 
-        <form className="mt-6 rounded-[18px] border border-[#E4EEF9] p-4" onSubmit={handleResend}>
+        <form className="mt-6 rounded-[18px] border border-[#E4EEF9] p-4" onSubmit={handleResend} noValidate>
           <h2 className="text-sm font-black text-[#0C2B49]">
             Need another verification email?
           </h2>
           <p className="mt-1 text-sm font-semibold leading-5 text-[#64748b]">
-            Enter your account email and LexChain will send a new verification link.
+            Enter your account email to request another verification link.
           </p>
           <label className="mt-4 block">
             <span className="text-[13px] font-black text-[#0C2B49]">Email</span>
@@ -131,6 +130,7 @@ export function VerifiedContent() {
           </label>
           {resendState.message ? (
             <p
+              role={resendState.status === "success" ? "status" : "alert"}
               className={[
                 "mt-3 text-sm font-semibold",
                 resendState.status === "success" ? "text-[#127A43]" : "text-red-600",
@@ -144,7 +144,7 @@ export function VerifiedContent() {
             type="submit"
             disabled={isPending}
           >
-            {isPending ? "Sending email" : "Resend verification email"}
+            {isPending ? "Requesting…" : "Resend verification email"}
           </button>
         </form>
       </section>
