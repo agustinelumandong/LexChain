@@ -5,13 +5,28 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import AddIcon from '@mui/icons-material/Add';
 import MenuBookIcon from '@mui/icons-material/MenuBook';
 import RefreshIcon from '@mui/icons-material/Refresh';
-import type { ApiSchema } from '@/shared/types/index';
 import { toast } from 'sonner';
 import { canAccessPortalFeature } from "@/features/access";
 import { usePortalRole } from "@/features/access/components";
 
-type Book = ApiSchema<'BookResponse'>;
-type BookCreateRequest = ApiSchema<'BookCreateRequest'>;
+type Book = {
+  id: string;
+  book_number: number;
+  series_year: number;
+  status: string;
+  closed_at?: string | null;
+  entry_count?: number;
+  last_doc_no?: number | null;
+  last_page_no?: number | null;
+  created_at: string;
+  updated_at?: string | null;
+};
+
+type BookCreateRequest = {
+  book_number: number;
+  series_year: number;
+  status?: 'OPEN' | 'CLOSED';
+};
 
 const cardClass = 'rounded-[18px] border border-[#E8F0F8] bg-white shadow-[0_4px_12px_rgba(19,59,115,0.05)]';
 
@@ -158,7 +173,15 @@ export default function BooksPage() {
 
       {selectedBookId && (
         <section className={`${cardClass} p-5`}>
-          {bookDetailQuery.isLoading ? <p className="text-sm text-[#64748b]">Loading book details…</p> : bookDetailQuery.isError ? <p role="alert" className="text-sm font-bold text-red-600">Unable to load book details.</p> : bookDetailQuery.data && <><h2 className="text-base font-black text-[#0C2B49]">Book details</h2><p className="mt-1 text-sm text-[#64748b]">Created {new Date(bookDetailQuery.data.created_at).toLocaleDateString('en-US', { dateStyle: 'medium' })}</p>{bookDetailQuery.data.updated_at && <p className="mt-1 text-sm text-[#64748b]">Last updated {new Date(bookDetailQuery.data.updated_at).toLocaleDateString('en-US', { dateStyle: 'medium' })}</p>}</>}
+          {bookDetailQuery.isLoading ? <p className="text-sm text-[#64748b]">Loading book details…</p> : bookDetailQuery.isError ? <p role="alert" className="text-sm font-bold text-red-600">Unable to load book details.</p> : bookDetailQuery.data && <>
+            <h2 className="text-base font-black text-[#0C2B49]">Book details</h2>
+            <p className="mt-1 text-sm text-[#64748b]">Status: {bookDetailQuery.data.status === 'OPEN' ? 'Open' : bookDetailQuery.data.status === 'CLOSED' ? 'Closed' : bookDetailQuery.data.status}</p>
+            <p className="mt-1 text-sm text-[#64748b]">Entries: {bookDetailQuery.data.entry_count ?? '—'}</p>
+            <p className="mt-1 text-sm text-[#64748b]">Last filing: Doc. {bookDetailQuery.data.last_doc_no ?? '—'} · Page {bookDetailQuery.data.last_page_no ?? '—'}</p>
+            <p className="mt-1 text-sm text-[#64748b]">Created {new Date(bookDetailQuery.data.created_at).toLocaleDateString('en-US', { dateStyle: 'medium' })}</p>
+            {bookDetailQuery.data.updated_at && <p className="mt-1 text-sm text-[#64748b]">Last updated {new Date(bookDetailQuery.data.updated_at).toLocaleDateString('en-US', { dateStyle: 'medium' })}</p>}
+            {bookDetailQuery.data.closed_at && <p className="mt-1 text-sm text-[#64748b]">Closed {new Date(bookDetailQuery.data.closed_at).toLocaleDateString('en-US', { dateStyle: 'medium' })}</p>}
+          </>}
         </section>
       )}
 
@@ -179,23 +202,24 @@ export default function BooksPage() {
         </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {books.map((book) => (
-            <article key={book.id} className={`${cardClass} p-5`}>
+          {books.map((book) => {
+            const statusLabel = book.status === 'OPEN' ? 'Open' : book.status === 'CLOSED' ? 'Closed' : book.status;
+            return <article key={book.id} className={`${cardClass} p-5`}>
               <div className="flex items-start justify-between gap-3">
                 <div><h2 className="text-lg font-black text-[#0C2B49]">Book {book.book_number}</h2><p className="mt-1 text-sm text-[#64748b]">Series {book.series_year}</p></div>
-                <span className={`rounded-full px-2.5 py-1 text-[11px] font-black ${book.is_full ? 'bg-[#FFF4DD] text-[#B77900]' : 'bg-[#EAF8F0] text-[#12A150]'}`}>{book.is_full ? 'Full' : 'Active'}</span>
+                <span className={`rounded-full px-2.5 py-1 text-[11px] font-black ${book.status === 'CLOSED' ? 'bg-[#EEF4FB] text-[#4B6382]' : book.status === 'OPEN' ? 'bg-[#EAF8F0] text-[#12A150]' : 'bg-[#F1F5F9] text-[#64748b]'}`}>{statusLabel}</span>
               </div>
               <div className="mt-5 grid grid-cols-2 gap-3 border-t border-[#E8F0F8] pt-4">
-                <div><p className="text-xl font-black text-[#0C2B49]">{book.document_count}</p><p className="text-xs font-medium text-[#64748b]">Documents</p></div>
-                <div><p className="text-xl font-black text-[#0C2B49]">{book.page_count}</p><p className="text-xs font-medium text-[#64748b]">Pages</p></div>
+                <div><p className="text-xl font-black text-[#0C2B49]">{book.entry_count ?? '—'}</p><p className="text-xs font-medium text-[#64748b]">Entries</p></div>
+                <div><p className="text-sm font-black text-[#0C2B49]">Doc. {book.last_doc_no ?? '—'} · Page {book.last_page_no ?? '—'}</p><p className="text-xs font-medium text-[#64748b]">Last filing</p></div>
               </div>
               <div className="mt-4 flex flex-wrap gap-2">
                 <button type="button" onClick={() => setSelectedBookId(book.id)} className="rounded-full border border-[#D7E4F2] px-3 py-1.5 text-sm font-bold text-[#0C2B49]" aria-label={`View details for Book ${book.book_number}`}>Details</button>
                 <button type="button" onClick={() => handleDelete(book)} disabled={deleteBookMutation.isPending} className="rounded-full border border-red-200 px-3 py-1.5 text-sm font-bold text-red-600 disabled:opacity-40" aria-label={`Delete Book ${book.book_number}`}>{deleteBookMutation.isPending ? 'Deleting…' : 'Delete'}</button>
               </div>
               <p className="mt-4 truncate text-[11px] font-semibold text-[#A0AAB8]" title={book.id}>ID: {book.id}</p>
-            </article>
-          ))}
+            </article>;
+          })}
         </div>
       )}
       {deleteError && <p role="alert" className="text-sm font-bold text-red-600">{deleteError}</p>}
