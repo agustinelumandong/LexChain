@@ -90,6 +90,87 @@ describe('BooksPage', () => {
     expect(screen.queryByText('Pages')).toBeNull();
   });
 
+  it('offers closing only for open books', async () => {
+    vi.stubGlobal('fetch', vi.fn((input: RequestInfo | URL) => {
+      if (String(input).includes('%2Fbooks%2F%3Flimit')) return Promise.resolve(Response.json([book, closedBook]));
+      return Promise.resolve(new Response(null, { status: 404 }));
+    }));
+
+    renderPage('lawyer');
+
+    expect(await screen.findByRole('button', { name: 'Close Book 1' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Close Book 2' })).toBeNull();
+  });
+
+  it('asks before closing and leaves the book open when canceled', async () => {
+    const fetchMock = vi.fn((input: RequestInfo | URL) => {
+      if (String(input).includes('%2Fbooks%2F%3Flimit')) return Promise.resolve(Response.json([book]));
+      return Promise.resolve(new Response(null, { status: 404 }));
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
+
+    renderPage('lawyer');
+    fireEvent.click(await screen.findByRole('button', { name: 'Close Book 1' }));
+
+    expect(confirm).toHaveBeenCalledWith('Close Book 1? It cannot be reopened. You can still file documents with the paper register numbers.');
+    expect(fetchMock).not.toHaveBeenCalledWith(expect.stringContaining('book-1%2Fclose'), expect.objectContaining({ method: 'POST' }));
+  });
+
+  it('shows pending feedback, then the closed status and timestamp returned by the API', async () => {
+    let visibleBook: typeof book | typeof closedBook = book;
+    let resolveClose!: (response: Response) => void;
+    const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url.includes('%2Fbooks%2F%3Flimit')) return Promise.resolve(Response.json([visibleBook]));
+      if (url.includes('%2Fbooks%2Fbook-1%2Fclose') && init?.method === 'POST') {
+        return new Promise<Response>((resolve) => { resolveClose = resolve; });
+      }
+      if (url.includes('%2Fbooks%2Fbook-1')) return Promise.resolve(Response.json(visibleBook));
+      return Promise.resolve(new Response(null, { status: 404 }));
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+
+    renderPage('lawyer');
+    fireEvent.click(await screen.findByRole('button', { name: 'View details for Book 1' }));
+    expect(await screen.findByText('Status: Open')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Close Book 1' }));
+
+    const closeButton = await screen.findByRole('button', { name: 'Closing Book 1' }) as HTMLButtonElement;
+    expect(closeButton.disabled).toBe(true);
+    expect(fetchMock).toHaveBeenCalledWith('/api/portal/proxy-post?path=%2Fbooks%2Fbook-1%2Fclose', expect.objectContaining({ method: 'POST' }));
+
+    visibleBook = { ...book, status: 'CLOSED', closed_at: '2026-08-01T08:00:00Z' };
+    resolveClose(Response.json(visibleBook));
+
+    expect(await screen.findByText('Status: Closed')).toBeTruthy();
+    expect(screen.getByText('Closed Aug 1, 2026')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Close Book 1' })).toBeNull();
+  });
+
+  it('refreshes a book after a 409 close conflict and keeps the backend closed state visible', async () => {
+    let visibleBook: typeof book | typeof closedBook = book;
+    const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url.includes('%2Fbooks%2F%3Flimit')) return Promise.resolve(Response.json([visibleBook]));
+      if (url.includes('%2Fbooks%2Fbook-1%2Fclose') && init?.method === 'POST') {
+        visibleBook = { ...book, status: 'CLOSED', closed_at: '2026-08-01T08:00:00Z' };
+        return Promise.resolve(Response.json({ detail: 'Book is already closed' }, { status: 409 }));
+      }
+      return Promise.resolve(new Response(null, { status: 404 }));
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+
+    renderPage('lawyer');
+    fireEvent.click(await screen.findByRole('button', { name: 'Close Book 1' }));
+
+    expect((await screen.findByRole('alert')).textContent).toContain('Book is already closed');
+    expect(await screen.findByText('Closed')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Close Book 1' })).toBeNull();
+  });
+
   it('creates an OPEN book by default and displays the returned book after refresh', async () => {
     let listCalls = 0;
     const createdBook = { ...emptyBook, id: 'book-created', book_number: 7 };
