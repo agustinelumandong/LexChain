@@ -844,7 +844,7 @@ function approveExtraction(documentId: string) {
   return json(response);
 }
 
-export async function mockPortalMutate(method: 'POST' | 'PATCH' | 'DELETE', path: string, request: Request, token?: string): Promise<Response> {
+export async function mockPortalMutate(method: 'POST' | 'PUT' | 'PATCH' | 'DELETE', path: string, request: Request, token?: string): Promise<Response> {
   if (!token || !isMockPortalToken(token)) return error('Not authenticated', 401);
   const requestPathname = pathname(path);
   const documentRestoreMatch = requestPathname.match(/^\/documents\/([^/]+)\/restore\/?$/);

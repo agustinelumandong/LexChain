@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import type { ApiSchema } from '@/shared/types/index';
-import { listDraftComments, listSignedCopies, syncDraftComments } from '@/features/documents/document-lifecycle-api';
+import { attachSignedCopy, listDraftComments, listSignedCopies, replaceSignedCopy, syncDraftComments } from '@/features/documents/document-lifecycle-api';
 import { getDocumentLifecycleLabel, getDocumentStatusLabel } from '@/features/documents/document-ui';
 import { shortenIntegrityHash } from "@/features/verification";
 import { GoogleDraftPanel } from '@/features/documents/components/google-draft-panel';
@@ -92,7 +92,26 @@ export function DocumentWorkspace({
   onReopen,
 }: DocumentWorkspaceProps) {
   const [activeTab, setActiveTab] = useState<Tab>('Overview');
+  const [signedCopyMode, setSignedCopyMode] = useState<'attach' | 'replace' | null>(null);
+  const [signedCopyFile, setSignedCopyFile] = useState<File | null>(null);
+  const [replacementReason, setReplacementReason] = useState('');
+  const [signedCopyError, setSignedCopyError] = useState<string | null>(null);
+  const [signedCopySuccess, setSignedCopySuccess] = useState<string | null>(null);
   const queryClient = useQueryClient();
+  const signedCopyMutation = useMutation({
+    mutationFn: ({ mode, file, reason }: { mode: 'attach' | 'replace'; file: File; reason: string }) => mode === 'attach'
+      ? attachSignedCopy(document.document_id, file, { bookId: document.book_id ?? '', docNo: document.doc_no, pageNo: document.page_no })
+      : replaceSignedCopy(document.document_id, file, reason),
+    onSuccess: async (updatedDocument, { mode }) => {
+      queryClient.setQueryData(['portal-doc', document.document_id], updatedDocument);
+      setSignedCopyMode(null);
+      setSignedCopyFile(null);
+      setReplacementReason('');
+      setSignedCopyError(null);
+      setSignedCopySuccess(mode === 'attach' ? 'Signed PDF attached.' : 'Signed PDF replaced.');
+      await queryClient.invalidateQueries({ queryKey: ['portal-doc-signed-copies', document.document_id] });
+    },
+  });
   const signedCopiesQuery = useQuery({ queryKey: ['portal-doc-signed-copies', document.document_id], queryFn: () => listSignedCopies(document.document_id), enabled: activeTab === 'Signed copies' });
   const commentsKey = ['portal-document-comments', document.document_id];
   const commentsQuery = useQuery({ queryKey: commentsKey, queryFn: () => listDraftComments(document.document_id), enabled: activeTab === 'Comments' && Boolean(document.draft_url), retry: false });
@@ -182,6 +201,32 @@ export function DocumentWorkspace({
                 </div>
               </div>
             ) : <p className="text-sm text-[#64748b]">No signed PDF is attached to this document yet.</p>}
+            {signedCopySuccess && <p role="status" className="text-sm font-bold text-[#067647]">{signedCopySuccess}</p>}
+            <div className="flex flex-wrap gap-2">
+              {document.permissions.can_attach_signed_copy && <button type="button" onClick={() => { setSignedCopyMode('attach'); setSignedCopyError(null); setSignedCopySuccess(null); signedCopyMutation.reset(); }} className="rounded-full bg-[#0985E7] px-4 py-2.5 text-sm font-extrabold text-white">Attach signed PDF</button>}
+              {document.permissions.can_replace_signed_copy && <button type="button" onClick={() => { setSignedCopyMode('replace'); setSignedCopyError(null); setSignedCopySuccess(null); signedCopyMutation.reset(); }} className="rounded-full border border-[#0985E7] px-4 py-2.5 text-sm font-extrabold text-[#0985E7]">Replace signed PDF</button>}
+            </div>
+            {signedCopyMode && <form className="space-y-3 rounded-xl border border-[#D7E4F2] bg-white p-4" onSubmit={(event) => {
+              event.preventDefault();
+              if (!signedCopyFile || (signedCopyMode === 'replace' && !replacementReason.trim()) || (signedCopyMode === 'attach' && !document.book_id)) return;
+              signedCopyMutation.mutate({ mode: signedCopyMode, file: signedCopyFile, reason: replacementReason });
+            }}>
+              <label className="flex flex-col gap-1.5 text-sm font-bold text-[#0C2B49]">Signed PDF<input aria-label="Signed PDF" type="file" accept="application/pdf,.pdf" required disabled={signedCopyMutation.isPending} onChange={(event) => {
+                const file = event.currentTarget.files?.[0] ?? null;
+                if (file && (file.size === 0 || (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')))) {
+                  setSignedCopyFile(null);
+                  setSignedCopyError('Choose a non-empty PDF file.');
+                  return;
+                }
+                setSignedCopyFile(file);
+                setSignedCopyError(null);
+              }} /></label>
+              {signedCopyMode === 'replace' && <label className="flex flex-col gap-1.5 text-sm font-bold text-[#0C2B49]">Replacement reason<textarea aria-label="Replacement reason" required value={replacementReason} disabled={signedCopyMutation.isPending} onChange={(event) => setReplacementReason(event.target.value)} className="rounded-xl border border-[#D7E4F2] px-3 py-2.5 text-sm font-medium outline-none focus:border-[#0985E7] disabled:bg-[#F8FBFF]" /></label>}
+              {signedCopyMode === 'attach' && !document.book_id && <p role="alert" className="text-sm font-bold text-[#B42318]">Register book details are unavailable for this document.</p>}
+              {signedCopyError && <p role="alert" className="text-sm font-bold text-[#B42318]">{signedCopyError}</p>}
+              {signedCopyMutation.isError && <p role="alert" className="text-sm font-bold text-[#B42318]">{signedCopyMutation.error instanceof Error ? signedCopyMutation.error.message : 'Upload failed.'} Your selected file and replacement reason have been kept. Review the error and retry.</p>}
+              <div className="flex flex-wrap gap-2"><button type="submit" disabled={!signedCopyFile || (signedCopyMode === 'replace' && !replacementReason.trim()) || (signedCopyMode === 'attach' && !document.book_id) || signedCopyMutation.isPending} className="rounded-full bg-[#0985E7] px-4 py-2 text-sm font-bold text-white disabled:opacity-50">{signedCopyMutation.isPending ? 'Uploading…' : signedCopyMode === 'replace' ? 'Confirm replacement' : 'Confirm attachment'}</button><button type="button" disabled={signedCopyMutation.isPending} onClick={() => { setSignedCopyMode(null); setSignedCopyFile(null); setReplacementReason(''); setSignedCopyError(null); signedCopyMutation.reset(); }} className="rounded-full border border-[#D7E4F2] px-4 py-2 text-sm font-bold text-[#0C2B49] disabled:opacity-50">Cancel</button></div>
+            </form>}
             <GoogleDraftPanel document={document} />
           </div>
         )}
