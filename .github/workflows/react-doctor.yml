@@ -53,10 +53,7 @@ jobs:
         id: react_doctor
         run: |
           OUTPUT=$(pnpm dlx react-doctor@0.0.37 . --verbose --score 2>&1 || true)
-          SCORE=$(printf '%s' "$OUTPUT" | node -e "const fs=require('fs');const s=fs.readFileSync(0,'utf8');const m=[...s.matchAll(/Score:\s*(\d+)/g)];process.stdout.write(m.length?m[m.length-1][1]:'0');")
-          if [ -z "$SCORE" ]; then
-            SCORE=0
-          fi
+          SCORE=$(printf '%s' "$OUTPUT" | node scripts/parse-react-doctor-score.mjs)
 
           SAFE_OUTPUT=$(printf '%s' "$OUTPUT" | node -e "const fs=require('fs');const s=fs.readFileSync(0,'utf8');const max=60000;process.stdout.write(s.length>max ? s.slice(0,max)+'\\n\\n[truncated for CI comment]' : s);")
           DELIM="RD_OUTPUT_$(date +%s)_$RANDOM"
