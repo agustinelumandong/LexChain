@@ -1,13 +1,13 @@
 import { z } from "zod";
 
 export const dashboardResponseSchema = z.object({
-  total_users: z.number(),
-  total_lawyers: z.number(),
-  total_documents: z.number(),
-  total_processed: z.number(),
-  total_failed: z.number(),
-  total_on_chain: z.number(),
-  pending_invitations: z.number(),
+  total_users: z.number().int().nonnegative(),
+  total_lawyers: z.number().int().nonnegative(),
+  total_documents: z.number().int().nonnegative(),
+  total_processed: z.number().int().nonnegative(),
+  total_failed: z.number().int().nonnegative(),
+  total_on_chain: z.number().int().nonnegative(),
+  pending_invitations: z.number().int().nonnegative(),
 });
 
 export type DashboardResponse = z.infer<typeof dashboardResponseSchema>;
