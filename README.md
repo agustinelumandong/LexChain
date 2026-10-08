@@ -57,7 +57,7 @@ To update the contract intentionally, provide its full endpoint URL, review the 
 OPENAPI_URL='http://localhost:8000/openapi.json' pnpm refresh:api-contract
 git diff -- openapi-updated.json
 pnpm generate:api-types
-git diff -- lib/types/generated/schema.ts
+git diff -- src/shared/types/generated/schema.ts
 ```
 
 Refresh requires `OPENAPI_URL` and replaces the contract only after a successful response and validation. It does not generate types automatically. Do not edit the generated schema by hand.
