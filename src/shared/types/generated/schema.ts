@@ -15,10 +15,10 @@ export interface paths {
         put?: never;
         /**
          * Register a new user
-         * @description Create a new user account with email, password, and username.
+         * @description Create a new user account with email, password, and name.
          *
          *         - **Email Verification**: If enabled in Supabase, user must verify email before signing in.
-         *         - **Username**: Must be 3-30 characters, alphanumeric and underscores only.
+         *         - **Name**: First and last name, 1-50 characters, letters/spaces/hyphens/apostrophes.
          *         - **Password**: Must be at least 8 characters with uppercase, lowercase, and digit.
          *         - **Rate Limit**: 5 requests per minute.
          */
@@ -53,6 +53,31 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/auth/signout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Sign out
+         * @description End the caller's session.
+         *
+         *         - **Scope**: Revokes only the session this token belongs to; other devices
+         *           stay signed in.
+         *         - **Client**: Clear the stored access and refresh tokens after calling this.
+         *         - **Idempotent**: Signing out an already-ended session still returns 200.
+         */
+        post: operations["sign_out_auth_signout_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/auth/resend-verification": {
         parameters: {
             query?: never;
@@ -67,6 +92,7 @@ export interface paths {
          * @description Resend the verification email for users who haven't verified their email yet.
          *
          *         - **Use Case**: When verification link expires or email was not received.
+         *         - **Response**: Always the same message, whether or not the address has an account.
          *         - **Rate Limit**: 3 requests per minute.
          */
         post: operations["resend_verification_auth_resend_verification_post"];
@@ -141,11 +167,39 @@ export interface paths {
         };
         /**
          * List all documents
-         * @description Return the latest version of every document belonging to or shared with the authenticated user.
+         * @description Every document belonging to or shared with the authenticated user, optionally filtered by lifecycle.
          */
         get: operations["get_all_user_documents_documents__get"];
         put?: never;
-        post?: never;
+        /**
+         * Open a document (Path 1)
+         * @description Open a document record before anything is signed. The working draft lives in Google Docs; the record starts PREPARING with no file and no register entry.
+         */
+        post: operations["open_document_documents__post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/documents/upload": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Upload an already signed document (Path 2)
+         * @description Upload a signed/notarized PDF and file it in a register book. The document is SIGNED and waits for the lawyer to finalize it — nothing is processed yet.
+         *
+         *     `doc_no` / `page_no` are the Doc. No. and Page No. from the notarial block. Optional for an OPEN book — the next free entry is used. Required for a CLOSED book, where they are copied from the paper register.
+         *
+         *     Refused with 409 `READY_FOR_SIGNATURE_EXISTS` while documents are waiting for their signed copy, unless `confirm_new_record=true`.
+         */
+        post: operations["upload_document_documents_upload_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -171,12 +225,12 @@ export interface paths {
         head?: never;
         /**
          * Rename a document
-         * @description Update the display name of a draft. Only the document owner (or admin) may rename, and only while the document is a DRAFT.
+         * @description Change the display name, until the document is finalized. Owner only.
          */
         patch: operations["rename_document_documents__document_id__patch"];
         trace?: never;
     };
-    "/documents/upload": {
+    "/documents/{document_id}/draft": {
         parameters: {
             query?: never;
             header?: never;
@@ -186,17 +240,41 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Upload a document
-         * @description Upload a PDF document. Only lawyers and admins may upload.
+         * Create the working draft in Google Docs
+         * @description Creates the draft in the lawyer's own Google Drive and shares it with every accepted client as a commenter (another lawyer on the document as an editor). Open `draft_url` in a new tab afterwards.
+         *
+         *     `source`: `blank` (new empty Doc), `template` (copy of `file_id`) or `existing` (use `file_id` itself). `file_id` comes from the Google Picker — see `GET /google/picker-token`.
+         *
+         *     Only while PREPARING, and only once per document.
          */
-        post: operations["upload_document_documents_upload_post"];
+        post: operations["create_draft_documents__document_id__draft_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/documents/{document_id}/update": {
+    "/documents/{document_id}/comments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Comments on the working draft
+         * @description The comment threads from the Google Docs draft, as of the last sync. Kept after the draft is locked, as the record of how the text was agreed. Owner and accepted parties.
+         */
+        get: operations["list_draft_comments_documents__document_id__comments_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/documents/{document_id}/comments/sync": {
         parameters: {
             query?: never;
             header?: never;
@@ -206,17 +284,138 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Update a document (new version)
-         * @description Upload a new file as the next version of an existing document. Only the document owner (or admin) may update, and only from the latest version. A finalized version is never overwritten — it stays immutable and on-chain while the new draft is appended to the chain.
+         * Pull the latest comments from Google Docs
+         * @description Syncs right away instead of waiting for the scheduled sync, and notifies the people in each thread about anything new.
          */
-        post: operations["update_document_documents__document_id__update_post"];
+        post: operations["sync_draft_comments_documents__document_id__comments_sync_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/documents/{document_id}/versions": {
+    "/documents/{document_id}/ready": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Mark ready for signature
+         * @description The text is agreed: the Google Docs draft is locked (clients can only read it) and it goes to print. Only from PREPARING. Comments are synced first, and this is refused with 409 `UNRESOLVED_COMMENTS` while any thread on the draft is open.
+         */
+        post: operations["mark_ready_documents__document_id__ready_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/documents/{document_id}/reopen": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Back to preparing
+         * @description Send a document that is ready for signature back to PREPARING. Clients can comment on the draft again.
+         */
+        post: operations["reopen_documents__document_id__reopen_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/documents/{document_id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Cancel a document that was never signed
+         * @description Only from PREPARING or READY_FOR_SIGNATURE. The record is kept.
+         */
+        post: operations["cancel_documents__document_id__cancel_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/documents/{document_id}/signed-copy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Replace the signed copy
+         * @description Swap in the right signed copy before finalize. A reason is required and the previous copy is kept.
+         */
+        put: operations["replace_signed_copy_documents__document_id__signed_copy_put"];
+        /**
+         * Attach the signed copy (Path 1)
+         * @description Attach the signed/notarized PDF to the record it was prepared in and file it in a register book. Only from READY_FOR_SIGNATURE.
+         */
+        post: operations["attach_signed_copy_documents__document_id__signed_copy_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/documents/{document_id}/signed-copies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** All signed copies, newest first */
+        get: operations["get_signed_copies_documents__document_id__signed_copies_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/documents/{document_id}/entry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Correct the register entry
+         * @description Fix the Doc. No. / Page No. (or book) of a SIGNED document before finalize.
+         */
+        patch: operations["correct_entry_documents__document_id__entry_patch"];
+        trace?: never;
+    };
+    "/documents/{document_id}/history": {
         parameters: {
             query?: never;
             header?: never;
@@ -224,10 +423,10 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Get version history
-         * @description Return the full version chain for a document (newest → oldest), including which version is latest and which are finalized. Accessible by owner, any party, or admin.
+         * Lifecycle history
+         * @description Every lifecycle action on the document, oldest first.
          */
-        get: operations["get_version_history_documents__document_id__versions_get"];
+        get: operations["get_history_documents__document_id__history_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -340,6 +539,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/documents/{document_id}/finalize": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Finalize a document
+         * @description The lawyer confirms the signed copy. Freezes it, anchors the SHA-256 of the PDF on-chain, then queues OCR and analysis on the frozen copy. Only from SIGNED. This is the only point at which a document is hashed on-chain.
+         */
+        post: operations["finalize_document_documents__document_id__finalize_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/documents/{document_id}/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Verify a document against the chain
+         * @description Hashes the stored signed copy as it is now and compares it with the hash anchored on-chain. The verdict is computed server-side.
+         */
+        get: operations["verify_document_documents__document_id__verify_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/documents/{document_id}/extraction": {
         parameters: {
             query?: never;
@@ -395,77 +634,9 @@ export interface paths {
         put?: never;
         /**
          * Approve extracted text
-         * @description Freeze the reviewed text and queue chunking, embedding and analysis. Nothing is derived from the text before this point, so the search index and the on-chain snapshot are always built from what the issuer approved.
+         * @description Freeze the reviewed text and queue chunking, embedding and analysis. Nothing is derived from the text before this point, so the search index is always built from what the issuer approved. The text is never anchored — the chain holds the hash of the signed PDF.
          */
         post: operations["approve_extraction_documents__document_id__extraction_approve_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/documents/{document_id}/verify": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Verify a document and show what was tampered with
-         * @description Re-extracts the document as it is stored now, hashes it, and compares against the hash anchored on-chain. The verdict is computed server-side.
-         *
-         *     If it does not match, the stored original is first re-verified against the chain so the comparison baseline is provably genuine, then the two are diffed and the changed sections are returned with severity — changes to amounts and figures rank `critical`. Each section carries a word-level breakdown so the exact edit can be highlighted.
-         *
-         *     If the stored original was altered too, the response says so rather than diffing against a doctored baseline.
-         */
-        get: operations["verify_document_documents__document_id__verify_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/documents/{document_id}/restore": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Restore a document from its archived original
-         * @description Replaces the stored file with the archived original. Deliberately manual: run it after `verify` reports tampering, having reviewed what changed.
-         *
-         *     The archived copy is re-read and checked against the blockchain hash before it is trusted — a backup that does not match the chain is refused rather than restored. The file being replaced is preserved first, since on a notarised document the tampered copy may be evidence.
-         *
-         *     Slow: verifying the archive costs a full OCR pass.
-         */
-        post: operations["restore_document_documents__document_id__restore_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/documents/{document_id}/finalize": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Finalize a document
-         * @description Freeze the latest draft: create an immutable snapshot of the extracted text, anchor its hash on-chain, and set the finalized/lifecycle fields. This is the only point at which a document is hashed on-chain.
-         */
-        post: operations["finalize_document_documents__document_id__finalize_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -595,6 +766,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/users/{user_id}/active": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Activate or deactivate a user
+         * @description Deactivating blocks the account on its next request and stops it signing in. You cannot deactivate yourself or the last active lawyer.
+         */
+        patch: operations["set_user_active_admin_users__user_id__active_patch"];
+        trace?: never;
+    };
     "/notifications/": {
         parameters: {
             query?: never;
@@ -678,7 +869,7 @@ export interface paths {
         put?: never;
         /**
          * Create a book
-         * @description Create a new physical register book for the authenticated lawyer.
+         * @description Create a register book. OPEN for the book in current use — at most one per year. CLOSED to migrate a finished physical book: documents filed in it must give their Doc. No. and Page No. from the paper register.
          */
         post: operations["create_book_books__post"];
         delete?: never;
@@ -703,9 +894,110 @@ export interface paths {
         post?: never;
         /**
          * Delete a book
-         * @description Delete a book and all its documents. Only the owner may delete.
+         * @description Delete an empty book. Only the owner may delete, and only while no document is filed in it — documents, finalized ones especially, are never removed by deleting their book.
          */
         delete: operations["delete_book_books__book_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/books/{book_id}/close": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Close a book
+         * @description Mark the register as finished so the next book for its year can be opened. One-way. Documents can still be filed in a closed book with explicit Doc. No. and Page No.
+         */
+        post: operations["close_book_books__book_id__close_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/google/connect": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Start connecting a Google account
+         * @description Returns Google's consent URL. Send the lawyer's browser there; Google redirects back to `/google/callback`, which then redirects to the app.
+         */
+        post: operations["connect_google_connect_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/google/callback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Google's OAuth redirect target
+         * @description Called by Google, not the app — there is no bearer token; the `state` identifies the lawyer. Redirects to GOOGLE_CONNECTED_REDIRECT with `?google=connected` or `?google=error&message=...`.
+         */
+        get: operations["callback_google_callback_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/google/connection": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Is a Google account connected? */
+        get: operations["get_connection_google_connection_get"];
+        put?: never;
+        post?: never;
+        /**
+         * Disconnect Google
+         * @description Revokes LexChain's access. Existing drafts stay in the lawyer's Drive.
+         */
+        delete: operations["disconnect_google_connection_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/google/picker-token": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Token for the Google Picker
+         * @description A short-lived access token for the frontend's Google Picker, used to choose an existing Doc or a template. Picking a file is what grants LexChain access to it.
+         */
+        get: operations["picker_token_google_picker_token_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -822,8 +1114,15 @@ export interface components {
              */
             text: string;
         };
-        /** Body_update_document_documents__document_id__update_post */
-        Body_update_document_documents__document_id__update_post: {
+        /** Body_attach_signed_copy_documents__document_id__signed_copy_post */
+        Body_attach_signed_copy_documents__document_id__signed_copy_post: {
+            /** File */
+            file: string;
+        };
+        /** Body_replace_signed_copy_documents__document_id__signed_copy_put */
+        Body_replace_signed_copy_documents__document_id__signed_copy_put: {
+            /** Reason */
+            reason: string;
             /** File */
             file: string;
         };
@@ -844,6 +1143,13 @@ export interface components {
              * @description The year this book belongs to.
              */
             series_year: number;
+            /**
+             * Status
+             * @description OPEN for the register in current use. CLOSED to migrate a finished physical book; documents filed in it must give their Doc. No. and Page No. from the paper register.
+             * @default OPEN
+             * @enum {string}
+             */
+            status: "OPEN" | "CLOSED";
         };
         /** BookResponse */
         BookResponse: {
@@ -856,12 +1162,29 @@ export interface components {
             book_number: number;
             /** Series Year */
             series_year: number;
-            /** Document Count */
-            document_count: number;
-            /** Page Count */
-            page_count: number;
-            /** Is Full */
-            is_full: boolean;
+            /**
+             * Status
+             * @description OPEN | CLOSED
+             */
+            status: string;
+            /** Closed At */
+            closed_at?: string | null;
+            /**
+             * Entry Count
+             * @description Documents filed in this book
+             * @default 0
+             */
+            entry_count: number;
+            /**
+             * Last Doc No
+             * @description Highest Doc. No. used
+             */
+            last_doc_no?: number | null;
+            /**
+             * Last Page No
+             * @description Highest Page No. used
+             */
+            last_page_no?: number | null;
             /**
              * Created At
              * Format: date-time
@@ -870,19 +1193,64 @@ export interface components {
             /** Updated At */
             updated_at?: string | null;
         };
+        /**
+         * CorrectEntryRequest
+         * @description Correct the register entry of a signed document.
+         */
+        CorrectEntryRequest: {
+            /**
+             * Book Id
+             * @description Defaults to the current book
+             */
+            book_id?: string | null;
+            /** Doc No */
+            doc_no: number;
+            /** Page No */
+            page_no: number;
+        };
+        /**
+         * CreateDraftRequest
+         * @description Create the working draft in the lawyer's Google Drive.
+         */
+        CreateDraftRequest: {
+            /**
+             * Source
+             * @description blank — a new empty Doc; template — a copy of `file_id`; existing — `file_id` itself, a Doc the lawyer already started
+             * @default blank
+             * @enum {string}
+             */
+            source: "blank" | "template" | "existing";
+            /**
+             * File Id
+             * @description Drive file id from the Google Picker. Required unless source is blank
+             */
+            file_id?: string | null;
+        };
         /** CreateInvitationRequest */
         CreateInvitationRequest: {
             /**
              * Email
+             * Format: email
              * @description Email to invite
              */
             email: string;
             /**
              * Role
-             * @description lawyer | admin
+             * @description lawyer | user
              * @default lawyer
+             * @enum {string}
              */
-            role: string;
+            role: "lawyer" | "user";
+        };
+        /** DocumentHistoryResponse */
+        DocumentHistoryResponse: {
+            /**
+             * Document Id
+             * Format: uuid
+             */
+            document_id: string;
+            /** Changes */
+            changes: components["schemas"]["StageChangeResponse"][];
         };
         /**
          * DocumentInvitationActionResponse
@@ -1047,10 +1415,40 @@ export interface components {
              */
             can_rename: boolean;
             /**
-             * Can Create Version
-             * @description May upload a new version
+             * Can Create Draft
+             * @description May create the Google Docs draft
              */
-            can_create_version: boolean;
+            can_create_draft: boolean;
+            /**
+             * Can Mark Ready
+             * @description May mark it ready for signature
+             */
+            can_mark_ready: boolean;
+            /**
+             * Can Reopen
+             * @description May send it back to preparing
+             */
+            can_reopen: boolean;
+            /**
+             * Can Attach Signed Copy
+             * @description May attach the signed PDF
+             */
+            can_attach_signed_copy: boolean;
+            /**
+             * Can Replace Signed Copy
+             * @description May replace the signed PDF
+             */
+            can_replace_signed_copy: boolean;
+            /**
+             * Can Correct Entry
+             * @description May correct Doc. No. / Page No.
+             */
+            can_correct_entry: boolean;
+            /**
+             * Can Cancel
+             * @description May cancel the document
+             */
+            can_cancel: boolean;
             /**
              * Can Finalize
              * @description May snapshot and anchor on-chain
@@ -1080,64 +1478,51 @@ export interface components {
             document_id: string;
             /**
              * File Name
-             * @description Name of the uploaded file
+             * @description Display name
              */
             file_name: string;
             /**
-             * Storage Url
-             * @description Storage Url of the Document
+             * Lifecycle
+             * @description PREPARING | READY_FOR_SIGNATURE | SIGNED | FINALIZED | CANCELLED
              */
-            storage_url: string;
-            /**
-             * Content Type
-             * @description MIME type of the uploaded file
-             */
-            content_type: string;
+            lifecycle: string;
             /**
              * Status
-             * @description Processing status of the document
+             * @description Processing status; null until the document is finalized
              */
-            status: string;
+            status?: string | null;
             /**
              * On Chain
              * @description Check if document is already recorded on-chain or not
              */
             on_chain: boolean;
             /**
+             * Draft Url
+             * @description Working draft in Google Docs. Reference only — not the legal document
+             */
+            draft_url?: string | null;
+            /** @description The current signed copy — what finalize will freeze */
+            signed_copy?: components["schemas"]["SignedCopyResponse"] | null;
+            /**
              * Document Hash
-             * @description SHA-256 of the uploaded PDF bytes, taken at upload. Identifies the file itself — two uploads of the same PDF share this value.
+             * @description SHA-256 of the current signed copy. This is the value anchored on-chain at finalize, so it is what verification compares against.
              */
-            document_hash: string;
+            document_hash?: string | null;
             /**
-             * Content Hash
-             * @description SHA-256 of the approved extracted text, set when the issuer approves the review. This is the value anchored on-chain at finalize, so it is what verification compares against. Null until the review is approved.
+             * Book Id
+             * @description Register book it is filed in
              */
-            content_hash?: string | null;
+            book_id?: string | null;
             /**
-             * Version
-             * @description Version number within its chain
+             * Doc No
+             * @description Doc. No. in the register
              */
-            version: number;
+            doc_no?: number | null;
             /**
-             * Is Latest
-             * @description Check if document is the latest version
+             * Page No
+             * @description Page No. in the register
              */
-            is_latest: boolean;
-            /**
-             * Lifecycle
-             * @description DRAFT | FINALIZED | ARCHIVED
-             */
-            lifecycle: string;
-            /**
-             * Root Document Id
-             * @description First version of this document's chain
-             */
-            root_document_id?: string | null;
-            /**
-             * Previous Document Id
-             * @description The version this one supersedes
-             */
-            previous_document_id?: string | null;
+            page_no?: number | null;
             /**
              * Finalized At
              * @description When the document was finalized and anchored
@@ -1148,6 +1533,8 @@ export interface components {
              * @description User who finalized the document
              */
             finalized_by?: string | null;
+            /** Cancelled At */
+            cancelled_at?: string | null;
             /** @description What the requesting user may do with this document */
             permissions: components["schemas"]["DocumentPermissions"];
             /**
@@ -1179,35 +1566,13 @@ export interface components {
              * Format: date-time
              */
             created_at: string;
-            /**
-             * Updated At
-             * Format: date-time
-             */
-            updated_at: string;
+            /** Updated At */
+            updated_at?: string | null;
         };
         /**
-         * DocumentUploadAcceptedResponse
-         * @description Response payload returned immediately after upload is accepted.
+         * DocumentUploadResponse
+         * @description A document in the list view.
          */
-        DocumentUploadAcceptedResponse: {
-            /**
-             * Document Id
-             * Format: uuid
-             * @description Document identifier.
-             */
-            document_id: string;
-            /**
-             * Status
-             * @description Current document status after upload.
-             */
-            status: string;
-            /**
-             * Message
-             * @description Human-readable processing state.
-             */
-            message: string;
-        };
-        /** DocumentUploadResponse */
         DocumentUploadResponse: {
             /**
              * Id
@@ -1217,19 +1582,19 @@ export interface components {
             id: string;
             /**
              * File Name
-             * @description Name of the uploaded file
+             * @description Display name
              */
             file_name: string;
             /**
-             * Content Type
-             * @description MIME type of the uploaded file
+             * Lifecycle
+             * @description PREPARING | READY_FOR_SIGNATURE | SIGNED | FINALIZED | CANCELLED
              */
-            content_type: string;
+            lifecycle: string;
             /**
              * Status
-             * @description Processing status of the document
+             * @description Processing status; null until the document is finalized
              */
-            status: string;
+            status?: string | null;
             /**
              * On Chain
              * @description Check if doc is on chain
@@ -1253,24 +1618,24 @@ export interface components {
              */
             shared_at?: string | null;
             /**
-             * Version
-             * @description Version number within its chain
+             * Book Id
+             * @description Register book it is filed in
              */
-            version: number;
+            book_id?: string | null;
             /**
-             * Is Latest
-             * @description Check if document is the latest version
+             * Doc No
+             * @description Doc. No. in the register
              */
-            is_latest: boolean;
+            doc_no?: number | null;
             /**
-             * Lifecycle
-             * @description DRAFT | FINALIZED | ARCHIVED
+             * Page No
+             * @description Page No. in the register
              */
-            lifecycle: string;
+            page_no?: number | null;
             /**
              * Created At
              * Format: date-time
-             * @description When the document was uploaded
+             * @description When the document was created
              */
             created_at: string;
         };
@@ -1299,18 +1664,8 @@ export interface components {
              */
             storage_url?: string | null;
             /**
-             * Page Count
-             * @description Pages in the current document
-             */
-            page_count?: number | null;
-            /**
-             * Blocks
-             * @description The document as it stands NOW, same shape as the review screen so the same viewer can render it. Tampered blocks are the ones whose index appears as `block_index` in tamper_report.segments.
-             */
-            blocks?: components["schemas"]["ExtractionBlock"][];
-            /**
              * Status
-             * @description AUTHENTIC — current text matches the chain; TAMPERED — it does not; SNAPSHOT_COMPROMISED — the stored original was altered too, so no trustworthy baseline exists to diff against; NOT_ANCHORED — the document was never finalized; VERIFICATION_UNAVAILABLE — the document could not be re-read, so integrity is unknown (this is not a tamper result)
+             * @description AUTHENTIC — the stored file matches the chain; TAMPERED — it does not; SNAPSHOT_COMPROMISED — the stored original was altered too, so no trustworthy baseline exists to diff against; NOT_ANCHORED — the document was never finalized; VERIFICATION_UNAVAILABLE — the document could not be re-read, so integrity is unknown (this is not a tamper result)
              */
             status: string;
             /** Is Authentic */
@@ -1348,13 +1703,91 @@ export interface components {
              * Format: date-time
              */
             verified_at: string;
-            /** @description Present only when tampering was detected and localizable */
-            tamper_report?: components["schemas"]["TamperReport"] | null;
             /**
              * Message
              * @description Human-readable verdict
              */
             message: string;
+        };
+        /** DraftCommentListResponse */
+        DraftCommentListResponse: {
+            /**
+             * Document Id
+             * Format: uuid
+             */
+            document_id: string;
+            /**
+             * Synced At
+             * @description Last sync from Google Docs
+             */
+            synced_at?: string | null;
+            /**
+             * Unresolved
+             * @description Open threads; Ready is refused while > 0
+             */
+            unresolved: number;
+            /** Comments */
+            comments: components["schemas"]["DraftCommentResponse"][];
+        };
+        /** DraftCommentResponse */
+        DraftCommentResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Author Name */
+            author_name: string;
+            /**
+             * Author User Id
+             * @description The LexChain user, when the Google author could be matched
+             */
+            author_user_id?: string | null;
+            /**
+             * Is Lawyer
+             * @default false
+             */
+            is_lawyer: boolean;
+            /** Content */
+            content: string;
+            /**
+             * Quoted Text
+             * @description The draft text the comment is on
+             */
+            quoted_text?: string | null;
+            /** Resolved */
+            resolved: boolean;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Replies */
+            replies?: components["schemas"]["DraftReplyResponse"][];
+        };
+        /** DraftReplyResponse */
+        DraftReplyResponse: {
+            /** Author Name */
+            author_name: string;
+            /** Author User Id */
+            author_user_id?: string | null;
+            /**
+             * Is Lawyer
+             * @default false
+             */
+            is_lawyer: boolean;
+            /** Content */
+            content: string;
+            /**
+             * Action
+             * @description resolve | reopen, when the reply did that
+             */
+            action?: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
         };
         /**
          * ExtractionBlock
@@ -1530,6 +1963,39 @@ export interface components {
             /** Results */
             results: components["schemas"]["GlobalSearchHit"][];
         };
+        /** GoogleConnectResponse */
+        GoogleConnectResponse: {
+            /**
+             * Authorization Url
+             * @description Send the browser here; Google redirects back to /google/callback
+             */
+            authorization_url: string;
+        };
+        /** GoogleConnectionStatus */
+        GoogleConnectionStatus: {
+            /** Connected */
+            connected: boolean;
+            /**
+             * Google Email
+             * @description The connected Google account
+             */
+            google_email?: string | null;
+            /** Connected At */
+            connected_at?: string | null;
+        };
+        /**
+         * GooglePickerToken
+         * @description What the frontend's Google Picker needs to show the lawyer's Drive.
+         */
+        GooglePickerToken: {
+            /** Access Token */
+            access_token: string;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+        };
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
@@ -1614,7 +2080,15 @@ export interface components {
          * NotificationType
          * @enum {string}
          */
-        NotificationType: "party_added" | "party_removed" | "document_recorded" | "document_processed" | "document_failed";
+        NotificationType: "party_added" | "party_removed" | "document_recorded" | "document_processed" | "document_failed" | "draft_comment" | "draft_reply" | "draft_resolved" | "draft_reopened";
+        /**
+         * OpenDocumentRequest
+         * @description Path 1 — open a document record before anything is signed.
+         */
+        OpenDocumentRequest: {
+            /** File Name */
+            file_name: string;
+        };
         /**
          * RecordResponse
          * @description Response returned after recording a document on-chain.
@@ -1660,17 +2134,6 @@ export interface components {
             /** Message */
             message: string;
         };
-        /**
-         * RenameDocumentRequest
-         * @description Request payload for renaming a document.
-         */
-        RenameDocumentRequest: {
-            /**
-             * File Name
-             * @description New display name for the document.
-             */
-            file_name: string;
-        };
         /** ResendVerificationRequest */
         ResendVerificationRequest: {
             /**
@@ -1679,34 +2142,6 @@ export interface components {
              * @description Email address to resend verification to
              */
             email: string;
-        };
-        /**
-         * RestoreResponse
-         * @description Result of restoring a document from its archived original.
-         */
-        RestoreResponse: {
-            /**
-             * Document Id
-             * Format: uuid
-             */
-            document_id: string;
-            /**
-             * Restored From
-             * @description Archive key the original came from
-             */
-            restored_from: string;
-            /**
-             * Evidence Key
-             * @description Where the replaced (tampered) file was preserved before restoring; null if it could not be read, e.g. it had been deleted
-             */
-            evidence_key?: string | null;
-            /**
-             * Verified Hash
-             * @description Hash of the restored file, matched against the chain
-             */
-            verified_hash: string;
-            /** Message */
-            message: string;
         };
         /** SearchHit */
         SearchHit: {
@@ -1739,6 +2174,14 @@ export interface components {
             /** Results */
             results: components["schemas"]["SearchHit"][];
         };
+        /** SetUserActiveRequest */
+        SetUserActiveRequest: {
+            /**
+             * Is Active
+             * @description False deactivates the account, True restores it
+             */
+            is_active: boolean;
+        };
         /** SignInRequest */
         SignInRequest: {
             /**
@@ -1749,7 +2192,7 @@ export interface components {
             email: string;
             /**
              * Password
-             * @description Valid password
+             * @description The user's password
              */
             password: string;
         };
@@ -1798,7 +2241,7 @@ export interface components {
             email: string;
             /**
              * Role
-             * @description lawyer — full authority (upload, review, finalize, admin panel); user — client, may only view documents they are a party to. Legacy accounts may report 'admin' or 'super_admin', which are treated exactly as 'lawyer'.
+             * @description lawyer — full authority (upload, review, finalize, admin panel); user — client, may only view documents they are a party to.
              */
             role: string;
         };
@@ -1825,11 +2268,6 @@ export interface components {
              * @description Valid last name
              */
             l_name: string;
-            /**
-             * Phone Number
-             * @description Valid Phone number
-             */
-            phone_number: string | null;
         };
         /** SignUpResponse */
         SignUpResponse: {
@@ -1856,103 +2294,89 @@ export interface components {
              */
             requires_email_confirmation: boolean;
         };
-        /**
-         * TamperReport
-         * @description Summary of everything that differs from the attested text.
-         */
-        TamperReport: {
-            /** Segments */
-            segments?: components["schemas"]["TamperedSegment"][];
-            /** Total Changes */
-            total_changes: number;
-            /** Critical Changes */
-            critical_changes: number;
-            /** Replaced */
-            replaced: number;
-            /** Inserted */
-            inserted: number;
-            /** Deleted */
-            deleted: number;
+        /** SignedCopyListResponse */
+        SignedCopyListResponse: {
             /**
-             * Similarity
-             * @description 0-1 similarity between attested and current text
+             * Document Id
+             * Format: uuid
              */
-            similarity: number;
-            /**
-             * Localized
-             * @description True when segments carry page coordinates. False for documents finalized before block layout was stored — the diff is then text-only and bbox/page_idx are null
-             * @default true
-             */
-            localized: boolean;
+            document_id: string;
+            /** Copies */
+            copies: components["schemas"]["SignedCopyResponse"][];
         };
         /**
-         * TamperedSegment
-         * @description One part of the document that no longer matches what was attested.
+         * SignedCopyResponse
+         * @description One uploaded signed/notarized PDF.
          */
-        TamperedSegment: {
+        SignedCopyResponse: {
             /**
-             * Type
-             * @description replace | insert | delete
+             * Id
+             * Format: uuid
              */
-            type: string;
+            id: string;
+            /** Storage Url */
+            storage_url: string;
             /**
-             * Severity
-             * @description critical (money/figures) | major (dates, references) | minor (wording)
+             * Sha256
+             * @description SHA-256 of the PDF bytes
              */
-            severity: string;
+            sha256: string;
+            /** Content Type */
+            content_type: string;
+            /** Size Bytes */
+            size_bytes: number;
+            /** Original Filename */
+            original_filename?: string | null;
+            /** Uploaded By */
+            uploaded_by?: string | null;
             /**
-             * Reason
-             * @description What changed, in plain terms
+             * Replaced Reason
+             * @description Why this copy replaced the previous one
              */
-            reason: string;
+            replaced_reason?: string | null;
             /**
-             * Original Text
-             * @description Text as attested on-chain
+             * Is Current
+             * @description Whether this is the copy finalize will freeze
+             * @default false
              */
-            original_text: string;
+            is_current: boolean;
             /**
-             * Current Text
-             * @description Text as it stands now
+             * Created At
+             * Format: date-time
              */
-            current_text: string;
-            /** Original Line Start */
-            original_line_start: number;
-            /** Original Line End */
-            original_line_end: number;
-            /** Current Line Start */
-            current_line_start: number;
-            /** Current Line End */
-            current_line_end: number;
+            created_at: string;
+        };
+        /**
+         * StageChangeResponse
+         * @description One lifecycle action on a document.
+         */
+        StageChangeResponse: {
+            /** From Stage */
+            from_stage: string | null;
+            /** To Stage */
+            to_stage: string;
+            /** Action */
+            action: string;
+            /** Actor Id */
+            actor_id: string | null;
             /**
-             * Block Index
-             * @description Block this change sits in, in the CURRENT document
+             * Created At
+             * Format: date-time
              */
-            block_index?: number | null;
-            /**
-             * Original Block Index
-             * @description Block it occupied in the attested original
-             */
-            original_block_index?: number | null;
-            /**
-             * Page Idx
-             * @description Zero-based page of the change
-             */
-            page_idx?: number | null;
-            /**
-             * Bbox
-             * @description [x0, y0, x1, y1] normalized 0-1000 per page, same convention as the review screen — outline this region to show what was altered
-             */
-            bbox?: number[] | null;
-            /**
-             * Word Diff
-             * @description Word-level ops for highlighting the exact edit
-             */
-            word_diff?: components["schemas"]["WordDiffPart"][];
+            created_at: string;
         };
         /** UnreadCountResponse */
         UnreadCountResponse: {
             /** Unread */
             unread: number;
+        };
+        /**
+         * UpdateDocumentRequest
+         * @description Rename the document.
+         */
+        UpdateDocumentRequest: {
+            /** File Name */
+            file_name: string;
         };
         /**
          * UpdateExtractionRequest
@@ -2020,76 +2444,6 @@ export interface components {
             input?: unknown;
             /** Context */
             ctx?: Record<string, never>;
-        };
-        /**
-         * VersionHistoryItem
-         * @description A single entry in the document's version chain
-         */
-        VersionHistoryItem: {
-            /**
-             * Document Id
-             * Format: uuid
-             */
-            document_id: string;
-            /** Version */
-            version: number;
-            /** File Name */
-            file_name: string;
-            /** Document Hash */
-            document_hash: string;
-            /** Status */
-            status: string;
-            /** Lifecycle */
-            lifecycle: string;
-            /** Tx Hash */
-            tx_hash: string | null;
-            /** Is Latest */
-            is_latest: boolean;
-            /** Finalized At */
-            finalized_at: string | null;
-            /**
-             * Created At
-             * Format: date-time
-             */
-            created_at: string;
-        };
-        /**
-         * VersionHistoryResponse
-         * @description The full version chain for a document
-         */
-        VersionHistoryResponse: {
-            /**
-             * Current Document Id
-             * Format: uuid
-             */
-            current_document_id: string;
-            /**
-             * Root Document Id
-             * Format: uuid
-             */
-            root_document_id: string;
-            /**
-             * Latest Document Id
-             * Format: uuid
-             */
-            latest_document_id: string;
-            /** Versions */
-            versions: components["schemas"]["VersionHistoryItem"][];
-            /** Total Version */
-            total_version: number;
-        };
-        /**
-         * WordDiffPart
-         * @description A run of words inside a changed segment, for inline highlighting.
-         */
-        WordDiffPart: {
-            /**
-             * Op
-             * @description equal | added | removed
-             */
-            op: string;
-            /** Text */
-            text: string;
         };
     };
     responses: never;
@@ -2183,7 +2537,7 @@ export interface operations {
                     "application/json": components["schemas"]["SignInResponse"];
                 };
             };
-            /** @description Invalid credentials or email not verified */
+            /** @description Invalid credentials, email not verified, or account deactivated */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -2213,6 +2567,47 @@ export interface operations {
                     "application/json": unknown;
                 };
             };
+            /** @description Failed to connect to Supabase */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    sign_out_auth_signout_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Session ended */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessageResponse"];
+                };
+            };
+            /** @description Not authenticated — missing or invalid bearer token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Failed to connect to Supabase — the session was NOT revoked */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
         };
     };
     resend_verification_auth_resend_verification_post: {
@@ -2228,7 +2623,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Verification email sent successfully */
+            /** @description Request accepted */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -2236,13 +2631,6 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["MessageResponse"];
                 };
-            };
-            /** @description Could not send verification email */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
             };
             /** @description Validation Error */
             422: {
@@ -2368,6 +2756,8 @@ export interface operations {
             query?: {
                 limit?: number;
                 offset?: number;
+                /** @description Filter by lifecycle stage */
+                lifecycle?: string | null;
             };
             header?: never;
             path?: never;
@@ -2386,6 +2776,130 @@ export interface operations {
             };
             /** @description Not authenticated — missing or invalid bearer token */
             401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    open_document_documents__post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OpenDocumentRequest"];
+            };
+        };
+        responses: {
+            /** @description Document opened */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentResponse"];
+                };
+            };
+            /** @description Not authenticated — missing or invalid bearer token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden — only lawyers may open documents */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    upload_document_documents_upload_post: {
+        parameters: {
+            query: {
+                file_name: string;
+                book_id: string;
+                /** @description Doc. No. in the register */
+                doc_no?: number | null;
+                /** @description Page No. in the register */
+                page_no?: number | null;
+                /** @description Confirm this is not the signed copy of a document already open */
+                confirm_new_record?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_upload_document_documents_upload_post"];
+            };
+        };
+        responses: {
+            /** @description Document filed, SIGNED */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentResponse"];
+                };
+            };
+            /** @description Empty file, unsupported file type, file exceeds size limit, or register numbers missing/out of range */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not authenticated — missing or invalid bearer token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden — only lawyers may upload documents */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Book not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Same file already filed, Doc. No. taken, page full, or documents waiting for a signed copy */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2458,7 +2972,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["RenameDocumentRequest"];
+                "application/json": components["schemas"]["UpdateDocumentRequest"];
             };
         };
         responses: {
@@ -2468,15 +2982,8 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["DocumentUploadResponse"];
+                    "application/json": components["schemas"]["DocumentResponse"];
                 };
-            };
-            /** @description Not authenticated — missing or invalid bearer token */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
             };
             /** @description Forbidden — only the document owner may rename */
             403: {
@@ -2492,7 +2999,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Document is finalized or archived and cannot be modified */
+            /** @description Finalized or cancelled */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -2510,68 +3017,9 @@ export interface operations {
             };
         };
     };
-    upload_document_documents_upload_post: {
+    create_draft_documents__document_id__draft_post: {
         parameters: {
-            query: {
-                file_name: string;
-                book_id: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "multipart/form-data": components["schemas"]["Body_upload_document_documents_upload_post"];
-            };
-        };
-        responses: {
-            /** @description Document accepted for processing */
-            202: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DocumentUploadAcceptedResponse"];
-                };
-            };
-            /** @description Empty file, unsupported file type, or file exceeds size limit */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Not authenticated — missing or invalid bearer token */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Forbidden — only lawyers may upload documents */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    update_document_documents__document_id__update_post: {
-        parameters: {
-            query: {
-                file_name: string;
-            };
+            query?: never;
             header?: never;
             path: {
                 document_id: string;
@@ -2580,34 +3028,27 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "multipart/form-data": components["schemas"]["Body_update_document_documents__document_id__update_post"];
+                "application/json": components["schemas"]["CreateDraftRequest"];
             };
         };
         responses: {
-            /** @description Update accepted for processing */
-            202: {
+            /** @description Draft created and shared */
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["DocumentUploadAcceptedResponse"];
+                    "application/json": components["schemas"]["DocumentResponse"];
                 };
             };
-            /** @description Empty file, unsupported file type, or file exceeds size limit */
+            /** @description No file picked, or the picked file is not a Google Doc */
             400: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description Not authenticated — missing or invalid bearer token */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Forbidden — only the document owner may update */
+            /** @description Forbidden — only the document owner may create the draft */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -2621,8 +3062,53 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description This version has been superseded — update the latest one */
+            /** @description Not PREPARING, a draft already exists, or Google is not connected (`GOOGLE_NOT_CONNECTED`) */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Google Drive is unreachable */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    list_draft_comments_documents__document_id__comments_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                document_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DraftCommentListResponse"];
+                };
+            };
+            /** @description Document not found */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2639,7 +3125,7 @@ export interface operations {
             };
         };
     };
-    get_version_history_documents__document_id__versions_get: {
+    sync_draft_comments_documents__document_id__comments_sync_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -2650,28 +3136,301 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Version history */
+            /** @description Successful Response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["VersionHistoryResponse"];
+                    "application/json": components["schemas"]["DraftCommentListResponse"];
                 };
             };
-            /** @description Not authenticated — missing or invalid bearer token */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Document not found or user has no access */
+            /** @description Document not found */
             404: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description The lawyer's Google account is not connected */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Google Drive is unreachable */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    mark_ready_documents__document_id__ready_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                document_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reopen_documents__document_id__reopen_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                document_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    cancel_documents__document_id__cancel_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                document_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    replace_signed_copy_documents__document_id__signed_copy_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                document_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_replace_signed_copy_documents__document_id__signed_copy_put"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    attach_signed_copy_documents__document_id__signed_copy_post: {
+        parameters: {
+            query: {
+                book_id: string;
+                /** @description Doc. No. in the register */
+                doc_no?: number | null;
+                /** @description Page No. in the register */
+                page_no?: number | null;
+            };
+            header?: never;
+            path: {
+                document_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_attach_signed_copy_documents__document_id__signed_copy_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_signed_copies_documents__document_id__signed_copies_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                document_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SignedCopyListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    correct_entry_documents__document_id__entry_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                document_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CorrectEntryRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_history_documents__document_id__history_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                document_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentHistoryResponse"];
+                };
             };
             /** @description Validation Error */
             422: {
@@ -2976,6 +3735,110 @@ export interface operations {
             };
         };
     };
+    finalize_document_documents__document_id__finalize_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                document_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Finalized document */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecordResponse"];
+                };
+            };
+            /** @description Not authenticated — missing or invalid bearer token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden — only the document owner may finalize */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Document not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not SIGNED, or the stored file no longer matches the upload */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    verify_document_documents__document_id__verify_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                document_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Verification result, with a tamper report when applicable */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentVerificationResponse"];
+                };
+            };
+            /** @description Not authenticated — missing or invalid bearer token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Document not found, or it has no on-chain record */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_extraction_review_documents__document_id__extraction_get: {
         parameters: {
             query?: never;
@@ -3206,176 +4069,6 @@ export interface operations {
                 content?: never;
             };
             /** @description Already approved, or document is not awaiting review */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    verify_document_documents__document_id__verify_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                document_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Verification result, with a tamper report when applicable */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DocumentVerificationResponse"];
-                };
-            };
-            /** @description Not authenticated — missing or invalid bearer token */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Document not found, or it has no on-chain record */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    restore_document_documents__document_id__restore_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                document_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Restored and verified against the chain */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RestoreResponse"];
-                };
-            };
-            /** @description Not authenticated — missing or invalid bearer token */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Forbidden — only the document owner may restore */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Document not found, no archived copy, or no on-chain record */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Not finalized, or the archive does not match the chain */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    finalize_document_documents__document_id__finalize_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                document_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Finalized document */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecordResponse"];
-                };
-            };
-            /** @description Document is not fully processed yet */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Not authenticated — missing or invalid bearer token */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Forbidden — only the document owner may finalize */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Document not found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Document is already finalized, archived, or superseded */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -3667,6 +4360,62 @@ export interface operations {
             };
         };
     };
+    set_user_active_admin_users__user_id__active_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetUserActiveRequest"];
+            };
+        };
+        responses: {
+            /** @description Account updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminUserResponse"];
+                };
+            };
+            /** @description Would lock out the last lawyer, or is yourself */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not a lawyer */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description User not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_notifications_notifications__get: {
         parameters: {
             query?: {
@@ -3872,6 +4621,13 @@ export interface operations {
                     "application/json": components["schemas"]["BookResponse"];
                 };
             };
+            /** @description Book number already used for that year, or another book for that year is still open */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
             /** @description Not authenticated — missing or invalid bearer token */
             401: {
                 headers: {
@@ -3988,6 +4744,13 @@ export interface operations {
                 };
                 content?: never;
             };
+            /** @description Book still holds documents */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
             /** @description Validation Error */
             422: {
                 headers: {
@@ -3995,6 +4758,177 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    close_book_books__book_id__close_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                book_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Book closed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BookResponse"];
+                };
+            };
+            /** @description Not authenticated — missing or invalid bearer token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden — only lawyers may close books */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Book not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Book is already closed */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    connect_google_connect_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GoogleConnectResponse"];
+                };
+            };
+        };
+    };
+    callback_google_callback_get: {
+        parameters: {
+            query?: {
+                code?: string | null;
+                state?: string | null;
+                /** @description Set by Google when consent was denied */
+                error?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            302: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_connection_google_connection_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GoogleConnectionStatus"];
+                };
+            };
+        };
+    };
+    disconnect_google_connection_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    picker_token_google_picker_token_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GooglePickerToken"];
                 };
             };
         };

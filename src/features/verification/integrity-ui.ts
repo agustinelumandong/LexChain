@@ -1,25 +1,40 @@
 import type { DemoIntegrityState } from "@/features/documents";
 
-type IntegrityRecord = { onchain_hash?: string | null; is_authentic?: boolean } | null | undefined;
+type IntegrityRecord = {
+  status?: string;
+  baseline_trusted?: boolean;
+  onchain_hash?: string | null;
+  is_authentic?: boolean;
+} | null | undefined;
 
-export type IntegrityUiState = 'recorded' | 'not_recorded' | 'unavailable' | 'match' | 'mismatch';
+export type IntegrityUiState = 'recorded' | 'not_recorded' | 'unavailable' | 'match' | 'mismatch' | 'snapshot_compromised' | 'not_anchored' | 'not_found_or_unanchored';
 
 export type IntegrityUiInput = {
   record: IntegrityRecord;
   requestFailed: boolean;
+  notFoundOrUnanchored?: boolean;
 };
 
-export function getIntegrityUiState({ record, requestFailed }: IntegrityUiInput): IntegrityUiState {
+export function getIntegrityUiState({ record, requestFailed, notFoundOrUnanchored }: IntegrityUiInput): IntegrityUiState {
   if (requestFailed) return 'unavailable';
+  if (notFoundOrUnanchored) return 'not_found_or_unanchored';
   if (!record) return 'not_recorded';
+  if (record.status === 'AUTHENTIC') return record.is_authentic ? 'match' : 'unavailable';
+  if (record.status === 'TAMPERED') return record.is_authentic === false ? 'mismatch' : 'unavailable';
+  if (record.status === 'SNAPSHOT_COMPROMISED') return 'snapshot_compromised';
+  if (record.status === 'NOT_ANCHORED') return 'not_anchored';
+  if (record.status === 'VERIFICATION_UNAVAILABLE') return 'unavailable';
+  if (record.baseline_trusted === false) return 'snapshot_compromised';
+  if (record.status) return 'unavailable';
   if (record.is_authentic === false) return 'mismatch';
   return record.onchain_hash ? 'recorded' : 'not_recorded';
 }
 
 export function getDemoIntegrityState(state: IntegrityUiState): DemoIntegrityState {
   if (state === 'recorded' || state === 'match') return 'match';
-  if (state === 'not_recorded') return 'not-recorded';
-  return state;
+  if (state === 'not_recorded' || state === 'not_anchored' || state === 'not_found_or_unanchored') return 'not-recorded';
+  if (state === 'snapshot_compromised') return 'mismatch';
+  return state === 'mismatch' ? 'mismatch' : 'unavailable';
 }
 
 export function shortenIntegrityHash(hash: string): string {
@@ -53,6 +68,21 @@ const integrityUiCopy: Record<IntegrityUiState, IntegrityUiCopy> = {
     label: 'Integrity status unavailable',
     description: 'The repository integrity record could not be retrieved. Please retry.',
     tone: 'warning',
+  },
+  snapshot_compromised: {
+    label: 'Trusted snapshot is compromised',
+    description: 'The stored original could not be trusted as a baseline, so this result does not claim the current file was tampered with.',
+    tone: 'warning',
+  },
+  not_anchored: {
+    label: 'Document is not anchored',
+    description: 'The backend reports that this document has no on-chain integrity record.',
+    tone: 'neutral',
+  },
+  not_found_or_unanchored: {
+    label: 'Document not found or has no on-chain record',
+    description: 'The backend could not find this document or it has not been anchored.',
+    tone: 'neutral',
   },
   match: {
     label: 'Match',

@@ -3,35 +3,57 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DocumentWorkspace } from '@/features/documents/components/document-workspace';
+import type { ApiSchema } from '@/shared/types';
 
-const { finalizeDocumentMock, listDocumentVersionsMock } = vi.hoisted(() => ({
+const { finalizeDocumentMock, listSignedCopiesMock } = vi.hoisted(() => ({
   finalizeDocumentMock: vi.fn(),
-  listDocumentVersionsMock: vi.fn(),
+  listSignedCopiesMock: vi.fn(),
 }));
 
 vi.mock('@/features/documents/document-lifecycle-api', () => ({
   finalizeDocument: finalizeDocumentMock,
-  listDocumentVersions: listDocumentVersionsMock,
+  listSignedCopies: listSignedCopiesMock,
 }));
 
-const document = {
+const document: ApiSchema<'DocumentResponse'> = {
   document_id: 'doc-101',
   file_name: 'service-agreement.pdf',
-  status: 'COMPLETED',
-  content_type: 'application/pdf',
-  storage_url: 'https://files.example/service-agreement.pdf',
+  status: null,
+  lifecycle: 'PREPARING',
+  on_chain: false,
+  draft_url: 'https://docs.google.com/document/d/draft-101',
+  signed_copy: {
+    id: 'copy-101',
+    storage_url: 'https://files.example/service-agreement.pdf',
+    sha256: 'signed-hash',
+    content_type: 'application/pdf',
+    size_bytes: 1024,
+    original_filename: 'service-agreement-signed.pdf',
+    is_current: true,
+    created_at: '2026-07-28T00:00:00Z',
+  },
+  permissions: {
+    can_view: true,
+    can_rename: false,
+    can_create_draft: false,
+    can_mark_ready: false,
+    can_reopen: false,
+    can_attach_signed_copy: false,
+    can_replace_signed_copy: false,
+    can_correct_entry: false,
+    can_cancel: false,
+    can_finalize: false,
+    can_share: false,
+    can_revoke: false,
+  },
   summary: 'A summary generated from the document.',
   labels: ['Service agreement'],
   entities: [{ name: 'Acme Legal' }],
   risk_flags: [{ severity: 'review', detail: 'Payment term' }],
-  lifecycle: 'draft' as const,
-  document_hash: null,
-  finalized_at: null,
-  finalized_by: null,
-  anchor_status: null,
+  created_at: '2026-07-28T00:00:00Z',
 };
 
-const finalizationRecord = {
+const finalizationRecord: ApiSchema<'RecordResponse'> = {
   document_id: 'doc-101',
   tx_hash: '0xtxhash101',
   onchain_document_id: 'onchain-doc-101',
@@ -50,7 +72,6 @@ function renderWorkspace(props: Partial<React.ComponentProps<typeof DocumentWork
     <QueryClientProvider client={queryClient}>
       <DocumentWorkspace
         document={document}
-        role="lawyer"
         {...props}
       />
     </QueryClientProvider>,
@@ -60,7 +81,7 @@ function renderWorkspace(props: Partial<React.ComponentProps<typeof DocumentWork
 
 describe('DocumentWorkspace', () => {
   beforeEach(() => {
-    listDocumentVersionsMock.mockResolvedValue({ total_version: 1, versions: [] });
+    listSignedCopiesMock.mockResolvedValue({ document_id: 'doc-101', copies: [] });
   });
 
   afterEach(() => {
@@ -68,11 +89,20 @@ describe('DocumentWorkspace', () => {
     vi.clearAllMocks();
   });
 
-  it('shows the API version history instead of only demo snapshots', async () => {
-    listDocumentVersionsMock.mockResolvedValue({ total_version: 2, versions: [{ document_id: 'doc-101', version: 2, file_name: 'updated.pdf', status: 'AWAITING_REVIEW', lifecycle: 'DRAFT', is_latest: true, created_at: '2026-07-28T00:00:00Z' }] });
+  it('shows supported signed-copy history separately from document versions', async () => {
+    listSignedCopiesMock.mockResolvedValue({ document_id: 'doc-101', copies: [
+      { id: 'copy-current', storage_url: 'https://files.example/current.pdf', sha256: 'current-hash', content_type: 'application/pdf', size_bytes: 100, original_filename: 'current.pdf', uploaded_by: null, replaced_reason: null, is_current: true, created_at: '2026-07-28T00:00:00Z' },
+      { id: 'copy-old', storage_url: 'https://files.example/old.pdf', sha256: 'old-hash', content_type: 'application/pdf', size_bytes: 90, original_filename: 'old.pdf', uploaded_by: null, replaced_reason: 'Corrected scan', is_current: false, created_at: '2026-07-27T00:00:00Z' },
+    ] });
     renderWorkspace();
-    fireEvent.click(screen.getByRole('tab', { name: 'Versions' }));
-    expect(await screen.findByText('Version 2 · Latest')).toBeTruthy();
+    expect(listSignedCopiesMock).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('tab', { name: 'Signed copies' }));
+    expect(await screen.findByText('current.pdf')).toBeTruthy();
+    expect(listSignedCopiesMock).toHaveBeenCalledTimes(1);
+    expect(screen.getByText('Current copy')).toBeTruthy();
+    expect(screen.getByText('old.pdf')).toBeTruthy();
+    expect(screen.getByText('Replaced: Corrected scan')).toBeTruthy();
+    expect(screen.getByText('old-hash')).toBeTruthy();
   });
 
   it('shows populated document metadata in the Overview tab', () => {
@@ -81,15 +111,16 @@ describe('DocumentWorkspace', () => {
     const overview = screen.getByRole('tabpanel');
     expect(within(overview).getByRole('heading', { name: 'Overview' })).toBeTruthy();
     expect(within(overview).getByText('Filename').nextElementSibling?.textContent).toBe('service-agreement.pdf');
-    expect(within(overview).getByText('Content type').nextElementSibling?.textContent).toBe('application/pdf');
-    expect(within(overview).getByText('Lifecycle status').nextElementSibling?.textContent).toBe('COMPLETED');
+    expect(within(overview).getByText('Signed copy content type').nextElementSibling?.textContent).toBe('application/pdf');
+    expect(within(overview).getByText('Processing status').nextElementSibling?.textContent).toBe('No processing status yet');
+    expect(within(overview).getByText('Document lifecycle').nextElementSibling?.textContent).toBe('Preparing');
   });
 
   it('marks missing Overview metadata as not supplied', () => {
-    renderWorkspace({ document: { ...document, content_type: null, storage_url: null } });
+    renderWorkspace({ document: { ...document, signed_copy: null } });
 
     const overview = screen.getByRole('tabpanel');
-    expect(within(overview).getByText('Content type').nextElementSibling?.textContent).toBe('Not supplied');
+    expect(within(overview).getByText('Signed copy content type').nextElementSibling?.textContent).toBe('Not supplied');
   });
 
   it('keeps original files and derived insights in separate tabs', () => {
@@ -99,25 +130,26 @@ describe('DocumentWorkspace', () => {
     expect(screen.getByText(/AI-generated assistance/i)).toBeTruthy();
     expect(screen.getByText(/original document remains authoritative/i)).toBeTruthy();
 
-    fireEvent.click(screen.getByRole('tab', { name: 'Original PDF' }));
-    expect(screen.getByRole('link', { name: 'Open original PDF' }).getAttribute('href')).toBe(document.storage_url);
-    expect(screen.getByRole('link', { name: 'Download original PDF' }).hasAttribute('download')).toBe(true);
+    fireEvent.click(screen.getByRole('tab', { name: 'Files' }));
+    expect(screen.getByRole('link', { name: 'Open current signed PDF' }).getAttribute('href')).toBe(document.signed_copy?.storage_url);
+    expect(screen.getByRole('link', { name: 'Download current signed PDF' }).hasAttribute('download')).toBe(true);
+    expect(screen.getByRole('link', { name: 'Open Google draft' }).getAttribute('href')).toBe(document.draft_url);
 
     fireEvent.click(screen.getByRole('tab', { name: 'Blockchain' }));
-    expect(screen.getByText(/no blockchain record is available/i)).toBeTruthy();
+    expect(screen.getByText(/not been finalized or recorded on-chain/i)).toBeTruthy();
   });
 
   it('explains unavailable data without inventing controls or restricted workflow actions', () => {
-    renderWorkspace({ document: { ...document, status: 'PROCESSING', storage_url: '', summary: null, labels: [], entities: [], risk_flags: [] } });
+    renderWorkspace({ document: { ...document, status: 'PROCESSING', signed_copy: null, draft_url: null, summary: null, labels: [], entities: [], risk_flags: [] } });
 
-    fireEvent.click(screen.getByRole('tab', { name: 'Original PDF' }));
-    expect(screen.getByText(/original PDF is not available/i)).toBeTruthy();
-    expect(screen.queryByRole('link', { name: /original PDF/i })).toBeNull();
+    fireEvent.click(screen.getByRole('tab', { name: 'Files' }));
+    expect(screen.getByText('No signed PDF is attached to this document yet.')).toBeTruthy();
+    expect(screen.queryByRole('link', { name: /signed PDF/i })).toBeNull();
     expect(screen.queryByText(/AI-generated assistance/i)).toBeNull();
 
     fireEvent.click(screen.getByRole('tab', { name: 'Blockchain' }));
-    expect(screen.getByText(/no blockchain record is available/i)).toBeTruthy();
-    expect(screen.queryByText(/Anchor to Blockchain|Finali[sz]e|Confirm record/i)).toBeNull();
+    expect(screen.getByText(/not been finalized or recorded on-chain/i)).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /Anchor|Finalize|Confirm record/i })).toBeNull();
   });
 
   it('shows the document hash from the document record in Overview', () => {
@@ -132,8 +164,15 @@ describe('DocumentWorkspace', () => {
     renderWorkspace({ document: { ...document, document_hash: 'a'.repeat(64) } });
 
     fireEvent.click(screen.getByRole('tab', { name: 'Blockchain' }));
-    const mismatch = screen.getByText('No blockchain record is available in the current document record.');
-    expect(mismatch).toBeTruthy();
+    expect(screen.getByText('This document has not been finalized or recorded on-chain.')).toBeTruthy();
+  });
+
+  it('shows an on-chain anchor only when the backend reports one', () => {
+    renderWorkspace({ document: { ...document, on_chain: true, lifecycle: 'FINALIZED', document_hash: 'chain-hash' } });
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Blockchain' }));
+    expect(screen.getByText('Recorded on-chain')).toBeTruthy();
+    expect(screen.getByText('chain-hash')).toBeTruthy();
   });
 
   it('renders one-key insight objects as readable key-value details', () => {
@@ -142,20 +181,10 @@ describe('DocumentWorkspace', () => {
     expect(screen.getByText('name — Acme Legal')).toBeTruthy();
   });
 
-  it('keeps a non-demo document response read-only when lifecycle fields are absent', () => {
-    renderWorkspace({
-      document: {
-        ...document,
-        lifecycle: undefined as never,
-        document_hash: undefined as never,
-        finalized_at: undefined as never,
-        finalized_by: undefined as never,
-        anchor_status: undefined as never,
-        snapshots: undefined as never,
-      },
-    });
+  it('keeps a document read-only when its backend permissions deny actions', () => {
+    renderWorkspace();
 
-    expect(screen.getByText('Document lifecycle').nextElementSibling?.textContent).toBe('Not available');
+    expect(screen.getByText('Document lifecycle').nextElementSibling?.textContent).toBe('Preparing');
     expect(screen.queryByRole('button', { name: 'Finalize' })).toBeNull();
   });
 
@@ -199,23 +228,21 @@ describe('DocumentWorkspace', () => {
     expect(screen.queryByText('datahash101')).toBeNull();
   });
 
-  it.each([
-    ['Access', 'Manage document participants', '/portal/documents/doc-101/participants'],
-    ['Activity', 'View document activity', '/portal/documents/doc-101/activity'],
-  ] as const)('links %s to its existing document surface', (tab, label, href) => {
-    renderWorkspace();
+  it('links to participant management only when the backend grants share or revoke permission', () => {
+    renderWorkspace({ document: { ...document, permissions: { ...document.permissions, can_share: true } } });
 
-    fireEvent.click(screen.getByRole('tab', { name: tab }));
-    expect(screen.getByRole('link', { name: label }).getAttribute('href')).toBe(href);
+    fireEvent.click(screen.getByRole('tab', { name: 'Access' }));
+    expect(screen.getByRole('link', { name: 'Manage document participants' }).getAttribute('href'))
+      .toBe('/portal/documents/doc-101/participants');
+    fireEvent.click(screen.getByRole('tab', { name: 'Activity' }));
+    expect(screen.getByRole('link', { name: 'View document activity' }).getAttribute('href'))
+      .toBe('/portal/documents/doc-101/activity');
   });
 
-  it.each([
-    ['Access', 'Manage document participants'],
-    ['Activity', 'View document activity'],
-  ] as const)('does not show the issuer-only %s link to participants', (tab, label) => {
-    renderWorkspace({ role: 'user' });
+  it('does not show participant management when the backend denies share and revoke', () => {
+    renderWorkspace();
 
-    fireEvent.click(screen.getByRole('tab', { name: tab }));
-    expect(screen.queryByRole('link', { name: label })).toBeNull();
+    fireEvent.click(screen.getByRole('tab', { name: 'Access' }));
+    expect(screen.queryByRole('link', { name: 'Manage document participants' })).toBeNull();
   });
 });

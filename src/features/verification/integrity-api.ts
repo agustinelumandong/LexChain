@@ -9,7 +9,7 @@ async function integrityFetch<T>(path: string, method: 'GET' | 'POST' = 'GET'): 
     cache: 'no-store',
   });
 
-  if (!response.ok) throw new Error(`API error: ${response.status}`);
+  if (!response.ok) throw Object.assign(new Error(`API error: ${response.status}`), { status: response.status });
   return response.json() as Promise<T>;
 }
 
