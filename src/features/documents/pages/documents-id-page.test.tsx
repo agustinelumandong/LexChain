@@ -10,6 +10,7 @@ const { state } = vi.hoisted(() => ({
     documentQuery: {} as Record<string, unknown>,
     profileQuery: {} as Record<string, unknown>,
     signedCopiesQuery: {} as Record<string, unknown>,
+    commentsQuery: {} as Record<string, unknown>,
     queryKeys: [] as string[][],
   },
 }));
@@ -19,7 +20,8 @@ vi.mock('@tanstack/react-query', () => ({
     state.queryKeys = queries.map(({ queryKey }) => queryKey.map(String));
     return [state.documentQuery, state.profileQuery];
   },
-  useQuery: () => state.signedCopiesQuery,
+  useQuery: ({ queryKey }: { queryKey: readonly unknown[] }) =>
+    queryKey[0] === 'portal-document-comments' ? state.commentsQuery : state.signedCopiesQuery,
   useQueryClient: () => ({ invalidateQueries: vi.fn() }),
   useMutation: () => ({ mutate: vi.fn(), reset: vi.fn(), isPending: false, error: null }),
 }));
@@ -79,6 +81,7 @@ beforeEach(() => {
   state.documentQuery = { data: baseDocument, isLoading: false, isError: false, refetch: vi.fn() };
   state.profileQuery = { data: { role: 'document_issuer' }, isLoading: false, isError: false };
   state.signedCopiesQuery = { data: { document_id: 'doc-1', copies: [] }, isLoading: false, isError: false };
+  state.commentsQuery = { data: { document_id: 'doc-1', unresolved: 0, synced_at: null, comments: [] }, isLoading: false, isError: false };
 });
 
 afterEach(cleanup);
