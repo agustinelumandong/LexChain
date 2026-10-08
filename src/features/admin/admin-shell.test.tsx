@@ -28,3 +28,29 @@ it("signs out through the admin session route and returns to unified login", asy
     expect(push).toHaveBeenCalledWith("/login");
   });
 });
+
+it("returns to unified login when the session route reports a backend failure", async () => {
+  const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 502 }));
+  vi.stubGlobal("fetch", fetchMock);
+  render(<AdminShell><p>Admin content</p></AdminShell>);
+
+  fireEvent.click(screen.getByRole("button", { name: "Admin profile options" }));
+  fireEvent.click(screen.getByRole("button", { name: "Logout" }));
+
+  await waitFor(() => {
+    expect(push).toHaveBeenCalledWith("/login");
+  });
+});
+
+it("returns to unified login when the session route cannot be reached", async () => {
+  const fetchMock = vi.fn().mockRejectedValue(new Error("Network error"));
+  vi.stubGlobal("fetch", fetchMock);
+  render(<AdminShell><p>Admin content</p></AdminShell>);
+
+  fireEvent.click(screen.getByRole("button", { name: "Admin profile options" }));
+  fireEvent.click(screen.getByRole("button", { name: "Logout" }));
+
+  await waitFor(() => {
+    expect(push).toHaveBeenCalledWith("/login");
+  });
+});

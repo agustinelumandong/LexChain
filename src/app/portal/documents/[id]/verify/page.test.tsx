@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, render, screen } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import DocumentVerifyPage from '@/features/documents/pages/documents-id-verify-page';
@@ -28,15 +28,30 @@ function renderPage() {
 }
 
 afterEach(() => {
+  cleanup();
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
 });
 
 describe('DocumentVerifyPage', () => {
+  const verification = (status: string, isAuthentic: boolean, baselineTrusted: boolean) => ({
+    document_id: 'doc-1',
+    status,
+    is_authentic: isAuthentic,
+    baseline_trusted: baselineTrusted,
+    onchain_hash: 'on-chain-hash',
+    snapshot_hash: 'snapshot-hash',
+    current_hash: 'current-hash',
+    tx_hash: 'transaction-hash',
+    onchain_timestamp: 1_760_000_000,
+    issued_by: null,
+    finalized_at: '2026-10-07T10:00:00Z',
+    verified_at: '2026-10-08T10:00:00Z',
+    message: `${status} verification message.`,
+  });
+
   it('auto-starts verification on mount', async () => {
-    const fetchMock = vi.fn().mockResolvedValue(Response.json({
-      status: 'AUTHENTIC', is_authentic: true, message: 'Document matches the anchored hash.',
-    }));
+    const fetchMock = vi.fn().mockResolvedValue(Response.json(verification('AUTHENTIC', true, true)));
     vi.stubGlobal('fetch', fetchMock);
 
     renderPage();
@@ -50,32 +65,48 @@ describe('DocumentVerifyPage', () => {
     expect(screen.getByRole('status', { name: 'Verifying document integrity' })).toBeTruthy();
   });
 
-  it('renders the server tamper report instead of a generic warning', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json({ status: 'TAMPERED', is_authentic: false, message: 'Hash mismatch.', storage_url: 'https://example.test/deed.pdf', page_count: 1, blocks: [], tamper_report: { total_changes: 1, critical_changes: 1, similarity: 0.98, localized: false, segments: [{ type: 'replace', severity: 'critical', reason: 'Amount changed', original_text: 'PHP 500', current_text: 'PHP 50', original_line_start: 1, original_line_end: 1, current_line_start: 1, current_line_end: 1, block_index: null, page_idx: null, word_diff: [] }] } })));
+  it('shows tampering as distinct from a compromised snapshot without an undocumented report', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json(verification('TAMPERED', false, true))));
     renderPage();
     expect(await screen.findByText('Document was tampered with')).toBeTruthy();
-    expect(screen.getByText(/Amount changed/)).toBeTruthy();
-    expect(screen.getByText(/text only/i)).toBeTruthy();
+    expect(screen.getAllByText('on-chain-hash').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('current-hash').length).toBeGreaterThan(0);
+    expect(screen.queryByRole('button', { name: 'Restore' })).toBeNull();
   });
 
-  it('offers Restore only when the document is tampered', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json({ status: 'TAMPERED', is_authentic: false, message: 'Hash mismatch.', tamper_report: { total_changes: 1, critical_changes: 0, similarity: 0.9, localized: false, segments: [] } })));
+  it('fails closed when AUTHENTIC conflicts with is_authentic=false', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json(verification('AUTHENTIC', false, true))));
     renderPage();
-    expect(await screen.findByRole('button', { name: 'Restore' })).toBeTruthy();
+
+    expect(await screen.findByText('Integrity status unavailable')).toBeTruthy();
+    expect(screen.queryByText('Document is authentic')).toBeNull();
   });
 
-  it('restores the document and re-verifies it', async () => {
-    const fetchMock = vi.fn()
-      .mockResolvedValueOnce(Response.json({ status: 'TAMPERED', is_authentic: false, message: 'Hash mismatch.', tamper_report: { total_changes: 1, critical_changes: 0, similarity: 0.9, localized: false, segments: [] } }))
-      .mockResolvedValueOnce(Response.json({ message: 'restored' }))
-      .mockResolvedValueOnce(Response.json({ status: 'AUTHENTIC', is_authentic: true, message: 'Document matches the anchored hash.' }));
-    vi.stubGlobal('fetch', fetchMock);
-
+  it.each([
+    ['AUTHENTIC', true, true, 'Document is authentic'],
+    ['NOT_ANCHORED', false, false, 'Document is not anchored'],
+    ['VERIFICATION_UNAVAILABLE', false, true, 'Integrity status unavailable'],
+    ['SNAPSHOT_COMPROMISED', false, false, 'Trusted snapshot is compromised'],
+  ])('preserves the %s verification verdict', async (status, authentic, baseline, heading) => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json(verification(status, authentic, baseline))));
     renderPage();
-    const restoreButton = await screen.findByRole('button', { name: 'Restore' });
-    fireEvent.click(restoreButton);
+    expect(await screen.findByText(heading)).toBeTruthy();
+  });
 
-    expect(await screen.findByText('Document restored and re-verified')).toBeTruthy();
-    expect(fetchMock.mock.calls.some((call) => String(call[0]).includes(encodeURIComponent('/documents/doc-1/restore')))).toBe(true);
+  it('labels a failed verification request separately from a backend tamper verdict', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json({ detail: 'Gateway unavailable' }, { status: 503 })));
+    renderPage();
+
+    expect(await screen.findByText('Verification request failed')).toBeTruthy();
+    expect(screen.queryByText('Document was tampered with')).toBeNull();
+    expect(screen.queryByText('Integrity status unavailable')).toBeNull();
+  });
+
+  it('explains a 404 as a missing or unanchored document without offering a retry', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json({ detail: 'Document not found' }, { status: 404 })));
+    renderPage();
+
+    expect(await screen.findByText('Document not found or no on-chain record')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Retry verification' })).toBeNull();
   });
 });

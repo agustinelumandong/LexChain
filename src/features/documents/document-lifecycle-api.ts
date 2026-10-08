@@ -1,32 +1,4 @@
 import type { ApiSchema } from '@/shared/types/index';
-import type {
-  DemoDocumentLifecycle,
-  DemoDocumentSnapshot,
-} from '@/features/documents/document-lifecycle-ui';
-
-export type DraftCommentReply = {
-  author_name: string;
-  content: string;
-  created_at: string;
-  action?: string | null;
-};
-
-export type DraftComment = {
-  id: string;
-  author_name: string;
-  content: string;
-  quoted_text?: string | null;
-  resolved: boolean;
-  created_at: string;
-  replies?: DraftCommentReply[];
-};
-
-export type DraftCommentList = {
-  document_id: string;
-  synced_at?: string | null;
-  unresolved: number;
-  comments: DraftComment[];
-};
 
 function required(value: string, message: string): string {
   const normalized = value.trim();
@@ -55,31 +27,21 @@ export async function finalizeDocument(documentId: string): Promise<ApiSchema<'R
   return lifecycleFetch(`/documents/${id}/finalize`, { method: 'POST' });
 }
 
-export function listDraftComments(documentId: string): Promise<DraftCommentList> {
+export function listDraftComments(documentId: string): Promise<ApiSchema<'DraftCommentListResponse'>> {
   return lifecycleFetch(`/documents/${required(documentId, 'Document ID is required')}/comments`);
 }
 
-export function syncDraftComments(documentId: string): Promise<DraftCommentList> {
+export function syncDraftComments(documentId: string): Promise<ApiSchema<'DraftCommentListResponse'>> {
   return lifecycleFetch(`/documents/${required(documentId, 'Document ID is required')}/comments/sync`, { method: 'POST' });
 }
 
-export function markDocumentReady(documentId: string): Promise<unknown> {
+export function markDocumentReady(documentId: string): Promise<ApiSchema<'DocumentResponse'>> {
   return lifecycleFetch(`/documents/${required(documentId, 'Document ID is required')}/ready`, { method: 'POST' });
 }
 
-export function reopenDocument(documentId: string): Promise<unknown> {
+export function reopenDocument(documentId: string): Promise<ApiSchema<'DocumentResponse'>> {
   return lifecycleFetch(`/documents/${required(documentId, 'Document ID is required')}/reopen`, { method: 'POST' });
 }
-
-type DocumentVersion = {
-  document_id: string;
-  version: number;
-  file_name: string;
-  status: string;
-  lifecycle: string;
-  is_latest: boolean;
-  created_at: string;
-};
 
 export async function renameDocument(documentId: string, fileName: string) {
   return lifecycleFetch(`/documents/${required(documentId, 'Document ID is required')}`, {
@@ -89,37 +51,6 @@ export async function renameDocument(documentId: string, fileName: string) {
   });
 }
 
-export async function listDocumentVersions(documentId: string): Promise<{ versions: DocumentVersion[]; total_version: number }> {
-  return lifecycleFetch(`/documents/${required(documentId, 'Document ID is required')}/versions`);
-}
-
-export async function createDocumentVersion(documentId: string, file: File) {
-  const id = required(documentId, 'Document ID is required');
-  if (file.type !== 'application/pdf') throw new Error('Choose a PDF file.');
-  const data = new FormData();
-  data.append('file', file);
-  return lifecycleFetch(`/documents/${id}/update?file_name=${encodeURIComponent(file.name)}`, {
-    method: 'POST',
-    body: data,
-  });
-}
-
-export async function listDemoSnapshots(documentId: string): Promise<DemoDocumentSnapshot[]> {
-  const id = required(documentId, 'Document ID is required');
-  return lifecycleFetch(`/documents/${id}/snapshots`);
-}
-
-export async function restoreDemoSnapshot(
-  documentId: string,
-  snapshotId: string,
-  reason: string,
-): Promise<DemoDocumentLifecycle> {
-  const id = required(documentId, 'Document ID is required');
-  const snapshot = required(snapshotId, 'Snapshot ID is required');
-  const restorationReason = required(reason, 'Restoration reason is required');
-  return lifecycleFetch(`/documents/${id}/snapshots/${snapshot}/restore`, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ reason: restorationReason }),
-  });
+export async function listSignedCopies(documentId: string): Promise<ApiSchema<'SignedCopyListResponse'>> {
+  return lifecycleFetch(`/documents/${required(documentId, 'Document ID is required')}/signed-copies`);
 }

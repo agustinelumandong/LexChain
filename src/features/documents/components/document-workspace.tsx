@@ -4,28 +4,14 @@ import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import type { ApiSchema } from '@/shared/types/index';
-import { listDocumentVersions, listDraftComments, syncDraftComments } from '@/features/documents/document-lifecycle-api';
-import type { DraftComment } from '@/features/documents/document-lifecycle-api';
-import type { DemoDocumentLifecycle } from '@/features/documents/document-lifecycle-ui';
+import { listDraftComments, listSignedCopies, syncDraftComments } from '@/features/documents/document-lifecycle-api';
+import { getDocumentLifecycleLabel, getDocumentStatusLabel } from '@/features/documents/document-ui';
 import { shortenIntegrityHash } from "@/features/verification";
-import type { PortalUiRole } from "@/features/access";
+import { GoogleDraftPanel } from '@/features/documents/components/google-draft-panel';
 
-type WorkspaceDocument = Partial<DemoDocumentLifecycle> & {
-  document_id: string;
-  file_name?: string | null;
-  on_chain?: boolean;
-  content_type?: string | null;
-  status?: string | null;
-  storage_url?: string | null;
-  summary?: string | null;
-  labels?: unknown[] | null;
-  entities?: unknown[] | null;
-  risk_flags?: unknown[] | null;
-  draft_url?: string | null;
-  permissions?: { can_mark_ready?: boolean; can_reopen?: boolean };
-};
+type WorkspaceDocument = ApiSchema<'DocumentResponse'>;
 
-const tabs = ['Overview', 'Comments', 'Original PDF', 'Blockchain', 'Versions', 'Access', 'Activity'] as const;
+const tabs = ['Overview', 'Files', 'Comments', 'Blockchain', 'Signed copies', 'Access', 'Activity'] as const;
 type Tab = typeof tabs[number];
 
 function readable(value: unknown): string {
@@ -47,32 +33,16 @@ function readable(value: unknown): string {
   return JSON.stringify(value);
 }
 
-function lifecycleLabel(value: DemoDocumentLifecycle['lifecycle'] | undefined) {
-  if (!value) return 'Not available';
-  return `${value[0].toUpperCase()}${value.slice(1)}`;
-}
-
-function anchorLabel(lifecycleStatus: string | undefined, onChain: boolean | undefined) {
-  if (onChain) return 'Anchored';
-  if (lifecycleStatus?.toUpperCase() === 'FINALIZED') return 'Anchoring';
-  return 'Not available';
+function anchorLabel(lifecycleStatus: string, onChain: boolean) {
+  if (onChain) return 'Recorded on-chain';
+  if (lifecycleStatus.toUpperCase() === 'FINALIZED') return 'Awaiting on-chain confirmation';
+  return 'Not finalized';
 }
 
 function formatDate(value: string | null | undefined) {
   return value
     ? new Date(value).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })
     : 'Not available';
-}
-
-function formatActivityTime(value: string) {
-  return new Date(value).toLocaleString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-    timeZone: 'UTC',
-  });
 }
 
 function InsightGroup({ title, items }: { title: string; items?: unknown[] | null }) {
@@ -88,26 +58,8 @@ function InsightGroup({ title, items }: { title: string; items?: unknown[] | nul
   );
 }
 
-function DraftCommentCard({ comment }: { comment: DraftComment }) {
-  return (
-    <article className="space-y-3 rounded-xl border border-[#E8F0F8] bg-[#F8FBFF] p-4">
-      <div className="flex flex-wrap justify-between gap-2 text-sm">
-        <p className="font-bold text-[#0C2B49]">{comment.author_name} <span className="font-normal text-[#64748b]">· {formatActivityTime(comment.created_at)}</span></p>
-        <span className="text-xs font-bold text-[#4B6382]">{comment.resolved ? 'Resolved' : 'Unresolved'}</span>
-      </div>
-      {comment.quoted_text && <blockquote className="border-l-2 border-[#98C9F5] pl-3 text-sm italic text-[#64748b]">{comment.quoted_text}</blockquote>}
-      <p className="whitespace-pre-wrap text-sm leading-6 text-[#0C2B49]">{comment.content}</p>
-      {comment.replies?.map((reply, index) => <div key={`${reply.created_at}-${index}`} className="ml-4 border-l border-[#D6E3F1] pl-3">
-        <p className="text-xs font-bold text-[#4B6382]">{reply.author_name} · {formatActivityTime(reply.created_at)}{reply.action ? ` · ${reply.action}` : ''}</p>
-        <p className="mt-1 whitespace-pre-wrap text-sm text-[#0C2B49]">{reply.content}</p>
-      </div>)}
-    </article>
-  );
-}
-
 type DocumentWorkspaceProps = {
   document: WorkspaceDocument;
-  role: PortalUiRole;
   finalizationResult?: ApiSchema<'RecordResponse'>;
   confirmingFinalize?: boolean;
   isFinalizing?: boolean;
@@ -115,9 +67,8 @@ type DocumentWorkspaceProps = {
   onCancelFinalize?: () => void;
   onConfirmFinalize?: () => void;
   success?: string;
-  versionError?: string | null;
   readinessError?: string | null;
-  readinessSuccess?: string | null;
+  readinessSuccess?: string;
   isChangingReadiness?: boolean;
   onMarkReady?: () => void;
   onReopen?: () => void;
@@ -127,7 +78,6 @@ const finalizationConfirmation = 'This will anchor the approved document hash on
 
 export function DocumentWorkspace({
   document,
-  role,
   finalizationResult,
   confirmingFinalize = false,
   isFinalizing = false,
@@ -135,33 +85,26 @@ export function DocumentWorkspace({
   onCancelFinalize,
   onConfirmFinalize,
   success,
-  versionError = null,
-  readinessError = null,
-  readinessSuccess = null,
+  readinessError,
+  readinessSuccess,
   isChangingReadiness = false,
   onMarkReady,
   onReopen,
 }: DocumentWorkspaceProps) {
   const [activeTab, setActiveTab] = useState<Tab>('Overview');
   const queryClient = useQueryClient();
-  const versionsQuery = useQuery({ queryKey: ['portal-doc-versions', document.document_id], queryFn: () => listDocumentVersions(document.document_id) });
-  const commentsQuery = useQuery({
-    queryKey: ['portal-document-comments', document.document_id],
-    queryFn: () => listDraftComments(document.document_id),
-    enabled: Boolean(document.draft_url) && activeTab === 'Comments',
-    retry: false,
-  });
-  const syncCommentsMutation = useMutation({
-    mutationFn: () => syncDraftComments(document.document_id),
-    onSuccess: (comments) => queryClient.setQueryData(['portal-document-comments', document.document_id], comments),
-  });
+  const signedCopiesQuery = useQuery({ queryKey: ['portal-doc-signed-copies', document.document_id], queryFn: () => listSignedCopies(document.document_id), enabled: activeTab === 'Signed copies' });
+  const commentsKey = ['portal-document-comments', document.document_id];
+  const commentsQuery = useQuery({ queryKey: commentsKey, queryFn: () => listDraftComments(document.document_id), enabled: activeTab === 'Comments' && Boolean(document.draft_url), retry: false });
+  const syncComments = useMutation({ mutationFn: () => syncDraftComments(document.document_id), onSuccess: (comments) => queryClient.setQueryData(commentsKey, comments) });
+  const visibleTabs = tabs.filter((tab) => tab !== 'Comments' || Boolean(document.draft_url));
   const hasInsights = Boolean(document.summary || document.labels?.length || document.entities?.length || document.risk_flags?.length);
   const lifecycle = document;
 
   return (
     <section className="rounded-[18px] border border-[#E8F0F8] bg-white shadow-[0_4px_12px_rgba(19,59,115,0.05)]">
       <div role="tablist" aria-label="Document workspace" className="flex overflow-x-auto border-b border-[#E8F0F8] px-3">
-        {tabs.filter((tab) => tab !== 'Comments' || Boolean(document.draft_url)).map((tab) => (
+        {visibleTabs.map((tab) => (
           <button
             key={tab}
             role="tab"
@@ -181,9 +124,9 @@ export function DocumentWorkspace({
             <h2 className="text-lg font-extrabold text-[#0C2B49]">Overview</h2>
             <dl className="grid gap-3 text-sm sm:grid-cols-2">
               <div><dt className="font-bold text-[#64748b]">Filename</dt><dd className="mt-1 text-[#0C2B49]">{document.file_name ?? 'Not supplied'}</dd></div>
-              <div><dt className="font-bold text-[#64748b]">Content type</dt><dd className="mt-1 text-[#0C2B49]">{document.content_type ?? 'Not supplied'}</dd></div>
-              <div><dt className="font-bold text-[#64748b]">Lifecycle status</dt><dd className="mt-1 text-[#0C2B49]">{document.status ?? 'Not supplied'}</dd></div>
-              <div><dt className="font-bold text-[#64748b]">Document lifecycle</dt><dd className="mt-1 text-[#0C2B49]">{lifecycleLabel(lifecycle.lifecycle)}</dd></div>
+              <div><dt className="font-bold text-[#64748b]">Signed copy content type</dt><dd className="mt-1 text-[#0C2B49]">{document.signed_copy?.content_type ?? 'Not supplied'}</dd></div>
+              <div><dt className="font-bold text-[#64748b]">Processing status</dt><dd className="mt-1 text-[#0C2B49]">{getDocumentStatusLabel(document.status)}</dd></div>
+              <div><dt className="font-bold text-[#64748b]">Document lifecycle</dt><dd className="mt-1 text-[#0C2B49]">{getDocumentLifecycleLabel(lifecycle.lifecycle)}</dd></div>
               <div><dt className="font-bold text-[#64748b]">Document hash</dt><dd title={document.document_hash ?? undefined} className="mt-1 break-all font-mono text-[#0C2B49]">{document.document_hash ? shortenIntegrityHash(document.document_hash) : 'Not available'}</dd></div>
               <div><dt className="font-bold text-[#64748b]">Finalized</dt><dd className="mt-1 text-[#0C2B49]">{formatDate(lifecycle.finalized_at)}</dd></div>
               <div><dt className="font-bold text-[#64748b]">Anchor state</dt><dd className="mt-1 text-[#0C2B49]">{anchorLabel(lifecycle.lifecycle, document.on_chain)}</dd></div>
@@ -195,7 +138,6 @@ export function DocumentWorkspace({
               <InsightGroup title="Entities" items={document.entities} />
               <InsightGroup title="Risk flags" items={document.risk_flags} />
             </div>}
-            {versionError && <p role="alert" className="text-sm font-bold text-[#B42318]">{versionError}</p>}
             {success && <p role="status" className="rounded-xl border border-[#BCE8CC] bg-[#F1FBF5] px-4 py-3 text-sm font-bold text-[#0C7A3B]">{success}</p>}
             {finalizationResult && <dl className="grid gap-3 rounded-xl bg-[#F8FBFF] p-4 text-sm sm:grid-cols-2"><div><dt className="font-bold text-[#64748b]">Data hash</dt><dd className="mt-1 break-all font-mono text-[#0C2B49]">{finalizationResult.data_hash}</dd></div><div><dt className="font-bold text-[#64748b]">Transaction hash</dt><dd className="mt-1 break-all font-mono text-[#0C2B49]">{finalizationResult.tx_hash}</dd></div></dl>}
             <p className="text-sm leading-6 text-[#64748b]">Use this workspace to review the original file, derived assistance, and available integrity information.</p>
@@ -215,60 +157,63 @@ export function DocumentWorkspace({
           </div>
         )}
 
-        {activeTab === 'Comments' && document.draft_url && (
+        {activeTab === 'Comments' && (
           <div className="space-y-4">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <h2 className="text-lg font-extrabold text-[#0C2B49]">Draft discussion</h2>
-                {commentsQuery.data && <p className="mt-1 text-sm text-[#64748b]">{commentsQuery.data.unresolved} unresolved · {commentsQuery.data.synced_at ? `Last synced ${formatDate(commentsQuery.data.synced_at)}` : 'Not synced yet'}</p>}
-              </div>
-              {role === 'lawyer' && document.lifecycle?.toUpperCase() === 'PREPARING' && <button type="button" onClick={() => syncCommentsMutation.mutate()} disabled={syncCommentsMutation.isPending} className="rounded-full border border-[#0985E7] px-4 py-2 text-sm font-bold text-[#0985E7] disabled:opacity-60">{syncCommentsMutation.isPending ? 'Syncing comments…' : 'Sync comments'}</button>}
-            </div>
-            {commentsQuery.isLoading && <p role="status" className="text-sm text-[#64748b]">Loading draft comments…</p>}
-            {commentsQuery.isError && <p role="alert" className="text-sm font-bold text-[#B42318]">{commentsQuery.error instanceof Error ? commentsQuery.error.message : 'Unable to load draft comments.'}</p>}
-            {syncCommentsMutation.isError && <p role="alert" className="text-sm font-bold text-[#B42318]">{syncCommentsMutation.error.message}</p>}
-            {syncCommentsMutation.isSuccess && <p role="status" className="text-sm font-bold text-[#0C7A3B]">Comments synced.</p>}
-            {commentsQuery.data?.comments.length === 0 && <p className="rounded-xl border border-dashed border-[#D6E3F1] px-4 py-3 text-sm text-[#5B6F8A]">No comments on this draft.</p>}
-            {commentsQuery.data?.comments.map((comment) => <DraftCommentCard key={comment.id} comment={comment} />)}
+            <div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="text-lg font-extrabold text-[#0C2B49]">Draft comments</h2><p className="mt-1 text-sm text-[#64748b]">Comments are synced from the linked Google draft.</p></div>{document.lifecycle === 'PREPARING' && document.permissions.can_mark_ready && <button type="button" onClick={() => syncComments.mutate()} disabled={syncComments.isPending} className="rounded-full border border-[#0985E7] px-4 py-2 text-sm font-bold text-[#0985E7] disabled:opacity-60">{syncComments.isPending ? 'Syncing comments…' : 'Sync comments'}</button>}</div>
+            {commentsQuery.isLoading && <p role="status" className="text-sm text-[#64748b]">Loading comments…</p>}
+            {commentsQuery.isError && <p role="alert" className="text-sm font-bold text-[#B42318]">Unable to load draft comments.</p>}
+            {syncComments.isError && <p role="alert" className="text-sm font-bold text-[#B42318]">{syncComments.error instanceof Error ? syncComments.error.message : 'Unable to sync comments.'}</p>}
+            {commentsQuery.data && <><p className="text-sm font-bold text-[#64748b]">{commentsQuery.data.unresolved} unresolved · Last synced {formatDate(commentsQuery.data.synced_at)}</p>{commentsQuery.data.comments.length === 0 ? <p className="text-sm text-[#64748b]">No comments found in the draft.</p> : commentsQuery.data.comments.map((comment) => <article key={comment.id} className="space-y-2 rounded-xl border border-[#E8F0F8] bg-[#F8FBFF] p-4"><div className="flex justify-between gap-3"><p className="font-bold text-[#0C2B49]">{comment.author_name || 'Draft commenter'}</p><span className="text-xs text-[#64748b]">{comment.resolved ? 'Resolved' : 'Unresolved'}</span></div>{comment.quoted_text && <blockquote className="border-l-2 border-[#0985E7] pl-3 text-sm text-[#64748b]">{comment.quoted_text}</blockquote>}<p className="whitespace-pre-wrap text-sm text-[#0C2B49]">{comment.content}</p>{comment.replies?.map((reply, index) => <div key={`${comment.id}-reply-${index}`} className="ml-4 border-l border-[#D6E3F1] pl-3"><p className="text-xs font-bold text-[#64748b]">{reply.author_name || 'Reply'}</p><p className="whitespace-pre-wrap text-sm text-[#0C2B49]">{reply.content}</p></div>)}</article>)}</>}
             {readinessError && <p role="alert" className="rounded-xl bg-red-50 p-3 text-sm font-bold text-[#B42318]">{readinessError}</p>}
-            {readinessSuccess && <p role="status" className="text-sm font-bold text-[#0C7A3B]">{readinessSuccess}</p>}
-            {document.permissions?.can_mark_ready === true && <button type="button" onClick={onMarkReady} disabled={isChangingReadiness} className="rounded-full bg-[#0985E7] px-4 py-2.5 text-sm font-extrabold text-white disabled:opacity-60">{isChangingReadiness ? 'Updating…' : 'Mark ready for signature'}</button>}
-            {document.permissions?.can_reopen === true && <button type="button" onClick={onReopen} disabled={isChangingReadiness} className="ml-2 rounded-full border border-[#0985E7] px-4 py-2.5 text-sm font-extrabold text-[#0985E7] disabled:opacity-60">Reopen draft</button>}
+            {readinessSuccess && <p role="status" className="text-sm font-bold text-[#067647]">{readinessSuccess}</p>}
+            <div className="flex gap-2">{document.permissions.can_mark_ready && <button type="button" onClick={onMarkReady} disabled={isChangingReadiness} className="rounded-full bg-[#0985E7] px-4 py-2 text-sm font-bold text-white disabled:opacity-60">{isChangingReadiness ? 'Updating…' : 'Mark ready for signature'}</button>}{document.permissions.can_reopen && <button type="button" onClick={onReopen} disabled={isChangingReadiness} className="rounded-full border border-[#0985E7] px-4 py-2 text-sm font-bold text-[#0985E7] disabled:opacity-60">Reopen draft</button>}</div>
           </div>
         )}
 
-        {activeTab === 'Original PDF' && (document.storage_url ? (
+        {activeTab === 'Files' && (
           <div className="space-y-4">
-            <h2 className="text-lg font-extrabold text-[#0C2B49]">Original PDF</h2>
-            <p className="text-sm leading-6 text-[#64748b]">This is the source document and is available for viewing or download only. It cannot be edited in LexChain.</p>
-            <div className="flex flex-wrap gap-3">
-              <a href={document.storage_url} target="_blank" rel="noreferrer" className="rounded-full bg-[#0985E7] px-4 py-2.5 text-sm font-extrabold text-white">Open original PDF</a>
-              <a href={document.storage_url} download className="rounded-full border border-[#E8F0F8] px-4 py-2.5 text-sm font-extrabold text-[#0C2B49]">Download original PDF</a>
-            </div>
+            <h2 className="text-lg font-extrabold text-[#0C2B49]">Document files</h2>
+            {document.signed_copy ? (
+              <div className="space-y-3 rounded-xl border border-[#E8F0F8] bg-[#F8FBFF] p-4">
+                <div><p className="font-bold text-[#0C2B49]">Current signed PDF</p><p className="mt-1 text-sm text-[#64748b]">{document.signed_copy.original_filename ?? document.file_name}</p></div>
+                <div className="flex flex-wrap gap-3">
+                  <a href={document.signed_copy.storage_url} target="_blank" rel="noreferrer" className="rounded-full bg-[#0985E7] px-4 py-2.5 text-sm font-extrabold text-white">Open current signed PDF</a>
+                  <a href={document.signed_copy.storage_url} download className="rounded-full border border-[#E8F0F8] px-4 py-2.5 text-sm font-extrabold text-[#0C2B49]">Download current signed PDF</a>
+                </div>
+              </div>
+            ) : <p className="text-sm text-[#64748b]">No signed PDF is attached to this document yet.</p>}
+            <GoogleDraftPanel document={document} />
           </div>
-        ) : <p className="text-sm text-[#64748b]">The original PDF is not available in the current document record.</p>)}
+        )}
 
 
 
         {activeTab === 'Blockchain' && (
-          <div className="space-y-4"><p className="text-sm text-[#64748b]">No blockchain record is available in the current document record.</p></div>
+          document.on_chain ? (
+            <dl className="grid gap-3 text-sm sm:grid-cols-2">
+              <div><dt className="font-bold text-[#64748b]">Anchor status</dt><dd className="mt-1 text-[#0C2B49]">{anchorLabel(document.lifecycle, document.on_chain)}</dd></div>
+              <div><dt className="font-bold text-[#64748b]">Document hash</dt><dd className="mt-1 break-all font-mono text-[#0C2B49]">{document.document_hash ?? 'Not supplied'}</dd></div>
+              <div><dt className="font-bold text-[#64748b]">Finalized</dt><dd className="mt-1 text-[#0C2B49]">{formatDate(document.finalized_at)}</dd></div>
+            </dl>
+          ) : <div className="space-y-4"><p className="text-sm text-[#64748b]">{document.lifecycle === 'FINALIZED' ? 'Finalized, but no on-chain record is reported.' : 'This document has not been finalized or recorded on-chain.'}</p></div>
         )}
 
-        {activeTab === 'Versions' && (
+        {activeTab === 'Signed copies' && (
           <div className="space-y-4">
-            <div><h2 className="text-lg font-extrabold text-[#0C2B49]">Versions</h2><p className="mt-1 text-sm text-[#64748b]">Each uploaded version remains in the document history.</p></div>
-            {versionsQuery.isLoading && <p className="text-sm text-[#64748b]">Loading versions…</p>}
-            {versionsQuery.isError && <p role="alert" className="text-sm font-bold text-[#B42318]">Unable to load document versions.</p>}
-            {versionsQuery.data?.versions.map((version) => <article key={version.document_id} className="rounded-xl border border-[#E8F0F8] bg-[#F8FBFF] p-4"><p className="font-bold text-[#0C2B49]">Version {version.version}{version.is_latest ? ' · Latest' : ''}</p><p className="mt-1 text-sm text-[#64748b]">{version.file_name} · {version.status}</p></article>)}
+            <div><h2 className="text-lg font-extrabold text-[#0C2B49]">Signed-copy history</h2><p className="mt-1 text-sm text-[#64748b]">Each uploaded legal PDF is listed separately from the document lifecycle.</p></div>
+            {signedCopiesQuery.isLoading && <p className="text-sm text-[#64748b]">Loading signed copies…</p>}
+            {signedCopiesQuery.isError && <p role="alert" className="text-sm font-bold text-[#B42318]">Unable to load signed-copy history.</p>}
+            {signedCopiesQuery.data?.copies.length === 0 && <p className="text-sm text-[#64748b]">No signed copies have been uploaded.</p>}
+            {signedCopiesQuery.data?.copies.map((copy) => <article key={copy.id} className="space-y-3 rounded-xl border border-[#E8F0F8] bg-[#F8FBFF] p-4"><div className="flex flex-wrap items-center justify-between gap-2"><p className="font-bold text-[#0C2B49]">{copy.original_filename ?? 'Signed PDF'}</p>{copy.is_current && <span className="rounded-full bg-[#EAF8F0] px-2.5 py-1 text-xs font-bold text-[#067647]">Current copy</span>}</div><p className="text-sm text-[#64748b]">Uploaded {formatDate(copy.created_at)} · {copy.content_type} · {copy.size_bytes.toLocaleString()} bytes</p><p className="break-all font-mono text-xs text-[#64748b]">{copy.sha256}</p>{copy.replaced_reason && <p className="text-sm text-[#64748b]">Replaced: {copy.replaced_reason}</p>}<div className="flex gap-3"><a href={copy.storage_url} target="_blank" rel="noreferrer" className="text-sm font-bold text-[#0985E7]">Open signed copy</a><a href={copy.storage_url} download className="text-sm font-bold text-[#0C2B49]">Download signed copy</a></div></article>)}
           </div>
         )}
 
         {activeTab === 'Access' && (
-          <div className="space-y-3"><h2 className="text-lg font-extrabold text-[#0C2B49]">Access</h2><p className="text-sm text-[#64748b]">Manage access on the existing document participant surface.</p>          {role === 'lawyer' && <Link href={`/portal/documents/${document.document_id}/participants`} className="inline-flex rounded-full bg-[#0985E7] px-4 py-2.5 text-sm font-extrabold text-white">Manage document participants</Link>}</div>
+          <div className="space-y-3"><h2 className="text-lg font-extrabold text-[#0C2B49]">Access</h2><p className="text-sm text-[#64748b]">Manage access on the existing document participant surface.</p>          {document.permissions.can_share || document.permissions.can_revoke ? <Link href={`/portal/documents/${document.document_id}/participants`} className="inline-flex rounded-full bg-[#0985E7] px-4 py-2.5 text-sm font-extrabold text-white">Manage document participants</Link> : null}</div>
         )}
 
         {activeTab === 'Activity' && (
-          <div className="space-y-3"><h2 className="text-lg font-extrabold text-[#0C2B49]">Activity</h2><p className="text-sm text-[#64748b]">Review lifecycle and access events on the existing audit surface.</p>          {role === 'lawyer' && <Link href={`/portal/documents/${document.document_id}/activity`} className="inline-flex rounded-full bg-[#0985E7] px-4 py-2.5 text-sm font-extrabold text-white">View document activity</Link>}</div>
+          <div className="space-y-3"><h2 className="text-lg font-extrabold text-[#0C2B49]">Activity</h2><p className="text-sm text-[#64748b]">Review lifecycle and access events on the existing audit surface.</p>{document.permissions.can_view && <Link href={`/portal/documents/${document.document_id}/activity`} className="inline-flex rounded-full bg-[#0985E7] px-4 py-2.5 text-sm font-extrabold text-white">View document activity</Link>}</div>
         )}
       </div>
     </section>

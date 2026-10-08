@@ -73,6 +73,11 @@ type MockBook = {
   id: string;
   book_number: number;
   series_year: number;
+  status: 'OPEN' | 'CLOSED';
+  closed_at: string | null;
+  entry_count: number;
+  last_doc_no: number | null;
+  last_page_no: number | null;
   document_count: number;
   page_count: number;
   is_full: boolean;
@@ -305,6 +310,11 @@ let books: MockBook[] = [
     id: 'mock-book-1',
     book_number: 1,
     series_year: 2026,
+    status: 'OPEN',
+    closed_at: null,
+    entry_count: 2,
+    last_doc_no: 2,
+    last_page_no: 2,
     document_count: 2,
     page_count: 2,
     is_full: false,
@@ -609,8 +619,15 @@ async function uploadDocument(request: Request, path: string) {
   const fileName = validFileName(requestUrl.searchParams.get('file_name'));
   if (!fileName) return error('A valid file name is required', 400);
   const bookId = requestUrl.searchParams.get('book_id');
-  const book = books.find((candidate) => candidate.id === bookId && !candidate.is_full);
-  if (!book) return error('An active book is required', 400);
+  const book = books.find((candidate) => candidate.id === bookId && (candidate.status === 'OPEN' || candidate.status === 'CLOSED'));
+  if (!book) return error('A register book is required', 400);
+  const docNo = requestUrl.searchParams.get('doc_no');
+  const pageNo = requestUrl.searchParams.get('page_no');
+  const paperDocNo = Number(docNo);
+  const paperPageNo = Number(pageNo);
+  if (book.status === 'CLOSED' && (!docNo || !pageNo || !Number.isSafeInteger(paperDocNo) || paperDocNo < 1 || !Number.isSafeInteger(paperPageNo) || paperPageNo < 1)) {
+    return error('Closed books require valid paper document and page numbers', 400);
+  }
   const id = `mock-document-${Date.now()}`;
   const document: MockDocument = {
     id,
@@ -665,6 +682,9 @@ async function uploadDocument(request: Request, path: string) {
   };
   books = books.map((candidate) => candidate.id === book.id ? {
     ...candidate,
+    entry_count: candidate.entry_count + 1,
+    last_doc_no: candidate.status === 'CLOSED' ? paperDocNo : (candidate.last_doc_no ?? 0) + 1,
+    last_page_no: candidate.status === 'CLOSED' ? paperPageNo : (candidate.last_page_no ?? 0) + 1,
     document_count: candidate.document_count + 1,
     page_count: candidate.page_count + 1,
     updated_at: now,
@@ -683,20 +703,30 @@ async function createBook(request: Request) {
   const body = await jsonBody(request);
   const bookNumber = body?.book_number;
   const seriesYear = body?.series_year;
+  const requestedStatus = body?.status ?? 'OPEN';
   if (typeof bookNumber !== 'number' || !Number.isInteger(bookNumber) || typeof seriesYear !== 'number' || !Number.isInteger(seriesYear)) {
     return error('Book number and series year are required', 400);
   }
   if (bookNumber < 1 || bookNumber > 1000 || seriesYear < 2000) {
     return error('Book number or series year is invalid', 400);
   }
+  if (requestedStatus !== 'OPEN' && requestedStatus !== 'CLOSED') return error('Book status must be OPEN or CLOSED', 400);
   if (books.some((book) => book.book_number === bookNumber && book.series_year === seriesYear)) {
     return error('Book already exists', 400);
+  }
+  if (requestedStatus === 'OPEN' && books.some((book) => book.status === 'OPEN' && book.series_year === seriesYear)) {
+    return error('Another book for this year is still open', 400);
   }
   const now = new Date().toISOString();
   const book: MockBook = {
     id: `mock-book-${Date.now()}`,
     book_number: bookNumber,
     series_year: seriesYear,
+    status: requestedStatus,
+    closed_at: requestedStatus === 'CLOSED' ? now : null,
+    entry_count: 0,
+    last_doc_no: null,
+    last_page_no: null,
     document_count: 0,
     page_count: 0,
     is_full: false,
@@ -848,10 +878,24 @@ export async function mockPortalMutate(method: 'POST' | 'PATCH' | 'DELETE', path
     return createBook(request);
   }
 
+  const bookCloseMatch = requestPathname.match(/^\/books\/([^/]+)\/close\/?$/);
+  if (method === 'POST' && bookCloseMatch) {
+    if (!hasMockIssuerAccess(token)) return error('Lawyer access required', 403);
+    const book = books.find((candidate) => candidate.id === bookCloseMatch[1]);
+    if (!book) return error('Book not found', 404);
+    if (book.status === 'CLOSED') return error('Book is already closed', 409);
+    const now = new Date().toISOString();
+    const closedBook = { ...book, status: 'CLOSED' as const, closed_at: now, updated_at: now };
+    books = books.map((candidate) => candidate.id === closedBook.id ? closedBook : candidate);
+    return json(closedBook);
+  }
+
   const bookMatch = requestPathname.match(/^\/books\/([^/]+)\/?$/);
   if (method === 'DELETE' && bookMatch) {
     if (!hasMockIssuerAccess(token)) return error('Lawyer access required', 403);
-    if (!books.some((book) => book.id === bookMatch[1])) return error('Book not found', 404);
+    const book = books.find((candidate) => candidate.id === bookMatch[1]);
+    if (!book) return error('Book not found', 404);
+    if (book.entry_count > 0) return error('Only an empty book can be deleted', 409);
     books = books.filter((book) => book.id !== bookMatch[1]);
     return new Response(null, { status: 204 });
   }

@@ -47,8 +47,13 @@ export function AdminShell({ activeHref = "/admin/dashboard", children }: AdminS
   }, []);
 
   async function handleLogout() {
-    await fetch("/api/admin/logout", { method: "POST" });
-    router.push("/login");
+    try {
+      await fetch("/api/admin/logout", { method: "POST" });
+    } catch {
+      // Continue to login when the session endpoint cannot be reached.
+    } finally {
+      router.push("/login");
+    }
   }
 
   function handleOpenSettings() {

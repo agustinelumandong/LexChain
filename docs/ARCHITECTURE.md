@@ -33,7 +33,7 @@ Internal modules keep direct implementation imports. Tests may also import imple
 
 Do not use `export *` or add an entry point without an outside consumer. The architecture script follows runtime imports and re-exports to prevent client modules from reaching server modules through a barrel.
 
-Configure backend URLs with `API_URL` and `NEXT_PUBLIC_API_URL`; never hardcode credentials or backend URLs. Backend types are generated from `openapi-updated.json` into `lib/types/generated/schema.ts`:
+Configure backend URLs with `API_URL` and `NEXT_PUBLIC_API_URL`; never hardcode credentials or backend URLs. Backend types are generated from `openapi-updated.json` into `src/shared/types/generated/schema.ts`:
 
 ```bash
 pnpm generate:api-types

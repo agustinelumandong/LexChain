@@ -21,10 +21,14 @@ Open `http://localhost:3000`. Start the FastAPI backend separately and configure
 | `API_URL` | Backend base URL for server requests |
 | `NEXT_PUBLIC_API_URL` | Public backend URL setting and server fallback; never put credentials here |
 | `NEXT_PUBLIC_APP_URL` | Public URL of this application |
+| `NEXT_PUBLIC_GOOGLE_PICKER_API_KEY` | Browser-restricted Google API key with the Google Picker API enabled; required to choose a template or existing Doc |
+| `NEXT_PUBLIC_GOOGLE_PICKER_APP_ID` | Google Cloud project number used by Picker; required to choose a template or existing Doc |
 | `NEXT_PUBLIC_USE_MOCK_API` | Enables browser mock-mode behavior for local checks |
 | `USE_MOCK_API` | Enables server mock-mode behavior for local checks |
 
 For fixture-based local checks, set both mock flags to `true`. Keep both `false` when checking the real backend. Rebuild production output after changing public environment settings. Mock results do not prove backend integration.
+
+Configure the Picker API key with allowed app origins and enable Google Picker API in the same Google Cloud project. The App ID is that project's numeric project number. Blank Google drafts do not use Picker and do not require these two settings. See [Google Picker setup](https://developers.google.com/workspace/drive/picker/guides/web-picker?hl=en).
 
 ## Commands
 
@@ -57,7 +61,7 @@ To update the contract intentionally, provide its full endpoint URL, review the 
 OPENAPI_URL='http://localhost:8000/openapi.json' pnpm refresh:api-contract
 git diff -- openapi-updated.json
 pnpm generate:api-types
-git diff -- lib/types/generated/schema.ts
+git diff -- src/shared/types/generated/schema.ts
 ```
 
 Refresh requires `OPENAPI_URL` and replaces the contract only after a successful response and validation. It does not generate types automatically. Do not edit the generated schema by hand.

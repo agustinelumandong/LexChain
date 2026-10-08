@@ -11,7 +11,7 @@
           "Authentication"
         ],
         "summary": "Register a new user",
-        "description": "Create a new user account with email, password, and username.\n    \n    - **Email Verification**: If enabled in Supabase, user must verify email before signing in.\n    - **Username**: Must be 3-30 characters, alphanumeric and underscores only.\n    - **Password**: Must be at least 8 characters with uppercase, lowercase, and digit.\n    - **Rate Limit**: 5 requests per minute.",
+        "description": "Create a new user account with email, password, and name.\n\n    - **Email Verification**: If enabled in Supabase, user must verify email before signing in.\n    - **Name**: First and last name, 1-50 characters, letters/spaces/hyphens/apostrophes.\n    - **Password**: Must be at least 8 characters with uppercase, lowercase, and digit.\n    - **Rate Limit**: 5 requests per minute.",
         "operationId": "sign_up_auth_signup_post",
         "requestBody": {
           "content": {
@@ -69,7 +69,7 @@
           "Authentication"
         ],
         "summary": "Sign in a user",
-        "description": "Authenticate a user with email and password.\n    \n    - **Returns**: Access token, refresh token, and token expiration time.\n    - **Email Verification**: User must have verified their email to sign in.\n    - **Rate Limit**: 5 requests per minute.",
+        "description": "Authenticate a user with email and password.\n\n    - **Returns**: Access token, refresh token, and token expiration time.\n    - **Email Verification**: User must have verified their email to sign in.\n    - **Rate Limit**: 5 requests per minute.",
         "operationId": "sign_in_auth_signin_post",
         "requestBody": {
           "content": {
@@ -93,7 +93,7 @@
             }
           },
           "401": {
-            "description": "Invalid credentials or email not verified"
+            "description": "Invalid credentials, email not verified, or account deactivated"
           },
           "422": {
             "description": "Validation Error",
@@ -114,8 +114,44 @@
                 }
               }
             }
+          },
+          "502": {
+            "description": "Failed to connect to Supabase"
           }
         }
+      }
+    },
+    "/auth/signout": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Sign out",
+        "description": "End the caller's session.\n\n    - **Scope**: Revokes only the session this token belongs to; other devices\n      stay signed in.\n    - **Client**: Clear the stored access and refresh tokens after calling this.\n    - **Idempotent**: Signing out an already-ended session still returns 200.",
+        "operationId": "sign_out_auth_signout_post",
+        "responses": {
+          "200": {
+            "description": "Session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated — missing or invalid bearer token"
+          },
+          "502": {
+            "description": "Failed to connect to Supabase — the session was NOT revoked"
+          }
+        },
+        "security": [
+          {
+            "Bearer Token": []
+          }
+        ]
       }
     },
     "/auth/resend-verification": {
@@ -124,7 +160,7 @@
           "Authentication"
         ],
         "summary": "Resend verification email",
-        "description": "Resend the verification email for users who haven't verified their email yet.\n    \n    - **Use Case**: When verification link expires or email was not received.\n    - **Rate Limit**: 3 requests per minute.",
+        "description": "Resend the verification email for users who haven't verified their email yet.\n\n    - **Use Case**: When verification link expires or email was not received.\n    - **Response**: Always the same message, whether or not the address has an account.\n    - **Rate Limit**: 3 requests per minute.",
         "operationId": "resend_verification_auth_resend_verification_post",
         "requestBody": {
           "content": {
@@ -138,7 +174,7 @@
         },
         "responses": {
           "200": {
-            "description": "Verification email sent successfully",
+            "description": "Request accepted",
             "content": {
               "application/json": {
                 "schema": {
@@ -146,9 +182,6 @@
                 }
               }
             }
-          },
-          "400": {
-            "description": "Could not send verification email"
           },
           "422": {
             "description": "Validation Error",
@@ -282,7 +315,7 @@
           "Documents"
         ],
         "summary": "List all documents",
-        "description": "Return the latest version of every document belonging to or shared with the authenticated user.",
+        "description": "Every document belonging to or shared with the authenticated user, optionally filtered by lifecycle.",
         "operationId": "get_all_user_documents_documents__get",
         "security": [
           {
@@ -309,6 +342,24 @@
               "default": 0,
               "title": "Offset"
             }
+          },
+          {
+            "name": "lifecycle",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by lifecycle stage",
+              "title": "Lifecycle"
+            },
+            "description": "Filter by lifecycle stage"
           }
         ],
         "responses": {
@@ -328,6 +379,190 @@
           },
           "401": {
             "description": "Not authenticated — missing or invalid bearer token"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Documents · Preparation (Path 1)"
+        ],
+        "summary": "Open a document (Path 1)",
+        "description": "Open a document record before anything is signed. The working draft lives in Google Docs; the record starts PREPARING with no file and no register entry.",
+        "operationId": "open_document_documents__post",
+        "security": [
+          {
+            "Bearer Token": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OpenDocumentRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Document opened",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated — missing or invalid bearer token"
+          },
+          "403": {
+            "description": "Forbidden — only lawyers may open documents"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/documents/upload": {
+      "post": {
+        "tags": [
+          "Documents · Signed copy & register"
+        ],
+        "summary": "Upload an already signed document (Path 2)",
+        "description": "Upload a signed/notarized PDF and file it in a register book. The document is SIGNED and waits for the lawyer to finalize it — nothing is processed yet.\n\n`doc_no` / `page_no` are the Doc. No. and Page No. from the notarial block. Optional for an OPEN book — the next free entry is used. Required for a CLOSED book, where they are copied from the paper register.\n\nRefused with 409 `READY_FOR_SIGNATURE_EXISTS` while documents are waiting for their signed copy, unless `confirm_new_record=true`.",
+        "operationId": "upload_document_documents_upload_post",
+        "security": [
+          {
+            "Bearer Token": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "file_name",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "File Name"
+            }
+          },
+          {
+            "name": "book_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Book Id"
+            }
+          },
+          {
+            "name": "doc_no",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Doc. No. in the register",
+              "title": "Doc No"
+            },
+            "description": "Doc. No. in the register"
+          },
+          {
+            "name": "page_no",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Page No. in the register",
+              "title": "Page No"
+            },
+            "description": "Page No. in the register"
+          },
+          {
+            "name": "confirm_new_record",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "description": "Confirm this is not the signed copy of a document already open",
+              "default": false,
+              "title": "Confirm New Record"
+            },
+            "description": "Confirm this is not the signed copy of a document already open"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_upload_document_documents_upload_post"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Document filed, SIGNED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Empty file, unsupported file type, file exceeds size limit, or register numbers missing/out of range"
+          },
+          "401": {
+            "description": "Not authenticated — missing or invalid bearer token"
+          },
+          "403": {
+            "description": "Forbidden — only lawyers may upload documents"
+          },
+          "404": {
+            "description": "Book not found"
+          },
+          "409": {
+            "description": "Same file already filed, Doc. No. taken, page full, or documents waiting for a signed copy"
           },
           "422": {
             "description": "Validation Error",
@@ -401,7 +636,7 @@
           "Documents"
         ],
         "summary": "Rename a document",
-        "description": "Update the display name of a draft. Only the document owner (or admin) may rename, and only while the document is a DRAFT.",
+        "description": "Change the display name, until the document is finalized. Owner only.",
         "operationId": "rename_document_documents__document_id__patch",
         "security": [
           {
@@ -425,7 +660,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/RenameDocumentRequest"
+                "$ref": "#/components/schemas/UpdateDocumentRequest"
               }
             }
           }
@@ -436,13 +671,10 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/DocumentUploadResponse"
+                  "$ref": "#/components/schemas/DocumentResponse"
                 }
               }
             }
-          },
-          "401": {
-            "description": "Not authenticated — missing or invalid bearer token"
           },
           "403": {
             "description": "Forbidden — only the document owner may rename"
@@ -451,7 +683,7 @@
             "description": "Document not found"
           },
           "409": {
-            "description": "Document is finalized or archived and cannot be modified"
+            "description": "Finalized or cancelled"
           },
           "422": {
             "description": "Validation Error",
@@ -466,14 +698,14 @@
         }
       }
     },
-    "/documents/upload": {
+    "/documents/{document_id}/draft": {
       "post": {
         "tags": [
-          "Documents"
+          "Documents · Preparation (Path 1)"
         ],
-        "summary": "Upload a document",
-        "description": "Upload a PDF document. Only lawyers and admins may upload.",
-        "operationId": "upload_document_documents_upload_post",
+        "summary": "Create the working draft in Google Docs",
+        "description": "Creates the draft in the lawyer's own Google Drive and shares it with every accepted client as a commenter (another lawyer on the document as an editor). Open `draft_url` in a new tab afterwards.\n\n`source`: `blank` (new empty Doc), `template` (copy of `file_id`) or `existing` (use `file_id` itself). `file_id` comes from the Google Picker — see `GET /google/picker-token`.\n\nOnly while PREPARING, and only once per document.",
+        "operationId": "create_draft_documents__document_id__draft_post",
         "security": [
           {
             "Bearer Token": []
@@ -481,12 +713,344 @@
         ],
         "parameters": [
           {
-            "name": "file_name",
-            "in": "query",
+            "name": "document_id",
+            "in": "path",
             "required": true,
             "schema": {
               "type": "string",
-              "title": "File Name"
+              "format": "uuid",
+              "title": "Document Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateDraftRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Draft created and shared",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "No file picked, or the picked file is not a Google Doc"
+          },
+          "403": {
+            "description": "Forbidden — only the document owner may create the draft"
+          },
+          "404": {
+            "description": "Document not found"
+          },
+          "409": {
+            "description": "Not PREPARING, a draft already exists, or Google is not connected (`GOOGLE_NOT_CONNECTED`)"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Google Drive is unreachable"
+          }
+        }
+      }
+    },
+    "/documents/{document_id}/comments": {
+      "get": {
+        "tags": [
+          "Documents · Preparation (Path 1)"
+        ],
+        "summary": "Comments on the working draft",
+        "description": "The comment threads from the Google Docs draft, as of the last sync. Kept after the draft is locked, as the record of how the text was agreed. Owner and accepted parties.",
+        "operationId": "list_draft_comments_documents__document_id__comments_get",
+        "security": [
+          {
+            "Bearer Token": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "document_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Document Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DraftCommentListResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Document not found"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/documents/{document_id}/comments/sync": {
+      "post": {
+        "tags": [
+          "Documents · Preparation (Path 1)"
+        ],
+        "summary": "Pull the latest comments from Google Docs",
+        "description": "Syncs right away instead of waiting for the scheduled sync, and notifies the people in each thread about anything new.",
+        "operationId": "sync_draft_comments_documents__document_id__comments_sync_post",
+        "security": [
+          {
+            "Bearer Token": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "document_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Document Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DraftCommentListResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Document not found"
+          },
+          "409": {
+            "description": "The lawyer's Google account is not connected"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Google Drive is unreachable"
+          }
+        }
+      }
+    },
+    "/documents/{document_id}/ready": {
+      "post": {
+        "tags": [
+          "Documents · Preparation (Path 1)"
+        ],
+        "summary": "Mark ready for signature",
+        "description": "The text is agreed: the Google Docs draft is locked (clients can only read it) and it goes to print. Only from PREPARING. Comments are synced first, and this is refused with 409 `UNRESOLVED_COMMENTS` while any thread on the draft is open.",
+        "operationId": "mark_ready_documents__document_id__ready_post",
+        "security": [
+          {
+            "Bearer Token": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "document_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Document Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/documents/{document_id}/reopen": {
+      "post": {
+        "tags": [
+          "Documents · Preparation (Path 1)"
+        ],
+        "summary": "Back to preparing",
+        "description": "Send a document that is ready for signature back to PREPARING. Clients can comment on the draft again.",
+        "operationId": "reopen_documents__document_id__reopen_post",
+        "security": [
+          {
+            "Bearer Token": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "document_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Document Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/documents/{document_id}/cancel": {
+      "post": {
+        "tags": [
+          "Documents · Preparation (Path 1)"
+        ],
+        "summary": "Cancel a document that was never signed",
+        "description": "Only from PREPARING or READY_FOR_SIGNATURE. The record is kept.",
+        "operationId": "cancel_documents__document_id__cancel_post",
+        "security": [
+          {
+            "Bearer Token": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "document_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Document Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/documents/{document_id}/signed-copy": {
+      "post": {
+        "tags": [
+          "Documents · Signed copy & register"
+        ],
+        "summary": "Attach the signed copy (Path 1)",
+        "description": "Attach the signed/notarized PDF to the record it was prepared in and file it in a register book. Only from READY_FOR_SIGNATURE.",
+        "operationId": "attach_signed_copy_documents__document_id__signed_copy_post",
+        "security": [
+          {
+            "Bearer Token": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "document_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Document Id"
             }
           },
           {
@@ -498,6 +1062,44 @@
               "format": "uuid",
               "title": "Book Id"
             }
+          },
+          {
+            "name": "doc_no",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Doc. No. in the register",
+              "title": "Doc No"
+            },
+            "description": "Doc. No. in the register"
+          },
+          {
+            "name": "page_no",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Page No. in the register",
+              "title": "Page No"
+            },
+            "description": "Page No. in the register"
           }
         ],
         "requestBody": {
@@ -505,30 +1107,21 @@
           "content": {
             "multipart/form-data": {
               "schema": {
-                "$ref": "#/components/schemas/Body_upload_document_documents_upload_post"
+                "$ref": "#/components/schemas/Body_attach_signed_copy_documents__document_id__signed_copy_post"
               }
             }
           }
         },
         "responses": {
-          "202": {
-            "description": "Document accepted for processing",
+          "200": {
+            "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/DocumentUploadAcceptedResponse"
+                  "$ref": "#/components/schemas/DocumentResponse"
                 }
               }
             }
-          },
-          "400": {
-            "description": "Empty file, unsupported file type, or file exceeds size limit"
-          },
-          "401": {
-            "description": "Not authenticated — missing or invalid bearer token"
-          },
-          "403": {
-            "description": "Forbidden — only lawyers may upload documents"
           },
           "422": {
             "description": "Validation Error",
@@ -541,16 +1134,14 @@
             }
           }
         }
-      }
-    },
-    "/documents/{document_id}/update": {
-      "post": {
+      },
+      "put": {
         "tags": [
-          "Documents"
+          "Documents · Signed copy & register"
         ],
-        "summary": "Update a document (new version)",
-        "description": "Upload a new file as the next version of an existing document. Only the document owner (or admin) may update, and only from the latest version. A finalized version is never overwritten — it stays immutable and on-chain while the new draft is appended to the chain.",
-        "operationId": "update_document_documents__document_id__update_post",
+        "summary": "Replace the signed copy",
+        "description": "Swap in the right signed copy before finalize. A reason is required and the previous copy is kept.",
+        "operationId": "replace_signed_copy_documents__document_id__signed_copy_put",
         "security": [
           {
             "Bearer Token": []
@@ -566,15 +1157,6 @@
               "format": "uuid",
               "title": "Document Id"
             }
-          },
-          {
-            "name": "file_name",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "File Name"
-            }
           }
         ],
         "requestBody": {
@@ -582,36 +1164,21 @@
           "content": {
             "multipart/form-data": {
               "schema": {
-                "$ref": "#/components/schemas/Body_update_document_documents__document_id__update_post"
+                "$ref": "#/components/schemas/Body_replace_signed_copy_documents__document_id__signed_copy_put"
               }
             }
           }
         },
         "responses": {
-          "202": {
-            "description": "Update accepted for processing",
+          "200": {
+            "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/DocumentUploadAcceptedResponse"
+                  "$ref": "#/components/schemas/DocumentResponse"
                 }
               }
             }
-          },
-          "400": {
-            "description": "Empty file, unsupported file type, or file exceeds size limit"
-          },
-          "401": {
-            "description": "Not authenticated — missing or invalid bearer token"
-          },
-          "403": {
-            "description": "Forbidden — only the document owner may update"
-          },
-          "404": {
-            "description": "Document not found"
-          },
-          "409": {
-            "description": "This version has been superseded — update the latest one"
           },
           "422": {
             "description": "Validation Error",
@@ -626,14 +1193,13 @@
         }
       }
     },
-    "/documents/{document_id}/versions": {
+    "/documents/{document_id}/signed-copies": {
       "get": {
         "tags": [
-          "Documents"
+          "Documents · Signed copy & register"
         ],
-        "summary": "Get version history",
-        "description": "Return the full version chain for a document (newest → oldest), including which version is latest and which are finalized. Accessible by owner, any party, or admin.",
-        "operationId": "get_version_history_documents__document_id__versions_get",
+        "summary": "All signed copies, newest first",
+        "operationId": "get_signed_copies_documents__document_id__signed_copies_get",
         "security": [
           {
             "Bearer Token": []
@@ -653,20 +1219,122 @@
         ],
         "responses": {
           "200": {
-            "description": "Version history",
+            "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/VersionHistoryResponse"
+                  "$ref": "#/components/schemas/SignedCopyListResponse"
                 }
               }
             }
           },
-          "401": {
-            "description": "Not authenticated — missing or invalid bearer token"
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/documents/{document_id}/entry": {
+      "patch": {
+        "tags": [
+          "Documents · Signed copy & register"
+        ],
+        "summary": "Correct the register entry",
+        "description": "Fix the Doc. No. / Page No. (or book) of a SIGNED document before finalize.",
+        "operationId": "correct_entry_documents__document_id__entry_patch",
+        "security": [
+          {
+            "Bearer Token": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "document_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Document Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CorrectEntryRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentResponse"
+                }
+              }
+            }
           },
-          "404": {
-            "description": "Document not found or user has no access"
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/documents/{document_id}/history": {
+      "get": {
+        "tags": [
+          "Documents"
+        ],
+        "summary": "Lifecycle history",
+        "description": "Every lifecycle action on the document, oldest first.",
+        "operationId": "get_history_documents__document_id__history_get",
+        "security": [
+          {
+            "Bearer Token": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "document_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Document Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentHistoryResponse"
+                }
+              }
+            }
           },
           "422": {
             "description": "Validation Error",
@@ -684,7 +1352,7 @@
     "/documents/invitations/mine": {
       "get": {
         "tags": [
-          "Documents"
+          "Documents · Sharing"
         ],
         "summary": "List my pending invitations",
         "description": "Invitations awaiting this user's response. A pending invitation grants no access — the document does not appear in `GET /documents/` until it is accepted. Any authenticated user may call this; it only ever returns their own invitations.",
@@ -714,7 +1382,7 @@
     "/documents/invitations/{invitation_id}/accept": {
       "post": {
         "tags": [
-          "Documents"
+          "Documents · Sharing"
         ],
         "summary": "Accept an invitation",
         "description": "Grants access to the document. Only the invitee may accept, and only while the invitation is still pending.",
@@ -772,7 +1440,7 @@
     "/documents/invitations/{invitation_id}/decline": {
       "post": {
         "tags": [
-          "Documents"
+          "Documents · Sharing"
         ],
         "summary": "Decline an invitation",
         "description": "Refuses the invitation; no access is granted. The refusal is recorded so the owner can see it. The owner may invite again, which reopens it.",
@@ -830,7 +1498,7 @@
     "/documents/{document_id}/parties": {
       "get": {
         "tags": [
-          "Documents"
+          "Documents · Sharing"
         ],
         "summary": "List document parties",
         "description": "Return the issuer and all whitelisted parties for a document. Accessible by owner, any party, or admin.",
@@ -883,7 +1551,7 @@
       },
       "post": {
         "tags": [
-          "Documents"
+          "Documents · Sharing"
         ],
         "summary": "Add a party to a document",
         "description": "Whitelist a user by email to access this document. Only the document owner (or admin) may add parties. Roles: viewer | signer | editor — signer and editor may only be granted to lawyers.",
@@ -954,7 +1622,7 @@
     "/documents/{document_id}/parties/{party_user_id}": {
       "delete": {
         "tags": [
-          "Documents"
+          "Documents · Sharing"
         ],
         "summary": "Remove a party from a document",
         "description": "Revoke a user's access to this document. Only the document owner (or admin) may remove parties.",
@@ -1019,10 +1687,126 @@
         }
       }
     },
+    "/documents/{document_id}/finalize": {
+      "post": {
+        "tags": [
+          "Documents · Finalize & verify"
+        ],
+        "summary": "Finalize a document",
+        "description": "The lawyer confirms the signed copy. Freezes it, anchors the SHA-256 of the PDF on-chain, then queues OCR and analysis on the frozen copy. Only from SIGNED. This is the only point at which a document is hashed on-chain.",
+        "operationId": "finalize_document_documents__document_id__finalize_post",
+        "security": [
+          {
+            "Bearer Token": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "document_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Document Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Finalized document",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecordResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated — missing or invalid bearer token"
+          },
+          "403": {
+            "description": "Forbidden — only the document owner may finalize"
+          },
+          "404": {
+            "description": "Document not found"
+          },
+          "409": {
+            "description": "Not SIGNED, or the stored file no longer matches the upload"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/documents/{document_id}/verify": {
+      "get": {
+        "tags": [
+          "Documents · Finalize & verify"
+        ],
+        "summary": "Verify a document against the chain",
+        "description": "Hashes the stored signed copy as it is now and compares it with the hash anchored on-chain. The verdict is computed server-side.",
+        "operationId": "verify_document_documents__document_id__verify_get",
+        "security": [
+          {
+            "Bearer Token": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "document_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Document Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Verification result, with a tamper report when applicable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentVerificationResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated — missing or invalid bearer token"
+          },
+          "404": {
+            "description": "Document not found, or it has no on-chain record"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/documents/{document_id}/extraction": {
       "get": {
         "tags": [
-          "Documents"
+          "Documents · OCR review"
         ],
         "summary": "Get extracted text for review",
         "description": "Return the OCR blocks and the flags worth checking, so the issuer can jump to suspect text instead of reading the whole document. Each flag points at a block, and blocks carry page/bbox where the engine reports layout.",
@@ -1075,7 +1859,7 @@
       },
       "patch": {
         "tags": [
-          "Documents"
+          "Documents · OCR review"
         ],
         "summary": "Correct extracted text",
         "description": "Save corrections to one or more blocks. Repeatable — this does not approve the document. Flags are recomputed so fixed problems disappear. The raw OCR text is never overwritten.",
@@ -1149,7 +1933,7 @@
     "/documents/{document_id}/extraction/analyze": {
       "post": {
         "tags": [
-          "Documents"
+          "Documents · OCR review"
         ],
         "summary": "Ask the LLM for semantic inconsistencies",
         "description": "Adds LLM-found issues (name drift between clauses, contradictions, undefined terms, missing annexes) on top of the automatic checks. Optional — the rule-based flags already ran at extraction time, so this costs inference only when asked. Re-running replaces the previous LLM pass.",
@@ -1213,10 +1997,10 @@
     "/documents/{document_id}/extraction/approve": {
       "post": {
         "tags": [
-          "Documents"
+          "Documents · OCR review"
         ],
         "summary": "Approve extracted text",
-        "description": "Freeze the reviewed text and queue chunking, embedding and analysis. Nothing is derived from the text before this point, so the search index and the on-chain snapshot are always built from what the issuer approved.",
+        "description": "Freeze the reviewed text and queue chunking, embedding and analysis. Nothing is derived from the text before this point, so the search index is always built from what the issuer approved. The text is never anchored — the chain holds the hash of the signed PDF.",
         "operationId": "approve_extraction_documents__document_id__extraction_approve_post",
         "security": [
           {
@@ -1260,186 +2044,6 @@
           },
           "409": {
             "description": "Already approved, or document is not awaiting review"
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/documents/{document_id}/verify": {
-      "get": {
-        "tags": [
-          "Documents"
-        ],
-        "summary": "Verify a document and show what was tampered with",
-        "description": "Re-extracts the document as it is stored now, hashes it, and compares against the hash anchored on-chain. The verdict is computed server-side.\n\nIf it does not match, the stored original is first re-verified against the chain so the comparison baseline is provably genuine, then the two are diffed and the changed sections are returned with severity — changes to amounts and figures rank `critical`. Each section carries a word-level breakdown so the exact edit can be highlighted.\n\nIf the stored original was altered too, the response says so rather than diffing against a doctored baseline.",
-        "operationId": "verify_document_documents__document_id__verify_get",
-        "security": [
-          {
-            "Bearer Token": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "document_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid",
-              "title": "Document Id"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Verification result, with a tamper report when applicable",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DocumentVerificationResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Not authenticated — missing or invalid bearer token"
-          },
-          "404": {
-            "description": "Document not found, or it has no on-chain record"
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/documents/{document_id}/restore": {
-      "post": {
-        "tags": [
-          "Documents"
-        ],
-        "summary": "Restore a document from its archived original",
-        "description": "Replaces the stored file with the archived original. Deliberately manual: run it after `verify` reports tampering, having reviewed what changed.\n\nThe archived copy is re-read and checked against the blockchain hash before it is trusted — a backup that does not match the chain is refused rather than restored. The file being replaced is preserved first, since on a notarised document the tampered copy may be evidence.\n\nSlow: verifying the archive costs a full OCR pass.",
-        "operationId": "restore_document_documents__document_id__restore_post",
-        "security": [
-          {
-            "Bearer Token": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "document_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid",
-              "title": "Document Id"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Restored and verified against the chain",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/RestoreResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Not authenticated — missing or invalid bearer token"
-          },
-          "403": {
-            "description": "Forbidden — only the document owner may restore"
-          },
-          "404": {
-            "description": "Document not found, no archived copy, or no on-chain record"
-          },
-          "409": {
-            "description": "Not finalized, or the archive does not match the chain"
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/documents/{document_id}/finalize": {
-      "post": {
-        "tags": [
-          "Documents"
-        ],
-        "summary": "Finalize a document",
-        "description": "Freeze the latest draft: create an immutable snapshot of the extracted text, anchor its hash on-chain, and set the finalized/lifecycle fields. This is the only point at which a document is hashed on-chain.",
-        "operationId": "finalize_document_documents__document_id__finalize_post",
-        "security": [
-          {
-            "Bearer Token": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "document_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid",
-              "title": "Document Id"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Finalized document",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/RecordResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Document is not fully processed yet"
-          },
-          "401": {
-            "description": "Not authenticated — missing or invalid bearer token"
-          },
-          "403": {
-            "description": "Forbidden — only the document owner may finalize"
-          },
-          "404": {
-            "description": "Document not found"
-          },
-          "409": {
-            "description": "Document is already finalized, archived, or superseded"
           },
           "422": {
             "description": "Validation Error",
@@ -1799,6 +2403,74 @@
         }
       }
     },
+    "/admin/users/{user_id}/active": {
+      "patch": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Activate or deactivate a user",
+        "description": "Deactivating blocks the account on its next request and stops it signing in. You cannot deactivate yourself or the last active lawyer.",
+        "operationId": "set_user_active_admin_users__user_id__active_patch",
+        "security": [
+          {
+            "Bearer Token": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "User Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetUserActiveRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Account updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminUserResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Would lock out the last lawyer, or is yourself"
+          },
+          "403": {
+            "description": "Not a lawyer"
+          },
+          "404": {
+            "description": "User not found"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/notifications/": {
       "get": {
         "tags": [
@@ -1998,6 +2670,8 @@
             "required": false,
             "schema": {
               "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
               "default": 50,
               "title": "Limit"
             }
@@ -2008,6 +2682,7 @@
             "required": false,
             "schema": {
               "type": "integer",
+              "minimum": 0,
               "default": 0,
               "title": "Offset"
             }
@@ -2051,7 +2726,7 @@
           "Books"
         ],
         "summary": "Create a book",
-        "description": "Create a new physical register book for the authenticated lawyer.",
+        "description": "Create a register book. OPEN for the book in current use — at most one per year. CLOSED to migrate a finished physical book: documents filed in it must give their Doc. No. and Page No. from the paper register.",
         "operationId": "create_book_books__post",
         "security": [
           {
@@ -2078,6 +2753,9 @@
                 }
               }
             }
+          },
+          "400": {
+            "description": "Book number already used for that year, or another book for that year is still open"
           },
           "401": {
             "description": "Not authenticated — missing or invalid bearer token"
@@ -2160,7 +2838,7 @@
           "Books"
         ],
         "summary": "Delete a book",
-        "description": "Delete a book and all its documents. Only the owner may delete.",
+        "description": "Delete an empty book. Only the owner may delete, and only while no document is filed in it — documents, finalized ones especially, are never removed by deleting their book.",
         "operationId": "delete_book_books__book_id__delete",
         "security": [
           {
@@ -2192,6 +2870,9 @@
           "404": {
             "description": "Book not found"
           },
+          "409": {
+            "description": "Book still holds documents"
+          },
           "422": {
             "description": "Validation Error",
             "content": {
@@ -2203,6 +2884,247 @@
             }
           }
         }
+      }
+    },
+    "/books/{book_id}/close": {
+      "post": {
+        "tags": [
+          "Books"
+        ],
+        "summary": "Close a book",
+        "description": "Mark the register as finished so the next book for its year can be opened. One-way. Documents can still be filed in a closed book with explicit Doc. No. and Page No.",
+        "operationId": "close_book_books__book_id__close_post",
+        "security": [
+          {
+            "Bearer Token": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "book_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Book Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Book closed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated — missing or invalid bearer token"
+          },
+          "403": {
+            "description": "Forbidden — only lawyers may close books"
+          },
+          "404": {
+            "description": "Book not found"
+          },
+          "409": {
+            "description": "Book is already closed"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/google/connect": {
+      "post": {
+        "tags": [
+          "Google"
+        ],
+        "summary": "Start connecting a Google account",
+        "description": "Returns Google's consent URL. Send the lawyer's browser there; Google redirects back to `/google/callback`, which then redirects to the app.",
+        "operationId": "connect_google_connect_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GoogleConnectResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer Token": []
+          }
+        ]
+      }
+    },
+    "/google/callback": {
+      "get": {
+        "tags": [
+          "Google"
+        ],
+        "summary": "Google's OAuth redirect target",
+        "description": "Called by Google, not the app — there is no bearer token; the `state` identifies the lawyer. Redirects to GOOGLE_CONNECTED_REDIRECT with `?google=connected` or `?google=error&message=...`.",
+        "operationId": "callback_google_callback_get",
+        "parameters": [
+          {
+            "name": "code",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Code"
+            }
+          },
+          {
+            "name": "state",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "State"
+            }
+          },
+          {
+            "name": "error",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Set by Google when consent was denied",
+              "title": "Error"
+            },
+            "description": "Set by Google when consent was denied"
+          }
+        ],
+        "responses": {
+          "302": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/google/connection": {
+      "get": {
+        "tags": [
+          "Google"
+        ],
+        "summary": "Is a Google account connected?",
+        "operationId": "get_connection_google_connection_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GoogleConnectionStatus"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer Token": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "Google"
+        ],
+        "summary": "Disconnect Google",
+        "description": "Revokes LexChain's access. Existing drafts stay in the lawyer's Drive.",
+        "operationId": "disconnect_google_connection_delete",
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "Bearer Token": []
+          }
+        ]
+      }
+    },
+    "/google/picker-token": {
+      "get": {
+        "tags": [
+          "Google"
+        ],
+        "summary": "Token for the Google Picker",
+        "description": "A short-lived access token for the frontend's Google Picker, used to choose an existing Doc or a template. Picking a file is what grants LexChain access to it.",
+        "operationId": "picker_token_google_picker_token_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GooglePickerToken"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer Token": []
+          }
+        ]
       }
     }
   },
@@ -2409,7 +3331,7 @@
         "title": "BlockEdit",
         "description": "A correction to one block."
       },
-      "Body_update_document_documents__document_id__update_post": {
+      "Body_attach_signed_copy_documents__document_id__signed_copy_post": {
         "properties": {
           "file": {
             "type": "string",
@@ -2421,7 +3343,27 @@
         "required": [
           "file"
         ],
-        "title": "Body_update_document_documents__document_id__update_post"
+        "title": "Body_attach_signed_copy_documents__document_id__signed_copy_post"
+      },
+      "Body_replace_signed_copy_documents__document_id__signed_copy_put": {
+        "properties": {
+          "reason": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Reason"
+          },
+          "file": {
+            "type": "string",
+            "contentMediaType": "application/octet-stream",
+            "title": "File"
+          }
+        },
+        "type": "object",
+        "required": [
+          "reason",
+          "file"
+        ],
+        "title": "Body_replace_signed_copy_documents__document_id__signed_copy_put"
       },
       "Body_upload_document_documents_upload_post": {
         "properties": {
@@ -2451,6 +3393,16 @@
             "minimum": 2000,
             "title": "Series Year",
             "description": "The year this book belongs to."
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "OPEN",
+              "CLOSED"
+            ],
+            "title": "Status",
+            "description": "OPEN for the register in current use. CLOSED to migrate a finished physical book; documents filed in it must give their Doc. No. and Page No. from the paper register.",
+            "default": "OPEN"
           }
         },
         "type": "object",
@@ -2475,17 +3427,52 @@
             "type": "integer",
             "title": "Series Year"
           },
-          "document_count": {
-            "type": "integer",
-            "title": "Document Count"
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "description": "OPEN | CLOSED"
           },
-          "page_count": {
-            "type": "integer",
-            "title": "Page Count"
+          "closed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Closed At"
           },
-          "is_full": {
-            "type": "boolean",
-            "title": "Is Full"
+          "entry_count": {
+            "type": "integer",
+            "title": "Entry Count",
+            "description": "Documents filed in this book",
+            "default": 0
+          },
+          "last_doc_no": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Doc No",
+            "description": "Highest Doc. No. used"
+          },
+          "last_page_no": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Page No",
+            "description": "Highest Page No. used"
           },
           "created_at": {
             "type": "string",
@@ -2510,24 +3497,91 @@
           "id",
           "book_number",
           "series_year",
-          "document_count",
-          "page_count",
-          "is_full",
+          "status",
           "created_at"
         ],
         "title": "BookResponse"
+      },
+      "CorrectEntryRequest": {
+        "properties": {
+          "book_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Book Id",
+            "description": "Defaults to the current book"
+          },
+          "doc_no": {
+            "type": "integer",
+            "minimum": 1,
+            "title": "Doc No"
+          },
+          "page_no": {
+            "type": "integer",
+            "minimum": 1,
+            "title": "Page No"
+          }
+        },
+        "type": "object",
+        "required": [
+          "doc_no",
+          "page_no"
+        ],
+        "title": "CorrectEntryRequest",
+        "description": "Correct the register entry of a signed document."
+      },
+      "CreateDraftRequest": {
+        "properties": {
+          "source": {
+            "type": "string",
+            "enum": [
+              "blank",
+              "template",
+              "existing"
+            ],
+            "title": "Source",
+            "description": "blank — a new empty Doc; template — a copy of `file_id`; existing — `file_id` itself, a Doc the lawyer already started",
+            "default": "blank"
+          },
+          "file_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "File Id",
+            "description": "Drive file id from the Google Picker. Required unless source is blank"
+          }
+        },
+        "type": "object",
+        "title": "CreateDraftRequest",
+        "description": "Create the working draft in the lawyer's Google Drive."
       },
       "CreateInvitationRequest": {
         "properties": {
           "email": {
             "type": "string",
+            "format": "email",
             "title": "Email",
             "description": "Email to invite"
           },
           "role": {
             "type": "string",
+            "enum": [
+              "lawyer",
+              "user"
+            ],
             "title": "Role",
-            "description": "lawyer | admin",
+            "description": "lawyer | user",
             "default": "lawyer"
           }
         },
@@ -2536,6 +3590,28 @@
           "email"
         ],
         "title": "CreateInvitationRequest"
+      },
+      "DocumentHistoryResponse": {
+        "properties": {
+          "document_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Document Id"
+          },
+          "changes": {
+            "items": {
+              "$ref": "#/components/schemas/StageChangeResponse"
+            },
+            "type": "array",
+            "title": "Changes"
+          }
+        },
+        "type": "object",
+        "required": [
+          "document_id",
+          "changes"
+        ],
+        "title": "DocumentHistoryResponse"
       },
       "DocumentInvitationActionResponse": {
         "properties": {
@@ -2762,10 +3838,40 @@
             "title": "Can Rename",
             "description": "May change the display name"
           },
-          "can_create_version": {
+          "can_create_draft": {
             "type": "boolean",
-            "title": "Can Create Version",
-            "description": "May upload a new version"
+            "title": "Can Create Draft",
+            "description": "May create the Google Docs draft"
+          },
+          "can_mark_ready": {
+            "type": "boolean",
+            "title": "Can Mark Ready",
+            "description": "May mark it ready for signature"
+          },
+          "can_reopen": {
+            "type": "boolean",
+            "title": "Can Reopen",
+            "description": "May send it back to preparing"
+          },
+          "can_attach_signed_copy": {
+            "type": "boolean",
+            "title": "Can Attach Signed Copy",
+            "description": "May attach the signed PDF"
+          },
+          "can_replace_signed_copy": {
+            "type": "boolean",
+            "title": "Can Replace Signed Copy",
+            "description": "May replace the signed PDF"
+          },
+          "can_correct_entry": {
+            "type": "boolean",
+            "title": "Can Correct Entry",
+            "description": "May correct Doc. No. / Page No."
+          },
+          "can_cancel": {
+            "type": "boolean",
+            "title": "Can Cancel",
+            "description": "May cancel the document"
           },
           "can_finalize": {
             "type": "boolean",
@@ -2786,7 +3892,13 @@
         "type": "object",
         "required": [
           "can_rename",
-          "can_create_version",
+          "can_create_draft",
+          "can_mark_ready",
+          "can_reopen",
+          "can_attach_signed_copy",
+          "can_replace_signed_copy",
+          "can_correct_entry",
+          "can_cancel",
           "can_finalize",
           "can_share",
           "can_revoke"
@@ -2805,34 +3917,14 @@
           "file_name": {
             "type": "string",
             "title": "File Name",
-            "description": "Name of the uploaded file"
+            "description": "Display name"
           },
-          "storage_url": {
+          "lifecycle": {
             "type": "string",
-            "title": "Storage Url",
-            "description": "Storage Url of the Document"
-          },
-          "content_type": {
-            "type": "string",
-            "title": "Content Type",
-            "description": "MIME type of the uploaded file"
+            "title": "Lifecycle",
+            "description": "PREPARING | READY_FOR_SIGNATURE | SIGNED | FINALIZED | CANCELLED"
           },
           "status": {
-            "type": "string",
-            "title": "Status",
-            "description": "Processing status of the document"
-          },
-          "on_chain": {
-            "type": "boolean",
-            "title": "On Chain",
-            "description": "Check if document is already recorded on-chain or not"
-          },
-          "document_hash": {
-            "type": "string",
-            "title": "Document Hash",
-            "description": "SHA-256 of the uploaded PDF bytes, taken at upload. Identifies the file itself — two uploads of the same PDF share this value."
-          },
-          "content_hash": {
             "anyOf": [
               {
                 "type": "string"
@@ -2841,25 +3933,50 @@
                 "type": "null"
               }
             ],
-            "title": "Content Hash",
-            "description": "SHA-256 of the approved extracted text, set when the issuer approves the review. This is the value anchored on-chain at finalize, so it is what verification compares against. Null until the review is approved."
+            "title": "Status",
+            "description": "Processing status; null until the document is finalized"
           },
-          "version": {
-            "type": "integer",
-            "title": "Version",
-            "description": "Version number within its chain"
-          },
-          "is_latest": {
+          "on_chain": {
             "type": "boolean",
-            "title": "Is Latest",
-            "description": "Check if document is the latest version"
+            "title": "On Chain",
+            "description": "Check if document is already recorded on-chain or not"
           },
-          "lifecycle": {
-            "type": "string",
-            "title": "Lifecycle",
-            "description": "DRAFT | FINALIZED | ARCHIVED"
+          "draft_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Draft Url",
+            "description": "Working draft in Google Docs. Reference only — not the legal document"
           },
-          "root_document_id": {
+          "signed_copy": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SignedCopyResponse"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The current signed copy — what finalize will freeze"
+          },
+          "document_hash": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Document Hash",
+            "description": "SHA-256 of the current signed copy. This is the value anchored on-chain at finalize, so it is what verification compares against."
+          },
+          "book_id": {
             "anyOf": [
               {
                 "type": "string",
@@ -2869,21 +3986,32 @@
                 "type": "null"
               }
             ],
-            "title": "Root Document Id",
-            "description": "First version of this document's chain"
+            "title": "Book Id",
+            "description": "Register book it is filed in"
           },
-          "previous_document_id": {
+          "doc_no": {
             "anyOf": [
               {
-                "type": "string",
-                "format": "uuid"
+                "type": "integer"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Previous Document Id",
-            "description": "The version this one supersedes"
+            "title": "Doc No",
+            "description": "Doc. No. in the register"
+          },
+          "page_no": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Page No",
+            "description": "Page No. in the register"
           },
           "finalized_at": {
             "anyOf": [
@@ -2910,6 +4038,18 @@
             ],
             "title": "Finalized By",
             "description": "User who finalized the document"
+          },
+          "cancelled_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cancelled At"
           },
           "permissions": {
             "$ref": "#/components/schemas/DocumentPermissions",
@@ -2959,8 +4099,15 @@
             "title": "Created At"
           },
           "updated_at": {
-            "type": "string",
-            "format": "date-time",
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Updated At"
           }
         },
@@ -2968,48 +4115,13 @@
         "required": [
           "document_id",
           "file_name",
-          "storage_url",
-          "content_type",
-          "status",
-          "on_chain",
-          "document_hash",
-          "version",
-          "is_latest",
           "lifecycle",
+          "on_chain",
           "permissions",
-          "created_at",
-          "updated_at"
+          "created_at"
         ],
         "title": "DocumentResponse",
         "description": "Document detail response with analysis insight."
-      },
-      "DocumentUploadAcceptedResponse": {
-        "properties": {
-          "document_id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Document Id",
-            "description": "Document identifier."
-          },
-          "status": {
-            "type": "string",
-            "title": "Status",
-            "description": "Current document status after upload."
-          },
-          "message": {
-            "type": "string",
-            "title": "Message",
-            "description": "Human-readable processing state."
-          }
-        },
-        "type": "object",
-        "required": [
-          "document_id",
-          "status",
-          "message"
-        ],
-        "title": "DocumentUploadAcceptedResponse",
-        "description": "Response payload returned immediately after upload is accepted."
       },
       "DocumentUploadResponse": {
         "properties": {
@@ -3022,17 +4134,24 @@
           "file_name": {
             "type": "string",
             "title": "File Name",
-            "description": "Name of the uploaded file"
+            "description": "Display name"
           },
-          "content_type": {
+          "lifecycle": {
             "type": "string",
-            "title": "Content Type",
-            "description": "MIME type of the uploaded file"
+            "title": "Lifecycle",
+            "description": "PREPARING | READY_FOR_SIGNATURE | SIGNED | FINALIZED | CANCELLED"
           },
           "status": {
-            "type": "string",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Status",
-            "description": "Processing status of the document"
+            "description": "Processing status; null until the document is finalized"
           },
           "on_chain": {
             "type": "boolean",
@@ -3064,42 +4183,60 @@
             "title": "Shared At",
             "description": "When the user was invited; null for documents they own"
           },
-          "version": {
-            "type": "integer",
-            "title": "Version",
-            "description": "Version number within its chain"
+          "book_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Book Id",
+            "description": "Register book it is filed in"
           },
-          "is_latest": {
-            "type": "boolean",
-            "title": "Is Latest",
-            "description": "Check if document is the latest version"
+          "doc_no": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Doc No",
+            "description": "Doc. No. in the register"
           },
-          "lifecycle": {
-            "type": "string",
-            "title": "Lifecycle",
-            "description": "DRAFT | FINALIZED | ARCHIVED"
+          "page_no": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Page No",
+            "description": "Page No. in the register"
           },
           "created_at": {
             "type": "string",
             "format": "date-time",
             "title": "Created At",
-            "description": "When the document was uploaded"
+            "description": "When the document was created"
           }
         },
         "type": "object",
         "required": [
           "id",
           "file_name",
-          "content_type",
-          "status",
-          "on_chain",
-          "version",
-          "is_latest",
           "lifecycle",
+          "on_chain",
           "created_at"
         ],
         "title": "DocumentUploadResponse",
-        "description": ""
+        "description": "A document in the list view."
       },
       "DocumentVerificationResponse": {
         "properties": {
@@ -3132,30 +4269,10 @@
             "title": "Storage Url",
             "description": "URL of the document as it stands now, for rendering pages"
           },
-          "page_count": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Page Count",
-            "description": "Pages in the current document"
-          },
-          "blocks": {
-            "items": {
-              "$ref": "#/components/schemas/ExtractionBlock"
-            },
-            "type": "array",
-            "title": "Blocks",
-            "description": "The document as it stands NOW, same shape as the review screen so the same viewer can render it. Tampered blocks are the ones whose index appears as `block_index` in tamper_report.segments."
-          },
           "status": {
             "type": "string",
             "title": "Status",
-            "description": "AUTHENTIC — current text matches the chain; TAMPERED — it does not; SNAPSHOT_COMPROMISED — the stored original was altered too, so no trustworthy baseline exists to diff against; NOT_ANCHORED — the document was never finalized; VERIFICATION_UNAVAILABLE — the document could not be re-read, so integrity is unknown (this is not a tamper result)"
+            "description": "AUTHENTIC — the stored file matches the chain; TAMPERED — it does not; SNAPSHOT_COMPROMISED — the stored original was altered too, so no trustworthy baseline exists to diff against; NOT_ANCHORED — the document was never finalized; VERIFICATION_UNAVAILABLE — the document could not be re-read, so integrity is unknown (this is not a tamper result)"
           },
           "is_authentic": {
             "type": "boolean",
@@ -3252,17 +4369,6 @@
             "format": "date-time",
             "title": "Verified At"
           },
-          "tamper_report": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/TamperReport"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Present only when tampering was detected and localizable"
-          },
           "message": {
             "type": "string",
             "title": "Message",
@@ -3280,6 +4386,172 @@
         ],
         "title": "DocumentVerificationResponse",
         "description": "Result of verifying a finalized document against its on-chain anchor.\n\n`status` is decided server-side by recomputing the hash — never by the\nclient — and `baseline_trusted` says whether the stored original could\nitself be proven genuine before being used as the diff baseline."
+      },
+      "DraftCommentListResponse": {
+        "properties": {
+          "document_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Document Id"
+          },
+          "synced_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Synced At",
+            "description": "Last sync from Google Docs"
+          },
+          "unresolved": {
+            "type": "integer",
+            "title": "Unresolved",
+            "description": "Open threads; Ready is refused while > 0"
+          },
+          "comments": {
+            "items": {
+              "$ref": "#/components/schemas/DraftCommentResponse"
+            },
+            "type": "array",
+            "title": "Comments"
+          }
+        },
+        "type": "object",
+        "required": [
+          "document_id",
+          "unresolved",
+          "comments"
+        ],
+        "title": "DraftCommentListResponse"
+      },
+      "DraftCommentResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "author_name": {
+            "type": "string",
+            "title": "Author Name"
+          },
+          "author_user_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Author User Id",
+            "description": "The LexChain user, when the Google author could be matched"
+          },
+          "is_lawyer": {
+            "type": "boolean",
+            "title": "Is Lawyer",
+            "default": false
+          },
+          "content": {
+            "type": "string",
+            "title": "Content"
+          },
+          "quoted_text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quoted Text",
+            "description": "The draft text the comment is on"
+          },
+          "resolved": {
+            "type": "boolean",
+            "title": "Resolved"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "replies": {
+            "items": {
+              "$ref": "#/components/schemas/DraftReplyResponse"
+            },
+            "type": "array",
+            "title": "Replies"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "author_name",
+          "content",
+          "resolved",
+          "created_at"
+        ],
+        "title": "DraftCommentResponse"
+      },
+      "DraftReplyResponse": {
+        "properties": {
+          "author_name": {
+            "type": "string",
+            "title": "Author Name"
+          },
+          "author_user_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Author User Id"
+          },
+          "is_lawyer": {
+            "type": "boolean",
+            "title": "Is Lawyer",
+            "default": false
+          },
+          "content": {
+            "type": "string",
+            "title": "Content"
+          },
+          "action": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Action",
+            "description": "resolve | reopen, when the reply did that"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "author_name",
+          "content",
+          "created_at"
+        ],
+        "title": "DraftReplyResponse"
       },
       "ExtractionBlock": {
         "properties": {
@@ -3599,6 +4871,77 @@
         ],
         "title": "GlobalSearchResponse"
       },
+      "GoogleConnectResponse": {
+        "properties": {
+          "authorization_url": {
+            "type": "string",
+            "title": "Authorization Url",
+            "description": "Send the browser here; Google redirects back to /google/callback"
+          }
+        },
+        "type": "object",
+        "required": [
+          "authorization_url"
+        ],
+        "title": "GoogleConnectResponse"
+      },
+      "GoogleConnectionStatus": {
+        "properties": {
+          "connected": {
+            "type": "boolean",
+            "title": "Connected"
+          },
+          "google_email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Google Email",
+            "description": "The connected Google account"
+          },
+          "connected_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Connected At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "connected"
+        ],
+        "title": "GoogleConnectionStatus"
+      },
+      "GooglePickerToken": {
+        "properties": {
+          "access_token": {
+            "type": "string",
+            "title": "Access Token"
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Expires At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "access_token",
+          "expires_at"
+        ],
+        "title": "GooglePickerToken",
+        "description": "What the frontend's Google Picker needs to show the lawyer's Drive."
+      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -3780,9 +5123,29 @@
           "party_removed",
           "document_recorded",
           "document_processed",
-          "document_failed"
+          "document_failed",
+          "draft_comment",
+          "draft_reply",
+          "draft_resolved",
+          "draft_reopened"
         ],
         "title": "NotificationType"
+      },
+      "OpenDocumentRequest": {
+        "properties": {
+          "file_name": {
+            "type": "string",
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "File Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "file_name"
+        ],
+        "title": "OpenDocumentRequest",
+        "description": "Path 1 — open a document record before anything is signed."
       },
       "RecordResponse": {
         "properties": {
@@ -3844,23 +5207,6 @@
         "title": "RemovePartyResponse",
         "description": "Confirmation after removing a party"
       },
-      "RenameDocumentRequest": {
-        "properties": {
-          "file_name": {
-            "type": "string",
-            "maxLength": 255,
-            "minLength": 1,
-            "title": "File Name",
-            "description": "New display name for the document."
-          }
-        },
-        "type": "object",
-        "required": [
-          "file_name"
-        ],
-        "title": "RenameDocumentRequest",
-        "description": "Request payload for renaming a document."
-      },
       "ResendVerificationRequest": {
         "properties": {
           "email": {
@@ -3875,50 +5221,6 @@
           "email"
         ],
         "title": "ResendVerificationRequest"
-      },
-      "RestoreResponse": {
-        "properties": {
-          "document_id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Document Id"
-          },
-          "restored_from": {
-            "type": "string",
-            "title": "Restored From",
-            "description": "Archive key the original came from"
-          },
-          "evidence_key": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Evidence Key",
-            "description": "Where the replaced (tampered) file was preserved before restoring; null if it could not be read, e.g. it had been deleted"
-          },
-          "verified_hash": {
-            "type": "string",
-            "title": "Verified Hash",
-            "description": "Hash of the restored file, matched against the chain"
-          },
-          "message": {
-            "type": "string",
-            "title": "Message"
-          }
-        },
-        "type": "object",
-        "required": [
-          "document_id",
-          "restored_from",
-          "verified_hash",
-          "message"
-        ],
-        "title": "RestoreResponse",
-        "description": "Result of restoring a document from its archived original."
       },
       "SearchHit": {
         "properties": {
@@ -3990,6 +5292,20 @@
         ],
         "title": "SearchResponse"
       },
+      "SetUserActiveRequest": {
+        "properties": {
+          "is_active": {
+            "type": "boolean",
+            "title": "Is Active",
+            "description": "False deactivates the account, True restores it"
+          }
+        },
+        "type": "object",
+        "required": [
+          "is_active"
+        ],
+        "title": "SetUserActiveRequest"
+      },
       "SignInRequest": {
         "properties": {
           "email": {
@@ -4001,7 +5317,7 @@
           "password": {
             "type": "string",
             "title": "Password",
-            "description": "Valid password"
+            "description": "The user's password"
           }
         },
         "type": "object",
@@ -4065,7 +5381,7 @@
           "role": {
             "type": "string",
             "title": "Role",
-            "description": "lawyer — full authority (upload, review, finalize, admin panel); user — client, may only view documents they are a party to. Legacy accounts may report 'admin' or 'super_admin', which are treated exactly as 'lawyer'."
+            "description": "lawyer — full authority (upload, review, finalize, admin panel); user — client, may only view documents they are a party to."
           }
         },
         "type": "object",
@@ -4099,18 +5415,6 @@
             "type": "string",
             "title": "L Name",
             "description": "Valid last name"
-          },
-          "phone_number": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Phone Number",
-            "description": "Valid Phone number"
           }
         },
         "type": "object",
@@ -4118,8 +5422,7 @@
           "email",
           "password",
           "f_name",
-          "l_name",
-          "phone_number"
+          "l_name"
         ],
         "title": "SignUpRequest"
       },
@@ -4157,176 +5460,160 @@
         ],
         "title": "SignUpResponse"
       },
-      "TamperReport": {
+      "SignedCopyListResponse": {
         "properties": {
-          "segments": {
+          "document_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Document Id"
+          },
+          "copies": {
             "items": {
-              "$ref": "#/components/schemas/TamperedSegment"
+              "$ref": "#/components/schemas/SignedCopyResponse"
             },
             "type": "array",
-            "title": "Segments"
-          },
-          "total_changes": {
-            "type": "integer",
-            "title": "Total Changes"
-          },
-          "critical_changes": {
-            "type": "integer",
-            "title": "Critical Changes"
-          },
-          "replaced": {
-            "type": "integer",
-            "title": "Replaced"
-          },
-          "inserted": {
-            "type": "integer",
-            "title": "Inserted"
-          },
-          "deleted": {
-            "type": "integer",
-            "title": "Deleted"
-          },
-          "similarity": {
-            "type": "number",
-            "title": "Similarity",
-            "description": "0-1 similarity between attested and current text"
-          },
-          "localized": {
-            "type": "boolean",
-            "title": "Localized",
-            "description": "True when segments carry page coordinates. False for documents finalized before block layout was stored — the diff is then text-only and bbox/page_idx are null",
-            "default": true
+            "title": "Copies"
           }
         },
         "type": "object",
         "required": [
-          "total_changes",
-          "critical_changes",
-          "replaced",
-          "inserted",
-          "deleted",
-          "similarity"
+          "document_id",
+          "copies"
         ],
-        "title": "TamperReport",
-        "description": "Summary of everything that differs from the attested text."
+        "title": "SignedCopyListResponse"
       },
-      "TamperedSegment": {
+      "SignedCopyResponse": {
         "properties": {
-          "type": {
+          "id": {
             "type": "string",
-            "title": "Type",
-            "description": "replace | insert | delete"
+            "format": "uuid",
+            "title": "Id"
           },
-          "severity": {
+          "storage_url": {
             "type": "string",
-            "title": "Severity",
-            "description": "critical (money/figures) | major (dates, references) | minor (wording)"
+            "title": "Storage Url"
           },
-          "reason": {
+          "sha256": {
             "type": "string",
-            "title": "Reason",
-            "description": "What changed, in plain terms"
+            "title": "Sha256",
+            "description": "SHA-256 of the PDF bytes"
           },
-          "original_text": {
+          "content_type": {
             "type": "string",
-            "title": "Original Text",
-            "description": "Text as attested on-chain"
+            "title": "Content Type"
           },
-          "current_text": {
-            "type": "string",
-            "title": "Current Text",
-            "description": "Text as it stands now"
-          },
-          "original_line_start": {
+          "size_bytes": {
             "type": "integer",
-            "title": "Original Line Start"
+            "title": "Size Bytes"
           },
-          "original_line_end": {
-            "type": "integer",
-            "title": "Original Line End"
-          },
-          "current_line_start": {
-            "type": "integer",
-            "title": "Current Line Start"
-          },
-          "current_line_end": {
-            "type": "integer",
-            "title": "Current Line End"
-          },
-          "block_index": {
+          "original_filename": {
             "anyOf": [
               {
-                "type": "integer"
+                "type": "string"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Block Index",
-            "description": "Block this change sits in, in the CURRENT document"
+            "title": "Original Filename"
           },
-          "original_block_index": {
+          "uploaded_by": {
             "anyOf": [
               {
-                "type": "integer"
+                "type": "string",
+                "format": "uuid"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Original Block Index",
-            "description": "Block it occupied in the attested original"
+            "title": "Uploaded By"
           },
-          "page_idx": {
+          "replaced_reason": {
             "anyOf": [
               {
-                "type": "integer"
+                "type": "string"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Page Idx",
-            "description": "Zero-based page of the change"
+            "title": "Replaced Reason",
+            "description": "Why this copy replaced the previous one"
           },
-          "bbox": {
-            "anyOf": [
-              {
-                "items": {
-                  "type": "number"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Bbox",
-            "description": "[x0, y0, x1, y1] normalized 0-1000 per page, same convention as the review screen — outline this region to show what was altered"
+          "is_current": {
+            "type": "boolean",
+            "title": "Is Current",
+            "description": "Whether this is the copy finalize will freeze",
+            "default": false
           },
-          "word_diff": {
-            "items": {
-              "$ref": "#/components/schemas/WordDiffPart"
-            },
-            "type": "array",
-            "title": "Word Diff",
-            "description": "Word-level ops for highlighting the exact edit"
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
           }
         },
         "type": "object",
         "required": [
-          "type",
-          "severity",
-          "reason",
-          "original_text",
-          "current_text",
-          "original_line_start",
-          "original_line_end",
-          "current_line_start",
-          "current_line_end"
+          "id",
+          "storage_url",
+          "sha256",
+          "content_type",
+          "size_bytes",
+          "created_at"
         ],
-        "title": "TamperedSegment",
-        "description": "One part of the document that no longer matches what was attested."
+        "title": "SignedCopyResponse",
+        "description": "One uploaded signed/notarized PDF."
+      },
+      "StageChangeResponse": {
+        "properties": {
+          "from_stage": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "From Stage"
+          },
+          "to_stage": {
+            "type": "string",
+            "title": "To Stage"
+          },
+          "action": {
+            "type": "string",
+            "title": "Action"
+          },
+          "actor_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actor Id"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "from_stage",
+          "to_stage",
+          "action",
+          "actor_id",
+          "created_at"
+        ],
+        "title": "StageChangeResponse",
+        "description": "One lifecycle action on a document."
       },
       "UnreadCountResponse": {
         "properties": {
@@ -4340,6 +5627,22 @@
           "unread"
         ],
         "title": "UnreadCountResponse"
+      },
+      "UpdateDocumentRequest": {
+        "properties": {
+          "file_name": {
+            "type": "string",
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "File Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "file_name"
+        ],
+        "title": "UpdateDocumentRequest",
+        "description": "Rename the document."
       },
       "UpdateExtractionRequest": {
         "properties": {
@@ -4470,142 +5773,6 @@
           "type"
         ],
         "title": "ValidationError"
-      },
-      "VersionHistoryItem": {
-        "properties": {
-          "document_id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Document Id"
-          },
-          "version": {
-            "type": "integer",
-            "title": "Version"
-          },
-          "file_name": {
-            "type": "string",
-            "title": "File Name"
-          },
-          "document_hash": {
-            "type": "string",
-            "title": "Document Hash"
-          },
-          "status": {
-            "type": "string",
-            "title": "Status"
-          },
-          "lifecycle": {
-            "type": "string",
-            "title": "Lifecycle"
-          },
-          "tx_hash": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Tx Hash"
-          },
-          "is_latest": {
-            "type": "boolean",
-            "title": "Is Latest"
-          },
-          "finalized_at": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "date-time"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Finalized At"
-          },
-          "created_at": {
-            "type": "string",
-            "format": "date-time",
-            "title": "Created At"
-          }
-        },
-        "type": "object",
-        "required": [
-          "document_id",
-          "version",
-          "file_name",
-          "document_hash",
-          "status",
-          "lifecycle",
-          "tx_hash",
-          "is_latest",
-          "finalized_at",
-          "created_at"
-        ],
-        "title": "VersionHistoryItem",
-        "description": "A single entry in the document's version chain"
-      },
-      "VersionHistoryResponse": {
-        "properties": {
-          "current_document_id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Current Document Id"
-          },
-          "root_document_id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Root Document Id"
-          },
-          "latest_document_id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Latest Document Id"
-          },
-          "versions": {
-            "items": {
-              "$ref": "#/components/schemas/VersionHistoryItem"
-            },
-            "type": "array",
-            "title": "Versions"
-          },
-          "total_version": {
-            "type": "integer",
-            "title": "Total Version"
-          }
-        },
-        "type": "object",
-        "required": [
-          "current_document_id",
-          "root_document_id",
-          "latest_document_id",
-          "versions",
-          "total_version"
-        ],
-        "title": "VersionHistoryResponse",
-        "description": "The full version chain for a document"
-      },
-      "WordDiffPart": {
-        "properties": {
-          "op": {
-            "type": "string",
-            "title": "Op",
-            "description": "equal | added | removed"
-          },
-          "text": {
-            "type": "string",
-            "title": "Text"
-          }
-        },
-        "type": "object",
-        "required": [
-          "op",
-          "text"
-        ],
-        "title": "WordDiffPart",
-        "description": "A run of words inside a changed segment, for inline highlighting."
       }
     },
     "securitySchemes": {
@@ -4615,5 +5782,50 @@
         "scheme": "bearer"
       }
     }
-  }
+  },
+  "tags": [
+    {
+      "name": "Authentication"
+    },
+    {
+      "name": "Users"
+    },
+    {
+      "name": "Books",
+      "description": "Notarial register books."
+    },
+    {
+      "name": "Documents",
+      "description": "List, read, rename, history."
+    },
+    {
+      "name": "Documents · Preparation (Path 1)",
+      "description": "Open a record and work on the draft in Google Docs until it is ready for signature."
+    },
+    {
+      "name": "Documents · Signed copy & register",
+      "description": "Attach (Path 1) or upload (Path 2) the signed PDF and file it in a book. Replace or correct before finalize."
+    },
+    {
+      "name": "Documents · Finalize & verify",
+      "description": "Freeze the signed copy, anchor its hash, verify it later."
+    },
+    {
+      "name": "Documents · OCR review",
+      "description": "After finalize: review the extracted text for search."
+    },
+    {
+      "name": "Documents · Sharing",
+      "description": "Parties and invitations."
+    },
+    {
+      "name": "Retrieval"
+    },
+    {
+      "name": "Notifications"
+    },
+    {
+      "name": "Admin"
+    }
+  ]
 }
