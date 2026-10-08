@@ -332,12 +332,20 @@ describe('DocumentWorkspace', () => {
     expect(screen.getByRole('button', { name: 'Cancel' }).hasAttribute('disabled')).toBe(true);
   });
 
-  it('shows returned record hashes and success copy from the parent', () => {
-    renderWorkspace({ finalizationResult: finalizationRecord, success: 'Document finalized and anchored on-chain.' });
+  it('shows the complete returned record and keeps processing separate from finalization', () => {
+    renderWorkspace({
+      document: { ...document, lifecycle: 'FINALIZED', status: 'QUEUED' },
+      finalizationResult: finalizationRecord,
+      success: 'Document finalized and anchored on-chain.',
+    });
 
     expect(screen.getByText('Document finalized and anchored on-chain.')).toBeTruthy();
+    expect(screen.getByText('Document ID').nextElementSibling?.textContent).toBe('doc-101');
+    expect(screen.getByText('onchain-doc-101')).toBeTruthy();
     expect(screen.getByText('datahash101')).toBeTruthy();
     expect(screen.getByText('0xtxhash101')).toBeTruthy();
+    expect(screen.getByText('Document lifecycle').nextElementSibling?.textContent).toBe('Finalized');
+    expect(screen.getByText('Processing status').nextElementSibling?.textContent).toBe('Queued');
   });
 
   it('keeps failed finalization retryable and never claims success', () => {
