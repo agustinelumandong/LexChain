@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DocumentWorkspace } from '@/features/documents/components/document-workspace';
 import type { ApiSchema } from '@/shared/types';
@@ -86,6 +86,8 @@ describe('DocumentWorkspace', () => {
 
   afterEach(() => {
     cleanup();
+    vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
     vi.clearAllMocks();
   });
 
@@ -137,6 +139,89 @@ describe('DocumentWorkspace', () => {
 
     fireEvent.click(screen.getByRole('tab', { name: 'Blockchain' }));
     expect(screen.getByText(/not been finalized or recorded on-chain/i)).toBeTruthy();
+  });
+
+  it('creates a blank Google draft and keeps its link separate from the signed PDF', async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = new URL(String(input), window.location.origin);
+      if (url.searchParams.get('path') === '/documents/doc-101/draft' && init?.method === 'POST') {
+        return Response.json({ ...document, draft_url: 'https://docs.google.com/document/d/blank-draft' }, { status: 201 });
+      }
+      throw new Error(`Unexpected request: ${url}`);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    renderWorkspace({ document: { ...document, draft_url: null, permissions: { ...document.permissions, can_create_draft: true } } });
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Files' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Create blank Google draft' }));
+
+    const draftLink = await screen.findByRole('link', { name: 'Open Google draft' });
+    expect(draftLink.getAttribute('href')).toBe('https://docs.google.com/document/d/blank-draft');
+    expect(draftLink.getAttribute('target')).toBe('_blank');
+    expect(screen.getByRole('link', { name: 'Open current signed PDF' }).getAttribute('href')).toBe(document.signed_copy?.storage_url);
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/portal/proxy-post?path=%2Fdocuments%2Fdoc-101%2Fdraft',
+      expect.objectContaining({ method: 'POST', body: JSON.stringify({ source: 'blank' }) }),
+    );
+  });
+
+  it('keeps a picked template after a missing-Google-connection error and allows retry', async () => {
+    vi.stubEnv('NEXT_PUBLIC_GOOGLE_PICKER_API_KEY', 'browser-key');
+    vi.stubEnv('NEXT_PUBLIC_GOOGLE_PICKER_APP_ID', 'cloud-project-number');
+    let pickerCallback: (data: unknown) => void = () => undefined;
+    class PickerBuilder {
+      addView() { return this; }
+      setOAuthToken() { return this; }
+      setDeveloperKey() { return this; }
+      setAppId() { return this; }
+      setTitle() { return this; }
+      setCallback(callback: (data: unknown) => void) { pickerCallback = callback; return this; }
+      build() {
+        return { setVisible: (visible: boolean) => {
+          if (visible) pickerCallback({ action: 'picked', docs: [{ id: 'template-77', name: 'Client template', mimeType: 'application/vnd.google-apps.document' }] });
+        } };
+      }
+    }
+    class DocsView {
+      setMimeTypes() { return this; }
+    }
+    Object.assign(window, {
+      gapi: { load: (_library: string, callback: () => void) => callback() },
+      google: { picker: { Action: { PICKED: 'picked', CANCEL: 'cancel' }, ViewId: { DOCS: 'docs' }, DocsView, PickerBuilder } },
+    });
+    let createCount = 0;
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = new URL(String(input), window.location.origin);
+      const path = url.searchParams.get('path');
+      if (path === '/google/picker-token') return Response.json({ access_token: 'short-lived-picker-token', expires_at: '2099-01-01T00:00:00Z' });
+      if (path === '/documents/doc-101/draft' && init?.method === 'POST') {
+        createCount += 1;
+        if (createCount === 1) return Response.json({ detail: 'GOOGLE_NOT_CONNECTED' }, { status: 409 });
+        return Response.json({ ...document, draft_url: 'https://docs.google.com/document/d/template-draft' }, { status: 201 });
+      }
+      throw new Error(`Unexpected request: ${url}`);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    renderWorkspace({ document: { ...document, draft_url: null, permissions: { ...document.permissions, can_create_draft: true } } });
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Files' }));
+    fireEvent.change(await screen.findByRole('combobox', { name: 'Draft source' }), { target: { value: 'template' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Choose Google Doc' }));
+    expect(await screen.findByText(/Client template/)).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Create draft from template' }));
+
+    expect(await screen.findByRole('link', { name: 'Connect Google in account settings' })).toBeTruthy();
+    expect(screen.getByText(/Client template/)).toBeTruthy();
+    expect((screen.getByRole('combobox', { name: 'Draft source' }) as HTMLSelectElement).value).toBe('template');
+    fireEvent.click(screen.getByRole('button', { name: 'Create draft from template' }));
+    expect(await screen.findByRole('link', { name: 'Open Google draft' })).toBeTruthy();
+
+    expect(fetchMock).toHaveBeenCalledWith('/api/portal/proxy?path=%2Fgoogle%2Fpicker-token', expect.any(Object));
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/portal/proxy-post?path=%2Fdocuments%2Fdoc-101%2Fdraft',
+      expect.objectContaining({ method: 'POST', body: JSON.stringify({ source: 'template', file_id: 'template-77' }) }),
+    );
+    await waitFor(() => expect(createCount).toBe(2));
   });
 
   it('explains unavailable data without inventing controls or restricted workflow actions', () => {
