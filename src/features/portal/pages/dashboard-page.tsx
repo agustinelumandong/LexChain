@@ -13,7 +13,7 @@ import FileUploadIcon from '@mui/icons-material/FileUpload';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import { MetricCard } from '@/features/portal/components/portal-metric-card';
 import { getDocumentStatusLabel } from "@/features/documents";
-import { type DashboardMetric, getDashboardMetrics } from '@/features/portal/portal-dashboard';
+import { dashboardResponseSchema, type DashboardResponse } from '@/features/admin';
 import { usePortalRole } from "@/features/access/components";
 
 interface Document {
@@ -53,22 +53,13 @@ function isAttentionDocument(document: Document) {
   return document.status?.trim().toUpperCase() === 'FAILED';
 }
 
-type AdminDashboardData = {
-  total_users: number;
-  total_documents: number;
-  total_processed: number;
-  total_failed: number;
-  total_on_chain: number;
-  pending_invitations: number;
-};
-
 function getMetricIcon(label: string) {
   if (label === 'Total Users') return PeopleIcon;
   if (label === 'Total Lawyers') return GavelIcon;
   if (label === 'Total Documents') return DescriptionIcon;
-  if (label === 'Processing') return ScheduleIcon;
-  if (label === 'Failed') return ErrorIcon;
-  if (label === 'On-Chain Records') return VerifiedUserIcon;
+  if (label === 'Total Processed') return ScheduleIcon;
+  if (label === 'Total Failed') return ErrorIcon;
+  if (label === 'Total On Chain') return VerifiedUserIcon;
   if (label === 'Pending Invitations') return EmailOutlinedIcon;
   return DescriptionIcon;
 }
@@ -76,19 +67,20 @@ function getMetricIcon(label: string) {
 function getMetricColor(label: string) {
   if (label === 'Total Users') return 'bg-[#EAF3FF] text-[#0879D8]';
   if (label === 'Total Documents') return 'bg-[#EAF3FF] text-[#0879D8]';
-  if (label === 'Processing') return 'bg-[#FFF4DF] text-[#F59E0B]';
-  if (label === 'Failed' || label === 'Failed Documents') return 'bg-[#FEECEC] text-[#EF4444]';
-  if (label === 'On-Chain Records') return 'bg-[#EAFBF1] text-[#16A34A]';
+  if (label === 'Total Processed') return 'bg-[#FFF4DF] text-[#F59E0B]';
+  if (label === 'Total Failed') return 'bg-[#FEECEC] text-[#EF4444]';
+  if (label === 'Total On Chain') return 'bg-[#EAFBF1] text-[#16A34A]';
   if (label === 'Pending Invitations') return 'bg-[#EAF3FF] text-[#0879D8]';
   return 'bg-[#EAF3FF] text-[#0879D8]';
 }
 
 function getMetricDetail(label: string) {
   if (label === 'Total Users') return 'Registered accounts';
-  if (label === 'Total Documents') return 'Uploaded documents';
-  if (label === 'Processing') return 'status processing';
-  if (label === 'Failed' || label === 'Failed Documents') return 'status failed';
-  if (label === 'On-Chain Records') return 'anchored records';
+  if (label === 'Total Lawyers') return 'Lawyer accounts';
+  if (label === 'Total Documents') return 'Documents in the system';
+  if (label === 'Total Processed') return 'Documents processed';
+  if (label === 'Total Failed') return 'Documents that failed processing';
+  if (label === 'Total On Chain') return 'Documents recorded on chain';
   if (label === 'Pending Invitations') return 'awaiting acceptance';
   return '—';
 }
@@ -101,12 +93,13 @@ export default function DashboardPage() {
     queryFn: () => fetchJson('/documents/'),
     enabled: isIssuer,
   });
-  const adminDashboardQuery = useQuery<AdminDashboardData>({
+  const adminDashboardQuery = useQuery<DashboardResponse | null>({
     queryKey: ['admin-dashboard'],
     queryFn: async () => {
       const res = await fetch('/api/admin/dashboard');
       if (!res.ok) throw new Error('Admin dashboard unavailable');
-      return res.json();
+      const parsed = dashboardResponseSchema.safeParse(await res.json());
+      return parsed.success ? parsed.data : null;
     },
     enabled: isIssuer,
   });
@@ -132,16 +125,15 @@ export default function DashboardPage() {
   const attentionDocuments = documents.filter(isAttentionDocument);
   const processingDocuments = documents.filter(isProcessing);
   const adminMetrics = adminDashboardQuery.data;
-  const metrics: DashboardMetric[] = adminMetrics
-    ? [
-        ['Total Users', adminMetrics.total_users],
-        ['Total Documents', adminMetrics.total_documents],
-        ['Processing', adminMetrics.total_processed],
-        ['Failed', adminMetrics.total_failed],
-        ['On-Chain Records', adminMetrics.total_on_chain],
-        ['Pending Invitations', adminMetrics.pending_invitations],
-      ]
-    : getDashboardMetrics(documents);
+  const metrics = [
+    ['Total Users', adminMetrics?.total_users],
+    ['Total Lawyers', adminMetrics?.total_lawyers],
+    ['Total Documents', adminMetrics?.total_documents],
+    ['Total Processed', adminMetrics?.total_processed],
+    ['Total Failed', adminMetrics?.total_failed],
+    ['Total On Chain', adminMetrics?.total_on_chain],
+    ['Pending Invitations', adminMetrics?.pending_invitations],
+  ] as const;
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-5">
@@ -165,15 +157,28 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {!adminMetrics && adminDashboardQuery.isLoading ? (
-        <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3">{Array.from({ length: 6 }, (_, i) => <div key={i} className={`${cardClass} h-24 animate-pulse sm:h-28`} />)}</div>
+      {adminMetrics == null && adminDashboardQuery.isLoading ? (
+        <div role="status" aria-label="Loading dashboard metrics" className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3">{Array.from({ length: 7 }, (_, i) => <div key={i} className={`${cardClass} h-24 animate-pulse sm:h-28`} />)}</div>
       ) : (
-        <div className="shrink-0 grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3">
+        <>
+          {adminDashboardQuery.isError ? (
+            <div role="alert" className={`${cardClass} flex flex-wrap items-center justify-between gap-3 p-5`}>
+              <div><p className="text-sm font-bold text-[#0C2B49]">We could not load administrator dashboard metrics.</p><p className="mt-1 text-xs text-[#64748b]">Retry to load the latest values.</p></div>
+              <button type="button" onClick={() => void adminDashboardQuery.refetch()} aria-label="Retry dashboard metrics" className="rounded-full border border-[#D7E4F2] px-4 py-2 text-sm font-black text-[#0985E7]">Retry</button>
+            </div>
+          ) : adminMetrics == null ? (
+            <div role="status" className={`${cardClass} flex flex-wrap items-center justify-between gap-3 p-5`}>
+              <div><p className="text-sm font-bold text-[#0C2B49]">Dashboard metrics are unavailable.</p><p className="mt-1 text-xs text-[#64748b]">The dashboard response did not include all expected values.</p></div>
+              <button type="button" onClick={() => void adminDashboardQuery.refetch()} aria-label="Retry dashboard metrics" className="rounded-full border border-[#D7E4F2] px-4 py-2 text-sm font-black text-[#0985E7]">Retry</button>
+            </div>
+          ) : null}
+          <div className="shrink-0 grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3">
           {metrics.map(([label, value]) => {
             const Icon = getMetricIcon(label);
-            return <MetricCard key={label} icon={<Icon fontSize="small" />} label={label} value={value} detail={getMetricDetail(label)} color={getMetricColor(label)} />;
+            return <MetricCard key={label} icon={<Icon fontSize="small" />} label={label} value={value ?? 'Unavailable'} detail={getMetricDetail(label)} color={getMetricColor(label)} />;
           })}
-        </div>
+          </div>
+        </>
       )}
 
       <div className="grid min-h-0 flex-1 gap-5 overflow-hidden md:grid-cols-[minmax(0,1fr)_360px]">
