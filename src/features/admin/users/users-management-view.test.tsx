@@ -39,8 +39,8 @@ const users = [
   },
 ];
 
-function renderUsers() {
-  return renderUserList(users);
+function renderUsers(userRows: typeof users = users) {
+  return renderUserList(userRows);
 }
 
 function renderUserList(userRows: typeof users) {
@@ -68,7 +68,7 @@ describe("updateDemoUser", () => {
   });
 
   it("leaves every row unchanged for an unknown id", () => {
-    const result = updateDemoUser(users, "missing", { is_active: false });
+    const result = updateDemoUser(users, "missing", { email: "updated@example.com" });
 
     expect(result).toEqual(users);
     expect(result.every((user, index) => user === users[index])).toBe(true);
@@ -292,35 +292,68 @@ describe("UsersManagementView demo mutations", () => {
     expect((screen.getByLabelText("First name") as HTMLInputElement).value).toBe("Maria");
   });
 
-  it("suspends an active account in demo mode", () => {
+  it("shows a pending row while the server confirms a suspension", async () => {
+    let resolveRequest!: (response: Response) => void;
+    const fetchMock = vi.fn(() => new Promise<Response>((resolve) => { resolveRequest = resolve; }));
+    vi.stubGlobal("fetch", fetchMock);
     renderUsers();
     fireEvent.click(within(rowFor("maria@example.com")).getByRole("button", { name: "More actions for Maria Santos" }));
     fireEvent.click(screen.getByRole("button", { name: "Suspend user" }));
 
-    expect(screen.getByText("Demo mode — changes reset when this page is refreshed.")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Suspend" }));
 
-    expect(within(rowFor("maria@example.com")).getByText("Suspended")).toBeTruthy();
+    expect(fetchMock).toHaveBeenCalledWith("/api/admin/users/user-1/active", expect.objectContaining({
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ is_active: false }),
+    }));
+    expect(within(rowFor("maria@example.com")).getByRole("status").textContent).toBe("Updating…");
+    expect(screen.getByRole("button", { name: "Suspending…" }).hasAttribute("disabled")).toBe(true);
+    expect(screen.queryByText("Account suspended")).toBeNull();
+
+    resolveRequest(new Response(JSON.stringify({ ...users[1], is_active: false }), { status: 200 }));
+    await waitFor(() => expect(within(rowFor("maria@example.com")).getByText("Suspended")).toBeTruthy());
+    expect(screen.getByText("Account suspended")).toBeTruthy();
   });
 
-  it("reactivates a suspended account in demo mode", () => {
+  it("reactivates a suspended account using the returned backend state", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({ ...users[2], is_active: true }), { status: 200 })));
     renderUsers();
     fireEvent.click(within(rowFor("juan@example.com")).getByRole("button", { name: "More actions for Juan Cruz" }));
     fireEvent.click(screen.getByRole("button", { name: "Reactivate user" }));
-
-    expect(screen.getByText("Demo mode — changes reset when this page is refreshed.")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Reactivate" }));
 
-    expect(within(rowFor("juan@example.com")).getByText("Active")).toBeTruthy();
+    await waitFor(() => expect(within(rowFor("juan@example.com")).getByText("Active")).toBeTruthy());
+    expect(screen.getByText("Account reactivated")).toBeTruthy();
   });
 
-  it("does not allow the displayed current account to be suspended", () => {
+  it.each([
+    ["self-deactivation", "You cannot deactivate your own account.", "admin@lexchain.local"],
+    ["last active lawyer", "You cannot deactivate the last active lawyer.", "maria@example.com"],
+  ])("keeps the status unchanged and shows the recoverable %s error", async (_constraint, detail, email) => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({ detail }), { status: 400 })));
     renderUsers();
-    fireEvent.click(within(rowFor("admin@lexchain.local")).getByRole("button", { name: "More actions for LexChain Issuer" }));
+    const row = rowFor(email);
+    fireEvent.click(within(row).getByRole("button", { name: /More actions for/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Suspend user" }));
+    fireEvent.click(screen.getByRole("button", { name: "Suspend" }));
 
-    const guard = screen.getByRole("button", { name: "Current account cannot be suspended" }) as HTMLButtonElement;
-    expect(guard.disabled).toBe(true);
+    expect((await screen.findByRole("alert")).textContent).toContain(detail);
+    expect(screen.getByRole("button", { name: "Suspend" }).hasAttribute("disabled")).toBe(false);
+    expect(within(row).getByText("Active")).toBeTruthy();
   });
+
+  it("keeps the existing displayed account status when the server returns an error", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("offline")));
+    renderUsers();
+    fireEvent.click(within(rowFor("maria@example.com")).getByRole("button", { name: "More actions for Maria Santos" }));
+    fireEvent.click(screen.getByRole("button", { name: "Suspend user" }));
+    fireEvent.click(screen.getByRole("button", { name: "Suspend" }));
+
+    expect((await screen.findByRole("alert")).textContent).toContain("Unable to update account status. Please try again.");
+    expect(within(rowFor("maria@example.com")).getByText("Active")).toBeTruthy();
+  });
+
 });
 
 it("removes the redundant Roles & Permissions admin navigation", () => {

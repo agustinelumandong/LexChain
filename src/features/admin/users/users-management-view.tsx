@@ -72,7 +72,6 @@ function enrichUser(user: AdminUser): DirectoryUser {
 
 function ActionsMenu({ user, onView, onEdit, onChangeStatus }: { user: DirectoryUser; onView: () => void; onEdit: () => void; onChangeStatus: () => void }) {
   const { open, setOpen, ref } = usePopup();
-  const isCurrentAccount = user.email === "admin@lexchain.local";
 
   return (
     <div ref={ref} className="relative flex items-center justify-end gap-1">
@@ -105,21 +104,13 @@ function ActionsMenu({ user, onView, onEdit, onChangeStatus }: { user: Directory
           ))}
           <button
             type="button"
-            disabled={isCurrentAccount && user.statusLabel === "Active"}
-            aria-label={isCurrentAccount && user.statusLabel === "Active" ? "Current account cannot be suspended" : undefined}
             onClick={() => { setOpen(false); onChangeStatus(); }}
             className={cn(
               "block w-full px-4 py-2.5 text-left text-sm font-bold transition",
-              isCurrentAccount && user.statusLabel === "Active"
-                ? "cursor-not-allowed text-[#94A3B8]"
-                : user.statusLabel === "Active"
-                  ? "text-red-600 hover:bg-red-50"
-                  : "text-green-700 hover:bg-green-50",
+              user.statusLabel === "Active" ? "text-red-600 hover:bg-red-50" : "text-green-700 hover:bg-green-50",
             )}
           >
-            {isCurrentAccount && user.statusLabel === "Active"
-              ? "Current account cannot be suspended"
-              : user.statusLabel === "Active" ? "Suspend user" : "Reactivate user"}
+            {user.statusLabel === "Active" ? "Suspend user" : "Reactivate user"}
           </button>
         </div>
       )}
@@ -139,6 +130,49 @@ export function UsersManagementView({ users, total }: { users: AdminUser[]; tota
   const [sortOrder, setSortOrder] = useState("created-desc");
   const [dialogSelection, setDialogSelection] = useState<UserDialogSelection | null>(null);
   const [userRows, setUserRows] = useState(users);
+  const [statusPendingUserId, setStatusPendingUserId] = useState<string | null>(null);
+  const [statusError, setStatusError] = useState<string | null>(null);
+
+  async function changeUserStatus(user: DirectoryUser, isActive: boolean) {
+    if (statusPendingUserId) return;
+    setStatusPendingUserId(user.id);
+    setStatusError(null);
+    try {
+      let response: Response;
+      try {
+        response = await fetch(`/api/admin/users/${encodeURIComponent(user.id)}/active`, {
+          method: "PATCH",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ is_active: isActive }),
+        });
+      } catch {
+        throw new Error("Unable to update account status. Please try again.");
+      }
+      const payload: unknown = await response.json().catch(() => null);
+      if (!response.ok) {
+        const detail = payload && typeof payload === "object" && "detail" in payload && typeof payload.detail === "string"
+          ? payload.detail
+          : payload && typeof payload === "object" && "message" in payload && typeof payload.message === "string"
+            ? payload.message
+            : "Unable to update account status. Please try again.";
+        throw new Error(detail);
+      }
+      const returnedId = payload && typeof payload === "object" && "id" in payload ? payload.id : null;
+      const returnedIsActive = payload && typeof payload === "object" && "is_active" in payload && typeof payload.is_active === "boolean"
+        ? payload.is_active
+        : null;
+      if (returnedId !== user.id || returnedIsActive === null) {
+        throw new Error("The API returned an invalid account status. Please refresh and try again.");
+      }
+      setUserRows((currentUsers) => currentUsers.map((current) => current.id === user.id ? { ...current, is_active: returnedIsActive } : current));
+      showToast({ title: returnedIsActive ? "Account reactivated" : "Account suspended" });
+      setDialogSelection(null);
+    } catch (error) {
+      setStatusError(error instanceof Error ? error.message : "Unable to update account status. Please try again.");
+    } finally {
+      setStatusPendingUserId(null);
+    }
+  }
 
   const directoryUsers = useMemo(() => userRows.map(enrichUser), [userRows]);
   const roleOptions = useMemo(() => [...new Set(directoryUsers.map((user) => user.roleLabel))], [directoryUsers]);
@@ -269,14 +303,14 @@ export function UsersManagementView({ users, total }: { users: AdminUser[]; tota
                       </div>
                     </td>
                     <td className="px-5 py-3 font-semibold text-[#0C2B49]">{user.roleLabel}</td>
-                    <td className="px-5 py-3"><StatusPill status={user.statusLabel} /></td>
+                    <td className="px-5 py-3">{statusPendingUserId === user.id ? <span role="status" className="text-xs font-bold text-[#0879D8]">Updating…</span> : <StatusPill status={user.statusLabel} />}</td>
                     <td className="px-5 py-3 font-semibold text-[#0C2B49]">{new Date(user.created_at).toLocaleDateString()}</td>
                     <td className="px-5 py-3">
                       <ActionsMenu
                         user={user}
                         onView={() => setDialogSelection({ user, mode: "view" })}
                         onEdit={() => setDialogSelection({ user, mode: "edit" })}
-                        onChangeStatus={() => setDialogSelection({ user, mode: "suspend" })}
+                        onChangeStatus={() => { setStatusError(null); setDialogSelection({ user, mode: "suspend" }); }}
                       />
                     </td>
                   </tr>
@@ -331,7 +365,10 @@ export function UsersManagementView({ users, total }: { users: AdminUser[]; tota
         <UserDialogs
           key={`${dialogSelection.user.id}:${dialogSelection.mode}`}
           selection={dialogSelection}
-          onClose={() => setDialogSelection(null)}
+          onClose={() => { if (!statusPendingUserId) setDialogSelection(null); }}
+          onChangeStatus={(isActive) => { void changeUserStatus(dialogSelection.user, isActive); }}
+          statusPending={statusPendingUserId === dialogSelection.user.id}
+          statusError={statusError}
           onSave={(changes) => {
             setUserRows((currentUsers) => updateDemoUser(currentUsers, dialogSelection.user.id, changes));
             showToast({ title: "Demo account updated", detail: "Demo mode — changes reset when this page is refreshed." });
