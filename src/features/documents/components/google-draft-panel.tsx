@@ -107,7 +107,9 @@ export function GoogleDraftPanel({ document }: { document: ApiSchema<'DocumentRe
     try {
       await openGooglePicker(setPicked);
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Unable to open Google Picker. Try again.');
+      const failure = errorMessage(cause);
+      setError(failure.message);
+      setNeedsGoogleConnection(failure.needsGoogleConnection);
     } finally {
       setPicking(false);
     }
@@ -133,5 +135,5 @@ export function GoogleDraftPanel({ document }: { document: ApiSchema<'DocumentRe
   if (document.lifecycle !== 'PREPARING' || !document.permissions.can_create_draft) return null;
 
   return <DraftCreationForm source={source} picked={picked} error={error} needsGoogleConnection={needsGoogleConnection} pending={pending} picking={picking}
-    onSourceChange={(value) => { setSource(value); setPicked(null); }} onPick={() => void chooseFile()} onCreate={() => void createDraft()} />;
+    onSourceChange={(value) => { setSource(value); setPicked(null); setError(''); setNeedsGoogleConnection(false); }} onPick={() => void chooseFile()} onCreate={() => void createDraft()} />;
 }

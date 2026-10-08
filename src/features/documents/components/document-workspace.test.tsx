@@ -233,6 +233,27 @@ describe('DocumentWorkspace', () => {
     await waitFor(() => expect(createCount).toBe(2));
   });
 
+  it('offers account settings when the Picker token request reports a missing Google connection', async () => {
+    vi.stubEnv('NEXT_PUBLIC_GOOGLE_PICKER_API_KEY', 'browser-key');
+    vi.stubEnv('NEXT_PUBLIC_GOOGLE_PICKER_APP_ID', 'cloud-project-number');
+    vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => {
+      const url = new URL(String(input), window.location.origin);
+      if (url.searchParams.get('path') === '/google/picker-token') return Response.json({ detail: 'GOOGLE_NOT_CONNECTED' }, { status: 409 });
+      throw new Error(`Unexpected request: ${url}`);
+    }));
+    renderWorkspace({ document: { ...document, draft_url: null, permissions: { ...document.permissions, can_create_draft: true } } });
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Files' }));
+    fireEvent.change(screen.getByRole('combobox', { name: 'Draft source' }), { target: { value: 'template' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Choose Google Doc' }));
+
+    expect(await screen.findByRole('link', { name: 'Connect Google in account settings' })).toBeTruthy();
+    expect((screen.getByRole('combobox', { name: 'Draft source' }) as HTMLSelectElement).value).toBe('template');
+    fireEvent.change(screen.getByRole('combobox', { name: 'Draft source' }), { target: { value: 'blank' } });
+    expect(screen.queryByRole('link', { name: 'Connect Google in account settings' })).toBeNull();
+    expect(screen.queryByRole('alert')).toBeNull();
+  });
+
   it('explains unavailable data without inventing controls or restricted workflow actions', () => {
     renderWorkspace({ document: { ...document, status: 'PROCESSING', signed_copy: null, draft_url: null, summary: null, labels: [], entities: [], risk_flags: [] } });
 
