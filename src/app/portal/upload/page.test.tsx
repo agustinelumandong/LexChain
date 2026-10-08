@@ -5,7 +5,10 @@ import UploadPage from '@/features/documents/pages/upload-page';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
-const { uploadDocumentMock } = vi.hoisted(() => ({ uploadDocumentMock: vi.fn() }));
+const { uploadDocumentMock, booksMock } = vi.hoisted(() => ({
+  uploadDocumentMock: vi.fn(),
+  booksMock: { value: [{ id: 'book-1', book_number: 42, series_year: 2026, status: 'OPEN' }] },
+}));
 vi.mock('sonner', () => ({ toast: { success: vi.fn() } }));
 
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn() }) }));
@@ -14,15 +17,15 @@ vi.mock('@mui/icons-material/InsertDriveFile', () => ({ default: () => null }));
 vi.mock('@mui/icons-material/Close', () => ({ default: () => null }));
 vi.mock('@mui/icons-material/CheckCircle', () => ({ default: () => null }));
 vi.mock('@/features/documents/portal-upload', async (importOriginal) => ({
-  ...await importOriginal<typeof import('@/features/documents/portal-upload')>(),
-  uploadDocument: uploadDocumentMock,
+    ...await importOriginal<typeof import('@/features/documents/portal-upload')>(),
+    uploadDocument: uploadDocumentMock,
 }));
 vi.mock('@tanstack/react-query', async (importOriginal) => {
   return {
     ...await importOriginal<typeof import('@tanstack/react-query')>(),
     useQuery: ({ queryKey }: { queryKey: string[] }) => queryKey[0] === 'portal-profile'
       ? { data: { role: 'document_issuer' }, isPending: false }
-      : { data: [{ id: 'book-1', book_number: '42', series_year: 2026, is_full: false }], isLoading: false, isError: false },
+      : { data: booksMock.value, isLoading: false, isError: false },
   };
 });
 
@@ -43,6 +46,7 @@ describe('UploadPage', () => {
   afterEach(() => {
     cleanup();
     vi.clearAllMocks();
+    booksMock.value = [{ id: 'book-1', book_number: 42, series_year: 2026, status: 'OPEN' }];
   });
 
   it('renders the accepted document ID and status returned by the upload service', async () => {
@@ -65,6 +69,32 @@ describe('UploadPage', () => {
     completeUploadForm(container);
 
     await waitFor(() => expect(screen.getByRole('alert').textContent).toContain('The PDF is too large.'));
+  });
+
+  it('allows uploads to closed books only after paper Doc. No. and Page No. are provided', async () => {
+    booksMock.value = [{ id: 'book-closed', book_number: 4, series_year: 2025, status: 'CLOSED' }];
+    uploadDocumentMock.mockResolvedValue({ document_id: 'closed-book-document', status: 'QUEUED', message: 'Accepted.' });
+    const { container } = renderUploadPage();
+    const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
+    fireEvent.change(fileInput, { target: { files: [new File(['PDF'], 'deed.pdf', { type: 'application/pdf' })] } });
+    fireEvent.click(screen.getByLabelText('Register book'));
+    fireEvent.click(screen.getByRole('option', { name: /Register book 4 — Series 2025 · Closed/ }));
+
+    expect(screen.getByLabelText('Paper document number')).toBeTruthy();
+    expect(screen.getByLabelText('Paper page number')).toBeTruthy();
+    expect(screen.getByText(/closed books remain available for filing/i)).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm and process' }));
+    expect((await screen.findByRole('alert')).textContent).toContain('Enter the paper register document number.');
+    expect(uploadDocumentMock).not.toHaveBeenCalled();
+
+    fireEvent.change(screen.getByLabelText('Paper document number'), { target: { value: '12' } });
+    fireEvent.change(screen.getByLabelText('Paper page number'), { target: { value: '24' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm and process' }));
+
+    expect(await screen.findByText('closed-book-document')).toBeTruthy();
+    expect(uploadDocumentMock).toHaveBeenCalledWith(expect.objectContaining({
+      title: 'deed', bookId: 'book-closed', paperRegister: { docNo: 12, pageNo: 24 },
+    }));
   });
 
   it('identifies the selected file, office upload limit, and register book field', () => {

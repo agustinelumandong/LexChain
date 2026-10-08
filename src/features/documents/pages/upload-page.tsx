@@ -20,8 +20,7 @@ import { canAccessPortalFeature, getPortalUiRole } from "@/features/access";
 import { PortalDropdown } from "@/features/portal/components";
 import { defaultOfficeSettings } from "@/features/office";
 import type { ApiSchema } from '@/shared/types/index';
-
-type Book = ApiSchema<'BookResponse'>;
+type Book = { id: string; book_number: number; series_year: number; status: 'OPEN' | 'CLOSED' };
 type UserProfile = ApiSchema<'UserProfileResponse'>;
 
 async function fetchBooks(): Promise<Book[]> {
@@ -42,6 +41,8 @@ export default function UploadPage() {
   const [file, setFile] = useState<File | null>(null);
   const [title, setTitle] = useState('');
   const [bookId, setBookId] = useState('');
+  const [docNo, setDocNo] = useState('');
+  const [pageNo, setPageNo] = useState('');
   const [drag, setDrag] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
   const [outcome, setOutcome] = useState<UploadOutcome | null>(null);
@@ -55,14 +56,22 @@ export default function UploadPage() {
   });
   const isIssuer = canAccessPortalFeature(getPortalUiRole(profileQuery.data?.role), 'upload');
   const booksQuery = useQuery({ queryKey: ['portal-books'], queryFn: fetchBooks, enabled: isIssuer });
-  const availableBooks = (booksQuery.data ?? []).filter((book) => !book.is_full);
+  const availableBooks = booksQuery.data ?? [];
+  const selectedBook = availableBooks.find((book) => book.id === bookId);
+  const isClosedBook = selectedBook?.status === 'CLOSED';
+  const uploadMetadata = { title, bookId: selectedBook?.id ?? '', bookStatus: selectedBook?.status, docNo, pageNo };
 
   const mutation = useMutation({
     mutationFn: () => {
       if (!file) throw new Error('Choose a PDF first.');
-      const metadataError = getRequiredUploadMetadataError({ title, bookId });
+      const metadataError = getRequiredUploadMetadataError(uploadMetadata);
       if (metadataError) throw new Error(metadataError);
-      return uploadDocument({ file, title: title.trim(), bookId });
+      return uploadDocument({
+        file,
+        title: title.trim(),
+        bookId,
+        ...(isClosedBook ? { paperRegister: { docNo: Number(docNo), pageNo: Number(pageNo) } } : {}),
+      });
     },
     onSuccess: (data) => {
       setOutcome(getUploadOutcome(data));
@@ -90,7 +99,7 @@ export default function UploadPage() {
       setValidationError('Choose a PDF first.');
       return;
     }
-    const metadataError = getRequiredUploadMetadataError({ title, bookId });
+    const metadataError = getRequiredUploadMetadataError(uploadMetadata);
     if (metadataError) {
       setValidationError(metadataError);
       return;
@@ -139,22 +148,33 @@ export default function UploadPage() {
       <div className="flex flex-1 flex-col gap-5">
         <section aria-labelledby="document-information-heading" className="flex flex-col rounded-[18px] border border-[#E8F0F8] bg-white p-5">
           <h2 id="document-information-heading" className="font-black text-[#0C2B49]">Document information</h2>
-          <p className="mt-1 text-sm text-[#64748b]">Provide the title and active book required by the upload service.</p>
+          <p className="mt-1 text-sm text-[#64748b]">Provide the title and register book for this document.</p>
           <div className="mt-4 grid gap-4">
             <label className="flex flex-col gap-1.5 text-sm font-bold text-[#0C2B49]">Document title<input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="e.g. Deed of Sale" className="rounded-xl border border-[#D7E4F2] px-3 py-2.5 text-sm font-medium outline-none focus:border-[#0985E7]" /></label>
             <label className="flex flex-col gap-1.5 text-sm font-bold text-[#0C2B49]">Register book
               <PortalDropdown
                 ariaLabel="Register book"
                 placeholder="Choose a register book"
-                emptyLabel={booksQuery.isLoading ? 'Loading register books...' : 'No active register books available'}
-                options={availableBooks.map((book) => ({ label: `Register book ${book.book_number} — Series ${book.series_year}`, value: book.id }))}
+                emptyLabel={booksQuery.isLoading ? 'Loading register books...' : 'No register books available'}
+                options={availableBooks.map((book) => ({ label: `Register book ${book.book_number} — Series ${book.series_year} · ${book.status === 'CLOSED' ? 'Closed' : 'Open'}`, value: book.id }))}
                 value={bookId}
-                onChange={setBookId}
+                onChange={(value) => { setBookId(value); setDocNo(''); setPageNo(''); setValidationError(null); }}
                 disabled={booksQuery.isLoading || availableBooks.length === 0}
               />
             </label>
             {booksQuery.isError && <p role="alert" className="text-sm font-bold text-red-600">Unable to load books. Please try again.</p>}
-            {!booksQuery.isLoading && availableBooks.length === 0 && <p className="text-sm text-[#64748b]">Register an active book before uploading a document.</p>}
+            {!booksQuery.isLoading && availableBooks.length === 0 && <p className="text-sm text-[#64748b]">Register a book before uploading a document.</p>}
+            {isClosedBook && <>
+              <p className="text-sm text-[#64748b]">Closed books remain available for filing. Enter the numbers shown in the paper register.</p>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <label className="flex flex-col gap-1.5 text-sm font-bold text-[#0C2B49]">Paper document number
+                  <input required min="1" step="1" inputMode="numeric" type="number" value={docNo} onChange={(event) => setDocNo(event.target.value)} className="rounded-xl border border-[#D7E4F2] px-3 py-2.5 text-sm font-medium outline-none focus:border-[#0985E7]" />
+                </label>
+                <label className="flex flex-col gap-1.5 text-sm font-bold text-[#0C2B49]">Paper page number
+                  <input required min="1" step="1" inputMode="numeric" type="number" value={pageNo} onChange={(event) => setPageNo(event.target.value)} className="rounded-xl border border-[#D7E4F2] px-3 py-2.5 text-sm font-medium outline-none focus:border-[#0985E7]" />
+                </label>
+              </div>
+            </>}
           </div>
         </section>
 

@@ -80,6 +80,18 @@ async function deleteBook(bookId: string) {
   }
 }
 
+async function closeBook(bookId: string): Promise<Book> {
+  const response = await fetch(`/api/portal/proxy-post?path=${encodeURIComponent(`/books/${bookId}/close`)}`, {
+    method: 'POST',
+    credentials: 'same-origin',
+  });
+  if (!response.ok) {
+    const error = await response.json().catch(() => null);
+    throw new Error(getBookErrorMessage(error, 'Unable to close book'));
+  }
+  return response.json();
+}
+
 export default function BooksPage() {
   const queryClient = useQueryClient();
   const role = usePortalRole();
@@ -118,6 +130,24 @@ export default function BooksPage() {
       toast.success('Book deleted');
     },
   });
+  const closeBookMutation = useMutation({
+    mutationFn: closeBook,
+    onSuccess: async (closedBook) => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['portal-books'] }),
+        queryClient.invalidateQueries({ queryKey: ['portal-book', closedBook.id] }),
+      ]);
+      queryClient.setQueryData<Book[]>(['portal-books'], (current) => current?.map((book) => book.id === closedBook.id ? closedBook : book));
+      queryClient.setQueryData(['portal-book', closedBook.id], closedBook);
+      toast.success('Register book closed');
+    },
+    onError: async (_error, bookId) => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['portal-books'] }),
+        queryClient.invalidateQueries({ queryKey: ['portal-book', bookId] }),
+      ]);
+    },
+  });
 
   const parsedBookNumber = Number(bookNumber);
   const parsedSeriesYear = Number(seriesYear);
@@ -140,6 +170,13 @@ export default function BooksPage() {
     }
   }
 
+  function handleClose(book: Book) {
+    if (book.status !== 'OPEN' || closeBookMutation.isPending) return;
+    if (window.confirm(`Close Book ${book.book_number}? It cannot be reopened. You can still file documents with the paper register numbers.`)) {
+      closeBookMutation.mutate(book.id);
+    }
+  }
+
   if (!isIssuer) {
     return (
       <section className={`${cardClass} max-w-xl p-6`}>
@@ -152,6 +189,7 @@ export default function BooksPage() {
   const books = booksQuery.data ?? [];
   const error = createBookMutation.error instanceof Error ? createBookMutation.error.message : null;
   const deleteError = deleteBookMutation.error instanceof Error ? deleteBookMutation.error.message : null;
+  const closeError = closeBookMutation.error instanceof Error ? closeBookMutation.error.message : null;
 
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-6">
@@ -242,6 +280,7 @@ export default function BooksPage() {
               </div>
               <div className="mt-4 flex flex-wrap gap-2">
                 <button type="button" onClick={() => setSelectedBookId(book.id)} className="rounded-full border border-[#D7E4F2] px-3 py-1.5 text-sm font-bold text-[#0C2B49]" aria-label={`View details for Book ${book.book_number}`}>Details</button>
+                {book.status === 'OPEN' && <button type="button" onClick={() => handleClose(book)} disabled={closeBookMutation.isPending} className="rounded-full border border-[#D7E4F2] px-3 py-1.5 text-sm font-bold text-[#0C2B49] disabled:opacity-40" aria-label={`${closeBookMutation.isPending && closeBookMutation.variables === book.id ? 'Closing' : 'Close'} Book ${book.book_number}`}>{closeBookMutation.isPending && closeBookMutation.variables === book.id ? 'Closing…' : 'Close'}</button>}
                 {book.entry_count === 0 && <button type="button" onClick={() => handleDelete(book)} disabled={deleteBookMutation.isPending} className="rounded-full border border-red-200 px-3 py-1.5 text-sm font-bold text-red-600 disabled:opacity-40" aria-label={`Delete Book ${book.book_number}`}>{deleteBookMutation.isPending ? 'Deleting…' : 'Delete'}</button>}
               </div>
               <p className="mt-4 truncate text-[11px] font-semibold text-[#A0AAB8]" title={book.id}>ID: {book.id}</p>
@@ -250,6 +289,7 @@ export default function BooksPage() {
         </div>
       )}
       {deleteError && <p role="alert" className="text-sm font-bold text-red-600">{deleteError}</p>}
+      {closeError && <p role="alert" className="text-sm font-bold text-red-600">{closeError}</p>}
     </div>
   );
 }
