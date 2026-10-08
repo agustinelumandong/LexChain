@@ -54,3 +54,19 @@ export async function renameDocument(documentId: string, fileName: string) {
 export async function listSignedCopies(documentId: string): Promise<ApiSchema<'SignedCopyListResponse'>> {
   return lifecycleFetch(`/documents/${required(documentId, 'Document ID is required')}/signed-copies`);
 }
+
+export async function attachSignedCopy(documentId: string, file: File, filing: { bookId: string; docNo?: number | null; pageNo?: number | null }): Promise<ApiSchema<'DocumentResponse'>> {
+  const query = new URLSearchParams({ book_id: required(filing.bookId, 'Register book is required') });
+  if (filing.docNo != null) query.set('doc_no', String(filing.docNo));
+  if (filing.pageNo != null) query.set('page_no', String(filing.pageNo));
+  const form = new FormData();
+  form.set('file', file);
+  return lifecycleFetch(`/documents/${required(documentId, 'Document ID is required')}/signed-copy?${query}`, { method: 'POST', body: form });
+}
+
+export async function replaceSignedCopy(documentId: string, file: File, reason: string): Promise<ApiSchema<'DocumentResponse'>> {
+  const form = new FormData();
+  form.set('file', file);
+  form.set('reason', required(reason, 'Replacement reason is required'));
+  return lifecycleFetch(`/documents/${required(documentId, 'Document ID is required')}/signed-copy`, { method: 'PUT', body: form });
+}

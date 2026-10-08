@@ -1,21 +1,25 @@
 // @vitest-environment jsdom
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DocumentWorkspace } from '@/features/documents/components/document-workspace';
 import type { ApiSchema } from '@/shared/types';
 
-const { finalizeDocumentMock, listSignedCopiesMock, listDraftCommentsMock, syncDraftCommentsMock } = vi.hoisted(() => ({
+const { attachSignedCopyMock, finalizeDocumentMock, listSignedCopiesMock, listDraftCommentsMock, replaceSignedCopyMock, syncDraftCommentsMock } = vi.hoisted(() => ({
+  attachSignedCopyMock: vi.fn(),
   finalizeDocumentMock: vi.fn(),
   listSignedCopiesMock: vi.fn(),
   listDraftCommentsMock: vi.fn(),
+  replaceSignedCopyMock: vi.fn(),
   syncDraftCommentsMock: vi.fn(),
 }));
 
 vi.mock('@/features/documents/document-lifecycle-api', () => ({
+  attachSignedCopy: attachSignedCopyMock,
   finalizeDocument: finalizeDocumentMock,
   listSignedCopies: listSignedCopiesMock,
   listDraftComments: listDraftCommentsMock,
+  replaceSignedCopy: replaceSignedCopyMock,
   syncDraftComments: syncDraftCommentsMock,
 }));
 
@@ -25,6 +29,9 @@ const document: ApiSchema<'DocumentResponse'> = {
   status: null,
   lifecycle: 'PREPARING',
   on_chain: false,
+  book_id: 'book-101',
+  doc_no: 12,
+  page_no: 7,
   draft_url: 'https://docs.google.com/document/d/draft-101',
   signed_copy: {
     id: 'copy-101',
@@ -65,6 +72,7 @@ const finalizationRecord: ApiSchema<'RecordResponse'> = {
 };
 
 function renderWorkspace(props: Partial<React.ComponentProps<typeof DocumentWorkspace>> = {}) {
+  const initialDocument = props.document ?? document;
   const queryClient = new QueryClient({
     defaultOptions: {
       queries: { retry: false },
@@ -72,21 +80,29 @@ function renderWorkspace(props: Partial<React.ComponentProps<typeof DocumentWork
     },
   });
   const invalidateQueries = vi.spyOn(queryClient, 'invalidateQueries').mockResolvedValue();
+  function WorkspaceFromQuery({ document: initialData, ...workspaceProps }: Partial<React.ComponentProps<typeof DocumentWorkspace>>) {
+    const { data = initialDocument } = useQuery({
+      queryKey: ['portal-doc', initialDocument.document_id],
+      queryFn: async () => initialData ?? initialDocument,
+      initialData: initialData ?? initialDocument,
+      staleTime: Infinity,
+    });
+    return <DocumentWorkspace document={data} {...workspaceProps} />;
+  }
   const result = render(
     <QueryClientProvider client={queryClient}>
-      <DocumentWorkspace
-        document={document}
-        {...props}
-      />
+      <WorkspaceFromQuery {...props} />
     </QueryClientProvider>,
   );
-  return { ...result, invalidateQueries };
+  return { ...result, invalidateQueries, queryClient };
 }
 
 describe('DocumentWorkspace', () => {
   beforeEach(() => {
+    attachSignedCopyMock.mockResolvedValue(document);
     listSignedCopiesMock.mockResolvedValue({ document_id: 'doc-101', copies: [] });
     listDraftCommentsMock.mockResolvedValue({ document_id: 'doc-101', unresolved: 0, comments: [] });
+    replaceSignedCopyMock.mockResolvedValue(document);
     syncDraftCommentsMock.mockResolvedValue({ document_id: 'doc-101', unresolved: 0, comments: [] });
   });
 
@@ -111,6 +127,69 @@ describe('DocumentWorkspace', () => {
     expect(screen.getByText('old.pdf')).toBeTruthy();
     expect(screen.getByText('Replaced: Corrected scan')).toBeTruthy();
     expect(screen.getByText('old-hash')).toBeTruthy();
+  });
+
+  it('attaches a signed PDF, submits the register details, and renders the returned current copy', async () => {
+    const attached = { ...document, lifecycle: 'SIGNED', signed_copy: { ...document.signed_copy!, id: 'copy-attached', storage_url: 'https://files.example/attached.pdf', original_filename: 'attached.pdf' } };
+    attachSignedCopyMock.mockResolvedValue(attached);
+    renderWorkspace({ document: { ...document, signed_copy: null, permissions: { ...document.permissions, can_attach_signed_copy: true } } });
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Files' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Attach signed PDF' }));
+    const file = new File(['signed pdf'], 'attached.pdf', { type: 'application/pdf' });
+    const input = screen.getByLabelText('Signed PDF') as HTMLInputElement;
+    fireEvent.change(input, { target: { files: [file] } });
+    expect(input.files?.[0]).toBe(file);
+    fireEvent.submit(screen.getByRole('button', { name: 'Confirm attachment' }).closest('form')!);
+
+    await waitFor(() => expect(attachSignedCopyMock).toHaveBeenCalledWith('doc-101', file, { bookId: 'book-101', docNo: 12, pageNo: 7 }));
+    expect((await screen.findByRole('status')).textContent).toContain('Signed PDF attached.');
+    expect((await screen.findByRole('link', { name: 'Open current signed PDF' })).getAttribute('href')).toBe(attached.signed_copy.storage_url);
+  });
+
+  it('prevents duplicate submissions while replacement is pending', async () => {
+    let finishMutation: ((value: typeof document) => void) | undefined;
+    replaceSignedCopyMock.mockReturnValue(new Promise((resolve) => { finishMutation = resolve; }));
+    renderWorkspace({ document: { ...document, permissions: { ...document.permissions, can_replace_signed_copy: true } } });
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Files' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Replace signed PDF' }));
+    const file = new File(['corrected pdf'], 'corrected.pdf', { type: 'application/pdf' });
+    fireEvent.change(screen.getByLabelText('Signed PDF'), { target: { files: [file] } });
+    fireEvent.change(screen.getByLabelText('Replacement reason'), { target: { value: 'Corrected scan' } });
+    const submit = screen.getByRole('button', { name: 'Confirm replacement' });
+    fireEvent.submit(submit.closest('form')!);
+    await waitFor(() => expect((submit as HTMLButtonElement).disabled).toBe(true));
+    expect(replaceSignedCopyMock).toHaveBeenCalledTimes(1);
+    finishMutation?.(document);
+    await waitFor(() => expect(replaceSignedCopyMock).toHaveBeenCalledWith('doc-101', file, 'Corrected scan'));
+  });
+
+  it('retains the file and replacement reason when replacing fails', async () => {
+    replaceSignedCopyMock.mockRejectedValue(new Error('Storage unavailable'));
+    renderWorkspace({ document: { ...document, permissions: { ...document.permissions, can_replace_signed_copy: true } } });
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Files' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Replace signed PDF' }));
+    const file = new File(['corrected pdf'], 'corrected.pdf', { type: 'application/pdf' });
+    const input = screen.getByLabelText('Signed PDF') as HTMLInputElement;
+    fireEvent.change(input, { target: { files: [file] } });
+    const reason = screen.getByLabelText('Replacement reason') as HTMLTextAreaElement;
+    fireEvent.change(reason, { target: { value: 'Corrected scan' } });
+    fireEvent.submit(screen.getByRole('button', { name: 'Confirm replacement' }).closest('form')!);
+
+    expect((await screen.findByRole('alert')).textContent).toMatch(/Storage unavailable.*kept/i);
+    expect(input.files?.[0]).toBe(file);
+    expect(reason.value).toBe('Corrected scan');
+  });
+
+  it('hides signed-copy mutations when the backend denies both permissions', () => {
+    renderWorkspace();
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Files' }));
+
+    expect(screen.queryByRole('button', { name: 'Attach signed PDF' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Replace signed PDF' })).toBeNull();
   });
 
   it('shows populated document metadata in the Overview tab', () => {
