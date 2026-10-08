@@ -2,7 +2,7 @@
 
 import '@/features/portal/portal.css';
 import { useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -14,9 +14,9 @@ import { getPortalNavigation } from "@/features/portal/portal-dashboard";
 import { getPortalNavigationIcon, isPortalRouteActive, usePortalRole } from "@/features/access/components";
 import { PortalBottomNav } from "@/features/portal/components/portal-bottom-nav";
 import { PortalTopBar } from "@/features/portal/components/portal-topbar";
+import { fetchNotifications, fetchUnreadNotificationCount, invalidateNotificationQueries, markAllNotificationsRead, notificationQueryKeys } from "@/features/portal/notifications-api";
 
 type PortalDocument = { status?: string | null };
-type PortalNotification = { id: string; title: string; body: string; is_read: boolean; created_at: string };
 
 export default function PortalLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -31,26 +31,19 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
     },
     enabled: uiRole === "lawyer",
   });
-  const { data: unreadData } = useQuery<number | { unread: number }>({
-    queryKey: ['portal-notif-count'],
-    queryFn: async () => {
-      const res = await fetch('/api/portal/proxy?path=%2Fnotifications%2Funread-count', { credentials: 'same-origin' });
-      if (!res.ok) return 0;
-      const body = await res.json();
-      return typeof body === 'number' ? body : (body.unread ?? 0);
-    },
+  const unreadCountQuery = useQuery({
+    queryKey: notificationQueryKeys.unreadCount,
+    queryFn: fetchUnreadNotificationCount,
     enabled: isSupportedPortalUiRole(uiRole),
   });
-  const unreadCount = typeof unreadData === 'number' ? unreadData : (unreadData?.unread ?? 0);
-  const { data: notifications = [] } = useQuery<PortalNotification[]>({
-    queryKey: ['portal-shell-notifications'],
-    queryFn: async () => {
-      const res = await fetch('/api/portal/proxy?path=%2Fnotifications%2F', { credentials: 'same-origin' });
-      if (!res.ok) return [];
-      const body = await res.json();
-      return body.notifications ?? [];
-    },
+  const notificationsQuery = useQuery({
+    queryKey: notificationQueryKeys.shell,
+    queryFn: fetchNotifications,
     enabled: isSupportedPortalUiRole(uiRole),
+  });
+  const markAllMutation = useMutation({
+    mutationFn: markAllNotificationsRead,
+    onSuccess: () => invalidateNotificationQueries(queryClient),
   });
   const roleLabel = getPortalRoleLabel(uiRole);
   const portalNavigationGroups = isSupportedPortalUiRole(uiRole)
@@ -70,18 +63,6 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
     } finally {
       window.location.href = "/login";
     }
-  }
-
-  async function markAllNotificationsRead() {
-    await fetch("/api/portal/proxy-post?path=%2Fnotifications%2Fread-all", {
-      method: "PATCH",
-      credentials: "same-origin",
-    });
-    await Promise.all([
-      queryClient.invalidateQueries({ queryKey: ["portal-shell-notifications"] }),
-      queryClient.invalidateQueries({ queryKey: ["portal-notif-count"] }),
-      queryClient.invalidateQueries({ queryKey: ["portal-notifications"] }),
-    ]);
   }
 
   if (!isSupportedPortalUiRole(uiRole)) {
@@ -181,9 +162,16 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
             roleLabel={roleLabel}
             role={uiRole}
             processingCount={processingCount}
-            unreadCount={unreadCount}
-            notifications={notifications}
-            onMarkAllRead={markAllNotificationsRead}
+            unreadCount={unreadCountQuery.data}
+            unreadCountLoading={unreadCountQuery.isLoading}
+            unreadCountError={unreadCountQuery.isError}
+            notifications={notificationsQuery.data?.notifications}
+            notificationsLoading={notificationsQuery.isLoading}
+            notificationsError={notificationsQuery.isError ? notificationsQuery.error.message : undefined}
+            markAllError={markAllMutation.isError ? markAllMutation.error.message : undefined}
+            markAllPending={markAllMutation.isPending}
+            onRetryNotifications={() => { void Promise.all([notificationsQuery.refetch(), unreadCountQuery.refetch()]); }}
+            onMarkAllRead={() => markAllMutation.mutate()}
             onSignOut={handleLogout}
           />
           {children}
