@@ -39,8 +39,13 @@ export default function ProfilePage() {
   const { data: user, isLoading } = useQuery({ queryKey: ['portal-profile'], queryFn: fetchProfile });
 
   const handleLogout = async () => {
-    await fetch('/api/portal/logout', { method: 'POST' });
-    window.location.href = '/login';
+    try {
+      await fetch('/api/portal/logout', { method: 'POST' });
+    } catch {
+      // Continue to login when the session endpoint cannot be reached.
+    } finally {
+      window.location.href = '/login';
+    }
   };
 
   const fullName = user ? `${user.f_name} ${user.l_name}` : 'Loading...';
