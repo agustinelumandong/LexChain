@@ -96,11 +96,10 @@ export function VerifiedContent() {
             </svg>
           </div>
           <h1 className="mt-4 text-3xl font-black leading-9 text-[#0C2B49]">
-            Email verified
+            Check your email
           </h1>
           <p className="mt-3 text-sm font-semibold leading-5 text-[#4B6382]">
-            Your LexChain account has been verified. You can now sign in using
-            the email and password you registered.
+            Open the verification link sent to your email to confirm your account. This page alone cannot confirm whether verification is complete.
           </p>
         </div>
 

@@ -2,11 +2,21 @@ import { NextResponse } from "next/server";
 import { backendUrl } from "@/server/api/backend";
 import { signUpRequestSchema } from "@/features/auth";
 
-function getErrorMessage(payload: unknown) {
-  if (typeof payload !== "object" || payload === null) return "Sign up failed. Check your details and try again.";
+function getErrorMessage(payload: unknown, status: number) {
+  const fallback = status === 422
+    ? "Please check the signup details and try again."
+    : status === 429
+      ? "Too many signup attempts. Please wait before trying again."
+      : status >= 500
+        ? "The signup service is temporarily unavailable. Try again shortly."
+        : "Sign up failed. Check your details or use another email address.";
+  if (typeof payload !== "object" || payload === null) {
+    return fallback;
+  }
   const body = payload as Record<string, unknown>;
   if (typeof body.detail === "string") return body.detail;
   if (typeof body.message === "string") return body.message;
+  if (typeof body.error === "string") return body.error;
   if (Array.isArray(body.detail)) {
     const messages = body.detail.flatMap((issue) =>
       typeof issue === "object" && issue !== null && "msg" in issue && typeof issue.msg === "string"
@@ -15,7 +25,7 @@ function getErrorMessage(payload: unknown) {
     );
     if (messages.length) return messages.join(" ");
   }
-  return "Sign up failed. Check your details and try again.";
+  return fallback;
 }
 
 export async function POST(request: Request) {
@@ -54,11 +64,11 @@ export async function POST(request: Request) {
 
   if (!upstream.ok) {
     return NextResponse.json(
-      { message: getErrorMessage(payload) },
+      { message: getErrorMessage(payload, upstream.status) },
       { status: upstream.status },
     );
   }
 
   const result = typeof payload === "object" && payload !== null && !Array.isArray(payload) ? payload : {};
-  return NextResponse.json({ ok: true, ...result });
+  return NextResponse.json({ ok: true, ...result }, { status: upstream.status });
 }

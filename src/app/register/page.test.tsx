@@ -123,6 +123,18 @@ describe("RegisterPage", () => {
     expect((screen.getByLabelText(/^Password/) as HTMLInputElement).value).toBe("Password1");
   });
 
+  it("distinguishes temporary signup failures and keeps the form available", async () => {
+    fetchMock.mockResolvedValue(Response.json({ message: "The signup service is temporarily unavailable. Try again shortly." }, { status: 502 }));
+    renderRegister();
+    fillRegistrationForm("Ada");
+
+    fireEvent.click(screen.getByRole("button", { name: "Create account" }));
+
+    expect((await screen.findByRole("alert")).textContent).toContain("temporarily unavailable");
+    expect((screen.getByLabelText("Email") as HTMLInputElement).value).toBe("elodie@example.com");
+    expect(screen.getByRole("button", { name: "Create account" })).toBeTruthy();
+  });
+
   it("explains that invitation signup is unsupported and never submits the token", async () => {
     renderRegister("token=invite-token&email=issuer@example.com");
     fillRegistrationForm("Ada");
