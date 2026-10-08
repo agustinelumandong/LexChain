@@ -5,21 +5,7 @@ import { useRouter } from 'next/navigation';
 import SearchIcon from '@mui/icons-material/Search';
 import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile';
 import type { PortalSearchHit } from "@/features/access";
-
-async function searchDocuments(query: string): Promise<PortalSearchHit[]> {
-  const res = await fetch(
-    `/api/portal/proxy-post?path=${encodeURIComponent('/search')}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query }),
-      credentials: 'same-origin',
-    },
-  );
-  if (!res.ok) return [];
-  const data = await res.json();
-  return data.results ?? [];
-}
+import { searchPortalDocuments } from '@/features/documents/search-api';
 
 export function PortalSearchBar() {
   const router = useRouter();
@@ -27,6 +13,7 @@ export function PortalSearchBar() {
   const [results, setResults] = useState<PortalSearchHit[]>([]);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const containerRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
@@ -34,16 +21,21 @@ export function PortalSearchBar() {
   const doSearch = useCallback(async (query: string) => {
     if (!query.trim()) {
       setResults([]);
+      setSearchError(null);
+      setOpen(false);
       return;
     }
     setLoading(true);
+    setSearchError(null);
     try {
-      const hits = await searchDocuments(query);
-      setResults(hits);
+      const response = await searchPortalDocuments(query);
+      setResults(response.results);
       setOpen(true);
       setSelectedIndex(-1);
-    } catch {
+    } catch (error) {
       setResults([]);
+      setSearchError(error instanceof Error ? error.message : 'Search failed. Please try again.');
+      setOpen(true);
     } finally {
       setLoading(false);
     }
@@ -128,7 +120,11 @@ export function PortalSearchBar() {
           role="listbox"
           className="absolute left-0 right-0 top-full mt-1 max-h-64 overflow-y-auto rounded-xl border border-[var(--portal-border-soft)] bg-white shadow-lg z-50"
         >
-          {results.length === 0 ? (
+          {loading ? (
+            <li role="status" className="px-3 py-4 text-center text-sm text-[var(--portal-text-muted)]">Searching…</li>
+          ) : searchError ? (
+            <li role="alert" className="px-3 py-4 text-center text-sm text-red-700">{searchError}</li>
+          ) : results.length === 0 ? (
             <li className="px-3 py-4 text-center text-sm text-[var(--portal-text-muted)]">No results found</li>
           ) : (
             results.map((hit, i) => (
@@ -144,10 +140,12 @@ export function PortalSearchBar() {
                 <div className="flex items-center gap-2">
                   <InsertDriveFileIcon sx={{ fontSize: 16, color: '#0985E7' }} />
                   <p className="font-semibold text-[var(--portal-navy)]">
-                    Document {hit.document_id.slice(0, 8)}...
+                    Document ID: {hit.document_id}
                   </p>
                 </div>
-                {hit.text && <p className="mt-0.5 line-clamp-2 text-xs text-[var(--portal-text-muted)]">{hit.text}</p>}
+                <p className="mt-0.5 text-xs text-[var(--portal-text-muted)]">Chunk ID: {hit.chunk_id}</p>
+                <p className="mt-0.5 text-xs text-[var(--portal-text-muted)]">Chunk index: {hit.chunk_index} · Score: {hit.score}</p>
+                {hit.text?.trim() && <p className="mt-0.5 line-clamp-2 text-xs text-[var(--portal-text-muted)]">{hit.text}</p>}
               </li>
             ))
           )}

@@ -6,26 +6,7 @@ import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 import SearchIcon from '@mui/icons-material/Search';
 import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile';
-import type { ApiSchema } from '@/shared/types/index';
-import type { PortalSearchHit } from "@/features/access";
-
-type GlobalSearchResponse = Omit<ApiSchema<'GlobalSearchResponse'>, 'results'> & {
-  results: PortalSearchHit[];
-};
-
-async function globalSearch(query: string): Promise<GlobalSearchResponse> {
-  const res = await fetch(
-    `/api/portal/proxy-post?path=${encodeURIComponent('/search')}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query }),
-      credentials: 'same-origin',
-    },
-  );
-  if (!res.ok) throw new Error('Search failed');
-  return res.json();
-}
+import { searchPortalDocuments } from '@/features/documents/search-api';
 
 export default function SearchPage({
   searchParams,
@@ -38,7 +19,7 @@ export default function SearchPage({
 
   const { data, isLoading, isFetching, isError } = useQuery({
     queryKey: ['portal-search', query],
-    queryFn: () => globalSearch(query),
+    queryFn: () => searchPortalDocuments(query),
     enabled: query.trim().length > 0,
   });
 
@@ -78,7 +59,7 @@ export default function SearchPage({
         </div>
       )}
 
-      {isError && <p className="text-sm font-bold text-red-500">Search failed. Please try again.</p>}
+      {isError && <p role="alert" className="text-sm font-bold text-red-500">Search failed. Please try again.</p>}
 
       {data && !isFetching && (
         <>
@@ -98,12 +79,14 @@ export default function SearchPage({
                 href={`/portal/documents/${result.document_id}`}
                 className="block rounded-[18px] border border-[#E8F0F8] bg-white p-4 transition hover:border-[#0985E7]"
               >
-                <div className="mb-2 flex items-center gap-2">
+                <div className="mb-2 flex flex-wrap items-center gap-2">
                   <InsertDriveFileIcon sx={{ fontSize: 16, color: '#0985E7' }} />
-                  <span className="text-xs font-black text-[#0985E7]">Document {result.document_id.slice(0, 8)}...</span>
-                  <span className="ml-auto text-[11px] font-bold text-[#A0AAB8]">{Math.round(result.score * 100)}% match</span>
+                  <span className="text-xs font-black text-[#0985E7]">Document ID: {result.document_id}</span>
+                  <span className="text-[11px] font-semibold text-[#64748b]">Chunk ID: {result.chunk_id}</span>
+                  <span className="text-[11px] font-semibold text-[#64748b]">Chunk index: {result.chunk_index}</span>
+                  <span className="ml-auto text-[11px] font-bold text-[#A0AAB8]">Score: {result.score}</span>
                 </div>
-                <p className="line-clamp-3 text-sm text-[#0C2B49]">{result.text}</p>
+                {result.text?.trim() && <p className="line-clamp-3 text-sm text-[#0C2B49]">{result.text}</p>}
               </Link>
             ))}
           </div>
