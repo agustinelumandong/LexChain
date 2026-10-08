@@ -109,6 +109,21 @@ describe('document detail screen', () => {
       .toBe('https://docs.google.com/document/d/draft-1');
   });
 
+  it('shows a newly opened PREPARING record and its draft action in the Files tab', async () => {
+    state.documentQuery = {
+      data: { ...baseDocument, lifecycle: 'PREPARING', draft_url: null, signed_copy: null, permissions: { ...baseDocument.permissions, can_create_draft: true } },
+      isLoading: false,
+      isError: false,
+      refetch: vi.fn(),
+    };
+
+    await showPage();
+
+    expect(screen.getAllByText('Preparing').length).toBeGreaterThan(0);
+    fireEvent.click(screen.getByRole('tab', { name: 'Files' }));
+    expect(screen.getByRole('button', { name: 'Create blank Google draft' })).toBeTruthy();
+  });
+
   it('shows rename and finalize controls only when permitted by the backend', async () => {
     state.profileQuery = { data: { role: 'document_issuer' }, isLoading: false, isError: false };
     state.documentQuery = {

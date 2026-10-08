@@ -7,6 +7,7 @@ import type { ApiSchema } from '@/shared/types/index';
 import { listSignedCopies } from '@/features/documents/document-lifecycle-api';
 import { getDocumentLifecycleLabel, getDocumentStatusLabel } from '@/features/documents/document-ui';
 import { shortenIntegrityHash } from "@/features/verification";
+import { GoogleDraftPanel } from '@/features/documents/components/google-draft-panel';
 
 type WorkspaceDocument = ApiSchema<'DocumentResponse'>;
 
@@ -153,7 +154,7 @@ export function DocumentWorkspace({
                 </div>
               </div>
             ) : <p className="text-sm text-[#64748b]">No signed PDF is attached to this document yet.</p>}
-            {document.draft_url && <div className="rounded-xl border border-[#E8F0F8] p-4"><p className="font-bold text-[#0C2B49]">Working Google draft</p><p className="mt-1 text-sm text-[#64748b]">This editable draft is separate from the legal signed PDF.</p><a href={document.draft_url} target="_blank" rel="noreferrer" className="mt-3 inline-flex rounded-full border border-[#0985E7] px-4 py-2.5 text-sm font-extrabold text-[#0985E7]">Open Google draft</a></div>}
+            <GoogleDraftPanel document={document} />
           </div>
         )}
 

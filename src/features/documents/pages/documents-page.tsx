@@ -23,6 +23,7 @@ import { Dropdown } from "@/features/admin/components";
 import { MetricCard } from "@/features/portal/components";
 import { getDocumentLifecycleLabel, getDocumentStatusLabel } from '@/features/documents/document-ui';
 import { getPortalUiRole } from "@/features/access";
+import { CreateDocumentRecordForm } from '@/features/documents/components/create-document-record-form';
 import {
   getDocumentLifecycles,
   getVisibleDocuments,
@@ -172,6 +173,7 @@ export default function DocumentsPage() {
   const [createdThrough, setCreatedThrough] = useState('');
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState("5");
+  const [showCreateRecord, setShowCreateRecord] = useState(false);
   const documentsQuery = useQuery<Document[]>({ queryKey: ['portal-documents'], queryFn: fetchDocuments });
   const profileQuery = useQuery<UserProfile | null>({
     queryKey: ['portal-profile'],
@@ -213,8 +215,10 @@ export default function DocumentsPage() {
           <h1 className="text-[28px] font-black text-[#0C2B49]">Documents</h1>
           <p className="mt-1 text-sm text-[#64748b]">Manage and review documents in the office repository</p>
         </div>
-        {isIssuer && <Link href="/portal/upload" className="inline-flex items-center gap-2 rounded-full bg-[#0985E7] px-5 py-2.5 text-sm font-black text-white"><FileUploadIcon sx={{ fontSize: 16 }} />Upload Document</Link>}
+        {isIssuer && <div className="flex flex-wrap gap-2"><button type="button" onClick={() => setShowCreateRecord((open) => !open)} aria-expanded={showCreateRecord} className="rounded-full border border-[#0985E7] px-5 py-2.5 text-sm font-black text-[#0985E7]">Create document draft</button><Link href="/portal/upload" className="inline-flex items-center gap-2 rounded-full bg-[#0985E7] px-5 py-2.5 text-sm font-black text-white"><FileUploadIcon sx={{ fontSize: 16 }} />Upload Document</Link></div>}
       </div>
+
+      {isIssuer && showCreateRecord && <CreateDocumentRecordForm onCreated={(id) => router.push(`/portal/documents/${id}`)} />}
 
       {documentsQuery.isLoading ? (
         <div className="flex flex-col gap-3" aria-label="Loading documents">{[1, 2, 3].map((index) => <div key={index} className="h-[80px] animate-pulse rounded-[18px] border border-[#E8F0F8] bg-white" />)}</div>
