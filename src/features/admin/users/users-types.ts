@@ -9,7 +9,7 @@ export type AdminUser = {
 };
 
 export type DemoAdminUserChanges = Partial<
-  Pick<AdminUser, "f_name" | "l_name" | "email" | "role" | "is_active">
+  Pick<AdminUser, "f_name" | "l_name" | "email" | "role">
 >;
 
 export type DirectoryUser = AdminUser & {

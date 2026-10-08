@@ -15,12 +15,20 @@ export function UserDialogs({
   selection: { mode, user: selectedUser },
   onClose,
   onSave,
+  onChangeStatus,
+  statusPending,
+  statusError,
 }: {
   selection: UserDialogSelection;
   onClose: () => void;
   onSave: (changes: DemoAdminUserChanges) => void;
+  onChangeStatus: (isActive: boolean) => void;
+  statusPending: boolean;
+  statusError: string | null;
 }) {
   const [userDraft, setUserDraft] = useState<AdminUser>(selectedUser);
+  const statusAction = selectedUser.statusLabel === "Active" ? "Suspend" : "Reactivate";
+  const pendingStatusAction = statusAction === "Suspend" ? "Suspending…" : "Reactivating…";
 
   return (
     <>
@@ -69,22 +77,21 @@ export function UserDialogs({
         open={mode === "suspend"}
         onClose={onClose}
         title={`${selectedUser.statusLabel === "Active" ? "Suspend" : "Reactivate"} ${selectedUser.displayName}?`}
-        description="Update this account status for the current demo session."
+        description="The account status changes after the admin API confirms the update."
         footer={
           <div className="flex gap-3">
-            <button type="button" onClick={onClose} className="flex-1 rounded-xl border border-[#E4EEF9] px-5 py-3 text-sm font-black text-[#0C2B49]">Cancel</button>
-            <button type="button" onClick={() => {
-              onSave({ is_active: selectedUser.statusLabel !== "Active" });
-            }} className={cn(
+            <button type="button" onClick={onClose} disabled={statusPending} className="flex-1 rounded-xl border border-[#E4EEF9] px-5 py-3 text-sm font-black text-[#0C2B49] disabled:opacity-50">Cancel</button>
+            <button type="button" onClick={() => onChangeStatus(selectedUser.statusLabel !== "Active")} disabled={statusPending} className={cn(
               "flex-1 rounded-xl px-5 py-3 text-sm font-black text-white",
               selectedUser.statusLabel === "Active" ? "bg-red-600" : "bg-green-700",
-            )}>{selectedUser.statusLabel === "Active" ? "Suspend" : "Reactivate"}</button>
+              "disabled:cursor-wait disabled:opacity-60",
+            )}>{statusPending ? pendingStatusAction : statusAction}</button>
           </div>
         }
       >
         <div className="space-y-3 text-sm font-semibold text-[#5B6F8A]">
           <p>{selectedUser.statusLabel === "Active" ? "This account will be marked as suspended." : "This account will be marked as active."}</p>
-          <p className="text-xs">Demo mode — changes reset when this page is refreshed.</p>
+          {statusError ? <p role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{statusError}</p> : null}
         </div>
       </MockModal>
     </>
