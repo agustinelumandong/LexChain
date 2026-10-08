@@ -1,53 +1,13 @@
-import { adminFetch } from "@/features/admin/server";
-import { AuditLogsManagementView } from "@/features/admin/audit-logs";
 import { requireDocumentIssuerPage } from "@/features/access/server";
-import { isMockMode } from "@/lib/mocks/mode";
-
-const useMock = isMockMode();
-
-type SystemAuditLog = {
-  id: string;
-  user_id: string | null;
-  action: string;
-  target_type: string | null;
-  target_id: string | null;
-  details: Record<string, unknown> | null;
-  ip_address: string | null;
-  user_agent: string | null;
-  created_at: string;
-};
-
-type AuditLogsData = { logs: SystemAuditLog[]; total: number };
-
-async function getAuditLogs(): Promise<AuditLogsData> {
-  if (useMock) {
-    const { adminAuditLogs } = await import("@/features/admin/admin-demo-data");
-    return {
-      logs: adminAuditLogs.map((log, index) => ({
-        id: `demo-${index}`,
-        user_id: null,
-        action: log.action,
-        target_type: null,
-        target_id: log.target,
-        details: null,
-        ip_address: null,
-        user_agent: null,
-        created_at: log.created_at,
-      })),
-      total: adminAuditLogs.length,
-    };
-  }
-
-  try {
-    return await adminFetch<AuditLogsData>("/admin/audit-logs");
-  } catch {
-    return { logs: [], total: 0 };
-  }
-}
 
 export default async function PortalAuditLogsPage() {
   await requireDocumentIssuerPage();
-  const data = await getAuditLogs();
 
-  return <AuditLogsManagementView logs={data.logs} total={data.total} />;
+  return <div className="flex max-w-3xl flex-col gap-5">
+    <div><p className="text-xs font-black tracking-wider text-[#0985E7]">AUDIT &amp; COMPLIANCE</p><h1 className="mt-1 text-[28px] font-black text-[#0C2B49]">Audit Logs</h1></div>
+    <section className="rounded-[18px] border border-[#E8F0F8] bg-white p-8 text-center">
+      <h2 className="text-base font-black text-[#0C2B49]">Audit history unavailable</h2>
+      <p role="status" className="mt-2 text-sm font-semibold text-[#64748b]">Audit history is not available in this portal yet.</p>
+    </section>
+  </div>;
 }

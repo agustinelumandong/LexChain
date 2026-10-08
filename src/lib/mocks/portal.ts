@@ -1,7 +1,6 @@
 import type { ApiSchema } from '@/shared/types/index';
 export { isMockMode } from "./mode";
 
-const mockParticipantId = 'mock-document-participant';
 const mockIssuerId = 'mock-document-issuer';
 
 export type DemoIntegrityState = 'match' | 'mismatch' | 'not-recorded' | 'unavailable';
@@ -52,21 +51,6 @@ type MockInvitation = {
   role: string;
   status: string;
   created_at: string;
-};
-
-type MockDocumentRequest = {
-  id: string;
-  requester_id: string;
-  requester_email: string;
-  requester_name: string;
-  document_id: string;
-  document_name: string | null;
-  description: string;
-  status: string;
-  lawyer_id: string | null;
-  rejection_reason: string | null;
-  created_at: string;
-  updated_at: string;
 };
 
 type MockBook = {
@@ -274,37 +258,6 @@ let invitations: MockInvitation[] = [
   },
 ];
 
-let documentRequests: MockDocumentRequest[] = [
-  {
-    id: 'mock-request-1',
-    requester_id: mockParticipantId,
-    requester_email: participantProfile.email,
-    requester_name: `${participantProfile.f_name} ${participantProfile.l_name}`,
-    document_id: 'mock-document-1',
-    document_name: 'Lease Agreement.pdf',
-    description: 'I need an e-copy for my records.',
-    status: 'pending',
-    lawyer_id: mockIssuerId,
-    rejection_reason: null,
-    created_at: '2026-07-11T10:00:00.000Z',
-    updated_at: '2026-07-11T10:00:00.000Z',
-  },
-  {
-    id: 'mock-request-2',
-    requester_id: mockParticipantId,
-    requester_email: participantProfile.email,
-    requester_name: `${participantProfile.f_name} ${participantProfile.l_name}`,
-    document_id: 'mock-document-2',
-    document_name: 'Certificate of Employment.pdf',
-    description: 'Please send the completed certificate.',
-    status: 'approved',
-    lawyer_id: mockIssuerId,
-    rejection_reason: null,
-    created_at: '2026-07-09T10:00:00.000Z',
-    updated_at: '2026-07-10T10:00:00.000Z',
-  },
-];
-
 let books: MockBook[] = [
   {
     id: 'mock-book-1',
@@ -481,14 +434,9 @@ function hasMockIssuerAccess(token?: string) {
   return isMockDocumentIssuerToken(token);
 }
 
-function requestList(requests: MockDocumentRequest[]) {
-  return { requests, total: requests.length };
-}
-
 export function mockPortalGet(path: string, token?: string): Response {
   if (!token || !isMockPortalToken(token)) return error('Not authenticated', 401);
   const requestPathname = pathname(path);
-  const searchParams = new URL(path, 'https://mock.lexchain.local').searchParams;
   if (path === '/users/' || path === '/users') return json(profileForToken(token));
   if (requestPathname === '/documents' || requestPathname === '/documents/') {
     return json(isMockParticipant(token) ? documents.filter((document) => sharedDocumentIds.has(document.id)) : documents);
@@ -527,16 +475,6 @@ export function mockPortalGet(path: string, token?: string): Response {
   if (requestPathname === '/documents/invitations') {
     if (!isMockParticipant(token)) return error('User access required', 403);
     return json(invitations.filter((invitation) => invitation.status === 'pending'));
-  }
-  if (requestPathname === '/requests/my') {
-    if (!isMockParticipant(token)) return error('User access required', 403);
-    return json(requestList(documentRequests.filter((request) => request.requester_id === mockParticipantId)));
-  }
-  if (requestPathname === '/requests') {
-    if (!isMockDocumentIssuerToken(token)) return error('Lawyer access required', 403);
-    const status = searchParams.get('status');
-    const filtered = status ? documentRequests.filter((request) => request.status === status) : documentRequests;
-    return json(requestList(filtered));
   }
 
   const extractionMatch = requestPathname.match(/^\/documents\/([^/]+)\/extraction\/?$/);
@@ -1064,28 +1002,6 @@ export async function mockPortalMutate(method: 'POST' | 'PUT' | 'PATCH' | 'DELET
     invitations = invitations.filter((item) => item.id !== invitation.id);
     if (action === 'accept') sharedDocumentIds.add(documentId);
     return new Response(null, { status: 204 });
-  }
-
-  const reviewMatch = requestPathname.match(/^\/requests\/([^/]+)\/review$/);
-  if (method === 'PATCH' && reviewMatch) {
-    if (!isMockDocumentIssuerToken(token)) return error('Lawyer access required', 403);
-    const body = await jsonBody(request);
-    const action = body?.action;
-    const rejectionReason = typeof body?.rejection_reason === 'string' ? body.rejection_reason.trim() : '';
-    if (action !== 'approve' && action !== 'reject') return error('Review action must be approve or reject', 400);
-    if (action === 'reject' && !rejectionReason) return error('A rejection reason is required', 400);
-    const requestId = reviewMatch[1];
-    const existingRequest = documentRequests.find((item) => item.id === requestId);
-    if (!existingRequest) return error('Request not found', 404);
-    if (existingRequest.status !== 'pending') return error('Request has already been reviewed', 400);
-    const reviewedRequest: MockDocumentRequest = {
-      ...existingRequest,
-      status: action === 'approve' ? 'approved' : 'rejected',
-      rejection_reason: action === 'reject' ? rejectionReason : null,
-      updated_at: new Date().toISOString(),
-    };
-    documentRequests = documentRequests.map((item) => item.id === requestId ? reviewedRequest : item);
-    return json(reviewedRequest);
   }
 
   if (method === 'PATCH' && path === '/notifications/read-all') {

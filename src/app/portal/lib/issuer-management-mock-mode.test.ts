@@ -56,7 +56,8 @@ describe("issuer management page authority", () => {
 
     expect(usersView.props).toMatchObject({ total: 4 });
     expect(invitationsView.props).toMatchObject({ mockMode: true });
-    expect(auditLogsView.props).toMatchObject({ total: 4 });
+    expect(JSON.stringify(auditLogsView)).toContain("Audit history unavailable");
+    expect(JSON.stringify(auditLogsView)).toContain("Audit history is not available in this portal yet.");
   });
 
   it.each([

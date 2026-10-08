@@ -567,15 +567,6 @@ describe('portal mock participant invitations and requests', () => {
     expect(response.status).toBe(403);
   });
 
-  it('returns request history only to the mock participant', async () => {
-    const participant = mockPortalGet('/requests/my', 'mock-token:mock-document-participant');
-    const issuer = mockPortalGet('/requests/my', 'mock-token:mock-document-issuer');
-
-    const history = await participant.json();
-    expect(history).toMatchObject({ total: 2 });
-    expect(history.requests).toContainEqual(expect.objectContaining({ id: 'mock-request-1', requester_email: 'participant@example.com' }));
-    expect(issuer.status).toBe(403);
-  });
 });
 
 describe('portal mock search and document questions', () => {
@@ -646,55 +637,6 @@ describe('portal mock search and document questions', () => {
       askRequest(),
       'mock-token:mock-document-participant',
     )).status).toBe(200);
-  });
-});
-
-describe('portal mock issuer request review', () => {
-  it('lists and filters requests only for the mock issuer', async () => {
-    const issuer = mockPortalGet('/requests?status=pending', 'mock-token:mock-document-issuer');
-    const participant = mockPortalGet('/requests', 'mock-token:mock-document-participant');
-
-    await expect(issuer.json()).resolves.toMatchObject({
-      total: 1,
-      requests: [{ id: 'mock-request-1', status: 'pending', lawyer_id: 'mock-document-issuer' }],
-    });
-    expect(participant.status).toBe(403);
-  });
-
-  it('denies a participant attempting to review an issuer request', async () => {
-    const response = await mockPortalMutate(
-      'PATCH',
-      '/requests/mock-request-1/review',
-      new Request('https://mock.lexchain.local/api/portal/proxy-post', {
-        method: 'PATCH',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ action: 'approve' }),
-      }),
-      'mock-token:mock-document-participant',
-    );
-
-    expect(response.status).toBe(403);
-  });
-
-  it('records an issuer rejection and exposes its reason in participant history', async () => {
-    const response = await mockPortalMutate(
-      'PATCH',
-      '/requests/mock-request-1/review',
-      new Request('https://mock.lexchain.local/api/portal/proxy-post', {
-        method: 'PATCH',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ action: 'reject', rejection_reason: 'Please provide a signed copy.' }),
-      }),
-      'mock-token:mock-document-issuer',
-    );
-
-    await expect(response.json()).resolves.toMatchObject({
-      id: 'mock-request-1', status: 'rejected', rejection_reason: 'Please provide a signed copy.',
-    });
-    const history = await mockPortalGet('/requests/my', 'mock-token:mock-document-participant').json();
-    expect(history.requests).toContainEqual(expect.objectContaining({
-      id: 'mock-request-1', status: 'rejected', rejection_reason: 'Please provide a signed copy.',
-    }));
   });
 });
 
