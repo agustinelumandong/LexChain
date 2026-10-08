@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import BooksPage from '@/features/office/pages/books-page';
 import { PortalRoleProvider } from '@/features/access/components';
@@ -27,6 +27,15 @@ const closedBook = {
   entry_count: 12,
   last_doc_no: 12,
   last_page_no: 24,
+};
+
+const emptyBook = {
+  ...book,
+  id: 'book-empty',
+  book_number: 3,
+  entry_count: 0,
+  last_doc_no: null,
+  last_page_no: null,
 };
 
 vi.mock('sonner', () => ({ toast: { success: vi.fn() } }));
@@ -81,26 +90,173 @@ describe('BooksPage', () => {
     expect(screen.queryByText('Pages')).toBeNull();
   });
 
-  it('requires confirmation before deleting a book', async () => {
+  it('creates an OPEN book by default and displays the returned book after refresh', async () => {
+    let listCalls = 0;
+    const createdBook = { ...emptyBook, id: 'book-created', book_number: 7 };
     const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
       const url = String(input);
-      if (url.includes('%2Fbooks%2F%3Flimit')) return Promise.resolve(Response.json([book]));
-      if (url.includes('%2Fbooks%2Fbook-1') && init?.method === 'DELETE') return Promise.resolve(new Response(null, { status: 204 }));
+      if (url.includes('%2Fbooks%2F%3Flimit')) {
+        listCalls += 1;
+        return Promise.resolve(Response.json(listCalls === 1 ? [] : [createdBook]));
+      }
+      if (url.includes('%2Fbooks%2F') && init?.method === 'POST') {
+        return Promise.resolve(Response.json(createdBook, { status: 201 }));
+      }
       return Promise.resolve(new Response(null, { status: 404 }));
     });
     vi.stubGlobal('fetch', fetchMock);
-    vi.spyOn(window, 'confirm').mockReturnValue(false);
 
     renderPage('lawyer');
-    fireEvent.click(await screen.findByRole('button', { name: 'Delete Book 1' }));
-    expect(fetchMock).not.toHaveBeenCalledWith(expect.stringContaining('book-1'), expect.objectContaining({ method: 'DELETE' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Register book' }));
+    expect(screen.getByLabelText('Book status')).toHaveProperty('value', 'OPEN');
+    fireEvent.change(screen.getByLabelText('Book number'), { target: { value: '7' } });
+    fireEvent.change(screen.getByLabelText('Series year'), { target: { value: '2026' } });
+    fireEvent.click(screen.getAllByRole('button', { name: 'Register book' })[1]);
 
+    expect(await screen.findByRole('heading', { name: 'Book 7' })).toBeTruthy();
+    expect(screen.getByText('Open')).toBeTruthy();
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/portal/proxy-post?path=%2Fbooks%2F',
+      expect.objectContaining({ method: 'POST', body: JSON.stringify({ book_number: 7, series_year: 2026, status: 'OPEN' }) }),
+    );
+  });
+
+  it('creates a CLOSED book for physical-register migration', async () => {
+    let listCalls = 0;
+    const createdBook = { ...emptyBook, id: 'book-closed', status: 'CLOSED', closed_at: '2026-09-01T00:00:00Z' };
+    const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url.includes('%2Fbooks%2F%3Flimit')) {
+        listCalls += 1;
+        return Promise.resolve(Response.json(listCalls === 1 ? [] : [createdBook]));
+      }
+      if (url.includes('%2Fbooks%2F') && init?.method === 'POST') return Promise.resolve(Response.json(createdBook, { status: 201 }));
+      return Promise.resolve(new Response(null, { status: 404 }));
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    renderPage('lawyer');
+    fireEvent.click(screen.getByRole('button', { name: 'Register book' }));
+    fireEvent.change(screen.getByLabelText('Book number'), { target: { value: '3' } });
+    fireEvent.change(screen.getByLabelText('Series year'), { target: { value: '2026' } });
+    fireEvent.change(screen.getByLabelText('Book status'), { target: { value: 'CLOSED' } });
+    expect(screen.getByText('When filing into a migrated book, use the document and page numbers from its paper register.')).toBeTruthy();
+    fireEvent.click(screen.getAllByRole('button', { name: 'Register book' })[1]);
+
+    expect(await screen.findByRole('heading', { name: 'Book 3' })).toBeTruthy();
+    expect(screen.getByText('Closed')).toBeTruthy();
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/portal/proxy-post?path=%2Fbooks%2F',
+      expect.objectContaining({ body: JSON.stringify({ book_number: 3, series_year: 2026, status: 'CLOSED' }) }),
+    );
+  });
+
+  it.each([
+    { status: 400, payload: { detail: 'Another book for this year is still open' }, message: 'Another book for this year is still open' },
+    { status: 422, payload: { detail: [{ msg: 'Series year must be 2000 or later' }] }, message: 'Series year must be 2000 or later' },
+  ])('keeps entered values and explains book creation failures ($status)', async ({ status, payload, message }) => {
+    const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+      if (String(input).includes('%2Fbooks%2F%3Flimit')) return Promise.resolve(Response.json([]));
+      if (init?.method === 'POST') return Promise.resolve(Response.json(payload, { status }));
+      return Promise.resolve(new Response(null, { status: 404 }));
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    renderPage('lawyer');
+    fireEvent.click(screen.getByRole('button', { name: 'Register book' }));
+    fireEvent.change(screen.getByLabelText('Book number'), { target: { value: '7' } });
+    fireEvent.change(screen.getByLabelText('Series year'), { target: { value: '2026' } });
+    if (status === 422) fireEvent.change(screen.getByLabelText('Book status'), { target: { value: 'CLOSED' } });
+    fireEvent.click(screen.getAllByRole('button', { name: 'Register book' })[1]);
+
+    expect((await screen.findByRole('alert')).textContent).toContain(message);
+    expect(screen.getByLabelText('Book number')).toHaveProperty('value', '7');
+    expect(screen.getByLabelText('Series year')).toHaveProperty('value', '2026');
+    expect(screen.getByLabelText('Book status')).toHaveProperty('value', status === 422 ? 'CLOSED' : 'OPEN');
+  });
+
+  it('blocks book numbers and years outside the API constraints', async () => {
+    vi.stubGlobal('fetch', vi.fn(() => Promise.resolve(Response.json([]))));
+
+    renderPage('lawyer');
+    fireEvent.click(screen.getByRole('button', { name: 'Register book' }));
+    const submit = screen.getAllByRole('button', { name: 'Register book' })[1];
+    fireEvent.change(screen.getByLabelText('Book number'), { target: { value: '1001' } });
+    fireEvent.change(screen.getByLabelText('Series year'), { target: { value: '1999' } });
+    expect(submit).toHaveProperty('disabled', true);
+
+    fireEvent.change(screen.getByLabelText('Book number'), { target: { value: '1000' } });
+    fireEvent.change(screen.getByLabelText('Series year'), { target: { value: '2000' } });
+    expect(submit).toHaveProperty('disabled', false);
+  });
+
+  it('keeps book fields and reports a network failure during creation', async () => {
+    const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+      if (String(input).includes('%2Fbooks%2F%3Flimit')) return Promise.resolve(Response.json([]));
+      if (init?.method === 'POST') return Promise.reject(new TypeError('Failed to fetch'));
+      return Promise.resolve(new Response(null, { status: 404 }));
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    renderPage('lawyer');
+    fireEvent.click(screen.getByRole('button', { name: 'Register book' }));
+    fireEvent.change(screen.getByLabelText('Book number'), { target: { value: '7' } });
+    fireEvent.change(screen.getByLabelText('Series year'), { target: { value: '2026' } });
+    fireEvent.click(screen.getAllByRole('button', { name: 'Register book' })[1]);
+
+    expect((await screen.findByRole('alert')).textContent).toContain('Failed to fetch');
+    expect(screen.getByLabelText('Book number')).toHaveProperty('value', '7');
+    expect(screen.getByLabelText('Series year')).toHaveProperty('value', '2026');
+  });
+
+  it('offers deletion only for empty books', async () => {
+    vi.stubGlobal('fetch', vi.fn(() => Promise.resolve(Response.json([book, emptyBook]))));
+
+    renderPage('lawyer');
+
+    expect(await screen.findByRole('button', { name: 'Delete Book 3' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Delete Book 1' })).toBeNull();
+  });
+
+  it('confirms empty-book deletion and refreshes after a bodyless 204 response', async () => {
+    let listCalls = 0;
+    const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url.includes('%2Fbooks%2F%3Flimit')) {
+        listCalls += 1;
+        return Promise.resolve(Response.json(listCalls === 1 ? [emptyBook] : []));
+      }
+      if (url.includes('%2Fbooks%2Fbook-empty') && init?.method === 'DELETE') return Promise.resolve(new Response(null, { status: 204 }));
+      return Promise.resolve(new Response(null, { status: 404 }));
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValueOnce(false).mockReturnValueOnce(true);
+
+    renderPage('lawyer');
+    fireEvent.click(await screen.findByRole('button', { name: 'Delete Book 3' }));
+    expect(fetchMock).not.toHaveBeenCalledWith(expect.stringContaining('book-empty'), expect.objectContaining({ method: 'DELETE' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Delete Book 3' }));
+
+    expect(await screen.findByRole('heading', { name: 'No register books yet' })).toBeTruthy();
+    expect(confirm).toHaveBeenCalledWith('Delete Book 3? Only an empty book can be deleted. Deleting it does not delete any documents.');
+    expect(fetchMock).toHaveBeenCalledWith('/api/portal/proxy-post?path=%2Fbooks%2Fbook-empty', expect.objectContaining({ method: 'DELETE' }));
+  });
+
+  it('keeps a book visible and explains a delete conflict', async () => {
+    const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url.includes('%2Fbooks%2F%3Flimit')) return Promise.resolve(Response.json([emptyBook]));
+      if (init?.method === 'DELETE') return Promise.resolve(Response.json({ detail: 'The book has filed entries.' }, { status: 409 }));
+      return Promise.resolve(new Response(null, { status: 404 }));
+    });
+    vi.stubGlobal('fetch', fetchMock);
     vi.spyOn(window, 'confirm').mockReturnValue(true);
-    fireEvent.click(screen.getByRole('button', { name: 'Delete Book 1' }));
-    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(
-      '/api/portal/proxy-post?path=%2Fbooks%2Fbook-1',
-      expect.objectContaining({ method: 'DELETE' }),
-    ));
+
+    renderPage('lawyer');
+    fireEvent.click(await screen.findByRole('button', { name: 'Delete Book 3' }));
+
+    expect((await screen.findByRole('alert')).textContent).toContain('The book has filed entries.');
+    expect(screen.getByRole('heading', { name: 'Book 3' })).toBeTruthy();
   });
 
   it.each(['document_participant', 'document_issuer', 'admin', 'super_admin', 'staff', undefined])('does not show lawyer controls for role hint %j', async (roleHint) => {

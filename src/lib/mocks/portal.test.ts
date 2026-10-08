@@ -356,14 +356,14 @@ describe('portal mock books', () => {
       new Request('https://mock.lexchain.local/api/portal/proxy-post', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ book_number: 2, series_year: 2026 }),
+        body: JSON.stringify({ book_number: 2, series_year: 2027 }),
       }),
       'mock-token:mock-document-issuer',
     );
 
     expect(created.status).toBe(201);
     const book = await created.json();
-    expect(book).toMatchObject({ book_number: 2, series_year: 2026, is_full: false });
+    expect(book).toMatchObject({ book_number: 2, series_year: 2027, is_full: false });
 
     const form = new FormData();
     form.append('file', new File(['PDF'], 'registered-book.pdf', { type: 'application/pdf' }));
