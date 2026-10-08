@@ -77,6 +77,7 @@ export default function UploadPage() {
     onSuccess: (data) => {
       setOutcome(data);
       toast.success('Signed document filed.');
+      router.push(`/portal/documents/${data.document_id}`);
     },
   });
   const requiresConfirmation = mutation.error instanceof Error

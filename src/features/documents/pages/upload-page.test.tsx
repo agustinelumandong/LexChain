@@ -74,17 +74,13 @@ afterEach(() => {
 });
 
 describe('signed document upload screen', () => {
-  it('shows the created signed document and opens its detail instead of processing poll', async () => {
+  it('navigates to the created signed document instead of processing poll', async () => {
     setupFetch([Response.json(signedDocument, { status: 201 })]);
     renderPage();
     await fillClosedBookUpload();
     fireEvent.click(screen.getByRole('button', { name: 'Confirm and file' }));
 
-    expect(await screen.findByText('Signed')).toBeTruthy();
-    expect(screen.getByText('No processing status yet')).toBeTruthy();
-    expect(screen.getByText(/Document number 12 · Page 3/)).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: 'View document' }));
-    expect(push).toHaveBeenCalledWith('/portal/documents/signed-doc-42');
+    await waitFor(() => expect(push).toHaveBeenCalledWith('/portal/documents/signed-doc-42'));
   });
 
   it('retries the same closed-book upload only after the documented confirmation', async () => {
