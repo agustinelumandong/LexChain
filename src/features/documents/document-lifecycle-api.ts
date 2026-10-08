@@ -27,6 +27,22 @@ export async function finalizeDocument(documentId: string): Promise<ApiSchema<'R
   return lifecycleFetch(`/documents/${id}/finalize`, { method: 'POST' });
 }
 
+export function listDraftComments(documentId: string): Promise<ApiSchema<'DraftCommentListResponse'>> {
+  return lifecycleFetch(`/documents/${required(documentId, 'Document ID is required')}/comments`);
+}
+
+export function syncDraftComments(documentId: string): Promise<ApiSchema<'DraftCommentListResponse'>> {
+  return lifecycleFetch(`/documents/${required(documentId, 'Document ID is required')}/comments/sync`, { method: 'POST' });
+}
+
+export function markDocumentReady(documentId: string): Promise<ApiSchema<'DocumentResponse'>> {
+  return lifecycleFetch(`/documents/${required(documentId, 'Document ID is required')}/ready`, { method: 'POST' });
+}
+
+export function reopenDocument(documentId: string): Promise<ApiSchema<'DocumentResponse'>> {
+  return lifecycleFetch(`/documents/${required(documentId, 'Document ID is required')}/reopen`, { method: 'POST' });
+}
+
 export async function renameDocument(documentId: string, fileName: string) {
   return lifecycleFetch(`/documents/${required(documentId, 'Document ID is required')}`, {
     method: 'PATCH',

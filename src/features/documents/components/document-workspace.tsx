@@ -1,17 +1,17 @@
 'use client';
 
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import type { ApiSchema } from '@/shared/types/index';
-import { listSignedCopies } from '@/features/documents/document-lifecycle-api';
+import { listDraftComments, listSignedCopies, syncDraftComments } from '@/features/documents/document-lifecycle-api';
 import { getDocumentLifecycleLabel, getDocumentStatusLabel } from '@/features/documents/document-ui';
 import { shortenIntegrityHash } from "@/features/verification";
 import { GoogleDraftPanel } from '@/features/documents/components/google-draft-panel';
 
 type WorkspaceDocument = ApiSchema<'DocumentResponse'>;
 
-const tabs = ['Overview', 'Files', 'Blockchain', 'Signed copies', 'Access', 'Activity'] as const;
+const tabs = ['Overview', 'Files', 'Comments', 'Blockchain', 'Signed copies', 'Access', 'Activity'] as const;
 type Tab = typeof tabs[number];
 
 function readable(value: unknown): string {
@@ -67,6 +67,11 @@ type DocumentWorkspaceProps = {
   onCancelFinalize?: () => void;
   onConfirmFinalize?: () => void;
   success?: string;
+  readinessError?: string | null;
+  readinessSuccess?: string;
+  isChangingReadiness?: boolean;
+  onMarkReady?: () => void;
+  onReopen?: () => void;
 };
 
 const finalizationConfirmation = 'This will anchor the approved document hash on-chain and finalize the document. This action cannot be undone.';
@@ -80,16 +85,26 @@ export function DocumentWorkspace({
   onCancelFinalize,
   onConfirmFinalize,
   success,
+  readinessError,
+  readinessSuccess,
+  isChangingReadiness = false,
+  onMarkReady,
+  onReopen,
 }: DocumentWorkspaceProps) {
   const [activeTab, setActiveTab] = useState<Tab>('Overview');
+  const queryClient = useQueryClient();
   const signedCopiesQuery = useQuery({ queryKey: ['portal-doc-signed-copies', document.document_id], queryFn: () => listSignedCopies(document.document_id), enabled: activeTab === 'Signed copies' });
+  const commentsKey = ['portal-document-comments', document.document_id];
+  const commentsQuery = useQuery({ queryKey: commentsKey, queryFn: () => listDraftComments(document.document_id), enabled: activeTab === 'Comments' && Boolean(document.draft_url), retry: false });
+  const syncComments = useMutation({ mutationFn: () => syncDraftComments(document.document_id), onSuccess: (comments) => queryClient.setQueryData(commentsKey, comments) });
+  const visibleTabs = tabs.filter((tab) => tab !== 'Comments' || Boolean(document.draft_url));
   const hasInsights = Boolean(document.summary || document.labels?.length || document.entities?.length || document.risk_flags?.length);
   const lifecycle = document;
 
   return (
     <section className="rounded-[18px] border border-[#E8F0F8] bg-white shadow-[0_4px_12px_rgba(19,59,115,0.05)]">
       <div role="tablist" aria-label="Document workspace" className="flex overflow-x-auto border-b border-[#E8F0F8] px-3">
-        {tabs.map((tab) => (
+        {visibleTabs.map((tab) => (
           <button
             key={tab}
             role="tab"
@@ -139,6 +154,19 @@ export function DocumentWorkspace({
                 </div>
               </div>
             )}
+          </div>
+        )}
+
+        {activeTab === 'Comments' && (
+          <div className="space-y-4">
+            <div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="text-lg font-extrabold text-[#0C2B49]">Draft comments</h2><p className="mt-1 text-sm text-[#64748b]">Comments are synced from the linked Google draft.</p></div>{document.lifecycle === 'PREPARING' && document.permissions.can_mark_ready && <button type="button" onClick={() => syncComments.mutate()} disabled={syncComments.isPending} className="rounded-full border border-[#0985E7] px-4 py-2 text-sm font-bold text-[#0985E7] disabled:opacity-60">{syncComments.isPending ? 'Syncing comments…' : 'Sync comments'}</button>}</div>
+            {commentsQuery.isLoading && <p role="status" className="text-sm text-[#64748b]">Loading comments…</p>}
+            {commentsQuery.isError && <p role="alert" className="text-sm font-bold text-[#B42318]">Unable to load draft comments.</p>}
+            {syncComments.isError && <p role="alert" className="text-sm font-bold text-[#B42318]">{syncComments.error instanceof Error ? syncComments.error.message : 'Unable to sync comments.'}</p>}
+            {commentsQuery.data && <><p className="text-sm font-bold text-[#64748b]">{commentsQuery.data.unresolved} unresolved · Last synced {formatDate(commentsQuery.data.synced_at)}</p>{commentsQuery.data.comments.length === 0 ? <p className="text-sm text-[#64748b]">No comments found in the draft.</p> : commentsQuery.data.comments.map((comment) => <article key={comment.id} className="space-y-2 rounded-xl border border-[#E8F0F8] bg-[#F8FBFF] p-4"><div className="flex justify-between gap-3"><p className="font-bold text-[#0C2B49]">{comment.author_name || 'Draft commenter'}</p><span className="text-xs text-[#64748b]">{comment.resolved ? 'Resolved' : 'Unresolved'}</span></div>{comment.quoted_text && <blockquote className="border-l-2 border-[#0985E7] pl-3 text-sm text-[#64748b]">{comment.quoted_text}</blockquote>}<p className="whitespace-pre-wrap text-sm text-[#0C2B49]">{comment.content}</p>{comment.replies?.map((reply, index) => <div key={`${comment.id}-reply-${index}`} className="ml-4 border-l border-[#D6E3F1] pl-3"><p className="text-xs font-bold text-[#64748b]">{reply.author_name || 'Reply'}</p><p className="whitespace-pre-wrap text-sm text-[#0C2B49]">{reply.content}</p></div>)}</article>)}</>}
+            {readinessError && <p role="alert" className="rounded-xl bg-red-50 p-3 text-sm font-bold text-[#B42318]">{readinessError}</p>}
+            {readinessSuccess && <p role="status" className="text-sm font-bold text-[#067647]">{readinessSuccess}</p>}
+            <div className="flex gap-2">{document.permissions.can_mark_ready && <button type="button" onClick={onMarkReady} disabled={isChangingReadiness} className="rounded-full bg-[#0985E7] px-4 py-2 text-sm font-bold text-white disabled:opacity-60">{isChangingReadiness ? 'Updating…' : 'Mark ready for signature'}</button>}{document.permissions.can_reopen && <button type="button" onClick={onReopen} disabled={isChangingReadiness} className="rounded-full border border-[#0985E7] px-4 py-2 text-sm font-bold text-[#0985E7] disabled:opacity-60">Reopen draft</button>}</div>
           </div>
         )}
 

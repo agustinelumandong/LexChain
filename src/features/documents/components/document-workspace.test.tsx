@@ -5,14 +5,18 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DocumentWorkspace } from '@/features/documents/components/document-workspace';
 import type { ApiSchema } from '@/shared/types';
 
-const { finalizeDocumentMock, listSignedCopiesMock } = vi.hoisted(() => ({
+const { finalizeDocumentMock, listSignedCopiesMock, listDraftCommentsMock, syncDraftCommentsMock } = vi.hoisted(() => ({
   finalizeDocumentMock: vi.fn(),
   listSignedCopiesMock: vi.fn(),
+  listDraftCommentsMock: vi.fn(),
+  syncDraftCommentsMock: vi.fn(),
 }));
 
 vi.mock('@/features/documents/document-lifecycle-api', () => ({
   finalizeDocument: finalizeDocumentMock,
   listSignedCopies: listSignedCopiesMock,
+  listDraftComments: listDraftCommentsMock,
+  syncDraftComments: syncDraftCommentsMock,
 }));
 
 const document: ApiSchema<'DocumentResponse'> = {
@@ -82,6 +86,8 @@ function renderWorkspace(props: Partial<React.ComponentProps<typeof DocumentWork
 describe('DocumentWorkspace', () => {
   beforeEach(() => {
     listSignedCopiesMock.mockResolvedValue({ document_id: 'doc-101', copies: [] });
+    listDraftCommentsMock.mockResolvedValue({ document_id: 'doc-101', unresolved: 0, comments: [] });
+    syncDraftCommentsMock.mockResolvedValue({ document_id: 'doc-101', unresolved: 0, comments: [] });
   });
 
   afterEach(() => {
@@ -359,5 +365,31 @@ describe('DocumentWorkspace', () => {
 
     fireEvent.click(screen.getByRole('tab', { name: 'Access' }));
     expect(screen.queryByRole('link', { name: 'Manage document participants' })).toBeNull();
+  });
+
+  it('shows synced draft comments and permission-gated readiness controls', async () => {
+    listDraftCommentsMock.mockResolvedValue({
+      document_id: 'doc-101', unresolved: 1, synced_at: '2026-07-28T00:00:00Z',
+      comments: [{ id: 'comment-1', author_name: 'Reviewer', is_lawyer: true, content: 'Please correct this clause.', quoted_text: 'Payment is due.', resolved: false, created_at: '2026-07-28T00:00:00Z', replies: [{ author_name: 'Issuer', is_lawyer: false, content: 'I will update it.', created_at: '2026-07-28T00:01:00Z' }] }],
+    });
+    syncDraftCommentsMock.mockRejectedValue(new Error('Google Docs is unavailable'));
+    renderWorkspace({ document: { ...document, permissions: { ...document.permissions, can_mark_ready: true } }, readinessError: 'UNRESOLVED_COMMENTS: resolve all threads' });
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Comments' }));
+    expect(await screen.findByText('Please correct this clause.')).toBeTruthy();
+    expect(screen.getByText('Payment is due.')).toBeTruthy();
+    expect(screen.getByText('I will update it.')).toBeTruthy();
+    expect(screen.getByRole('alert').textContent).toContain('UNRESOLVED_COMMENTS');
+    expect(screen.getByRole('button', { name: 'Mark ready for signature' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Sync comments' }));
+    expect(await screen.findByText('Google Docs is unavailable')).toBeTruthy();
+    expect(screen.getByText('Please correct this clause.')).toBeTruthy();
+  });
+
+  it('hides readiness controls when the backend denies the permissions', () => {
+    renderWorkspace();
+    fireEvent.click(screen.getByRole('tab', { name: 'Comments' }));
+    expect(screen.queryByRole('button', { name: 'Mark ready for signature' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Reopen draft' })).toBeNull();
   });
 });

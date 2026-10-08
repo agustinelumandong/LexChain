@@ -124,6 +124,18 @@ describe('document detail screen', () => {
     expect(screen.getByRole('button', { name: 'Create blank Google draft' })).toBeTruthy();
   });
 
+  it('shows signature readiness controls only when granted by the backend', async () => {
+    state.documentQuery = {
+      data: { ...baseDocument, lifecycle: 'PREPARING', permissions: { ...baseDocument.permissions, can_mark_ready: true } },
+      isLoading: false, isError: false, refetch: vi.fn(),
+    };
+    await showPage();
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Comments' }));
+    expect(screen.getByRole('button', { name: 'Mark ready for signature' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Reopen draft' })).toBeNull();
+  });
+
   it('shows rename and finalize controls only when permitted by the backend', async () => {
     state.profileQuery = { data: { role: 'document_issuer' }, isLoading: false, isError: false };
     state.documentQuery = {

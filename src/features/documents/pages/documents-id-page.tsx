@@ -8,7 +8,7 @@ import type { ApiSchema } from '@/shared/types/index';
 import { PortalChatbot as PortalChatbot } from "@/features/portal/components";
 import { DocumentWorkspace } from '@/features/documents/components/document-workspace';
 import { getDocumentActions, getDocumentLifecycleLabel, getDocumentStatusLabel } from '@/features/documents/document-ui';
-import { renameDocument, finalizeDocument } from '@/features/documents/document-lifecycle-api';
+import { renameDocument, finalizeDocument, markDocumentReady, reopenDocument } from '@/features/documents/document-lifecycle-api';
 import { getPortalUiRole } from "@/features/access";
 
 type DocumentResponse = ApiSchema<'DocumentResponse'>;
@@ -62,6 +62,17 @@ export default function DocumentDetailPage({ params }: { params: Promise<{ id: s
       setConfirmingFinalize(false);
       setSuccess('Document finalized and anchored on-chain.');
       await refreshLifecycleQueries();
+    },
+  });
+
+  const readinessMutation = useMutation({
+    mutationFn: (action: 'ready' | 'reopen') => action === 'ready' ? markDocumentReady(id) : reopenDocument(id),
+    onSuccess: async (_result, action) => {
+      setSuccess(action === 'ready' ? 'Document marked ready for signature.' : 'Document reopened for editing.');
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['portal-doc', id] }),
+        queryClient.invalidateQueries({ queryKey: ['portal-document-comments', id] }),
+      ]);
     },
   });
 
@@ -131,6 +142,11 @@ export default function DocumentDetailPage({ params }: { params: Promise<{ id: s
         onCancelFinalize={() => setConfirmingFinalize(false)}
         onConfirmFinalize={() => finalizeMutation.mutate()}
         success={success}
+        readinessError={readinessMutation.error instanceof Error ? readinessMutation.error.message : null}
+        readinessSuccess={readinessMutation.isSuccess ? success : undefined}
+        isChangingReadiness={readinessMutation.isPending}
+        onMarkReady={() => readinessMutation.mutate('ready')}
+        onReopen={() => readinessMutation.mutate('reopen')}
       />
       <PortalChatbot documentId={id} />
     </div>
