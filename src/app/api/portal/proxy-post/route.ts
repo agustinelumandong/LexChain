@@ -37,6 +37,9 @@ async function handler(request: NextRequest, method: 'POST' | 'PUT' | 'PATCH' | 
 
   if (isMockMode()) {
     if (!isMockPortalToken(token)) return NextResponse.json({ message: 'Not authenticated' }, { status: 401 });
+    if (/^\/documents\/[^/]+\/signed-copy\/?$/.test(new URL(path, 'http://lexchain.local').pathname)) {
+      return NextResponse.json({ message: 'Signed-copy operations are unavailable in demo mode' }, { status: 501 });
+    }
     return mockPortalMutate(method, path, request, token);
   }
 

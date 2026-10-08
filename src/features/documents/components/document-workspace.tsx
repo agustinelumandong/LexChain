@@ -203,8 +203,8 @@ export function DocumentWorkspace({
             ) : <p className="text-sm text-[#64748b]">No signed PDF is attached to this document yet.</p>}
             {signedCopySuccess && <p role="status" className="text-sm font-bold text-[#067647]">{signedCopySuccess}</p>}
             <div className="flex flex-wrap gap-2">
-              {document.permissions.can_attach_signed_copy && <button type="button" onClick={() => { setSignedCopyMode('attach'); setSignedCopyError(null); setSignedCopySuccess(null); signedCopyMutation.reset(); }} className="rounded-full bg-[#0985E7] px-4 py-2.5 text-sm font-extrabold text-white">Attach signed PDF</button>}
-              {document.permissions.can_replace_signed_copy && <button type="button" onClick={() => { setSignedCopyMode('replace'); setSignedCopyError(null); setSignedCopySuccess(null); signedCopyMutation.reset(); }} className="rounded-full border border-[#0985E7] px-4 py-2.5 text-sm font-extrabold text-[#0985E7]">Replace signed PDF</button>}
+              {document.permissions?.can_attach_signed_copy && <button type="button" onClick={() => { setSignedCopyMode('attach'); setSignedCopyError(null); setSignedCopySuccess(null); signedCopyMutation.reset(); }} className="rounded-full bg-[#0985E7] px-4 py-2.5 text-sm font-extrabold text-white">Attach signed PDF</button>}
+              {document.permissions?.can_replace_signed_copy && <button type="button" onClick={() => { setSignedCopyMode('replace'); setSignedCopyError(null); setSignedCopySuccess(null); signedCopyMutation.reset(); }} className="rounded-full border border-[#0985E7] px-4 py-2.5 text-sm font-extrabold text-[#0985E7]">Replace signed PDF</button>}
             </div>
             {signedCopyMode && <form className="space-y-3 rounded-xl border border-[#D7E4F2] bg-white p-4" onSubmit={(event) => {
               event.preventDefault();
