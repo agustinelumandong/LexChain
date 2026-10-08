@@ -165,6 +165,15 @@ describe('DocumentWorkspace', () => {
     );
   });
 
+  it('does not render a backend-provided draft URL outside Google Docs', () => {
+    renderWorkspace({ document: { ...document, draft_url: 'https://example.com/phishing' } });
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Files' }));
+    expect(screen.queryByRole('link', { name: 'Open Google draft' })).toBeNull();
+    expect(screen.getByRole('alert').textContent).toContain('invalid Google draft link');
+    expect(screen.getByRole('link', { name: 'Open current signed PDF' }).getAttribute('href')).toBe(document.signed_copy?.storage_url);
+  });
+
   it('keeps a picked template after a missing-Google-connection error and allows retry', async () => {
     vi.stubEnv('NEXT_PUBLIC_GOOGLE_PICKER_API_KEY', 'browser-key');
     vi.stubEnv('NEXT_PUBLIC_GOOGLE_PICKER_APP_ID', 'cloud-project-number');

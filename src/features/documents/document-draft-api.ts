@@ -1,5 +1,14 @@
 import type { ApiSchema } from '@/shared/types';
 
+export function isGoogleDraftUrl(value: string): boolean {
+  try {
+    const url = new URL(value);
+    return url.protocol === 'https:' && url.hostname === 'docs.google.com';
+  } catch {
+    return false;
+  }
+}
+
 async function request<T>(path: string, method: 'GET' | 'POST', body?: unknown): Promise<T> {
   const proxy = method === 'GET' ? '/api/portal/proxy' : '/api/portal/proxy-post';
   const response = await fetch(`${proxy}?path=${encodeURIComponent(path)}`, {
@@ -38,7 +47,6 @@ export async function createGoogleDraft(documentId: string, source: ApiSchema<'C
     ...(source === 'blank' ? {} : { file_id: fileId }),
   });
   if (!document.draft_url) throw new Error('The backend did not return a Google draft link.');
-  const url = new URL(document.draft_url);
-  if (url.protocol !== 'https:' || url.hostname !== 'docs.google.com') throw new Error('The backend returned an invalid Google draft link.');
+  if (!isGoogleDraftUrl(document.draft_url)) throw new Error('The backend returned an invalid Google draft link.');
   return document;
 }

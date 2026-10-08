@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import type { ApiSchema } from '@/shared/types';
-import { createGoogleDraft, getGooglePickerToken } from '@/features/documents/document-draft-api';
+import { createGoogleDraft, getGooglePickerToken, isGoogleDraftUrl } from '@/features/documents/document-draft-api';
 
 type Source = ApiSchema<'CreateDraftRequest'>['source'];
 type PickedFile = { id: string; name: string };
@@ -45,15 +45,17 @@ export function GoogleDraftPanel({ document }: { document: ApiSchema<'DocumentRe
   const [picked, setPicked] = useState<PickedFile | null>(null);
   const [draftUrl, setDraftUrl] = useState<string | null>(document.draft_url ?? null);
   const [error, setError] = useState('');
+  const [needsGoogleConnection, setNeedsGoogleConnection] = useState(false);
   const [pending, setPending] = useState(false);
   const [picking, setPicking] = useState(false);
 
-  if (draftUrl) return <div className="rounded-xl border border-[#E8F0F8] p-4"><p className="font-bold text-[#0C2B49]">Working Google draft</p><p className="mt-1 text-sm text-[#64748b]">This editable draft is separate from the legal signed PDF.</p><a href={draftUrl} target="_blank" rel="noreferrer" className="mt-3 inline-flex rounded-full border border-[#0985E7] px-4 py-2.5 text-sm font-extrabold text-[#0985E7]">Open Google draft</a></div>;
+  if (draftUrl) return <div className="rounded-xl border border-[#E8F0F8] p-4"><p className="font-bold text-[#0C2B49]">Working Google draft</p><p className="mt-1 text-sm text-[#64748b]">This editable draft is separate from the legal signed PDF.</p>{isGoogleDraftUrl(draftUrl) ? <a href={draftUrl} target="_blank" rel="noreferrer" className="mt-3 inline-flex rounded-full border border-[#0985E7] px-4 py-2.5 text-sm font-extrabold text-[#0985E7]">Open Google draft</a> : <p role="alert" className="mt-3 text-sm font-bold text-[#B42318]">The backend returned an invalid Google draft link. Contact your administrator.</p>}</div>;
   if (document.lifecycle !== 'PREPARING' || !document.permissions.can_create_draft) return null;
 
   async function chooseFile() {
     setPicking(true);
     setError('');
+    setNeedsGoogleConnection(false);
     try {
       const apiKey = process.env.NEXT_PUBLIC_GOOGLE_PICKER_API_KEY;
       const appId = process.env.NEXT_PUBLIC_GOOGLE_PICKER_APP_ID;
@@ -78,12 +80,16 @@ export function GoogleDraftPanel({ document }: { document: ApiSchema<'DocumentRe
   async function createDraft() {
     setPending(true);
     setError('');
+    setNeedsGoogleConnection(false);
     try {
       const result = await createGoogleDraft(document.document_id, source, picked?.id);
       setDraftUrl(result.draft_url ?? null);
     } catch (cause) {
       const failure = cause as Error & { code?: string; status?: number };
-      if (failure.code === 'GOOGLE_NOT_CONNECTED') setError('Connect Google in account settings, then retry. Your draft choices are saved.');
+      if (failure.code === 'GOOGLE_NOT_CONNECTED') {
+        setNeedsGoogleConnection(true);
+        setError('Connect Google in account settings, then retry. Your draft choices are saved.');
+      }
       else if (failure.status === 502) setError('Google Drive is unavailable. Try again in a moment. Your draft choices are saved.');
       else setError(failure.message || 'Unable to create the Google draft. Try again.');
     } finally {
@@ -99,7 +105,7 @@ export function GoogleDraftPanel({ document }: { document: ApiSchema<'DocumentRe
       </select>
     </label>
     {source !== 'blank' && <div className="space-y-2"><button type="button" disabled={picking} onClick={() => void chooseFile()} className="rounded-full border border-[#0985E7] px-4 py-2 text-sm font-bold text-[#0985E7] disabled:opacity-60">{picking ? 'Opening Picker…' : 'Choose Google Doc'}</button>{picked && <p className="text-sm text-[#0C2B49]">Selected: {picked.name}</p>}</div>}
-    {error && <div role="alert" className="space-y-2 text-sm font-bold text-[#B42318]"><p>{error}</p>{error.includes('Connect Google') && <a href="/portal/profile/account" className="inline-block rounded-full border border-[#0985E7] px-3 py-1.5 text-[#0985E7]">Connect Google in account settings</a>}</div>}
+    {error && <div role="alert" className="space-y-2 text-sm font-bold text-[#B42318]"><p>{error}</p>{needsGoogleConnection && <a href="/portal/profile/account" className="inline-block rounded-full border border-[#0985E7] px-3 py-1.5 text-[#0985E7]">Connect Google in account settings</a>}</div>}
     <button type="button" disabled={pending || (source !== 'blank' && !picked)} onClick={() => void createDraft()} className="rounded-full bg-[#0985E7] px-4 py-2.5 text-sm font-extrabold text-white disabled:opacity-60">{pending ? 'Creating draft…' : source === 'blank' ? 'Create blank Google draft' : `Create draft from ${source}`}</button>
   </section>;
 }
