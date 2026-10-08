@@ -3,36 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import DoneAllIcon from '@mui/icons-material/DoneAll';
 import NotificationsNoneIcon from '@mui/icons-material/NotificationsNone';
-
-interface Notification {
-  id: string;
-  title: string;
-  body: string;
-  is_read: boolean;
-  created_at: string;
-}
-
-async function fetchNotifications(): Promise<{ notifications: Notification[]; total: number }> {
-  const res = await fetch('/api/portal/proxy?path=%2Fnotifications%2F', { credentials: 'same-origin' });
-  if (!res.ok) throw new Error('Failed');
-  return res.json();
-}
-
-async function markAllRead() {
-  const res = await fetch('/api/portal/proxy-post?path=%2Fnotifications%2Fread-all', {
-    method: 'PATCH',
-    credentials: 'same-origin',
-  });
-  if (!res.ok) throw new Error('Failed');
-}
-
-async function markOneRead(id: string) {
-  const res = await fetch(`/api/portal/proxy-post?path=${encodeURIComponent(`/notifications/${id}/read`)}`, {
-    method: 'PATCH',
-    credentials: 'same-origin',
-  });
-  if (!res.ok) throw new Error('Failed');
-}
+import { fetchNotifications, invalidateNotificationQueries, markAllNotificationsRead, markNotificationRead, notificationQueryKeys } from '@/features/portal/notifications-api';
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
@@ -40,22 +11,22 @@ function formatDate(iso: string) {
 
 export default function NotificationsPage() {
   const queryClient = useQueryClient();
-  const { data, isLoading } = useQuery({
-    queryKey: ['portal-notifications'],
+  const notificationsQuery = useQuery({
+    queryKey: notificationQueryKeys.inbox,
     queryFn: fetchNotifications,
   });
 
-  const notifications = data?.notifications ?? [];
+  const notifications = notificationsQuery.data?.notifications ?? [];
   const unreadCount = notifications.filter(n => !n.is_read).length;
 
   const markAllMutation = useMutation({
-    mutationFn: markAllRead,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['portal-notifications'] }),
+    mutationFn: markAllNotificationsRead,
+    onSuccess: () => invalidateNotificationQueries(queryClient),
   });
 
   const markOneMutation = useMutation({
-    mutationFn: markOneRead,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['portal-notifications'] }),
+    mutationFn: markNotificationRead,
+    onSuccess: () => invalidateNotificationQueries(queryClient),
   });
 
   return (
@@ -68,11 +39,11 @@ export default function NotificationsPage() {
         {unreadCount > 0 && (
           <button
             onClick={() => markAllMutation.mutate()}
-            disabled={markAllMutation.isPending}
+            disabled={markAllMutation.isPending || markOneMutation.isPending}
             className="flex min-h-11 shrink-0 items-center gap-2 rounded-xl border border-[#D5E5F3] bg-white px-4 py-2 text-sm font-semibold text-[#076BB9] transition hover:bg-[#EEF6FF] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0985E7] disabled:opacity-50"
           >
             <DoneAllIcon sx={{ fontSize: 16 }} />
-            Mark all as read
+            {markAllMutation.isPending ? 'Marking as read…' : 'Mark all as read'}
           </button>
         )}
       </div>
@@ -81,9 +52,9 @@ export default function NotificationsPage() {
         <div className="flex items-center gap-3 border-b border-[#E8F0F8] px-5 py-4 sm:px-6">
           <NotificationsNoneIcon className="text-[#0985E7]" sx={{ fontSize: 22 }} />
           <h2 className="text-sm font-bold text-[#0C2B49]">Your inbox</h2>
-          {!isLoading && <span className="ml-auto rounded-full bg-[#EEF6FF] px-3 py-1 text-xs font-semibold text-[#076BB9]">{unreadCount} unread</span>}
+          {!notificationsQuery.isLoading && !notificationsQuery.isError && <span className="ml-auto rounded-full bg-[#EEF6FF] px-3 py-1 text-xs font-semibold text-[#076BB9]">{unreadCount} unread</span>}
         </div>
-        {isLoading ? (
+        {notificationsQuery.isLoading ? (
           <div role="status" className="divide-y divide-[#E8F0F8]">
             <span className="sr-only">Loading notifications</span>
             {[1, 2, 3].map(i => <div key={i} aria-hidden="true" className="space-y-3 px-5 py-6 motion-safe:animate-pulse sm:px-6">
@@ -91,6 +62,11 @@ export default function NotificationsPage() {
               <div className="h-3 w-3/4 rounded bg-[#F0F5FA]" />
               <div className="h-3 w-24 rounded bg-[#F0F5FA]" />
             </div>)}
+          </div>
+        ) : notificationsQuery.isError ? (
+          <div className="px-6 py-10 text-center">
+            <p role="alert" className="text-sm font-semibold text-red-700">{notificationsQuery.error.message}</p>
+            <button type="button" onClick={() => void notificationsQuery.refetch()} className="mt-3 rounded-full border border-[#D5E5F3] px-4 py-2 text-sm font-bold text-[#076BB9]">Retry</button>
           </div>
         ) : notifications.length === 0 ? (
           <div className="px-6 py-14 text-center">
@@ -120,13 +96,17 @@ export default function NotificationsPage() {
                   {content}
                 </article>
               ) : (
-                <button key={n.id} onClick={() => markOneMutation.mutate(n.id)} aria-label={`Mark ${n.title} as read`} className="flex w-full items-start gap-3 border-l-[3px] border-l-[#0985E7] bg-[#F5FAFF] px-5 py-5 text-left transition hover:bg-[#EEF6FF] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-[#0985E7] sm:px-6">
+                <button key={n.id} onClick={() => markOneMutation.mutate(n.id)} disabled={markOneMutation.isPending || markAllMutation.isPending} aria-label={`Mark ${n.title} as read`} className="flex w-full items-start gap-3 border-l-[3px] border-l-[#0985E7] bg-[#F5FAFF] px-5 py-5 text-left transition hover:bg-[#EEF6FF] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-[#0985E7] disabled:cursor-wait disabled:opacity-60 sm:px-6">
                   {content}
                 </button>
               );
             })}
           </div>
         )}
+        {markOneMutation.isPending && <p role="status" className="border-t border-[#E8F0F8] px-5 py-3 text-sm font-semibold text-[#076BB9]">Marking notification as read…</p>}
+        {markOneMutation.isError && <p role="alert" className="border-t border-[#E8F0F8] px-5 py-3 text-sm font-semibold text-red-700">{markOneMutation.error.message}</p>}
+        {markAllMutation.isPending && <p role="status" className="border-t border-[#E8F0F8] px-5 py-3 text-sm font-semibold text-[#076BB9]">Marking notifications as read…</p>}
+        {markAllMutation.isError && <p role="alert" className="border-t border-[#E8F0F8] px-5 py-3 text-sm font-semibold text-red-700">{markAllMutation.error.message}</p>}
       </section>
     </div>
   );

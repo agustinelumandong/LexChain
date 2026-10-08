@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import PortalRouteLayout from "./layout";
 
@@ -62,6 +62,24 @@ describe("portal layout role hint", () => {
     expect(screen.getAllByRole("link", { name: "My E-copy Requests" }).length).toBeGreaterThan(0);
     expect(screen.queryByRole("link", { name: "Books" })).toBeNull();
     expect(fetchMock).not.toHaveBeenCalledWith(expect.stringContaining("%2Fusers%2F"), expect.anything());
+  });
+
+  it("shows unread-count failures instead of displaying a false zero badge", async () => {
+    fetchMock.mockImplementation((input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes('%2Fdocuments%2F')) return Promise.resolve(Response.json([]));
+      if (url.includes('unread-count')) return Promise.resolve(Response.json({}, { status: 503 }));
+      if (url.includes('%2Fnotifications%2F')) return Promise.resolve(Response.json({ notifications: [], total: 0 }));
+      return Promise.resolve(new Response(null, { status: 404 }));
+    });
+    await renderPortal('lawyer');
+
+    const notificationsButton = screen.getByRole('button', { name: 'View notifications' });
+    await waitFor(() => expect(notificationsButton.getAttribute('aria-describedby')).toBe('notification-count-error'));
+    fireEvent.click(notificationsButton);
+
+    expect((await screen.findByRole('alert')).textContent).toContain('Unread count unavailable');
+    expect(screen.getByRole('button', { name: 'Retry' })).toBeTruthy();
   });
 
   it.each([
