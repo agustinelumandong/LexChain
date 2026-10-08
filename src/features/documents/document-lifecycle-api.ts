@@ -4,6 +4,30 @@ import type {
   DemoDocumentSnapshot,
 } from '@/features/documents/document-lifecycle-ui';
 
+export type DraftCommentReply = {
+  author_name: string;
+  content: string;
+  created_at: string;
+  action?: string | null;
+};
+
+export type DraftComment = {
+  id: string;
+  author_name: string;
+  content: string;
+  quoted_text?: string | null;
+  resolved: boolean;
+  created_at: string;
+  replies?: DraftCommentReply[];
+};
+
+export type DraftCommentList = {
+  document_id: string;
+  synced_at?: string | null;
+  unresolved: number;
+  comments: DraftComment[];
+};
+
 function required(value: string, message: string): string {
   const normalized = value.trim();
   if (!normalized) throw new Error(message);
@@ -29,6 +53,22 @@ async function lifecycleFetch<T>(path: string, init?: RequestInit): Promise<T> {
 export async function finalizeDocument(documentId: string): Promise<ApiSchema<'RecordResponse'>> {
   const id = required(documentId, 'Document ID is required');
   return lifecycleFetch(`/documents/${id}/finalize`, { method: 'POST' });
+}
+
+export function listDraftComments(documentId: string): Promise<DraftCommentList> {
+  return lifecycleFetch(`/documents/${required(documentId, 'Document ID is required')}/comments`);
+}
+
+export function syncDraftComments(documentId: string): Promise<DraftCommentList> {
+  return lifecycleFetch(`/documents/${required(documentId, 'Document ID is required')}/comments/sync`, { method: 'POST' });
+}
+
+export function markDocumentReady(documentId: string): Promise<unknown> {
+  return lifecycleFetch(`/documents/${required(documentId, 'Document ID is required')}/ready`, { method: 'POST' });
+}
+
+export function reopenDocument(documentId: string): Promise<unknown> {
+  return lifecycleFetch(`/documents/${required(documentId, 'Document ID is required')}/reopen`, { method: 'POST' });
 }
 
 type DocumentVersion = {

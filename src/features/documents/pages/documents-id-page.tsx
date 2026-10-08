@@ -8,12 +8,15 @@ import type { ApiSchema } from '@/shared/types/index';
 import { PortalChatbot as PortalChatbot } from "@/features/portal/components";
 import { DocumentWorkspace } from '@/features/documents/components/document-workspace';
 import { getDocumentActions, getDocumentStatusLabel } from '@/features/documents/document-ui';
-import { renameDocument, finalizeDocument, createDocumentVersion } from '@/features/documents/document-lifecycle-api';
+import { renameDocument, finalizeDocument, createDocumentVersion, markDocumentReady, reopenDocument } from '@/features/documents/document-lifecycle-api';
 import { canFinalizeDocument, type DemoDocumentLifecycle } from '@/features/documents/document-lifecycle-ui';
 import { getPortalUiRole } from "@/features/access";
 
 type DocumentResponse = ApiSchema<'DocumentResponse'>;
-type LifecycleDocumentResponse = DocumentResponse & Partial<DemoDocumentLifecycle>;
+type LifecycleDocumentResponse = DocumentResponse & Partial<DemoDocumentLifecycle> & {
+  draft_url?: string | null;
+  permissions: ApiSchema<'DocumentPermissions'> & { can_mark_ready?: boolean; can_reopen?: boolean };
+};
 type UserProfile = ApiSchema<'UserProfileResponse'>;
 
 async function getJson<T>(path: string): Promise<T> {
@@ -59,6 +62,16 @@ export default function DocumentDetailPage({ params }: { params: Promise<{ id: s
       setConfirmingFinalize(false);
       setSuccess('Document finalized and anchored on-chain.');
       await refreshLifecycleQueries();
+    },
+  });
+
+  const readinessMutation = useMutation({
+    mutationFn: (action: 'ready' | 'reopen') => action === 'ready' ? markDocumentReady(id) : reopenDocument(id),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['portal-doc', id] }),
+        queryClient.invalidateQueries({ queryKey: ['portal-document-comments', id] }),
+      ]);
     },
   });
 
@@ -134,6 +147,11 @@ export default function DocumentDetailPage({ params }: { params: Promise<{ id: s
         onConfirmFinalize={() => finalizeMutation.mutate()}
         success={success}
         versionError={versionMutation.error instanceof Error ? versionMutation.error.message : null}
+        readinessError={readinessMutation.error instanceof Error ? readinessMutation.error.message : null}
+        readinessSuccess={readinessMutation.isSuccess ? readinessMutation.variables === 'ready' ? 'Document is ready for signature.' : 'Draft reopened for comments.' : null}
+        isChangingReadiness={readinessMutation.isPending}
+        onMarkReady={() => readinessMutation.mutate('ready')}
+        onReopen={() => readinessMutation.mutate('reopen')}
       />
       <PortalChatbot documentId={id} />
     </div>

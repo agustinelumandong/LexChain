@@ -4,14 +4,18 @@ import { cleanup, fireEvent, render, screen, within } from '@testing-library/rea
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DocumentWorkspace } from '@/features/documents/components/document-workspace';
 
-const { finalizeDocumentMock, listDocumentVersionsMock } = vi.hoisted(() => ({
+const { finalizeDocumentMock, listDocumentVersionsMock, listDraftCommentsMock, syncDraftCommentsMock } = vi.hoisted(() => ({
   finalizeDocumentMock: vi.fn(),
   listDocumentVersionsMock: vi.fn(),
+  listDraftCommentsMock: vi.fn(),
+  syncDraftCommentsMock: vi.fn(),
 }));
 
 vi.mock('@/features/documents/document-lifecycle-api', () => ({
   finalizeDocument: finalizeDocumentMock,
   listDocumentVersions: listDocumentVersionsMock,
+  listDraftComments: listDraftCommentsMock,
+  syncDraftComments: syncDraftCommentsMock,
 }));
 
 const document = {
@@ -61,6 +65,8 @@ function renderWorkspace(props: Partial<React.ComponentProps<typeof DocumentWork
 describe('DocumentWorkspace', () => {
   beforeEach(() => {
     listDocumentVersionsMock.mockResolvedValue({ total_version: 1, versions: [] });
+    listDraftCommentsMock.mockResolvedValue({ document_id: 'doc-101', synced_at: null, unresolved: 0, comments: [] });
+    syncDraftCommentsMock.mockResolvedValue({ document_id: 'doc-101', synced_at: null, unresolved: 0, comments: [] });
   });
 
   afterEach(() => {
@@ -73,6 +79,89 @@ describe('DocumentWorkspace', () => {
     renderWorkspace();
     fireEvent.click(screen.getByRole('tab', { name: 'Versions' }));
     expect(await screen.findByText('Version 2 · Latest')).toBeTruthy();
+  });
+
+  it('shows synchronized comments, quoted text, replies, unresolved count, and sync time', async () => {
+    listDraftCommentsMock.mockResolvedValue({
+      document_id: 'doc-101',
+      synced_at: '2026-10-08T12:00:00Z',
+      unresolved: 1,
+      comments: [{
+        id: 'comment-1', author_name: 'Client', content: 'Please clarify this term.',
+        quoted_text: 'Payment is due within 10 days.', resolved: false,
+        created_at: '2026-10-08T11:00:00Z',
+        replies: [{ author_name: 'Lawyer', content: 'I will revise it.', created_at: '2026-10-08T11:30:00Z' }],
+      }],
+    });
+    renderWorkspace({ document: { ...document, lifecycle: 'PREPARING' as never, draft_url: 'https://docs.example/draft' } });
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Comments' }));
+
+    expect(await screen.findByText('Please clarify this term.')).toBeTruthy();
+    expect(screen.getByText('Payment is due within 10 days.')).toBeTruthy();
+    expect(screen.getByText('I will revise it.')).toBeTruthy();
+    expect(screen.getByText(/1 unresolved/)).toBeTruthy();
+    expect(screen.getByText(/Last synced/)).toBeTruthy();
+  });
+
+  it('reports a failed comment sync and leaves the sync action available', async () => {
+    syncDraftCommentsMock.mockRejectedValue(new Error('Google Drive is unreachable'));
+    renderWorkspace({ document: { ...document, lifecycle: 'PREPARING' as never, draft_url: 'https://docs.example/draft' } });
+    fireEvent.click(screen.getByRole('tab', { name: 'Comments' }));
+    const sync = screen.getByRole('button', { name: 'Sync comments' });
+
+    fireEvent.click(sync);
+
+    expect((await screen.findByRole('alert')).textContent).toContain('Google Drive is unreachable');
+    expect(sync.hasAttribute('disabled')).toBe(false);
+  });
+
+  it('shows pending and successful comment sync feedback', async () => {
+    let finishSync!: (comments: { document_id: string; unresolved: number; comments: never[] }) => void;
+    syncDraftCommentsMock.mockReturnValue(new Promise((resolve) => { finishSync = resolve; }));
+    renderWorkspace({ document: { ...document, lifecycle: 'PREPARING' as never, draft_url: 'https://docs.example/draft' } });
+    fireEvent.click(screen.getByRole('tab', { name: 'Comments' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Sync comments' }));
+
+    const pending = await screen.findByRole('button', { name: 'Syncing comments…' });
+    expect(pending.hasAttribute('disabled')).toBe(true);
+    finishSync({ document_id: 'doc-101', unresolved: 0, comments: [] });
+    expect((await screen.findByText('Comments synced.')).textContent).toBe('Comments synced.');
+  });
+
+  it('keeps comment context visible when the backend blocks signature readiness', async () => {
+    listDraftCommentsMock.mockResolvedValue({
+      document_id: 'doc-101', unresolved: 1, comments: [{
+        id: 'comment-1', author_name: 'Client', content: 'Please clarify this term.',
+        resolved: false, created_at: '2026-10-08T11:00:00Z',
+      }],
+    });
+    const onMarkReady = vi.fn();
+    renderWorkspace({
+      document: { ...document, lifecycle: 'PREPARING' as never, draft_url: 'https://docs.example/draft', permissions: { can_mark_ready: true } },
+      readinessError: 'UNRESOLVED_COMMENTS: resolve all draft threads before proceeding',
+      onMarkReady,
+    });
+    fireEvent.click(screen.getByRole('tab', { name: 'Comments' }));
+
+    expect(await screen.findByText('Please clarify this term.')).toBeTruthy();
+    expect(screen.getByRole('alert').textContent).toContain('UNRESOLVED_COMMENTS: resolve all draft threads before proceeding');
+    fireEvent.click(screen.getByRole('button', { name: 'Mark ready for signature' }));
+    expect(onMarkReady).toHaveBeenCalledOnce();
+    expect(screen.getByText('Please clarify this term.')).toBeTruthy();
+  });
+
+  it('shows readiness transitions only when returned permissions allow them', () => {
+    const onReopen = vi.fn();
+    renderWorkspace({
+      document: { ...document, draft_url: 'https://docs.example/draft', permissions: { can_mark_ready: false, can_reopen: true } },
+      onReopen,
+    });
+    fireEvent.click(screen.getByRole('tab', { name: 'Comments' }));
+
+    expect(screen.queryByRole('button', { name: 'Mark ready for signature' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Reopen draft' }));
+    expect(onReopen).toHaveBeenCalledOnce();
   });
 
   it('shows populated document metadata in the Overview tab', () => {

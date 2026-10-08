@@ -1,8 +1,12 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   finalizeDocument,
+  listDraftComments,
   listDemoSnapshots,
+  markDocumentReady,
+  reopenDocument,
   restoreDemoSnapshot,
+  syncDraftComments,
 } from '@/features/documents/document-lifecycle-api';
 
 const record = {
@@ -31,6 +35,42 @@ afterEach(() => {
 });
 
 describe('document lifecycle client', () => {
+  it('lists and synchronizes comments through the same-origin proxies', async () => {
+    const comments = { document_id: 'document-1', unresolved: 1, comments: [] };
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(Response.json(comments))
+      .mockResolvedValueOnce(Response.json(comments));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(listDraftComments('document-1')).resolves.toEqual(comments);
+    await expect(syncDraftComments('document-1')).resolves.toEqual(comments);
+
+    expect(fetchMock).toHaveBeenNthCalledWith(1,
+      '/api/portal/proxy?path=%2Fdocuments%2Fdocument-1%2Fcomments',
+      expect.any(Object),
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(2,
+      '/api/portal/proxy-post?path=%2Fdocuments%2Fdocument-1%2Fcomments%2Fsync',
+      expect.objectContaining({ method: 'POST' }),
+    );
+  });
+
+  it('moves documents to and from ready for signature via backend mutations', async () => {
+    const response = { document_id: 'document-1', lifecycle: 'READY_FOR_SIGNATURE' };
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(Response.json(response))
+      .mockResolvedValueOnce(Response.json(response));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(markDocumentReady('document-1')).resolves.toEqual(response);
+    await expect(reopenDocument('document-1')).resolves.toEqual(response);
+
+    expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
+      '/api/portal/proxy-post?path=%2Fdocuments%2Fdocument-1%2Fready',
+      '/api/portal/proxy-post?path=%2Fdocuments%2Fdocument-1%2Freopen',
+    ]);
+  });
+
   it('finalizes through the existing same-origin mutation proxy', async () => {
     const fetchMock = vi.fn().mockResolvedValue(Response.json(record));
     vi.stubGlobal('fetch', fetchMock);
