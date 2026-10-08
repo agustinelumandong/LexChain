@@ -30,6 +30,23 @@ type BookCreateRequest = {
 
 const cardClass = 'rounded-[18px] border border-[#E8F0F8] bg-white shadow-[0_4px_12px_rgba(19,59,115,0.05)]';
 
+function getBookErrorMessage(payload: unknown, fallback: string) {
+  if (typeof payload !== 'object' || payload === null) return fallback;
+
+  const detail = 'detail' in payload ? payload.detail : undefined;
+  const message = 'message' in payload ? payload.message : undefined;
+  if (typeof detail === 'string') return detail;
+  if (Array.isArray(detail)) {
+    const messages = detail.flatMap((item) => {
+      if (typeof item !== 'object' || item === null || !('msg' in item) || typeof item.msg !== 'string') return [];
+      return [item.msg];
+    });
+    if (messages.length) return messages.join(' ');
+  }
+  if (typeof message === 'string') return message;
+  return fallback;
+}
+
 async function portalGet<T>(path: string): Promise<T> {
   const response = await fetch(`/api/portal/proxy?path=${encodeURIComponent(path)}`, {
     credentials: 'same-origin',
@@ -46,8 +63,8 @@ async function createBook(payload: BookCreateRequest): Promise<Book> {
     body: JSON.stringify(payload),
   });
   if (!response.ok) {
-    const error = await response.json().catch(() => ({}));
-    throw new Error(error.detail ?? error.message ?? 'Unable to register book');
+    const error = await response.json().catch(() => null);
+    throw new Error(getBookErrorMessage(error, 'Unable to register book'));
   }
   return response.json();
 }
@@ -58,8 +75,8 @@ async function deleteBook(bookId: string) {
     credentials: 'same-origin',
   });
   if (!response.ok) {
-    const error = await response.json().catch(() => ({}));
-    throw new Error(error.detail ?? error.message ?? 'Unable to delete book');
+    const error = await response.json().catch(() => null);
+    throw new Error(getBookErrorMessage(error, 'Unable to delete book'));
   }
 }
 
@@ -68,6 +85,7 @@ export default function BooksPage() {
   const role = usePortalRole();
   const [bookNumber, setBookNumber] = useState('');
   const [seriesYear, setSeriesYear] = useState(String(new Date().getFullYear()));
+  const [bookStatus, setBookStatus] = useState<'OPEN' | 'CLOSED'>('OPEN');
   const [isRegistering, setIsRegistering] = useState(false);
   const [selectedBookId, setSelectedBookId] = useState<string>();
 
@@ -82,6 +100,7 @@ export default function BooksPage() {
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['portal-books'] });
       setBookNumber('');
+      setBookStatus('OPEN');
       setIsRegistering(false);
       toast.success('Register book created');
     },
@@ -111,11 +130,12 @@ export default function BooksPage() {
   function handleRegister(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!isIssuer || !canSubmit) return;
-    createBookMutation.mutate({ book_number: parsedBookNumber, series_year: parsedSeriesYear });
+    createBookMutation.mutate({ book_number: parsedBookNumber, series_year: parsedSeriesYear, status: bookStatus });
   }
 
   function handleDelete(book: Book) {
-    if (window.confirm(`Delete Book ${book.book_number}? This permanently deletes the book and all its documents.`)) {
+    if (book.entry_count !== 0 || deleteBookMutation.isPending) return;
+    if (window.confirm(`Delete Book ${book.book_number}? Only an empty book can be deleted. Deleting it does not delete any documents.`)) {
       deleteBookMutation.mutate(book.id);
     }
   }
@@ -163,8 +183,15 @@ export default function BooksPage() {
             <label className="flex flex-col gap-1.5 text-sm font-bold text-[#0C2B49]">Series year
               <input required min="2000" inputMode="numeric" type="number" value={seriesYear} onChange={(event) => setSeriesYear(event.target.value)} className="rounded-xl border border-[#D7E4F2] px-3 py-2.5 text-sm font-medium outline-none focus:border-[#0985E7]" />
             </label>
+            <label className="flex flex-col gap-1.5 text-sm font-bold text-[#0C2B49]">Book status
+              <select value={bookStatus} onChange={(event) => setBookStatus(event.target.value === 'CLOSED' ? 'CLOSED' : 'OPEN')} className="rounded-xl border border-[#D7E4F2] px-3 py-2.5 text-sm font-medium outline-none focus:border-[#0985E7]">
+                <option value="OPEN">Open — current register</option>
+                <option value="CLOSED">Closed — migrate a finished physical register</option>
+              </select>
+            </label>
           </div>
-          {error && <p className="mt-3 text-sm font-bold text-red-600">{error}</p>}
+          {bookStatus === 'CLOSED' && <p className="mt-3 text-sm text-[#64748b]">When filing into a migrated book, use the document and page numbers from its paper register.</p>}
+          {error && <p role="alert" className="mt-3 text-sm font-bold text-red-600">{error}</p>}
           <button disabled={!canSubmit || createBookMutation.isPending} className="mt-5 rounded-full bg-[#0985E7] px-5 py-2.5 text-sm font-black text-white transition hover:bg-[#0770c4] disabled:opacity-40">
             {createBookMutation.isPending ? 'Registering…' : 'Register book'}
           </button>
@@ -215,7 +242,7 @@ export default function BooksPage() {
               </div>
               <div className="mt-4 flex flex-wrap gap-2">
                 <button type="button" onClick={() => setSelectedBookId(book.id)} className="rounded-full border border-[#D7E4F2] px-3 py-1.5 text-sm font-bold text-[#0C2B49]" aria-label={`View details for Book ${book.book_number}`}>Details</button>
-                <button type="button" onClick={() => handleDelete(book)} disabled={deleteBookMutation.isPending} className="rounded-full border border-red-200 px-3 py-1.5 text-sm font-bold text-red-600 disabled:opacity-40" aria-label={`Delete Book ${book.book_number}`}>{deleteBookMutation.isPending ? 'Deleting…' : 'Delete'}</button>
+                {book.entry_count === 0 && <button type="button" onClick={() => handleDelete(book)} disabled={deleteBookMutation.isPending} className="rounded-full border border-red-200 px-3 py-1.5 text-sm font-bold text-red-600 disabled:opacity-40" aria-label={`Delete Book ${book.book_number}`}>{deleteBookMutation.isPending ? 'Deleting…' : 'Delete'}</button>}
               </div>
               <p className="mt-4 truncate text-[11px] font-semibold text-[#A0AAB8]" title={book.id}>ID: {book.id}</p>
             </article>;
