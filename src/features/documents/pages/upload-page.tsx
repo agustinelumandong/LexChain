@@ -12,16 +12,16 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import {
   getRequiredUploadMetadataError,
   getUploadFileError,
-  getUploadOutcome,
-  type UploadOutcome,
   uploadDocument,
 } from '@/features/documents/portal-upload';
 import { canAccessPortalFeature, getPortalUiRole } from "@/features/access";
 import { PortalDropdown } from "@/features/portal/components";
 import { defaultOfficeSettings } from "@/features/office";
 import type { ApiSchema } from '@/shared/types/index';
+import { getDocumentLifecycleLabel, getDocumentStatusLabel } from '@/features/documents/document-ui';
 type Book = { id: string; book_number: number; series_year: number; status: 'OPEN' | 'CLOSED' };
 type UserProfile = ApiSchema<'UserProfileResponse'>;
+type UploadedDocument = ApiSchema<'DocumentResponse'>;
 
 async function fetchBooks(): Promise<Book[]> {
   const res = await fetch(`/api/portal/proxy?path=${encodeURIComponent('/books/?limit=50&offset=0')}`, {
@@ -45,7 +45,7 @@ export default function UploadPage() {
   const [pageNo, setPageNo] = useState('');
   const [drag, setDrag] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
-  const [outcome, setOutcome] = useState<UploadOutcome | null>(null);
+  const [outcome, setOutcome] = useState<UploadedDocument | null>(null);
   const profileQuery = useQuery<UserProfile | null>({
     queryKey: ['portal-profile'],
     queryFn: async () => {
@@ -62,7 +62,7 @@ export default function UploadPage() {
   const uploadMetadata = { title, bookId: selectedBook?.id ?? '', bookStatus: selectedBook?.status, docNo, pageNo };
 
   const mutation = useMutation({
-    mutationFn: () => {
+    mutationFn: (confirmNewRecord: boolean) => {
       if (!file) throw new Error('Choose a PDF first.');
       const metadataError = getRequiredUploadMetadataError(uploadMetadata);
       if (metadataError) throw new Error(metadataError);
@@ -71,16 +71,20 @@ export default function UploadPage() {
         title: title.trim(),
         bookId,
         ...(isClosedBook ? { paperRegister: { docNo: Number(docNo), pageNo: Number(pageNo) } } : {}),
+        confirmNewRecord,
       });
     },
     onSuccess: (data) => {
-      setOutcome(getUploadOutcome(data));
-      toast.success('Upload accepted. Your document has been submitted for processing.');
+      setOutcome(data);
+      toast.success('Signed document filed.');
     },
   });
+  const requiresConfirmation = mutation.error instanceof Error
+    && 'requiresConfirmation' in mutation.error
+    && mutation.error.requiresConfirmation === true;
 
   function pick(candidate: File | null) {
-    if (!candidate) return;
+    if (!candidate || mutation.isPending || requiresConfirmation) return;
     const fileError = getUploadFileError(candidate);
     if (fileError) {
       setValidationError(fileError);
@@ -104,11 +108,11 @@ export default function UploadPage() {
       setValidationError(metadataError);
       return;
     }
-    mutation.mutate();
+    mutation.mutate(false);
   }
 
-  const error = validationError ?? (mutation.isError
-    ? `${mutation.error instanceof Error ? mutation.error.message : 'Upload failed.'} Your selected PDF and information have been kept. Review the error and check your connection if needed, then select Confirm and process to retry.`
+  const error = validationError ?? (mutation.isError && !requiresConfirmation
+    ? `${mutation.error instanceof Error ? mutation.error.message : 'Upload failed.'} Your selected PDF and information have been kept. Review the error and retry when ready.`
     : null);
   if (profileQuery.isPending) return <p className="text-sm font-semibold text-[#64748b]">Loading your upload access…</p>;
   if (!isIssuer) {
@@ -121,17 +125,17 @@ export default function UploadPage() {
         <div className="flex items-start gap-3">
           <CheckCircleIcon sx={{ fontSize: 32, color: '#12A150' }} />
           <div>
-            <p role="status" className="text-lg font-black text-[#0C2B49]">Upload accepted</p>
-            <p className="mt-1 text-sm text-[#64748b]">{outcome.message || 'No additional processing detail was returned.'}</p>
-            <p className="mt-1 text-sm text-[#64748b]">You can leave this page. Processing continues in the background.</p>
+            <p role="status" className="text-lg font-black text-[#0C2B49]">Signed document filed</p>
+            <p className="mt-1 text-sm text-[#64748b]">The signed copy is waiting for the lawyer to finalize it.</p>
           </div>
         </div>
         <dl className="mt-5 grid gap-3 rounded-xl bg-[#F8FBFF] p-4 text-sm">
-          <div><dt className="font-bold text-[#64748b]">Document ID</dt><dd className="mt-1 break-all font-black text-[#0C2B49]">{outcome.documentId}</dd></div>
-          <div><dt className="font-bold text-[#64748b]">Current status</dt><dd className="mt-1 font-black text-[#0C2B49]">{outcome.status}</dd></div>
+          <div><dt className="font-bold text-[#64748b]">Lifecycle</dt><dd className="mt-1 font-black text-[#0C2B49]">{getDocumentLifecycleLabel(outcome.lifecycle)}</dd></div>
+          <div><dt className="font-bold text-[#64748b]">Processing status</dt><dd className="mt-1 font-black text-[#0C2B49]">{getDocumentStatusLabel(outcome.status)}</dd></div>
+          {(outcome.doc_no != null || outcome.page_no != null) && <div><dt className="font-bold text-[#64748b]">Paper register</dt><dd className="mt-1 font-black text-[#0C2B49]">{[outcome.doc_no != null ? `Document number ${outcome.doc_no}` : null, outcome.page_no != null ? `Page ${outcome.page_no}` : null].filter(Boolean).join(' · ')}</dd></div>}
         </dl>
-        <button type="button" onClick={() => router.push(`/portal/upload/processing?id=${outcome.documentId}`)} className="mt-5 rounded-full bg-[#0985E7] px-6 py-3 text-sm font-black text-white">
-          View processing status
+        <button type="button" onClick={() => router.push(`/portal/documents/${outcome.document_id}`)} className="mt-5 rounded-full bg-[#0985E7] px-6 py-3 text-sm font-black text-white">
+          View document
         </button>
       </section>
     );
@@ -150,7 +154,7 @@ export default function UploadPage() {
           <h2 id="document-information-heading" className="font-black text-[#0C2B49]">Document information</h2>
           <p className="mt-1 text-sm text-[#64748b]">Provide the title and register book for this document.</p>
           <div className="mt-4 grid gap-4">
-            <label className="flex flex-col gap-1.5 text-sm font-bold text-[#0C2B49]">Document title<input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="e.g. Deed of Sale" className="rounded-xl border border-[#D7E4F2] px-3 py-2.5 text-sm font-medium outline-none focus:border-[#0985E7]" /></label>
+            <label className="flex flex-col gap-1.5 text-sm font-bold text-[#0C2B49]">Document title<input disabled={requiresConfirmation || mutation.isPending} value={title} onChange={(event) => setTitle(event.target.value)} placeholder="e.g. Deed of Sale" className="rounded-xl border border-[#D7E4F2] px-3 py-2.5 text-sm font-medium outline-none focus:border-[#0985E7] disabled:bg-[#F8FBFF]" /></label>
             <label className="flex flex-col gap-1.5 text-sm font-bold text-[#0C2B49]">Register book
               <PortalDropdown
                 ariaLabel="Register book"
@@ -159,7 +163,7 @@ export default function UploadPage() {
                 options={availableBooks.map((book) => ({ label: `Register book ${book.book_number} — Series ${book.series_year} · ${book.status === 'CLOSED' ? 'Closed' : 'Open'}`, value: book.id }))}
                 value={bookId}
                 onChange={(value) => { setBookId(value); setDocNo(''); setPageNo(''); setValidationError(null); }}
-                disabled={booksQuery.isLoading || availableBooks.length === 0}
+                disabled={booksQuery.isLoading || availableBooks.length === 0 || requiresConfirmation || mutation.isPending}
               />
             </label>
             {booksQuery.isError && <p role="alert" className="text-sm font-bold text-red-600">Unable to load books. Please try again.</p>}
@@ -168,10 +172,10 @@ export default function UploadPage() {
               <p className="text-sm text-[#64748b]">Closed books remain available for filing. Enter the numbers shown in the paper register.</p>
               <div className="grid gap-4 sm:grid-cols-2">
                 <label className="flex flex-col gap-1.5 text-sm font-bold text-[#0C2B49]">Paper document number
-                  <input required min="1" step="1" inputMode="numeric" type="number" value={docNo} onChange={(event) => setDocNo(event.target.value)} className="rounded-xl border border-[#D7E4F2] px-3 py-2.5 text-sm font-medium outline-none focus:border-[#0985E7]" />
+                  <input required min="1" step="1" inputMode="numeric" type="number" disabled={requiresConfirmation || mutation.isPending} value={docNo} onChange={(event) => setDocNo(event.target.value)} className="rounded-xl border border-[#D7E4F2] px-3 py-2.5 text-sm font-medium outline-none focus:border-[#0985E7] disabled:bg-[#F8FBFF]" />
                 </label>
                 <label className="flex flex-col gap-1.5 text-sm font-bold text-[#0C2B49]">Paper page number
-                  <input required min="1" step="1" inputMode="numeric" type="number" value={pageNo} onChange={(event) => setPageNo(event.target.value)} className="rounded-xl border border-[#D7E4F2] px-3 py-2.5 text-sm font-medium outline-none focus:border-[#0985E7]" />
+                  <input required min="1" step="1" inputMode="numeric" type="number" disabled={requiresConfirmation || mutation.isPending} value={pageNo} onChange={(event) => setPageNo(event.target.value)} className="rounded-xl border border-[#D7E4F2] px-3 py-2.5 text-sm font-medium outline-none focus:border-[#0985E7] disabled:bg-[#F8FBFF]" />
                 </label>
               </div>
             </>}
@@ -189,21 +193,22 @@ export default function UploadPage() {
           >
             <UploadFileIcon sx={{ fontSize: 44, color: '#0985E7' }} />
             <p className="mt-2 text-sm font-bold text-[#0C2B49]">Drop your PDF here</p>
-            <button type="button" onClick={() => inputRef.current?.click()} className="mt-3 rounded-full border border-[#0985E7] px-4 py-2 text-sm font-bold text-[#0985E7] focus:outline-none focus:ring-2 focus:ring-[#0985E7] focus:ring-offset-2">Choose a PDF</button>
-            <input ref={inputRef} type="file" accept="application/pdf,.pdf" className="hidden" onChange={(event) => pick(event.target.files?.[0] ?? null)} />
+            <button type="button" disabled={requiresConfirmation || mutation.isPending} onClick={() => inputRef.current?.click()} className="mt-3 rounded-full border border-[#0985E7] px-4 py-2 text-sm font-bold text-[#0985E7] focus:outline-none focus:ring-2 focus:ring-[#0985E7] focus:ring-offset-2 disabled:opacity-40">Choose a PDF</button>
+            <input ref={inputRef} type="file" accept="application/pdf,.pdf" disabled={requiresConfirmation || mutation.isPending} className="hidden" onChange={(event) => pick(event.target.files?.[0] ?? null)} />
           </div>
-          {file && <div className="mt-4 flex items-center gap-3 rounded-[14px] border border-[#E8F0F8] p-4"><InsertDriveFileIcon sx={{ color: '#0985E7' }} /><span className="flex-1 truncate text-sm font-bold text-[#0C2B49]">{file.name} · {formatFileSize(file.size)}</span><button aria-label="Remove uploaded file" onClick={() => { setFile(null); setValidationError(null); }} type="button"><CloseIcon sx={{ fontSize: 18, color: '#64748b' }} /></button></div>}
+          {file && <div className="mt-4 flex items-center gap-3 rounded-[14px] border border-[#E8F0F8] p-4"><InsertDriveFileIcon sx={{ color: '#0985E7' }} /><span className="flex-1 truncate text-sm font-bold text-[#0C2B49]">{file.name} · {formatFileSize(file.size)}</span><button aria-label="Remove uploaded file" disabled={requiresConfirmation || mutation.isPending} onClick={() => { setFile(null); setValidationError(null); }} type="button"><CloseIcon sx={{ fontSize: 18, color: '#64748b' }} /></button></div>}
         </section>
       </div>
 
       <section aria-labelledby="confirm-process-heading" className="mt-auto rounded-[18px] border border-[#E8F0F8] bg-white p-5 sm:flex sm:items-center sm:justify-between sm:gap-5">
         <div>
-          <h2 id="confirm-process-heading" className="font-black text-[#0C2B49]">Confirm and process</h2>
-          <p className="mt-1 text-sm text-[#64748b]">Review the selected PDF, title, and book, then send them for processing.</p>
+          <h2 id="confirm-process-heading" className="font-black text-[#0C2B49]">Confirm and file signed document</h2>
+          <p className="mt-1 text-sm text-[#64748b]">Review the selected signed PDF, title, and book before filing it.</p>
           <p role="status" aria-atomic="true" className="mt-1 text-sm font-bold text-[#0985E7]">{mutation.isPending ? 'Uploading… Please wait while your PDF is submitted.' : ''}</p>
+          {requiresConfirmation && <div role="alert" className="mt-3 rounded-xl border border-[#F3D59B] bg-[#FFF9EA] p-3 text-sm text-[#704D00]"><p>A document is waiting for its signed copy. Confirm that this upload is a separate new record.</p><div className="mt-3 flex gap-2"><button type="button" disabled={mutation.isPending} onClick={() => mutation.mutate(true)} className="rounded-full bg-[#0985E7] px-4 py-2 text-sm font-bold text-white">Confirm as new record</button><button type="button" disabled={mutation.isPending} onClick={() => mutation.reset()} className="rounded-full border border-[#D7E4F2] px-4 py-2 text-sm font-bold text-[#0C2B49]">Cancel</button></div></div>}
           {error && <p role="alert" className="mt-3 rounded-xl bg-red-50 p-3 text-sm font-bold text-red-700">{error}</p>}
         </div>
-        <button disabled={!file || !title.trim() || !bookId || mutation.isPending} onClick={submit} className="mt-4 shrink-0 rounded-full bg-[#0985E7] px-8 py-3 text-sm font-black text-white transition hover:bg-[#0770c4] disabled:opacity-40 sm:mt-0">{mutation.isPending ? 'Uploading…' : 'Confirm and process'}</button>
+        {!requiresConfirmation && <button disabled={!file || !title.trim() || !bookId || mutation.isPending} onClick={submit} className="mt-4 shrink-0 rounded-full bg-[#0985E7] px-8 py-3 text-sm font-black text-white transition hover:bg-[#0770c4] disabled:opacity-40 sm:mt-0">{mutation.isPending ? 'Uploading…' : 'Confirm and file'}</button>}
       </section>
     </div>
   );

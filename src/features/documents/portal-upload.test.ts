@@ -2,7 +2,6 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   getRequiredUploadMetadataError,
   getUploadFileError,
-  getUploadOutcome,
   uploadDocument,
 } from '@/features/documents/portal-upload';
 
@@ -33,21 +32,22 @@ describe('portal document upload', () => {
     expect(getRequiredUploadMetadataError({ title: 'Deed of Sale', bookId: 'book-1' })).toBeNull();
   });
 
-  it('preserves an accepted queued result for the confirmation step', async () => {
+  it('returns the created signed document response', async () => {
     const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({
-      document_id: 'doc-queued',
-      status: 'QUEUED',
-      message: 'Your document is queued for processing.',
-    }), { status: 202 }));
+      document_id: 'doc-signed',
+      file_name: 'record.pdf',
+      lifecycle: 'SIGNED',
+      status: null,
+      on_chain: false,
+      permissions: {},
+      created_at: '2026-10-08T10:00:00Z',
+    }), { status: 201 }));
     vi.stubGlobal('fetch', fetchMock);
 
-    const accepted = await uploadDocument({ file: new File(['PDF'], 'record.pdf', { type: 'application/pdf' }), title: 'Deed of Sale', bookId: 'book-1' });
+    const created = await uploadDocument({ file: new File(['PDF'], 'record.pdf', { type: 'application/pdf' }), title: 'Deed of Sale', bookId: 'book-1' });
 
-    expect(getUploadOutcome(accepted)).toEqual({
-      documentId: 'doc-queued',
-      status: 'QUEUED',
-      message: 'Your document is queued for processing.',
-    });
+    expect(created).toMatchObject({ document_id: 'doc-signed', lifecycle: 'SIGNED', status: null });
+    expect(fetchMock.mock.calls[0][0]).not.toContain('/upload/processing');
   });
 
   it('returns the proxy API failure for inline display', async () => {
