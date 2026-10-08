@@ -13,6 +13,7 @@ export default function VerificationPage() {
   const [hasChecked, setHasChecked] = useState(false);
   const [isChecking, setIsChecking] = useState(false);
   const [requestFailed, setRequestFailed] = useState(false);
+  const [notFoundOrUnanchored, setNotFoundOrUnanchored] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function checkIntegrity() {
@@ -27,12 +28,14 @@ export default function VerificationPage() {
     setHasChecked(false);
     setRecord(undefined);
     setRequestFailed(false);
+    setNotFoundOrUnanchored(false);
 
     try {
       setRecord(await verifyRepositoryDocument(identifier));
       setHasChecked(true);
     } catch (caught) {
-      if (caught instanceof Error && caught.message === 'API error: 404') {
+      if (caught instanceof Error && 'status' in caught && caught.status === 404) {
+        setNotFoundOrUnanchored(true);
         setHasChecked(true);
       } else {
         setRequestFailed(true);
@@ -72,7 +75,7 @@ export default function VerificationPage() {
         </button>
       </section>
 
-      {hasChecked && <IntegrityResult record={record} requestFailed={requestFailed} onRetry={checkIntegrity} />}
+      {hasChecked && <IntegrityResult record={record} requestFailed={requestFailed} notFoundOrUnanchored={notFoundOrUnanchored} onRetry={notFoundOrUnanchored ? undefined : checkIntegrity} />}
     </div>
   );
 }

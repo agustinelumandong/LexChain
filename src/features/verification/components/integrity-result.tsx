@@ -25,15 +25,17 @@ function Detail({ label, value }: { label: string; value: string | null | undefi
 export function IntegrityResult({
   record,
   requestFailed = false,
+  notFoundOrUnanchored = false,
   onRetry,
 }: {
   record?: OnChainVerification;
   requestFailed?: boolean;
+  notFoundOrUnanchored?: boolean;
   onRetry?: () => void;
 }) {
-  const state = getIntegrityUiState({ record, requestFailed });
+  const state = getIntegrityUiState({ record, requestFailed, notFoundOrUnanchored });
   const result = getIntegrityUiCopy(state);
-  const role = state === 'unavailable' || state === 'mismatch' ? 'alert' : 'status';
+  const role = state === 'unavailable' || state === 'mismatch' || state === 'snapshot_compromised' ? 'alert' : 'status';
 
   return (
     <section role={role} className={`rounded-[18px] border p-5 ${toneClasses[result.tone]}`}>

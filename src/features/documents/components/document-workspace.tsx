@@ -4,13 +4,13 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 import type { ApiSchema } from '@/shared/types/index';
-import { listDocumentVersions } from '@/features/documents/document-lifecycle-api';
+import { listSignedCopies } from '@/features/documents/document-lifecycle-api';
 import { getDocumentLifecycleLabel, getDocumentStatusLabel } from '@/features/documents/document-ui';
 import { shortenIntegrityHash } from "@/features/verification";
 
 type WorkspaceDocument = ApiSchema<'DocumentResponse'>;
 
-const tabs = ['Overview', 'Files', 'Blockchain', 'Versions', 'Access', 'Activity'] as const;
+const tabs = ['Overview', 'Files', 'Blockchain', 'Signed copies', 'Access', 'Activity'] as const;
 type Tab = typeof tabs[number];
 
 function readable(value: unknown): string {
@@ -81,7 +81,7 @@ export function DocumentWorkspace({
   success,
 }: DocumentWorkspaceProps) {
   const [activeTab, setActiveTab] = useState<Tab>('Overview');
-  const versionsQuery = useQuery({ queryKey: ['portal-doc-versions', document.document_id], queryFn: () => listDocumentVersions(document.document_id) });
+  const signedCopiesQuery = useQuery({ queryKey: ['portal-doc-signed-copies', document.document_id], queryFn: () => listSignedCopies(document.document_id), enabled: activeTab === 'Signed copies' });
   const hasInsights = Boolean(document.summary || document.labels?.length || document.entities?.length || document.risk_flags?.length);
   const lifecycle = document;
 
@@ -169,12 +169,13 @@ export function DocumentWorkspace({
           ) : <div className="space-y-4"><p className="text-sm text-[#64748b]">{document.lifecycle === 'FINALIZED' ? 'Finalized, but no on-chain record is reported.' : 'This document has not been finalized or recorded on-chain.'}</p></div>
         )}
 
-        {activeTab === 'Versions' && (
+        {activeTab === 'Signed copies' && (
           <div className="space-y-4">
-            <div><h2 className="text-lg font-extrabold text-[#0C2B49]">Versions</h2><p className="mt-1 text-sm text-[#64748b]">Each uploaded version remains in the document history.</p></div>
-            {versionsQuery.isLoading && <p className="text-sm text-[#64748b]">Loading versions…</p>}
-            {versionsQuery.isError && <p role="alert" className="text-sm font-bold text-[#B42318]">Unable to load document versions.</p>}
-            {versionsQuery.data?.versions.map((version) => <article key={version.document_id} className="rounded-xl border border-[#E8F0F8] bg-[#F8FBFF] p-4"><p className="font-bold text-[#0C2B49]">Version {version.version}{version.is_latest ? ' · Latest' : ''}</p><p className="mt-1 text-sm text-[#64748b]">{version.file_name} · {version.status}</p></article>)}
+            <div><h2 className="text-lg font-extrabold text-[#0C2B49]">Signed-copy history</h2><p className="mt-1 text-sm text-[#64748b]">Each uploaded legal PDF is listed separately from the document lifecycle.</p></div>
+            {signedCopiesQuery.isLoading && <p className="text-sm text-[#64748b]">Loading signed copies…</p>}
+            {signedCopiesQuery.isError && <p role="alert" className="text-sm font-bold text-[#B42318]">Unable to load signed-copy history.</p>}
+            {signedCopiesQuery.data?.copies.length === 0 && <p className="text-sm text-[#64748b]">No signed copies have been uploaded.</p>}
+            {signedCopiesQuery.data?.copies.map((copy) => <article key={copy.id} className="space-y-3 rounded-xl border border-[#E8F0F8] bg-[#F8FBFF] p-4"><div className="flex flex-wrap items-center justify-between gap-2"><p className="font-bold text-[#0C2B49]">{copy.original_filename ?? 'Signed PDF'}</p>{copy.is_current && <span className="rounded-full bg-[#EAF8F0] px-2.5 py-1 text-xs font-bold text-[#067647]">Current copy</span>}</div><p className="text-sm text-[#64748b]">Uploaded {formatDate(copy.created_at)} · {copy.content_type} · {copy.size_bytes.toLocaleString()} bytes</p><p className="break-all font-mono text-xs text-[#64748b]">{copy.sha256}</p>{copy.replaced_reason && <p className="text-sm text-[#64748b]">Replaced: {copy.replaced_reason}</p>}<div className="flex gap-3"><a href={copy.storage_url} target="_blank" rel="noreferrer" className="text-sm font-bold text-[#0985E7]">Open signed copy</a><a href={copy.storage_url} download className="text-sm font-bold text-[#0C2B49]">Download signed copy</a></div></article>)}
           </div>
         )}
 

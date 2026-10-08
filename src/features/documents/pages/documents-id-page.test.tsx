@@ -9,13 +9,13 @@ const { state } = vi.hoisted(() => ({
   state: {
     documentQuery: {} as Record<string, unknown>,
     profileQuery: {} as Record<string, unknown>,
-    versionsQuery: {} as Record<string, unknown>,
+    signedCopiesQuery: {} as Record<string, unknown>,
   },
 }));
 
 vi.mock('@tanstack/react-query', () => ({
   useQueries: () => [state.documentQuery, state.profileQuery],
-  useQuery: () => state.versionsQuery,
+  useQuery: () => state.signedCopiesQuery,
   useQueryClient: () => ({ invalidateQueries: vi.fn() }),
   useMutation: () => ({ mutate: vi.fn(), reset: vi.fn(), isPending: false, error: null }),
 }));
@@ -73,7 +73,7 @@ async function showPage() {
 beforeEach(() => {
   state.documentQuery = { data: baseDocument, isLoading: false, isError: false, refetch: vi.fn() };
   state.profileQuery = { data: { role: 'document_issuer' }, isLoading: false, isError: false };
-  state.versionsQuery = { data: { versions: [] }, isLoading: false, isError: false };
+  state.signedCopiesQuery = { data: { document_id: 'doc-1', copies: [] }, isLoading: false, isError: false };
 });
 
 afterEach(cleanup);

@@ -5,14 +5,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DocumentWorkspace } from '@/features/documents/components/document-workspace';
 import type { ApiSchema } from '@/shared/types';
 
-const { finalizeDocumentMock, listDocumentVersionsMock } = vi.hoisted(() => ({
+const { finalizeDocumentMock, listSignedCopiesMock } = vi.hoisted(() => ({
   finalizeDocumentMock: vi.fn(),
-  listDocumentVersionsMock: vi.fn(),
+  listSignedCopiesMock: vi.fn(),
 }));
 
 vi.mock('@/features/documents/document-lifecycle-api', () => ({
   finalizeDocument: finalizeDocumentMock,
-  listDocumentVersions: listDocumentVersionsMock,
+  listSignedCopies: listSignedCopiesMock,
 }));
 
 const document: ApiSchema<'DocumentResponse'> = {
@@ -81,7 +81,7 @@ function renderWorkspace(props: Partial<React.ComponentProps<typeof DocumentWork
 
 describe('DocumentWorkspace', () => {
   beforeEach(() => {
-    listDocumentVersionsMock.mockResolvedValue({ total_version: 1, versions: [] });
+    listSignedCopiesMock.mockResolvedValue({ document_id: 'doc-101', copies: [] });
   });
 
   afterEach(() => {
@@ -89,11 +89,20 @@ describe('DocumentWorkspace', () => {
     vi.clearAllMocks();
   });
 
-  it('shows the API version history instead of only demo snapshots', async () => {
-    listDocumentVersionsMock.mockResolvedValue({ total_version: 2, versions: [{ document_id: 'doc-101', version: 2, file_name: 'updated.pdf', status: 'AWAITING_REVIEW', lifecycle: 'DRAFT', is_latest: true, created_at: '2026-07-28T00:00:00Z' }] });
+  it('shows supported signed-copy history separately from document versions', async () => {
+    listSignedCopiesMock.mockResolvedValue({ document_id: 'doc-101', copies: [
+      { id: 'copy-current', storage_url: 'https://files.example/current.pdf', sha256: 'current-hash', content_type: 'application/pdf', size_bytes: 100, original_filename: 'current.pdf', uploaded_by: null, replaced_reason: null, is_current: true, created_at: '2026-07-28T00:00:00Z' },
+      { id: 'copy-old', storage_url: 'https://files.example/old.pdf', sha256: 'old-hash', content_type: 'application/pdf', size_bytes: 90, original_filename: 'old.pdf', uploaded_by: null, replaced_reason: 'Corrected scan', is_current: false, created_at: '2026-07-27T00:00:00Z' },
+    ] });
     renderWorkspace();
-    fireEvent.click(screen.getByRole('tab', { name: 'Versions' }));
-    expect(await screen.findByText('Version 2 · Latest')).toBeTruthy();
+    expect(listSignedCopiesMock).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('tab', { name: 'Signed copies' }));
+    expect(await screen.findByText('current.pdf')).toBeTruthy();
+    expect(listSignedCopiesMock).toHaveBeenCalledTimes(1);
+    expect(screen.getByText('Current copy')).toBeTruthy();
+    expect(screen.getByText('old.pdf')).toBeTruthy();
+    expect(screen.getByText('Replaced: Corrected scan')).toBeTruthy();
+    expect(screen.getByText('old-hash')).toBeTruthy();
   });
 
   it('shows populated document metadata in the Overview tab', () => {
