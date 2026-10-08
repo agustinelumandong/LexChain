@@ -114,6 +114,7 @@ export default function DocumentDetailPage({ params }: { params: Promise<{ id: s
           </div>
           <div className="flex flex-wrap gap-2">
             {actions.includes('Rename document') && <button type="button" onClick={requestRename} disabled={renamePending} className="rounded-full border border-[#D7E4F2] px-4 py-2.5 text-sm font-extrabold text-[#0C2B49]">Rename document</button>}
+            {actions.includes('Review extracted text') && <Link href={`/portal/documents/${id}/review`} className="rounded-full bg-[#0985E7] px-4 py-2.5 text-sm font-extrabold text-white">Review extracted text</Link>}
             {document.signed_copy && <a href={document.signed_copy.storage_url} download className="rounded-full bg-[#0985E7] px-4 py-2.5 text-sm font-extrabold text-white">Download current signed PDF</a>}
             {actions.includes('Finalize') && !finalizationResult && <button type="button" onClick={openFinalizeConfirmation} className="rounded-full bg-[#0985E7] px-4 py-2.5 text-sm font-extrabold text-white">Finalize</button>}
             {actions.includes('Verify integrity') && <Link href={`/portal/documents/${id}/verify`} className="rounded-full border border-[#E8F0F8] bg-white px-4 py-2.5 text-sm font-extrabold text-[#0C2B49]">Verify integrity</Link>}

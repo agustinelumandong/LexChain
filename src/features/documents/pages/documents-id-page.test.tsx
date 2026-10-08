@@ -10,11 +10,15 @@ const { state } = vi.hoisted(() => ({
     documentQuery: {} as Record<string, unknown>,
     profileQuery: {} as Record<string, unknown>,
     signedCopiesQuery: {} as Record<string, unknown>,
+    queryKeys: [] as string[][],
   },
 }));
 
 vi.mock('@tanstack/react-query', () => ({
-  useQueries: () => [state.documentQuery, state.profileQuery],
+  useQueries: ({ queries }: { queries: { queryKey: readonly unknown[] }[] }) => {
+    state.queryKeys = queries.map(({ queryKey }) => queryKey.map(String));
+    return [state.documentQuery, state.profileQuery];
+  },
   useQuery: () => state.signedCopiesQuery,
   useQueryClient: () => ({ invalidateQueries: vi.fn() }),
   useMutation: () => ({ mutate: vi.fn(), reset: vi.fn(), isPending: false, error: null }),
@@ -25,6 +29,7 @@ vi.mock('@/features/portal/components', () => ({ PortalChatbot: () => null }));
 type DocumentResponse = ApiSchema<'DocumentResponse'>;
 const baseDocument: DocumentResponse = {
   document_id: 'doc-1',
+  document_hash: 'record-hash',
   file_name: 'Signed agreement.pdf',
   lifecycle: 'SIGNED',
   status: null,
@@ -94,6 +99,8 @@ describe('document detail screen', () => {
     expect(screen.getAllByText('No processing status yet').length).toBeGreaterThan(0);
     expect(screen.queryByRole('button', { name: 'Rename document' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Finalize' })).toBeNull();
+    expect(screen.getByText('record-hash')).toBeTruthy();
+    expect(state.queryKeys.some(([key]) => key === 'portal-doc-chain')).toBe(false);
 
     fireEvent.click(screen.getByRole('tab', { name: 'Files' }));
     expect(screen.getByRole('link', { name: 'Open current signed PDF' }).getAttribute('href'))
@@ -115,6 +122,20 @@ describe('document detail screen', () => {
 
     expect(await screen.findByRole('button', { name: 'Rename document' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Finalize' })).toBeTruthy();
+  });
+
+  it('links a lawyer to extracted text review when OCR is awaiting review', async () => {
+    state.documentQuery = {
+      data: { ...baseDocument, status: 'AWAITING_REVIEW' },
+      isLoading: false,
+      isError: false,
+      refetch: vi.fn(),
+    };
+
+    await showPage();
+
+    expect(screen.getByRole('link', { name: 'Review extracted text' }).getAttribute('href'))
+      .toBe('/portal/documents/doc-1/review');
   });
 
   it('distinguishes not found, forbidden, and service failures', async () => {

@@ -5,13 +5,14 @@ import UploadPage from '@/features/documents/pages/upload-page';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
-const { uploadDocumentMock, booksMock } = vi.hoisted(() => ({
+const { uploadDocumentMock, booksMock, routerPushMock } = vi.hoisted(() => ({
   uploadDocumentMock: vi.fn(),
   booksMock: { value: [{ id: 'book-1', book_number: 42, series_year: 2026, status: 'OPEN' }] },
+  routerPushMock: vi.fn(),
 }));
 vi.mock('sonner', () => ({ toast: { success: vi.fn() } }));
 
-vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn() }) }));
+vi.mock('next/navigation', () => ({ useRouter: () => ({ push: routerPushMock }) }));
 vi.mock('@mui/icons-material/UploadFile', () => ({ default: () => null }));
 vi.mock('@mui/icons-material/InsertDriveFile', () => ({ default: () => null }));
 vi.mock('@mui/icons-material/Close', () => ({ default: () => null }));
@@ -39,7 +40,7 @@ function completeUploadForm(container: HTMLElement) {
   fireEvent.change(fileInput, { target: { files: [new File(['PDF'], 'deed.pdf', { type: 'application/pdf' })] } });
   fireEvent.click(screen.getByLabelText('Register book'));
   fireEvent.click(screen.getByRole('option', { name: /Register book 42 — Series 2026/ }));
-  fireEvent.click(screen.getByRole('button', { name: 'Confirm and process' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Confirm and file' }));
 }
 
 describe('UploadPage', () => {
@@ -50,15 +51,17 @@ describe('UploadPage', () => {
   });
 
   it('renders the accepted document ID and status returned by the upload service', async () => {
-    uploadDocumentMock.mockResolvedValue({ document_id: 'document-202', status: 'QUEUED', message: 'Accepted for processing.' });
+    uploadDocumentMock.mockResolvedValue({ document_id: 'document-202', lifecycle: 'SIGNED', status: 'QUEUED' });
     const { container } = renderUploadPage();
 
     completeUploadForm(container);
 
-    expect(await screen.findByText('document-202')).toBeTruthy();
-    expect(screen.getByText('QUEUED')).toBeTruthy();
-    expect(screen.getByRole('status').textContent).toContain('Upload accepted');
-    expect(toast.success).toHaveBeenCalledWith('Upload accepted. Your document has been submitted for processing.');
+    expect(await screen.findByRole('button', { name: 'View document' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'View document' }));
+    expect(routerPushMock).toHaveBeenCalledWith('/portal/documents/document-202');
+    expect(screen.getByText('Queued')).toBeTruthy();
+    expect(screen.getByRole('status').textContent).toContain('Signed document filed');
+    expect(toast.success).toHaveBeenCalledWith('Signed document filed.');
     expect(uploadDocumentMock).toHaveBeenCalledWith(expect.objectContaining({ title: 'deed', bookId: 'book-1' }));
   });
 
@@ -73,7 +76,7 @@ describe('UploadPage', () => {
 
   it('allows uploads to closed books only after paper Doc. No. and Page No. are provided', async () => {
     booksMock.value = [{ id: 'book-closed', book_number: 4, series_year: 2025, status: 'CLOSED' }];
-    uploadDocumentMock.mockResolvedValue({ document_id: 'closed-book-document', status: 'QUEUED', message: 'Accepted.' });
+    uploadDocumentMock.mockResolvedValue({ document_id: 'closed-book-document', lifecycle: 'SIGNED', status: 'QUEUED' });
     const { container } = renderUploadPage();
     const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
     fireEvent.change(fileInput, { target: { files: [new File(['PDF'], 'deed.pdf', { type: 'application/pdf' })] } });
@@ -83,15 +86,17 @@ describe('UploadPage', () => {
     expect(screen.getByLabelText('Paper document number')).toBeTruthy();
     expect(screen.getByLabelText('Paper page number')).toBeTruthy();
     expect(screen.getByText(/closed books remain available for filing/i)).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: 'Confirm and process' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm and file' }));
     expect((await screen.findByRole('alert')).textContent).toContain('Enter the paper register document number.');
     expect(uploadDocumentMock).not.toHaveBeenCalled();
 
     fireEvent.change(screen.getByLabelText('Paper document number'), { target: { value: '12' } });
     fireEvent.change(screen.getByLabelText('Paper page number'), { target: { value: '24' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Confirm and process' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm and file' }));
 
-    expect(await screen.findByText('closed-book-document')).toBeTruthy();
+    expect(await screen.findByRole('button', { name: 'View document' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'View document' }));
+    expect(routerPushMock).toHaveBeenCalledWith('/portal/documents/closed-book-document');
     expect(uploadDocumentMock).toHaveBeenCalledWith(expect.objectContaining({
       title: 'deed', bookId: 'book-closed', paperRegister: { docNo: 12, pageNo: 24 },
     }));
@@ -111,7 +116,7 @@ describe('UploadPage', () => {
   it('announces pending uploads, prevents duplicates, and preserves inputs for a successful retry', async () => {
     const pending = Promise.withResolvers<unknown>();
     uploadDocumentMock.mockReturnValueOnce(pending.promise).mockResolvedValueOnce({
-      document_id: 'retry-document', status: 'QUEUED', message: 'Accepted for processing.',
+      document_id: 'retry-document', lifecycle: 'SIGNED', status: 'QUEUED',
     });
     const { container } = renderUploadPage();
     fireEvent.change(screen.getByLabelText('Document title'), { target: { value: 'Assignment deed' } });
@@ -130,10 +135,12 @@ describe('UploadPage', () => {
     expect((screen.getByLabelText('Document title') as HTMLInputElement).value).toBe('Assignment deed');
     expect(screen.getByText('deed.pdf · 0.0 MB')).toBeTruthy();
     expect(screen.getByLabelText('Register book').textContent).toContain('Register book 42');
-    expect((screen.getByRole('button', { name: 'Confirm and process' }) as HTMLButtonElement).disabled).toBe(false);
+    expect((screen.getByRole('button', { name: 'Confirm and file' }) as HTMLButtonElement).disabled).toBe(false);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Confirm and process' }));
-    expect(await screen.findByText('retry-document')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm and file' }));
+    expect(await screen.findByRole('button', { name: 'View document' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'View document' }));
+    expect(routerPushMock).toHaveBeenCalledWith('/portal/documents/retry-document');
     expect(uploadDocumentMock).toHaveBeenCalledTimes(2);
     expect(uploadDocumentMock.mock.calls[1][0]).toEqual(uploadDocumentMock.mock.calls[0][0]);
     expect(toast.success).toHaveBeenCalledTimes(1);
