@@ -5,24 +5,12 @@ import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 import type { ApiSchema } from '@/shared/types/index';
 import { listDocumentVersions } from '@/features/documents/document-lifecycle-api';
-import type { DemoDocumentLifecycle } from '@/features/documents/document-lifecycle-ui';
+import { getDocumentLifecycleLabel, getDocumentStatusLabel } from '@/features/documents/document-ui';
 import { shortenIntegrityHash } from "@/features/verification";
-import type { PortalUiRole } from "@/features/access";
 
-type WorkspaceDocument = Partial<DemoDocumentLifecycle> & {
-  document_id: string;
-  file_name?: string | null;
-  on_chain?: boolean;
-  content_type?: string | null;
-  status?: string | null;
-  storage_url?: string | null;
-  summary?: string | null;
-  labels?: unknown[] | null;
-  entities?: unknown[] | null;
-  risk_flags?: unknown[] | null;
-};
+type WorkspaceDocument = ApiSchema<'DocumentResponse'>;
 
-const tabs = ['Overview', 'Original PDF', 'Blockchain', 'Versions', 'Access', 'Activity'] as const;
+const tabs = ['Overview', 'Files', 'Blockchain', 'Versions', 'Access', 'Activity'] as const;
 type Tab = typeof tabs[number];
 
 function readable(value: unknown): string {
@@ -44,15 +32,10 @@ function readable(value: unknown): string {
   return JSON.stringify(value);
 }
 
-function lifecycleLabel(value: DemoDocumentLifecycle['lifecycle'] | undefined) {
-  if (!value) return 'Not available';
-  return `${value[0].toUpperCase()}${value.slice(1)}`;
-}
-
-function anchorLabel(lifecycleStatus: string | undefined, onChain: boolean | undefined) {
-  if (onChain) return 'Anchored';
-  if (lifecycleStatus?.toUpperCase() === 'FINALIZED') return 'Anchoring';
-  return 'Not available';
+function anchorLabel(lifecycleStatus: string, onChain: boolean) {
+  if (onChain) return 'Recorded on-chain';
+  if (lifecycleStatus.toUpperCase() === 'FINALIZED') return 'Awaiting on-chain confirmation';
+  return 'Not finalized';
 }
 
 function formatDate(value: string | null | undefined) {
@@ -76,7 +59,6 @@ function InsightGroup({ title, items }: { title: string; items?: unknown[] | nul
 
 type DocumentWorkspaceProps = {
   document: WorkspaceDocument;
-  role: PortalUiRole;
   finalizationResult?: ApiSchema<'RecordResponse'>;
   confirmingFinalize?: boolean;
   isFinalizing?: boolean;
@@ -84,14 +66,12 @@ type DocumentWorkspaceProps = {
   onCancelFinalize?: () => void;
   onConfirmFinalize?: () => void;
   success?: string;
-  versionError?: string | null;
 };
 
 const finalizationConfirmation = 'This will anchor the approved document hash on-chain and finalize the document. This action cannot be undone.';
 
 export function DocumentWorkspace({
   document,
-  role,
   finalizationResult,
   confirmingFinalize = false,
   isFinalizing = false,
@@ -99,7 +79,6 @@ export function DocumentWorkspace({
   onCancelFinalize,
   onConfirmFinalize,
   success,
-  versionError = null,
 }: DocumentWorkspaceProps) {
   const [activeTab, setActiveTab] = useState<Tab>('Overview');
   const versionsQuery = useQuery({ queryKey: ['portal-doc-versions', document.document_id], queryFn: () => listDocumentVersions(document.document_id) });
@@ -129,9 +108,9 @@ export function DocumentWorkspace({
             <h2 className="text-lg font-extrabold text-[#0C2B49]">Overview</h2>
             <dl className="grid gap-3 text-sm sm:grid-cols-2">
               <div><dt className="font-bold text-[#64748b]">Filename</dt><dd className="mt-1 text-[#0C2B49]">{document.file_name ?? 'Not supplied'}</dd></div>
-              <div><dt className="font-bold text-[#64748b]">Content type</dt><dd className="mt-1 text-[#0C2B49]">{document.content_type ?? 'Not supplied'}</dd></div>
-              <div><dt className="font-bold text-[#64748b]">Lifecycle status</dt><dd className="mt-1 text-[#0C2B49]">{document.status ?? 'Not supplied'}</dd></div>
-              <div><dt className="font-bold text-[#64748b]">Document lifecycle</dt><dd className="mt-1 text-[#0C2B49]">{lifecycleLabel(lifecycle.lifecycle)}</dd></div>
+              <div><dt className="font-bold text-[#64748b]">Signed copy content type</dt><dd className="mt-1 text-[#0C2B49]">{document.signed_copy?.content_type ?? 'Not supplied'}</dd></div>
+              <div><dt className="font-bold text-[#64748b]">Processing status</dt><dd className="mt-1 text-[#0C2B49]">{getDocumentStatusLabel(document.status)}</dd></div>
+              <div><dt className="font-bold text-[#64748b]">Document lifecycle</dt><dd className="mt-1 text-[#0C2B49]">{getDocumentLifecycleLabel(lifecycle.lifecycle)}</dd></div>
               <div><dt className="font-bold text-[#64748b]">Document hash</dt><dd title={document.document_hash ?? undefined} className="mt-1 break-all font-mono text-[#0C2B49]">{document.document_hash ? shortenIntegrityHash(document.document_hash) : 'Not available'}</dd></div>
               <div><dt className="font-bold text-[#64748b]">Finalized</dt><dd className="mt-1 text-[#0C2B49]">{formatDate(lifecycle.finalized_at)}</dd></div>
               <div><dt className="font-bold text-[#64748b]">Anchor state</dt><dd className="mt-1 text-[#0C2B49]">{anchorLabel(lifecycle.lifecycle, document.on_chain)}</dd></div>
@@ -143,7 +122,6 @@ export function DocumentWorkspace({
               <InsightGroup title="Entities" items={document.entities} />
               <InsightGroup title="Risk flags" items={document.risk_flags} />
             </div>}
-            {versionError && <p role="alert" className="text-sm font-bold text-[#B42318]">{versionError}</p>}
             {success && <p role="status" className="rounded-xl border border-[#BCE8CC] bg-[#F1FBF5] px-4 py-3 text-sm font-bold text-[#0C7A3B]">{success}</p>}
             {finalizationResult && <dl className="grid gap-3 rounded-xl bg-[#F8FBFF] p-4 text-sm sm:grid-cols-2"><div><dt className="font-bold text-[#64748b]">Data hash</dt><dd className="mt-1 break-all font-mono text-[#0C2B49]">{finalizationResult.data_hash}</dd></div><div><dt className="font-bold text-[#64748b]">Transaction hash</dt><dd className="mt-1 break-all font-mono text-[#0C2B49]">{finalizationResult.tx_hash}</dd></div></dl>}
             <p className="text-sm leading-6 text-[#64748b]">Use this workspace to review the original file, derived assistance, and available integrity information.</p>
@@ -163,21 +141,32 @@ export function DocumentWorkspace({
           </div>
         )}
 
-        {activeTab === 'Original PDF' && (document.storage_url ? (
+        {activeTab === 'Files' && (
           <div className="space-y-4">
-            <h2 className="text-lg font-extrabold text-[#0C2B49]">Original PDF</h2>
-            <p className="text-sm leading-6 text-[#64748b]">This is the source document and is available for viewing or download only. It cannot be edited in LexChain.</p>
-            <div className="flex flex-wrap gap-3">
-              <a href={document.storage_url} target="_blank" rel="noreferrer" className="rounded-full bg-[#0985E7] px-4 py-2.5 text-sm font-extrabold text-white">Open original PDF</a>
-              <a href={document.storage_url} download className="rounded-full border border-[#E8F0F8] px-4 py-2.5 text-sm font-extrabold text-[#0C2B49]">Download original PDF</a>
-            </div>
+            <h2 className="text-lg font-extrabold text-[#0C2B49]">Document files</h2>
+            {document.signed_copy ? (
+              <div className="space-y-3 rounded-xl border border-[#E8F0F8] bg-[#F8FBFF] p-4">
+                <div><p className="font-bold text-[#0C2B49]">Current signed PDF</p><p className="mt-1 text-sm text-[#64748b]">{document.signed_copy.original_filename ?? document.file_name}</p></div>
+                <div className="flex flex-wrap gap-3">
+                  <a href={document.signed_copy.storage_url} target="_blank" rel="noreferrer" className="rounded-full bg-[#0985E7] px-4 py-2.5 text-sm font-extrabold text-white">Open current signed PDF</a>
+                  <a href={document.signed_copy.storage_url} download className="rounded-full border border-[#E8F0F8] px-4 py-2.5 text-sm font-extrabold text-[#0C2B49]">Download current signed PDF</a>
+                </div>
+              </div>
+            ) : <p className="text-sm text-[#64748b]">No signed PDF is attached to this document yet.</p>}
+            {document.draft_url && <div className="rounded-xl border border-[#E8F0F8] p-4"><p className="font-bold text-[#0C2B49]">Working Google draft</p><p className="mt-1 text-sm text-[#64748b]">This editable draft is separate from the legal signed PDF.</p><a href={document.draft_url} target="_blank" rel="noreferrer" className="mt-3 inline-flex rounded-full border border-[#0985E7] px-4 py-2.5 text-sm font-extrabold text-[#0985E7]">Open Google draft</a></div>}
           </div>
-        ) : <p className="text-sm text-[#64748b]">The original PDF is not available in the current document record.</p>)}
+        )}
 
 
 
         {activeTab === 'Blockchain' && (
-          <div className="space-y-4"><p className="text-sm text-[#64748b]">No blockchain record is available in the current document record.</p></div>
+          document.on_chain ? (
+            <dl className="grid gap-3 text-sm sm:grid-cols-2">
+              <div><dt className="font-bold text-[#64748b]">Anchor status</dt><dd className="mt-1 text-[#0C2B49]">{anchorLabel(document.lifecycle, document.on_chain)}</dd></div>
+              <div><dt className="font-bold text-[#64748b]">Document hash</dt><dd className="mt-1 break-all font-mono text-[#0C2B49]">{document.document_hash ?? 'Not supplied'}</dd></div>
+              <div><dt className="font-bold text-[#64748b]">Finalized</dt><dd className="mt-1 text-[#0C2B49]">{formatDate(document.finalized_at)}</dd></div>
+            </dl>
+          ) : <div className="space-y-4"><p className="text-sm text-[#64748b]">{document.lifecycle === 'FINALIZED' ? 'Finalized, but no on-chain record is reported.' : 'This document has not been finalized or recorded on-chain.'}</p></div>
         )}
 
         {activeTab === 'Versions' && (
@@ -190,11 +179,11 @@ export function DocumentWorkspace({
         )}
 
         {activeTab === 'Access' && (
-          <div className="space-y-3"><h2 className="text-lg font-extrabold text-[#0C2B49]">Access</h2><p className="text-sm text-[#64748b]">Manage access on the existing document participant surface.</p>          {role === 'lawyer' && <Link href={`/portal/documents/${document.document_id}/participants`} className="inline-flex rounded-full bg-[#0985E7] px-4 py-2.5 text-sm font-extrabold text-white">Manage document participants</Link>}</div>
+          <div className="space-y-3"><h2 className="text-lg font-extrabold text-[#0C2B49]">Access</h2><p className="text-sm text-[#64748b]">Manage access on the existing document participant surface.</p>          {document.permissions.can_share || document.permissions.can_revoke ? <Link href={`/portal/documents/${document.document_id}/participants`} className="inline-flex rounded-full bg-[#0985E7] px-4 py-2.5 text-sm font-extrabold text-white">Manage document participants</Link> : null}</div>
         )}
 
         {activeTab === 'Activity' && (
-          <div className="space-y-3"><h2 className="text-lg font-extrabold text-[#0C2B49]">Activity</h2><p className="text-sm text-[#64748b]">Review lifecycle and access events on the existing audit surface.</p>          {role === 'lawyer' && <Link href={`/portal/documents/${document.document_id}/activity`} className="inline-flex rounded-full bg-[#0985E7] px-4 py-2.5 text-sm font-extrabold text-white">View document activity</Link>}</div>
+          <div className="space-y-3"><h2 className="text-lg font-extrabold text-[#0C2B49]">Activity</h2><p className="text-sm text-[#64748b]">Review lifecycle and access events on the existing audit surface.</p>{document.permissions.can_view && <Link href={`/portal/documents/${document.document_id}/activity`} className="inline-flex rounded-full bg-[#0985E7] px-4 py-2.5 text-sm font-extrabold text-white">View document activity</Link>}</div>
         )}
       </div>
     </section>

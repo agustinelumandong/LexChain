@@ -1,34 +1,24 @@
-import type { PortalUiRole } from "@/features/access";
+import type { ApiSchema } from "@/shared/types";
 
-export type DocumentListItem = {
-  id: string;
-  document_id?: string;
-  document_number?: number | string | null;
-  file_name?: string | null;
-  status?: string | null;
-  on_chain?: boolean | null;
-  created_at?: string | null;
-  updated_at?: string | null;
-  storage_url?: string | null;
-};
+export type DocumentListItem = ApiSchema<'DocumentUploadResponse'>;
 
 export type DocumentListFilters = {
   query: string;
-  status: string;
+  lifecycle: string;
   sort: 'newest' | 'oldest' | 'title';
-  updatedFrom?: string;
-  updatedThrough?: string;
+  createdFrom?: string;
+  createdThrough?: string;
 };
 
 function searchableReference(document: DocumentListItem) {
-  return [document.document_number, document.document_id, document.id]
+  return [document.doc_no, document.page_no, document.id]
     .filter((value): value is string | number => value !== undefined && value !== null)
     .join(' ')
     .toLowerCase();
 }
 
 function documentDate(document: DocumentListItem) {
-  return new Date(document.updated_at ?? document.created_at ?? 0).getTime();
+  return new Date(document.created_at).getTime();
 }
 
 export function getVisibleDocuments<T extends DocumentListItem>(documents: T[], filters: DocumentListFilters): T[] {
@@ -36,13 +26,13 @@ export function getVisibleDocuments<T extends DocumentListItem>(documents: T[], 
 
   return documents
     .filter((document) => !query || document.file_name?.toLowerCase().includes(query) || searchableReference(document).includes(query))
-    .filter((document) => filters.status === 'all' || document.status?.trim().toLowerCase() === filters.status)
+    .filter((document) => filters.lifecycle === 'all' || document.lifecycle.trim().toLowerCase() === filters.lifecycle)
     .filter((document) => {
-      if (!filters.updatedFrom && !filters.updatedThrough) return true;
+      if (!filters.createdFrom && !filters.createdThrough) return true;
       const date = new Date(documentDate(document));
-      if (Number.isNaN(date.getTime()) || (!document.updated_at && !document.created_at)) return false;
+      if (Number.isNaN(date.getTime())) return false;
       const day = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-      return (!filters.updatedFrom || day >= filters.updatedFrom) && (!filters.updatedThrough || day <= filters.updatedThrough);
+      return (!filters.createdFrom || day >= filters.createdFrom) && (!filters.createdThrough || day <= filters.createdThrough);
     })
     .sort((left, right) => {
       if (filters.sort === 'title') return (left.file_name ?? '').localeCompare(right.file_name ?? '');
@@ -51,15 +41,6 @@ export function getVisibleDocuments<T extends DocumentListItem>(documents: T[], 
     });
 }
 
-export function getDocumentStatuses(documents: DocumentListItem[]) {
-  return [...new Set(documents.map((document) => document.status?.trim().toLowerCase()).filter(Boolean))] as string[];
-}
-
-export function getDocumentListActions(role: PortalUiRole, document: DocumentListItem) {
-  const actions = ['Open'];
-  if (document.storage_url) actions.push('View / Download');
-  const status = document.status?.trim().toUpperCase();
-  if (role === 'lawyer' && (status === 'AWAITING_REVIEW' || status === 'READY_FOR_REVIEW')) actions.push('Review');
-  if (role === 'lawyer' && document.on_chain) actions.push('Verify integrity');
-  return actions;
+export function getDocumentLifecycles(documents: DocumentListItem[]) {
+  return [...new Set(documents.map((document) => document.lifecycle.trim().toLowerCase()))];
 }
