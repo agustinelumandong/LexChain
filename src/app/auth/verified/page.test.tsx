@@ -26,6 +26,14 @@ afterEach(() => {
 });
 
 describe("AuthVerifiedPage", () => {
+  it("does not claim email verification just because the landing route was opened", () => {
+    render(<AuthVerifiedPage />);
+
+    expect(screen.getByRole("heading", { name: "Check your email" })).toBeTruthy();
+    expect(screen.getByText(/open the verification link sent to your email/i)).toBeTruthy();
+    expect(screen.queryByRole("heading", { name: "Email verified" })).toBeNull();
+  });
+
   it("shows the backend's neutral resend message without claiming delivery", async () => {
     const message = "If the account is eligible, verification instructions will be sent.";
     fetchMock.mockResolvedValue(Response.json({ message }));

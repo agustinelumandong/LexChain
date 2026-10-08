@@ -3,8 +3,8 @@ import type { Metadata } from "next";
 import { VerifiedContent } from "./verified-content";
 
 export const metadata: Metadata = {
-  title: "Email verified | LexChain",
-  description: "Your LexChain account email has been verified.",
+  title: "Email confirmation | LexChain",
+  description: "Check your email for the LexChain account verification link.",
 };
 
 export default function AuthVerifiedPage() {
