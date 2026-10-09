@@ -88,7 +88,7 @@ describe('DashboardPage', () => {
     expect(screen.getByText('No action required. All documents are progressing normally.')).toBeTruthy();
   });
 
-  it('renders all administrator dashboard values using their contract meanings', () => {
+  it('hides the lawyer metric while rendering the other administrator dashboard values', () => {
     queryState.adminDashboard = {
       total_users: 120,
       total_lawyers: 25,
@@ -101,7 +101,7 @@ describe('DashboardPage', () => {
 
     renderDashboard();
 
-    expect(screen.getByText('Total Lawyers').parentElement?.textContent).toContain('25');
+    expect(screen.queryByText('Total Lawyers')).toBeNull();
     expect(screen.getByText('Total Users').parentElement?.textContent).toContain('120');
     expect(screen.getByText('Total Documents').parentElement?.textContent).toContain('2,340');
     expect(screen.getByText('Total Processed').parentElement?.textContent).toContain('2,100');
@@ -123,7 +123,7 @@ describe('DashboardPage', () => {
 
     renderDashboard();
 
-    expect(screen.getAllByText('0')).toHaveLength(7);
+    expect(screen.getAllByText('0')).toHaveLength(6);
     expect(screen.queryByText('Unavailable')).toBeNull();
   });
 
@@ -143,7 +143,7 @@ describe('DashboardPage', () => {
 
     renderDashboard();
 
-    expect(screen.getAllByText('Unavailable')).toHaveLength(7);
+    expect(screen.getAllByText('Unavailable')).toHaveLength(6);
     expect(screen.getByText('Dashboard metrics are unavailable.')).toBeTruthy();
     expect(screen.queryByText('Failed Documents')).toBeNull();
     expect(screen.queryByRole('heading', { name: 'Office activity' })).toBeNull();
@@ -156,7 +156,7 @@ describe('DashboardPage', () => {
     renderDashboard();
 
     expect(screen.getByText('We could not load administrator dashboard metrics.')).toBeTruthy();
-    expect(screen.getAllByText('Unavailable')).toHaveLength(7);
+    expect(screen.getAllByText('Unavailable')).toHaveLength(6);
     fireEvent.click(screen.getByRole('button', { name: 'Retry dashboard metrics' }));
     expect(queryState.adminDashboardRefetch).toHaveBeenCalledOnce();
     expect(screen.queryByText('Failed Documents')).toBeNull();
