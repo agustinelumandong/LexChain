@@ -3,7 +3,6 @@
 import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
 import PeopleIcon from '@mui/icons-material/People';
-import GavelIcon from '@mui/icons-material/Gavel';
 import DescriptionIcon from '@mui/icons-material/Description';
 import ScheduleIcon from '@mui/icons-material/Schedule';
 import ErrorIcon from '@mui/icons-material/Error';
@@ -55,7 +54,6 @@ function isAttentionDocument(document: Document) {
 
 function getMetricIcon(label: string) {
   if (label === 'Total Users') return PeopleIcon;
-  if (label === 'Total Lawyers') return GavelIcon;
   if (label === 'Total Documents') return DescriptionIcon;
   if (label === 'Total Processed') return ScheduleIcon;
   if (label === 'Total Failed') return ErrorIcon;
@@ -76,7 +74,6 @@ function getMetricColor(label: string) {
 
 function getMetricDetail(label: string) {
   if (label === 'Total Users') return 'Registered accounts';
-  if (label === 'Total Lawyers') return 'Lawyer accounts';
   if (label === 'Total Documents') return 'Documents in the system';
   if (label === 'Total Processed') return 'Documents processed';
   if (label === 'Total Failed') return 'Documents that failed processing';
@@ -127,7 +124,6 @@ export default function DashboardPage() {
   const adminMetrics = adminDashboardQuery.data;
   const metrics = [
     ['Total Users', adminMetrics?.total_users],
-    ['Total Lawyers', adminMetrics?.total_lawyers],
     ['Total Documents', adminMetrics?.total_documents],
     ['Total Processed', adminMetrics?.total_processed],
     ['Total Failed', adminMetrics?.total_failed],
@@ -158,7 +154,7 @@ export default function DashboardPage() {
       )}
 
       {adminMetrics == null && adminDashboardQuery.isLoading ? (
-        <div role="status" aria-label="Loading dashboard metrics" className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3">{Array.from({ length: 7 }, (_, i) => <div key={i} className={`${cardClass} h-24 animate-pulse sm:h-28`} />)}</div>
+        <div role="status" aria-label="Loading dashboard metrics" className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3">{Array.from({ length: 6 }, (_, i) => <div key={i} className={`${cardClass} h-24 animate-pulse sm:h-28`} />)}</div>
       ) : (
         <>
           {adminDashboardQuery.isError ? (

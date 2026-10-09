@@ -12,7 +12,15 @@ const { state } = vi.hoisted(() => ({
     signedCopiesQuery: {} as Record<string, unknown>,
     commentsQuery: {} as Record<string, unknown>,
     queryKeys: [] as string[][],
+    renameDocument: vi.fn(),
   },
+}));
+
+vi.mock('@/features/documents/document-lifecycle-api', () => ({
+  renameDocument: state.renameDocument,
+  finalizeDocument: vi.fn(),
+  markDocumentReady: vi.fn(),
+  reopenDocument: vi.fn(),
 }));
 
 vi.mock('@tanstack/react-query', () => ({
@@ -152,6 +160,24 @@ describe('document detail screen', () => {
 
     expect(await screen.findByRole('button', { name: 'Rename document' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Finalize' })).toBeTruthy();
+  });
+
+  it('renames a document through the modal form', async () => {
+    state.renameDocument.mockResolvedValue(undefined);
+    state.documentQuery = {
+      data: { ...baseDocument, permissions: { ...baseDocument.permissions, can_rename: true } },
+      isLoading: false, isError: false, refetch: vi.fn(),
+    };
+    await showPage();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Rename document' }));
+    expect(screen.getByRole('dialog', { name: 'Rename document' })).toBeTruthy();
+    const input = screen.getByRole('textbox', { name: 'Document name' }) as HTMLInputElement;
+    expect(input.value).toBe('Signed agreement.pdf');
+    fireEvent.change(input, { target: { value: 'Updated agreement.pdf' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
+
+    await waitFor(() => expect(state.renameDocument).toHaveBeenCalledWith('doc-1', 'Updated agreement.pdf'));
   });
 
   it('links a lawyer to extracted text review when OCR is awaiting review', async () => {
