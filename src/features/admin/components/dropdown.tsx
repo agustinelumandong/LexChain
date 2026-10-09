@@ -2,6 +2,7 @@
 
 import { usePopup } from "@/shared/components/ui/use-popup";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
+import { useId } from "react";
 
 type Option = { label: string; value: string };
 
@@ -11,10 +12,12 @@ type DropdownProps = {
   onChange: (value: string) => void;
   icon?: React.ReactNode;
   openUp?: boolean;
+  description?: string;
 };
 
-export function Dropdown({ options, value, onChange, icon, openUp = false }: DropdownProps) {
+export function Dropdown({ options, value, onChange, icon, openUp = false, description }: DropdownProps) {
   const { open, setOpen, ref } = usePopup();
+  const descriptionId = useId();
 
   const selected = options.find((o) => o.value === value);
 
@@ -23,6 +26,7 @@ export function Dropdown({ options, value, onChange, icon, openUp = false }: Dro
       <button
         type="button"
         aria-expanded={open}
+        aria-describedby={description ? descriptionId : undefined}
         onClick={() => setOpen(!open)}
         className="flex cursor-pointer items-center gap-2 rounded-xl border border-[#E4EEF9] bg-[#F8FBFF] px-3 py-2 text-sm font-semibold text-[#0C2B49] outline-none transition hover:border-[#0985E7] focus-visible:ring-2 focus-visible:ring-[#0985E7]/30"
       >
@@ -30,6 +34,7 @@ export function Dropdown({ options, value, onChange, icon, openUp = false }: Dro
         <span>{selected?.label ?? "Select"}</span>
         <KeyboardArrowDownIcon fontSize="small" className={`text-[#64748b] transition ${open ? "rotate-180" : ""}`} />
       </button>
+      {description ? <span id={descriptionId} className="sr-only">{description}</span> : null}
       {open && (
         <div className={`absolute left-0 z-50 min-w-full overflow-hidden rounded-xl border border-[#E4EEF9] bg-white shadow-lg ${openUp ? "bottom-full mb-1" : "top-full mt-1"}`}>
           {options.map((option) => (

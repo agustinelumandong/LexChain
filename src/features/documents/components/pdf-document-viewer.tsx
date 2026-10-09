@@ -7,7 +7,7 @@ import type { CSSProperties } from 'react';
 
 export type PdfDocumentViewerProps = {
   sourceUrl: string;
-  pageCount: number;
+  pageCount?: number;
   currentPage: number;
   blocks: ApiSchema<'ExtractionBlock'>[];
   selectedBlockIndex: number | null;
@@ -67,6 +67,7 @@ export default function PdfDocumentViewer({
   const renderKey = `${sourceUrl}:${currentPage}:${zoom}`;
   const [failedRenderKey, setFailedRenderKey] = useState<string | null>(null);
   const pdf = loadResult.sourceUrl === sourceUrl ? loadResult.pdf : null;
+  const displayedPageCount = pageCount ?? pdf?.numPages ?? 1;
   const renderFailed = loadResult.sourceUrl === sourceUrl && loadResult.failed
     || failedRenderKey === renderKey;
 
@@ -166,11 +167,11 @@ export default function PdfDocumentViewer({
           >
             Previous
           </button>
-          <span>Page {currentPage + 1} of {pageCount}</span>
+          <span>Page {currentPage + 1} of {displayedPageCount}</span>
           <button
             type="button"
             aria-label="Next PDF page"
-            disabled={currentPage >= pageCount - 1}
+            disabled={currentPage >= displayedPageCount - 1}
             onClick={() => onPageChange(currentPage + 1)}
           >
             Next
@@ -210,7 +211,7 @@ export default function PdfDocumentViewer({
         aria-hidden={renderFailed || undefined}
         className={`min-h-0 flex-1 overflow-auto ${renderFailed ? 'hidden' : ''}`}
       >
-        {pdf && pdf.numPages !== pageCount ? (
+        {pdf && pageCount != null && pdf.numPages !== pageCount ? (
           <p role="status">
             PDF page count ({pdf.numPages}) differs from the review record ({pageCount}).
           </p>

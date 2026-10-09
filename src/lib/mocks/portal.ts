@@ -2,6 +2,7 @@ import type { ApiSchema } from '@/shared/types/index';
 export { isMockMode } from "./mode";
 
 const mockIssuerId = 'mock-document-issuer';
+const mockParticipantId = 'mock-document-participant';
 
 export type DemoIntegrityState = 'match' | 'mismatch' | 'not-recorded' | 'unavailable';
 
@@ -75,6 +76,7 @@ type ExtractionReview = ApiSchema<'ExtractionReviewResponse'>;
 type UpdateExtractionRequest = ApiSchema<'UpdateExtractionRequest'>;
 type BlockEdit = ApiSchema<'BlockEdit'>;
 type ApproveExtractionResponse = ApiSchema<'ApproveExtractionResponse'>;
+type MockDocumentParty = ApiSchema<'DocumentPartyResponse'> & { document_id: string };
 
 type MockExtraction = Omit<Pick<ExtractionReview,
   'extraction_id' | 'engine' | 'page_count' | 'confidence_avg' | 'blocks' | 'is_reviewed' | 'reviewed_by' | 'reviewed_at'
@@ -340,6 +342,18 @@ let extractionFlags: Record<string, ExtractionFlag[]> = {
 };
 
 const sharedDocumentIds = new Set(['mock-document-4']);
+let documentParties: MockDocumentParty[] = [{
+  id: 'mock-party-1',
+  user_id: mockParticipantId,
+  document_id: 'mock-document-4',
+  email: participantProfile.email,
+  f_name: participantProfile.f_name,
+  l_name: participantProfile.l_name,
+  role: 'viewer',
+  status: 'accepted',
+  responded_at: '2026-07-18T09:00:00.000Z',
+  created_at: '2026-07-18T09:00:00.000Z',
+}];
 
 function json(data: unknown, status = 200) {
   return Response.json(data, { status });
@@ -504,8 +518,18 @@ export function mockPortalGet(path: string, token?: string): Response {
     if (detail === 'parties') {
       return json({
         document_id: document.id,
-        issuer: { id: mockIssuerId, f_name: issuerProfile.f_name, l_name: issuerProfile.l_name, email: issuerProfile.email, role: 'lawyer' },
-        parties: [{ id: 'mock-party-1', f_name: 'Sample', l_name: 'Tenant', email: 'tenant@example.test', role: 'tenant' }],
+        issuer: {
+          id: mockIssuerId,
+          user_id: mockIssuerId,
+          f_name: issuerProfile.f_name,
+          l_name: issuerProfile.l_name,
+          email: issuerProfile.email,
+          role: 'lawyer',
+          status: 'accepted',
+          responded_at: null,
+          created_at: document.created_at,
+        },
+        parties: documentParties.filter((party) => party.document_id === document.id),
       });
     }
     if (detail === 'versions') {
@@ -516,7 +540,14 @@ export function mockPortalGet(path: string, token?: string): Response {
       return json({ current_document_id: versions[0]?.document_id ?? document.id, versions, total_version: versions.length });
     }
     if (detail === 'verify') {
-      if (!document.on_chain) return error('On-chain record not found', 404);
+      if (!document.on_chain) return json({
+        document_id: document.id,
+        status: 'NOT_ANCHORED',
+        is_authentic: false,
+        baseline_trusted: false,
+        verified_at: new Date().toISOString(),
+        message: 'This document has not been finalized and anchored yet.',
+      });
       const isAuthentic = document.integrity_state !== 'mismatch';
       return json({
         document_id: document.id,
@@ -806,6 +837,48 @@ export async function mockPortalMutate(method: 'POST' | 'PUT' | 'PATCH' | 'DELET
     invitations = invitations.filter((item) => item.id !== invitationId);
     if (action === 'accept') sharedDocumentIds.add(invitation.document_id);
     return json({ message: `Invitation ${action}ed` });
+  }
+  const partiesMatch = requestPathname.match(/^\/documents\/([^/]+)\/parties\/?$/);
+  if (method === 'POST' && partiesMatch) {
+    if (!hasMockIssuerAccess(token)) return error('Lawyer access required', 403);
+    const document = documentFor(partiesMatch[1]);
+    if (!document) return error('Document not found', 404);
+    const body = await jsonBody(request);
+    const email = typeof body?.email === 'string' ? body.email.trim() : '';
+    const role = typeof body?.role === 'string' ? body.role.trim() : '';
+    if (!/^\S+@\S+\.\S+$/.test(email) || !['viewer', 'signer', 'editor'].includes(role)) {
+      return error('A valid participant email and permission are required', 400);
+    }
+    if (documentParties.some((party) => party.document_id === document.id && party.email.toLowerCase() === email.toLowerCase())) {
+      return error('Participant already has access to this document', 409);
+    }
+    const now = new Date().toISOString();
+    const party: MockDocumentParty = {
+      id: `mock-party-${Date.now()}`,
+      user_id: `mock-user-${Date.now()}`,
+      document_id: document.id,
+      email,
+      f_name: 'Invited user',
+      l_name: '',
+      role,
+      status: 'pending',
+      responded_at: null,
+      created_at: now,
+    };
+    documentParties = [...documentParties, party];
+    return json(party, 201);
+  }
+  const partyMatch = requestPathname.match(/^\/documents\/([^/]+)\/parties\/([^/]+)\/?$/);
+  if (method === 'DELETE' && partyMatch) {
+    if (!hasMockIssuerAccess(token)) return error('Lawyer access required', 403);
+    const [, documentId, userId] = partyMatch;
+    const document = documentFor(documentId);
+    if (!document) return error('Document not found', 404);
+    const party = documentParties.find((item) => item.document_id === documentId && item.user_id === userId);
+    if (!party) return error('Participant not found', 404);
+    documentParties = documentParties.filter((item) => item !== party);
+    if (party.status === 'accepted' && party.user_id === mockParticipantId) sharedDocumentIds.delete(documentId);
+    return json({ document_id: documentId, user_id: userId, message: 'Document access revoked.' });
   }
   if (method === 'POST' && (requestPathname === '/documents/upload' || requestPathname === '/documents/upload/')) {
     if (!hasMockIssuerAccess(token)) return error('Lawyer access required', 403);

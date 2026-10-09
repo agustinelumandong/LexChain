@@ -33,7 +33,15 @@ function createSessionResponse(token: string, maxAge: number, user: { role?: str
   response.cookies.set({ name: "portal_token", value: token, ...cookieOpts });
   response.cookies.set({ name: "admin_token", value: "", ...cookieOpts, maxAge: 0 });
   // Client-readable routing hint only; authorization uses server-only cookies.
-  response.cookies.set({ name: "user_role", value: user.role ?? "", httpOnly: false, secure: cookieOpts.secure, sameSite: cookieOpts.sameSite, maxAge, path: "/" });
+  response.cookies.set({
+    name: "user_role",
+    value: issuer ? "lawyer" : user.role ?? "",
+    httpOnly: false,
+    secure: cookieOpts.secure,
+    sameSite: cookieOpts.sameSite,
+    maxAge,
+    path: "/",
+  });
 
   return response;
 }

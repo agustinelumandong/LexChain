@@ -4,13 +4,13 @@ import Link from "next/link";
 const appOptions = [
   {
     title: "Android",
-    badge: "Google Play",
-    copy: "Install the LexChain mobile app for uploads, camera capture, document review, and mobile verification.",
+    availability: "Google Play link unavailable",
+    copy: "A Google Play download link is not available on this page yet.",
   },
   {
     title: "iOS",
-    badge: "App Store",
-    copy: "Use the LexChain mobile app for secure document workflows, invite sign-up, and protected access.",
+    availability: "App Store link unavailable",
+    copy: "An App Store download link is not available on this page yet.",
   },
 ];
 
@@ -57,9 +57,9 @@ export default function DownloadPage() {
               <p className="text-sm font-black uppercase tracking-[0.14em] text-[#94A3B8]">
                 {option.title}
               </p>
-              <div className="mt-4 flex h-12 w-fit items-center rounded-xl bg-[#111827] px-5 text-sm font-black text-white">
-                {option.badge}
-              </div>
+              <p className="mt-4 inline-flex min-h-11 items-center rounded-lg border border-dashed border-[#CBD5E1] bg-[#F8FAFC] px-4 text-sm font-bold text-[#64748b]">
+                {option.availability}
+              </p>
               <p className="mt-4 text-sm font-semibold leading-6 text-[#64748b]">
                 {option.copy}
               </p>

@@ -33,7 +33,7 @@ describe("ResetPasswordPage", () => {
 
     expect(await screen.findByText("This password reset link is invalid or has expired.")).toBeTruthy();
     expect(screen.queryByText(
-      "Password recovery is not connected yet. The backend password-recovery endpoints are required before this can send a real email.",
+      "Password recovery is not connected yet. The backend password-reset endpoint is required before a real account password can be updated.",
     )).toBeNull();
   });
 
@@ -42,7 +42,7 @@ describe("ResetPasswordPage", () => {
     renderResetPage("lexchain-web-demo-reset");
 
     expect(await screen.findByText(
-      "Password recovery is not connected yet. The backend password-recovery endpoints are required before this can send a real email.",
+      "Password recovery is not connected yet. The backend password-reset endpoint is required before a real account password can be updated.",
     )).toBeTruthy();
     expect(screen.queryByLabelText("New password")).toBeNull();
     expect(screen.queryByText("Demo complete — no real password was changed.")).toBeNull();

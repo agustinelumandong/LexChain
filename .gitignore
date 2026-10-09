@@ -123,9 +123,15 @@ openapi.json
 
 # Active root web documentation
 !README.md
+!GLOSSARY.md
+!docs/MOCK-ACCOUNTS.md
+!docs/BACKEND-FRONTEND-INTEGRATION-AUDIT.md
+!docs/BACKEND-FRONTEND-AUTH-BOOKS-SPEC.md
 !AGENTS.md
 !docs/ARCHITECTURE.md
 # Local agent execution artifacts
 .superpowers/
 next-env.d.ts
 output
+
+lexchain_backend

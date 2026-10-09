@@ -29,8 +29,8 @@ describe("AuthVerifiedPage", () => {
   it("does not claim email verification just because the landing route was opened", () => {
     render(<AuthVerifiedPage />);
 
-    expect(screen.getByRole("heading", { name: "Check your email" })).toBeTruthy();
-    expect(screen.getByText(/open the verification link sent to your email/i)).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Email verification" })).toBeTruthy();
+    expect(screen.getByText(/open the verification link from your email to complete account setup/i)).toBeTruthy();
     expect(screen.queryByRole("heading", { name: "Email verified" })).toBeNull();
   });
 

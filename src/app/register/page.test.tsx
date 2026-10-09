@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import React from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import RegisterPage from "@/features/auth/pages/register-page";
 
@@ -135,18 +135,24 @@ describe("RegisterPage", () => {
     expect(screen.getByRole("button", { name: "Create account" })).toBeTruthy();
   });
 
-  it("explains that invitation signup is unsupported and never submits the token", async () => {
+  it("allows standard signup from an invitation link without accepting the invitation token", async () => {
+    fetchMock.mockResolvedValue(Response.json({ requires_email_confirmation: false, message: "Your account is ready to sign in." }));
     renderRegister("token=invite-token&email=issuer@example.com");
-    fillRegistrationForm("Ada");
+    fireEvent.change(screen.getByLabelText("First Name"), { target: { value: "Ada" } });
+    fireEvent.change(screen.getByLabelText("Last Name"), { target: { value: "O'Connor" } });
+    fireEvent.change(screen.getByLabelText(/^Password/), { target: { value: "Password1" } });
+    fireEvent.change(screen.getByLabelText("Confirm Password"), { target: { value: "Password1" } });
 
-    expect(screen.getByRole("alert").textContent).toContain("The invitation token has not been submitted or accepted.");
-    expect(screen.getByRole("link", { name: "Start regular signup" }).getAttribute("href")).toBe("/register");
-    const submit = screen.getByRole("button", { name: "Create account" }) as HTMLButtonElement;
-    expect(submit.disabled).toBe(true);
-    const form = submit.closest("form");
-    if (form) fireEvent.submit(form);
+    expect(screen.getByRole("status").textContent).toContain("does not accept the invitation or grant access to invited documents.");
+    expect((screen.getByLabelText("Email") as HTMLInputElement).readOnly).toBe(true);
+    expect(screen.getByRole("link", { name: "I already have an account" }).getAttribute("href")).toBe("/login");
+    fireEvent.click(screen.getByRole("button", { name: "Create account" }));
 
-    await waitFor(() => expect(fetchMock).not.toHaveBeenCalled());
-    expect(screen.queryByRole("heading", { name: "Account created" })).toBeNull();
+    expect(await screen.findByRole("heading", { name: "Account created" })).toBeTruthy();
+    expect(screen.getByRole("status").textContent).toContain("invitation has not been accepted and does not grant access to invited documents.");
+    expect(fetchMock).toHaveBeenCalledOnce();
+    const body = JSON.parse(fetchMock.mock.calls[0][1].body as string);
+    expect(body).toEqual({ email: "issuer@example.com", password: "Password1", f_name: "Ada", l_name: "O'Connor" });
+    expect(body).not.toHaveProperty("token");
   });
 });

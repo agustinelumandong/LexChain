@@ -34,12 +34,27 @@ import type { ApiSchema } from '@/shared/types/index';
 
 type Document = DocumentListItem;
 
-const datePickerSlotProps = {
-  textField: { size: 'small' as const, fullWidth: true, sx: { '& .MuiPickersOutlinedInput-root': { borderRadius: 3, backgroundColor: '#F8FBFF', color: '#0C2B49' } } },
-  field: { clearable: true },
-  popper: { disablePortal: true },
-  desktopPaper: { sx: { borderRadius: 3, border: '1px solid #E4EEF9' } },
-};
+function getDatePickerSlotProps(label: string) {
+  return {
+    textField: {
+      size: 'small' as const,
+      fullWidth: true,
+      sx: { '& .MuiPickersOutlinedInput-root': { borderRadius: 3, backgroundColor: '#F8FBFF', color: '#0C2B49' } },
+      slotProps: { htmlInput: { 'aria-label': `${label} date` } },
+    },
+    field: { clearable: true, 'aria-label': `${label} date` },
+    popper: { disablePortal: true },
+    desktopPaper: { sx: { borderRadius: 3, border: '1px solid #E4EEF9' } },
+  };
+}
+
+function getDatePickerLocaleText(label: string) {
+  return {
+    openDatePickerDialogue: (formattedDate: string | null) => formattedDate
+      ? `Choose ${label.toLowerCase()} date, selected date is ${formattedDate}`
+      : `Choose ${label.toLowerCase()} date`,
+  };
+}
 
 type UserProfile = ApiSchema<'UserProfileResponse'>;
 
@@ -242,10 +257,11 @@ export default function DocumentsPage() {
                   <h2 className="mr-auto shrink-0 text-lg font-black text-[#071B33]">Document Directory</h2>
                   <label className="flex w-full items-center gap-2 rounded-xl border border-[#E4EEF9] bg-white px-4 py-2.5 focus-within:border-[#0985E7] sm:w-72">
                     <SearchIcon fontSize="small" className="text-[#4B6382]" />
+                    <span className="sr-only">Search documents</span>
                     <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search documents..." className="w-full bg-transparent text-sm font-semibold text-[#0C2B49] outline-none placeholder:text-[#9AAAC0]" />
                   </label>
                   <div className="[&>div>button]:py-2.5">
-                    <Dropdown value={sort} onChange={(value) => { setSort(value as DocumentListFilters['sort']); setPage(0); }} options={[{ label: "Newest first", value: "newest" }, { label: "Oldest first", value: "oldest" }, { label: "Name A–Z", value: "title" }]} />
+                    <Dropdown description="Sort documents" value={sort} onChange={(value) => { setSort(value as DocumentListFilters['sort']); setPage(0); }} options={[{ label: "Newest first", value: "newest" }, { label: "Oldest first", value: "oldest" }, { label: "Name A–Z", value: "title" }]} />
                   </div>
                   <FilterDetails summary={<>
                       <FilterListIcon fontSize="small" />
@@ -253,23 +269,25 @@ export default function DocumentsPage() {
                     </>}>
                     <div className="absolute right-0 top-full z-50 mt-2 grid w-[min(440px,calc(100vw-3rem))] grid-cols-1 gap-4 rounded-xl border border-[#E4EEF9] bg-white p-4 text-sm font-semibold text-[#0C2B49] shadow-lg sm:grid-cols-2">
                       <div className="grid gap-1.5 sm:col-span-2 [&>div>button]:w-full [&>div>button]:justify-between"><span>Lifecycle</span>
-                        <Dropdown value={lifecycle} onChange={(value) => { setLifecycle(value); setPage(0); }} options={[{ label: "All Lifecycles", value: "all" }, ...lifecycles.map((value) => ({ label: getDocumentLifecycleLabel(value), value }))]} />
+                        <Dropdown description="Filter by lifecycle" value={lifecycle} onChange={(value) => { setLifecycle(value); setPage(0); }} options={[{ label: "All Lifecycles", value: "all" }, ...lifecycles.map((value) => ({ label: getDocumentLifecycleLabel(value), value }))]} />
                       </div>
                       <LocalizationProvider dateAdapter={AdapterDayjs}>
-                        <DatePicker label="Created from" format="MM/DD/YYYY" value={createdFrom ? dayjs(createdFrom) : null} maxDate={createdThrough ? dayjs(createdThrough) : undefined}
+                        <DatePicker label="Created from" localeText={getDatePickerLocaleText('Created from')} format="MM/DD/YYYY" value={createdFrom ? dayjs(createdFrom) : null} maxDate={createdThrough ? dayjs(createdThrough) : undefined}
                           onChange={(value, context) => { if (context.validationError) return; setCreatedFrom(value?.format('YYYY-MM-DD') ?? ''); setPage(0); }}
-                          slotProps={datePickerSlotProps} />
-                        <DatePicker label="Created through" format="MM/DD/YYYY" value={createdThrough ? dayjs(createdThrough) : null} minDate={createdFrom ? dayjs(createdFrom) : undefined}
+                          slotProps={getDatePickerSlotProps('Created from')} />
+                        <DatePicker label="Created through" localeText={getDatePickerLocaleText('Created through')} format="MM/DD/YYYY" value={createdThrough ? dayjs(createdThrough) : null} minDate={createdFrom ? dayjs(createdFrom) : undefined}
                           onChange={(value, context) => { if (context.validationError) return; setCreatedThrough(value?.format('YYYY-MM-DD') ?? ''); setPage(0); }}
-                          slotProps={datePickerSlotProps} />
+                          slotProps={getDatePickerSlotProps('Created through')} />
                       </LocalizationProvider>
                       <button type="button" onClick={() => { setLifecycle('all'); setCreatedFrom(''); setCreatedThrough(''); setSearch(''); setSort('newest'); setPage(0); }} className="rounded-xl bg-[#EEF4FB] py-2.5 text-[#0879D8] sm:col-span-2">Reset filters</button>
                     </div>
                   </FilterDetails>
                 </div>
               </div>
-              <div className="admin-table-scroll scrollbar-hide min-h-0 flex-1 overflow-auto">
+              <p className="px-5 pb-3 text-xs font-semibold text-[#5B6F8A] md:hidden">Swipe horizontally to view all table columns.</p>
+              <div role="region" aria-label="Document directory results. Scroll horizontally to view all columns." tabIndex={0} className="admin-table-scroll min-h-0 flex-1 overflow-auto focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[#0985E7]">
                 <table className="w-full min-w-[920px] text-sm">
+                  <caption className="sr-only">Documents in the office repository</caption>
                   <thead>
                     <tr className="border-b border-[#D9E5F0] bg-[#F8FBFF] text-left text-xs font-black uppercase tracking-[0.08em] text-[#4B6382]">
                       <th className="px-5 py-3">Document</th>
@@ -324,7 +342,7 @@ export default function DocumentsPage() {
                   <button type="button" onClick={() => setPage((value) => Math.min(totalPages - 1, value + 1))} disabled={safePage >= totalPages - 1} aria-label="Next page" className="rounded-lg border border-[#E4EEF9] p-2 text-[#4B6382] transition hover:bg-[#EEF4FB] disabled:opacity-35">
                     <ChevronRightIcon fontSize="small" />
                   </button>
-                  <Dropdown openUp value={pageSize} onChange={setPageSize} options={[{ label: "5 / page", value: "5" }, { label: "10 / page", value: "10" }, { label: "20 / page", value: "20" }]} />
+                  <Dropdown description="Documents per page" openUp value={pageSize} onChange={setPageSize} options={[{ label: "5 / page", value: "5" }, { label: "10 / page", value: "10" }, { label: "20 / page", value: "20" }]} />
                 </div>
               </div>
             </article>

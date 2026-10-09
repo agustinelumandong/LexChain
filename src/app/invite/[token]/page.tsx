@@ -48,8 +48,9 @@ export default async function InvitePage({ params, searchParams }: InvitePagePro
           You are invited to LexChain as a Lawyer
         </h1>
         <p className="mt-3 text-sm font-semibold leading-6 text-[#64748b]">
-          Open the mobile app to accept your invitation, download the app, or
-          continue sign-up on the web with your invitation details preserved.
+          To continue with this invitation, open the LexChain mobile app. The website option creates a standard account. {inviteEmail
+            ? "Your invitation email is prefilled for signup."
+            : "Use the email address from your invitation."} Website signup does not accept the invitation or grant access to invited documents.
         </p>
 
         <div className="mt-8 grid gap-3 sm:grid-cols-3">
@@ -69,7 +70,7 @@ export default async function InvitePage({ params, searchParams }: InvitePagePro
             className="rounded-full border border-[#E4EEF9] bg-white px-5 py-3 text-center text-sm font-black text-[#0C2B49] transition hover:bg-[#F5FAFF]"
             href={webSignUpLink}
           >
-            Continue on website
+            Create account on website
           </Link>
         </div>
       </section>

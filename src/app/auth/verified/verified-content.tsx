@@ -92,14 +92,17 @@ export function VerifiedContent() {
               strokeWidth="3"
               viewBox="0 0 24 24"
             >
-              <path d="M20 6 9 17l-5-5" />
+              <path d="M4 6h16v12H4z" />
+              <path d="m4 7 8 6 8-6" />
             </svg>
           </div>
           <h1 className="mt-4 text-3xl font-black leading-9 text-[#0C2B49]">
-            Check your email
+            Email verification
           </h1>
           <p className="mt-3 text-sm font-semibold leading-5 text-[#4B6382]">
-            Open the verification link sent to your email to confirm your account. This page alone cannot confirm whether verification is complete.
+            Open the verification link from your email to complete account setup.
+            This page cannot confirm that verification succeeded. If you need
+            another link, enter your account email below.
           </p>
         </div>
 

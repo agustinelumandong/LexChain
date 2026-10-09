@@ -135,6 +135,7 @@ export default function DocumentDetailPage({ params }: { params: Promise<{ id: s
 
       <DocumentWorkspace
         document={document}
+        role={role}
         finalizationResult={finalizationResult}
         confirmingFinalize={confirmingFinalize}
         isFinalizing={finalizeMutation.isPending}

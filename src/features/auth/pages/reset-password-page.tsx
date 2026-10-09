@@ -6,7 +6,7 @@ import { useSearchParams } from "next/navigation";
 import { Suspense, useState, type ReactNode } from "react";
 import { demoResetToken, webResetPasswordSchema } from "@/features/auth/schemas/auth";
 
-const unavailableMessage = "Password recovery is not connected yet. The backend password-recovery endpoints are required before this can send a real email.";
+const unavailableMessage = "Password recovery is not connected yet. The backend password-reset endpoint is required before a real account password can be updated.";
 
 export default function ResetPasswordPage() {
   return (
@@ -27,7 +27,7 @@ function ResetPasswordForm() {
 
   if (!hasValidToken) {
     return (
-      <ResetPasswordShell>
+      <ResetPasswordShell description="A valid reset link is required before you can update your password.">
         <div className="mt-6 space-y-4">
           <p role="alert" className="rounded-xl bg-red-50 px-4 py-3 text-sm font-semibold text-red-600">
             This password reset link is invalid or has expired.
@@ -42,7 +42,7 @@ function ResetPasswordForm() {
 
   if (!isDemoMode) {
     return (
-      <ResetPasswordShell>
+      <ResetPasswordShell description="Password recovery is not connected yet.">
         <div className="mt-6 space-y-4">
           <p role="alert" className="rounded-xl bg-red-50 px-4 py-3 text-sm font-semibold text-red-600">
             {unavailableMessage}
@@ -57,7 +57,7 @@ function ResetPasswordForm() {
 
   if (isComplete) {
     return (
-      <ResetPasswordShell>
+      <ResetPasswordShell description="This local demo checks the reset form without changing a real account password.">
         <div className="mt-6 space-y-4">
           <p className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm font-black text-[#0C2B49]">
             Demo complete — no real password was changed.
@@ -84,7 +84,7 @@ function ResetPasswordForm() {
   }
 
   return (
-    <ResetPasswordShell>
+    <ResetPasswordShell description="Try the password reset form in this local demo. Submitting it will not change a real account password.">
       <form noValidate className="mt-6 space-y-3.5" onSubmit={handleSubmit}>
         <label className="block">
           <span className="text-[13px] font-black text-[#0C2B49]">New password</span>
@@ -119,7 +119,7 @@ function ResetPasswordForm() {
   );
 }
 
-function ResetPasswordShell({ children }: { children: ReactNode }) {
+function ResetPasswordShell({ children, description }: { children: ReactNode; description: string }) {
   return (
     <main className="flex min-h-screen items-center justify-center bg-[#F5FAFF] p-5 text-[#111827]">
       <section className="w-full max-w-[440px] rounded-[24px] border border-[#E4EEF9] bg-white p-7 shadow-[0_10px_24px_rgba(12,43,73,0.08)]">
@@ -129,7 +129,7 @@ function ResetPasswordShell({ children }: { children: ReactNode }) {
             <span className="text-lg font-black text-[#0C2B49]">Lex<span className="text-[#0985E7]">Chain</span></span>
           </div>
           <h1 className="text-3xl font-black leading-9 text-[#0C2B49]">Reset password</h1>
-          <p className="text-sm font-semibold leading-5 text-[#64748b]">Choose a new password for this demo account.</p>
+          <p className="text-sm font-semibold leading-5 text-[#64748b]">{description}</p>
         </div>
         {children}
       </section>
