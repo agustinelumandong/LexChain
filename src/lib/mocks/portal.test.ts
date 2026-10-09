@@ -4,6 +4,15 @@ import { isMockPortalToken, mockPortalGet, mockPortalMutate } from '@/lib/mocks/
 afterEach(() => vi.restoreAllMocks());
 
 describe('portal mock extraction contract', () => {
+  it('includes issuer permissions in the shared document detail response', async () => {
+    const response = mockPortalGet('/documents/mock-document-4', 'mock-token:mock-document-issuer');
+
+    await expect(response.json()).resolves.toMatchObject({
+      document_id: 'mock-document-4',
+      permissions: { can_view: true },
+    });
+  });
+
   it('returns the PDF metadata and normalized review regions', async () => {
     const response = mockPortalGet(
       '/documents/mock-document-2/extraction',

@@ -45,6 +45,11 @@ function renderPage(roleHint?: string) {
   return render(<QueryClientProvider client={queryClient}><PortalRoleProvider roleHint={roleHint}><BooksPage /></PortalRoleProvider></QueryClientProvider>);
 }
 
+function selectBookStatus(status: 'OPEN' | 'CLOSED') {
+  fireEvent.click(screen.getByRole('button', { name: 'Book status' }));
+  fireEvent.click(screen.getByRole('option', { name: status === 'CLOSED' ? /Closed/ : /Open/ }));
+}
+
 describe('BooksPage', () => {
   afterEach(() => {
     cleanup();
@@ -191,7 +196,7 @@ describe('BooksPage', () => {
     renderPage('lawyer');
     fireEvent.click(screen.getByRole('button', { name: 'Register book' }));
     expect(screen.getByRole('dialog', { name: 'Register a book' })).toBeTruthy();
-    expect(screen.getByLabelText('Book status')).toHaveProperty('value', 'OPEN');
+    expect(screen.getByRole('button', { name: 'Book status' }).textContent).toContain('Open');
     fireEvent.change(screen.getByLabelText('Book number'), { target: { value: '7' } });
     fireEvent.change(screen.getByLabelText('Series year'), { target: { value: '2026' } });
     fireEvent.click(screen.getAllByRole('button', { name: 'Register book' })[1]);
@@ -222,7 +227,7 @@ describe('BooksPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Register book' }));
     fireEvent.change(screen.getByLabelText('Book number'), { target: { value: '3' } });
     fireEvent.change(screen.getByLabelText('Series year'), { target: { value: '2026' } });
-    fireEvent.change(screen.getByLabelText('Book status'), { target: { value: 'CLOSED' } });
+    selectBookStatus('CLOSED');
     expect(screen.getByText('When filing into a migrated book, use the document and page numbers from its paper register.')).toBeTruthy();
     fireEvent.click(screen.getAllByRole('button', { name: 'Register book' })[1]);
 
@@ -249,13 +254,13 @@ describe('BooksPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Register book' }));
     fireEvent.change(screen.getByLabelText('Book number'), { target: { value: '7' } });
     fireEvent.change(screen.getByLabelText('Series year'), { target: { value: '2026' } });
-    if (status === 422) fireEvent.change(screen.getByLabelText('Book status'), { target: { value: 'CLOSED' } });
+    if (status === 422) selectBookStatus('CLOSED');
     fireEvent.click(screen.getAllByRole('button', { name: 'Register book' })[1]);
 
     expect((await screen.findByRole('alert')).textContent).toContain(message);
     expect(screen.getByLabelText('Book number')).toHaveProperty('value', '7');
     expect(screen.getByLabelText('Series year')).toHaveProperty('value', '2026');
-    expect(screen.getByLabelText('Book status')).toHaveProperty('value', status === 422 ? 'CLOSED' : 'OPEN');
+    expect(screen.getByRole('button', { name: 'Book status' }).textContent).toContain(status === 422 ? 'Closed' : 'Open');
   });
 
   it('blocks book numbers and years outside the API constraints', async () => {

@@ -397,6 +397,24 @@ function canMutateDocumentLifecycle(document: MockDocument) {
   return !sharedDocumentIds.has(document.id);
 }
 
+function documentPermissions(document: MockDocument, token?: string) {
+  const issuer = isMockDocumentIssuerToken(token);
+  return {
+    can_view: true,
+    can_rename: issuer && canMutateDocumentLifecycle(document),
+    can_create_draft: false,
+    can_mark_ready: false,
+    can_reopen: false,
+    can_attach_signed_copy: false,
+    can_replace_signed_copy: false,
+    can_correct_entry: false,
+    can_cancel: false,
+    can_finalize: issuer && canFinalizeMockDocument(document, extractions[document.id]),
+    can_share: false,
+    can_revoke: false,
+  };
+}
+
 function documentPaths(path: string) {
   return path.match(/^\/documents\/([^/]+)(?:\/(parties|versions|audit-logs|verify))?\/?$/);
 }
@@ -514,7 +532,7 @@ export function mockPortalGet(path: string, token?: string): Response {
     if (!document) return error('Document not found', 404);
     if (detail === 'verify' && !canAccessDocument(token, document)) return error('On-chain record not found', 404);
     if (!canAccessDocument(token, document)) return error('Document access required', 403);
-    if (!detail) return json(document);
+    if (!detail) return json({ ...document, permissions: documentPermissions(document, token) });
     if (detail === 'parties') {
       return json({
         document_id: document.id,

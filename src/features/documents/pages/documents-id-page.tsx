@@ -10,6 +10,7 @@ import { DocumentWorkspace } from '@/features/documents/components/document-work
 import { getDocumentActions, getDocumentLifecycleLabel, getDocumentStatusLabel } from '@/features/documents/document-ui';
 import { renameDocument, finalizeDocument, markDocumentReady, reopenDocument } from '@/features/documents/document-lifecycle-api';
 import { getPortalUiRole } from "@/features/access";
+import { Modal } from '@/features/admin/components/modal';
 
 type DocumentResponse = ApiSchema<'DocumentResponse'>;
 type UserProfile = ApiSchema<'UserProfileResponse'>;
@@ -37,6 +38,9 @@ export default function DocumentDetailPage({ params }: { params: Promise<{ id: s
   const { id } = use(params);
   const queryClient = useQueryClient();
   const [renamePending, setRenamePending] = useState(false);
+  const [renameOpen, setRenameOpen] = useState(false);
+  const [renameName, setRenameName] = useState('');
+  const [renameError, setRenameError] = useState<string>();
   const [confirmingFinalize, setConfirmingFinalize] = useState(false);
   const [finalizationResult, setFinalizationResult] = useState<ApiSchema<'RecordResponse'>>();
   const [success, setSuccess] = useState<string>();
@@ -96,13 +100,23 @@ export default function DocumentDetailPage({ params }: { params: Promise<{ id: s
   const role = getPortalUiRole(profileQ.data?.role);
   const actions = getDocumentActions(role, document);
 
-  async function requestRename() {
-    const fileName = window.prompt('Document name', document.file_name ?? '');
-    if (!fileName?.trim()) return;
+  function requestRename() {
+    setRenameName(document.file_name ?? '');
+    setRenameError(undefined);
+    setRenameOpen(true);
+  }
+
+  async function submitRename(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const fileName = renameName.trim();
+    if (!fileName) return;
     setRenamePending(true);
     try {
       await renameDocument(id, fileName);
       await docQ.refetch();
+      setRenameOpen(false);
+    } catch (error) {
+      setRenameError(error instanceof Error ? error.message : 'Unable to rename this document.');
     } finally {
       setRenamePending(false);
     }
@@ -132,6 +146,20 @@ export default function DocumentDetailPage({ params }: { params: Promise<{ id: s
           </div>
         </div>
       </header>
+
+      <Modal open={renameOpen} onClose={() => { if (!renamePending) setRenameOpen(false); }} title="Rename document">
+        <form onSubmit={submitRename}>
+          <label htmlFor="document-name" className="grid gap-1.5 text-sm font-bold text-[#0C2B49]">
+            Document name
+            <input id="document-name" value={renameName} onChange={(event) => setRenameName(event.target.value)} className="w-full rounded-xl border border-[#D7E4F2] px-3 py-2.5 text-sm font-medium outline-none focus:border-[#0985E7]" />
+          </label>
+          {renameError && <p role="alert" className="mt-3 text-sm font-bold text-red-600">{renameError}</p>}
+          <div className="mt-5 flex justify-end gap-2">
+            <button type="button" onClick={() => setRenameOpen(false)} disabled={renamePending} className="rounded-full border border-[#D7E4F2] px-5 py-2.5 text-sm font-bold text-[#0C2B49] disabled:opacity-50">Cancel</button>
+            <button type="submit" disabled={!renameName.trim() || renamePending} className="rounded-full bg-[#0985E7] px-5 py-2.5 text-sm font-black text-white disabled:opacity-40">{renamePending ? 'Saving…' : 'Save changes'}</button>
+          </div>
+        </form>
+      </Modal>
 
       <DocumentWorkspace
         document={document}

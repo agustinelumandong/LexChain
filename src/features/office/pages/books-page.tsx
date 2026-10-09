@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 import { canAccessPortalFeature } from "@/features/access";
 import { usePortalRole } from "@/features/access/components";
 import { Modal } from '@/features/admin/components/modal';
+import { PortalDropdown } from '@/features/portal/components';
 
 type Book = {
   id: string;
@@ -216,12 +217,15 @@ export default function BooksPage() {
             <label className="flex flex-col gap-1.5 text-sm font-bold text-[#0C2B49]">Series year
               <input required min="2000" inputMode="numeric" type="number" value={seriesYear} onChange={(event) => setSeriesYear(event.target.value)} className="rounded-xl border border-[#D7E4F2] px-3 py-2.5 text-sm font-medium outline-none focus:border-[#0985E7]" />
             </label>
-            <label className="flex flex-col gap-1.5 text-sm font-bold text-[#0C2B49]">Book status
-              <select value={bookStatus} onChange={(event) => setBookStatus(event.target.value === 'CLOSED' ? 'CLOSED' : 'OPEN')} className="rounded-xl border border-[#D7E4F2] px-3 py-2.5 text-sm font-medium outline-none focus:border-[#0985E7]">
-                <option value="OPEN">Open — current register</option>
-                <option value="CLOSED">Closed — migrate a finished physical register</option>
-              </select>
-            </label>
+            <div className="flex flex-col gap-1.5 text-sm font-bold text-[#0C2B49] sm:col-span-2">
+              <span>Book status</span>
+              <PortalDropdown
+                ariaLabel="Book status"
+                options={[{ label: 'Open — current register', value: 'OPEN' }, { label: 'Closed — migrate a finished physical register', value: 'CLOSED' }]}
+                value={bookStatus}
+                onChange={(value) => setBookStatus(value === 'CLOSED' ? 'CLOSED' : 'OPEN')}
+              />
+            </div>
           </div>
           {bookStatus === 'CLOSED' && <p className="mt-3 text-sm text-[#64748b]">When filing into a migrated book, use the document and page numbers from its paper register.</p>}
           {error && <p role="alert" className="mt-3 text-sm font-bold text-red-600">{error}</p>}
