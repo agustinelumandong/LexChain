@@ -63,6 +63,7 @@ describe('BooksPage', () => {
     renderPage('lawyer');
     fireEvent.click(await screen.findByRole('button', { name: 'View details for Book 1' }));
 
+    expect(await screen.findByRole('dialog', { name: 'Book details' })).toBeTruthy();
     expect(await screen.findByText('Book details')).toBeTruthy();
     expect(screen.getByText('Status: Open')).toBeTruthy();
     expect(screen.getByText('Entries: 2')).toBeTruthy();
@@ -189,6 +190,7 @@ describe('BooksPage', () => {
 
     renderPage('lawyer');
     fireEvent.click(screen.getByRole('button', { name: 'Register book' }));
+    expect(screen.getByRole('dialog', { name: 'Register a book' })).toBeTruthy();
     expect(screen.getByLabelText('Book status')).toHaveProperty('value', 'OPEN');
     fireEvent.change(screen.getByLabelText('Book number'), { target: { value: '7' } });
     fireEvent.change(screen.getByLabelText('Series year'), { target: { value: '2026' } });
