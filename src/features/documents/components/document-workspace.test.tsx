@@ -5,13 +5,20 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DocumentWorkspace } from '@/features/documents/components/document-workspace';
 import type { ApiSchema } from '@/shared/types';
 
-const { attachSignedCopyMock, finalizeDocumentMock, listSignedCopiesMock, listDraftCommentsMock, replaceSignedCopyMock, syncDraftCommentsMock } = vi.hoisted(() => ({
+const { attachSignedCopyMock, finalizeDocumentMock, listDocumentAuditLogsMock, listDocumentPartiesMock, listSignedCopiesMock, listDraftCommentsMock, replaceSignedCopyMock, syncDraftCommentsMock } = vi.hoisted(() => ({
   attachSignedCopyMock: vi.fn(),
   finalizeDocumentMock: vi.fn(),
+  listDocumentAuditLogsMock: vi.fn(),
+  listDocumentPartiesMock: vi.fn(),
   listSignedCopiesMock: vi.fn(),
   listDraftCommentsMock: vi.fn(),
   replaceSignedCopyMock: vi.fn(),
   syncDraftCommentsMock: vi.fn(),
+}));
+
+vi.mock('@/features/access', () => ({
+  listDocumentAuditLogs: listDocumentAuditLogsMock,
+  listDocumentParties: listDocumentPartiesMock,
 }));
 
 vi.mock('@/features/documents/document-lifecycle-api', () => ({
@@ -100,6 +107,8 @@ function renderWorkspace(props: Partial<React.ComponentProps<typeof DocumentWork
 describe('DocumentWorkspace', () => {
   beforeEach(() => {
     attachSignedCopyMock.mockResolvedValue(document);
+    listDocumentAuditLogsMock.mockResolvedValue([]);
+    listDocumentPartiesMock.mockResolvedValue({ document_id: 'doc-101', parties: [] });
     listSignedCopiesMock.mockResolvedValue({ document_id: 'doc-101', copies: [] });
     listDraftCommentsMock.mockResolvedValue({ document_id: 'doc-101', unresolved: 0, comments: [] });
     replaceSignedCopyMock.mockResolvedValue(document);
@@ -437,7 +446,7 @@ describe('DocumentWorkspace', () => {
   });
 
   it('links to participant management only when the backend grants share or revoke permission', () => {
-    renderWorkspace({ document: { ...document, permissions: { ...document.permissions, can_share: true } } });
+    renderWorkspace({ role: 'lawyer', document: { ...document, permissions: { ...document.permissions, can_share: true } } });
 
     fireEvent.click(screen.getByRole('tab', { name: 'Access' }));
     expect(screen.getByRole('link', { name: 'Manage document participants' }).getAttribute('href'))
@@ -445,6 +454,24 @@ describe('DocumentWorkspace', () => {
     fireEvent.click(screen.getByRole('tab', { name: 'Activity' }));
     expect(screen.getByRole('link', { name: 'View document activity' }).getAttribute('href'))
       .toBe('/portal/documents/doc-101/activity');
+  });
+
+  it('shows participant and activity details for lawyers', async () => {
+    listDocumentPartiesMock.mockResolvedValue({
+      document_id: 'doc-101',
+      parties: [{ id: 'party-1', user_id: 'user-1', document_id: 'doc-101', email: 'reviewer@example.com', f_name: 'Avery', l_name: 'Reviewer', role: 'viewer', status: 'accepted' }],
+    });
+    listDocumentAuditLogsMock.mockResolvedValue([
+      { id: 'event-1', action: 'document_verified', user_id: 'user-1', created_at: '2026-10-08T10:00:00Z' },
+    ]);
+    renderWorkspace({ role: 'lawyer' });
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Access' }));
+    expect(await screen.findByText('Avery Reviewer')).toBeTruthy();
+    expect(screen.getByText('reviewer@example.com')).toBeTruthy();
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Activity' }));
+    expect(await screen.findByText('Document verified')).toBeTruthy();
   });
 
   it('does not show participant management when the backend denies share and revoke', () => {

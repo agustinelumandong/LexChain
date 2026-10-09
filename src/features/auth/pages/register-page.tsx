@@ -24,6 +24,7 @@ type RegisterForm = z.infer<typeof registerSchema>;
 
 type CreatedAccount = {
   email: string;
+  isInvitationSignup: boolean;
   requiresEmailConfirmation: boolean;
   message?: string;
 };
@@ -71,6 +72,7 @@ function RegisterPageContent() {
       const requiresEmailConfirmation = response.requires_email_confirmation;
       setCreatedAccount({
         email: values.email,
+        isInvitationSignup: Boolean(inviteToken),
         requiresEmailConfirmation,
         message: response.message?.trim() || undefined,
       });
@@ -80,12 +82,11 @@ function RegisterPageContent() {
 
   const onSubmit = handleSubmit((values) => {
     setSubmissionError(null);
-    if (inviteToken) return;
     mutation.mutate(values);
   });
   const inputClass = "mt-2 min-h-12 w-full rounded-[14px] border border-[#E4EEF9] bg-[#F5FAFF] px-3.5 text-sm font-semibold text-[#0C2B49] outline-none focus:border-[#0985E7]";
   const emailInputClass = hasInviteEmail
-    ? `${inputClass} cursor-not-allowed bg-[#EEF4FB] text-[#4B6382]`
+    ? `${inputClass} cursor-default bg-[#EEF4FB] text-[#4B6382]`
     : inputClass;
 
   useEffect(() => {
@@ -112,6 +113,11 @@ function RegisterPageContent() {
                 : createdAccount.message ?? `Your account for ${createdAccount.email} is ready. You can now sign in.`}
             </p>
           </div>
+          {createdAccount.isInvitationSignup ? (
+            <p role="status" className="mt-4 rounded-[14px] border border-[#F2D4A7] bg-[#FFF8EA] p-3 text-sm font-semibold leading-5 text-[#74521A]">
+              This is a standard account. The invitation has not been accepted and does not grant access to invited documents.
+            </p>
+          ) : null}
           <Link
             href="/login"
             className="mt-6 flex min-h-[52px] w-full items-center justify-center rounded-full bg-[#0985E7] px-5 py-3.5 text-[15px] font-black text-white transition hover:bg-[#0770c4]"
@@ -134,17 +140,16 @@ function RegisterPageContent() {
           <h1 className="text-3xl font-black leading-9 text-[#0C2B49]">Create account</h1>
           <p className="text-sm font-semibold leading-5 text-[#64748b]">
             {inviteToken
-              ? "Invitation registration is not supported yet."
+              ? hasInviteEmail
+                ? "Create a standard LexChain account with the email from your invitation."
+                : "Create a standard LexChain account using the email address from your invitation."
               : "Register to access your documents."}
           </p>
         </div>
 
         {inviteToken ? (
-          <div role="alert" className="mt-4 rounded-[14px] border border-[#F2D4A7] bg-[#FFF8EA] p-3 text-sm font-semibold text-[#74521A]">
-            <p>The invitation token has not been submitted or accepted.</p>
-            <Link href="/register" className="mt-2 inline-flex font-black text-[#0985E7] underline underline-offset-2">
-              Start regular signup
-            </Link>
+          <div role="status" className="mt-4 rounded-[14px] border border-[#F2D4A7] bg-[#FFF8EA] p-3 text-sm font-semibold leading-5 text-[#74521A]">
+            <p>This creates an account only. It does not accept the invitation or grant access to invited documents.</p>
           </div>
         ) : null}
 
@@ -162,19 +167,22 @@ function RegisterPageContent() {
             </label>
           </div>
 
-          <label className="block">
-            <span className="text-[13px] font-black text-[#0C2B49]">Email</span>
-            <input
-              {...register("email")}
-              type="email"
-              autoComplete="email"
-              className={emailInputClass}
-              readOnly={hasInviteEmail}
-              aria-disabled={hasInviteEmail}
-              tabIndex={hasInviteEmail ? -1 : undefined}
-            />
-            {errors.email && <p className="text-xs text-red-500 mt-1">{errors.email.message}</p>}
-          </label>
+          <div>
+            <label className="block">
+              <span className="text-[13px] font-black text-[#0C2B49]">Email</span>
+              <input
+                {...register("email")}
+                type="email"
+                autoComplete="email"
+                defaultValue={inviteEmail}
+                className={emailInputClass}
+                readOnly={hasInviteEmail}
+                aria-describedby={hasInviteEmail ? "invite-email-help" : undefined}
+              />
+              {errors.email && <p className="text-xs text-red-500 mt-1">{errors.email.message}</p>}
+            </label>
+            {hasInviteEmail ? <p id="invite-email-help" className="mt-1 text-xs font-medium text-[#64748b]">Email from your invitation; it cannot be changed here.</p> : null}
+          </div>
 
           <label className="block">
             <span className="text-[13px] font-black text-[#0C2B49]">Password</span>
@@ -193,7 +201,7 @@ function RegisterPageContent() {
 
           <button
             type="submit"
-            disabled={mutation.isPending || Boolean(inviteToken)}
+            disabled={mutation.isPending}
             className="mt-2 flex min-h-[52px] w-full items-center justify-center rounded-full bg-[#0985E7] px-5 py-3.5 text-[15px] font-black text-white transition hover:bg-[#0770c4] disabled:opacity-60"
           >
             {mutation.isPending ? "Creating account…" : "Create account"}

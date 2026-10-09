@@ -41,8 +41,24 @@ Apply these principles to new code, bug fixes, reviews and refactors. A folder m
 - Keep the diff small, readable and reviewable. Prefer deletion and simple composition; introduce an abstraction or dependency only when current requirements justify it.
 - Ponytail never removes requested functionality, input validation, security, accessibility, data-loss handling or necessary verification. Fully implement an explicitly requested scope. Mark deliberate limitations with a `ponytail:` comment only when there is a real ceiling and upgrade path.
 
+## Agent skills
+
+### Issue tracker
+
+Issues and specs for this repo live in GitHub Issues; use the `gh` CLI. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Use the canonical labels `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, and `wontfix`. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Use the single-context root `GLOSSARY.md` and `docs/adr/` layout. See `docs/agents/domain.md`.
+
 ## Working rules
 
+- Before each issue, inspect the current branch, working tree, and recent commits. Preserve unrelated changes; do not switch branches with unsaved work unless it is safely isolated in a worktree. Never commit or discard user changes without authorization.
+- Fetch the latest target base branch and verify it is current before editing. Create a separate `feature/issue-<number>-<slug>` branch for each issue from that base; do not use the `codex/` prefix. When continuing an existing issue branch, inspect its local and remote commits, then bring it up to date with the latest base before editing.
 - Plan nontrivial work and delegate independent, bounded tasks when useful. Preserve concurrent edits and ignored local files.
 - Trace the full affected flow and its callers before editing. Reuse existing functions, types and UI before adding code or dependencies.
 - Keep changes small and readable. No empty feature scaffolding, mandatory barrels, one-use abstractions or unrelated cleanup.

@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { backendUrl } from '@/server/api/backend';
+import { isMockPortalToken, mockPortalGet, mockPortalMutate } from '@/lib/mocks/portal';
+import { isMockMode } from '@/lib/mocks/mode';
 import { getPortalUiRole } from "@/features/access";
 
 type RouteContext = { params: Promise<{ id: string; partyUserId: string }> };
@@ -8,13 +10,20 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
   const token = request.cookies.get('portal_token')?.value;
   if (!token) return NextResponse.json({ message: 'Not authenticated' }, { status: 401 });
 
-  const profile = await fetch(backendUrl('/users/'), {
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'ngrok-skip-browser-warning': 'true',
-    },
-    cache: 'no-store',
-  });
+  const mockMode = isMockMode();
+  if (mockMode && !isMockPortalToken(token)) {
+    return NextResponse.json({ message: 'Not authenticated' }, { status: 401 });
+  }
+
+  const profile = mockMode
+    ? mockPortalGet('/users/', token)
+    : await fetch(backendUrl('/users/'), {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'ngrok-skip-browser-warning': 'true',
+        },
+        cache: 'no-store',
+      });
   const profileData = await profile.json().catch(() => null);
   if (getPortalUiRole(profileData?.role) !== 'lawyer') {
     return NextResponse.json(
@@ -24,6 +33,10 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
   }
 
   const { id, partyUserId } = await context.params;
+  if (mockMode) {
+    return mockPortalMutate('DELETE', `/documents/${id}/parties/${partyUserId}`, request, token);
+  }
+
   const upstream = await fetch(backendUrl(`/documents/${id}/parties/${partyUserId}`), {
     method: 'DELETE',
     headers: {

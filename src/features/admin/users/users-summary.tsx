@@ -2,6 +2,7 @@ import GroupsIcon from "@mui/icons-material/Groups";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import WorkIcon from "@mui/icons-material/Work";
 import PersonOffIcon from "@mui/icons-material/PersonOff";
+import { getPortalRoleLabel } from "@/features/access";
 import type { DirectoryUser } from "./users-types";
 
 function cn(...classes: Array<string | false | undefined>) {
@@ -138,11 +139,12 @@ export function RecentlyCreatedAccounts({ users }: { users: DirectoryUser[] }) {
 }
 
 export function UsersMetrics({ users: directoryUsers, total }: { users: DirectoryUser[]; total: number }) {
+  const lawyerRoleLabel = getPortalRoleLabel("document_issuer");
   const metrics = [
     { label: "Total Users", value: total || directoryUsers.length, detail: "Registered accounts", icon: <GroupsIcon fontSize="small" />, tone: "blue" as const },
     { label: "Active Users", value: directoryUsers.filter((user) => user.statusLabel === "Active").length, detail: "is_active true", icon: <CheckCircleIcon fontSize="small" />, tone: "green" as const },
     { label: "Suspended Users", value: directoryUsers.filter((user) => user.statusLabel === "Suspended").length, detail: "is_active false", icon: <PersonOffIcon fontSize="small" />, tone: "red" as const },
-    { label: "Lawyers", value: directoryUsers.filter((user) => user.roleLabel === "Document Issuer").length, detail: "role field", icon: <WorkIcon fontSize="small" />, tone: "blue" as const },
+    { label: "Lawyers", value: directoryUsers.filter((user) => user.roleLabel === lawyerRoleLabel).length, detail: "role field", icon: <WorkIcon fontSize="small" />, tone: "blue" as const },
   ];
 
   return (
