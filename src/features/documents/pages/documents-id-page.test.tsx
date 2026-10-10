@@ -21,6 +21,7 @@ vi.mock('@/features/documents/document-lifecycle-api', () => ({
   finalizeDocument: vi.fn(),
   markDocumentReady: vi.fn(),
   reopenDocument: vi.fn(),
+  cancelDocument: vi.fn(),
 }));
 
 vi.mock('@tanstack/react-query', () => ({
@@ -110,6 +111,7 @@ describe('document detail screen', () => {
     expect(screen.getAllByText('No processing status yet').length).toBeGreaterThan(0);
     expect(screen.queryByRole('button', { name: 'Rename document' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Finalize' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Cancel document' })).toBeNull();
     expect(screen.getByText('record-hash')).toBeTruthy();
     expect(state.queryKeys.some(([key]) => key === 'portal-doc-chain')).toBe(false);
 
@@ -160,6 +162,23 @@ describe('document detail screen', () => {
 
     expect(await screen.findByRole('button', { name: 'Rename document' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Finalize' })).toBeTruthy();
+  });
+
+  it('offers document cancellation only when permitted and requires confirmation', async () => {
+    state.documentQuery = {
+      data: { ...baseDocument, lifecycle: 'PREPARING', permissions: { ...baseDocument.permissions, can_cancel: true } },
+      isLoading: false,
+      isError: false,
+      refetch: vi.fn(),
+    };
+
+    await showPage();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel document' }));
+
+    expect(screen.getByRole('dialog', { name: 'Cancel document?' })).toBeTruthy();
+    expect(screen.getByText('This will mark the document as cancelled. The document record will be kept.')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Confirm cancellation' })).toBeTruthy();
   });
 
   it('renames a document through the modal form', async () => {
