@@ -120,6 +120,52 @@ describe('DocumentWorkspace', () => {
     vi.clearAllMocks();
   });
 
+  it('searches the current document through the scoped API and renders matching passages', async () => {
+    const fetchMock = vi.fn(async () => Response.json({
+      query: 'lease',
+      document_id: 'doc-101',
+      results: [{ chunk_id: 'chunk-1', chunk_index: 0, score: 0.95, text: 'The lease term is twelve months.' }],
+    }));
+    vi.stubGlobal('fetch', fetchMock);
+    renderWorkspace();
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Search' }));
+    expect(fetchMock).not.toHaveBeenCalled();
+    fireEvent.change(screen.getByRole('searchbox', { name: 'Search this document' }), { target: { value: ' lease ' } });
+    fireEvent.submit(screen.getByRole('button', { name: 'Search document' }).closest('form')!);
+
+    expect(await screen.findByText('The lease term is twelve months.')).toBeTruthy();
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/portal/proxy-post?path=%2Fdocuments%2Fdoc-101%2Fsearch',
+      expect.objectContaining({ method: 'POST', body: JSON.stringify({ query: 'lease' }), credentials: 'same-origin' }),
+    );
+  });
+
+  it('shows loading and an empty state when document search returns no matches', async () => {
+    let finishSearch: ((response: Response) => void) | undefined;
+    vi.stubGlobal('fetch', vi.fn(() => new Promise<Response>((resolve) => { finishSearch = resolve; })));
+    renderWorkspace();
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Search' }));
+    fireEvent.change(screen.getByRole('searchbox', { name: 'Search this document' }), { target: { value: 'missing clause' } });
+    fireEvent.submit(screen.getByRole('button', { name: 'Search document' }).closest('form')!);
+    expect(await screen.findByRole('status')).toBeTruthy();
+    finishSearch?.(Response.json({ query: 'missing clause', document_id: 'doc-101', results: [] }));
+
+    expect(await screen.findByText('No matching passages found in this document.')).toBeTruthy();
+  });
+
+  it('shows an error when document search fails', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => Response.json({ message: 'Unavailable' }, { status: 503 })));
+    renderWorkspace();
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Search' }));
+    fireEvent.change(screen.getByRole('searchbox', { name: 'Search this document' }), { target: { value: 'lease' } });
+    fireEvent.submit(screen.getByRole('button', { name: 'Search document' }).closest('form')!);
+
+    expect((await screen.findByRole('alert')).textContent).toBe('Search failed. Please try again.');
+  });
+
   it('shows supported signed-copy history separately from document versions', async () => {
     listSignedCopiesMock.mockResolvedValue({ document_id: 'doc-101', copies: [
       { id: 'copy-current', storage_url: 'https://files.example/current.pdf', sha256: 'current-hash', content_type: 'application/pdf', size_bytes: 100, original_filename: 'current.pdf', uploaded_by: null, replaced_reason: null, is_current: true, created_at: '2026-07-28T00:00:00Z' },
