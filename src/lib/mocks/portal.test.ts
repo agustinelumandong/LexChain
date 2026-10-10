@@ -306,6 +306,22 @@ describe('portal mock profiles', () => {
   });
 });
 
+describe('portal mock user search', () => {
+  it('returns the matching account for the issuer and preserves not-found behavior', async () => {
+    const found = mockPortalGet('/users/search?email=participant%40example.com', 'mock-token:mock-document-issuer');
+    expect(found.status).toBe(200);
+    await expect(found.json()).resolves.toEqual({
+      user_id: 'mock-document-participant',
+      email: 'participant@example.com',
+      f_name: 'Document',
+      l_name: 'Participant',
+    });
+
+    expect(mockPortalGet('/users/search?email=unknown%40example.com', 'mock-token:mock-document-issuer').status).toBe(404);
+    expect(mockPortalGet('/users/search?email=participant%40example.com', 'mock-token:mock-document-participant').status).toBe(403);
+  });
+});
+
 describe('portal mock document isolation', () => {
   it('exposes only the seeded shared document to a participant before access is accepted', async () => {
     const documents = mockPortalGet('/documents/', 'mock-token:mock-document-participant');
