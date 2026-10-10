@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   attachSignedCopy,
+  cancelDocument,
   correctDocumentEntry,
   finalizeDocument,
   listDraftComments,
@@ -117,6 +118,19 @@ describe('document lifecycle client', () => {
       '/api/portal/proxy-post?path=%2Fdocuments%2Fdocument-1%2Fready',
       '/api/portal/proxy-post?path=%2Fdocuments%2Fdocument-1%2Freopen',
     ]);
+  });
+
+  it('cancels a document through the OpenAPI POST operation', async () => {
+    const response = { document_id: 'document-1', lifecycle: 'CANCELLED' };
+    const fetchMock = vi.fn().mockResolvedValue(Response.json(response));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(cancelDocument('document-1')).resolves.toEqual(response);
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/portal/proxy-post?path=%2Fdocuments%2Fdocument-1%2Fcancel',
+      expect.objectContaining({ method: 'POST' }),
+    );
   });
 
   it('preserves the backend reason when readiness is rejected', async () => {
