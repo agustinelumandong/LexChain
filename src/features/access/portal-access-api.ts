@@ -5,6 +5,7 @@ type DocumentPartyList = components['schemas']['DocumentPartyListResponse'];
 type AddPartyRequest = components['schemas']['AddPartyRequest'];
 type DocumentParty = components['schemas']['DocumentPartyResponse'];
 type RemovePartyResponse = components['schemas']['RemovePartyResponse'];
+type UserSearchResponse = components['schemas']['UserSearchResponse'];
 
 async function portalAccessFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(path, {
@@ -33,6 +34,17 @@ export function revokeDocumentParty(documentId: string, partyUserId: string) {
   return portalAccessFetch<RemovePartyResponse>(`/api/portal/documents/${documentId}/parties/${partyUserId}`, {
     method: 'DELETE',
   });
+}
+
+export async function searchUserByEmail(email: string): Promise<UserSearchResponse | null> {
+  const response = await fetch(`/api/portal/proxy?path=${encodeURIComponent(`/users/search?email=${encodeURIComponent(email)}`)}`, {
+    credentials: 'same-origin',
+    cache: 'no-store',
+  });
+
+  if (response.status === 404) return null;
+  if (!response.ok) throw new Error(`API error: ${response.status}`);
+  return response.json() as Promise<UserSearchResponse>;
 }
 
 export function listDocumentAuditLogs(documentId: string) {
