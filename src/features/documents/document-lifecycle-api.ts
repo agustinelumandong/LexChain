@@ -55,6 +55,18 @@ export async function renameDocument(documentId: string, fileName: string) {
   });
 }
 
+export function correctDocumentEntry(documentId: string, entry: ApiSchema<'CorrectEntryRequest'>): Promise<ApiSchema<'DocumentResponse'>> {
+  const id = required(documentId, 'Document ID is required');
+  if (!Number.isSafeInteger(entry.doc_no) || entry.doc_no < 1) throw new Error('Document number must be a positive whole number.');
+  if (!Number.isSafeInteger(entry.page_no) || entry.page_no < 1) throw new Error('Page number must be a positive whole number.');
+
+  return lifecycleFetch<ApiSchema<'DocumentResponse'>>(`/documents/${id}/entry`, {
+    method: 'PATCH',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(entry),
+  });
+}
+
 export async function listSignedCopies(documentId: string): Promise<ApiSchema<'SignedCopyListResponse'>> {
   return lifecycleFetch(`/documents/${required(documentId, 'Document ID is required')}/signed-copies`);
 }

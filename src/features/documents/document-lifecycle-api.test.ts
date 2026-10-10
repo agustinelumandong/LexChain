@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   attachSignedCopy,
+  correctDocumentEntry,
   finalizeDocument,
   listDraftComments,
   replaceSignedCopy,
@@ -21,6 +22,32 @@ afterEach(() => {
 });
 
 describe('document lifecycle client', () => {
+  it('corrects the register entry through the OpenAPI PATCH operation', async () => {
+    const response = { document_id: 'document-1', lifecycle: 'SIGNED', doc_no: 14, page_no: 9 };
+    const fetchMock = vi.fn().mockResolvedValue(Response.json(response));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(correctDocumentEntry('document-1', { book_id: 'book-2', doc_no: 14, page_no: 9 })).resolves.toEqual(response);
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/portal/proxy-post?path=%2Fdocuments%2Fdocument-1%2Fentry',
+      expect.objectContaining({
+        method: 'PATCH',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ book_id: 'book-2', doc_no: 14, page_no: 9 }),
+      }),
+    );
+  });
+
+  it('rejects non-positive register numbers without sending a request', async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(Promise.resolve().then(() => correctDocumentEntry('document-1', { doc_no: 0, page_no: 1 }))).rejects.toThrow('Document number must be a positive whole number.');
+    await expect(Promise.resolve().then(() => correctDocumentEntry('document-1', { doc_no: 1, page_no: 0 }))).rejects.toThrow('Page number must be a positive whole number.');
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
   it('attaches a signed PDF with filing details using multipart form data', async () => {
     const response = { document_id: 'document-1', lifecycle: 'SIGNED' };
     const fetchMock = vi.fn().mockResolvedValue(Response.json(response));
