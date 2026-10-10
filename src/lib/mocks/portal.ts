@@ -741,6 +741,21 @@ async function searchDocuments(request: Request, token?: string) {
   return json({ query, results });
 }
 
+async function searchDocument(id: string, request: Request, token?: string) {
+  const document = documentFor(id);
+  if (!document || !canAccessDocument(token, document)) return error('Document not found', 404);
+  const body = await jsonBody(request);
+  const query = typeof body?.query === 'string' ? body.query.trim() : '';
+  if (!query) return error('Search query is required', 400);
+  const normalized = query.toLowerCase();
+  const matches = `${document.file_name} ${document.summary} ${document.labels.join(' ')}`.toLowerCase().includes(normalized);
+  return json({
+    query,
+    document_id: document.id,
+    results: matches ? [{ chunk_id: `mock-search-${document.id}`, chunk_index: 0, score: 0.95, text: document.summary }] : [],
+  });
+}
+
 async function askDocument(id: string, request: Request, token?: string) {
   const document = documentFor(id);
   if (!document || !canAccessDocument(token, document)) return error('Document not found', 404);
@@ -1083,6 +1098,9 @@ export async function mockPortalMutate(method: 'POST' | 'PUT' | 'PATCH' | 'DELET
 
   const askMatch = path.match(/^\/documents\/([^/]+)\/ask\/?$/);
   if (method === 'POST' && askMatch) return askDocument(askMatch[1], request, token);
+
+  const documentSearchMatch = requestPathname.match(/^\/documents\/([^/]+)\/search\/?$/);
+  if (method === 'POST' && documentSearchMatch) return searchDocument(documentSearchMatch[1], request, token);
 
   const invitationMatch = requestPathname.match(/^\/documents\/([^/]+)\/parties\/(accept|reject)$/);
   if (method === 'POST' && invitationMatch) {

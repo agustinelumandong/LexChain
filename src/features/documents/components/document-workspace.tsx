@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import type { ApiSchema } from '@/shared/types/index';
+import { searchDocument } from '@/features/documents/search-api';
 import { attachSignedCopy, listDocumentHistory, listDraftComments, listSignedCopies, replaceSignedCopy, syncDraftComments } from '@/features/documents/document-lifecycle-api';
 import { getDocumentLifecycleLabel, getDocumentStatusLabel } from '@/features/documents/document-ui';
 import { shortenIntegrityHash } from "@/features/verification";
@@ -12,7 +13,7 @@ import { listDocumentParties, type PortalUiRole } from '@/features/access';
 
 type WorkspaceDocument = ApiSchema<'DocumentResponse'>;
 
-const tabs = ['Overview', 'Files', 'Comments', 'Blockchain', 'Signed copies', 'Access', 'History'] as const;
+const tabs = ['Overview', 'Search', 'Files', 'Comments', 'Blockchain', 'Signed copies', 'Access', 'History'] as const;
 type Tab = typeof tabs[number];
 
 function readable(value: unknown): string {
@@ -95,6 +96,7 @@ export function DocumentWorkspace({
   onReopen,
 }: DocumentWorkspaceProps) {
   const [activeTab, setActiveTab] = useState<Tab>('Overview');
+  const [searchInput, setSearchInput] = useState('');
   const [signedCopyMode, setSignedCopyMode] = useState<'attach' | 'replace' | null>(null);
   const [signedCopyFile, setSignedCopyFile] = useState<File | null>(null);
   const [replacementReason, setReplacementReason] = useState('');
@@ -115,6 +117,7 @@ export function DocumentWorkspace({
       await queryClient.invalidateQueries({ queryKey: ['portal-doc-signed-copies', document.document_id] });
     },
   });
+  const documentSearch = useMutation({ mutationFn: (query: string) => searchDocument(document.document_id, query) });
   const signedCopiesQuery = useQuery({ queryKey: ['portal-doc-signed-copies', document.document_id], queryFn: () => listSignedCopies(document.document_id), enabled: activeTab === 'Signed copies' });
   const partiesQuery = useQuery({
     queryKey: ['portal-document-parties', document.document_id],
@@ -190,6 +193,23 @@ export function DocumentWorkspace({
                 </div>
               </div>
             )}
+          </div>
+        )}
+
+        {activeTab === 'Search' && (
+          <div className="space-y-4">
+            <div><h2 className="text-lg font-extrabold text-[#0C2B49]">Search this document</h2><p className="mt-1 text-sm text-[#64748b]">Find matching passages in the current document.</p></div>
+            <form className="flex flex-wrap items-end gap-3" onSubmit={(event) => {
+              event.preventDefault();
+              documentSearch.mutate(searchInput.trim());
+            }}>
+              <label className="flex min-w-0 flex-1 flex-col gap-1.5 text-sm font-bold text-[#0C2B49]">Search query<input aria-label="Search this document" type="search" required minLength={1} value={searchInput} onChange={(event) => setSearchInput(event.currentTarget.value)} className="rounded-xl border border-[#D7E4F2] px-3 py-2.5 text-sm font-medium outline-none focus:border-[#0985E7]" /></label>
+              <button type="submit" disabled={!searchInput.trim() || documentSearch.isPending} className="rounded-full bg-[#0985E7] px-4 py-2.5 text-sm font-bold text-white disabled:opacity-50">{documentSearch.isPending ? 'Searching…' : 'Search document'}</button>
+            </form>
+            {documentSearch.isPending && <p role="status" className="text-sm text-[#64748b]">Searching this document…</p>}
+            {documentSearch.isError && <p role="alert" className="text-sm font-bold text-[#B42318]">{documentSearch.error instanceof Error ? documentSearch.error.message : 'Unable to search this document.'}</p>}
+            {documentSearch.data?.results.length === 0 && <p className="text-sm text-[#64748b]">No matching passages found in this document.</p>}
+            {Boolean(documentSearch.data?.results.length) && <ol aria-label="Matching passages" className="space-y-3">{documentSearch.data?.results.map((result) => <li key={result.chunk_id} className="rounded-xl border border-[#E8F0F8] bg-[#F8FBFF] p-4"><p className="whitespace-pre-wrap text-sm leading-6 text-[#0C2B49]">{result.text}</p></li>)}</ol>}
           </div>
         )}
 
