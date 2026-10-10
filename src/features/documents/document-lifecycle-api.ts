@@ -31,6 +31,10 @@ export function listDraftComments(documentId: string): Promise<ApiSchema<'DraftC
   return lifecycleFetch(`/documents/${required(documentId, 'Document ID is required')}/comments`);
 }
 
+export function listDocumentHistory(documentId: string): Promise<ApiSchema<'DocumentHistoryResponse'>> {
+  return lifecycleFetch(`/documents/${required(documentId, 'Document ID is required')}/history`);
+}
+
 export function syncDraftComments(documentId: string): Promise<ApiSchema<'DraftCommentListResponse'>> {
   return lifecycleFetch(`/documents/${required(documentId, 'Document ID is required')}/comments/sync`, { method: 'POST' });
 }

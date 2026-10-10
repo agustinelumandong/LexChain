@@ -4,16 +4,15 @@ import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import type { ApiSchema } from '@/shared/types/index';
-import { attachSignedCopy, listDraftComments, listSignedCopies, replaceSignedCopy, syncDraftComments } from '@/features/documents/document-lifecycle-api';
+import { attachSignedCopy, listDocumentHistory, listDraftComments, listSignedCopies, replaceSignedCopy, syncDraftComments } from '@/features/documents/document-lifecycle-api';
 import { getDocumentLifecycleLabel, getDocumentStatusLabel } from '@/features/documents/document-ui';
 import { shortenIntegrityHash } from "@/features/verification";
 import { GoogleDraftPanel } from '@/features/documents/components/google-draft-panel';
-import { listDocumentAuditLogs, listDocumentParties, type PortalUiRole } from '@/features/access';
-import { formatAuditEvent } from '@/features/documents/activity-log';
+import { listDocumentParties, type PortalUiRole } from '@/features/access';
 
 type WorkspaceDocument = ApiSchema<'DocumentResponse'>;
 
-const tabs = ['Overview', 'Files', 'Comments', 'Blockchain', 'Signed copies', 'Access', 'Activity'] as const;
+const tabs = ['Overview', 'Files', 'Comments', 'Blockchain', 'Signed copies', 'Access', 'History'] as const;
 type Tab = typeof tabs[number];
 
 function readable(value: unknown): string {
@@ -45,12 +44,6 @@ function formatDate(value: string | null | undefined) {
   return value
     ? new Date(value).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })
     : 'Not available';
-}
-
-function formatActivityTime(value: string) {
-  return new Date(value).toLocaleString('en-US', {
-    month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: 'UTC',
-  });
 }
 
 function InsightGroup({ title, items }: { title: string; items?: unknown[] | null }) {
@@ -129,10 +122,10 @@ export function DocumentWorkspace({
     enabled: role === 'lawyer' && activeTab === 'Access',
     retry: false,
   });
-  const activityQuery = useQuery({
-    queryKey: ['portal-document-audit', document.document_id],
-    queryFn: () => listDocumentAuditLogs(document.document_id),
-    enabled: role === 'lawyer' && activeTab === 'Activity',
+  const historyQuery = useQuery({
+    queryKey: ['portal-document-history', document.document_id],
+    queryFn: () => listDocumentHistory(document.document_id),
+    enabled: activeTab === 'History',
     retry: false,
   });
   const commentsKey = ['portal-document-comments', document.document_id];
@@ -142,7 +135,7 @@ export function DocumentWorkspace({
   const hasInsights = Boolean(document.summary || document.labels?.length || document.entities?.length || document.risk_flags?.length);
   const lifecycle = document;
   const participants = partiesQuery.data?.parties ?? [];
-  const activityEvents = activityQuery.data ?? [];
+  const historyChanges = historyQuery.data?.changes ?? [];
 
   return (
     <section className="rounded-[18px] border border-[#E8F0F8] bg-white shadow-[0_4px_12px_rgba(19,59,115,0.05)]">
@@ -295,23 +288,21 @@ export function DocumentWorkspace({
           </div>
         )}
 
-        {activeTab === 'Activity' && (
+        {activeTab === 'History' && (
           <div className="space-y-3">
-            <h2 className="text-lg font-extrabold text-[#0C2B49]">Activity</h2>
-            {role === 'lawyer' ? <>
-              {activityQuery.isLoading && <p role="status" className="text-sm text-[#64748b]">Loading document activity…</p>}
-              {activityQuery.isError && <p role="alert" className="text-sm font-semibold text-[#B42318]">Unable to load document activity.</p>}
-              {!activityQuery.isLoading && !activityQuery.isError && activityEvents.length === 0 && <p className="rounded-xl border border-dashed border-[#D6E3F1] bg-[#F8FBFF] px-4 py-3 text-sm text-[#5B6F8A]">No activity has been recorded for this document yet.</p>}
-              {activityEvents.length > 0 && <ol aria-label="Document activity" className="space-y-3">
-                {activityEvents.map((event) => <li key={event.id} className="flex flex-wrap items-start justify-between gap-2 rounded-xl border border-[#E8F0F8] bg-[#F8FBFF] px-4 py-3">
-                  <div><p className="text-sm font-bold text-[#0C2B49]">{formatAuditEvent(event.action)}</p><p className="mt-1 text-xs text-[#64748b]">{event.user_id ? `User ${event.user_id}` : 'System'}</p></div>
-                  <time dateTime={event.created_at} className="text-xs font-semibold text-[#64748b]">{formatActivityTime(event.created_at)}</time>
-                </li>)}
-              </ol>}
-              {document.permissions.can_view && <Link href={`/portal/documents/${document.document_id}/activity`} className="inline-flex rounded-full bg-[#0985E7] px-4 py-2.5 text-sm font-extrabold text-white">View document activity</Link>}
-            </> : <div className="rounded-xl border border-[#E4EEF9] bg-[#F8FBFF] px-4 py-3"><p className="font-bold text-[#0C2B49]">Activity history is unavailable for your role.</p><p className="mt-1 text-sm text-[#5B6F8A]">Document activity is available to Lawyers only.</p></div>}
+            <div><h2 className="text-lg font-extrabold text-[#0C2B49]">Document history</h2><p className="mt-1 text-sm text-[#64748b]">Lifecycle changes, oldest first.</p></div>
+            {historyQuery.isLoading && <p role="status" className="text-sm text-[#64748b]">Loading document history…</p>}
+            {historyQuery.isError && <p role="alert" className="text-sm font-semibold text-[#B42318]">Unable to load document history.</p>}
+            {historyQuery.data && historyChanges.length === 0 && <p className="rounded-xl border border-dashed border-[#D6E3F1] bg-[#F8FBFF] px-4 py-3 text-sm text-[#5B6F8A]">No lifecycle changes have been recorded for this document yet.</p>}
+            {historyChanges.length > 0 && <ol aria-label="Document history" className="space-y-3">
+              {historyChanges.map((change, index) => <li key={`${change.created_at}-${change.action}-${index}`} className="flex flex-wrap items-start justify-between gap-2 rounded-xl border border-[#E8F0F8] bg-[#F8FBFF] px-4 py-3">
+                <div><p className="text-sm font-bold text-[#0C2B49]">{getDocumentLifecycleLabel(change.action)}</p><p className="mt-1 text-sm text-[#4B6382]">{change.from_stage ? getDocumentLifecycleLabel(change.from_stage) : 'No previous stage'} → {getDocumentLifecycleLabel(change.to_stage)}</p><p className="mt-1 text-xs text-[#64748b]">{change.actor_id ? `Actor ${change.actor_id}` : 'Actor not supplied'}</p></div>
+                <time dateTime={change.created_at} className="text-xs font-semibold text-[#64748b]">{formatDate(change.created_at)}</time>
+              </li>)}
+            </ol>}
           </div>
         )}
+
       </div>
     </section>
   );

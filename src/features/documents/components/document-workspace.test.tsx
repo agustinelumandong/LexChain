@@ -5,10 +5,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DocumentWorkspace } from '@/features/documents/components/document-workspace';
 import type { ApiSchema } from '@/shared/types';
 
-const { attachSignedCopyMock, finalizeDocumentMock, listDocumentAuditLogsMock, listDocumentPartiesMock, listSignedCopiesMock, listDraftCommentsMock, replaceSignedCopyMock, syncDraftCommentsMock } = vi.hoisted(() => ({
+const { attachSignedCopyMock, finalizeDocumentMock, listDocumentPartiesMock, listSignedCopiesMock, listDraftCommentsMock, replaceSignedCopyMock, syncDraftCommentsMock } = vi.hoisted(() => ({
   attachSignedCopyMock: vi.fn(),
   finalizeDocumentMock: vi.fn(),
-  listDocumentAuditLogsMock: vi.fn(),
   listDocumentPartiesMock: vi.fn(),
   listSignedCopiesMock: vi.fn(),
   listDraftCommentsMock: vi.fn(),
@@ -17,7 +16,6 @@ const { attachSignedCopyMock, finalizeDocumentMock, listDocumentAuditLogsMock, l
 }));
 
 vi.mock('@/features/access', () => ({
-  listDocumentAuditLogs: listDocumentAuditLogsMock,
   listDocumentParties: listDocumentPartiesMock,
 }));
 
@@ -451,27 +449,20 @@ describe('DocumentWorkspace', () => {
     fireEvent.click(screen.getByRole('tab', { name: 'Access' }));
     expect(screen.getByRole('link', { name: 'Manage document participants' }).getAttribute('href'))
       .toBe('/portal/documents/doc-101/participants');
-    fireEvent.click(screen.getByRole('tab', { name: 'Activity' }));
-    expect(screen.getByRole('link', { name: 'View document activity' }).getAttribute('href'))
-      .toBe('/portal/documents/doc-101/activity');
+    expect(screen.queryByRole('tab', { name: 'Activity' })).toBeNull();
   });
 
-  it('shows participant and activity details for lawyers', async () => {
+  it('shows participant details for lawyers', async () => {
     listDocumentPartiesMock.mockResolvedValue({
       document_id: 'doc-101',
       parties: [{ id: 'party-1', user_id: 'user-1', document_id: 'doc-101', email: 'reviewer@example.com', f_name: 'Avery', l_name: 'Reviewer', role: 'viewer', status: 'accepted' }],
     });
-    listDocumentAuditLogsMock.mockResolvedValue([
-      { id: 'event-1', action: 'document_verified', user_id: 'user-1', created_at: '2026-10-08T10:00:00Z' },
-    ]);
     renderWorkspace({ role: 'lawyer' });
 
     fireEvent.click(screen.getByRole('tab', { name: 'Access' }));
     expect(await screen.findByText('Avery Reviewer')).toBeTruthy();
     expect(screen.getByText('reviewer@example.com')).toBeTruthy();
 
-    fireEvent.click(screen.getByRole('tab', { name: 'Activity' }));
-    expect(await screen.findByText('Document verified')).toBeTruthy();
   });
 
   it('does not show participant management when the backend denies share and revoke', () => {
