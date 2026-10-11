@@ -1,8 +1,14 @@
 'use client';
 
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
+import { useState } from 'react';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import Dialog from '@mui/material/Dialog';
+import DialogActions from '@mui/material/DialogActions';
+import DialogContent from '@mui/material/DialogContent';
+import DialogContentText from '@mui/material/DialogContentText';
+import DialogTitle from '@mui/material/DialogTitle';
 import type { ApiSchema } from '@/shared/types/index';
 import { getPortalUiRole } from '@/features/access';
 
@@ -55,12 +61,30 @@ async function startGoogleConnection(): Promise<string> {
   throw new Error('The backend returned an invalid Google authorization URL.');
 }
 
+async function disconnectGoogleConnection(): Promise<void> {
+  const response = await fetch(`/api/portal/proxy-post?path=${encodeURIComponent('/google/connection')}`, {
+    method: 'DELETE',
+    credentials: 'same-origin',
+  });
+  if (!response.ok) throw new Error('Could not disconnect Google. Try again.');
+}
+
 function GoogleConnectionCard({ google, message }: { google?: string; message?: string }) {
+  const queryClient = useQueryClient();
+  const [disconnectConfirmationOpen, setDisconnectConfirmationOpen] = useState(false);
   const connectionQuery = useQuery({
     queryKey: ['google-connection'],
     queryFn: fetchGoogleConnection,
   });
   const connectMutation = useMutation({ mutationFn: startGoogleConnection });
+  const disconnectMutation = useMutation({
+    mutationFn: disconnectGoogleConnection,
+    onSuccess: async () => {
+      queryClient.setQueryData<GoogleConnectionStatus>(['google-connection'], { connected: false, google_email: null });
+      setDisconnectConfirmationOpen(false);
+      await queryClient.invalidateQueries({ queryKey: ['google-connection'] });
+    },
+  });
   const callbackOutcome: GoogleCallbackOutcome | null = google === 'connected'
     ? 'connected'
     : google === 'error'
@@ -98,6 +122,17 @@ function GoogleConnectionCard({ google, message }: { google?: string; message?: 
           <>
             <span className="rounded-full bg-green-50 px-3 py-1 text-sm font-bold text-green-800">Connected</span>
             {connectionQuery.data.google_email && <span className="text-sm font-medium text-[#475467]">{connectionQuery.data.google_email}</span>}
+            <button
+              type="button"
+              onClick={() => {
+                disconnectMutation.reset();
+                setDisconnectConfirmationOpen(true);
+              }}
+              disabled={disconnectMutation.isPending}
+              className="rounded-full border border-[#B42318] px-4 py-2 text-sm font-bold text-[#B42318] disabled:opacity-50"
+            >
+              Disconnect Google
+            </button>
           </>
         ) : (
           <>
@@ -115,6 +150,38 @@ function GoogleConnectionCard({ google, message }: { google?: string; message?: 
           </>
         )}
       </div>
+
+      <Dialog
+        open={disconnectConfirmationOpen}
+        onClose={() => !disconnectMutation.isPending && setDisconnectConfirmationOpen(false)}
+        aria-labelledby="disconnect-google-title"
+      >
+        <DialogTitle id="disconnect-google-title">Disconnect Google?</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            LexChain access to your Google account will be revoked. Existing drafts will remain in your Google Drive.
+          </DialogContentText>
+          {disconnectMutation.isError && <p role="alert" className="mt-3 text-sm font-semibold text-[#B42318]">Could not disconnect Google. Try again.</p>}
+        </DialogContent>
+        <DialogActions>
+          <button
+            type="button"
+            disabled={disconnectMutation.isPending}
+            onClick={() => setDisconnectConfirmationOpen(false)}
+            className="rounded-full px-4 py-2 text-sm font-bold text-[#64748b] disabled:opacity-40"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            disabled={disconnectMutation.isPending}
+            onClick={() => disconnectMutation.mutate()}
+            className="rounded-full bg-[#B42318] px-4 py-2 text-sm font-bold text-white disabled:opacity-40"
+          >
+            {disconnectMutation.isPending ? 'Disconnecting…' : disconnectMutation.isError ? 'Try again' : 'Disconnect Google'}
+          </button>
+        </DialogActions>
+      </Dialog>
     </section>
   );
 }

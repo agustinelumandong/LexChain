@@ -31,6 +31,10 @@ export function listDraftComments(documentId: string): Promise<ApiSchema<'DraftC
   return lifecycleFetch(`/documents/${required(documentId, 'Document ID is required')}/comments`);
 }
 
+export function listDocumentHistory(documentId: string): Promise<ApiSchema<'DocumentHistoryResponse'>> {
+  return lifecycleFetch(`/documents/${required(documentId, 'Document ID is required')}/history`);
+}
+
 export function syncDraftComments(documentId: string): Promise<ApiSchema<'DraftCommentListResponse'>> {
   return lifecycleFetch(`/documents/${required(documentId, 'Document ID is required')}/comments/sync`, { method: 'POST' });
 }
@@ -43,11 +47,27 @@ export function reopenDocument(documentId: string): Promise<ApiSchema<'DocumentR
   return lifecycleFetch(`/documents/${required(documentId, 'Document ID is required')}/reopen`, { method: 'POST' });
 }
 
+export function cancelDocument(documentId: string): Promise<ApiSchema<'DocumentResponse'>> {
+  return lifecycleFetch<ApiSchema<'DocumentResponse'>>(`/documents/${required(documentId, 'Document ID is required')}/cancel`, { method: 'POST' });
+}
+
 export async function renameDocument(documentId: string, fileName: string) {
   return lifecycleFetch(`/documents/${required(documentId, 'Document ID is required')}`, {
     method: 'PATCH',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ file_name: required(fileName, 'Document name is required') }),
+  });
+}
+
+export function correctDocumentEntry(documentId: string, entry: ApiSchema<'CorrectEntryRequest'>): Promise<ApiSchema<'DocumentResponse'>> {
+  const id = required(documentId, 'Document ID is required');
+  if (!Number.isSafeInteger(entry.doc_no) || entry.doc_no < 1) throw new Error('Document number must be a positive whole number.');
+  if (!Number.isSafeInteger(entry.page_no) || entry.page_no < 1) throw new Error('Page number must be a positive whole number.');
+
+  return lifecycleFetch<ApiSchema<'DocumentResponse'>>(`/documents/${id}/entry`, {
+    method: 'PATCH',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(entry),
   });
 }
 
