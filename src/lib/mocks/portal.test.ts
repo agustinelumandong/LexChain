@@ -306,6 +306,22 @@ describe('portal mock profiles', () => {
   });
 });
 
+describe('portal mock user search', () => {
+  it('returns the matching account for the issuer and preserves not-found behavior', async () => {
+    const found = mockPortalGet('/users/search?email=participant%40example.com', 'mock-token:mock-document-issuer');
+    expect(found.status).toBe(200);
+    await expect(found.json()).resolves.toEqual({
+      user_id: 'mock-document-participant',
+      email: 'participant@example.com',
+      f_name: 'Document',
+      l_name: 'Participant',
+    });
+
+    expect(mockPortalGet('/users/search?email=unknown%40example.com', 'mock-token:mock-document-issuer').status).toBe(404);
+    expect(mockPortalGet('/users/search?email=participant%40example.com', 'mock-token:mock-document-participant').status).toBe(403);
+  });
+});
+
 describe('portal mock document isolation', () => {
   it('exposes only the seeded shared document to a participant before access is accepted', async () => {
     const documents = mockPortalGet('/documents/', 'mock-token:mock-document-participant');
@@ -646,6 +662,27 @@ describe('portal mock search and document questions', () => {
       askRequest(),
       'mock-token:mock-document-participant',
     )).status).toBe(200);
+  });
+
+  it('returns OpenAPI-shaped passages only for a document the user can access', async () => {
+    vi.resetModules();
+    const scopedMock = await import('@/lib/mocks/portal');
+    const request = (query: string) => new Request('https://mock.lexchain.local/api/portal/proxy-post', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ query }),
+    });
+
+    const response = await scopedMock.mockPortalMutate('POST', '/documents/mock-document-1/search', request('lease'), 'mock-token:mock-document-issuer');
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      query: 'lease',
+      document_id: 'mock-document-1',
+      results: [{ chunk_id: 'mock-search-mock-document-1', chunk_index: 0, score: 0.95, text: expect.any(String) }],
+    });
+    const unavailable = await scopedMock.mockPortalMutate('POST', '/documents/mock-document-1/search', request('missing text'), 'mock-token:mock-document-issuer');
+    await expect(unavailable.json()).resolves.toMatchObject({ query: 'missing text', results: [] });
+    expect((await scopedMock.mockPortalMutate('POST', '/documents/mock-document-3/search', request('restoration'), 'mock-token:mock-document-participant')).status).toBe(404);
   });
 });
 

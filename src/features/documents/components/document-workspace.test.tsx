@@ -5,10 +5,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DocumentWorkspace } from '@/features/documents/components/document-workspace';
 import type { ApiSchema } from '@/shared/types';
 
-const { attachSignedCopyMock, finalizeDocumentMock, listDocumentPartiesMock, listSignedCopiesMock, listDraftCommentsMock, replaceSignedCopyMock, syncDraftCommentsMock } = vi.hoisted(() => ({
+const { attachSignedCopyMock, correctDocumentEntryMock, finalizeDocumentMock, listDocumentPartiesMock, listRegisterBooksMock, listSignedCopiesMock, listDraftCommentsMock, replaceSignedCopyMock, syncDraftCommentsMock } = vi.hoisted(() => ({
   attachSignedCopyMock: vi.fn(),
+  correctDocumentEntryMock: vi.fn(),
   finalizeDocumentMock: vi.fn(),
   listDocumentPartiesMock: vi.fn(),
+  listRegisterBooksMock: vi.fn(),
   listSignedCopiesMock: vi.fn(),
   listDraftCommentsMock: vi.fn(),
   replaceSignedCopyMock: vi.fn(),
@@ -21,11 +23,16 @@ vi.mock('@/features/access', () => ({
 
 vi.mock('@/features/documents/document-lifecycle-api', () => ({
   attachSignedCopy: attachSignedCopyMock,
+  correctDocumentEntry: correctDocumentEntryMock,
   finalizeDocument: finalizeDocumentMock,
   listSignedCopies: listSignedCopiesMock,
   listDraftComments: listDraftCommentsMock,
   replaceSignedCopy: replaceSignedCopyMock,
   syncDraftComments: syncDraftCommentsMock,
+}));
+
+vi.mock('@/features/office/books-api', () => ({
+  listRegisterBooks: listRegisterBooksMock,
 }));
 
 const document: ApiSchema<'DocumentResponse'> = {
@@ -105,6 +112,11 @@ function renderWorkspace(props: Partial<React.ComponentProps<typeof DocumentWork
 describe('DocumentWorkspace', () => {
   beforeEach(() => {
     attachSignedCopyMock.mockResolvedValue(document);
+    correctDocumentEntryMock.mockResolvedValue(document);
+    listRegisterBooksMock.mockResolvedValue([
+      { id: 'book-101', book_number: 101, series_year: 2026, status: 'OPEN' },
+      { id: 'book-102', book_number: 102, series_year: 2026, status: 'CLOSED' },
+    ]);
     listDocumentPartiesMock.mockResolvedValue({ document_id: 'doc-101', parties: [] });
     listSignedCopiesMock.mockResolvedValue({ document_id: 'doc-101', copies: [] });
     listDraftCommentsMock.mockResolvedValue({ document_id: 'doc-101', unresolved: 0, comments: [] });
@@ -117,6 +129,121 @@ describe('DocumentWorkspace', () => {
     vi.unstubAllGlobals();
     vi.unstubAllEnvs();
     vi.clearAllMocks();
+  });
+
+  it('searches the current document through the scoped API and renders matching passages', async () => {
+    const fetchMock = vi.fn(async () => Response.json({
+      query: 'lease',
+      document_id: 'doc-101',
+      results: [{ chunk_id: 'chunk-1', chunk_index: 0, score: 0.95, text: 'The lease term is twelve months.' }],
+    }));
+    vi.stubGlobal('fetch', fetchMock);
+    renderWorkspace();
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Search' }));
+    expect(fetchMock).not.toHaveBeenCalled();
+    fireEvent.change(screen.getByRole('searchbox', { name: 'Search this document' }), { target: { value: ' lease ' } });
+    fireEvent.submit(screen.getByRole('button', { name: 'Search document' }).closest('form')!);
+
+    expect(await screen.findByText('The lease term is twelve months.')).toBeTruthy();
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/portal/proxy-post?path=%2Fdocuments%2Fdoc-101%2Fsearch',
+      expect.objectContaining({ method: 'POST', body: JSON.stringify({ query: 'lease' }), credentials: 'same-origin' }),
+    );
+  });
+
+  it('only offers register correction for signed documents allowed by the backend', () => {
+    const signedDocument = { ...document, lifecycle: 'SIGNED' };
+    const permittedDocument = { ...signedDocument, permissions: { ...document.permissions, can_correct_entry: true } };
+
+    renderWorkspace({ document: signedDocument });
+    expect(screen.queryByRole('button', { name: 'Correct register entry' })).toBeNull();
+    cleanup();
+
+    renderWorkspace({ document: { ...permittedDocument, lifecycle: 'PREPARING' } });
+    expect(screen.queryByRole('button', { name: 'Correct register entry' })).toBeNull();
+    cleanup();
+
+    renderWorkspace({ document: permittedDocument });
+    expect(screen.getByRole('button', { name: 'Correct register entry' })).toBeTruthy();
+  });
+
+  it('corrects the register entry with positive numbers and refreshes the document', async () => {
+    const signedDocument = { ...document, lifecycle: 'SIGNED', permissions: { ...document.permissions, can_correct_entry: true } };
+    const updatedDocument = { ...signedDocument, book_id: 'book-102', doc_no: 14, page_no: 9 };
+    correctDocumentEntryMock.mockResolvedValue(updatedDocument);
+    const { queryClient } = renderWorkspace({ document: signedDocument, role: 'lawyer' });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Correct register entry' }));
+    await waitFor(() => expect(listRegisterBooksMock).toHaveBeenCalled());
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Register book' }).hasAttribute('disabled')).toBe(false);
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Register book' }));
+    fireEvent.click(await screen.findByRole('option', { name: 'Register book 102 — Series 2026 · Closed' }));
+    fireEvent.change(screen.getByLabelText('Document number'), { target: { value: '14' } });
+    fireEvent.change(screen.getByLabelText('Page number'), { target: { value: '9' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save correction' }));
+
+    await waitFor(() => expect(correctDocumentEntryMock).toHaveBeenCalledWith('doc-101', {
+      book_id: 'book-102',
+      doc_no: 14,
+      page_no: 9,
+    }));
+    expect(await screen.findByText('Register entry corrected.')).toBeTruthy();
+    expect(queryClient.getQueryData(['portal-doc', 'doc-101'])).toMatchObject({ book_id: 'book-102', doc_no: 14, page_no: 9 });
+  });
+
+  it('keeps the document register book as the default correction target', async () => {
+    const signedDocument = { ...document, lifecycle: 'SIGNED', permissions: { ...document.permissions, can_correct_entry: true } };
+    renderWorkspace({ document: signedDocument });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Correct register entry' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save correction' }));
+
+    await waitFor(() => expect(correctDocumentEntryMock).toHaveBeenCalledWith('doc-101', {
+      book_id: 'book-101',
+      doc_no: 12,
+      page_no: 7,
+    }));
+  });
+
+  it('keeps entered register values when correction fails', async () => {
+    correctDocumentEntryMock.mockRejectedValue(new Error('Register update rejected'));
+    const signedDocument = { ...document, lifecycle: 'SIGNED', permissions: { ...document.permissions, can_correct_entry: true } };
+    renderWorkspace({ document: signedDocument, role: 'lawyer' });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Correct register entry' }));
+    fireEvent.change(screen.getByLabelText('Document number'), { target: { value: '18' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save correction' }));
+
+    expect((await screen.findByRole('alert')).textContent).toMatch(/Register update rejected.*values have been kept/i);
+    expect((screen.getByLabelText('Document number') as HTMLInputElement).value).toBe('18');
+  });
+
+  it('shows loading and an empty state when document search returns no matches', async () => {
+    let finishSearch: ((response: Response) => void) | undefined;
+    vi.stubGlobal('fetch', vi.fn(() => new Promise<Response>((resolve) => { finishSearch = resolve; })));
+    renderWorkspace();
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Search' }));
+    fireEvent.change(screen.getByRole('searchbox', { name: 'Search this document' }), { target: { value: 'missing clause' } });
+    fireEvent.submit(screen.getByRole('button', { name: 'Search document' }).closest('form')!);
+    expect(await screen.findByRole('status')).toBeTruthy();
+    finishSearch?.(Response.json({ query: 'missing clause', document_id: 'doc-101', results: [] }));
+
+    expect(await screen.findByText('No matching passages found in this document.')).toBeTruthy();
+  });
+
+  it('shows an error when document search fails', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => Response.json({ message: 'Unavailable' }, { status: 503 })));
+    renderWorkspace();
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Search' }));
+    fireEvent.change(screen.getByRole('searchbox', { name: 'Search this document' }), { target: { value: 'lease' } });
+    fireEvent.submit(screen.getByRole('button', { name: 'Search document' }).closest('form')!);
+
+    expect((await screen.findByRole('alert')).textContent).toBe('Search failed. Please try again.');
   });
 
   it('shows supported signed-copy history separately from document versions', async () => {
