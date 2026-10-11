@@ -55,7 +55,6 @@ export default function DocumentDetailPage({ params }: { params: Promise<{ id: s
     await Promise.all([
       ['portal-doc', id],
       ['portal-doc-chain', id],
-      ['portal-document-audit', id],
     ].map((queryKey) => queryClient.invalidateQueries({ queryKey })));
   }
 
