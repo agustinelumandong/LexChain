@@ -47,6 +47,10 @@ export function reopenDocument(documentId: string): Promise<ApiSchema<'DocumentR
   return lifecycleFetch(`/documents/${required(documentId, 'Document ID is required')}/reopen`, { method: 'POST' });
 }
 
+export function cancelDocument(documentId: string): Promise<ApiSchema<'DocumentResponse'>> {
+  return lifecycleFetch<ApiSchema<'DocumentResponse'>>(`/documents/${required(documentId, 'Document ID is required')}/cancel`, { method: 'POST' });
+}
+
 export async function renameDocument(documentId: string, fileName: string) {
   return lifecycleFetch(`/documents/${required(documentId, 'Document ID is required')}`, {
     method: 'PATCH',

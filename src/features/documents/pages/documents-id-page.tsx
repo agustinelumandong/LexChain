@@ -8,7 +8,7 @@ import type { ApiSchema } from '@/shared/types/index';
 import { PortalChatbot as PortalChatbot } from "@/features/portal/components";
 import { DocumentWorkspace } from '@/features/documents/components/document-workspace';
 import { getDocumentActions, getDocumentLifecycleLabel, getDocumentStatusLabel } from '@/features/documents/document-ui';
-import { renameDocument, finalizeDocument, markDocumentReady, reopenDocument } from '@/features/documents/document-lifecycle-api';
+import { renameDocument, finalizeDocument, markDocumentReady, reopenDocument, cancelDocument } from '@/features/documents/document-lifecycle-api';
 import { getPortalUiRole } from "@/features/access";
 import { Modal } from '@/features/admin/components/modal';
 
@@ -42,6 +42,7 @@ export default function DocumentDetailPage({ params }: { params: Promise<{ id: s
   const [renameName, setRenameName] = useState('');
   const [renameError, setRenameError] = useState<string>();
   const [confirmingFinalize, setConfirmingFinalize] = useState(false);
+  const [cancelConfirmationOpen, setCancelConfirmationOpen] = useState(false);
   const [finalizationResult, setFinalizationResult] = useState<ApiSchema<'RecordResponse'>>();
   const [success, setSuccess] = useState<string>();
   const [docQ, profileQ] = useQueries({
@@ -81,11 +82,31 @@ export default function DocumentDetailPage({ params }: { params: Promise<{ id: s
     },
   });
 
+  const cancelMutation = useMutation({
+    mutationFn: () => cancelDocument(id),
+    onSuccess: async (updatedDocument) => {
+      queryClient.setQueryData(['portal-doc', id], updatedDocument);
+      setCancelConfirmationOpen(false);
+      setSuccess('Document cancelled. The record was kept.');
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['portal-doc', id] }),
+        queryClient.invalidateQueries({ queryKey: ['portal-documents'] }),
+        queryClient.invalidateQueries({ queryKey: ['portal-document-history', id] }),
+      ]);
+    },
+  });
+
   function openFinalizeConfirmation() {
     finalizeMutation.reset();
     setSuccess(undefined);
     setFinalizationResult(undefined);
     setConfirmingFinalize(true);
+  }
+
+  function openCancelConfirmation() {
+    cancelMutation.reset();
+    setSuccess(undefined);
+    setCancelConfirmationOpen(true);
   }
 
   if (docQ.isLoading) return <div role="status" aria-label="Loading document" className="h-40 animate-pulse rounded-[18px] border border-[#E8F0F8] bg-white" />;
@@ -143,6 +164,7 @@ export default function DocumentDetailPage({ params }: { params: Promise<{ id: s
             {actions.includes('Review extracted text') && <Link href={`/portal/documents/${id}/review`} className="rounded-full bg-[#0985E7] px-4 py-2.5 text-sm font-extrabold text-white">Review extracted text</Link>}
             {document.signed_copy && <a href={document.signed_copy.storage_url} download className="rounded-full bg-[#0985E7] px-4 py-2.5 text-sm font-extrabold text-white">Download current signed PDF</a>}
             {actions.includes('Finalize') && !finalizationResult && <button type="button" onClick={openFinalizeConfirmation} className="rounded-full bg-[#0985E7] px-4 py-2.5 text-sm font-extrabold text-white">Finalize</button>}
+            {document.permissions.can_cancel && <button type="button" onClick={openCancelConfirmation} className="rounded-full border border-[#B42318] px-4 py-2.5 text-sm font-extrabold text-[#B42318]">Cancel document</button>}
             {actions.includes('Verify integrity') && <Link href={`/portal/documents/${id}/verify`} className="rounded-full border border-[#E8F0F8] bg-white px-4 py-2.5 text-sm font-extrabold text-[#0C2B49]">Verify integrity</Link>}
           </div>
         </div>
@@ -160,6 +182,15 @@ export default function DocumentDetailPage({ params }: { params: Promise<{ id: s
             <button type="submit" disabled={!renameName.trim() || renamePending} className="rounded-full bg-[#0985E7] px-5 py-2.5 text-sm font-black text-white disabled:opacity-40">{renamePending ? 'Saving…' : 'Save changes'}</button>
           </div>
         </form>
+      </Modal>
+
+      <Modal open={cancelConfirmationOpen} onClose={() => { if (!cancelMutation.isPending) setCancelConfirmationOpen(false); }} title="Cancel document?">
+        <p className="text-sm leading-6 text-[#64748b]">This will mark the document as cancelled. The document record will be kept.</p>
+        {cancelMutation.error instanceof Error && <p role="alert" className="mt-3 rounded-xl bg-red-50 p-3 text-sm font-bold text-[#B42318]">{cancelMutation.error.message}</p>}
+        <div className="mt-5 flex justify-end gap-2">
+          <button type="button" onClick={() => setCancelConfirmationOpen(false)} disabled={cancelMutation.isPending} className="rounded-full border border-[#D7E4F2] px-5 py-2.5 text-sm font-bold text-[#0C2B49] disabled:opacity-50">Keep document</button>
+          <button type="button" onClick={() => cancelMutation.mutate()} disabled={cancelMutation.isPending} className="rounded-full bg-[#B42318] px-5 py-2.5 text-sm font-black text-white disabled:opacity-50">{cancelMutation.isPending ? 'Cancelling…' : 'Confirm cancellation'}</button>
+        </div>
       </Modal>
 
       <DocumentWorkspace
