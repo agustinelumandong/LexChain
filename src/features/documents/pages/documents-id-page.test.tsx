@@ -29,8 +29,11 @@ vi.mock('@tanstack/react-query', () => ({
     state.queryKeys = queries.map(({ queryKey }) => queryKey.map(String));
     return [state.documentQuery, state.profileQuery];
   },
-  useQuery: ({ queryKey }: { queryKey: readonly unknown[] }) =>
-    queryKey[0] === 'portal-document-comments' ? state.commentsQuery : state.signedCopiesQuery,
+  useQuery: ({ queryKey }: { queryKey: readonly unknown[] }) => {
+    if (queryKey[0] === 'portal-document-comments') return state.commentsQuery;
+    if (queryKey[0] === 'portal-books') return { data: [], isLoading: false, isError: false };
+    return state.signedCopiesQuery;
+  },
   useQueryClient: () => ({ invalidateQueries: vi.fn() }),
   useMutation: () => ({ mutate: vi.fn(), reset: vi.fn(), isPending: false, error: null }),
 }));
