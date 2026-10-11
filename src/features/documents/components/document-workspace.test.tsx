@@ -176,6 +176,9 @@ describe('DocumentWorkspace', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Correct register entry' }));
     await waitFor(() => expect(listRegisterBooksMock).toHaveBeenCalled());
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Register book' }).hasAttribute('disabled')).toBe(false);
+    });
     fireEvent.click(screen.getByRole('button', { name: 'Register book' }));
     fireEvent.click(await screen.findByRole('option', { name: 'Register book 102 — Series 2026 · Closed' }));
     fireEvent.change(screen.getByLabelText('Document number'), { target: { value: '14' } });

@@ -5,7 +5,7 @@ type UploadedDocument = ApiSchema<'DocumentResponse'>;
 export type UploadMetadata = {
   title: string;
   bookId: string;
-  bookStatus?: 'OPEN' | 'CLOSED';
+  bookStatus?: ApiSchema<'BookResponse'>['status'];
   docNo?: string;
   pageNo?: string;
 };
