@@ -2,6 +2,8 @@
 
 LexChain is one root Next.js application for document workflows, verification and administration. It is installable as a PWA and uses a separate FastAPI backend. The former Expo application is preserved at `codex/backup-expo-before-web-pwa-2026-09-09`; it is not part of the active workspace.
 
+For lawyer and participant journeys paired with backend endpoints, see the [user-flow architecture](USER-FLOW-ARCHITECTURE.md).
+
 ## Ownership
 
 | Location | Responsibility |
