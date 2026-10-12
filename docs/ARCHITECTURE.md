@@ -2,26 +2,26 @@
 
 LexChain is one root Next.js application for document workflows, verification and administration. It is installable as a PWA and uses a separate FastAPI backend. The former Expo application is preserved at `codex/backup-expo-before-web-pwa-2026-09-09`; it is not part of the active workspace.
 
+For lawyer and participant journeys paired with backend endpoints, see the [user-flow architecture](USER-FLOW-ARCHITECTURE.md).
+
 ## Ownership
 
-```text
-app/                       Next routes, layouts, metadata and API handlers
-features/                  Domain behavior and views
-  documents/               Library, upload, review, lifecycle and activity
-  verification/            Integrity checks and verification views
-  access/                  Invitations, requests, participants and role access
-  office/                  Books, categories, reports and office settings
-  account/, auth/, admin/  Account, authentication and administration
-  portal/                  Dashboard, shell and navigation
-components/                Shared UI and PWA registration
-lib/api/                   Browser transport, server helpers and configuration
-lib/types/                 Backend types and generated OpenAPI schema
-lib/mocks/                 Local mock data and mock-mode helpers
-public/                    Assets, PWA icons, worker and offline fallback
-scripts/, e2e/             Contract maintenance and browser checks
-```
+| Location | Responsibility |
+| --- | --- |
+| `src/app/` | Next.js routes, layouts, metadata, API handlers, and manifest |
+| `src/proxy.ts` | Request interception and session or legacy-route redirects |
+| `src/features/` | Document, verification, access, office, account, authentication, admin, and portal behavior and views |
+| `src/shared/components/` | Browser-safe reusable UI |
+| `src/shared/api/` | Browser transport to same-origin routes and shared API helpers |
+| `src/server/api/` | Server-only backend URL, credential, and request helpers |
+| `src/config/` | Pure API configuration |
+| `src/shared/types/` | Backend types and generated OpenAPI schema |
+| `src/lib/mocks/` | Local mock fixtures and mock-mode helpers |
+| `src/pwa/` | Production service-worker registration |
+| `public/` | Static assets, PWA icons, service worker, and offline fallback |
+| `scripts/`, `e2e/` | Contract maintenance and browser checks |
 
-`app/` owns Next.js integration. `features/` owns domain behavior. Shared `lib/` and `components/` never import routes or features. Browser code calls same-origin `app/api` handlers; server views and server actions use `lib/api/server.ts` directly. Keep server-only modules out of client bundles.
+`src/app/` owns Next.js integration. `src/features/` owns domain behavior. Shared browser modules do not import features or server modules. Browser API calls go through `src/shared/api/client.ts` to same-origin route handlers; server-rendered views and server actions may use `src/server/api/backend.ts` directly. Keep server-only modules out of client bundles.
 
 ## API and type boundaries
 
@@ -44,7 +44,7 @@ Review the contract diff before generation. Do not hand-edit the generated schem
 
 ## PWA and offline behavior
 
-`app/manifest.ts` describes the installable app. `components/pwa-registration.tsx` registers `public/sw.js` only in production. The worker caches only `offline.html`, serves it only after a failed eligible navigation, and never caches API responses, authenticated pages, documents, uploads, tokens or user data. There is no offline mutation queue, background sync or forced reload.
+`src/app/manifest.ts` describes the installable app. `src/pwa/pwa-registration.tsx` registers `public/sw.js` only in production. The worker caches only `offline.html`, serves it only after a failed eligible navigation, and never caches API responses, authenticated pages, documents, uploads, tokens or user data. There is no offline mutation queue, background sync or forced reload.
 
 ## Verification and deployment
 
