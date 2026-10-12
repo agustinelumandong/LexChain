@@ -1,18 +1,21 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, type FormEvent } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import type { ApiSchema } from '@/shared/types/index';
-import { attachSignedCopy, listDraftComments, listSignedCopies, replaceSignedCopy, syncDraftComments } from '@/features/documents/document-lifecycle-api';
+import { searchDocument } from '@/features/documents/search-api';
+import { attachSignedCopy, correctDocumentEntry, listDocumentHistory, listDraftComments, listSignedCopies, replaceSignedCopy, syncDraftComments } from '@/features/documents/document-lifecycle-api';
 import { getDocumentLifecycleLabel, getDocumentStatusLabel } from '@/features/documents/document-ui';
 import { shortenIntegrityHash } from "@/features/verification";
 import { GoogleDraftPanel } from '@/features/documents/components/google-draft-panel';
 import { listDocumentParties, type PortalUiRole } from '@/features/access';
+import { listRegisterBooks } from '@/features/office/books-api';
+import { PortalDropdown } from '@/features/portal/components';
 
 type WorkspaceDocument = ApiSchema<'DocumentResponse'>;
 
-const tabs = ['Overview', 'Files', 'Comments', 'Blockchain', 'Signed copies', 'Access'] as const;
+const tabs = ['Overview', 'Search', 'Files', 'Comments', 'Blockchain', 'Signed copies', 'Access', 'History'] as const;
 type Tab = typeof tabs[number];
 
 function readable(value: unknown): string {
@@ -95,12 +98,21 @@ export function DocumentWorkspace({
   onReopen,
 }: DocumentWorkspaceProps) {
   const [activeTab, setActiveTab] = useState<Tab>('Overview');
+  const [searchInput, setSearchInput] = useState('');
   const [signedCopyMode, setSignedCopyMode] = useState<'attach' | 'replace' | null>(null);
   const [signedCopyFile, setSignedCopyFile] = useState<File | null>(null);
   const [replacementReason, setReplacementReason] = useState('');
   const [signedCopyError, setSignedCopyError] = useState<string | null>(null);
   const [signedCopySuccess, setSignedCopySuccess] = useState<string | null>(null);
+  const [correctingEntry, setCorrectingEntry] = useState(false);
+  const [entryBookId, setEntryBookId] = useState(document.book_id ?? '');
+  const [entryDocNo, setEntryDocNo] = useState(document.doc_no == null ? '' : String(document.doc_no));
+  const [entryPageNo, setEntryPageNo] = useState(document.page_no == null ? '' : String(document.page_no));
+  const [entryCorrectionValidationError, setEntryCorrectionValidationError] = useState<string | null>(null);
+  const [entryCorrectionSuccess, setEntryCorrectionSuccess] = useState<string | null>(null);
   const queryClient = useQueryClient();
+  const canCorrectEntry = document.permissions?.can_correct_entry === true
+    && document.lifecycle.trim().toUpperCase() === 'SIGNED';
   const signedCopyMutation = useMutation({
     mutationFn: ({ mode, file, reason }: { mode: 'attach' | 'replace'; file: File; reason: string }) => mode === 'attach'
       ? attachSignedCopy(document.document_id, file, { bookId: document.book_id ?? '', docNo: document.doc_no, pageNo: document.page_no })
@@ -115,6 +127,28 @@ export function DocumentWorkspace({
       await queryClient.invalidateQueries({ queryKey: ['portal-doc-signed-copies', document.document_id] });
     },
   });
+  const registerBooksQuery = useQuery({
+    queryKey: ['portal-books'],
+    queryFn: listRegisterBooks,
+    enabled: correctingEntry && canCorrectEntry,
+    retry: false,
+  });
+  const correctEntryMutation = useMutation({
+    mutationFn: (entry: ApiSchema<'CorrectEntryRequest'>) => correctDocumentEntry(document.document_id, entry),
+    onSuccess: async (updatedDocument) => {
+      queryClient.setQueryData(['portal-doc', document.document_id], updatedDocument);
+      setCorrectingEntry(false);
+      setEntryCorrectionValidationError(null);
+      setEntryCorrectionSuccess('Register entry corrected.');
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['portal-doc', document.document_id] }),
+        queryClient.invalidateQueries({ queryKey: ['portal-documents'] }),
+        queryClient.invalidateQueries({ queryKey: ['portal-books'] }),
+        queryClient.invalidateQueries({ queryKey: ['portal-book'] }),
+      ]);
+    },
+  });
+  const documentSearch = useMutation({ mutationFn: (query: string) => searchDocument(document.document_id, query) });
   const signedCopiesQuery = useQuery({ queryKey: ['portal-doc-signed-copies', document.document_id], queryFn: () => listSignedCopies(document.document_id), enabled: activeTab === 'Signed copies' });
   const partiesQuery = useQuery({
     queryKey: ['portal-document-parties', document.document_id],
@@ -122,13 +156,63 @@ export function DocumentWorkspace({
     enabled: role === 'lawyer' && activeTab === 'Access',
     retry: false,
   });
+  const historyQuery = useQuery({
+    queryKey: ['portal-document-history', document.document_id],
+    queryFn: () => listDocumentHistory(document.document_id),
+    enabled: activeTab === 'History',
+    retry: false,
+  });
   const commentsKey = ['portal-document-comments', document.document_id];
   const commentsQuery = useQuery({ queryKey: commentsKey, queryFn: () => listDraftComments(document.document_id), enabled: activeTab === 'Comments' && Boolean(document.draft_url), retry: false });
   const syncComments = useMutation({ mutationFn: () => syncDraftComments(document.document_id), onSuccess: (comments) => queryClient.setQueryData(commentsKey, comments) });
+  const registerBooks = registerBooksQuery.data ?? [];
+  const registerBookOptions = [
+    { label: document.book_id ? 'Keep current book' : 'Use current book', value: '' },
+    ...(document.book_id && !registerBooks.some((book) => book.id === document.book_id)
+      ? [{ label: 'Current register book', value: document.book_id }]
+      : []),
+    ...registerBooks.map((book) => ({
+      label: `Register book ${book.book_number} — Series ${book.series_year} · ${book.status === 'CLOSED' ? 'Closed' : 'Open'}`,
+      value: book.id,
+    })),
+  ];
   const visibleTabs = tabs.filter((tab) => tab !== 'Comments' || Boolean(document.draft_url));
   const hasInsights = Boolean(document.summary || document.labels?.length || document.entities?.length || document.risk_flags?.length);
   const lifecycle = document;
   const participants = partiesQuery.data?.parties ?? [];
+  const historyChanges = historyQuery.data?.changes ?? [];
+
+  function openEntryCorrection() {
+    setEntryBookId(document.book_id ?? '');
+    setEntryDocNo(document.doc_no == null ? '' : String(document.doc_no));
+    setEntryPageNo(document.page_no == null ? '' : String(document.page_no));
+    setEntryCorrectionValidationError(null);
+    setEntryCorrectionSuccess(null);
+    correctEntryMutation.reset();
+    setCorrectingEntry(true);
+  }
+
+  function submitEntryCorrection(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const docNo = Number(entryDocNo);
+    const pageNo = Number(entryPageNo);
+    if (!Number.isSafeInteger(docNo) || docNo < 1) {
+      setEntryCorrectionValidationError('Document number must be a positive whole number.');
+      return;
+    }
+    if (!Number.isSafeInteger(pageNo) || pageNo < 1) {
+      setEntryCorrectionValidationError('Page number must be a positive whole number.');
+      return;
+    }
+
+    setEntryCorrectionValidationError(null);
+    const bookId = entryBookId || document.book_id;
+    correctEntryMutation.mutate({
+      ...(bookId ? { book_id: bookId } : {}),
+      doc_no: docNo,
+      page_no: pageNo,
+    });
+  }
 
   return (
     <section className="rounded-[18px] border border-[#E8F0F8] bg-white shadow-[0_4px_12px_rgba(19,59,115,0.05)]">
@@ -155,11 +239,44 @@ export function DocumentWorkspace({
               <div><dt className="font-bold text-[#64748b]">Filename</dt><dd className="mt-1 text-[#0C2B49]">{document.file_name ?? 'Not supplied'}</dd></div>
               <div><dt className="font-bold text-[#64748b]">Signed copy content type</dt><dd className="mt-1 text-[#0C2B49]">{document.signed_copy?.content_type ?? 'Not supplied'}</dd></div>
               <div><dt className="font-bold text-[#64748b]">Processing status</dt><dd className="mt-1 text-[#0C2B49]">{getDocumentStatusLabel(document.status)}</dd></div>
+              <div><dt className="font-bold text-[#64748b]">Register book</dt><dd className="mt-1 break-all text-[#0C2B49]">{document.book_id ? 'Assigned' : 'Not supplied'}</dd></div>
+              <div><dt className="font-bold text-[#64748b]">Document number</dt><dd className="mt-1 text-[#0C2B49]">{document.doc_no ?? 'Not supplied'}</dd></div>
+              <div><dt className="font-bold text-[#64748b]">Page number</dt><dd className="mt-1 text-[#0C2B49]">{document.page_no ?? 'Not supplied'}</dd></div>
               <div><dt className="font-bold text-[#64748b]">Document lifecycle</dt><dd className="mt-1 text-[#0C2B49]">{getDocumentLifecycleLabel(lifecycle.lifecycle)}</dd></div>
               <div><dt className="font-bold text-[#64748b]">Document hash</dt><dd title={document.document_hash ?? undefined} className="mt-1 break-all font-mono text-[#0C2B49]">{document.document_hash ? shortenIntegrityHash(document.document_hash) : 'Not available'}</dd></div>
               <div><dt className="font-bold text-[#64748b]">Finalized</dt><dd className="mt-1 text-[#0C2B49]">{formatDate(lifecycle.finalized_at)}</dd></div>
               <div><dt className="font-bold text-[#64748b]">Anchor state</dt><dd className="mt-1 text-[#0C2B49]">{anchorLabel(lifecycle.lifecycle, document.on_chain)}</dd></div>
             </dl>
+            {canCorrectEntry && <div className="space-y-3 border-t border-[#E8F0F8] pt-4">
+              {entryCorrectionSuccess && <p role="status" className="text-sm font-bold text-[#067647]">{entryCorrectionSuccess}</p>}
+              {!correctingEntry ? <button type="button" onClick={openEntryCorrection} className="rounded-full border border-[#0985E7] px-4 py-2 text-sm font-extrabold text-[#0985E7]">Correct register entry</button> : <form aria-labelledby="correct-entry-heading" className="space-y-3 rounded-xl border border-[#D7E4F2] bg-[#F8FBFF] p-4" onSubmit={submitEntryCorrection}>
+                <h3 id="correct-entry-heading" className="text-sm font-black text-[#0C2B49]">Correct document register entry</h3>
+                <label className="flex flex-col gap-1.5 text-sm font-bold text-[#0C2B49]">Register book
+                  <PortalDropdown
+                    ariaLabel="Register book"
+                    placeholder="Choose a register book"
+                    emptyLabel={registerBooksQuery.isLoading ? 'Loading register books…' : 'No register books available'}
+                    options={registerBookOptions}
+                    value={entryBookId}
+                    onChange={setEntryBookId}
+                    disabled={registerBooksQuery.isLoading || correctEntryMutation.isPending}
+                  />
+                </label>
+                {registerBooksQuery.isLoading && <p role="status" className="text-sm text-[#64748b]">Loading register books…</p>}
+                {registerBooksQuery.isError && <div className="flex flex-wrap items-center gap-2"><p role="alert" className="text-sm font-bold text-[#B42318]">Unable to load register books. You can keep the current book or retry to choose another.</p><button type="button" onClick={() => void registerBooksQuery.refetch()} className="rounded-full border border-[#D7E4F2] px-3 py-1.5 text-xs font-bold text-[#0C2B49]">Retry books</button></div>}
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <label className="flex flex-col gap-1.5 text-sm font-bold text-[#0C2B49]">Document number
+                    <input aria-label="Document number" required min="1" step="1" inputMode="numeric" type="number" value={entryDocNo} disabled={correctEntryMutation.isPending} onChange={(event) => { setEntryDocNo(event.target.value); setEntryCorrectionValidationError(null); }} className="rounded-xl border border-[#D7E4F2] px-3 py-2.5 text-sm font-medium outline-none focus:border-[#0985E7] disabled:bg-[#F8FBFF]" />
+                  </label>
+                  <label className="flex flex-col gap-1.5 text-sm font-bold text-[#0C2B49]">Page number
+                    <input aria-label="Page number" required min="1" step="1" inputMode="numeric" type="number" value={entryPageNo} disabled={correctEntryMutation.isPending} onChange={(event) => { setEntryPageNo(event.target.value); setEntryCorrectionValidationError(null); }} className="rounded-xl border border-[#D7E4F2] px-3 py-2.5 text-sm font-medium outline-none focus:border-[#0985E7] disabled:bg-[#F8FBFF]" />
+                  </label>
+                </div>
+                {entryCorrectionValidationError && <p role="alert" className="text-sm font-bold text-[#B42318]">{entryCorrectionValidationError}</p>}
+                {correctEntryMutation.isError && <p role="alert" className="text-sm font-bold text-[#B42318]">{correctEntryMutation.error instanceof Error ? correctEntryMutation.error.message : 'Unable to correct the register entry.'} Your entered values have been kept.</p>}
+                <div className="flex flex-wrap gap-2"><button type="submit" disabled={correctEntryMutation.isPending} className="rounded-full bg-[#0985E7] px-4 py-2 text-sm font-bold text-white disabled:opacity-50">{correctEntryMutation.isPending ? 'Saving…' : 'Save correction'}</button><button type="button" disabled={correctEntryMutation.isPending} onClick={() => { setCorrectingEntry(false); setEntryCorrectionValidationError(null); correctEntryMutation.reset(); }} className="rounded-full border border-[#D7E4F2] px-4 py-2 text-sm font-bold text-[#0C2B49] disabled:opacity-50">Cancel</button></div>
+              </form>}
+            </div>}
             {hasInsights && <div className="space-y-5 border-t border-[#E8F0F8] pt-5">
               <p className="text-sm leading-6 text-[#64748b]">AI-generated assistance only. Review it carefully; the original document remains authoritative.</p>
               {document.summary && <section><h3 className="text-xs font-black uppercase tracking-[0.08em] text-[#64748b]">Summary</h3><p className="mt-2 text-sm leading-6 text-[#0C2B49]">{document.summary}</p></section>}
@@ -183,6 +300,23 @@ export function DocumentWorkspace({
                 </div>
               </div>
             )}
+          </div>
+        )}
+
+        {activeTab === 'Search' && (
+          <div className="space-y-4">
+            <div><h2 className="text-lg font-extrabold text-[#0C2B49]">Search this document</h2><p className="mt-1 text-sm text-[#64748b]">Find matching passages in the current document.</p></div>
+            <form className="flex flex-wrap items-end gap-3" onSubmit={(event) => {
+              event.preventDefault();
+              documentSearch.mutate(searchInput.trim());
+            }}>
+              <label className="flex min-w-0 flex-1 flex-col gap-1.5 text-sm font-bold text-[#0C2B49]">Search query<input aria-label="Search this document" type="search" required minLength={1} value={searchInput} onChange={(event) => setSearchInput(event.currentTarget.value)} className="rounded-xl border border-[#D7E4F2] px-3 py-2.5 text-sm font-medium outline-none focus:border-[#0985E7]" /></label>
+              <button type="submit" disabled={!searchInput.trim() || documentSearch.isPending} className="rounded-full bg-[#0985E7] px-4 py-2.5 text-sm font-bold text-white disabled:opacity-50">{documentSearch.isPending ? 'Searching…' : 'Search document'}</button>
+            </form>
+            {documentSearch.isPending && <p role="status" className="text-sm text-[#64748b]">Searching this document…</p>}
+            {documentSearch.isError && <p role="alert" className="text-sm font-bold text-[#B42318]">{documentSearch.error instanceof Error ? documentSearch.error.message : 'Unable to search this document.'}</p>}
+            {documentSearch.data?.results.length === 0 && <p className="text-sm text-[#64748b]">No matching passages found in this document.</p>}
+            {Boolean(documentSearch.data?.results.length) && <ol aria-label="Matching passages" className="space-y-3">{documentSearch.data?.results.map((result) => <li key={result.chunk_id} className="rounded-xl border border-[#E8F0F8] bg-[#F8FBFF] p-4"><p className="whitespace-pre-wrap text-sm leading-6 text-[#0C2B49]">{result.text}</p></li>)}</ol>}
           </div>
         )}
 
@@ -278,6 +412,21 @@ export function DocumentWorkspace({
               </ul>}
               {document.permissions.can_share || document.permissions.can_revoke ? <Link href={`/portal/documents/${document.document_id}/participants`} className="inline-flex rounded-full bg-[#0985E7] px-4 py-2.5 text-sm font-extrabold text-white">Manage document participants</Link> : null}
             </> : <div className="rounded-xl border border-[#E4EEF9] bg-[#F8FBFF] px-4 py-3"><p className="font-bold text-[#0C2B49]">Access details are unavailable for your role.</p><p className="mt-1 text-sm text-[#5B6F8A]">Only Lawyers can manage document participants.</p></div>}
+          </div>
+        )}
+
+        {activeTab === 'History' && (
+          <div className="space-y-3">
+            <div><h2 className="text-lg font-extrabold text-[#0C2B49]">Document history</h2><p className="mt-1 text-sm text-[#64748b]">Lifecycle changes, oldest first.</p></div>
+            {historyQuery.isLoading && <p role="status" className="text-sm text-[#64748b]">Loading document history…</p>}
+            {historyQuery.isError && <p role="alert" className="text-sm font-semibold text-[#B42318]">Unable to load document history.</p>}
+            {historyQuery.data && historyChanges.length === 0 && <p className="rounded-xl border border-dashed border-[#D6E3F1] bg-[#F8FBFF] px-4 py-3 text-sm text-[#5B6F8A]">No lifecycle changes have been recorded for this document yet.</p>}
+            {historyChanges.length > 0 && <ol aria-label="Document history" className="space-y-3">
+              {historyChanges.map((change, index) => <li key={`${change.created_at}-${change.action}-${index}`} className="flex flex-wrap items-start justify-between gap-2 rounded-xl border border-[#E8F0F8] bg-[#F8FBFF] px-4 py-3">
+                <div><p className="text-sm font-bold text-[#0C2B49]">{getDocumentLifecycleLabel(change.action)}</p><p className="mt-1 text-sm text-[#4B6382]">{change.from_stage ? getDocumentLifecycleLabel(change.from_stage) : 'No previous stage'} → {getDocumentLifecycleLabel(change.to_stage)}</p><p className="mt-1 text-xs text-[#64748b]">{change.actor_id ? `Actor ${change.actor_id}` : 'Actor not supplied'}</p></div>
+                <time dateTime={change.created_at} className="text-xs font-semibold text-[#64748b]">{formatDate(change.created_at)}</time>
+              </li>)}
+            </ol>}
           </div>
         )}
 

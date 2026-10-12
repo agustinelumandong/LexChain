@@ -10,6 +10,7 @@ import { canAccessPortalFeature } from "@/features/access";
 import { usePortalRole } from "@/features/access/components";
 import { Modal } from '@/features/admin/components/modal';
 import { PortalDropdown } from '@/features/portal/components';
+import { listRegisterBooks } from '@/features/office/books-api';
 
 type Book = {
   id: string;
@@ -106,7 +107,7 @@ export default function BooksPage() {
   const isIssuer = canAccessPortalFeature(role, 'books');
   const booksQuery = useQuery<Book[]>({
     queryKey: ['portal-books'],
-    queryFn: () => portalGet('/books/?limit=50&offset=0'),
+    queryFn: listRegisterBooks,
     enabled: isIssuer,
   });
   const createBookMutation = useMutation({

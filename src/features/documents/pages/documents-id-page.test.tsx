@@ -21,6 +21,7 @@ vi.mock('@/features/documents/document-lifecycle-api', () => ({
   finalizeDocument: vi.fn(),
   markDocumentReady: vi.fn(),
   reopenDocument: vi.fn(),
+  cancelDocument: vi.fn(),
 }));
 
 vi.mock('@tanstack/react-query', () => ({
@@ -28,8 +29,11 @@ vi.mock('@tanstack/react-query', () => ({
     state.queryKeys = queries.map(({ queryKey }) => queryKey.map(String));
     return [state.documentQuery, state.profileQuery];
   },
-  useQuery: ({ queryKey }: { queryKey: readonly unknown[] }) =>
-    queryKey[0] === 'portal-document-comments' ? state.commentsQuery : state.signedCopiesQuery,
+  useQuery: ({ queryKey }: { queryKey: readonly unknown[] }) => {
+    if (queryKey[0] === 'portal-document-comments') return state.commentsQuery;
+    if (queryKey[0] === 'portal-books') return { data: [], isLoading: false, isError: false };
+    return state.signedCopiesQuery;
+  },
   useQueryClient: () => ({ invalidateQueries: vi.fn() }),
   useMutation: () => ({ mutate: vi.fn(), reset: vi.fn(), isPending: false, error: null }),
 }));
@@ -110,6 +114,7 @@ describe('document detail screen', () => {
     expect(screen.getAllByText('No processing status yet').length).toBeGreaterThan(0);
     expect(screen.queryByRole('button', { name: 'Rename document' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Finalize' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Cancel document' })).toBeNull();
     expect(screen.getByText('record-hash')).toBeTruthy();
     expect(state.queryKeys.some(([key]) => key === 'portal-doc-chain')).toBe(false);
 
@@ -160,6 +165,23 @@ describe('document detail screen', () => {
 
     expect(await screen.findByRole('button', { name: 'Rename document' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Finalize' })).toBeTruthy();
+  });
+
+  it('offers document cancellation only when permitted and requires confirmation', async () => {
+    state.documentQuery = {
+      data: { ...baseDocument, lifecycle: 'PREPARING', permissions: { ...baseDocument.permissions, can_cancel: true } },
+      isLoading: false,
+      isError: false,
+      refetch: vi.fn(),
+    };
+
+    await showPage();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel document' }));
+
+    expect(screen.getByRole('dialog', { name: 'Cancel document?' })).toBeTruthy();
+    expect(screen.getByText('This will mark the document as cancelled. The document record will be kept.')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Confirm cancellation' })).toBeTruthy();
   });
 
   it('renames a document through the modal form', async () => {

@@ -470,6 +470,18 @@ export function mockPortalGet(path: string, token?: string): Response {
   if (!token || !isMockPortalToken(token)) return error('Not authenticated', 401);
   const requestPathname = pathname(path);
   if (path === '/users/' || path === '/users') return json(profileForToken(token));
+  if (requestPathname === '/users/search') {
+    if (!hasMockIssuerAccess(token)) return error('Lawyer access required', 403);
+    const email = new URL(path, 'https://mock.lexchain.local').searchParams.get('email')?.trim().toLowerCase();
+    if (!email) return error('Email is required', 422);
+    const account = [
+      { ...issuerProfile, user_id: mockIssuerId },
+      { ...participantProfile, user_id: mockParticipantId },
+    ].find((candidate) => candidate.email.toLowerCase() === email);
+    return account
+      ? json({ user_id: account.user_id, email: account.email, f_name: account.f_name, l_name: account.l_name })
+      : error('User not found', 404);
+  }
   if (requestPathname === '/documents' || requestPathname === '/documents/') {
     return json(isMockParticipant(token) ? documents.filter((document) => sharedDocumentIds.has(document.id)) : documents);
   }
@@ -739,6 +751,21 @@ async function searchDocuments(request: Request, token?: string) {
       score: 0.95,
     }));
   return json({ query, results });
+}
+
+async function searchDocument(id: string, request: Request, token?: string) {
+  const document = documentFor(id);
+  if (!document || !canAccessDocument(token, document)) return error('Document not found', 404);
+  const body = await jsonBody(request);
+  const query = typeof body?.query === 'string' ? body.query.trim() : '';
+  if (!query) return error('Search query is required', 400);
+  const normalized = query.toLowerCase();
+  const matches = `${document.file_name} ${document.summary} ${document.labels.join(' ')}`.toLowerCase().includes(normalized);
+  return json({
+    query,
+    document_id: document.id,
+    results: matches ? [{ chunk_id: `mock-search-${document.id}`, chunk_index: 0, score: 0.95, text: document.summary }] : [],
+  });
 }
 
 async function askDocument(id: string, request: Request, token?: string) {
@@ -1083,6 +1110,9 @@ export async function mockPortalMutate(method: 'POST' | 'PUT' | 'PATCH' | 'DELET
 
   const askMatch = path.match(/^\/documents\/([^/]+)\/ask\/?$/);
   if (method === 'POST' && askMatch) return askDocument(askMatch[1], request, token);
+
+  const documentSearchMatch = requestPathname.match(/^\/documents\/([^/]+)\/search\/?$/);
+  if (method === 'POST' && documentSearchMatch) return searchDocument(documentSearchMatch[1], request, token);
 
   const invitationMatch = requestPathname.match(/^\/documents\/([^/]+)\/parties\/(accept|reject)$/);
   if (method === 'POST' && invitationMatch) {

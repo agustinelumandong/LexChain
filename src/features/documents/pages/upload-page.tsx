@@ -18,18 +18,11 @@ import { canAccessPortalFeature, getPortalUiRole } from "@/features/access";
 import { PortalDropdown } from "@/features/portal/components";
 import { defaultOfficeSettings } from "@/features/office";
 import type { ApiSchema } from '@/shared/types/index';
+import { listRegisterBooks } from '@/features/office/books-api';
 import { getDocumentLifecycleLabel, getDocumentStatusLabel } from '@/features/documents/document-ui';
-type Book = { id: string; book_number: number; series_year: number; status: 'OPEN' | 'CLOSED' };
+type Book = ApiSchema<'BookResponse'>;
 type UserProfile = ApiSchema<'UserProfileResponse'>;
 type UploadedDocument = ApiSchema<'DocumentResponse'>;
-
-async function fetchBooks(): Promise<Book[]> {
-  const res = await fetch(`/api/portal/proxy?path=${encodeURIComponent('/books/?limit=50&offset=0')}`, {
-    credentials: 'same-origin',
-  });
-  if (!res.ok) throw new Error('Unable to load books');
-  return res.json();
-}
 
 function formatFileSize(size: number) {
   return `${(size / (1024 * 1024)).toFixed(1)} MB`;
@@ -55,7 +48,7 @@ export default function UploadPage() {
     },
   });
   const isIssuer = canAccessPortalFeature(getPortalUiRole(profileQuery.data?.role), 'upload');
-  const booksQuery = useQuery({ queryKey: ['portal-books'], queryFn: fetchBooks, enabled: isIssuer });
+  const booksQuery = useQuery({ queryKey: ['portal-books'], queryFn: listRegisterBooks, enabled: isIssuer });
   const availableBooks = booksQuery.data ?? [];
   const selectedBook = availableBooks.find((book) => book.id === bookId);
   const isClosedBook = selectedBook?.status === 'CLOSED';
