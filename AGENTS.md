@@ -55,6 +55,12 @@ Use the canonical labels `needs-triage`, `needs-info`, `ready-for-agent`, `ready
 
 Use the single-context root `GLOSSARY.md` and `docs/adr/` layout. See `docs/agents/domain.md`.
 
+### Project skills
+
+- For document library, upload, review, lifecycle, verification, activity, or related access work, read [LexChain document workflows](.agents/skills/lexchain-document-workflows/SKILL.md).
+- For browser API integration, same-origin route handlers, or server-only backend requests, read [LexChain API integration](.agents/skills/lexchain-api-integration/SKILL.md).
+- For React and Next.js implementation, refactoring, or performance review, consult [Vercel React Best Practices](.agents/skills/vercel-react-best-practices/SKILL.md).
+
 ## Working rules
 
 - Before each issue, inspect the current branch, working tree, and recent commits. Preserve unrelated changes; do not switch branches with unsaved work unless it is safely isolated in a worktree. Never commit or discard user changes without authorization.
