@@ -102,9 +102,12 @@
 
 **Files:**
 - Modify: `src/features/access/portal-access-api.ts`
+- Modify: `src/features/access/components/invite-participant-form.tsx`
 - Modify: `src/features/access/pages/invitations-page.tsx`
 - Modify: `src/features/portal/notifications-api.ts`
 - Test: `src/features/access/portal-access-api.test.ts`
+- Test: `src/features/access/components/invite-participant-form.test.tsx`
+- Test: `src/features/access/pages/invitations-page.test.tsx`
 - Test: create `src/features/portal/notifications-api.test.ts` if no existing coverage exercises these requests.
 
 **Interfaces:**
@@ -113,8 +116,8 @@
 
 - [ ] **Step 1: Add/adjust API tests** to assert backend message/status/details, `401` recovery, and `searchUserByEmail` continuing to return `null` for its expected `404` result.
 - [ ] **Step 2: Migrate access and notification requests** to `portalRequest`; retain methods, encoded IDs/query strings, credentials, and existing success parsing.
-- [ ] **Step 3: Add a focused form assertion** that invitation failures retain entered email/permission values and display the backend message.
-- [ ] **Step 4: Run access, invitation-page, and notification API tests** and confirm they pass.
+- [ ] **Step 3: Preserve useful failures in both invitation interfaces**: show the backend message for participant-invite/search and accept/decline failures; map `details.errors` for existing `email`/`role` controls; keep unmatched entries in the alert summary; retain entered values; and keep the account-search 429 fallback when the backend supplies no useful message.
+- [ ] **Step 4: Run access API, participant-invite form, invitation page, and notification API tests** and confirm they pass.
 - [ ] **Step 5: Commit** the access and notification migration and tests.
 
 ### Task 5: Adopt shared errors in direct portal page requests
