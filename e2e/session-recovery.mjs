@@ -4,17 +4,17 @@ import { chromium } from 'playwright';
 const baseUrl = process.env.E2E_BASE_URL ?? 'http://localhost:3000';
 const browser = await chromium.launch();
 const pageErrors = [];
-const page = await browser.newPage();
 let uploadStatus = 422;
 let uploadRequests = 0;
 let logoutRequests = 0;
 let loginDocumentRequests = 0;
-page.on('pageerror', (error) => pageErrors.push(error.message));
-page.on('request', (request) => {
-  if (request.isNavigationRequest() && new URL(request.url()).pathname === '/login') loginDocumentRequests += 1;
-});
 
 try {
+  const page = await browser.newPage();
+  page.on('pageerror', (error) => pageErrors.push(error.message));
+  page.on('request', (request) => {
+    if (request.isNavigationRequest() && new URL(request.url()).pathname === '/login') loginDocumentRequests += 1;
+  });
   await page.context().addCookies([
     { name: 'portal_token', value: 'session-recovery-e2e', url: baseUrl },
     { name: 'user_role', value: 'lawyer', url: baseUrl },
@@ -86,7 +86,10 @@ try {
     await uploadPage.getByRole('button', { name: 'Confirm and file' }).click();
     await uploadPage.getByRole('alert').filter({ hasText: message }).waitFor();
     assert.equal(new URL(uploadPage.url()).pathname, '/portal/upload');
+    assert.equal(await uploadPage.getByLabel('Document title').inputValue(), 'Recovery deed');
+    assert.equal(await uploadPage.getByLabel('Paper document number').inputValue(), '28');
     assert.equal(await uploadPage.getByLabel('Paper page number').inputValue(), '6');
+    assert.equal(await uploadPage.locator('input[type="file"]').evaluate((input) => input.files?.[0]?.name), 'recovery.pdf');
   }
 
   assert.equal(loginDocumentRequests, 1);
