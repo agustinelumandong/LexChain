@@ -1,6 +1,6 @@
 # Session recovery and backend errors
 
-**Status:** Design approved in chat; awaiting spec review.
+**Status:** Approved by user on 2026-10-17.
 
 **Issue:** [#120 Recover rejected sessions and display useful backend errors](https://github.com/agustinelumandong/LexChain/issues/120)
 
