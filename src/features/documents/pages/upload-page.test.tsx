@@ -35,12 +35,12 @@ const signedDocument = {
   updated_at: null,
 };
 
-function setupFetch(uploadResponses: Response[]) {
+function setupFetch(uploadResponses: Response[], books = [{ id: 'closed-book', book_number: 4, series_year: 2026, status: 'CLOSED' }]) {
   const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = String(input);
     const path = new URL(url, window.location.origin).searchParams.get('path') ?? '';
     if (path === '/users/') return Response.json({ role: 'document_issuer' });
-    if (path === '/books/?limit=50&offset=0') return Response.json([{ id: 'closed-book', book_number: 4, series_year: 2026, status: 'CLOSED' }]);
+    if (path === '/books/?limit=50&offset=0') return Response.json(books);
     if (init?.method === 'POST') return uploadResponses.shift() ?? Response.json(signedDocument, { status: 201 });
     throw new Error(`Unexpected request: ${url}`);
   });
@@ -81,6 +81,44 @@ describe('signed document upload screen', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Confirm and file' }));
 
     await waitFor(() => expect(push).toHaveBeenCalledWith('/portal/documents/signed-doc-42'));
+  });
+
+  it('omits numbers for open-book automatic filing and sends both when manually entered', async () => {
+    const fetchMock = setupFetch([Response.json(signedDocument, { status: 201 })], [{ id: 'open-book', book_number: 5, series_year: 2026, status: 'OPEN' }]);
+    renderPage();
+    await screen.findByRole('button', { name: 'Register book' });
+    await waitFor(() => expect((screen.getByRole('button', { name: 'Register book' }) as HTMLButtonElement).disabled).toBe(false));
+    fireEvent.click(screen.getByRole('button', { name: 'Register book' }));
+    fireEvent.click(await screen.findByRole('option', { name: /Register book 5/ }));
+    fireEvent.change(screen.getByLabelText('Document title'), { target: { value: 'Signed deed' } });
+    fireEvent.change(document.querySelector('input[type="file"]')!, { target: { files: [new File(['signed pdf'], 'Signed deed.pdf', { type: 'application/pdf' })] } });
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm and file' }));
+    await waitFor(() => expect(push).toHaveBeenCalledWith('/portal/documents/signed-doc-42'));
+    let uploadCall = fetchMock.mock.calls.find(([, init]) => init?.method === 'POST')!;
+    let uploadPath = new URL(String(uploadCall[0]), window.location.origin).searchParams.get('path')!;
+    expect(new URLSearchParams(uploadPath.split('?')[1]).has('doc_no')).toBe(false);
+    expect(new URLSearchParams(uploadPath.split('?')[1]).has('page_no')).toBe(false);
+    expect(((uploadCall[1]?.body as FormData).get('file') as File).name).toBe('Signed deed.pdf');
+
+    cleanup();
+    vi.clearAllMocks();
+    const manualFetchMock = setupFetch([Response.json(signedDocument, { status: 201 })], [{ id: 'open-book', book_number: 5, series_year: 2026, status: 'OPEN' }]);
+    renderPage();
+    await screen.findByRole('button', { name: 'Register book' });
+    await waitFor(() => expect((screen.getByRole('button', { name: 'Register book' }) as HTMLButtonElement).disabled).toBe(false));
+    fireEvent.click(screen.getByRole('button', { name: 'Register book' }));
+    fireEvent.click(await screen.findByRole('option', { name: /Register book 5/ }));
+    fireEvent.click(screen.getByLabelText('Enter paper register numbers'));
+    fireEvent.change(screen.getByLabelText('Document title'), { target: { value: 'Signed deed' } });
+    fireEvent.change(screen.getByLabelText('Paper document number'), { target: { value: '8' } });
+    fireEvent.change(screen.getByLabelText('Paper page number'), { target: { value: '4' } });
+    fireEvent.change(document.querySelector('input[type="file"]')!, { target: { files: [new File(['signed pdf'], 'Signed deed.pdf', { type: 'application/pdf' })] } });
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm and file' }));
+    await waitFor(() => expect(push).toHaveBeenCalledWith('/portal/documents/signed-doc-42'));
+    uploadCall = manualFetchMock.mock.calls.find(([, init]) => init?.method === 'POST')!;
+    uploadPath = new URL(String(uploadCall[0]), window.location.origin).searchParams.get('path')!;
+    expect(new URLSearchParams(uploadPath.split('?')[1]).get('doc_no')).toBe('8');
+    expect(new URLSearchParams(uploadPath.split('?')[1]).get('page_no')).toBe('4');
   });
 
   it('retries the same closed-book upload only after the documented confirmation', async () => {

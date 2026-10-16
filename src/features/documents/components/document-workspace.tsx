@@ -12,6 +12,7 @@ import { GoogleDraftPanel } from '@/features/documents/components/google-draft-p
 import { listDocumentParties, type PortalUiRole } from '@/features/access';
 import { listRegisterBooks } from '@/features/office/books-api';
 import { PortalDropdown } from '@/features/portal/components';
+import { getRegisterEntryError, getUploadFileError } from '@/features/documents/portal-upload';
 
 type WorkspaceDocument = ApiSchema<'DocumentResponse'>;
 
@@ -102,6 +103,8 @@ export function DocumentWorkspace({
   const [signedCopyMode, setSignedCopyMode] = useState<'attach' | 'replace' | null>(null);
   const [signedCopyFile, setSignedCopyFile] = useState<File | null>(null);
   const [replacementReason, setReplacementReason] = useState('');
+  const [signedCopyBookId, setSignedCopyBookId] = useState(document.book_id ?? '');
+  const [enterPaperNumbers, setEnterPaperNumbers] = useState(false);
   const [signedCopyError, setSignedCopyError] = useState<string | null>(null);
   const [signedCopySuccess, setSignedCopySuccess] = useState<string | null>(null);
   const [correctingEntry, setCorrectingEntry] = useState(false);
@@ -113,9 +116,21 @@ export function DocumentWorkspace({
   const queryClient = useQueryClient();
   const canCorrectEntry = document.permissions?.can_correct_entry === true
     && document.lifecycle.trim().toUpperCase() === 'SIGNED';
+  const registerBooksQuery = useQuery({
+    queryKey: ['portal-books'],
+    queryFn: listRegisterBooks,
+    enabled: (correctingEntry && canCorrectEntry) || signedCopyMode === 'attach',
+    retry: false,
+  });
+  const selectedSignedCopyBook = registerBooksQuery.data?.find((book) => book.id === signedCopyBookId);
+  const signedCopyUsesManualNumbers = selectedSignedCopyBook?.status === 'CLOSED' || enterPaperNumbers;
   const signedCopyMutation = useMutation({
     mutationFn: ({ mode, file, reason }: { mode: 'attach' | 'replace'; file: File; reason: string }) => mode === 'attach'
-      ? attachSignedCopy(document.document_id, file, { bookId: document.book_id ?? '', docNo: document.doc_no, pageNo: document.page_no })
+      ? attachSignedCopy(document.document_id, file, {
+          bookId: signedCopyBookId,
+          docNo: signedCopyUsesManualNumbers ? Number(entryDocNo) : null,
+          pageNo: signedCopyUsesManualNumbers ? Number(entryPageNo) : null,
+        })
       : replaceSignedCopy(document.document_id, file, reason),
     onSuccess: async (updatedDocument, { mode }) => {
       queryClient.setQueryData(['portal-doc', document.document_id], updatedDocument);
@@ -124,14 +139,13 @@ export function DocumentWorkspace({
       setReplacementReason('');
       setSignedCopyError(null);
       setSignedCopySuccess(mode === 'attach' ? 'Signed PDF attached.' : 'Signed PDF replaced.');
-      await queryClient.invalidateQueries({ queryKey: ['portal-doc-signed-copies', document.document_id] });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['portal-doc', document.document_id] }),
+        queryClient.invalidateQueries({ queryKey: ['portal-documents'] }),
+        queryClient.invalidateQueries({ queryKey: ['portal-doc-signed-copies', document.document_id] }),
+        queryClient.invalidateQueries({ queryKey: ['portal-books'] }),
+      ]);
     },
-  });
-  const registerBooksQuery = useQuery({
-    queryKey: ['portal-books'],
-    queryFn: listRegisterBooks,
-    enabled: correctingEntry && canCorrectEntry,
-    retry: false,
   });
   const correctEntryMutation = useMutation({
     mutationFn: (entry: ApiSchema<'CorrectEntryRequest'>) => correctDocumentEntry(document.document_id, entry),
@@ -352,24 +366,70 @@ export function DocumentWorkspace({
             </div>
             {signedCopyMode && <form className="space-y-3 rounded-xl border border-[#D7E4F2] bg-white p-4" onSubmit={(event) => {
               event.preventDefault();
-              if (!signedCopyFile || (signedCopyMode === 'replace' && !replacementReason.trim()) || (signedCopyMode === 'attach' && !document.book_id)) return;
+              if (!signedCopyFile) {
+                setSignedCopyError('Choose a signed PDF file.');
+                return;
+              }
+              const fileError = getUploadFileError(signedCopyFile);
+              if (fileError) {
+                setSignedCopyError(fileError);
+                return;
+              }
+              if (signedCopyMode === 'replace' && !replacementReason.trim()) {
+                setSignedCopyError('Enter a replacement reason.');
+                return;
+              }
+              if (signedCopyMode === 'attach') {
+                const filingError = getRegisterEntryError({
+                  bookId: selectedSignedCopyBook?.id ?? '',
+                  bookStatus: selectedSignedCopyBook?.status,
+                  manualNumbers: signedCopyUsesManualNumbers,
+                  docNo: entryDocNo,
+                  pageNo: entryPageNo,
+                });
+                if (filingError) {
+                  setSignedCopyError(filingError);
+                  return;
+                }
+              }
+              setSignedCopyError(null);
               signedCopyMutation.mutate({ mode: signedCopyMode, file: signedCopyFile, reason: replacementReason });
             }}>
               <label className="flex flex-col gap-1.5 text-sm font-bold text-[#0C2B49]">Signed PDF<input aria-label="Signed PDF" type="file" accept="application/pdf,.pdf" required disabled={signedCopyMutation.isPending} onChange={(event) => {
                 const file = event.currentTarget.files?.[0] ?? null;
-                if (file && (file.size === 0 || (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')))) {
+                const fileError = file ? getUploadFileError(file) : null;
+                if (fileError) {
                   setSignedCopyFile(null);
-                  setSignedCopyError('Choose a non-empty PDF file.');
+                  setSignedCopyError(fileError);
                   return;
                 }
                 setSignedCopyFile(file);
                 setSignedCopyError(null);
-              }} /></label>
+              }} /><span className="text-xs font-medium text-[#64748b]">PDF only · maximum 60 MiB</span></label>
+              {signedCopyMode === 'attach' && <>
+                <label className="flex flex-col gap-1.5 text-sm font-bold text-[#0C2B49]">Register book
+                  <PortalDropdown
+                    ariaLabel="Register book"
+                    placeholder="Choose a register book"
+                    emptyLabel={registerBooksQuery.isLoading ? 'Loading register books...' : 'No register books available'}
+                    options={(registerBooksQuery.data ?? []).map((book) => ({ label: `Register book ${book.book_number} — Series ${book.series_year} · ${book.status === 'CLOSED' ? 'Closed' : 'Open'}`, value: book.id }))}
+                    value={signedCopyBookId}
+                    onChange={(value) => { setSignedCopyBookId(value); setEntryDocNo(''); setEntryPageNo(''); setEnterPaperNumbers(false); setSignedCopyError(null); }}
+                    disabled={registerBooksQuery.isLoading || !registerBooksQuery.data?.length || signedCopyMutation.isPending}
+                  />
+                </label>
+                {registerBooksQuery.isError && <p role="alert" className="text-sm font-bold text-[#B42318]">Unable to load register books. Please try again.</p>}
+                {selectedSignedCopyBook?.status === 'OPEN' && <label className="flex items-center gap-2 text-sm font-semibold text-[#0C2B49]"><input type="checkbox" checked={enterPaperNumbers} disabled={signedCopyMutation.isPending} onChange={(event) => { setEnterPaperNumbers(event.target.checked); setSignedCopyError(null); }} />Enter paper register numbers</label>}
+                {selectedSignedCopyBook?.status === 'CLOSED' && <p className="text-sm text-[#64748b]">Closed books require the Doc. No. and Page No. shown in the paper register.</p>}
+                {signedCopyUsesManualNumbers && selectedSignedCopyBook && <div className="grid gap-3 sm:grid-cols-2">
+                  <label className="flex flex-col gap-1.5 text-sm font-bold text-[#0C2B49]">Paper document number<input aria-label="Paper document number" min="1" step="1" inputMode="numeric" type="number" value={entryDocNo} disabled={signedCopyMutation.isPending} onChange={(event) => setEntryDocNo(event.target.value)} className="rounded-xl border border-[#D7E4F2] px-3 py-2.5 text-sm font-medium outline-none focus:border-[#0985E7] disabled:bg-[#F8FBFF]" /></label>
+                  <label className="flex flex-col gap-1.5 text-sm font-bold text-[#0C2B49]">Paper page number<input aria-label="Paper page number" min="1" step="1" inputMode="numeric" type="number" value={entryPageNo} disabled={signedCopyMutation.isPending} onChange={(event) => setEntryPageNo(event.target.value)} className="rounded-xl border border-[#D7E4F2] px-3 py-2.5 text-sm font-medium outline-none focus:border-[#0985E7] disabled:bg-[#F8FBFF]" /></label>
+                </div>}
+              </>}
               {signedCopyMode === 'replace' && <label className="flex flex-col gap-1.5 text-sm font-bold text-[#0C2B49]">Replacement reason<textarea aria-label="Replacement reason" required value={replacementReason} disabled={signedCopyMutation.isPending} onChange={(event) => setReplacementReason(event.target.value)} className="rounded-xl border border-[#D7E4F2] px-3 py-2.5 text-sm font-medium outline-none focus:border-[#0985E7] disabled:bg-[#F8FBFF]" /></label>}
-              {signedCopyMode === 'attach' && !document.book_id && <p role="alert" className="text-sm font-bold text-[#B42318]">Register book details are unavailable for this document.</p>}
               {signedCopyError && <p role="alert" className="text-sm font-bold text-[#B42318]">{signedCopyError}</p>}
-              {signedCopyMutation.isError && <p role="alert" className="text-sm font-bold text-[#B42318]">{signedCopyMutation.error instanceof Error ? signedCopyMutation.error.message : 'Upload failed.'} Your selected file and replacement reason have been kept. Review the error and retry.</p>}
-              <div className="flex flex-wrap gap-2"><button type="submit" disabled={!signedCopyFile || (signedCopyMode === 'replace' && !replacementReason.trim()) || (signedCopyMode === 'attach' && !document.book_id) || signedCopyMutation.isPending} className="rounded-full bg-[#0985E7] px-4 py-2 text-sm font-bold text-white disabled:opacity-50">{signedCopyMutation.isPending ? 'Uploading…' : signedCopyMode === 'replace' ? 'Confirm replacement' : 'Confirm attachment'}</button><button type="button" disabled={signedCopyMutation.isPending} onClick={() => { setSignedCopyMode(null); setSignedCopyFile(null); setReplacementReason(''); setSignedCopyError(null); signedCopyMutation.reset(); }} className="rounded-full border border-[#D7E4F2] px-4 py-2 text-sm font-bold text-[#0C2B49] disabled:opacity-50">Cancel</button></div>
+              {signedCopyMutation.isError && <p role="alert" className="text-sm font-bold text-[#B42318]">{signedCopyMutation.error instanceof Error ? signedCopyMutation.error.message : 'Upload failed.'} Your selected file and {signedCopyMode === 'attach' ? 'filing details' : 'replacement reason'} have been kept. Review the error and retry.</p>}
+              <div className="flex flex-wrap gap-2"><button type="submit" disabled={!signedCopyFile || (signedCopyMode === 'replace' && !replacementReason.trim()) || (signedCopyMode === 'attach' && !selectedSignedCopyBook) || signedCopyMutation.isPending} className="rounded-full bg-[#0985E7] px-4 py-2 text-sm font-bold text-white disabled:opacity-50">{signedCopyMutation.isPending ? 'Uploading…' : signedCopyMode === 'replace' ? 'Confirm replacement' : 'Confirm attachment'}</button><button type="button" disabled={signedCopyMutation.isPending} onClick={() => { setSignedCopyMode(null); setSignedCopyFile(null); setReplacementReason(''); setSignedCopyError(null); signedCopyMutation.reset(); }} className="rounded-full border border-[#D7E4F2] px-4 py-2 text-sm font-bold text-[#0C2B49] disabled:opacity-50">Cancel</button></div>
             </form>}
             <GoogleDraftPanel document={document} />
           </div>

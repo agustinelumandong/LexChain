@@ -1,31 +1,47 @@
 import type { ApiSchema } from '@/shared/types/index';
 
 type UploadedDocument = ApiSchema<'DocumentResponse'>;
+export const MAX_SIGNED_PDF_BYTES = 60 * 1024 * 1024;
 
 export type UploadMetadata = {
   title: string;
   bookId: string;
   bookStatus?: ApiSchema<'BookResponse'>['status'];
+  manualNumbers?: boolean;
   docNo?: string;
   pageNo?: string;
 };
 
 export function getUploadFileError(file: File): string | null {
-  return file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')
-    ? null
-    : 'Choose a PDF file.';
+  if (file.size === 0) return 'Choose a non-empty PDF file.';
+  if (file.size > MAX_SIGNED_PDF_BYTES) return 'PDF files must be 60 MiB or smaller.';
+  return file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf') ? null : 'Choose a PDF file.';
 }
 
-export function getRequiredUploadMetadataError({ title, bookId, bookStatus, docNo, pageNo }: UploadMetadata): string | null {
-  if (!title.trim()) return 'Enter a document title.';
+export function getRegisterEntryError({ bookId, bookStatus, manualNumbers, docNo, pageNo }: {
+  bookId: string;
+  bookStatus?: ApiSchema<'BookResponse'>['status'];
+  manualNumbers: boolean;
+  docNo?: string;
+  pageNo?: string;
+}): string | null {
   if (!bookId) return 'Choose a book.';
-  if (bookStatus === 'CLOSED') {
-    const documentNumber = Number(docNo);
-    const pageNumber = Number(pageNo);
-    if (!docNo || !Number.isSafeInteger(documentNumber) || documentNumber < 1) return 'Enter the paper register document number.';
-    if (!pageNo || !Number.isSafeInteger(pageNumber) || pageNumber < 1) return 'Enter the paper register page number.';
-  }
+  if (bookStatus !== 'CLOSED' && !manualNumbers) return null;
+
+  const documentNumber = Number(docNo);
+  const pageNumber = Number(pageNo);
+  if (!docNo) return 'Enter the paper register document number.';
+  if (!Number.isSafeInteger(documentNumber)) return 'Enter a whole paper register document number.';
+  if (documentNumber < 1) return 'Enter a positive paper register document number.';
+  if (!pageNo) return 'Enter the paper register page number.';
+  if (!Number.isSafeInteger(pageNumber)) return 'Enter a whole paper register page number.';
+  if (pageNumber < 1) return 'Enter a positive paper register page number.';
   return null;
+}
+
+export function getRequiredUploadMetadataError({ title, bookId, bookStatus, manualNumbers, docNo, pageNo }: UploadMetadata): string | null {
+  if (!title.trim()) return 'Enter a document title.';
+  return getRegisterEntryError({ bookId, bookStatus, manualNumbers: manualNumbers ?? Boolean(docNo || pageNo), docNo, pageNo });
 }
 
 export async function uploadDocument({ file, title, bookId, paperRegister, confirmNewRecord = false }: {
