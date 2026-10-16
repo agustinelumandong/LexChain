@@ -3,6 +3,93 @@ import type { ApiSchema } from '@/shared/types/index';
 type UploadedDocument = ApiSchema<'DocumentResponse'>;
 export const MAX_SIGNED_PDF_BYTES = 60 * 1024 * 1024;
 
+export type UploadValidationError = { field?: string; message: string };
+export type RelatedWaitingDocument = {
+  documentId: string;
+  fileName: string;
+  parties: Array<{ name: string; email?: string; role?: string }>;
+};
+
+export class UploadRequestError extends Error {
+  readonly status: number;
+  readonly reason?: string;
+  readonly details?: Record<string, unknown>;
+  readonly relatedDocuments: RelatedWaitingDocument[];
+  readonly validationErrors: UploadValidationError[];
+  readonly documentId?: string;
+  readonly requiresConfirmation: boolean;
+
+  constructor(body: unknown, status: number) {
+    const envelope = isRecord(body) ? body : {};
+    const details = isRecord(envelope.details) ? envelope.details : undefined;
+    const legacyDetail = typeof envelope.detail === 'string' ? envelope.detail : undefined;
+    const detailObject = isRecord(envelope.detail) ? envelope.detail : {};
+    const reason = getString(details?.reason)
+      ?? getString(detailObject.reason)
+      ?? getString(envelope.code)
+      ?? (legacyDetail === 'READY_FOR_SIGNATURE_EXISTS' ? legacyDetail : undefined);
+    const message = getString(envelope.message)
+      ?? getString(detailObject.message)
+      ?? legacyDetail
+      ?? 'Upload failed';
+
+    super(message);
+    this.name = 'UploadRequestError';
+    this.status = status;
+    this.reason = reason;
+    this.details = details;
+    this.relatedDocuments = getRelatedWaitingDocuments(details?.related_documents);
+    this.validationErrors = getUploadValidationErrors(details?.errors ?? details?.validation_errors ?? envelope.detail);
+    this.documentId = getString(details?.document_id);
+    this.requiresConfirmation = status === 409 && reason === 'READY_FOR_SIGNATURE_EXISTS';
+  }
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function getString(value: unknown): string | undefined {
+  return typeof value === 'string' && value.trim() ? value : undefined;
+}
+
+function getRelatedWaitingDocuments(value: unknown): RelatedWaitingDocument[] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((entry) => {
+    if (!isRecord(entry)) return [];
+    const documentId = getString(entry.document_id) ?? getString(entry.id);
+    if (!documentId) return [];
+    const partyEntries = Array.isArray(entry.parties) ? entry.parties : Array.isArray(entry.party_information) ? entry.party_information : [];
+    const parties = partyEntries.flatMap((party) => {
+      if (!isRecord(party)) return [];
+      const firstName = getString(party.f_name) ?? getString(party.first_name);
+      const lastName = getString(party.l_name) ?? getString(party.last_name);
+      const name = getString(party.name) ?? ([firstName, lastName].filter(Boolean).join(' ') || getString(party.email));
+      if (!name) return [];
+      return [{ name, email: getString(party.email), role: getString(party.role) }];
+    });
+    return [{
+      documentId,
+      fileName: getString(entry.file_name) ?? getString(entry.title) ?? 'Waiting document',
+      parties,
+    }];
+  });
+}
+
+function getUploadValidationErrors(value: unknown): UploadValidationError[] {
+  const entries = Array.isArray(value)
+    ? value
+    : isRecord(value) ? Object.entries(value).flatMap(([field, messages]) => (Array.isArray(messages) ? messages : [messages]).map((message) => ({ field, message }))) : [];
+  return entries.flatMap((entry) => {
+    if (typeof entry === 'string') return [{ message: entry }];
+    if (!isRecord(entry)) return [];
+    const location = Array.isArray(entry.loc) ? entry.loc.filter((part) => typeof part === 'string').join('.') : undefined;
+    const field = getString(entry.field) ?? getString(entry.path) ?? location;
+    const message = getString(entry.message) ?? getString(entry.msg) ?? getString(entry.detail);
+    return message ? [{ field, message }] : [];
+  });
+}
+
 export type UploadMetadata = {
   title: string;
   bookId: string;
@@ -67,16 +154,7 @@ export async function uploadDocument({ file, title, bookId, paperRegister, confi
 
   if (!res.ok) {
     const body: unknown = await res.json().catch(() => ({}));
-    const error = typeof body === 'object' && body !== null ? body : {};
-    const detail = 'detail' in error && typeof error.detail === 'string' ? error.detail : undefined;
-    const apiMessage = 'message' in error && typeof error.message === 'string' ? error.message : undefined;
-    const errorCode = detail === 'READY_FOR_SIGNATURE_EXISTS'
-      || ('code' in error && error.code === 'READY_FOR_SIGNATURE_EXISTS');
-    const message = detail ?? apiMessage ?? 'Upload failed';
-    throw Object.assign(new Error(message), {
-      status: res.status,
-      requiresConfirmation: res.status === 409 && errorCode,
-    });
+    throw new UploadRequestError(body, res.status);
   }
 
   return res.json();

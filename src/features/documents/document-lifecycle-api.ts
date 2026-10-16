@@ -1,4 +1,5 @@
 import type { ApiSchema } from '@/shared/types/index';
+import { UploadRequestError } from '@/features/documents/portal-upload';
 
 function required(value: string, message: string): string {
   const normalized = value.trim();
@@ -15,8 +16,12 @@ async function lifecycleFetch<T>(path: string, init?: RequestInit): Promise<T> {
   });
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({})) as { detail?: string; message?: string };
-    throw new Error(error.detail ?? error.message ?? `API error: ${response.status}`);
+    const error: unknown = await response.json().catch(() => ({}));
+    if (init?.method === 'POST' && path.includes('/signed-copy')) throw new UploadRequestError(error, response.status);
+    const body = typeof error === 'object' && error !== null ? error : {};
+    const detail = 'detail' in body && typeof body.detail === 'string' ? body.detail : undefined;
+    const message = 'message' in body && typeof body.message === 'string' ? body.message : undefined;
+    throw new Error(detail ?? message ?? `API error: ${response.status}`);
   }
 
   return response.json() as Promise<T>;

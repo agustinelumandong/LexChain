@@ -90,4 +90,58 @@ describe('portal document upload', () => {
 
     await expect(uploadDocument({ file: new File(['PDF'], 'record.pdf', { type: 'application/pdf' }), title: 'Deed of Sale', bookId: 'book-1' })).rejects.toThrow('The PDF is too large.');
   });
+
+  it('preserves the documented conflict envelope for upload recovery', async () => {
+    const conflict = {
+      error_type: 'conflict',
+      message: 'A signed copy is still expected for these documents.',
+      status_code: 409,
+      details: {
+        reason: 'READY_FOR_SIGNATURE_EXISTS',
+        related_documents: [{
+          document_id: 'waiting-1',
+          file_name: 'Prepared deed',
+          parties: [{ f_name: 'Avery', l_name: 'Reviewer', email: 'avery@example.com', role: 'signer' }],
+        }],
+        errors: [{ field: 'doc_no', message: 'Document number is required.' }],
+      },
+    };
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json(conflict, { status: 409 })));
+
+    let error: unknown;
+    try {
+      await uploadDocument({ file: new File(['PDF'], 'record.pdf', { type: 'application/pdf' }), title: 'Deed', bookId: 'book-1' });
+    } catch (caught) {
+      error = caught;
+    }
+
+    expect(error).toHaveProperty('message', conflict.message);
+    expect(error).toMatchObject({
+      status: 409,
+      reason: 'READY_FOR_SIGNATURE_EXISTS',
+      details: conflict.details,
+      relatedDocuments: [{
+        documentId: 'waiting-1',
+        fileName: 'Prepared deed',
+        parties: [{ name: 'Avery Reviewer', email: 'avery@example.com', role: 'signer' }],
+      }],
+      validationErrors: conflict.details.errors,
+      requiresConfirmation: true,
+    });
+  });
+
+  it('preserves duplicate document identifiers and validation details', async () => {
+    const duplicate = { message: 'This file is already filed.', details: { reason: 'DUPLICATE_FILE', document_id: 'existing-doc', errors: [] } };
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json(duplicate, { status: 409 })));
+
+    let error: unknown;
+    try {
+      await uploadDocument({ file: new File(['PDF'], 'record.pdf', { type: 'application/pdf' }), title: 'Deed', bookId: 'book-1' });
+    } catch (caught) {
+      error = caught;
+    }
+
+    expect(error).toHaveProperty('message', duplicate.message);
+    expect(error).toMatchObject({ status: 409, reason: 'DUPLICATE_FILE', documentId: 'existing-doc', details: duplicate.details, validationErrors: [] });
+  });
 });

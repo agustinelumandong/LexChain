@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "e2e:signed-filing": "node e2e/signed-filing.mjs",
+    "e2e:upload-recovery": "node e2e/upload-recovery.mjs",
     "lint": "eslint",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
