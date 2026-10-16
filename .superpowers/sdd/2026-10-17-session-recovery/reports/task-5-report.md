@@ -43,6 +43,16 @@ The rendered upload field-error lists now include the stable response-list index
 
 The confirmation/recovery validation summary now includes the list index in each key as well. Its test returns two identical `file_name` validation entries, checks that both render, and verifies React emitted no duplicate-key warning. **RED:** The new assertion observed a duplicate-key warning before the key change. **GREEN:** The focused upload suite passes (1 file, 9 tests); `git diff --check` passes.
 
+### Upload error-source follow-up
+
+The final review added three upload regressions and corresponding fixes:
+
+- Document/page number errors go into the form summary when manual-number controls are not rendered; when controls are available, those errors stay associated with the controls.
+- Field and summary validation now read from the active failed mutation. The initial `UploadRequestError` remains available in the recovery choice panel, so its recovery choices and original validation detail are retained after attachment failure.
+- Ordinary summary entries include their response-list index in React keys, covering distinct malformed values that receive the same safe fallback text.
+
+**RED:** The new tests initially failed because the hidden `doc_no` error was omitted, the attachment error details were not shown, and repeated malformed fallback entries generated a duplicate-key warning. **GREEN:** `pnpm exec vitest run src/features/documents/pages/upload-page.test.tsx` passed (**1 file, 11 tests**). `pnpm typecheck`, `pnpm lint`, and `git diff --check` passed. No full suite or browser run was needed for these isolated upload-error rendering changes.
+
 ## Limitations
 
 - No live backend or browser session-recovery flow was exercised; request responses were stubbed by frontend tests.
