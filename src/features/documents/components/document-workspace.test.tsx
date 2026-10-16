@@ -472,7 +472,8 @@ describe('DocumentWorkspace', () => {
     expect(screen.getByRole('link', { name: 'Open current signed PDF' }).getAttribute('href')).toBe(document.signed_copy?.storage_url);
   });
 
-  it('keeps a picked template after a missing-Google-connection error and allows retry', async () => {
+  it.each(['GOOGLE_NOT_CONNECTED', 'GOOGLE_RECONNECT_REQUIRED'])(
+    'keeps a picked template after %s and allows retry', async (reason) => {
     vi.stubEnv('NEXT_PUBLIC_GOOGLE_PICKER_API_KEY', 'browser-key');
     vi.stubEnv('NEXT_PUBLIC_GOOGLE_PICKER_APP_ID', 'cloud-project-number');
     let pickerCallback: (data: unknown) => void = () => undefined;
@@ -503,7 +504,7 @@ describe('DocumentWorkspace', () => {
       if (path === '/google/picker-token') return Response.json({ access_token: 'short-lived-picker-token', expires_at: '2099-01-01T00:00:00Z' });
       if (path === '/documents/doc-101/draft' && init?.method === 'POST') {
         createCount += 1;
-        if (createCount === 1) return Response.json({ detail: 'GOOGLE_NOT_CONNECTED' }, { status: 409 });
+        if (createCount === 1) return Response.json({ message: 'Reconnect Google Drive.', details: { reason } }, { status: 409 });
         return Response.json({ ...document, draft_url: 'https://docs.google.com/document/d/template-draft' }, { status: 201 });
       }
       throw new Error(`Unexpected request: ${url}`);

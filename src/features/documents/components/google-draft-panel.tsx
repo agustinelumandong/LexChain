@@ -58,7 +58,7 @@ async function openGooglePicker(onPicked: (file: PickedFile) => void): Promise<v
 
 function errorMessage(cause: unknown): { message: string; needsGoogleConnection: boolean } {
   const failure = cause as Error & { code?: string; status?: number };
-  if (failure.code === 'GOOGLE_NOT_CONNECTED') return { message: 'Connect Google in account settings, then retry. Your draft choices are saved.', needsGoogleConnection: true };
+  if (failure.code === 'GOOGLE_NOT_CONNECTED' || failure.code === 'GOOGLE_RECONNECT_REQUIRED') return { message: 'Connect Google in account settings, then retry. Your draft choices are saved.', needsGoogleConnection: true };
   if (failure.status === 502) return { message: 'Google Drive is unavailable. Try again in a moment. Your draft choices are saved.', needsGoogleConnection: false };
   return { message: failure.message || 'Unable to create the Google draft. Try again.', needsGoogleConnection: false };
 }
