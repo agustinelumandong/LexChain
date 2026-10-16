@@ -6,11 +6,13 @@ export default async function AccountSettingsPage({ searchParams }: { searchPara
   const params = await searchParams;
   const google = params.google;
   const message = params.message;
+  const documentReturn = params.google_draft_return === '1';
 
   return (
     <AccountPage
       google={Array.isArray(google) ? google[0] : google}
       message={Array.isArray(message) ? message[0] : message}
+      documentReturn={documentReturn}
     />
   );
 }

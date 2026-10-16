@@ -146,11 +146,11 @@ The 2026-10-09 source review found UI/API call paths for 50 of 57 contract opera
 - `POST /documents/{document_id}/search` — the current search screen uses global `POST /search` instead
 - `DELETE /google/connection`
 
-`GET /google/callback` appears redirect-driven and indirect; its full runtime path was not established. The document activity screen calls `/documents/{document_id}/audit-logs`, which is outside the checked-in OpenAPI contract. Treat both contract coverage and live behavior as separate checks.
+`GET /google/callback` is redirect-driven. The backend's `GOOGLE_CONNECTED_REDIRECT` must target the frontend `/portal/profile/account` route and append `google=connected` or `google=error&message=...`; the deployed setting and live OAuth round trip have not been verified here. The document activity screen calls `/documents/{document_id}/audit-logs`, which is outside the checked-in OpenAPI contract. Treat contract coverage and live behavior as separate checks.
 
 ## Optional Google document flow
 
-Where Google is connected and the required Picker configuration is available, a lawyer can create a blank Google Doc, copy a template, or select an existing Google Doc for a working draft. The user edits that draft in Google. LexChain keeps the draft link separate from the signed PDF and uses backend operations for draft and comment synchronization. Google availability and setup can affect this path.
+Where Google is connected and the required Picker configuration is available, a lawyer can create a blank Google Doc, copy a template, or select an existing Google Doc for a working draft. The user edits that draft in Google. LexChain keeps the draft link separate from the signed PDF and uses backend operations for draft and comment synchronization. If a document requires Google reconnection, the frontend stores only that document's draft choices in session storage, returns to `/portal/profile/account` for callback feedback, and restores those choices to the document after a confirmed connection. Draft creation still requires an explicit user action. Google availability and setup can affect this path; the deployed callback destination is not verified by this documentation.
 
 ## What happens when the network is unavailable
 
