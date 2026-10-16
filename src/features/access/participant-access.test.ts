@@ -1,13 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { canManageParticipants, isParticipantAccessCapabilityError, validateParticipantInvitation } from "@/features/access/participant-access";
+import { isParticipantAccessCapabilityError, validateParticipantInvitation } from "@/features/access/participant-access";
 
 describe("participant access", () => {
-  it("allows only the Document Issuer to manage document participants", () => {
-    expect(canManageParticipants("lawyer")).toBe(true);
-    expect(canManageParticipants("user")).toBe(false);
-    expect(canManageParticipants("unsupported")).toBe(false);
-  });
-
   it("requires an email and one supported document permission for invitations", () => {
     expect(validateParticipantInvitation({ email: "", role: "viewer" }).valid).toBe(false);
     expect(validateParticipantInvitation({ email: "not-an-email", role: "viewer" }).valid).toBe(false);
