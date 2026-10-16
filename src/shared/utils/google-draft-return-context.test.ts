@@ -35,6 +35,7 @@ describe('Google draft return context', () => {
       JSON.stringify({ ...context, documentId: '../account' }),
       JSON.stringify({ ...context, source: 'other' }),
       JSON.stringify({ ...context, picked: { id: '', name: 'Client template' } }),
+      JSON.stringify({ ...context, returnTo: 'https://attacker.test' }),
     ]) {
       sessionStorage.setItem(key, value);
       expect(readGoogleDraftReturnContext()).toBeNull();

@@ -169,7 +169,7 @@ function GoogleConnectionCard({ google, message, documentReturn }: { google?: st
               {connectMutation.isPending ? 'Starting connection…' : 'Connect Google'}
             </button>
             {connectMutation.data && <>
-              <p className="w-full text-sm font-semibold text-[#0C2B49]">On Google's screen, tick the Google Drive permission.</p>
+              <p className="w-full text-sm font-semibold text-[#0C2B49]">On Google&apos;s screen, tick the Google Drive permission.</p>
               <a href={connectMutation.data} rel="noreferrer" className="rounded-full border border-[#0985E7] px-4 py-2 text-sm font-bold text-[#0985E7]">Continue to Google</a>
             </>}
             {connectMutation.isError && <p role="alert" className="w-full text-sm font-semibold text-red-700">{connectMutation.error.message}</p>}

@@ -13,10 +13,12 @@ function isDocumentId(value: unknown): value is string {
 function isContext(value: unknown): value is GoogleDraftReturnContext {
   if (typeof value !== 'object' || value === null) return false;
   const context = value as Partial<GoogleDraftReturnContext>;
-  return isDocumentId(context.documentId)
+  return Object.keys(context).every((key) => ['documentId', 'source', 'picked'].includes(key))
+    && isDocumentId(context.documentId)
     && (context.source === 'blank' || context.source === 'template' || context.source === 'existing')
     && (context.picked === null || (
       typeof context.picked === 'object'
+      && Object.keys(context.picked).every((key) => key === 'id' || key === 'name')
       && typeof context.picked.id === 'string'
       && Boolean(context.picked.id.trim())
       && typeof context.picked.name === 'string'

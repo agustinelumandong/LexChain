@@ -108,6 +108,8 @@ export function GoogleDraftPanel({ document, onDocumentUpdated }: {
     const context = readGoogleDraftReturnContext();
     if (!context) return;
     if (context.documentId === document.document_id) {
+      // Restore browser storage after the OAuth navigation.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setSource(context.source);
       setPicked(context.picked);
     }
