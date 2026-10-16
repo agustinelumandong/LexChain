@@ -22,7 +22,7 @@ const { attachSignedCopyMock, correctDocumentEntryMock, finalizeDocumentMock, li
     reason: string;
     unresolved?: number;
     draftUrl?: string;
-    constructor(message: string, status: number, details: { reason: string; unresolved: number; draft_url: string }) {
+    constructor(message: string, status: number, details: { reason: string; unresolved?: number; draft_url?: string }) {
       super(message);
       this.status = status;
       this.reason = details.reason;
@@ -882,7 +882,7 @@ describe('DocumentWorkspace', () => {
 
     cleanup();
     const unsafeError = new LifecycleRequestError('Resolve comments.', 409, {
-      reason: 'UNRESOLVED_COMMENTS', unresolved: -1, draft_url: 'https://evil.example/document',
+      reason: 'UNRESOLVED_COMMENTS', draft_url: 'https://evil.example/document',
     });
     renderWorkspace({ readinessError: unsafeError });
     fireEvent.click(screen.getByRole('tab', { name: 'Comments' }));
