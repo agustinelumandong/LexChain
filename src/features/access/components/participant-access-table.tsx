@@ -7,10 +7,11 @@ type DocumentParty = components['schemas']['DocumentPartyResponse'];
 
 type ParticipantAccessTableProps = {
   parties: DocumentParty[];
+  canRevoke: boolean;
   onRevoke: (party: DocumentParty) => Promise<void>;
 };
 
-export function ParticipantAccessTable({ parties, onRevoke }: ParticipantAccessTableProps) {
+export function ParticipantAccessTable({ parties, canRevoke, onRevoke }: ParticipantAccessTableProps) {
   const [partyToRevoke, setPartyToRevoke] = useState<DocumentParty>();
   const [isRevoking, setIsRevoking] = useState(false);
   const [error, setError] = useState<string>();
@@ -38,8 +39,8 @@ export function ParticipantAccessTable({ parties, onRevoke }: ParticipantAccessT
       {parties.length === 0 ? <p className="px-5 py-6 text-sm font-medium text-[#64748b]">No participants have access yet.</p> : (
         <div className="overflow-x-auto">
           <table className="w-full min-w-[620px] text-left text-sm">
-            <thead className="bg-[#F8FBFF] text-xs uppercase tracking-wide text-[#64748b]"><tr><th className="px-5 py-3">Participant</th><th className="px-5 py-3">Permission</th><th className="px-5 py-3">Status</th><th className="px-5 py-3 text-right">Actions</th></tr></thead>
-            <tbody>{parties.map((party) => <tr key={party.id} className="border-t border-[#EEF3F8]"><td className="px-5 py-4"><p className="font-bold text-[#0C2B49]">{party.f_name} {party.l_name}</p><p className="text-xs text-[#64748b]">{party.email}</p></td><td className="px-5 py-4 capitalize text-[#0C2B49]">{party.role}</td><td className="px-5 py-4 capitalize text-[#0C2B49]">{party.status}</td><td className="px-5 py-4 text-right"><button type="button" disabled title="Resending document invitations is not supported by the current API." className="mr-2 rounded-lg border border-[#D6E3F1] px-3 py-1.5 text-xs font-bold text-[#64748b] disabled:cursor-not-allowed disabled:opacity-60">Resend unavailable</button><button type="button" onClick={() => setPartyToRevoke(party)} className="rounded-lg border border-[#F4C7C3] px-3 py-1.5 text-xs font-bold text-[#B42318]">Revoke</button></td></tr>)}</tbody>
+            <thead className="bg-[#F8FBFF] text-xs uppercase tracking-wide text-[#64748b]"><tr><th className="px-5 py-3">Participant</th><th className="px-5 py-3">Permission</th><th className="px-5 py-3">Status</th>{canRevoke && <th className="px-5 py-3 text-right">Actions</th>}</tr></thead>
+            <tbody>{parties.map((party) => <tr key={party.id} className="border-t border-[#EEF3F8]"><td className="px-5 py-4"><p className="font-bold text-[#0C2B49]">{party.f_name} {party.l_name}</p><p className="text-xs text-[#64748b]">{party.email}</p></td><td className="px-5 py-4 capitalize text-[#0C2B49]">{party.role}</td><td className="px-5 py-4 capitalize text-[#0C2B49]">{party.status}</td>{canRevoke && <td className="px-5 py-4 text-right"><button type="button" disabled title="Resending document invitations is not supported by the current API." className="mr-2 rounded-lg border border-[#D6E3F1] px-3 py-1.5 text-xs font-bold text-[#64748b] disabled:cursor-not-allowed disabled:opacity-60">Resend unavailable</button><button type="button" onClick={() => setPartyToRevoke(party)} className="rounded-lg border border-[#F4C7C3] px-3 py-1.5 text-xs font-bold text-[#B42318]">Revoke</button></td>}</tr>)}</tbody>
           </table>
         </div>
       )}

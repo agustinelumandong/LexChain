@@ -54,6 +54,11 @@ export function InviteParticipantForm({ onFindAccount, onInvite }: InvitePartici
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (lookup.status !== 'found') {
+      setError('Find an existing account before sending an invitation.');
+      return;
+    }
+
     const validation = validateParticipantInvitation({ email, role });
     if (!validation.valid) {
       setError(validation.message);
@@ -90,11 +95,11 @@ export function InviteParticipantForm({ onFindAccount, onInvite }: InvitePartici
           </select>
         </label>
         <button type="button" onClick={findAccount} disabled={isSubmitting || lookup.status === 'loading'} className="self-end rounded-xl border border-[#D6E3F1] px-4 py-2.5 text-sm font-extrabold text-[#0C2B49] disabled:cursor-not-allowed disabled:opacity-60">{lookup.status === 'loading' ? 'Searching…' : 'Find account'}</button>
-        <button type="submit" disabled={isSubmitting || lookup.status === 'loading'} className="self-end rounded-xl bg-[#0985E7] px-4 py-2.5 text-sm font-extrabold text-white disabled:cursor-not-allowed disabled:opacity-60">{isSubmitting ? 'Inviting…' : 'Send invitation'}</button>
+        <button type="submit" disabled={isSubmitting || lookup.status !== 'found'} className="self-end rounded-xl bg-[#0985E7] px-4 py-2.5 text-sm font-extrabold text-white disabled:cursor-not-allowed disabled:opacity-60">{isSubmitting ? 'Inviting…' : 'Send invitation'}</button>
       </div>
       {error && <p role="alert" className="mt-3 text-sm font-semibold text-[#C2410C]">{error}</p>}
       {lookup.status === 'found' && <p role="status" className="mt-3 text-sm font-semibold text-[#166534]">Account found: {lookup.account.f_name} {lookup.account.l_name} ({lookup.account.email}).</p>}
-      {lookup.status === 'not-found' && <p role="status" className="mt-3 text-sm font-semibold text-[#64748b]">No account found for this email. You can still send the invitation.</p>}
+      {lookup.status === 'not-found' && <p role="status" className="mt-3 text-sm font-semibold text-[#64748b]">No account found. Invitations can only be sent to existing accounts.</p>}
       {lookup.status === 'error' && <p role="alert" className="mt-3 text-sm font-semibold text-[#C2410C]">{lookup.message}</p>}
     </form>
   );
