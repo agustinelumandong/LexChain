@@ -23,7 +23,17 @@
 
 ## Scope note
 
-`UploadRequestError` parsing in `src/features/documents/portal-upload.ts` discards malformed `details.errors` entries that have no readable `message`/`msg`/`detail`. The page can show readable unassociated entries and unknown-field entries, as tested, but cannot display entries that the existing parser removes. That parser file is omitted from Task 5's file plan. Proposed minimal follow-up: adjust that parser to preserve a safe readable fallback for malformed entries and add focused parser/page coverage. I did not broaden this task into that file.
+### Review follow-up
+
+The review identified three accessibility/error-reporting gaps and they are now fixed in the follow-up commit:
+
+- Added an `ariaDescribedBy` prop to `PortalDropdown` and forwarded it to the trigger button. The upload book error now reaches the control that receives focus.
+- `getUploadValidationErrors` now preserves unreadable entries with the safe message “The backend returned an unreadable validation error.” Page coverage confirms the malformed item appears in the form-level summary.
+- Multiple errors for one upload field now share a single described error container ID, while each message remains readable inside it.
+
+**RED:** Added tests first; parser fallback expected entries but got an empty array, dropdown forwarding returned no description attribute, and upload markup contained duplicate `upload-doc-no-error` IDs. **GREEN:** All three now pass after the focused implementation.
+
+Follow-up verification: `pnpm exec vitest run src/features/portal/components/portal-dropdown.test.tsx src/features/documents/portal-upload.test.ts src/features/documents/pages/upload-page.test.tsx` — **3 files, 28 tests passed**; `pnpm typecheck`, `pnpm lint`, and `git diff --check` also passed.
 
 ## Limitations
 

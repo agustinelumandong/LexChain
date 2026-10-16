@@ -25,6 +25,19 @@ describe('portal document upload', () => {
     expect(error).toMatchObject({ reason: 'DUPLICATE_FILE', status: 409, validationErrors: [{ field: 'body.title', message: 'Required' }] });
   });
 
+  it('keeps malformed validation entries readable in the form summary', () => {
+    const error = new UploadRequestError({
+      message: 'Invalid upload.',
+      details: { errors: [null, { field: 'doc_no' }, { field: 'page_no', message: '' }] },
+    }, 422);
+
+    expect(error.validationErrors).toEqual([
+      { message: 'The backend returned an unreadable validation error.' },
+      { field: 'doc_no', message: 'The backend returned an unreadable validation error.' },
+      { field: 'page_no', message: 'The backend returned an unreadable validation error.' },
+    ]);
+  });
+
   it('preserves legacy upload conflict recovery', () => {
     const error = new UploadRequestError({ detail: { message: 'Awaiting signed copy', reason: 'READY_FOR_SIGNATURE_EXISTS' } }, 409);
     expect(error).toMatchObject({ message: 'Awaiting signed copy', reason: 'READY_FOR_SIGNATURE_EXISTS', requiresConfirmation: true });

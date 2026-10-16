@@ -265,8 +265,10 @@ describe('signed document upload screen', () => {
       message: 'This file is already filed.',
       details: { reason: 'DUPLICATE_FILE', document_id: 'duplicate-doc', errors: [
         { field: 'doc_no', message: 'Document number is already used.' },
+        { field: 'doc_no', message: 'Use a positive number.' },
         { field: 'unknown_column', message: 'This field is not available in the form.' },
         { message: 'The backend returned an unassociated validation message.' },
+        null,
       ] },
     }, { status: 409 })]);
     renderPage();
@@ -275,10 +277,13 @@ describe('signed document upload screen', () => {
 
     expect((await screen.findByRole('alert')).textContent).toContain('This file is already filed.');
     expect(screen.getByText('Document number is already used.')).toBeTruthy();
+    expect(screen.getByText('Use a positive number.')).toBeTruthy();
     expect(screen.getByText('unknown_column: This field is not available in the form.')).toBeTruthy();
     expect(screen.getByText('The backend returned an unassociated validation message.')).toBeTruthy();
+    expect(screen.getByText('The backend returned an unreadable validation error.')).toBeTruthy();
     expect(document.getElementById('upload-doc-no')!.getAttribute('aria-invalid')).toBe('true');
     expect(document.getElementById('upload-doc-no')!.getAttribute('aria-describedby')).toBe('upload-doc-no-error');
+    expect(document.querySelectorAll('#upload-doc-no-error')).toHaveLength(1);
     expect(screen.getByRole('link', { name: 'View existing document' }).getAttribute('href')).toBe('/portal/documents/duplicate-doc');
     expect(screen.queryByRole('button', { name: 'No, this is a new document' })).toBeNull();
     expect(document.getElementById('upload-doc-no')).toHaveProperty('value', '12');

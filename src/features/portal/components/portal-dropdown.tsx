@@ -12,6 +12,7 @@ export type PortalDropdownOption = {
 
 type PortalDropdownProps = {
   ariaLabel: string;
+  ariaDescribedBy?: string;
   options: ReadonlyArray<PortalDropdownOption>;
   value: string;
   onChange: (value: string) => void;
@@ -20,7 +21,7 @@ type PortalDropdownProps = {
   emptyLabel?: string;
 };
 
-export function PortalDropdown({ ariaLabel, options, value, onChange, placeholder = 'Select an option', disabled = false, emptyLabel = 'No options available' }: PortalDropdownProps) {
+export function PortalDropdown({ ariaLabel, ariaDescribedBy, options, value, onChange, placeholder = 'Select an option', disabled = false, emptyLabel = 'No options available' }: PortalDropdownProps) {
   const { open, setOpen, ref: rootRef } = usePopup();
   const selectedIndex = Math.max(options.findIndex((option) => option.value === value), 0);
   const [activeIndex, setActiveIndex] = useState(selectedIndex);
@@ -75,6 +76,7 @@ export function PortalDropdown({ ariaLabel, options, value, onChange, placeholde
         type="button"
         disabled={disabled}
         aria-label={ariaLabel}
+        aria-describedby={ariaDescribedBy}
         aria-controls={listboxId}
         aria-expanded={open}
         aria-haspopup="listbox"

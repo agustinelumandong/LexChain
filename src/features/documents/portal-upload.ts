@@ -75,12 +75,12 @@ function getUploadValidationErrors(value: unknown): UploadValidationError[] {
     ? value
     : isRecord(value) ? Object.entries(value).flatMap(([field, messages]) => (Array.isArray(messages) ? messages : [messages]).map((message) => ({ field, message }))) : [];
   return entries.flatMap((entry) => {
-    if (typeof entry === 'string') return [{ message: entry }];
-    if (!isRecord(entry)) return [];
+    if (typeof entry === 'string') return [{ message: getString(entry) ?? 'The backend returned an unreadable validation error.' }];
+    if (!isRecord(entry)) return [{ message: 'The backend returned an unreadable validation error.' }];
     const location = Array.isArray(entry.loc) ? entry.loc.filter((part) => typeof part === 'string').join('.') : undefined;
     const field = getString(entry.field) ?? getString(entry.path) ?? location;
     const message = getString(entry.message) ?? getString(entry.msg) ?? getString(entry.detail);
-    return message ? [{ field, message }] : [];
+    return [{ field, message: message ?? 'The backend returned an unreadable validation error.' }];
   });
 }
 

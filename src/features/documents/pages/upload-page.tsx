@@ -185,11 +185,11 @@ export default function UploadPage() {
           <h2 id="document-information-heading" className="font-black text-[#0C2B49]">Document information</h2>
           <p className="mt-1 text-sm text-[#64748b]">Provide the title and register book for this document.</p>
           <div className="mt-4 grid gap-4">
-            <label className="flex flex-col gap-1.5 text-sm font-bold text-[#0C2B49]">Document title<input id="upload-title" aria-invalid={uploadFieldErrors('title').length > 0} aria-describedby={uploadFieldErrors('title').length ? 'upload-title-error' : undefined} disabled={requiresConfirmation || isSubmissionPending} value={title} onChange={(event) => setTitle(event.target.value)} placeholder="e.g. Deed of Sale" className="rounded-xl border border-[#D7E4F2] px-3 py-2.5 text-sm font-medium outline-none focus:border-[#0985E7] disabled:bg-[#F8FBFF]" />{uploadFieldErrors('title').map((item) => <span id="upload-title-error" key={item.message} className="text-sm font-medium text-red-700">{item.message}</span>)}</label>
+            <label className="flex flex-col gap-1.5 text-sm font-bold text-[#0C2B49]">Document title<input id="upload-title" aria-invalid={uploadFieldErrors('title').length > 0} aria-describedby={uploadFieldErrors('title').length ? 'upload-title-error' : undefined} disabled={requiresConfirmation || isSubmissionPending} value={title} onChange={(event) => setTitle(event.target.value)} placeholder="e.g. Deed of Sale" className="rounded-xl border border-[#D7E4F2] px-3 py-2.5 text-sm font-medium outline-none focus:border-[#0985E7] disabled:bg-[#F8FBFF]" />{uploadFieldErrors('title').length > 0 && <div id="upload-title-error">{uploadFieldErrors('title').map((item) => <p key={item.message} className="text-sm font-medium text-red-700">{item.message}</p>)}</div>}</label>
             <label className="flex flex-col gap-1.5 text-sm font-bold text-[#0C2B49]">Register book
               <PortalDropdown
                 ariaLabel="Register book"
-                aria-describedby={uploadFieldErrors('book').length ? 'upload-book-error' : undefined}
+                ariaDescribedBy={uploadFieldErrors('book').length ? 'upload-book-error' : undefined}
                 placeholder="Choose a register book"
                 emptyLabel={booksQuery.isLoading ? 'Loading register books...' : 'No register books available'}
                 options={availableBooks.map((book) => ({ label: `Register book ${book.book_number} — Series ${book.series_year} · ${book.status === 'CLOSED' ? 'Closed' : 'Open'}`, value: book.id }))}
@@ -197,7 +197,7 @@ export default function UploadPage() {
                 onChange={(value) => { setBookId(value); setDocNo(''); setPageNo(''); setEnterPaperNumbers(false); setValidationError(null); }}
                 disabled={booksQuery.isLoading || availableBooks.length === 0 || requiresConfirmation || isSubmissionPending}
               />
-              {uploadFieldErrors('book').map((item) => <p id="upload-book-error" key={item.message} className="text-sm font-medium text-red-700">{item.message}</p>)}
+              {uploadFieldErrors('book').length > 0 && <div id="upload-book-error">{uploadFieldErrors('book').map((item) => <p key={item.message} className="text-sm font-medium text-red-700">{item.message}</p>)}</div>}
             </label>
             {booksQuery.isError && <p role="alert" className="text-sm font-bold text-red-600">Unable to load books. Please try again.</p>}
             {!booksQuery.isLoading && availableBooks.length === 0 && <p className="text-sm text-[#64748b]">Register a book before uploading a document.</p>}
@@ -207,11 +207,11 @@ export default function UploadPage() {
               <div className="grid gap-4 sm:grid-cols-2">
                 <label className="flex flex-col gap-1.5 text-sm font-bold text-[#0C2B49]">Paper document number
                   <input id="upload-doc-no" aria-invalid={uploadFieldErrors('doc_no').length > 0} aria-describedby={uploadFieldErrors('doc_no').length ? 'upload-doc-no-error' : undefined} required min="1" step="1" inputMode="numeric" type="number" disabled={requiresConfirmation || isSubmissionPending} value={docNo} onChange={(event) => setDocNo(event.target.value)} className="rounded-xl border border-[#D7E4F2] px-3 py-2.5 text-sm font-medium outline-none focus:border-[#0985E7] disabled:bg-[#F8FBFF]" />
-                  {uploadFieldErrors('doc_no').map((item) => <span id="upload-doc-no-error" key={item.message} className="text-sm font-medium text-red-700">{item.message}</span>)}
+                  {uploadFieldErrors('doc_no').length > 0 && <div id="upload-doc-no-error">{uploadFieldErrors('doc_no').map((item) => <p key={item.message} className="text-sm font-medium text-red-700">{item.message}</p>)}</div>}
                 </label>
                 <label className="flex flex-col gap-1.5 text-sm font-bold text-[#0C2B49]">Paper page number
                   <input id="upload-page-no" aria-invalid={uploadFieldErrors('page_no').length > 0} aria-describedby={uploadFieldErrors('page_no').length ? 'upload-page-no-error' : undefined} required min="1" step="1" inputMode="numeric" type="number" disabled={requiresConfirmation || isSubmissionPending} value={pageNo} onChange={(event) => setPageNo(event.target.value)} className="rounded-xl border border-[#D7E4F2] px-3 py-2.5 text-sm font-medium outline-none focus:border-[#0985E7] disabled:bg-[#F8FBFF]" />
-                  {uploadFieldErrors('page_no').map((item) => <span id="upload-page-no-error" key={item.message} className="text-sm font-medium text-red-700">{item.message}</span>)}
+                  {uploadFieldErrors('page_no').length > 0 && <div id="upload-page-no-error">{uploadFieldErrors('page_no').map((item) => <p key={item.message} className="text-sm font-medium text-red-700">{item.message}</p>)}</div>}
                 </label>
               </div>
             </>}
