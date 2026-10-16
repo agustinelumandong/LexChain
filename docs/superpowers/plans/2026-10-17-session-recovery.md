@@ -104,10 +104,12 @@
 
 **Files:**
 - Modify: `src/features/access/portal-access-api.ts`
+- Modify: `src/features/access/participant-access.ts`
 - Modify: `src/features/access/components/invite-participant-form.tsx`
 - Modify: `src/features/access/pages/invitations-page.tsx`
 - Modify: `src/features/portal/notifications-api.ts`
 - Test: `src/features/access/portal-access-api.test.ts`
+- Test: `src/features/access/participant-access.test.ts`
 - Test: `src/features/access/components/invite-participant-form.test.tsx`
 - Test: `src/features/access/pages/invitations-page.test.tsx`
 - Test: create `src/features/portal/notifications-api.test.ts` if no existing coverage exercises these requests.
@@ -115,8 +117,9 @@
 **Interfaces:**
 - Consumes `portalRequest(url, init?)` and `PortalApiError` from Task 1.
 - `searchUserByEmail` continues to return `null` for `404`; other failed access and notification requests retain the backend error.
+- Existing participant-capability handling must continue to recognize forbidden errors by status even when backend message wording changes.
 
-- [ ] **Step 1: Add/adjust API tests** to assert backend message/status/details, `401` recovery, and `searchUserByEmail` continuing to return `null` for its expected `404` result.
+- [ ] **Step 1: Add/adjust API and capability tests** to assert backend message/status/details, `401` recovery, `searchUserByEmail` continuing to return `null` for its expected `404` result, and status-based recognition of participant `403` capability errors.
 - [ ] **Step 2: Migrate access and notification requests** to `portalRequest`; retain methods, encoded IDs/query strings, credentials, and existing success parsing.
 - [ ] **Step 3: Preserve useful failures in both invitation interfaces**: show the backend message for participant-invite/search and accept/decline failures; map `details.errors` for existing `email`/`role` controls; keep unmatched entries in the alert summary; retain entered values; and keep the account-search 429 fallback when the backend supplies no useful message.
 - [ ] **Step 4: Run access API, participant-invite form, invitation page, and notification API tests** and confirm they pass.
