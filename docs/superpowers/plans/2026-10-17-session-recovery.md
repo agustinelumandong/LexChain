@@ -113,6 +113,7 @@
 - Test: `src/features/access/components/invite-participant-form.test.tsx`
 - Test: `src/features/access/pages/invitations-page.test.tsx`
 - Test: create `src/features/portal/notifications-api.test.ts` if no existing coverage exercises these requests.
+- Test: `src/app/portal/notifications/page.test.tsx`
 
 **Interfaces:**
 - Consumes `portalRequest(url, init?)` and `PortalApiError` from Task 1.
