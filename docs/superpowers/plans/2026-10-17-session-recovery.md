@@ -86,6 +86,8 @@
 - Test: `src/features/documents/document-lifecycle-api.test.ts`
 - Test: `src/features/documents/extraction-api.test.ts`
 - Test: `src/features/documents/portal-upload.test.ts`
+- Test: `src/features/documents/components/document-workspace.test.tsx`
+- Test: `src/features/portal/components/portal-search-bar.test.tsx`
 - Test: create `src/features/documents/search-api.test.ts` if no existing test covers it.
 
 **Interfaces:**
