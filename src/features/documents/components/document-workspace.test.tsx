@@ -3,10 +3,11 @@ import { QueryClient, QueryClientProvider, useQuery, useQueryClient } from '@tan
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DocumentWorkspace } from '@/features/documents/components/document-workspace';
+import { LifecycleRequestError } from '@/features/documents/document-lifecycle-api';
 import type { ApiSchema } from '@/shared/types';
 import { readGoogleDraftReturnContext, saveGoogleDraftReturnContext } from '@/shared/utils/google-draft-return-context';
 
-const { attachSignedCopyMock, correctDocumentEntryMock, finalizeDocumentMock, listDocumentPartiesMock, listRegisterBooksMock, listSignedCopiesMock, listDraftCommentsMock, replaceSignedCopyMock, syncDraftCommentsMock } = vi.hoisted(() => ({
+const { attachSignedCopyMock, correctDocumentEntryMock, finalizeDocumentMock, listDocumentPartiesMock, listRegisterBooksMock, listSignedCopiesMock, listDraftCommentsMock, replaceSignedCopyMock, syncDraftCommentsMock, LifecycleRequestErrorMock } = vi.hoisted(() => ({
   attachSignedCopyMock: vi.fn(),
   correctDocumentEntryMock: vi.fn(),
   finalizeDocumentMock: vi.fn(),
@@ -16,6 +17,19 @@ const { attachSignedCopyMock, correctDocumentEntryMock, finalizeDocumentMock, li
   listDraftCommentsMock: vi.fn(),
   replaceSignedCopyMock: vi.fn(),
   syncDraftCommentsMock: vi.fn(),
+  LifecycleRequestErrorMock: class LifecycleRequestError extends Error {
+    status: number;
+    reason: string;
+    unresolved?: number;
+    draftUrl?: string;
+    constructor(message: string, status: number, details: { reason: string; unresolved?: number; draft_url?: string }) {
+      super(message);
+      this.status = status;
+      this.reason = details.reason;
+      this.unresolved = details.unresolved;
+      this.draftUrl = details.draft_url;
+    }
+  },
 }));
 
 vi.mock('@/features/access', () => ({
@@ -30,6 +44,7 @@ vi.mock('@/features/documents/document-lifecycle-api', () => ({
   listDraftComments: listDraftCommentsMock,
   replaceSignedCopy: replaceSignedCopyMock,
   syncDraftComments: syncDraftCommentsMock,
+  LifecycleRequestError: LifecycleRequestErrorMock,
 }));
 
 vi.mock('@/features/office/books-api', () => ({
@@ -798,7 +813,7 @@ describe('DocumentWorkspace', () => {
       comments: [{ id: 'comment-1', author_name: 'Reviewer', is_lawyer: true, content: 'Please correct this clause.', quoted_text: 'Payment is due.', resolved: false, created_at: '2026-07-28T00:00:00Z', replies: [{ author_name: 'Issuer', is_lawyer: false, content: 'I will update it.', created_at: '2026-07-28T00:01:00Z' }] }],
     });
     syncDraftCommentsMock.mockRejectedValue(new Error('Google Docs is unavailable'));
-    renderWorkspace({ document: { ...document, permissions: { ...document.permissions, can_mark_ready: true } }, readinessError: 'UNRESOLVED_COMMENTS: resolve all threads' });
+    renderWorkspace({ document: { ...document, permissions: { ...document.permissions, can_mark_ready: true } }, readinessError: new Error('UNRESOLVED_COMMENTS: resolve all threads') });
 
     fireEvent.click(screen.getByRole('tab', { name: 'Comments' }));
     expect(await screen.findByText('Please correct this clause.')).toBeTruthy();
@@ -809,6 +824,71 @@ describe('DocumentWorkspace', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Sync comments' }));
     expect(await screen.findByText('Google Docs is unavailable')).toBeTruthy();
     expect(screen.getByText('Please correct this clause.')).toBeTruthy();
+  });
+
+  it('publishes comments returned by manual sync to the visible comment list', async () => {
+    listDraftCommentsMock.mockResolvedValue({ document_id: 'doc-101', unresolved: 1, comments: [] });
+    syncDraftCommentsMock.mockResolvedValue({
+      document_id: 'doc-101', unresolved: 0,
+      comments: [{ id: 'comment-synced', author_name: 'Reviewer', content: 'Resolved externally.', resolved: true, created_at: '2026-07-28T00:00:00Z' }],
+    });
+    renderWorkspace({ document: { ...document, permissions: { ...document.permissions, can_mark_ready: true } } });
+    fireEvent.click(screen.getByRole('tab', { name: 'Comments' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Sync comments' }));
+
+    expect(await screen.findByText('Resolved externally.')).toBeTruthy();
+    expect(screen.getByText('0 unresolved · Last synced Not available')).toBeTruthy();
+  });
+
+  it('guides clients to comments and lawyers to review pending suggestions before readiness', async () => {
+    renderWorkspace({ role: 'user' });
+    fireEvent.click(screen.getByRole('tab', { name: 'Comments' }));
+    expect(await screen.findByText(/Leave feedback with comments \(select text → comment button\), not by typing in the document\./)).toBeTruthy();
+    expect(screen.getByText(/Google Docs suggestions are outside LexChain's comment mirror/)).toBeTruthy();
+
+    cleanup();
+    renderWorkspace({ role: 'lawyer', document: { ...document, permissions: { ...document.permissions, can_mark_ready: true } } });
+    fireEvent.click(screen.getByRole('tab', { name: 'Comments' }));
+    expect(screen.getByText(/Check the draft for pending suggestions in Google Docs before marking it ready\./)).toBeTruthy();
+    expect(screen.getByText(/clients can only read the draft after it is ready.*reopen it for revisions/i)).toBeTruthy();
+  });
+
+  it('shows mirrored thread actions and only validated unresolved readiness details', async () => {
+    listDraftCommentsMock.mockResolvedValue({
+      document_id: 'doc-101', unresolved: 2, comments: [{
+        id: 'comment-2', author_name: 'Client Name', author_user_id: null, content: 'Please revise.', quoted_text: 'Original text',
+        resolved: false, created_at: '2026-07-28T00:00:00Z', replies: [
+          { author_name: 'Lawyer', content: 'Resolved in Google Docs.', action: 'resolve' },
+          { author_name: 'Client Name', content: 'Reopened in Google Docs.', action: 'reopen' },
+          { author_name: 'Lawyer', content: 'Follow-up note.', action: 'comment' },
+        ],
+      }],
+    });
+    const readinessError = new LifecycleRequestError('Resolve two threads.', 409, {
+      reason: 'UNRESOLVED_COMMENTS', unresolved: 2, draft_url: 'https://docs.google.com/document/d/draft-101',
+    });
+    renderWorkspace({ document: { ...document, permissions: { ...document.permissions, can_mark_ready: true } }, readinessError });
+    fireEvent.click(screen.getByRole('tab', { name: 'Comments' }));
+
+    expect(await screen.findByText('Client Name')).toBeTruthy();
+    expect(screen.getByText('Original text')).toBeTruthy();
+    expect(screen.getByText(/Resolved thread/)).toBeTruthy();
+    expect(screen.getByText(/Reopened thread/)).toBeTruthy();
+    expect(screen.queryByText('Commented')).toBeNull();
+    expect(screen.getByRole('alert').textContent).toContain('Resolve two threads.');
+    expect(screen.getByText('2 unresolved comments remain.')).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'Open Google draft to resolve comments' }).getAttribute('href'))
+      .toBe('https://docs.google.com/document/d/draft-101');
+
+    cleanup();
+    const unsafeError = new LifecycleRequestError('Resolve comments.', 409, {
+      reason: 'UNRESOLVED_COMMENTS', draft_url: 'https://evil.example/document',
+    });
+    renderWorkspace({ readinessError: unsafeError });
+    fireEvent.click(screen.getByRole('tab', { name: 'Comments' }));
+    expect((await screen.findByRole('alert')).textContent).toContain('Resolve comments.');
+    expect(screen.queryByText(/unresolved comments remain/)).toBeNull();
+    expect(screen.queryByRole('link', { name: 'Open Google draft to resolve comments' })).toBeNull();
   });
 
   it('hides readiness controls when the backend denies the permissions', () => {

@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { createElement, Suspense } from 'react';
+import { createElement, Suspense, useReducer } from 'react';
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ApiSchema } from '@/shared/types';
@@ -12,7 +12,10 @@ const { state } = vi.hoisted(() => ({
     signedCopiesQuery: {} as Record<string, unknown>,
     commentsQuery: {} as Record<string, unknown>,
     queryKeys: [] as string[][],
+    mutations: [] as { options: unknown }[],
     renameDocument: vi.fn(),
+    markDocumentReady: vi.fn(),
+    reopenDocument: vi.fn(),
     queryClient: { setQueryData: vi.fn(), invalidateQueries: vi.fn() },
   },
 }));
@@ -20,9 +23,10 @@ const { state } = vi.hoisted(() => ({
 vi.mock('@/features/documents/document-lifecycle-api', () => ({
   renameDocument: state.renameDocument,
   finalizeDocument: vi.fn(),
-  markDocumentReady: vi.fn(),
-  reopenDocument: vi.fn(),
+  markDocumentReady: state.markDocumentReady,
+  reopenDocument: state.reopenDocument,
   cancelDocument: vi.fn(),
+  LifecycleRequestError: class LifecycleRequestError extends Error {},
 }));
 
 vi.mock('@tanstack/react-query', () => ({
@@ -36,7 +40,24 @@ vi.mock('@tanstack/react-query', () => ({
     return state.signedCopiesQuery;
   },
   useQueryClient: () => state.queryClient,
-  useMutation: () => ({ mutate: vi.fn(), reset: vi.fn(), isPending: false, error: null }),
+  useMutation: (options: { mutationFn: (...args: unknown[]) => Promise<unknown>; onSuccess?: (result: unknown, ...args: unknown[]) => unknown }) => {
+    const [error, setError] = useReducer((_previous: unknown, next: unknown) => next, null);
+    const [isSuccess, setSuccess] = useReducer((_previous: boolean, next: boolean) => next, false);
+    state.mutations.push({ options });
+    return {
+      mutate: async (...args: unknown[]) => {
+        try {
+          const result = await options.mutationFn(...args);
+          await options.onSuccess?.(result, ...args);
+          setError(null);
+          setSuccess(true);
+        } catch (mutationError) {
+          setError(mutationError);
+        }
+      },
+      reset: vi.fn(), isPending: false, error, isSuccess,
+    };
+  },
 }));
 
 vi.mock('@/features/portal/components', () => ({ PortalChatbot: () => null }));
@@ -97,6 +118,9 @@ beforeEach(() => {
   state.commentsQuery = { data: { document_id: 'doc-1', unresolved: 0, synced_at: null, comments: [] }, isLoading: false, isError: false };
   state.queryClient.setQueryData.mockReset();
   state.queryClient.invalidateQueries.mockReset();
+  state.markDocumentReady.mockReset();
+  state.reopenDocument.mockReset();
+  state.mutations = [];
 });
 
 afterEach(cleanup);
@@ -179,6 +203,48 @@ describe('document detail screen', () => {
     fireEvent.click(screen.getByRole('tab', { name: 'Comments' }));
     expect(screen.getByRole('button', { name: 'Mark ready for signature' })).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Reopen draft' })).toBeNull();
+  });
+
+  it('publishes returned ready lifecycle and permission flags before refreshing dependent queries', async () => {
+    const preparing = { ...baseDocument, lifecycle: 'PREPARING', permissions: { ...baseDocument.permissions, can_mark_ready: true } };
+    const ready = { ...preparing, lifecycle: 'READY_FOR_SIGNATURE', permissions: { ...preparing.permissions, can_mark_ready: false, can_reopen: true } };
+    state.documentQuery = { data: preparing, isLoading: false, isError: false, refetch: vi.fn() };
+    state.markDocumentReady.mockResolvedValue(ready);
+    await showPage();
+    fireEvent.click(screen.getByRole('tab', { name: 'Comments' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Mark ready for signature' }));
+
+    await waitFor(() => expect(state.queryClient.setQueryData).toHaveBeenCalledWith(['portal-doc', 'doc-1'], ready));
+    expect(state.queryClient.invalidateQueries).toHaveBeenCalledWith({ queryKey: ['portal-documents'] });
+    expect(state.queryClient.invalidateQueries).toHaveBeenCalledWith({ queryKey: ['portal-document-comments', 'doc-1'] });
+    expect(state.queryClient.invalidateQueries).toHaveBeenCalledWith({ queryKey: ['portal-document-history', 'doc-1'] });
+  });
+
+  it('publishes returned reopened lifecycle and permission flags immediately', async () => {
+    const ready = { ...baseDocument, lifecycle: 'READY_FOR_SIGNATURE', permissions: { ...baseDocument.permissions, can_reopen: true } };
+    const reopened = { ...ready, lifecycle: 'PREPARING', permissions: { ...ready.permissions, can_reopen: false, can_mark_ready: true } };
+    state.documentQuery = { data: ready, isLoading: false, isError: false, refetch: vi.fn() };
+    state.reopenDocument.mockResolvedValue(reopened);
+    await showPage();
+    fireEvent.click(screen.getByRole('tab', { name: 'Comments' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Reopen draft' }));
+
+    await waitFor(() => expect(state.queryClient.setQueryData).toHaveBeenCalledWith(['portal-doc', 'doc-1'], reopened));
+    expect(state.queryClient.invalidateQueries).toHaveBeenCalledWith({ queryKey: ['portal-documents'] });
+    expect(state.queryClient.invalidateQueries).toHaveBeenCalledWith({ queryKey: ['portal-document-comments', 'doc-1'] });
+    expect(state.queryClient.invalidateQueries).toHaveBeenCalledWith({ queryKey: ['portal-document-history', 'doc-1'] });
+  });
+
+  it('keeps the backend readiness failure message visible', async () => {
+    const preparing = { ...baseDocument, lifecycle: 'PREPARING', permissions: { ...baseDocument.permissions, can_mark_ready: true } };
+    state.documentQuery = { data: preparing, isLoading: false, isError: false, refetch: vi.fn() };
+    state.markDocumentReady.mockRejectedValue(Object.assign(new Error('Resolve two comments before marking ready.'), { status: 409 }));
+    await showPage();
+    fireEvent.click(screen.getByRole('tab', { name: 'Comments' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Mark ready for signature' }));
+
+    expect(await screen.findByText('Resolve two comments before marking ready.')).toBeTruthy();
+    expect(state.queryClient.setQueryData).not.toHaveBeenCalled();
   });
 
   it('shows rename and finalize controls only when permitted by the backend', async () => {

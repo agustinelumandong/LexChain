@@ -154,6 +154,35 @@ describe('document lifecycle client', () => {
     await expect(markDocumentReady('document-1')).rejects.toThrow('UNRESOLVED_COMMENTS: resolve all threads');
   });
 
+  it('preserves validated unresolved-comment details and readable legacy errors', async () => {
+    const message = 'Resolve the remaining comments before marking ready.';
+    vi.stubGlobal('fetch', vi.fn()
+      .mockResolvedValueOnce(Response.json({ message, details: {
+        reason: 'UNRESOLVED_COMMENTS', unresolved: 2, draft_url: 'https://docs.google.com/document/d/example',
+      } }, { status: 409 }))
+      .mockResolvedValueOnce(Response.json({ message, details: {
+        reason: 'UNRESOLVED_COMMENTS', unresolved: -1, draft_url: 'https://evil.example/document',
+      } }, { status: 409 }))
+      .mockResolvedValueOnce(Response.json({ detail: 'Legacy readiness failure' }, { status: 409 }))
+      .mockResolvedValueOnce(new Response('not json', { status: 503 })));
+
+    await expect(markDocumentReady('document-1')).rejects.toMatchObject({
+      name: 'LifecycleRequestError', message, status: 409, reason: 'UNRESOLVED_COMMENTS', unresolved: 2,
+      draftUrl: 'https://docs.google.com/document/d/example',
+    });
+
+    try {
+      await markDocumentReady('document-1');
+      throw new Error('Expected readiness request to fail');
+    } catch (error) {
+      expect(error).toMatchObject({ message, status: 409, reason: 'UNRESOLVED_COMMENTS' });
+      expect(error).not.toHaveProperty('unresolved');
+      expect(error).not.toHaveProperty('draftUrl');
+    }
+    await expect(markDocumentReady('document-1')).rejects.toMatchObject({ message: 'Legacy readiness failure', status: 409 });
+    await expect(markDocumentReady('document-1')).rejects.toMatchObject({ message: 'API error: 503', status: 503 });
+  });
+
   it('finalizes through the existing same-origin mutation proxy', async () => {
     const fetchMock = vi.fn().mockResolvedValue(Response.json(record));
     vi.stubGlobal('fetch', fetchMock);

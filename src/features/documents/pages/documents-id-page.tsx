@@ -80,10 +80,11 @@ export default function DocumentDetailPage({ params }: { params: Promise<{ id: s
 
   const readinessMutation = useMutation({
     mutationFn: (action: 'ready' | 'reopen') => action === 'ready' ? markDocumentReady(id) : reopenDocument(id),
-    onSuccess: async (_result, action) => {
+    onSuccess: async (updatedDocument, action) => {
+      queryClient.setQueryData(['portal-doc', id], updatedDocument);
       setSuccess(action === 'ready' ? 'Document marked ready for signature.' : 'Document reopened for editing.');
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['portal-doc', id] }),
+        queryClient.invalidateQueries({ queryKey: ['portal-documents'] }),
         queryClient.invalidateQueries({ queryKey: ['portal-document-comments', id] }),
         queryClient.invalidateQueries({ queryKey: ['portal-document-history', id] }),
       ]);
@@ -212,7 +213,7 @@ export default function DocumentDetailPage({ params }: { params: Promise<{ id: s
         onCancelFinalize={() => setConfirmingFinalize(false)}
         onConfirmFinalize={() => finalizeMutation.mutate()}
         success={success}
-        readinessError={readinessMutation.error instanceof Error ? readinessMutation.error.message : null}
+        readinessError={readinessMutation.error instanceof Error ? readinessMutation.error : null}
         readinessSuccess={readinessMutation.isSuccess ? success : undefined}
         isChangingReadiness={readinessMutation.isPending}
         onMarkReady={() => readinessMutation.mutate('ready')}

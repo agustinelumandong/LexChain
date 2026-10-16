@@ -74,8 +74,8 @@ The route map below pairs user actions with the backend calls found in the curre
 | Open dashboard and document list | `/portal/dashboard`, `/portal/documents` | `GET /documents/`; lawyer dashboard metrics also use `GET /admin/dashboard` |
 | Create a working record | Documents → Create document draft | `POST /documents/` |
 | Connect Google and create/select a working draft | `/portal/profile/account`, document workspace | `GET /google/connection`, `POST /google/connect`, `GET /google/picker-token`, `POST /documents/{document_id}/draft`; callback is redirect-driven |
-| Read and sync draft comments | Document workspace | `GET /documents/{document_id}/comments`, `POST /documents/{document_id}/comments/sync` |
-| Mark ready or reopen | Document workspace | `POST /documents/{document_id}/ready`, `POST /documents/{document_id}/reopen` |
+| Read and manually sync draft comments | Document workspace | `GET /documents/{document_id}/comments`, `POST /documents/{document_id}/comments/sync` |
+| Mark ready or reopen | Document workspace; backend permissions gate each action | `POST /documents/{document_id}/ready`, `POST /documents/{document_id}/reopen` |
 | Upload a signed PDF to a book | `/portal/upload` | `GET /books/`, `POST /documents/upload` |
 | Attach, replace, or review signed-copy history | Document workspace | `POST /documents/{document_id}/signed-copy`, `PUT /documents/{document_id}/signed-copy`, `GET /documents/{document_id}/signed-copies` |
 | Read or rename a document | Document workspace | `GET /documents/{document_id}`, `PATCH /documents/{document_id}` |
@@ -151,6 +151,10 @@ The 2026-10-09 source review found UI/API call paths for 50 of 57 contract opera
 ## Optional Google document flow
 
 Where Google is connected and the required Picker configuration is available, a lawyer can create a blank Google Doc, copy a template, or select an existing Google Doc for a working draft. The user edits that draft in Google. LexChain keeps the draft link separate from the signed PDF and uses backend operations for draft and comment synchronization. If a document requires Google reconnection, the frontend stores only that document's draft choices in session storage, returns to `/portal/profile/account` for callback feedback, and restores those choices to the document after a confirmed connection. Draft creation still requires an explicit user action. Google availability and setup can affect this path; the deployed callback destination is not verified by this documentation.
+
+In the Comments tab, clients see: “Leave feedback with comments (select text → comment button), not by typing in the document.” Google Docs suggestions are outside LexChain's comment mirror. Lawyers see: “Check the draft for pending suggestions in Google Docs before marking it ready.” The mirror shows Google comment authors, quoted text, replies, and resolve/reopen activity; those replies and resolution actions remain in Google Docs. A lawyer manually syncs comments after Google-side changes. LexChain does not send reply or resolve mutations.
+
+The backend decides whether a document can be marked ready. If pending comments block readiness, its `409 UNRESOLVED_COMMENTS` response provides the unresolved count and draft link; the frontend shows these only when `details.reason`, `details.unresolved`, and `details.draft_url` pass runtime validation. The checked-in OpenAPI documents the 409 condition but does not define this response body. These field names are the accepted frontend handoff shape, not a generated or authoritative schema. When the backend contract is updated, confirm the body with its owner before documenting it in OpenAPI or regenerating types. After readiness, clients can only read the draft; a lawyer can reopen it for revisions. Ready and reopen responses update the visible document and permissions immediately, then refresh the list, comments, and history.
 
 ## What happens when the network is unavailable
 
