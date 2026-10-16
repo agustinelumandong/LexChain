@@ -1,3 +1,4 @@
+import { portalRequest } from '@/shared/api/client';
 import type { QueryClient } from '@tanstack/react-query';
 
 export type PortalNotification = { id: string; title: string; body: string; is_read: boolean; created_at: string };
@@ -10,14 +11,12 @@ export const notificationQueryKeys = {
 };
 
 export async function fetchNotifications(): Promise<PortalNotificationList> {
-  const response = await fetch('/api/portal/proxy?path=%2Fnotifications%2F', { credentials: 'same-origin' });
-  if (!response.ok) throw new Error('Unable to load notifications. Please try again.');
+  const response = await portalRequest('/api/portal/proxy?path=%2Fnotifications%2F', { credentials: 'same-origin' });
   return response.json();
 }
 
 export async function fetchUnreadNotificationCount(): Promise<number> {
-  const response = await fetch('/api/portal/proxy?path=%2Fnotifications%2Funread-count', { credentials: 'same-origin' });
-  if (!response.ok) throw new Error('Unable to load the unread notification count. Please try again.');
+  const response = await portalRequest('/api/portal/proxy?path=%2Fnotifications%2Funread-count', { credentials: 'same-origin' });
   const body: unknown = await response.json();
   if (typeof body !== 'object' || body === null || !('unread' in body) || typeof body.unread !== 'number') {
     throw new Error('The unread notification count was unavailable. Please try again.');
@@ -26,19 +25,17 @@ export async function fetchUnreadNotificationCount(): Promise<number> {
 }
 
 export async function markAllNotificationsRead() {
-  const response = await fetch('/api/portal/proxy-post?path=%2Fnotifications%2Fread-all', {
+  await portalRequest('/api/portal/proxy-post?path=%2Fnotifications%2Fread-all', {
     method: 'PATCH',
     credentials: 'same-origin',
   });
-  if (!response.ok) throw new Error('Unable to mark notifications as read. Please try again.');
 }
 
 export async function markNotificationRead(id: string) {
-  const response = await fetch(`/api/portal/proxy-post?path=${encodeURIComponent(`/notifications/${id}/read`)}`, {
+  await portalRequest(`/api/portal/proxy-post?path=${encodeURIComponent(`/notifications/${id}/read`)}`, {
     method: 'PATCH',
     credentials: 'same-origin',
   });
-  if (!response.ok) throw new Error('Unable to mark this notification as read. Please try again.');
 }
 
 export async function invalidateNotificationQueries(queryClient: QueryClient) {

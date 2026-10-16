@@ -6,7 +6,7 @@ import InvitationsPage from '@/features/access/pages/invitations-page';
 
 const { portalFetch, routerReplace } = vi.hoisted(() => ({ portalFetch: vi.fn(), routerReplace: vi.fn() }));
 
-vi.mock('@/shared/api/client', () => ({ portalFetch }));
+vi.mock('@/shared/api/client', async (importOriginal) => ({ ...await importOriginal<typeof import('@/shared/api/client')>(), portalFetch }));
 vi.mock('next/navigation', () => ({ useRouter: () => ({ replace: routerReplace }) }));
 
 afterEach(() => {
@@ -54,4 +54,15 @@ describe('client document invitations', () => {
       { method: 'POST', credentials: 'same-origin' },
     );
   });
+});
+
+
+it.each(['Accept', 'Decline'])('shows backend feedback after %s fails without losing the invitation', async (action) => {
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json({ message: 'This invitation has expired.' }, { status: 409 })));
+  renderPage();
+  fireEvent.click(await screen.findByRole('button', { name: action }));
+  expect((await screen.findByRole('alert')).textContent).toContain('This invitation has expired.');
+  expect(screen.getByText('Agreement.pdf')).toBeTruthy();
+  expect(routerReplace).not.toHaveBeenCalled();
+  await waitFor(() => expect((screen.getByRole('button', { name: action }) as HTMLButtonElement).disabled).toBe(false));
 });

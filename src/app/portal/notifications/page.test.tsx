@@ -39,7 +39,7 @@ describe('NotificationsPage', () => {
       .mockResolvedValueOnce(Response.json({ notifications: [], total: 0 }));
     renderNotifications();
 
-    expect((await screen.findByRole('alert')).textContent).toContain('Unable to load notifications');
+    expect((await screen.findByRole('alert')).textContent).toContain('Service unavailable');
     fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
 
     expect(await screen.findByText('No notifications yet')).toBeTruthy();
@@ -70,18 +70,19 @@ describe('NotificationsPage', () => {
   it('shows mark-one and mark-all failures without changing the unread list', async () => {
     fetchMock.mockImplementation((input: RequestInfo | URL) => {
       const url = String(input);
-      if (url.includes(encodeURIComponent('/notifications/anchored/read'))) return Promise.resolve(Response.json({}, { status: 503 }));
-      if (url.includes(encodeURIComponent('/notifications/read-all'))) return Promise.resolve(Response.json({}, { status: 503 }));
+      if (url.includes(encodeURIComponent('/notifications/anchored/read'))) return Promise.resolve(Response.json({ message: 'This notification could not be updated.' }, { status: 503 }));
+      if (url.includes(encodeURIComponent('/notifications/read-all'))) return Promise.resolve(Response.json({ message: 'Bulk updates are temporarily unavailable.' }, { status: 503 }));
       return Promise.resolve(listResponse());
     });
     renderNotifications();
 
     fireEvent.click(await screen.findByRole('button', { name: 'Mark Document anchored as read' }));
-    expect((await screen.findByRole('alert')).textContent).toContain('Unable to mark this notification as read');
+    expect((await screen.findByRole('alert')).textContent).toContain('This notification could not be updated.');
     expect(screen.getByRole('button', { name: 'Mark Document anchored as read' })).toBeTruthy();
 
     fireEvent.click(screen.getByRole('button', { name: 'Mark all as read' }));
-    await waitFor(() => expect(screen.getAllByRole('alert').length).toBe(2));
+    await screen.findByText('Bulk updates are temporarily unavailable.');
+    expect(screen.getAllByRole('alert').length).toBe(2);
     expect(screen.getByRole('button', { name: 'Mark Document anchored as read' })).toBeTruthy();
   });
 

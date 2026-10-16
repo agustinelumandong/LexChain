@@ -1,3 +1,5 @@
+import { portalRequest } from '@/shared/api/client';
+import { PortalApiError } from '@/shared/api/portal-error';
 import type { components } from '@/shared/types/index';
 import type { PortalAuditLog } from '@/features/access/portal-compat-types';
 
@@ -8,13 +10,12 @@ type RemovePartyResponse = components['schemas']['RemovePartyResponse'];
 type UserSearchResponse = components['schemas']['UserSearchResponse'];
 
 async function portalAccessFetch<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(path, {
+  const response = await portalRequest(path, {
     credentials: 'same-origin',
     cache: 'no-store',
     ...init,
   });
 
-  if (!response.ok) throw new Error(`API error: ${response.status}`);
   return response.json() as Promise<T>;
 }
 
@@ -37,14 +38,15 @@ export function revokeDocumentParty(documentId: string, partyUserId: string) {
 }
 
 export async function searchUserByEmail(email: string): Promise<UserSearchResponse | null> {
-  const response = await fetch(`/api/portal/proxy?path=${encodeURIComponent(`/users/search?email=${encodeURIComponent(email)}`)}`, {
-    credentials: 'same-origin',
-    cache: 'no-store',
-  });
-
-  if (response.status === 404) return null;
-  if (!response.ok) throw new Error(`API error: ${response.status}`);
-  return response.json() as Promise<UserSearchResponse>;
+  try {
+    const response = await portalRequest(`/api/portal/proxy?path=${encodeURIComponent(`/users/search?email=${encodeURIComponent(email)}`)}`, {
+      cache: 'no-store',
+    });
+    return response.json() as Promise<UserSearchResponse>;
+  } catch (reason) {
+    if (reason instanceof PortalApiError && reason.status === 404) return null;
+    throw reason;
+  }
 }
 
 export function listDocumentAuditLogs(documentId: string) {
