@@ -826,6 +826,20 @@ describe('DocumentWorkspace', () => {
     expect(screen.getByText('Please correct this clause.')).toBeTruthy();
   });
 
+  it('publishes comments returned by manual sync to the visible comment list', async () => {
+    listDraftCommentsMock.mockResolvedValue({ document_id: 'doc-101', unresolved: 1, comments: [] });
+    syncDraftCommentsMock.mockResolvedValue({
+      document_id: 'doc-101', unresolved: 0,
+      comments: [{ id: 'comment-synced', author_name: 'Reviewer', content: 'Resolved externally.', resolved: true, created_at: '2026-07-28T00:00:00Z' }],
+    });
+    renderWorkspace({ document: { ...document, permissions: { ...document.permissions, can_mark_ready: true } } });
+    fireEvent.click(screen.getByRole('tab', { name: 'Comments' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Sync comments' }));
+
+    expect(await screen.findByText('Resolved externally.')).toBeTruthy();
+    expect(screen.getByText('0 unresolved · Last synced Not available')).toBeTruthy();
+  });
+
   it('guides clients to comments and lawyers to review pending suggestions before readiness', async () => {
     renderWorkspace({ role: 'user' });
     fireEvent.click(screen.getByRole('tab', { name: 'Comments' }));
