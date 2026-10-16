@@ -9,21 +9,19 @@ import type { ApiSchema } from '@/shared/types/index';
 import { listDocumentAuditLogs, type PortalAuditLog, getPortalUiRole } from "@/features/access";
 import { formatAuditEvent } from '@/features/documents/activity-log';
 import { canLoadDocumentActivity } from '@/features/documents/document-activity-access';
+import { portalRequest } from '@/shared/api/client';
 
 type DocumentResponse = ApiSchema<'DocumentResponse'>;
 type UserProfile = ApiSchema<'UserProfileResponse'>;
 
 async function getDocument(documentId: string): Promise<DocumentResponse> {
-  const response = await fetch(`/api/portal/proxy?path=${encodeURIComponent(`/documents/${documentId}`)}`, {
-    credentials: 'same-origin',
-  });
-  if (!response.ok) throw new Error('Unable to load document');
+  const response = await portalRequest(`/api/portal/proxy?path=${encodeURIComponent(`/documents/${documentId}`)}`);
   return response.json() as Promise<DocumentResponse>;
 }
 
 async function getProfile(): Promise<UserProfile | null> {
-  const response = await fetch('/api/portal/proxy?path=%2Fusers%2F', { credentials: 'same-origin' });
-  return response.ok ? response.json() as Promise<UserProfile> : null;
+  const response = await portalRequest('/api/portal/proxy?path=%2Fusers%2F');
+  return response.json() as Promise<UserProfile>;
 }
 
 function formatTime(value: string) {
@@ -68,6 +66,7 @@ export default function DocumentActivityPage({ params }: { params: Promise<{ id:
   );
 
   if (profileQuery.isPending) return <div className="h-40 animate-pulse rounded-[18px] border border-[#E8F0F8] bg-white" />;
+  if (profileQuery.isError) return <p role="alert" className="text-sm font-semibold text-[#B42318]">{profileQuery.error.message}</p>;
   if (role !== 'lawyer') return <p className="text-sm font-semibold text-[#64748b]">Document activity is available to Lawyers only.</p>;
 
   return (
@@ -97,7 +96,7 @@ export default function DocumentActivityPage({ params }: { params: Promise<{ id:
         </div>
 
         {auditQuery.isLoading && <p className="text-sm font-medium text-[#64748b]">Loading activity…</p>}
-        {auditQuery.isError && <p className="text-sm font-medium text-[#B42318]">Unable to load document activity.</p>}
+        {auditQuery.isError && <p role="alert" className="text-sm font-medium text-[#B42318]">{auditQuery.error.message}</p>}
         {!auditQuery.isLoading && !auditQuery.isError && filteredLogs.length === 0 && <p className="text-sm font-medium text-[#64748b]">No audit events match the selected filters.</p>}
         {!auditQuery.isLoading && !auditQuery.isError && filteredLogs.length > 0 && (
           <div className="overflow-x-auto">

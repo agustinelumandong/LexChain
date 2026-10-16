@@ -11,13 +11,14 @@ import { getDocumentActions, getDocumentLifecycleLabel, getDocumentStatusLabel }
 import { renameDocument, finalizeDocument, markDocumentReady, reopenDocument, cancelDocument } from '@/features/documents/document-lifecycle-api';
 import { getPortalUiRole } from "@/features/access";
 import { Modal } from '@/features/admin/components/modal';
+import { portalRequest } from '@/shared/api/client';
+import { PortalApiError } from '@/shared/api/portal-error';
 
 type DocumentResponse = ApiSchema<'DocumentResponse'>;
 type UserProfile = ApiSchema<'UserProfileResponse'>;
 
 async function getJson<T>(path: string): Promise<T> {
-  const response = await fetch(`/api/portal/proxy?path=${encodeURIComponent(path)}`, { credentials: 'same-origin' });
-  if (!response.ok) throw Object.assign(new Error(`Failed to fetch ${path}`), { status: response.status });
+  const response = await portalRequest(`/api/portal/proxy?path=${encodeURIComponent(path)}`);
   return response.json();
 }
 
@@ -123,7 +124,7 @@ export default function DocumentDetailPage({ params }: { params: Promise<{ id: s
     const status = readErrorStatus(docQ.error);
     if (status === 404) return <p className="text-sm text-[#64748b]">Document not found.</p>;
     if (status === 401 || status === 403) return <p role="alert" className="text-sm font-bold text-[#B42318]">You do not have access to this document.</p>;
-    return <div role="alert" className="space-y-3"><p className="text-sm font-bold text-[#B42318]">Unable to load this document.</p><button type="button" onClick={() => void docQ.refetch()} className="rounded-full border border-[#0985E7] px-4 py-2 text-sm font-black text-[#0985E7]">Retry</button></div>;
+    return <div role="alert" className="space-y-3"><p className="text-sm font-bold text-[#B42318]">{docQ.error instanceof PortalApiError ? docQ.error.message : 'Unable to load this document.'}</p><button type="button" onClick={() => void docQ.refetch()} className="rounded-full border border-[#0985E7] px-4 py-2 text-sm font-black text-[#0985E7]">Retry</button></div>;
   }
   if (!docQ.data) return <p role="status" className="text-sm text-[#64748b]">Loading document…</p>;
 

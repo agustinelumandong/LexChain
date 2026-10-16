@@ -6,6 +6,8 @@ import Link from 'next/link';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import dynamic from 'next/dynamic';
 import type { ApiSchema } from '@/shared/types/index';
+import { portalRequest } from '@/shared/api/client';
+import { PortalApiError } from '@/shared/api/portal-error';
 
 const PdfDocumentViewer = dynamic(() => import('@/features/documents/components/pdf-document-viewer'), {
   ssr: false,
@@ -15,10 +17,7 @@ const PdfDocumentViewer = dynamic(() => import('@/features/documents/components/
 type DocumentResponse = ApiSchema<'DocumentResponse'>;
 
 async function fetchDocument(documentId: string): Promise<DocumentResponse> {
-  const response = await fetch(`/api/portal/proxy?path=${encodeURIComponent(`/documents/${documentId}`)}`, {
-    credentials: 'same-origin',
-  });
-  if (!response.ok) throw new Error('Unable to load document');
+  const response = await portalRequest(`/api/portal/proxy?path=${encodeURIComponent(`/documents/${documentId}`)}`);
   return response.json();
 }
 
@@ -48,7 +47,7 @@ export default function PdfViewerPage() {
       ) : documentQuery.isError ? (
         <section role="alert" className="rounded-[18px] border border-[var(--portal-border-soft)] bg-white p-6">
           <h2 className="font-extrabold text-[var(--portal-navy)]">Unable to load document preview</h2>
-          <p className="mt-2 text-sm text-[var(--portal-text-muted)]">The document details could not be loaded.</p>
+          <p className="mt-2 text-sm text-[var(--portal-text-muted)]">{documentQuery.error instanceof PortalApiError ? documentQuery.error.message : 'The document details could not be loaded.'}</p>
           <button type="button" onClick={() => void documentQuery.refetch()} className="mt-4 rounded-full border border-[var(--portal-border-soft)] px-4 py-2 text-sm font-bold text-[var(--portal-primary)]">Try again</button>
         </section>
       ) : !pdfUrl ? (

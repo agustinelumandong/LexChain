@@ -7,6 +7,7 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ErrorIcon from '@mui/icons-material/Error';
 import type { ApiSchema } from '@/shared/types/index';
 import { getDocumentStatusLabel } from '@/features/documents/document-ui';
+import { portalRequest } from '@/shared/api/client';
 
 type DocumentResponse = ApiSchema<'DocumentResponse'>;
 
@@ -15,10 +16,7 @@ const FAILED = new Set(['failed', 'error']);
 const REVIEW_READY = new Set(['awaiting_review', 'ready_for_review']);
 
 async function fetchDocument(id: string): Promise<DocumentResponse> {
-  const res = await fetch(`/api/portal/proxy?path=${encodeURIComponent(`/documents/${id}`)}`, {
-    credentials: 'same-origin',
-  });
-  if (!res.ok) throw new Error('Failed to load document status');
+  const res = await portalRequest(`/api/portal/proxy?path=${encodeURIComponent(`/documents/${id}`)}`);
   return res.json();
 }
 
@@ -29,7 +27,7 @@ export default function ProcessingPage({
 }) {
   const id = use(searchParams).id ?? '';
 
-  const { data, isError, refetch } = useQuery({
+  const { data, isError, error, refetch } = useQuery({
     queryKey: ['portal-doc-status', id],
     queryFn: () => fetchDocument(id),
     enabled: !!id,
@@ -83,7 +81,7 @@ export default function ProcessingPage({
           <ErrorIcon sx={{ fontSize: 64, color: '#ef4444' }} />
           <div>
             <p className="text-xl font-black text-[#0C2B49]">Unable to check document status</p>
-            <p className="mt-1 text-sm text-[#64748b]">The status lookup failed. Your document may still be processing.</p>
+            <p className="mt-1 text-sm text-[#64748b]">{error instanceof Error ? error.message : 'The document status lookup failed. Your document may still be processing.'}</p>
           </div>
           <button type="button" onClick={() => void refetch()} className="rounded-full bg-[#0985E7] px-6 py-3 text-sm font-black text-white">Retry status check</button>
         </>

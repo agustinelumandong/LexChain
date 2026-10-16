@@ -15,6 +15,7 @@ import { getPortalNavigationIcon, isPortalRouteActive, usePortalRole } from "@/f
 import { PortalBottomNav } from "@/features/portal/components/portal-bottom-nav";
 import { PortalTopBar } from "@/features/portal/components/portal-topbar";
 import { fetchNotifications, fetchUnreadNotificationCount, invalidateNotificationQueries, markAllNotificationsRead, notificationQueryKeys } from "@/features/portal/notifications-api";
+import { portalRequest } from '@/shared/api/client';
 
 type PortalDocument = { status?: string | null };
 
@@ -26,8 +27,8 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
   const { data: documents = [] } = useQuery<PortalDocument[]>({
     queryKey: ['portal-shell-documents'],
     queryFn: async () => {
-      const res = await fetch('/api/portal/proxy?path=%2Fdocuments%2F', { credentials: 'same-origin' });
-      return res.ok ? res.json() : [];
+      const res = await portalRequest('/api/portal/proxy?path=%2Fdocuments%2F');
+      return res.json();
     },
     enabled: uiRole === "lawyer",
   });

@@ -72,12 +72,13 @@ describe('ProcessingPage', () => {
 
   it('keeps a status lookup failure retryable without claiming document processing failed', async () => {
     const fetchMock = vi.fn()
-      .mockResolvedValueOnce(Response.json({ message: 'Unavailable' }, { status: 503 }))
+      .mockResolvedValueOnce(Response.json({ message: 'Status service is unavailable.' }, { status: 503 }))
       .mockResolvedValue(documentResponse('processing'));
     vi.stubGlobal('fetch', fetchMock);
     renderPage();
 
     expect(await screen.findByText('Unable to check document status')).toBeTruthy();
+    expect(screen.getByText('Status service is unavailable.')).toBeTruthy();
     expect(screen.queryByText('Processing failed')).toBeNull();
     expect(screen.queryByRole('link', { name: 'Try Again' })).toBeNull();
 

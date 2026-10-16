@@ -263,17 +263,25 @@ describe('signed document upload screen', () => {
   it('links duplicate uploads to the returned document and displays validation details', async () => {
     setupFetch([Response.json({
       message: 'This file is already filed.',
-      details: { reason: 'DUPLICATE_FILE', document_id: 'duplicate-doc', errors: [{ field: 'doc_no', message: 'Document number is already used.' }] },
+      details: { reason: 'DUPLICATE_FILE', document_id: 'duplicate-doc', errors: [
+        { field: 'doc_no', message: 'Document number is already used.' },
+        { field: 'unknown_column', message: 'This field is not available in the form.' },
+        { message: 'The backend returned an unassociated validation message.' },
+      ] },
     }, { status: 409 })]);
     renderPage();
     await fillClosedBookUpload();
     fireEvent.click(screen.getByRole('button', { name: 'Confirm and file' }));
 
     expect((await screen.findByRole('alert')).textContent).toContain('This file is already filed.');
-    expect(screen.getByText('doc_no: Document number is already used.')).toBeTruthy();
+    expect(screen.getByText('Document number is already used.')).toBeTruthy();
+    expect(screen.getByText('unknown_column: This field is not available in the form.')).toBeTruthy();
+    expect(screen.getByText('The backend returned an unassociated validation message.')).toBeTruthy();
+    expect(document.getElementById('upload-doc-no')!.getAttribute('aria-invalid')).toBe('true');
+    expect(document.getElementById('upload-doc-no')!.getAttribute('aria-describedby')).toBe('upload-doc-no-error');
     expect(screen.getByRole('link', { name: 'View existing document' }).getAttribute('href')).toBe('/portal/documents/duplicate-doc');
     expect(screen.queryByRole('button', { name: 'No, this is a new document' })).toBeNull();
-    expect(screen.getByLabelText('Paper document number')).toHaveProperty('value', '12');
+    expect(document.getElementById('upload-doc-no')).toHaveProperty('value', '12');
     expect(screen.getByText(/Signed deed\.pdf/)).toBeTruthy();
   });
 });

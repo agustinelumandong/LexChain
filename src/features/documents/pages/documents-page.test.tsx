@@ -8,12 +8,12 @@ const { push } = vi.hoisted(() => ({ push: vi.fn() }));
 
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push }) }));
 
-function setupFetch(openResponse = Response.json({ document_id: 'new-document', file_name: 'Client agreement', lifecycle: 'PREPARING' }, { status: 201 })) {
+function setupFetch(openResponse = Response.json({ document_id: 'new-document', file_name: 'Client agreement', lifecycle: 'PREPARING' }, { status: 201 }), documentsResponse: Response = Response.json([])) {
   const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = new URL(String(input), window.location.origin);
     const path = url.searchParams.get('path');
     if (path === '/documents/' && init?.method === 'POST') return openResponse;
-    if (path === '/documents/') return Response.json([]);
+    if (path === '/documents/') return documentsResponse;
     if (path === '/users/') return Response.json({ role: 'lawyer' });
     throw new Error(`Unexpected request: ${url}`);
   });
@@ -64,5 +64,12 @@ describe('document directory draft creation', () => {
     expect(await screen.findByRole('alert')).toBeTruthy();
     expect((screen.getByRole('textbox', { name: 'Document name' }) as HTMLInputElement).value).toBe('Client agreement');
     await waitFor(() => expect((screen.getByRole('button', { name: 'Open document record' }) as HTMLButtonElement).disabled).toBe(false));
+  });
+
+  it('shows the backend message when the document list request fails', async () => {
+    setupFetch(undefined, Response.json({ message: 'The repository is temporarily unavailable.' }, { status: 503 }));
+    renderPage();
+
+    expect(await screen.findByText('The repository is temporarily unavailable.')).toBeTruthy();
   });
 });

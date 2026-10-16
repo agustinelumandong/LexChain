@@ -22,8 +22,18 @@ import { PortalDropdown } from "@/features/portal/components";
 import type { ApiSchema } from '@/shared/types/index';
 import { listRegisterBooks } from '@/features/office/books-api';
 import { getDocumentLifecycleLabel, getDocumentStatusLabel } from '@/features/documents/document-ui';
+import { portalRequest } from '@/shared/api/client';
 type UserProfile = ApiSchema<'UserProfileResponse'>;
 type UploadedDocument = ApiSchema<'DocumentResponse'>;
+
+function uploadFieldForError(field?: string) {
+  const name = field?.split(/[.[\]]/).filter(Boolean).at(-1)?.toLowerCase();
+  if (name === 'file_name' || name === 'title') return 'title';
+  if (name === 'book_id') return 'book';
+  if (name === 'doc_no') return 'doc_no';
+  if (name === 'page_no') return 'page_no';
+  return undefined;
+}
 
 function formatFileSize(size: number) {
   return `${(size / (1024 * 1024)).toFixed(1)} MiB`;
@@ -45,8 +55,7 @@ export default function UploadPage() {
   const profileQuery = useQuery<UserProfile | null>({
     queryKey: ['portal-profile'],
     queryFn: async () => {
-      const response = await fetch(`/api/portal/proxy?path=${encodeURIComponent('/users/')}`, { credentials: 'same-origin' });
-      if (!response.ok) throw new Error('Unable to load profile');
+      const response = await portalRequest(`/api/portal/proxy?path=${encodeURIComponent('/users/')}`);
       return response.json();
     },
   });
@@ -98,6 +107,8 @@ export default function UploadPage() {
     onSuccess: onFiled,
   });
   const uploadError = mutation.error instanceof UploadRequestError ? mutation.error : null;
+  const uploadFieldErrors = (field: string) => uploadError?.validationErrors.filter((item) => uploadFieldForError(item.field) === field) ?? [];
+  const uploadSummaryErrors = uploadError?.validationErrors.filter((item) => !uploadFieldForError(item.field)) ?? [];
   const requiresConfirmation = uploadError?.requiresConfirmation === true;
   const isSubmissionPending = mutation.isPending || attachMutation.isPending;
   const failure = attachMutation.isError ? attachMutation.error : mutation.isError && !requiresConfirmation ? mutation.error : null;
@@ -174,10 +185,11 @@ export default function UploadPage() {
           <h2 id="document-information-heading" className="font-black text-[#0C2B49]">Document information</h2>
           <p className="mt-1 text-sm text-[#64748b]">Provide the title and register book for this document.</p>
           <div className="mt-4 grid gap-4">
-            <label className="flex flex-col gap-1.5 text-sm font-bold text-[#0C2B49]">Document title<input disabled={requiresConfirmation || isSubmissionPending} value={title} onChange={(event) => setTitle(event.target.value)} placeholder="e.g. Deed of Sale" className="rounded-xl border border-[#D7E4F2] px-3 py-2.5 text-sm font-medium outline-none focus:border-[#0985E7] disabled:bg-[#F8FBFF]" /></label>
+            <label className="flex flex-col gap-1.5 text-sm font-bold text-[#0C2B49]">Document title<input id="upload-title" aria-invalid={uploadFieldErrors('title').length > 0} aria-describedby={uploadFieldErrors('title').length ? 'upload-title-error' : undefined} disabled={requiresConfirmation || isSubmissionPending} value={title} onChange={(event) => setTitle(event.target.value)} placeholder="e.g. Deed of Sale" className="rounded-xl border border-[#D7E4F2] px-3 py-2.5 text-sm font-medium outline-none focus:border-[#0985E7] disabled:bg-[#F8FBFF]" />{uploadFieldErrors('title').map((item) => <span id="upload-title-error" key={item.message} className="text-sm font-medium text-red-700">{item.message}</span>)}</label>
             <label className="flex flex-col gap-1.5 text-sm font-bold text-[#0C2B49]">Register book
               <PortalDropdown
                 ariaLabel="Register book"
+                aria-describedby={uploadFieldErrors('book').length ? 'upload-book-error' : undefined}
                 placeholder="Choose a register book"
                 emptyLabel={booksQuery.isLoading ? 'Loading register books...' : 'No register books available'}
                 options={availableBooks.map((book) => ({ label: `Register book ${book.book_number} — Series ${book.series_year} · ${book.status === 'CLOSED' ? 'Closed' : 'Open'}`, value: book.id }))}
@@ -185,6 +197,7 @@ export default function UploadPage() {
                 onChange={(value) => { setBookId(value); setDocNo(''); setPageNo(''); setEnterPaperNumbers(false); setValidationError(null); }}
                 disabled={booksQuery.isLoading || availableBooks.length === 0 || requiresConfirmation || isSubmissionPending}
               />
+              {uploadFieldErrors('book').map((item) => <p id="upload-book-error" key={item.message} className="text-sm font-medium text-red-700">{item.message}</p>)}
             </label>
             {booksQuery.isError && <p role="alert" className="text-sm font-bold text-red-600">Unable to load books. Please try again.</p>}
             {!booksQuery.isLoading && availableBooks.length === 0 && <p className="text-sm text-[#64748b]">Register a book before uploading a document.</p>}
@@ -193,10 +206,12 @@ export default function UploadPage() {
             {manualNumbers && <>
               <div className="grid gap-4 sm:grid-cols-2">
                 <label className="flex flex-col gap-1.5 text-sm font-bold text-[#0C2B49]">Paper document number
-                  <input required min="1" step="1" inputMode="numeric" type="number" disabled={requiresConfirmation || isSubmissionPending} value={docNo} onChange={(event) => setDocNo(event.target.value)} className="rounded-xl border border-[#D7E4F2] px-3 py-2.5 text-sm font-medium outline-none focus:border-[#0985E7] disabled:bg-[#F8FBFF]" />
+                  <input id="upload-doc-no" aria-invalid={uploadFieldErrors('doc_no').length > 0} aria-describedby={uploadFieldErrors('doc_no').length ? 'upload-doc-no-error' : undefined} required min="1" step="1" inputMode="numeric" type="number" disabled={requiresConfirmation || isSubmissionPending} value={docNo} onChange={(event) => setDocNo(event.target.value)} className="rounded-xl border border-[#D7E4F2] px-3 py-2.5 text-sm font-medium outline-none focus:border-[#0985E7] disabled:bg-[#F8FBFF]" />
+                  {uploadFieldErrors('doc_no').map((item) => <span id="upload-doc-no-error" key={item.message} className="text-sm font-medium text-red-700">{item.message}</span>)}
                 </label>
                 <label className="flex flex-col gap-1.5 text-sm font-bold text-[#0C2B49]">Paper page number
-                  <input required min="1" step="1" inputMode="numeric" type="number" disabled={requiresConfirmation || isSubmissionPending} value={pageNo} onChange={(event) => setPageNo(event.target.value)} className="rounded-xl border border-[#D7E4F2] px-3 py-2.5 text-sm font-medium outline-none focus:border-[#0985E7] disabled:bg-[#F8FBFF]" />
+                  <input id="upload-page-no" aria-invalid={uploadFieldErrors('page_no').length > 0} aria-describedby={uploadFieldErrors('page_no').length ? 'upload-page-no-error' : undefined} required min="1" step="1" inputMode="numeric" type="number" disabled={requiresConfirmation || isSubmissionPending} value={pageNo} onChange={(event) => setPageNo(event.target.value)} className="rounded-xl border border-[#D7E4F2] px-3 py-2.5 text-sm font-medium outline-none focus:border-[#0985E7] disabled:bg-[#F8FBFF]" />
+                  {uploadFieldErrors('page_no').map((item) => <span id="upload-page-no-error" key={item.message} className="text-sm font-medium text-red-700">{item.message}</span>)}
                 </label>
               </div>
             </>}
@@ -227,7 +242,7 @@ export default function UploadPage() {
           <p className="mt-1 text-sm text-[#64748b]">Review the selected signed PDF, title, and book before filing it.</p>
           <p role="status" aria-atomic="true" className="mt-1 text-sm font-bold text-[#0985E7]">{isSubmissionPending ? 'Uploading… Please wait while your PDF is submitted.' : ''}</p>
           {requiresConfirmation && uploadError && <div role="group" aria-label="Upload recovery" className="mt-3 rounded-xl border border-[#F3D59B] bg-[#FFF9EA] p-3 text-sm text-[#704D00]"><p role="alert">{uploadError.message}</p>{uploadError.relatedDocuments.length > 0 ? <ul className="mt-3 space-y-3">{uploadError.relatedDocuments.map((waitingDocument) => <li key={waitingDocument.documentId} className="rounded-lg border border-[#F3D59B] bg-white p-3"><p className="font-bold">{waitingDocument.fileName}</p>{waitingDocument.parties.length > 0 && <ul className="mt-1 space-y-1">{waitingDocument.parties.map((party) => <li key={`${party.email ?? party.name}-${party.role ?? ''}`}>{party.name}{party.email ? ` · ${party.email}` : ''}{party.role ? ` · ${party.role}` : ''}</li>)}</ul>}<Link className="mt-2 inline-block font-bold text-[#0985E7] underline" href={`/portal/documents/${encodeURIComponent(waitingDocument.documentId)}`}>View document details</Link><button type="button" disabled={isSubmissionPending} onClick={() => attachMutation.mutate(waitingDocument.documentId)} className="mt-2 block rounded-full bg-[#0985E7] px-4 py-2 text-sm font-bold text-white disabled:opacity-50">Attach signed PDF to {waitingDocument.fileName}</button></li>)}</ul> : <p className="mt-2">No waiting documents were included in this response.</p>}{uploadError.validationErrors.map((validationError) => <p key={`${validationError.field ?? 'upload'}-${validationError.message}`} className="mt-2">{validationError.field ? `${validationError.field}: ` : ''}{validationError.message}</p>)}{attachMutation.isError && <p role="alert" className="mt-3">{attachMutation.error instanceof Error ? attachMutation.error.message : 'Attachment failed.'} Your selected PDF and filing details have been kept. Review the error and retry.</p>}<div className="mt-3 flex flex-wrap gap-2"><button type="button" disabled={isSubmissionPending} onClick={() => mutation.mutate(true)} className="rounded-full bg-[#0985E7] px-4 py-2 text-sm font-bold text-white">No, this is a new document</button><button type="button" disabled={isSubmissionPending} onClick={() => { mutation.reset(); attachMutation.reset(); }} className="rounded-full border border-[#D7E4F2] px-4 py-2 text-sm font-bold text-[#0C2B49]">Return without submitting</button></div></div>}
-          {error && <div role="alert" className="mt-3 rounded-xl bg-red-50 p-3 text-sm font-bold text-red-700"><p>{error}</p>{failure instanceof UploadRequestError && <>{failure.validationErrors.map((validationError) => <p key={`${validationError.field ?? 'upload'}-${validationError.message}`} className="mt-1">{validationError.field ? `${validationError.field}: ` : ''}{validationError.message}</p>)}{failure.reason === 'DUPLICATE_FILE' && failure.documentId && <Link className="mt-2 inline-block text-[#0985E7] underline" href={`/portal/documents/${encodeURIComponent(failure.documentId)}`}>View existing document</Link>}</>}</div>}
+          {error && <div role="alert" className="mt-3 rounded-xl bg-red-50 p-3 text-sm font-bold text-red-700"><p>{error}</p>{failure instanceof UploadRequestError && <>{uploadSummaryErrors.map((validationError) => <p key={`${validationError.field ?? 'upload'}-${validationError.message}`} className="mt-1">{validationError.field ? `${validationError.field}: ` : ''}{validationError.message}</p>)}{failure.reason === 'DUPLICATE_FILE' && failure.documentId && <Link className="mt-2 inline-block text-[#0985E7] underline" href={`/portal/documents/${encodeURIComponent(failure.documentId)}`}>View existing document</Link>}</>}</div>}
         </div>
         {!requiresConfirmation && <button disabled={!file || !title.trim() || !bookId || isSubmissionPending} onClick={submit} className="mt-4 shrink-0 rounded-full bg-[#0985E7] px-8 py-3 text-sm font-black text-white transition hover:bg-[#0770c4] disabled:opacity-40 sm:mt-0">{isSubmissionPending ? 'Uploading…' : 'Confirm and file'}</button>}
       </section>
