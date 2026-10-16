@@ -108,8 +108,8 @@ describe('UploadPage', () => {
 
     fireEvent.change(fileInput, { target: { files: [new File([new Uint8Array(4_508_877)], 'Lease Agreement.pdf', { type: 'application/pdf' })] } });
 
-    expect(screen.getByText('Lease Agreement.pdf · 4.3 MB')).toBeTruthy();
-    expect(screen.getByText('PDF only · maximum 25 MB')).toBeTruthy();
+    expect(screen.getByText('Lease Agreement.pdf · 4.3 MiB')).toBeTruthy();
+    expect(screen.getByText('PDF only · maximum 60 MiB')).toBeTruthy();
     expect(screen.getByLabelText('Register book')).toBeTruthy();
   });
 
@@ -133,7 +133,7 @@ describe('UploadPage', () => {
     expect(alert.textContent).toContain('Unable to connect to the upload service.');
     expect(alert.textContent).toContain('retry');
     expect((screen.getByLabelText('Document title') as HTMLInputElement).value).toBe('Assignment deed');
-    expect(screen.getByText('deed.pdf · 0.0 MB')).toBeTruthy();
+    expect(screen.getByText('deed.pdf · 0.0 MiB')).toBeTruthy();
     expect(screen.getByLabelText('Register book').textContent).toContain('Register book 42');
     expect((screen.getByRole('button', { name: 'Confirm and file' }) as HTMLButtonElement).disabled).toBe(false);
 

@@ -269,15 +269,95 @@ describe('DocumentWorkspace', () => {
 
     fireEvent.click(screen.getByRole('tab', { name: 'Files' }));
     fireEvent.click(screen.getByRole('button', { name: 'Attach signed PDF' }));
+    await waitFor(() => expect((screen.getByRole('button', { name: 'Register book' }) as HTMLButtonElement).disabled).toBe(false));
     const file = new File(['signed pdf'], 'attached.pdf', { type: 'application/pdf' });
     const input = screen.getByLabelText('Signed PDF') as HTMLInputElement;
     fireEvent.change(input, { target: { files: [file] } });
     expect(input.files?.[0]).toBe(file);
     fireEvent.submit(screen.getByRole('button', { name: 'Confirm attachment' }).closest('form')!);
 
-    await waitFor(() => expect(attachSignedCopyMock).toHaveBeenCalledWith('doc-101', file, { bookId: 'book-101', docNo: 12, pageNo: 7 }));
+    await waitFor(() => expect(attachSignedCopyMock).toHaveBeenCalledWith('doc-101', file, { bookId: 'book-101', docNo: null, pageNo: null }));
     expect((await screen.findByRole('status')).textContent).toContain('Signed PDF attached.');
     expect((await screen.findByRole('link', { name: 'Open current signed PDF' })).getAttribute('href')).toBe(attached.signed_copy.storage_url);
+  });
+
+  it('attaches a prepared document without a book using automatic open-book numbering', async () => {
+    attachSignedCopyMock.mockResolvedValue({ ...document, lifecycle: 'SIGNED', book_id: 'book-101' });
+    renderWorkspace({ document: {
+      ...document,
+      lifecycle: 'READY_FOR_SIGNATURE',
+      book_id: null,
+      doc_no: null,
+      page_no: null,
+      signed_copy: null,
+      permissions: { ...document.permissions, can_attach_signed_copy: true },
+    } });
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Files' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Attach signed PDF' }));
+    await screen.findByRole('button', { name: 'Register book' });
+    await waitFor(() => expect((screen.getByRole('button', { name: 'Register book' }) as HTMLButtonElement).disabled).toBe(false));
+    fireEvent.click(screen.getByRole('button', { name: 'Register book' }));
+    fireEvent.click(await screen.findByRole('option', { name: /Register book 101/ }));
+    const file = new File(['signed pdf'], 'attached.pdf', { type: 'application/pdf' });
+    fireEvent.change(screen.getByLabelText('Signed PDF'), { target: { files: [file] } });
+    fireEvent.submit(screen.getByRole('button', { name: 'Confirm attachment' }).closest('form')!);
+
+    await waitFor(() => expect(attachSignedCopyMock).toHaveBeenCalledWith('doc-101', file, { bookId: 'book-101', docNo: null, pageNo: null }));
+  });
+
+  it('forwards explicit paper numbers when attaching to an open book manually', async () => {
+    attachSignedCopyMock.mockResolvedValue({ ...document, lifecycle: 'SIGNED' });
+    renderWorkspace({ document: {
+      ...document,
+      lifecycle: 'READY_FOR_SIGNATURE',
+      book_id: null,
+      doc_no: null,
+      page_no: null,
+      signed_copy: null,
+      permissions: { ...document.permissions, can_attach_signed_copy: true },
+    } });
+    fireEvent.click(screen.getByRole('tab', { name: 'Files' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Attach signed PDF' }));
+    await waitFor(() => expect((screen.getByRole('button', { name: 'Register book' }) as HTMLButtonElement).disabled).toBe(false));
+    fireEvent.click(screen.getByRole('button', { name: 'Register book' }));
+    fireEvent.click(await screen.findByRole('option', { name: /Register book 101/ }));
+    fireEvent.click(screen.getByLabelText('Enter paper register numbers'));
+    fireEvent.change(screen.getByLabelText('Paper document number'), { target: { value: '8' } });
+    fireEvent.change(screen.getByLabelText('Paper page number'), { target: { value: '4' } });
+    const file = new File(['signed pdf'], 'attached.pdf', { type: 'application/pdf' });
+    fireEvent.change(screen.getByLabelText('Signed PDF'), { target: { files: [file] } });
+    fireEvent.submit(screen.getByRole('button', { name: 'Confirm attachment' }).closest('form')!);
+
+    await waitFor(() => expect(attachSignedCopyMock).toHaveBeenCalledWith('doc-101', file, { bookId: 'book-101', docNo: 8, pageNo: 4 }));
+  });
+
+  it('preserves attachment selections and permits retry after a failed upload', async () => {
+    attachSignedCopyMock.mockRejectedValueOnce(new Error('Storage unavailable')).mockResolvedValue(document);
+    renderWorkspace({ document: {
+      ...document,
+      lifecycle: 'READY_FOR_SIGNATURE',
+      book_id: null,
+      doc_no: null,
+      page_no: null,
+      signed_copy: null,
+      permissions: { ...document.permissions, can_attach_signed_copy: true },
+    } });
+    fireEvent.click(screen.getByRole('tab', { name: 'Files' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Attach signed PDF' }));
+    await screen.findByRole('button', { name: 'Register book' });
+    await waitFor(() => expect((screen.getByRole('button', { name: 'Register book' }) as HTMLButtonElement).disabled).toBe(false));
+    fireEvent.click(screen.getByRole('button', { name: 'Register book' }));
+    fireEvent.click(await screen.findByRole('option', { name: /Register book 101/ }));
+    const file = new File(['signed pdf'], 'attached.pdf', { type: 'application/pdf' });
+    const input = screen.getByLabelText('Signed PDF') as HTMLInputElement;
+    fireEvent.change(input, { target: { files: [file] } });
+    fireEvent.submit(screen.getByRole('button', { name: 'Confirm attachment' }).closest('form')!);
+
+    expect((await screen.findByRole('alert')).textContent).toContain('Storage unavailable');
+    expect(input.files?.[0]).toBe(file);
+    fireEvent.submit(screen.getByRole('button', { name: 'Confirm attachment' }).closest('form')!);
+    await waitFor(() => expect(attachSignedCopyMock).toHaveBeenCalledTimes(2));
   });
 
   it('prevents duplicate submissions while replacement is pending', async () => {

@@ -45,7 +45,7 @@ describe('/api/portal/proxy-post signed-copy requests', () => {
     form.set('file', new File(['signed pdf'], 'signed.pdf', { type: 'application/pdf' }));
     const request = new NextRequest('http://localhost/api/portal/proxy-post?path=%2Fdocuments%2Fdocument-1%2Fsigned-copy', {
       method: 'PUT',
-      headers: { cookie: 'portal_token=secret-token' },
+      headers: { cookie: 'portal_token=secret-token', 'content-length': '1024' },
       body: form,
     });
 
@@ -61,13 +61,49 @@ describe('/api/portal/proxy-post signed-copy requests', () => {
     const form = new FormData();
     const request = new NextRequest('http://localhost/api/portal/proxy-post?path=%2Fdocuments%2Fdocument-1%2Fsigned-copy%3Fbook_id%3Dbook-1', {
       method: 'POST',
-      headers: { cookie: 'portal_token=secret-token' },
+      headers: { cookie: 'portal_token=secret-token', 'content-length': '100' },
       body: form,
     });
 
     const response = await POST(request);
 
     expect(response.status).toBe(400);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('rejects direct uploads larger than 60 MiB before forwarding', async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    const form = new FormData();
+    form.set('file', new File([new Uint8Array(60 * 1024 * 1024 + 1)], 'large.pdf', { type: 'application/pdf' }));
+    const request = new NextRequest('http://localhost/api/portal/proxy-post?path=%2Fdocuments%2Fupload%3Fbook_id%3Dbook-1', {
+      method: 'POST',
+      headers: { cookie: 'portal_token=secret-token', 'content-length': String(60 * 1024 * 1024 + 1024) },
+      body: form,
+    });
+
+    const response = await POST(request);
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({ message: 'PDF files must be 60 MiB or smaller.' });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('rejects oversized declared multipart bodies before parsing them', async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    const request = new NextRequest('http://localhost/api/portal/proxy-post?path=%2Fdocuments%2Fupload%3Fbook_id%3Dbook-1', {
+      method: 'POST',
+      headers: {
+        cookie: 'portal_token=secret-token',
+        'content-type': 'multipart/form-data; boundary=empty',
+        'content-length': String(61 * 1024 * 1024),
+      },
+    });
+
+    const response = await POST(request);
+
+    expect(response.status).toBe(413);
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
@@ -79,7 +115,7 @@ describe('/api/portal/proxy-post signed-copy requests', () => {
     form.set('file', new File(['signed pdf'], 'signed.pdf', { type: 'application/pdf' }));
     const request = new NextRequest('http://localhost/api/portal/proxy-post?path=%2Fdocuments%2Fdocument-1%2Fsigned-copy%3Fbook_id%3Dbook-1', {
       method: 'POST',
-      headers: { cookie: 'portal_token=mock-token:mock-document-issuer' },
+      headers: { cookie: 'portal_token=mock-token:mock-document-issuer', 'content-length': '1024' },
       body: form,
     });
 

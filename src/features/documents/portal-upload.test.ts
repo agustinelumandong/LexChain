@@ -1,6 +1,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
+  MAX_SIGNED_PDF_BYTES,
   getRequiredUploadMetadataError,
+  getRegisterEntryError,
   getUploadFileError,
   uploadDocument,
 } from '@/features/documents/portal-upload';
@@ -21,9 +23,42 @@ describe('portal document upload', () => {
     expect((options.body as FormData).get('file')).toBe(file);
   });
 
+  it('sends explicit paper numbers in the upload query when open-book manual numbering is selected', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(Response.json({ document_id: 'doc-1', lifecycle: 'SIGNED' }, { status: 201 }));
+    vi.stubGlobal('fetch', fetchMock);
+    const file = new File(['PDF'], 'original.pdf', { type: 'application/pdf' });
+
+    await uploadDocument({ file, title: 'Deed of Sale', bookId: 'book-1', paperRegister: { docNo: 8, pageNo: 4 } });
+
+    const [url, options] = fetchMock.mock.calls[0];
+    const path = new URL(url, 'http://localhost').searchParams.get('path')!;
+    expect(path).toContain('doc_no=8');
+    expect(path).toContain('page_no=4');
+    expect((options.body as FormData).get('file')).toBe(file);
+  });
+
   it('rejects a non-PDF before it can be submitted', () => {
     expect(getUploadFileError(new File(['text'], 'notes.txt', { type: 'text/plain' }))).toBe('Choose a PDF file.');
+    expect(getUploadFileError(new File([], 'empty.pdf', { type: 'application/pdf' }))).toBe('Choose a non-empty PDF file.');
     expect(getUploadFileError(new File(['PDF'], 'record.pdf', { type: 'application/pdf' }))).toBeNull();
+  });
+
+  it('accepts the 60 MiB boundary and rejects larger PDFs', () => {
+    const atLimit = new File(['PDF'], 'record.pdf', { type: 'application/pdf' });
+    Object.defineProperty(atLimit, 'size', { value: MAX_SIGNED_PDF_BYTES });
+    const overLimit = new File(['PDF'], 'record.pdf', { type: 'application/pdf' });
+    Object.defineProperty(overLimit, 'size', { value: MAX_SIGNED_PDF_BYTES + 1 });
+
+    expect(getUploadFileError(atLimit)).toBeNull();
+    expect(getUploadFileError(overLimit)).toBe('PDF files must be 60 MiB or smaller.');
+  });
+
+  it('requires positive whole register numbers only for manual numbering', () => {
+    expect(getRegisterEntryError({ bookId: 'book-1', bookStatus: 'OPEN', manualNumbers: false })).toBeNull();
+    expect(getRegisterEntryError({ bookId: 'book-1', bookStatus: 'OPEN', manualNumbers: true })).toBe('Enter the paper register document number.');
+    expect(getRegisterEntryError({ bookId: 'book-1', bookStatus: 'CLOSED', manualNumbers: false })).toBe('Enter the paper register document number.');
+    expect(getRegisterEntryError({ bookId: 'book-1', bookStatus: 'CLOSED', manualNumbers: true, docNo: '2.5', pageNo: '3' })).toBe('Enter a whole paper register document number.');
+    expect(getRegisterEntryError({ bookId: 'book-1', bookStatus: 'CLOSED', manualNumbers: true, docNo: '2', pageNo: '0' })).toBe('Enter a positive paper register page number.');
   });
 
   it('requires only the supported title and book metadata', () => {

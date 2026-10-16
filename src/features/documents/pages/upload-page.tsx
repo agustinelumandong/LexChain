@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef, useState } from 'react';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { toast } from 'sonner';
@@ -12,28 +12,29 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import {
   getRequiredUploadMetadataError,
   getUploadFileError,
+  MAX_SIGNED_PDF_BYTES,
   uploadDocument,
 } from '@/features/documents/portal-upload';
 import { canAccessPortalFeature, getPortalUiRole } from "@/features/access";
 import { PortalDropdown } from "@/features/portal/components";
-import { defaultOfficeSettings } from "@/features/office";
 import type { ApiSchema } from '@/shared/types/index';
 import { listRegisterBooks } from '@/features/office/books-api';
 import { getDocumentLifecycleLabel, getDocumentStatusLabel } from '@/features/documents/document-ui';
-type Book = ApiSchema<'BookResponse'>;
 type UserProfile = ApiSchema<'UserProfileResponse'>;
 type UploadedDocument = ApiSchema<'DocumentResponse'>;
 
 function formatFileSize(size: number) {
-  return `${(size / (1024 * 1024)).toFixed(1)} MB`;
+  return `${(size / (1024 * 1024)).toFixed(1)} MiB`;
 }
 
 export default function UploadPage() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const inputRef = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
   const [title, setTitle] = useState('');
   const [bookId, setBookId] = useState('');
+  const [enterPaperNumbers, setEnterPaperNumbers] = useState(false);
   const [docNo, setDocNo] = useState('');
   const [pageNo, setPageNo] = useState('');
   const [drag, setDrag] = useState(false);
@@ -52,7 +53,8 @@ export default function UploadPage() {
   const availableBooks = booksQuery.data ?? [];
   const selectedBook = availableBooks.find((book) => book.id === bookId);
   const isClosedBook = selectedBook?.status === 'CLOSED';
-  const uploadMetadata = { title, bookId: selectedBook?.id ?? '', bookStatus: selectedBook?.status, docNo, pageNo };
+  const manualNumbers = Boolean(isClosedBook || enterPaperNumbers);
+  const uploadMetadata = { title, bookId: selectedBook?.id ?? '', bookStatus: selectedBook?.status, manualNumbers, docNo, pageNo };
 
   const mutation = useMutation({
     mutationFn: (confirmNewRecord: boolean) => {
@@ -63,13 +65,17 @@ export default function UploadPage() {
         file,
         title: title.trim(),
         bookId,
-        ...(isClosedBook ? { paperRegister: { docNo: Number(docNo), pageNo: Number(pageNo) } } : {}),
+        ...(manualNumbers ? { paperRegister: { docNo: Number(docNo), pageNo: Number(pageNo) } } : {}),
         confirmNewRecord,
       });
     },
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       setOutcome(data);
       toast.success('Signed document filed.');
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['portal-documents'] }),
+        queryClient.invalidateQueries({ queryKey: ['portal-books'] }),
+      ]);
       router.push(`/portal/documents/${data.document_id}`);
     },
   });
@@ -156,14 +162,15 @@ export default function UploadPage() {
                 emptyLabel={booksQuery.isLoading ? 'Loading register books...' : 'No register books available'}
                 options={availableBooks.map((book) => ({ label: `Register book ${book.book_number} — Series ${book.series_year} · ${book.status === 'CLOSED' ? 'Closed' : 'Open'}`, value: book.id }))}
                 value={bookId}
-                onChange={(value) => { setBookId(value); setDocNo(''); setPageNo(''); setValidationError(null); }}
+                onChange={(value) => { setBookId(value); setDocNo(''); setPageNo(''); setEnterPaperNumbers(false); setValidationError(null); }}
                 disabled={booksQuery.isLoading || availableBooks.length === 0 || requiresConfirmation || mutation.isPending}
               />
             </label>
             {booksQuery.isError && <p role="alert" className="text-sm font-bold text-red-600">Unable to load books. Please try again.</p>}
             {!booksQuery.isLoading && availableBooks.length === 0 && <p className="text-sm text-[#64748b]">Register a book before uploading a document.</p>}
-            {isClosedBook && <>
-              <p className="text-sm text-[#64748b]">Closed books remain available for filing. Enter the numbers shown in the paper register.</p>
+            {selectedBook?.status === 'OPEN' && <label className="mt-4 flex items-center gap-2 text-sm font-semibold text-[#0C2B49]"><input type="checkbox" checked={enterPaperNumbers} disabled={mutation.isPending || requiresConfirmation} onChange={(event) => { setEnterPaperNumbers(event.target.checked); setValidationError(null); }} />Enter paper register numbers</label>}
+            {isClosedBook && <p className="mt-4 text-sm text-[#64748b]">Closed books remain available for filing. Enter the numbers shown in the paper register.</p>}
+            {manualNumbers && <>
               <div className="grid gap-4 sm:grid-cols-2">
                 <label className="flex flex-col gap-1.5 text-sm font-bold text-[#0C2B49]">Paper document number
                   <input required min="1" step="1" inputMode="numeric" type="number" disabled={requiresConfirmation || mutation.isPending} value={docNo} onChange={(event) => setDocNo(event.target.value)} className="rounded-xl border border-[#D7E4F2] px-3 py-2.5 text-sm font-medium outline-none focus:border-[#0985E7] disabled:bg-[#F8FBFF]" />
@@ -178,7 +185,7 @@ export default function UploadPage() {
 
         <section aria-labelledby="select-pdf-heading" className="flex flex-col rounded-[18px] border border-[#E8F0F8] bg-white p-5">
           <h2 id="select-pdf-heading" className="font-black text-[#0C2B49]">Select PDF</h2>
-          <p className="mt-1 text-sm text-[#64748b]">PDF only · maximum {defaultOfficeSettings.uploadLimitMegabytes} MB</p>
+          <p className="mt-1 text-sm text-[#64748b]">PDF only · maximum {MAX_SIGNED_PDF_BYTES / (1024 * 1024)} MiB</p>
           <div
             onDragOver={(event) => { event.preventDefault(); setDrag(true); }}
             onDragLeave={() => setDrag(false)}

@@ -2,12 +2,18 @@ import { NextRequest, NextResponse } from 'next/server';
 import { backendUrl } from '@/server/api/backend';
 import { isMockPortalToken, mockPortalMutate } from '@/lib/mocks/portal';
 import { isMockMode } from '@/lib/mocks/mode';
+import { MAX_SIGNED_PDF_BYTES } from '@/features/documents/portal-upload';
 
-async function validateSignedCopyUpload(request: NextRequest, method: 'POST' | 'PUT', path: string) {
+async function validatePdfUpload(request: NextRequest, method: 'POST' | 'PUT', path: string) {
   const target = new URL(path, 'http://lexchain.local');
-  if (!/^\/documents\/[^/]+\/signed-copy\/?$/.test(target.pathname)) return null;
+  const isSignedCopy = /^\/documents\/[^/]+\/signed-copy\/?$/.test(target.pathname);
+  if (!isSignedCopy && !(method === 'POST' && target.pathname === '/documents/upload')) return null;
+  const contentLengthHeader = request.headers.get('content-length');
+  if (contentLengthHeader && /^\d+$/.test(contentLengthHeader) && Number(contentLengthHeader) > MAX_SIGNED_PDF_BYTES + 64 * 1024) {
+    return NextResponse.json({ message: 'PDF files must be 60 MiB or smaller.' }, { status: 413 });
+  }
 
-  if (method === 'POST' && !target.searchParams.get('book_id')?.trim()) {
+  if (isSignedCopy && method === 'POST' && !target.searchParams.get('book_id')?.trim()) {
     return NextResponse.json({ message: 'A register book is required' }, { status: 400 });
   }
 
@@ -16,8 +22,11 @@ async function validateSignedCopyUpload(request: NextRequest, method: 'POST' | '
   if (!(file instanceof File) || file.size === 0 || (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf'))) {
     return NextResponse.json({ message: 'A non-empty PDF file is required' }, { status: 400 });
   }
+  if (file.size > MAX_SIGNED_PDF_BYTES) {
+    return NextResponse.json({ message: 'PDF files must be 60 MiB or smaller.' }, { status: 400 });
+  }
   const reason = form?.get('reason');
-  if (method === 'PUT' && (typeof reason !== 'string' || !reason.trim())) {
+  if (isSignedCopy && method === 'PUT' && (typeof reason !== 'string' || !reason.trim())) {
     return NextResponse.json({ message: 'A replacement reason is required' }, { status: 400 });
   }
   return null;
@@ -31,7 +40,7 @@ async function handler(request: NextRequest, method: 'POST' | 'PUT' | 'PATCH' | 
   if (!path) return NextResponse.json({ message: 'Missing path' }, { status: 400 });
 
   if (method === 'POST' || method === 'PUT') {
-    const validation = await validateSignedCopyUpload(request, method, path);
+    const validation = await validatePdfUpload(request, method, path);
     if (validation) return validation;
   }
 
