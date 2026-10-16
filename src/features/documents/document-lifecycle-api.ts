@@ -1,5 +1,28 @@
 import type { ApiSchema } from '@/shared/types/index';
 import { UploadRequestError } from '@/features/documents/portal-upload';
+import { isGoogleDraftUrl } from '@/features/documents/document-draft-api';
+
+export class LifecycleRequestError extends Error {
+  readonly status: number;
+  readonly reason?: string;
+  readonly unresolved?: number;
+  readonly draftUrl?: string;
+
+  constructor(message: string, status: number, details: unknown) {
+    super(message);
+    this.name = 'LifecycleRequestError';
+    this.status = status;
+
+    if (typeof details !== 'object' || details === null) return;
+    const metadata = details as Record<string, unknown>;
+    if (typeof metadata.reason === 'string') this.reason = metadata.reason;
+    if (metadata.reason !== 'UNRESOLVED_COMMENTS') return;
+    if (Number.isInteger(metadata.unresolved) && typeof metadata.unresolved === 'number' && metadata.unresolved >= 0) {
+      this.unresolved = metadata.unresolved;
+    }
+    if (typeof metadata.draft_url === 'string' && isGoogleDraftUrl(metadata.draft_url)) this.draftUrl = metadata.draft_url;
+  }
+}
 
 function required(value: string, message: string): string {
   const normalized = value.trim();
@@ -21,7 +44,8 @@ async function lifecycleFetch<T>(path: string, init?: RequestInit): Promise<T> {
     const body = typeof error === 'object' && error !== null ? error : {};
     const detail = 'detail' in body && typeof body.detail === 'string' ? body.detail : undefined;
     const message = 'message' in body && typeof body.message === 'string' ? body.message : undefined;
-    throw new Error(detail ?? message ?? `API error: ${response.status}`);
+    const details = 'details' in body ? body.details : undefined;
+    throw new LifecycleRequestError(detail ?? message ?? `API error: ${response.status}`, response.status, details);
   }
 
   return response.json() as Promise<T>;
