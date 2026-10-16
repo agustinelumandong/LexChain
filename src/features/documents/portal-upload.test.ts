@@ -1,6 +1,8 @@
+import { PortalApiError, parsePortalApiError } from '@/shared/api/portal-error';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   MAX_SIGNED_PDF_BYTES,
+  UploadRequestError,
   getRequiredUploadMetadataError,
   getRegisterEntryError,
   getUploadFileError,
@@ -9,6 +11,23 @@ import {
 
 describe('portal document upload', () => {
   afterEach(() => vi.unstubAllGlobals());
+
+  it('uses the shared error contract for empty upload failures', () => {
+    const error = new UploadRequestError(null, 503);
+    expect(error).toBeInstanceOf(PortalApiError);
+    expect(error).toMatchObject({ message: 'API error: 503', status: 503, details: undefined, relatedDocuments: [], validationErrors: [] });
+  });
+
+  it('reconstructs legacy upload recovery from the shared error body', () => {
+    const sharedError = parsePortalApiError({ code: 'DUPLICATE_FILE', detail: [{ loc: ['body', 'title'], msg: 'Required' }] }, 409);
+    const error = new UploadRequestError(sharedError.body, sharedError.status);
+    expect(error).toMatchObject({ reason: 'DUPLICATE_FILE', status: 409, validationErrors: [{ field: 'body.title', message: 'Required' }] });
+  });
+
+  it('preserves legacy upload conflict recovery', () => {
+    const error = new UploadRequestError({ detail: { message: 'Awaiting signed copy', reason: 'READY_FOR_SIGNATURE_EXISTS' } }, 409);
+    expect(error).toMatchObject({ message: 'Awaiting signed copy', reason: 'READY_FOR_SIGNATURE_EXISTS', requiresConfirmation: true });
+  });
 
   it('sends the selected book and title through the same-origin proxy', async () => {
     const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ document_id: 'doc-1', status: 'QUEUED', message: 'Accepted' }), { status: 202 }));

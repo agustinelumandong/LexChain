@@ -1,3 +1,4 @@
+import { PortalApiError, parsePortalApiError } from '@/shared/api/portal-error';
 import type { ApiSchema } from '@/shared/types/index';
 
 type UploadedDocument = ApiSchema<'DocumentResponse'>;
@@ -10,34 +11,26 @@ export type RelatedWaitingDocument = {
   parties: Array<{ name: string; email?: string; role?: string }>;
 };
 
-export class UploadRequestError extends Error {
-  readonly status: number;
+export class UploadRequestError extends PortalApiError {
   readonly reason?: string;
-  readonly details?: Record<string, unknown>;
   readonly relatedDocuments: RelatedWaitingDocument[];
   readonly validationErrors: UploadValidationError[];
   readonly documentId?: string;
   readonly requiresConfirmation: boolean;
 
   constructor(body: unknown, status: number) {
+    const parsedError = parsePortalApiError(body, status);
     const envelope = isRecord(body) ? body : {};
-    const details = isRecord(envelope.details) ? envelope.details : undefined;
+    const details = isRecord(parsedError.details) ? parsedError.details : undefined;
     const legacyDetail = typeof envelope.detail === 'string' ? envelope.detail : undefined;
     const detailObject = isRecord(envelope.detail) ? envelope.detail : {};
     const reason = getString(details?.reason)
       ?? getString(detailObject.reason)
       ?? getString(envelope.code)
       ?? (legacyDetail === 'READY_FOR_SIGNATURE_EXISTS' ? legacyDetail : undefined);
-    const message = getString(envelope.message)
-      ?? getString(detailObject.message)
-      ?? legacyDetail
-      ?? 'Upload failed';
-
-    super(message);
+    super(parsedError.message, parsedError.status, parsedError.details, body);
     this.name = 'UploadRequestError';
-    this.status = status;
     this.reason = reason;
-    this.details = details;
     this.relatedDocuments = getRelatedWaitingDocuments(details?.related_documents);
     this.validationErrors = getUploadValidationErrors(details?.errors ?? details?.validation_errors ?? envelope.detail);
     this.documentId = getString(details?.document_id);
