@@ -35,13 +35,21 @@ const signedDocument = {
   updated_at: null,
 };
 
-function setupFetch(uploadResponses: Response[], books = [{ id: 'closed-book', book_number: 4, series_year: 2026, status: 'CLOSED' }]) {
+function setupFetch(
+  uploadResponses: Response[],
+  books = [{ id: 'closed-book', book_number: 4, series_year: 2026, status: 'CLOSED' }],
+  attachResponses: Array<Response | Promise<Response>> = [],
+) {
   const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = String(input);
     const path = new URL(url, window.location.origin).searchParams.get('path') ?? '';
     if (path === '/users/') return Response.json({ role: 'document_issuer' });
     if (path === '/books/?limit=50&offset=0') return Response.json(books);
-    if (init?.method === 'POST') return uploadResponses.shift() ?? Response.json(signedDocument, { status: 201 });
+    if (init?.method === 'POST') {
+      return path.includes('/signed-copy')
+        ? attachResponses.shift() ?? Response.json({ ...signedDocument, document_id: path.match(/documents\/([^/]+)/)?.[1] }, { status: 200 })
+        : uploadResponses.shift() ?? Response.json(signedDocument, { status: 201 });
+    }
     throw new Error(`Unexpected request: ${url}`);
   });
   vi.stubGlobal('fetch', fetchMock);
@@ -129,7 +137,7 @@ describe('signed document upload screen', () => {
     renderPage();
     await fillClosedBookUpload();
     fireEvent.click(screen.getByRole('button', { name: 'Confirm and file' }));
-    fireEvent.click(await screen.findByRole('button', { name: 'Confirm as new record' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'No, this is a new document' }));
 
     expect(await screen.findByText('Signed')).toBeTruthy();
     const uploadCalls = fetchMock.mock.calls.filter(([, init]) => init?.method === 'POST');
@@ -147,9 +155,9 @@ describe('signed document upload screen', () => {
     renderPage();
     await fillClosedBookUpload();
     fireEvent.click(screen.getByRole('button', { name: 'Confirm and file' }));
-    await screen.findByRole('button', { name: 'Confirm as new record' });
+    await screen.findByRole('button', { name: 'No, this is a new document' });
     expect((screen.getByLabelText('Document title') as HTMLInputElement).disabled).toBe(true);
-    fireEvent.click(await screen.findByRole('button', { name: 'Cancel' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Return without submitting' }));
 
     expect(screen.getByLabelText('Document title')).toHaveProperty('value', 'Signed deed');
     await waitFor(() => expect((screen.getByLabelText('Document title') as HTMLInputElement).disabled).toBe(false));
@@ -165,7 +173,106 @@ describe('signed document upload screen', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Confirm and file' }));
 
     expect((await screen.findByRole('alert')).textContent).toContain('Page is full');
-    expect(screen.queryByRole('button', { name: 'Confirm as new record' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'No, this is a new document' })).toBeNull();
+    expect(screen.getByLabelText('Paper document number')).toHaveProperty('value', '12');
+    expect(screen.getByText(/Signed deed\.pdf/)).toBeTruthy();
+  });
+
+  it('offers waiting documents with party details and attaches the selected PDF using its filing data', async () => {
+    const conflict = {
+      message: 'A signed copy is still expected for these documents.',
+      details: {
+        reason: 'READY_FOR_SIGNATURE_EXISTS',
+        related_documents: [{
+          document_id: 'waiting-doc',
+          file_name: 'Prepared deed',
+          parties: [{ f_name: 'Avery', l_name: 'Reviewer', email: 'avery@example.com', role: 'signer' }],
+        }],
+        errors: [],
+      },
+    };
+    const fetchMock = setupFetch(
+      [Response.json(conflict, { status: 409 })],
+      [{ id: 'closed-book', book_number: 4, series_year: 2026, status: 'CLOSED' }],
+      [Response.json({ ...signedDocument, document_id: 'waiting-doc' }, { status: 200 })],
+    );
+    renderPage();
+    await fillClosedBookUpload();
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm and file' }));
+
+    expect(await screen.findByText(conflict.message)).toBeTruthy();
+    expect(screen.getByText('Prepared deed')).toBeTruthy();
+    expect(screen.getByText(/Avery Reviewer.*avery@example\.com.*signer/)).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Attach signed PDF to Prepared deed' }));
+
+    await waitFor(() => expect(push).toHaveBeenCalledWith('/portal/documents/waiting-doc'));
+    const requests = fetchMock.mock.calls.filter(([url]) => new URL(String(url), window.location.origin).searchParams.has('path'));
+    const uploadRequest = requests.find(([, init]) => init?.method === 'POST' && !(new URL(String(requests[0][0]), window.location.origin).searchParams.get('path') ?? '').includes('/signed-copy'));
+    const attachmentRequest = requests.find(([url]) => (new URL(String(url), window.location.origin).searchParams.get('path') ?? '').includes('/signed-copy'));
+    const attachmentPath = new URL(String(attachmentRequest?.[0]), window.location.origin).searchParams.get('path')!;
+    expect(new URLSearchParams(attachmentPath.split('?')[1])).toMatchObject(new URLSearchParams({ book_id: 'closed-book', doc_no: '12', page_no: '3' }));
+    expect(((uploadRequest?.[1]?.body as FormData).get('file') as File).name).toBe('Signed deed.pdf');
+    expect(((attachmentRequest?.[1]?.body as FormData).get('file') as File).name).toBe('Signed deed.pdf');
+  });
+
+  it('prevents removing the selected PDF while a waiting-document attachment is pending', async () => {
+    const conflict = { message: 'A signed copy is expected.', details: { reason: 'READY_FOR_SIGNATURE_EXISTS', related_documents: [{ document_id: 'waiting-doc', file_name: 'Prepared deed' }] } };
+    let finishAttachment!: (response: Response) => void;
+    const pendingAttachment = new Promise<Response>((resolve) => { finishAttachment = resolve; });
+    const fetchMock = setupFetch(
+      [Response.json(conflict, { status: 409 })],
+      [{ id: 'closed-book', book_number: 4, series_year: 2026, status: 'CLOSED' }],
+      [pendingAttachment],
+    );
+    renderPage();
+    await fillClosedBookUpload();
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm and file' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Attach signed PDF to Prepared deed' }));
+    await waitFor(() => expect(fetchMock.mock.calls.some(([url]) => (new URL(String(url), window.location.origin).searchParams.get('path') ?? '').includes('/signed-copy'))).toBe(true));
+
+    expect(screen.getByRole('button', { name: 'Remove uploaded file' })).toHaveProperty('disabled', true);
+    finishAttachment(Response.json({ ...signedDocument, document_id: 'waiting-doc' }, { status: 200 }));
+    await waitFor(() => expect(push).toHaveBeenCalledWith('/portal/documents/waiting-doc'));
+  });
+
+  it('only creates a separate record after explicit choice and preserves the selected PDF', async () => {
+    const fetchMock = setupFetch([
+      Response.json({ message: 'A signed copy is still expected.', details: { reason: 'READY_FOR_SIGNATURE_EXISTS', related_documents: [] } }, { status: 409 }),
+      Response.json({ message: 'Temporary filing failure.' }, { status: 503 }),
+      Response.json(signedDocument, { status: 201 }),
+    ]);
+    renderPage();
+    await fillClosedBookUpload();
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm and file' }));
+    await screen.findByRole('button', { name: 'No, this is a new document' });
+    expect(fetchMock.mock.calls.filter(([, init]) => init?.method === 'POST')).toHaveLength(1);
+    fireEvent.click(screen.getByRole('button', { name: 'No, this is a new document' }));
+
+    await waitFor(() => expect(screen.getByRole('alert').textContent).toContain('Temporary filing failure.'));
+    expect(screen.getByText(/Signed deed\.pdf/)).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm and file' }));
+
+    await waitFor(() => expect(push).toHaveBeenCalledWith('/portal/documents/signed-doc-42'));
+    const uploadCalls = fetchMock.mock.calls.filter(([, init]) => init?.method === 'POST');
+    expect(uploadCalls).toHaveLength(3);
+    const retryPath = new URL(String(uploadCalls[2][0]), window.location.origin).searchParams.get('path')!;
+    expect(new URLSearchParams(retryPath.split('?')[1]).get('confirm_new_record')).toBe('true');
+    expect(((uploadCalls[2][1]?.body as FormData).get('file') as File).name).toBe('Signed deed.pdf');
+  });
+
+  it('links duplicate uploads to the returned document and displays validation details', async () => {
+    setupFetch([Response.json({
+      message: 'This file is already filed.',
+      details: { reason: 'DUPLICATE_FILE', document_id: 'duplicate-doc', errors: [{ field: 'doc_no', message: 'Document number is already used.' }] },
+    }, { status: 409 })]);
+    renderPage();
+    await fillClosedBookUpload();
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm and file' }));
+
+    expect((await screen.findByRole('alert')).textContent).toContain('This file is already filed.');
+    expect(screen.getByText('doc_no: Document number is already used.')).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'View existing document' }).getAttribute('href')).toBe('/portal/documents/duplicate-doc');
+    expect(screen.queryByRole('button', { name: 'No, this is a new document' })).toBeNull();
     expect(screen.getByLabelText('Paper document number')).toHaveProperty('value', '12');
     expect(screen.getByText(/Signed deed\.pdf/)).toBeTruthy();
   });

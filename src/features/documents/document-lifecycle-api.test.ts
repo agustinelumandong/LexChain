@@ -64,6 +64,19 @@ describe('document lifecycle client', () => {
     expect(fetchMock.mock.calls[0][1].body.get('file')).toBe(file);
   });
 
+  it('preserves the structured backend error for a failed signed-copy attachment', async () => {
+    const payload = { message: 'The waiting document rejected this file.', details: { reason: 'INVALID_SIGNED_COPY', errors: [{ field: 'file', message: 'Invalid signature.' }] } };
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json(payload, { status: 422 })));
+
+    await expect(attachSignedCopy('document-1', new File(['pdf'], 'signed.pdf'), { bookId: 'book-1' })).rejects.toMatchObject({
+      message: payload.message,
+      status: 422,
+      reason: 'INVALID_SIGNED_COPY',
+      details: payload.details,
+      validationErrors: payload.details.errors,
+    });
+  });
+
   it('replaces a signed PDF with a reason using PUT multipart form data', async () => {
     const fetchMock = vi.fn().mockResolvedValue(Response.json({ document_id: 'document-1', lifecycle: 'SIGNED' }));
     vi.stubGlobal('fetch', fetchMock);
