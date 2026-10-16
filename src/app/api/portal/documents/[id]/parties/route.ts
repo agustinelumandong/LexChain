@@ -14,7 +14,7 @@ function unauthenticated() {
   return NextResponse.json({ message: 'Not authenticated' }, { status: 401 });
 }
 
-async function isDocumentIssuer(token: string, mockMode: boolean) {
+async function isDocumentIssuer(token: string, mockMode: boolean): Promise<boolean | Response> {
   const profile = mockMode
     ? mockPortalGet('/users/', token)
     : await fetch(backendUrl('/users/'), {
@@ -24,6 +24,8 @@ async function isDocumentIssuer(token: string, mockMode: boolean) {
         },
         cache: 'no-store',
       });
+  if (profile.status === 401) return profile;
+
   const profileData = await profile.json().catch(() => null);
   return getPortalUiRole(profileData?.role) === 'lawyer';
 }
@@ -34,7 +36,9 @@ async function proxy(request: NextRequest, method: 'GET' | 'POST', context: Rout
   const mockMode = isMockMode();
   if (mockMode && !isMockPortalToken(token)) return unauthenticated();
 
-  if (!await isDocumentIssuer(token, mockMode)) {
+  const issuer = await isDocumentIssuer(token, mockMode);
+  if (issuer instanceof Response) return issuer;
+  if (!issuer) {
     return NextResponse.json(
       { message: 'Participant management is available to Lawyers only.' },
       { status: 403 },

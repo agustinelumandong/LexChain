@@ -80,6 +80,28 @@ it('does not proxy participant management when the authenticated profile is not 
   expect(fetchMock).toHaveBeenNthCalledWith(2, '/users/', expect.any(Object));
 });
 
+it('preserves an upstream profile authentication failure before checking the issuer role', async () => {
+  const fetchMock = vi.fn().mockResolvedValue(
+    new Response(JSON.stringify({ message: 'Session expired' }), {
+      status: 401,
+      headers: { 'content-type': 'application/json' },
+    }),
+  );
+  vi.stubGlobal('fetch', fetchMock);
+
+  const response = await GET(
+    new NextRequest('http://localhost/api/portal/documents/document-123/parties', {
+      headers: { cookie: 'portal_token=portal-token' },
+    }),
+    { params: Promise.resolve({ id: 'document-123' }) },
+  );
+
+  expect(response.status).toBe(401);
+  await expect(response.json()).resolves.toEqual({ message: 'Session expired' });
+  expect(fetchMock).toHaveBeenCalledTimes(1);
+  expect(fetchMock).toHaveBeenCalledWith('/users/', expect.any(Object));
+});
+
 it('rejects malformed participant invitations before forwarding them upstream', async () => {
   const fetchMock = vi.fn();
   vi.stubGlobal('fetch', fetchMock);
