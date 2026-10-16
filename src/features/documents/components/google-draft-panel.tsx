@@ -1,10 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import type { ApiSchema } from '@/shared/types';
 import { createGoogleDraft, getGooglePickerToken, isGoogleDraftUrl } from '@/features/documents/document-draft-api';
-import { saveGoogleDraftReturnContext } from '@/shared/utils/google-draft-return-context';
+import { clearGoogleDraftReturnContext, readGoogleDraftReturnContext, saveGoogleDraftReturnContext } from '@/shared/utils/google-draft-return-context';
 
 type Source = ApiSchema<'CreateDraftRequest'>['source'];
 type PickedFile = { id: string; name: string };
@@ -93,14 +93,26 @@ function DraftCreationForm({ source, picked, error, needsGoogleConnection, pendi
   </section>;
 }
 
-export function GoogleDraftPanel({ document }: { document: ApiSchema<'DocumentResponse'> }) {
+export function GoogleDraftPanel({ document, onDocumentUpdated }: {
+  document: ApiSchema<'DocumentResponse'>;
+  onDocumentUpdated: (document: ApiSchema<'DocumentResponse'>) => void;
+}) {
   const [source, setSource] = useState<Source>('blank');
   const [picked, setPicked] = useState<PickedFile | null>(null);
-  const [draftUrl, setDraftUrl] = useState<string | null>(document.draft_url ?? null);
   const [error, setError] = useState('');
   const [needsGoogleConnection, setNeedsGoogleConnection] = useState(false);
   const [pending, setPending] = useState(false);
   const [picking, setPicking] = useState(false);
+
+  useEffect(() => {
+    const context = readGoogleDraftReturnContext();
+    if (!context) return;
+    if (context.documentId === document.document_id) {
+      setSource(context.source);
+      setPicked(context.picked);
+    }
+    clearGoogleDraftReturnContext();
+  }, [document.document_id]);
 
   async function chooseFile() {
     setPicking(true);
@@ -123,17 +135,19 @@ export function GoogleDraftPanel({ document }: { document: ApiSchema<'DocumentRe
     setNeedsGoogleConnection(false);
     try {
       const result = await createGoogleDraft(document.document_id, source, picked?.id);
-      setDraftUrl(result.draft_url ?? null);
+      onDocumentUpdated(result);
     } catch (cause) {
       const failure = errorMessage(cause);
       setError(failure.message);
       setNeedsGoogleConnection(failure.needsGoogleConnection);
+      const status = cause instanceof Error && 'status' in cause && typeof cause.status === 'number' ? cause.status : undefined;
+      if (source !== 'blank' && (status === 400 || status === 404)) setPicked(null);
     } finally {
       setPending(false);
     }
   }
 
-  if (draftUrl) return <ExistingDraft url={draftUrl} />;
+  if (document.draft_url) return <ExistingDraft url={document.draft_url} />;
   if (document.lifecycle !== 'PREPARING' || !document.permissions.can_create_draft) return null;
 
   function preserveChoices(event: React.MouseEvent<HTMLAnchorElement>) {

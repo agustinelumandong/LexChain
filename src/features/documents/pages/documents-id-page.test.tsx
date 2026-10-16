@@ -13,6 +13,7 @@ const { state } = vi.hoisted(() => ({
     commentsQuery: {} as Record<string, unknown>,
     queryKeys: [] as string[][],
     renameDocument: vi.fn(),
+    queryClient: { setQueryData: vi.fn(), invalidateQueries: vi.fn() },
   },
 }));
 
@@ -34,7 +35,7 @@ vi.mock('@tanstack/react-query', () => ({
     if (queryKey[0] === 'portal-books') return { data: [], isLoading: false, isError: false };
     return state.signedCopiesQuery;
   },
-  useQueryClient: () => ({ invalidateQueries: vi.fn() }),
+  useQueryClient: () => state.queryClient,
   useMutation: () => ({ mutate: vi.fn(), reset: vi.fn(), isPending: false, error: null }),
 }));
 
@@ -94,6 +95,8 @@ beforeEach(() => {
   state.profileQuery = { data: { role: 'document_issuer' }, isLoading: false, isError: false };
   state.signedCopiesQuery = { data: { document_id: 'doc-1', copies: [] }, isLoading: false, isError: false };
   state.commentsQuery = { data: { document_id: 'doc-1', unresolved: 0, synced_at: null, comments: [] }, isLoading: false, isError: false };
+  state.queryClient.setQueryData.mockReset();
+  state.queryClient.invalidateQueries.mockReset();
 });
 
 afterEach(cleanup);
@@ -138,6 +141,32 @@ describe('document detail screen', () => {
     expect(screen.getAllByText('Preparing').length).toBeGreaterThan(0);
     fireEvent.click(screen.getByRole('tab', { name: 'Files' }));
     expect(screen.getByRole('button', { name: 'Create blank Google draft' })).toBeTruthy();
+  });
+
+  it('publishes a created draft into the document query and refreshes list and history', async () => {
+    const preparingDocument = {
+      ...baseDocument,
+      lifecycle: 'PREPARING',
+      draft_url: null,
+      signed_copy: null,
+      permissions: { ...baseDocument.permissions, can_create_draft: true, can_mark_ready: true },
+    };
+    const createdDocument = {
+      ...preparingDocument,
+      draft_url: 'https://docs.google.com/document/d/created-draft',
+      permissions: { ...preparingDocument.permissions, can_create_draft: false, can_mark_ready: true },
+    };
+    state.documentQuery = { data: preparingDocument, isLoading: false, isError: false, refetch: vi.fn() };
+    vi.stubGlobal('fetch', vi.fn(async () => Response.json(createdDocument, { status: 201 })));
+
+    await showPage();
+    fireEvent.click(screen.getByRole('tab', { name: 'Files' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Create blank Google draft' }));
+    await waitFor(() => expect(state.queryClient.setQueryData).toHaveBeenCalled());
+
+    expect(state.queryClient.setQueryData).toHaveBeenCalledWith(['portal-doc', 'doc-1'], createdDocument);
+    expect(state.queryClient.invalidateQueries).toHaveBeenCalledWith({ queryKey: ['portal-documents'] });
+    expect(state.queryClient.invalidateQueries).toHaveBeenCalledWith({ queryKey: ['portal-document-history', 'doc-1'] });
   });
 
   it('shows signature readiness controls only when granted by the backend', async () => {
