@@ -151,16 +151,32 @@ describe('signed document upload screen', () => {
   });
 
   it('keeps selections when the user cancels the confirmation', async () => {
-    setupFetch([Response.json({ detail: 'READY_FOR_SIGNATURE_EXISTS' }, { status: 409 })]);
+    const duplicateKeyWarnings: unknown[] = [];
+    const consoleError = vi.spyOn(console, 'error').mockImplementation((message) => {
+      if (typeof message === 'string' && message.includes('same key')) duplicateKeyWarnings.push(message);
+    });
+    setupFetch([Response.json({
+      message: 'A signed copy is expected.',
+      details: {
+        reason: 'READY_FOR_SIGNATURE_EXISTS',
+        errors: [
+          { field: 'file_name', message: 'Please review this upload.' },
+          { field: 'file_name', message: 'Please review this upload.' },
+        ],
+      },
+    }, { status: 409 })]);
     renderPage();
     await fillClosedBookUpload();
     fireEvent.click(screen.getByRole('button', { name: 'Confirm and file' }));
     await screen.findByRole('button', { name: 'No, this is a new document' });
-    expect((screen.getByLabelText('Document title') as HTMLInputElement).disabled).toBe(true);
+    expect(screen.getAllByText('file_name: Please review this upload.')).toHaveLength(2);
+    expect(duplicateKeyWarnings).toEqual([]);
+    consoleError.mockRestore();
+    expect((document.getElementById('upload-title') as HTMLInputElement).disabled).toBe(true);
     fireEvent.click(await screen.findByRole('button', { name: 'Return without submitting' }));
 
-    expect(screen.getByLabelText('Document title')).toHaveProperty('value', 'Signed deed');
-    await waitFor(() => expect((screen.getByLabelText('Document title') as HTMLInputElement).disabled).toBe(false));
+    expect(document.getElementById('upload-title')).toHaveProperty('value', 'Signed deed');
+    await waitFor(() => expect((document.getElementById('upload-title') as HTMLInputElement).disabled).toBe(false));
     expect(screen.getByLabelText('Paper document number')).toHaveProperty('value', '12');
     expect(screen.getByLabelText('Paper page number')).toHaveProperty('value', '3');
     expect(screen.getByText(/Signed deed\.pdf/)).toBeTruthy();

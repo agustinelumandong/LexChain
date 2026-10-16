@@ -39,6 +39,10 @@ Follow-up verification: `pnpm exec vitest run src/features/portal/components/por
 
 The rendered upload field-error lists now include the stable response-list index in each React key, so repeated identical backend messages render without key collisions. The upload regression includes a repeated `doc_no` message and asserts both copies remain visible. Focused verification: `pnpm exec vitest run src/features/documents/pages/upload-page.test.tsx` — **1 file, 9 tests passed**; `git diff --check` passed.
 
+### Recovery summary key follow-up
+
+The confirmation/recovery validation summary now includes the list index in each key as well. Its test returns two identical `file_name` validation entries, checks that both render, and verifies React emitted no duplicate-key warning. **RED:** The new assertion observed a duplicate-key warning before the key change. **GREEN:** The focused upload suite passes (1 file, 9 tests); `git diff --check` passes.
+
 ## Limitations
 
 - No live backend or browser session-recovery flow was exercised; request responses were stubbed by frontend tests.
