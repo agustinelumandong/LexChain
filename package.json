@@ -9,6 +9,7 @@
     "e2e:signed-filing": "node e2e/signed-filing.mjs",
     "e2e:upload-recovery": "node e2e/upload-recovery.mjs",
     "e2e:google-drafting": "node e2e/google-drafting.mjs",
+    "e2e:google-comments": "node e2e/google-comments.mjs",
     "lint": "eslint",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
