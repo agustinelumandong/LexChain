@@ -20,6 +20,7 @@ const record = {
 
 afterEach(() => {
   vi.restoreAllMocks();
+  vi.unstubAllGlobals();
 });
 
 describe('document lifecycle client', () => {
@@ -209,5 +210,14 @@ describe('document lifecycle client', () => {
     ));
 
     await expect(finalizeDocument('document-1')).rejects.toThrow('Document cannot be finalized');
+  });
+});
+
+it('retains the shared backend message, HTTP status and structured details', async () => {
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json({
+    message: 'Backend action denied', detail: 'Legacy fallback', details: { reason: 'DENIED', retryable: false },
+  }, { status: 403 })));
+  await expect(markDocumentReady('document-1')).rejects.toMatchObject({
+    message: 'Backend action denied', status: 403, details: { reason: 'DENIED', retryable: false },
   });
 });

@@ -1,3 +1,4 @@
+import { portalRequest } from '@/shared/api/client';
 import { PortalApiError, parsePortalApiError } from '@/shared/api/portal-error';
 import type { ApiSchema } from '@/shared/types/index';
 
@@ -140,15 +141,15 @@ export async function uploadDocument({ file, title, bookId, paperRegister, confi
   }
   if (confirmNewRecord) query.set('confirm_new_record', 'true');
 
-  const res = await fetch(
-    `/api/portal/proxy-post?path=${encodeURIComponent(`/documents/upload?${query.toString()}`)}`,
-    { method: 'POST', body: form, credentials: 'same-origin' },
-  );
-
-  if (!res.ok) {
-    const body: unknown = await res.json().catch(() => ({}));
-    throw new UploadRequestError(body, res.status);
+  let response: Response;
+  try {
+    response = await portalRequest(
+      `/api/portal/proxy-post?path=${encodeURIComponent(`/documents/upload?${query.toString()}`)}`,
+      { method: 'POST', body: form, credentials: 'same-origin' },
+    );
+  } catch (error) {
+    if (error instanceof PortalApiError) throw new UploadRequestError(error.body, error.status);
+    throw error;
   }
-
-  return res.json();
+  return response.json();
 }

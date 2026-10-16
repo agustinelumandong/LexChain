@@ -9,8 +9,9 @@ import {
   uploadDocument,
 } from '@/features/documents/portal-upload';
 
+afterEach(() => vi.unstubAllGlobals());
+
 describe('portal document upload', () => {
-  afterEach(() => vi.unstubAllGlobals());
 
   it('uses the shared error contract for empty upload failures', () => {
     const error = new UploadRequestError(null, 503);
@@ -162,5 +163,14 @@ describe('portal document upload', () => {
 
     expect(error).toHaveProperty('message', duplicate.message);
     expect(error).toMatchObject({ status: 409, reason: 'DUPLICATE_FILE', documentId: 'existing-doc', details: duplicate.details, validationErrors: [] });
+  });
+});
+
+it('retains legacy top-level upload fields through a failed request', async () => {
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json({
+    code: 'DUPLICATE_FILE', detail: [{ loc: ['body', 'title'], msg: 'Required' }],
+  }, { status: 409 })));
+  await expect(uploadDocument({ file: new File(['PDF'], 'record.pdf'), title: 'Deed', bookId: 'book-1' })).rejects.toMatchObject({
+    name: 'UploadRequestError', status: 409, reason: 'DUPLICATE_FILE', validationErrors: [{ field: 'body.title', message: 'Required' }],
   });
 });
