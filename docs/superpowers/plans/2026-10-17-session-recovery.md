@@ -91,7 +91,6 @@
 **Interfaces:**
 - Consumes `portalRequest(url, init?)` and `PortalApiError` from Task 1.
 - Each migrated call retains its existing request method, query/path encoding, headers, body encoding, credentials, cache semantics, and success parsing.
-- `searchUserByEmail` continues to return `null` for `404`; the shared request layer does not convert that expected result into a thrown UI error.
 
 - [ ] **Step 1: Update document API tests** to assert backend message/status/details and shared `401` handling for draft, lifecycle, extraction, upload, and search calls.
 - [ ] **Step 2: Run the focused document API tests** and confirm new assertions fail before migration.
@@ -112,7 +111,7 @@
 - Consumes `portalRequest(url, init?)` and `PortalApiError` from Task 1.
 - `searchUserByEmail` continues to return `null` for `404`; other failed access and notification requests retain the backend error.
 
-- [ ] **Step 1: Add/adjust API tests** to assert backend message/status/details, `401` recovery, and the expected `404` null behavior for account search.
+- [ ] **Step 1: Add/adjust API tests** to assert backend message/status/details, `401` recovery, and `searchUserByEmail` continuing to return `null` for its expected `404` result.
 - [ ] **Step 2: Migrate access and notification requests** to `portalRequest`; retain methods, encoded IDs/query strings, credentials, and existing success parsing.
 - [ ] **Step 3: Add a focused form assertion** that invitation failures retain entered email/permission values and display the backend message.
 - [ ] **Step 4: Run access, invitation-page, and notification API tests** and confirm they pass.
