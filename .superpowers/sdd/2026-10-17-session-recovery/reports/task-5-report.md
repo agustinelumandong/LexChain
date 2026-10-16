@@ -35,6 +35,10 @@ The review identified three accessibility/error-reporting gaps and they are now 
 
 Follow-up verification: `pnpm exec vitest run src/features/portal/components/portal-dropdown.test.tsx src/features/documents/portal-upload.test.ts src/features/documents/pages/upload-page.test.tsx` — **3 files, 28 tests passed**; `pnpm typecheck`, `pnpm lint`, and `git diff --check` also passed.
 
+### Duplicate message key follow-up
+
+The rendered upload field-error lists now include the stable response-list index in each React key, so repeated identical backend messages render without key collisions. The upload regression includes a repeated `doc_no` message and asserts both copies remain visible. Focused verification: `pnpm exec vitest run src/features/documents/pages/upload-page.test.tsx` — **1 file, 9 tests passed**; `git diff --check` passed.
+
 ## Limitations
 
 - No live backend or browser session-recovery flow was exercised; request responses were stubbed by frontend tests.

@@ -266,6 +266,7 @@ describe('signed document upload screen', () => {
       details: { reason: 'DUPLICATE_FILE', document_id: 'duplicate-doc', errors: [
         { field: 'doc_no', message: 'Document number is already used.' },
         { field: 'doc_no', message: 'Use a positive number.' },
+        { field: 'doc_no', message: 'Use a positive number.' },
         { field: 'unknown_column', message: 'This field is not available in the form.' },
         { message: 'The backend returned an unassociated validation message.' },
         null,
@@ -277,7 +278,7 @@ describe('signed document upload screen', () => {
 
     expect((await screen.findByRole('alert')).textContent).toContain('This file is already filed.');
     expect(screen.getByText('Document number is already used.')).toBeTruthy();
-    expect(screen.getByText('Use a positive number.')).toBeTruthy();
+    expect(screen.getAllByText('Use a positive number.')).toHaveLength(2);
     expect(screen.getByText('unknown_column: This field is not available in the form.')).toBeTruthy();
     expect(screen.getByText('The backend returned an unassociated validation message.')).toBeTruthy();
     expect(screen.getByText('The backend returned an unreadable validation error.')).toBeTruthy();
