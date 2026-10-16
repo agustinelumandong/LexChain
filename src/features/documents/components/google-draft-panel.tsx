@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import type { ApiSchema } from '@/shared/types';
 import { createGoogleDraft, getGooglePickerToken, isGoogleDraftUrl } from '@/features/documents/document-draft-api';
+import { clearGoogleDraftReturnContext, readGoogleDraftReturnContext, saveGoogleDraftReturnContext } from '@/shared/utils/google-draft-return-context';
 
 type Source = ApiSchema<'CreateDraftRequest'>['source'];
 type PickedFile = { id: string; name: string };
@@ -58,7 +59,7 @@ async function openGooglePicker(onPicked: (file: PickedFile) => void): Promise<v
 
 function errorMessage(cause: unknown): { message: string; needsGoogleConnection: boolean } {
   const failure = cause as Error & { code?: string; status?: number };
-  if (failure.code === 'GOOGLE_NOT_CONNECTED') return { message: 'Connect Google in account settings, then retry. Your draft choices are saved.', needsGoogleConnection: true };
+  if (failure.code === 'GOOGLE_NOT_CONNECTED' || failure.code === 'GOOGLE_RECONNECT_REQUIRED') return { message: 'Connect Google in account settings, then retry. Your draft choices are saved.', needsGoogleConnection: true };
   if (failure.status === 502) return { message: 'Google Drive is unavailable. Try again in a moment. Your draft choices are saved.', needsGoogleConnection: false };
   return { message: failure.message || 'Unable to create the Google draft. Try again.', needsGoogleConnection: false };
 }
@@ -67,7 +68,7 @@ function ExistingDraft({ url }: { url: string }) {
   return <div className="rounded-xl border border-[#E8F0F8] p-4"><p className="font-bold text-[#0C2B49]">Working Google draft</p><p className="mt-1 text-sm text-[#64748b]">This editable draft is separate from the legal signed PDF.</p>{isGoogleDraftUrl(url) ? <a href={url} target="_blank" rel="noreferrer" className="mt-3 inline-flex rounded-full border border-[#0985E7] px-4 py-2.5 text-sm font-extrabold text-[#0985E7]">Open Google draft</a> : <p role="alert" className="mt-3 text-sm font-bold text-[#B42318]">The backend returned an invalid Google draft link. Contact your administrator.</p>}</div>;
 }
 
-function DraftCreationForm({ source, picked, error, needsGoogleConnection, pending, picking, onSourceChange, onPick, onCreate }: {
+function DraftCreationForm({ source, picked, error, needsGoogleConnection, pending, picking, onSourceChange, onPick, onCreate, onConnectGoogle }: {
   source: Source;
   picked: PickedFile | null;
   error: string;
@@ -77,6 +78,7 @@ function DraftCreationForm({ source, picked, error, needsGoogleConnection, pendi
   onSourceChange: (source: Source) => void;
   onPick: () => void;
   onCreate: () => void;
+  onConnectGoogle: (event: React.MouseEvent<HTMLAnchorElement>) => void;
 }) {
   return <section aria-labelledby="google-draft-title" className="space-y-3 rounded-xl border border-[#CFE7FC] bg-[#F8FBFF] p-4">
     <div><h3 id="google-draft-title" className="font-bold text-[#0C2B49]">Working Google draft</h3><p className="mt-1 text-sm text-[#64748b]">This editable draft is separate from the legal signed PDF.</p></div>
@@ -86,19 +88,33 @@ function DraftCreationForm({ source, picked, error, needsGoogleConnection, pendi
       </select>
     </label>
     {source !== 'blank' && <div className="space-y-2"><button type="button" disabled={picking} onClick={onPick} className="rounded-full border border-[#0985E7] px-4 py-2 text-sm font-bold text-[#0985E7] disabled:opacity-60">{picking ? 'Opening Picker…' : 'Choose Google Doc'}</button>{picked && <p className="text-sm text-[#0C2B49]">Selected: {picked.name}</p>}</div>}
-    {error && <div role="alert" className="space-y-2 text-sm font-bold text-[#B42318]"><p>{error}</p>{needsGoogleConnection && <Link href="/portal/profile/account" className="inline-block rounded-full border border-[#0985E7] px-3 py-1.5 text-[#0985E7]">Connect Google in account settings</Link>}</div>}
+    {error && <div role="alert" className="space-y-2 text-sm font-bold text-[#B42318]"><p>{error}</p>{needsGoogleConnection && <Link href="/portal/profile/account?google_draft_return=1" onClick={onConnectGoogle} className="inline-block rounded-full border border-[#0985E7] px-3 py-1.5 text-[#0985E7]">Connect Google in account settings</Link>}</div>}
     <button type="button" disabled={pending || (source !== 'blank' && !picked)} onClick={onCreate} className="rounded-full bg-[#0985E7] px-4 py-2.5 text-sm font-extrabold text-white disabled:opacity-60">{pending ? 'Creating draft…' : source === 'blank' ? 'Create blank Google draft' : `Create draft from ${source}`}</button>
   </section>;
 }
 
-export function GoogleDraftPanel({ document }: { document: ApiSchema<'DocumentResponse'> }) {
+export function GoogleDraftPanel({ document, onDocumentUpdated }: {
+  document: ApiSchema<'DocumentResponse'>;
+  onDocumentUpdated: (document: ApiSchema<'DocumentResponse'>) => void;
+}) {
   const [source, setSource] = useState<Source>('blank');
   const [picked, setPicked] = useState<PickedFile | null>(null);
-  const [draftUrl, setDraftUrl] = useState<string | null>(document.draft_url ?? null);
   const [error, setError] = useState('');
   const [needsGoogleConnection, setNeedsGoogleConnection] = useState(false);
   const [pending, setPending] = useState(false);
   const [picking, setPicking] = useState(false);
+
+  useEffect(() => {
+    const context = readGoogleDraftReturnContext();
+    if (!context) return;
+    if (context.documentId === document.document_id) {
+      // Restore browser storage after the OAuth navigation.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setSource(context.source);
+      setPicked(context.picked);
+    }
+    clearGoogleDraftReturnContext();
+  }, [document.document_id]);
 
   async function chooseFile() {
     setPicking(true);
@@ -121,19 +137,31 @@ export function GoogleDraftPanel({ document }: { document: ApiSchema<'DocumentRe
     setNeedsGoogleConnection(false);
     try {
       const result = await createGoogleDraft(document.document_id, source, picked?.id);
-      setDraftUrl(result.draft_url ?? null);
+      onDocumentUpdated(result);
     } catch (cause) {
       const failure = errorMessage(cause);
       setError(failure.message);
       setNeedsGoogleConnection(failure.needsGoogleConnection);
+      const status = cause instanceof Error && 'status' in cause && typeof cause.status === 'number' ? cause.status : undefined;
+      if (source !== 'blank' && (status === 400 || status === 404)) setPicked(null);
     } finally {
       setPending(false);
     }
   }
 
-  if (draftUrl) return <ExistingDraft url={draftUrl} />;
+  if (document.draft_url) return <ExistingDraft url={document.draft_url} />;
   if (document.lifecycle !== 'PREPARING' || !document.permissions.can_create_draft) return null;
 
+  function preserveChoices(event: React.MouseEvent<HTMLAnchorElement>) {
+    try {
+      saveGoogleDraftReturnContext({ documentId: document.document_id, source, picked });
+    } catch (cause) {
+      event.preventDefault();
+      setError(cause instanceof Error ? cause.message : 'Your draft choices could not be saved. Try again.');
+      setNeedsGoogleConnection(false);
+    }
+  }
+
   return <DraftCreationForm source={source} picked={picked} error={error} needsGoogleConnection={needsGoogleConnection} pending={pending} picking={picking}
-    onSourceChange={(value) => { setSource(value); setPicked(null); setError(''); setNeedsGoogleConnection(false); }} onPick={() => void chooseFile()} onCreate={() => void createDraft()} />;
+    onSourceChange={(value) => { setSource(value); setPicked(null); setError(''); setNeedsGoogleConnection(false); }} onPick={() => void chooseFile()} onCreate={() => void createDraft()} onConnectGoogle={preserveChoices} />;
 }

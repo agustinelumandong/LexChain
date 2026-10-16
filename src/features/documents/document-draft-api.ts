@@ -18,9 +18,11 @@ async function request<T>(path: string, method: 'GET' | 'POST', body?: unknown):
     ...(body === undefined ? {} : { headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) }),
   });
   if (!response.ok) {
-    const error = await response.json().catch(() => ({})) as { detail?: unknown; message?: string };
-    const detail = typeof error.detail === 'string' ? error.detail : error.message;
-    throw Object.assign(new Error(detail ?? `Request failed (${response.status})`), { status: response.status, code: detail });
+    const error = await response.json().catch(() => ({})) as { detail?: unknown; message?: unknown; details?: { reason?: unknown } };
+    const reason = typeof error.details?.reason === 'string' ? error.details.reason : undefined;
+    const detail = typeof error.detail === 'string' ? error.detail : undefined;
+    const message = detail ?? (typeof error.message === 'string' ? error.message : reason);
+    throw Object.assign(new Error(message ?? `Request failed (${response.status})`), { status: response.status, code: reason ?? detail ?? message });
   }
   return response.json() as Promise<T>;
 }

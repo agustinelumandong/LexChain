@@ -2,7 +2,8 @@
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import Dialog from '@mui/material/Dialog';
 import DialogActions from '@mui/material/DialogActions';
@@ -11,6 +12,7 @@ import DialogContentText from '@mui/material/DialogContentText';
 import DialogTitle from '@mui/material/DialogTitle';
 import type { ApiSchema } from '@/shared/types/index';
 import { getPortalUiRole } from '@/features/access';
+import { clearGoogleDraftReturnContext, googleDraftReturnPath, readGoogleDraftReturnContext } from '@/shared/utils/google-draft-return-context';
 
 type UserProfile = ApiSchema<'UserProfileResponse'>;
 type GoogleConnectionStatus = ApiSchema<'GoogleConnectionStatus'>;
@@ -69,7 +71,8 @@ async function disconnectGoogleConnection(): Promise<void> {
   if (!response.ok) throw new Error('Could not disconnect Google. Try again.');
 }
 
-function GoogleConnectionCard({ google, message }: { google?: string; message?: string }) {
+function GoogleConnectionCard({ google, message, documentReturn }: { google?: string; message?: string; documentReturn: boolean }) {
+  const router = useRouter();
   const queryClient = useQueryClient();
   const [disconnectConfirmationOpen, setDisconnectConfirmationOpen] = useState(false);
   const connectionQuery = useQuery({
@@ -90,6 +93,22 @@ function GoogleConnectionCard({ google, message }: { google?: string; message?: 
     : google === 'error'
       ? message?.toLowerCase().includes('access_denied') ? 'cancelled' : 'failed'
       : null;
+
+  useEffect(() => {
+    if (google === 'error' || (!google && !documentReturn)) {
+      clearGoogleDraftReturnContext();
+      return;
+    }
+    if (google !== 'connected' || connectionQuery.isPending) return;
+    if (connectionQuery.data?.connected) {
+      const context = readGoogleDraftReturnContext();
+      const path = context && googleDraftReturnPath(context.documentId);
+      if (path) router.replace(path);
+      else clearGoogleDraftReturnContext();
+      return;
+    }
+    if (connectionQuery.isError || connectionQuery.data) clearGoogleDraftReturnContext();
+  }, [connectionQuery.data, connectionQuery.isError, connectionQuery.isPending, documentReturn, google, router]);
 
   return (
     <section aria-labelledby="google-connection-heading" className="rounded-[18px] border border-[#E8F0F8] bg-white p-5 shadow-[0_4px_12px_rgba(19,59,115,0.05)]">
@@ -139,13 +158,20 @@ function GoogleConnectionCard({ google, message }: { google?: string; message?: 
             <span className="rounded-full bg-[#EEF4FB] px-3 py-1 text-sm font-bold text-[#64748b]">Not connected</span>
             <button
               type="button"
-              onClick={() => { connectMutation.reset(); connectMutation.mutate(); }}
+              onClick={() => {
+                connectMutation.reset();
+                if (!documentReturn) clearGoogleDraftReturnContext();
+                connectMutation.mutate();
+              }}
               disabled={connectMutation.isPending}
               className="rounded-full bg-[#0985E7] px-4 py-2 text-sm font-bold text-white disabled:opacity-50"
             >
               {connectMutation.isPending ? 'Starting connection…' : 'Connect Google'}
             </button>
-            {connectMutation.data && <a href={connectMutation.data} rel="noreferrer" className="rounded-full border border-[#0985E7] px-4 py-2 text-sm font-bold text-[#0985E7]">Continue to Google</a>}
+            {connectMutation.data && <>
+              <p className="w-full text-sm font-semibold text-[#0C2B49]">On Google&apos;s screen, tick the Google Drive permission.</p>
+              <a href={connectMutation.data} rel="noreferrer" className="rounded-full border border-[#0985E7] px-4 py-2 text-sm font-bold text-[#0985E7]">Continue to Google</a>
+            </>}
             {connectMutation.isError && <p role="alert" className="w-full text-sm font-semibold text-red-700">{connectMutation.error.message}</p>}
           </>
         )}
@@ -186,7 +212,7 @@ function GoogleConnectionCard({ google, message }: { google?: string; message?: 
   );
 }
 
-export default function AccountPage({ google, message }: { google?: string; message?: string }) {
+export default function AccountPage({ google, message, documentReturn = false }: { google?: string; message?: string; documentReturn?: boolean }) {
   const { data: user, isLoading, isError } = useQuery({ queryKey: ['portal-profile'], queryFn: fetchProfile });
   const isLawyer = getPortalUiRole(user?.role) === 'lawyer';
 
@@ -225,7 +251,7 @@ export default function AccountPage({ google, message }: { google?: string; mess
         ))}
       </div>
 
-      {isLawyer && <GoogleConnectionCard google={google} message={message} />}
+      {isLawyer && <GoogleConnectionCard google={google} message={message} documentReturn={documentReturn} />}
     </div>
   );
 }

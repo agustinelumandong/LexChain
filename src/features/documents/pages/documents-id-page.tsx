@@ -52,6 +52,14 @@ export default function DocumentDetailPage({ params }: { params: Promise<{ id: s
     ],
   });
 
+  function publishUpdatedDocument(updatedDocument: DocumentResponse) {
+    queryClient.setQueryData(['portal-doc', id], updatedDocument);
+    void Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['portal-documents'] }),
+      queryClient.invalidateQueries({ queryKey: ['portal-document-history', id] }),
+    ]);
+  }
+
   async function refreshLifecycleQueries() {
     await Promise.all([
       ['portal-doc', id],
@@ -195,6 +203,7 @@ export default function DocumentDetailPage({ params }: { params: Promise<{ id: s
 
       <DocumentWorkspace
         document={document}
+        onDocumentUpdated={publishUpdatedDocument}
         role={role}
         finalizationResult={finalizationResult}
         confirmingFinalize={confirmingFinalize}

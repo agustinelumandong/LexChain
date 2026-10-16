@@ -1,9 +1,10 @@
 // @vitest-environment jsdom
-import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query';
+import { QueryClient, QueryClientProvider, useQuery, useQueryClient } from '@tanstack/react-query';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DocumentWorkspace } from '@/features/documents/components/document-workspace';
 import type { ApiSchema } from '@/shared/types';
+import { readGoogleDraftReturnContext, saveGoogleDraftReturnContext } from '@/shared/utils/google-draft-return-context';
 
 const { attachSignedCopyMock, correctDocumentEntryMock, finalizeDocumentMock, listDocumentPartiesMock, listRegisterBooksMock, listSignedCopiesMock, listDraftCommentsMock, replaceSignedCopyMock, syncDraftCommentsMock } = vi.hoisted(() => ({
   attachSignedCopyMock: vi.fn(),
@@ -93,13 +94,14 @@ function renderWorkspace(props: Partial<React.ComponentProps<typeof DocumentWork
   });
   const invalidateQueries = vi.spyOn(queryClient, 'invalidateQueries').mockResolvedValue();
   function WorkspaceFromQuery({ document: initialData, ...workspaceProps }: Partial<React.ComponentProps<typeof DocumentWorkspace>>) {
+    const queryClient = useQueryClient();
     const { data = initialDocument } = useQuery({
       queryKey: ['portal-doc', initialDocument.document_id],
       queryFn: async () => initialData ?? initialDocument,
       initialData: initialData ?? initialDocument,
       staleTime: Infinity,
     });
-    return <DocumentWorkspace document={data} {...workspaceProps} />;
+    return <DocumentWorkspace document={data} {...workspaceProps} onDocumentUpdated={workspaceProps.onDocumentUpdated ?? ((updated) => queryClient.setQueryData(['portal-doc', initialDocument.document_id], updated))} />;
   }
   const result = render(
     <QueryClientProvider client={queryClient}>
@@ -129,6 +131,7 @@ describe('DocumentWorkspace', () => {
     vi.unstubAllGlobals();
     vi.unstubAllEnvs();
     vi.clearAllMocks();
+    sessionStorage.clear();
   });
 
   it('searches the current document through the scoped API and renders matching passages', async () => {
@@ -443,7 +446,11 @@ describe('DocumentWorkspace', () => {
     const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       const url = new URL(String(input), window.location.origin);
       if (url.searchParams.get('path') === '/documents/doc-101/draft' && init?.method === 'POST') {
-        return Response.json({ ...document, draft_url: 'https://docs.google.com/document/d/blank-draft' }, { status: 201 });
+        return Response.json({
+          ...document,
+          draft_url: 'https://docs.google.com/document/d/blank-draft',
+          permissions: { ...document.permissions, can_mark_ready: true },
+        }, { status: 201 });
       }
       throw new Error(`Unexpected request: ${url}`);
     });
@@ -456,11 +463,117 @@ describe('DocumentWorkspace', () => {
     const draftLink = await screen.findByRole('link', { name: 'Open Google draft' });
     expect(draftLink.getAttribute('href')).toBe('https://docs.google.com/document/d/blank-draft');
     expect(draftLink.getAttribute('target')).toBe('_blank');
+    expect(screen.getByRole('tab', { name: 'Comments' })).toBeTruthy();
     expect(screen.getByRole('link', { name: 'Open current signed PDF' }).getAttribute('href')).toBe(document.signed_copy?.storage_url);
+    fireEvent.click(screen.getByRole('tab', { name: 'Comments' }));
+    expect(screen.getByRole('button', { name: 'Mark ready for signature' })).toBeTruthy();
     expect(fetchMock).toHaveBeenCalledWith(
       '/api/portal/proxy-post?path=%2Fdocuments%2Fdoc-101%2Fdraft',
       expect.objectContaining({ method: 'POST', body: JSON.stringify({ source: 'blank' }) }),
     );
+  });
+
+  it('restores source and selected file for the matching document, then consumes the context', async () => {
+    saveGoogleDraftReturnContext({ documentId: 'doc-101', source: 'template', picked: { id: 'file-88', name: 'Restored template' } });
+    renderWorkspace({ document: { ...document, draft_url: null, permissions: { ...document.permissions, can_create_draft: true } } });
+
+    await waitFor(() => expect(readGoogleDraftReturnContext()).toBeNull());
+    fireEvent.click(screen.getByRole('tab', { name: 'Files' }));
+    await waitFor(() => expect((screen.getByRole('combobox', { name: 'Draft source' }) as HTMLSelectElement).value).toBe('template'));
+    expect(screen.getByText('Selected: Restored template')).toBeTruthy();
+    expect(readGoogleDraftReturnContext()).toBeNull();
+  });
+
+  it('clears a return context belonging to a different document without restoring it', async () => {
+    saveGoogleDraftReturnContext({ documentId: 'doc-other', source: 'existing', picked: { id: 'file-9', name: 'Other doc' } });
+    renderWorkspace({ document: { ...document, draft_url: null, permissions: { ...document.permissions, can_create_draft: true } } });
+
+    await waitFor(() => expect(readGoogleDraftReturnContext()).toBeNull());
+    fireEvent.click(screen.getByRole('tab', { name: 'Files' }));
+    expect((screen.getByRole('combobox', { name: 'Draft source' }) as HTMLSelectElement).value).toBe('blank');
+    expect(screen.queryByText('Selected: Other doc')).toBeNull();
+    expect((screen.getByRole('button', { name: 'Create blank Google draft' }) as HTMLButtonElement).disabled).toBe(false);
+  });
+
+  it('keeps the previous Picker selection when the user cancels a later selection', async () => {
+    vi.stubEnv('NEXT_PUBLIC_GOOGLE_PICKER_API_KEY', 'browser-key');
+    vi.stubEnv('NEXT_PUBLIC_GOOGLE_PICKER_APP_ID', 'cloud-project-number');
+    let pickerCallback: (data: unknown) => void = () => undefined;
+    let action = 'picked';
+    class PickerBuilder {
+      addView() { return this; }
+      setOAuthToken() { return this; }
+      setDeveloperKey() { return this; }
+      setAppId() { return this; }
+      setTitle() { return this; }
+      setCallback(callback: (data: unknown) => void) { pickerCallback = callback; return this; }
+      build() { return { setVisible: () => pickerCallback(action === 'picked'
+        ? { action: 'picked', docs: [{ id: 'file-1', name: 'First choice' }] }
+        : { action: 'cancel' }) }; }
+    }
+    class DocsView { setMimeTypes() { return this; } }
+    Object.assign(window, {
+      gapi: { load: (_library: string, callback: () => void) => callback() },
+      google: { picker: { Action: { PICKED: 'picked', CANCEL: 'cancel' }, ViewId: { DOCS: 'docs' }, DocsView, PickerBuilder } },
+    });
+    vi.stubGlobal('fetch', vi.fn(async () => Response.json({ access_token: 'picker-token', expires_at: '2099-01-01T00:00:00Z' })));
+    renderWorkspace({ document: { ...document, draft_url: null, permissions: { ...document.permissions, can_create_draft: true } } });
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Files' }));
+    fireEvent.change(screen.getByRole('combobox', { name: 'Draft source' }), { target: { value: 'template' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Choose Google Doc' }));
+    expect(await screen.findByText('Selected: First choice')).toBeTruthy();
+    action = 'cancel';
+    fireEvent.click(screen.getByRole('button', { name: 'Choose Google Doc' }));
+
+    expect(await screen.findByText('Selected: First choice')).toBeTruthy();
+  });
+
+  it('clears an inaccessible picked file and allows the user to choose another', async () => {
+    vi.stubEnv('NEXT_PUBLIC_GOOGLE_PICKER_API_KEY', 'browser-key');
+    vi.stubEnv('NEXT_PUBLIC_GOOGLE_PICKER_APP_ID', 'cloud-project-number');
+    let pickerCallback: (data: unknown) => void = () => undefined;
+    let selection = { id: 'expired-file', name: 'Expired selection' };
+    class PickerBuilder {
+      addView() { return this; }
+      setOAuthToken() { return this; }
+      setDeveloperKey() { return this; }
+      setAppId() { return this; }
+      setTitle() { return this; }
+      setCallback(callback: (data: unknown) => void) { pickerCallback = callback; return this; }
+      build() { return { setVisible: () => pickerCallback({ action: 'picked', docs: [selection] }) }; }
+    }
+    class DocsView { setMimeTypes() { return this; } }
+    Object.assign(window, {
+      gapi: { load: (_library: string, callback: () => void) => callback() },
+      google: { picker: { Action: { PICKED: 'picked', CANCEL: 'cancel' }, ViewId: { DOCS: 'docs' }, DocsView, PickerBuilder } },
+    });
+    let created = false;
+    vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => {
+      const url = new URL(String(input), window.location.origin);
+      if (url.searchParams.get('path') === '/google/picker-token') return Response.json({ access_token: 'picker-token', expires_at: '2099-01-01T00:00:00Z' });
+      if (url.searchParams.get('path') === '/documents/doc-101/draft') {
+        created = true;
+        return Response.json({ detail: 'The selected Google Doc is unavailable.' }, { status: 400 });
+      }
+      throw new Error(`Unexpected request: ${url}`);
+    }));
+    renderWorkspace({ document: { ...document, draft_url: null, permissions: { ...document.permissions, can_create_draft: true } } });
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Files' }));
+    fireEvent.change(screen.getByRole('combobox', { name: 'Draft source' }), { target: { value: 'existing' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Choose Google Doc' }));
+    expect(await screen.findByText('Selected: Expired selection')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Create draft from existing' }));
+    await waitFor(() => expect(created).toBe(true));
+
+    expect(screen.queryByText('Selected: Expired selection')).toBeNull();
+    expect((screen.getByRole('combobox', { name: 'Draft source' }) as HTMLSelectElement).value).toBe('existing');
+    expect((screen.getByRole('button', { name: 'Create draft from existing' }) as HTMLButtonElement).disabled).toBe(true);
+    selection = { id: 'new-file', name: 'New selection' };
+    fireEvent.click(screen.getByRole('button', { name: 'Choose Google Doc' }));
+    expect(await screen.findByText('Selected: New selection')).toBeTruthy();
+    expect((screen.getByRole('button', { name: 'Create draft from existing' }) as HTMLButtonElement).disabled).toBe(false);
   });
 
   it('does not render a backend-provided draft URL outside Google Docs', () => {
@@ -472,7 +585,8 @@ describe('DocumentWorkspace', () => {
     expect(screen.getByRole('link', { name: 'Open current signed PDF' }).getAttribute('href')).toBe(document.signed_copy?.storage_url);
   });
 
-  it('keeps a picked template after a missing-Google-connection error and allows retry', async () => {
+  it.each(['GOOGLE_NOT_CONNECTED', 'GOOGLE_RECONNECT_REQUIRED'])(
+    'keeps a picked template after %s and allows retry', async (reason) => {
     vi.stubEnv('NEXT_PUBLIC_GOOGLE_PICKER_API_KEY', 'browser-key');
     vi.stubEnv('NEXT_PUBLIC_GOOGLE_PICKER_APP_ID', 'cloud-project-number');
     let pickerCallback: (data: unknown) => void = () => undefined;
@@ -503,7 +617,7 @@ describe('DocumentWorkspace', () => {
       if (path === '/google/picker-token') return Response.json({ access_token: 'short-lived-picker-token', expires_at: '2099-01-01T00:00:00Z' });
       if (path === '/documents/doc-101/draft' && init?.method === 'POST') {
         createCount += 1;
-        if (createCount === 1) return Response.json({ detail: 'GOOGLE_NOT_CONNECTED' }, { status: 409 });
+        if (createCount === 1) return Response.json({ message: 'Reconnect Google Drive.', details: { reason } }, { status: 409 });
         return Response.json({ ...document, draft_url: 'https://docs.google.com/document/d/template-draft' }, { status: 201 });
       }
       throw new Error(`Unexpected request: ${url}`);

@@ -78,6 +78,7 @@ type DocumentWorkspaceProps = {
   isChangingReadiness?: boolean;
   onMarkReady?: () => void;
   onReopen?: () => void;
+  onDocumentUpdated?: (document: WorkspaceDocument) => void;
 };
 
 const finalizationConfirmation = 'This will anchor the approved document hash on-chain and finalize the document. This action cannot be undone.';
@@ -97,6 +98,7 @@ export function DocumentWorkspace({
   isChangingReadiness = false,
   onMarkReady,
   onReopen,
+  onDocumentUpdated = () => undefined,
 }: DocumentWorkspaceProps) {
   const [activeTab, setActiveTab] = useState<Tab>('Overview');
   const [searchInput, setSearchInput] = useState('');
@@ -431,7 +433,6 @@ export function DocumentWorkspace({
               {signedCopyMutation.isError && <p role="alert" className="text-sm font-bold text-[#B42318]">{signedCopyMutation.error instanceof Error ? signedCopyMutation.error.message : 'Upload failed.'} Your selected file and {signedCopyMode === 'attach' ? 'filing details' : 'replacement reason'} have been kept. Review the error and retry.</p>}
               <div className="flex flex-wrap gap-2"><button type="submit" disabled={!signedCopyFile || (signedCopyMode === 'replace' && !replacementReason.trim()) || (signedCopyMode === 'attach' && !selectedSignedCopyBook) || signedCopyMutation.isPending} className="rounded-full bg-[#0985E7] px-4 py-2 text-sm font-bold text-white disabled:opacity-50">{signedCopyMutation.isPending ? 'Uploading…' : signedCopyMode === 'replace' ? 'Confirm replacement' : 'Confirm attachment'}</button><button type="button" disabled={signedCopyMutation.isPending} onClick={() => { setSignedCopyMode(null); setSignedCopyFile(null); setReplacementReason(''); setSignedCopyError(null); signedCopyMutation.reset(); }} className="rounded-full border border-[#D7E4F2] px-4 py-2 text-sm font-bold text-[#0C2B49] disabled:opacity-50">Cancel</button></div>
             </form>}
-            <GoogleDraftPanel document={document} />
           </div>
         )}
 
@@ -489,6 +490,10 @@ export function DocumentWorkspace({
             </ol>}
           </div>
         )}
+
+        <div hidden={activeTab !== 'Files'} className="mt-4">
+          <GoogleDraftPanel document={document} onDocumentUpdated={onDocumentUpdated} />
+        </div>
 
       </div>
     </section>
