@@ -1,7 +1,8 @@
 import { portalRequest } from '@/shared/api/client';
 import type { QueryClient } from '@tanstack/react-query';
+import type { ApiSchema } from '@/shared/types';
 
-export type PortalNotification = { id: string; title: string; body: string; is_read: boolean; created_at: string };
+export type PortalNotification = ApiSchema<'NotificationResponse'>;
 export type PortalNotificationList = { notifications: PortalNotification[]; total: number };
 
 export const notificationQueryKeys = {
