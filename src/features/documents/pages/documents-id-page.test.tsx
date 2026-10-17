@@ -241,6 +241,7 @@ describe('document detail screen', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Mark ready for signature' }));
 
     await waitFor(() => expect(state.queryClient.setQueryData).toHaveBeenCalledWith(['portal-doc', 'doc-1'], ready));
+    expect(screen.getAllByText('Document marked ready for signature.')).toHaveLength(1);
     expect(state.queryClient.invalidateQueries).toHaveBeenCalledWith({ queryKey: ['portal-documents'] });
     expect(state.queryClient.invalidateQueries).toHaveBeenCalledWith({ queryKey: ['portal-document-comments', 'doc-1'] });
     expect(state.queryClient.invalidateQueries).toHaveBeenCalledWith({ queryKey: ['portal-document-history', 'doc-1'] });
@@ -256,6 +257,7 @@ describe('document detail screen', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Reopen draft' }));
 
     await waitFor(() => expect(state.queryClient.setQueryData).toHaveBeenCalledWith(['portal-doc', 'doc-1'], reopened));
+    expect(screen.getAllByText('Document reopened for editing.')).toHaveLength(1);
     expect(state.queryClient.invalidateQueries).toHaveBeenCalledWith({ queryKey: ['portal-documents'] });
     expect(state.queryClient.invalidateQueries).toHaveBeenCalledWith({ queryKey: ['portal-document-comments', 'doc-1'] });
     expect(state.queryClient.invalidateQueries).toHaveBeenCalledWith({ queryKey: ['portal-document-history', 'doc-1'] });

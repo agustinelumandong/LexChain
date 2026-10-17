@@ -226,7 +226,6 @@ export default function DocumentDetailPage({ params }: { params: Promise<{ id: s
         onDocumentUpdated={publishUpdatedDocument}
         role={role}
         readinessError={readinessMutation.error instanceof Error ? readinessMutation.error : null}
-        readinessSuccess={readinessMutation.isSuccess ? success : undefined}
         isChangingReadiness={readinessMutation.isPending}
         onMarkReady={() => readinessMutation.mutate('ready')}
         onReopen={() => readinessMutation.mutate('reopen')}
