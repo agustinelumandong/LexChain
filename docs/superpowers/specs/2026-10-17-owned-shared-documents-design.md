@@ -2,7 +2,7 @@
 
 ## Status
 
-Design approved by the product owner on 2026-10-17. This revision clarifies existing dashboard behavior discovered during plan preparation and is pending product-owner review. Implementation is not yet approved.
+Design approved by the product owner on 2026-10-17. This revision clarifies existing dashboard and portal-shell status behavior discovered during plan preparation and is pending product-owner review. Implementation is not yet approved.
 
 ## Problem
 
@@ -33,7 +33,7 @@ The dashboard keeps its current layout and has no second ownership-tab control. 
 
 ### Lifecycle and processing
 
-Lifecycle remains visible regardless of stage. Processing badges and rows are omitted unless lifecycle is `FINALIZED`. This applies to directory cards and rows, the dashboard, document detail, workspace overview, signed-upload result, and upload processing screen. `PREPARING`, `READY_FOR_SIGNATURE`, and `SIGNED` do not display OCR/processing state even if the response contains a status value. On the upload processing screen, a non-finalized record shows its lifecycle and that OCR processing waits for finalization; polling may continue so the screen can transition after finalization.
+Lifecycle remains visible regardless of stage. Processing badges, rows, and counts are omitted unless lifecycle is `FINALIZED`. This applies to directory cards and rows, the dashboard, portal-shell processing count, document detail, workspace overview, signed-upload result, and upload processing screen. `PREPARING`, `READY_FOR_SIGNATURE`, and `SIGNED` do not display OCR/processing state even if the response contains a status value. On the upload processing screen, a non-finalized record shows its lifecycle and that OCR processing waits for finalization; polling may continue so the screen can transition after finalization.
 
 When a finalized document has status `FAILED`, the UI identifies the problem as failed processing while retaining finalized lifecycle context. The upload processing route links to the existing document for inspection and does not offer a reupload or refinalization action. A finalized record still waiting on or completing processing uses its current lifecycle and normal processing state. Existing backend lifecycle actions, lawyer-only entry controls, and client navigation remain governed by their current role and backend contracts. `is_owner` is used only to partition lists; it does not grant or infer document-action permissions.
 
@@ -59,6 +59,7 @@ Focused component tests cover:
 - Tab counts and library summary/distribution/recent items scoped to the active partition.
 - Canonical `AWAITING_REVIEW`, with compatibility aliases tested only if retained.
 - Processing status hidden for `PREPARING`, `READY_FOR_SIGNATURE`, and `SIGNED`, and shown for `FINALIZED`.
+- Portal-shell processing count excludes non-finalized records even when their response has a processing-like status.
 - `FINALIZED` plus `FAILED` wording and recovery link without an upload/refinalize action.
 - Existing lawyer dashboard cards scoped to owned records; the client welcome panel remains unchanged.
 - Existing loading, error, filtered-empty, and empty-partition behavior.
