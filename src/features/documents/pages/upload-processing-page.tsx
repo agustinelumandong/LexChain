@@ -33,13 +33,13 @@ export default function ProcessingPage({
     queryFn: () => fetchDocument(id),
     enabled: !!id,
     refetchInterval: (query) => {
-      if (query.state.data?.lifecycle !== 'FINALIZED') return 2000;
+      if (query.state.data?.lifecycle?.trim().toUpperCase() !== 'FINALIZED') return 2000;
       const currentStatus = query.state.data?.status?.trim().toLowerCase() ?? '';
       return DONE.has(currentStatus) || FAILED.has(currentStatus) || REVIEW_READY.has(currentStatus) ? false : 2000;
     },
   });
 
-  const isFinalized = data?.lifecycle === 'FINALIZED';
+  const isFinalized = data?.lifecycle?.trim().toUpperCase() === 'FINALIZED';
   const status = data?.status?.trim().toLowerCase() ?? 'processing';
   const done = isFinalized && DONE.has(status);
   const reviewReady = isFinalized && REVIEW_READY.has(status);
