@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { createElement, Suspense, useReducer } from 'react';
-import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ApiSchema } from '@/shared/types';
 import DocumentDetailPage from '@/features/documents/pages/documents-id-page';
@@ -14,6 +14,7 @@ const { state } = vi.hoisted(() => ({
     queryKeys: [] as string[][],
     mutations: [] as { options: unknown }[],
     renameDocument: vi.fn(),
+    finalizeDocument: vi.fn(),
     markDocumentReady: vi.fn(),
     reopenDocument: vi.fn(),
     queryClient: { setQueryData: vi.fn(), invalidateQueries: vi.fn() },
@@ -22,7 +23,7 @@ const { state } = vi.hoisted(() => ({
 
 vi.mock('@/features/documents/document-lifecycle-api', () => ({
   renameDocument: state.renameDocument,
-  finalizeDocument: vi.fn(),
+  finalizeDocument: state.finalizeDocument,
   markDocumentReady: state.markDocumentReady,
   reopenDocument: state.reopenDocument,
   cancelDocument: vi.fn(),
@@ -43,9 +44,11 @@ vi.mock('@tanstack/react-query', () => ({
   useMutation: (options: { mutationFn: (...args: unknown[]) => Promise<unknown>; onSuccess?: (result: unknown, ...args: unknown[]) => unknown }) => {
     const [error, setError] = useReducer((_previous: unknown, next: unknown) => next, null);
     const [isSuccess, setSuccess] = useReducer((_previous: boolean, next: boolean) => next, false);
+    const [isPending, setPending] = useReducer((_previous: boolean, next: boolean) => next, false);
     state.mutations.push({ options });
     return {
       mutate: async (...args: unknown[]) => {
+        setPending(true);
         try {
           const result = await options.mutationFn(...args);
           await options.onSuccess?.(result, ...args);
@@ -53,9 +56,11 @@ vi.mock('@tanstack/react-query', () => ({
           setSuccess(true);
         } catch (mutationError) {
           setError(mutationError);
+        } finally {
+          setPending(false);
         }
       },
-      reset: vi.fn(), isPending: false, error, isSuccess,
+      reset: () => setError(null), isPending, error, isSuccess,
     };
   },
 }));
@@ -118,6 +123,7 @@ beforeEach(() => {
   state.commentsQuery = { data: { document_id: 'doc-1', unresolved: 0, synced_at: null, comments: [] }, isLoading: false, isError: false };
   state.queryClient.setQueryData.mockReset();
   state.queryClient.invalidateQueries.mockReset();
+  state.finalizeDocument.mockReset();
   state.markDocumentReady.mockReset();
   state.reopenDocument.mockReset();
   state.mutations = [];
@@ -280,6 +286,69 @@ describe('document detail screen', () => {
 
     expect(await screen.findByRole('button', { name: 'Rename document' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Finalize' })).toBeTruthy();
+  });
+
+  it.each(['Overview', 'Search', 'Files', 'Comments', 'Blockchain', 'Signed copies', 'Access', 'History'])('keeps finalization confirmation visible from the %s tab', async (tab) => {
+    state.documentQuery = { ...state.documentQuery, data: { ...baseDocument, permissions: { ...baseDocument.permissions, can_finalize: true } } };
+    await showPage();
+    fireEvent.click(screen.getByRole('tab', { name: tab }));
+    fireEvent.click(screen.getByRole('button', { name: 'Finalize' }));
+    const dialog = screen.getByRole('dialog', { name: 'Confirm finalization' });
+    expect(within(dialog).getByText('This freezes the signed copy and records its fingerprint on the blockchain. It cannot be undone.')).toBeTruthy();
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(state.finalizeDocument).not.toHaveBeenCalled();
+  });
+
+  it('disables duplicate finalization and cancellation while waiting for the chain', async () => {
+    let finish: ((record: ApiSchema<'RecordResponse'>) => void) | undefined;
+    state.finalizeDocument.mockImplementation(() => new Promise<ApiSchema<'RecordResponse'>>((resolve) => { finish = resolve; }));
+    state.documentQuery = { ...state.documentQuery, data: { ...baseDocument, permissions: { ...baseDocument.permissions, can_finalize: true } } };
+    await showPage();
+    fireEvent.click(screen.getByRole('button', { name: 'Finalize' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm finalization' }));
+    const confirm = screen.getByRole('button', { name: 'Finalizing…' });
+    expect(confirm.hasAttribute('disabled')).toBe(true);
+    expect(screen.getByRole('button', { name: 'Cancel' }).hasAttribute('disabled')).toBe(true);
+    expect(screen.getByText('Waiting for blockchain confirmation…')).toBeTruthy();
+    fireEvent.click(confirm);
+    expect(state.finalizeDocument).toHaveBeenCalledExactlyOnceWith('doc-1');
+    await act(async () => finish?.({ document_id: 'doc-1', onchain_document_id: 'onchain-doc-101', data_hash: 'datahash101', tx_hash: '0xtxhash101' }));
+  });
+
+  it('shows the complete returned record across tabs and keeps processing separate from finalization', async () => {
+    state.finalizeDocument.mockImplementation(async () => {
+      state.documentQuery = { ...state.documentQuery, data: { ...baseDocument, lifecycle: 'FINALIZED', status: 'QUEUED' } };
+      return { document_id: 'doc-1', onchain_document_id: 'onchain-doc-101', data_hash: 'datahash101', tx_hash: '0xtxhash101' };
+    });
+    state.documentQuery = { ...state.documentQuery, data: { ...baseDocument, permissions: { ...baseDocument.permissions, can_finalize: true } } };
+    await showPage();
+    fireEvent.click(screen.getByRole('button', { name: 'Finalize' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm finalization' }));
+    expect(await screen.findByText('Document finalized and anchored on-chain.')).toBeTruthy();
+    expect(screen.getByText('Document lifecycle').nextElementSibling?.textContent).toBe('Finalized');
+    expect(screen.getByText('Processing status').nextElementSibling?.textContent).toBe('Queued');
+    for (const tab of ['Overview', 'Search', 'Files', 'Comments', 'Blockchain', 'Signed copies', 'Access', 'History']) {
+      fireEvent.click(screen.getByRole('tab', { name: tab }));
+      expect(screen.getByText('Document finalized and anchored on-chain.')).toBeTruthy();
+      expect(screen.getByText('Document ID').nextElementSibling?.textContent).toBe('doc-1');
+      expect(screen.getByText('onchain-doc-101')).toBeTruthy();
+      expect(screen.getByText('datahash101')).toBeTruthy();
+      expect(screen.getByText('0xtxhash101')).toBeTruthy();
+    }
+    expect(state.finalizeDocument).toHaveBeenCalledExactlyOnceWith('doc-1');
+  });
+
+  it('keeps an explicit finalization rejection retryable and never claims success', async () => {
+    state.finalizeDocument.mockRejectedValue(new Error('Document cannot be finalized'));
+    state.documentQuery = { ...state.documentQuery, data: { ...baseDocument, permissions: { ...baseDocument.permissions, can_finalize: true } } };
+    await showPage();
+    fireEvent.click(screen.getByRole('button', { name: 'Finalize' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm finalization' }));
+    expect((await screen.findByRole('alert')).textContent).toContain('Document cannot be finalized');
+    expect(screen.getByRole('button', { name: 'Confirm finalization' }).hasAttribute('disabled')).toBe(false);
+    expect(screen.queryByText('Document finalized and anchored on-chain.')).toBeNull();
+    expect(screen.queryByText('datahash101')).toBeNull();
   });
 
   it('offers document cancellation only when permitted and requires confirmation', async () => {

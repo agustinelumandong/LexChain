@@ -67,13 +67,6 @@ function InsightGroup({ title, items }: { title: string; items?: unknown[] | nul
 type DocumentWorkspaceProps = {
   document: WorkspaceDocument;
   role?: PortalUiRole;
-  finalizationResult?: ApiSchema<'RecordResponse'>;
-  confirmingFinalize?: boolean;
-  isFinalizing?: boolean;
-  finalizeError?: string | null;
-  onCancelFinalize?: () => void;
-  onConfirmFinalize?: () => void;
-  success?: string;
   readinessError?: Error | null;
   readinessSuccess?: string;
   isChangingReadiness?: boolean;
@@ -82,18 +75,9 @@ type DocumentWorkspaceProps = {
   onDocumentUpdated?: (document: WorkspaceDocument) => void;
 };
 
-const finalizationConfirmation = 'This will anchor the approved document hash on-chain and finalize the document. This action cannot be undone.';
-
 export function DocumentWorkspace({
   document,
   role = 'user',
-  finalizationResult,
-  confirmingFinalize = false,
-  isFinalizing = false,
-  finalizeError = null,
-  onCancelFinalize,
-  onConfirmFinalize,
-  success,
   readinessError,
   readinessSuccess,
   isChangingReadiness = false,
@@ -301,22 +285,7 @@ export function DocumentWorkspace({
               <InsightGroup title="Entities" items={document.entities} />
               <InsightGroup title="Risk flags" items={document.risk_flags} />
             </div>}
-            {success && <p role="status" className="rounded-xl border border-[#BCE8CC] bg-[#F1FBF5] px-4 py-3 text-sm font-bold text-[#0C7A3B]">{success}</p>}
-            {finalizationResult && <dl className="grid gap-3 rounded-xl bg-[#F8FBFF] p-4 text-sm sm:grid-cols-2"><div><dt className="font-bold text-[#64748b]">Document ID</dt><dd className="mt-1 break-all font-mono text-[#0C2B49]">{finalizationResult.document_id}</dd></div><div><dt className="font-bold text-[#64748b]">On-chain document ID</dt><dd className="mt-1 break-all font-mono text-[#0C2B49]">{finalizationResult.onchain_document_id}</dd></div><div><dt className="font-bold text-[#64748b]">Data hash</dt><dd className="mt-1 break-all font-mono text-[#0C2B49]">{finalizationResult.data_hash}</dd></div><div><dt className="font-bold text-[#64748b]">Transaction hash</dt><dd className="mt-1 break-all font-mono text-[#0C2B49]">{finalizationResult.tx_hash}</dd></div></dl>}
             <p className="text-sm leading-6 text-[#64748b]">Use this workspace to review the original file, derived assistance, and available integrity information.</p>
-            {confirmingFinalize && (
-              <div role="dialog" aria-modal="true" aria-label="Confirm finalization" className="fixed inset-0 z-50 flex items-center justify-center bg-[#0C2B49]/40 p-4">
-                <div className="w-full max-w-md rounded-2xl border border-[#CFE7FC] bg-white p-6 shadow-[0_16px_40px_rgba(12,43,73,0.25)]">
-                  <p className="text-lg font-black text-[#0C2B49]">Finalize this document?</p>
-                  <p className="mt-2 text-sm leading-6 text-[#64748b]">{finalizationConfirmation}</p>
-                  {finalizeError && <p role="alert" className="mt-3 rounded-xl bg-red-50 p-3 text-sm font-bold text-[#B42318]">{finalizeError}</p>}
-                  <div className="mt-5 flex flex-wrap justify-end gap-2">
-                    <button type="button" onClick={onCancelFinalize} disabled={isFinalizing} className="rounded-full border border-[#D6E3F1] px-4 py-2 text-sm font-bold text-[#0C2B49] disabled:opacity-60">Cancel</button>
-                    <button type="button" onClick={onConfirmFinalize} disabled={isFinalizing} className="rounded-full bg-[#0985E7] px-4 py-2 text-sm font-bold text-white disabled:opacity-60">{isFinalizing ? 'Finalizing…' : 'Confirm finalization'}</button>
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
         )}
 
