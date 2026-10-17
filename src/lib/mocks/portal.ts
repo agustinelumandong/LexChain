@@ -16,7 +16,7 @@ export type DemoDocumentSnapshot = {
 };
 
 export type DemoDocumentLifecycle = {
-  lifecycle: 'draft' | 'finalized' | 'restored';
+  lifecycle: 'draft' | 'signed' | 'finalized' | 'restored';
   document_hash: string | null;
   finalized_at: string | null;
   finalized_by: string | null;
@@ -31,7 +31,8 @@ type MockDocument = {
   file_name: string;
   storage_url: string;
   content_type: string;
-  status: string;
+  status: string | null;
+  signed_copy?: ApiSchema<'SignedCopyResponse'> | null;
   on_chain: boolean;
   is_latest: boolean;
   summary: string;
@@ -82,8 +83,8 @@ type MockExtraction = Omit<Pick<ExtractionReview,
   'extraction_id' | 'engine' | 'page_count' | 'confidence_avg' | 'blocks' | 'is_reviewed' | 'reviewed_by' | 'reviewed_at'
 >, 'blocks'> & { blocks: ExtractionBlock[] };
 
-function canFinalizeMockDocument(document: MockDocument, extraction: MockExtraction | undefined) {
-  return document.lifecycle === 'draft' && document.status.toUpperCase() === 'COMPLETED' && extraction?.is_reviewed;
+function canFinalizeMockDocument(document: MockDocument) {
+  return document.lifecycle === 'signed' && document.signed_copy?.is_current === true;
 }
 
 function canRestoreMockDocument(document: MockDocument) {
@@ -157,7 +158,7 @@ let documents: MockDocument[] = [
     file_name: 'Certificate of Employment.pdf',
     storage_url: '/mock-documents/certificate-of-employment.pdf',
     content_type: 'application/pdf',
-    status: 'ready_for_review',
+    status: null,
     on_chain: false,
     is_latest: true,
     summary: 'A sample certificate of employment issued to Jane Doe.',
@@ -167,7 +168,19 @@ let documents: MockDocument[] = [
     created_at: '2026-07-13T13:30:00.000Z',
     updated_at: '2026-07-13T13:30:00.000Z',
     audit_log: [mockCreationAudit('mock-document-2', '2026-07-13T13:30:00.000Z')],
-    lifecycle: 'draft',
+    lifecycle: 'signed',
+    signed_copy: {
+      id: 'mock-signed-copy-2',
+      storage_url: '/mock-documents/certificate-of-employment.pdf',
+      sha256: `mock-signed-pdf:${deterministicHash('mock-document-2')}`,
+      content_type: 'application/pdf',
+      size_bytes: 2048,
+      original_filename: 'Certificate of Employment.pdf',
+      uploaded_by: mockIssuerId,
+      replaced_reason: null,
+      is_current: true,
+      created_at: '2026-07-13T13:30:00.000Z',
+    },
     document_hash: null,
     finalized_at: null,
     finalized_by: null,
@@ -409,7 +422,7 @@ function documentPermissions(document: MockDocument, token?: string) {
     can_replace_signed_copy: false,
     can_correct_entry: false,
     can_cancel: false,
-    can_finalize: issuer && canFinalizeMockDocument(document, extractions[document.id]),
+    can_finalize: issuer && canFinalizeMockDocument(document),
     can_share: false,
     can_revoke: false,
   };
@@ -743,11 +756,11 @@ async function searchDocuments(request: Request, token?: string) {
   const normalized = query.toLowerCase();
   const results = documents
     .filter((document) => canAccessDocument(token, document))
-    .filter((document) => `${document.file_name} ${document.summary} ${document.labels.join(' ')}`.toLowerCase().includes(normalized))
+    .filter((document) => `${document.file_name} ${document.summary} ${document.labels.join(' ')} ${reviewedExtractionText(document.id)}`.toLowerCase().includes(normalized))
     .map((document) => ({
       chunk_id: `mock-search-${document.id}`,
       document_id: document.id,
-      text: document.summary,
+      text: reviewedExtractionText(document.id).toLowerCase().includes(normalized) ? reviewedExtractionText(document.id) : document.summary,
       score: 0.95,
     }));
   return json({ query, results });
@@ -760,11 +773,12 @@ async function searchDocument(id: string, request: Request, token?: string) {
   const query = typeof body?.query === 'string' ? body.query.trim() : '';
   if (!query) return error('Search query is required', 400);
   const normalized = query.toLowerCase();
-  const matches = `${document.file_name} ${document.summary} ${document.labels.join(' ')}`.toLowerCase().includes(normalized);
+  const reviewedText = reviewedExtractionText(document.id);
+  const matches = `${document.file_name} ${document.summary} ${document.labels.join(' ')} ${reviewedText}`.toLowerCase().includes(normalized);
   return json({
     query,
     document_id: document.id,
-    results: matches ? [{ chunk_id: `mock-search-${document.id}`, chunk_index: 0, score: 0.95, text: document.summary }] : [],
+    results: matches ? [{ chunk_id: `mock-search-${document.id}`, chunk_index: 0, score: 0.95, text: reviewedText.toLowerCase().includes(normalized) ? reviewedText : document.summary }] : [],
   });
 }
 
@@ -774,7 +788,16 @@ async function askDocument(id: string, request: Request, token?: string) {
   const body = await jsonBody(request);
   const question = typeof body?.question === 'string' ? body.question.trim() : '';
   if (!question) return error('A question is required', 400);
-  return json({ answer: `Mock answer for ${document.file_name}: ${document.summary}` });
+  const reviewedText = reviewedExtractionText(document.id);
+  return json({ answer: `Mock answer for ${document.file_name}: ${reviewedText || document.summary}` });
+}
+
+function reviewedExtractionText(documentId: string) {
+  const extraction = extractions[documentId];
+  const document = documentFor(documentId);
+  return extraction?.is_reviewed && document?.lifecycle === 'finalized'
+    ? extraction.blocks.map((block) => block.text.trim()).filter(Boolean).join('\n')
+    : '';
 }
 
 async function saveExtractionEdits(documentId: string, request: Request) {
@@ -842,7 +865,7 @@ function approveExtraction(documentId: string) {
     ...extractions,
     [documentId]: { ...extraction, is_reviewed: true, reviewed_by: mockIssuerId, reviewed_at: now },
   };
-  documents = documents.map((document) => document.id === documentId ? {
+  documents = documents.map((document) => document.id === documentId && document.lifecycle === 'finalized' ? {
     ...document,
     status: 'completed',
     updated_at: now,
@@ -1036,16 +1059,15 @@ export async function mockPortalMutate(method: 'POST' | 'PUT' | 'PATCH' | 'DELET
       data_hash: dataHash,
     });
     if (document.lifecycle === 'finalized') return json(recordResponse(document.document_hash ?? deterministicHash(document.id)));
-    const extraction = extractions[document.id];
-    if (!extraction?.is_reviewed) return error('Extraction review must be approved before finalization', 400);
-    if (!canFinalizeMockDocument(document, extraction)) {
+    if (!canFinalizeMockDocument(document) || !document.signed_copy) {
       return error('Document cannot be finalized', 400);
     }
     const now = new Date().toISOString();
-    const documentHash = deterministicHash(extraction.blocks.map((block) => block.text).join('\n'));
+    const documentHash = document.signed_copy.sha256;
     const finalizedDocument: MockDocument = {
       ...document,
       lifecycle: 'finalized',
+      status: 'ready_for_review',
       on_chain: true,
       document_hash: documentHash,
       finalized_at: now,

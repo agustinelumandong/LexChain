@@ -1,8 +1,8 @@
 'use client';
 
-import { use } from 'react';
+import { use, useEffect } from 'react';
 import Link from 'next/link';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ErrorIcon from '@mui/icons-material/Error';
 import type { ApiSchema } from '@/shared/types/index';
@@ -26,6 +26,7 @@ export default function ProcessingPage({
   searchParams: Promise<{ id?: string }>;
 }) {
   const id = use(searchParams).id ?? '';
+  const queryClient = useQueryClient();
 
   const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ['portal-doc-status', id],
@@ -45,6 +46,16 @@ export default function ProcessingPage({
   const lookupError = isError && !!id;
   const failed = (isFinalized && FAILED.has(status)) || !id;
   const normalizedStatus = getDocumentProcessingStatusLabel(data?.lifecycle ?? '', data?.status ?? (failed ? 'FAILED' : 'PROCESSING'));
+  const processingTerminal = isFinalized && (done || reviewReady || FAILED.has(status));
+
+  useEffect(() => {
+    if (!id || !processingTerminal) return;
+    void Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['portal-doc', id] }),
+      queryClient.invalidateQueries({ queryKey: ['portal-documents'] }),
+      queryClient.invalidateQueries({ queryKey: ['portal-search'] }),
+    ]);
+  }, [id, processingTerminal, queryClient]);
 
   return (
     <div className="flex min-h-[60vh] flex-col items-center justify-center gap-6 text-center">
