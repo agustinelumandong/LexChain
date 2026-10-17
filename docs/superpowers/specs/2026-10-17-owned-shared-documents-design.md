@@ -2,7 +2,7 @@
 
 ## Status
 
-Design approved by the product owner on 2026-10-17. This revision clarifies dashboard lifecycle and finalized-failure wording, plus portal-shell status behavior discovered during plan preparation, and is pending product-owner review. Implementation is not yet approved.
+Design and scope clarifications approved by the product owner on 2026-10-17. Implementation remains pending implementation-plan approval.
 
 ## Problem
 
