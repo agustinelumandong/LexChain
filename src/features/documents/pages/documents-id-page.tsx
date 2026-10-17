@@ -18,6 +18,28 @@ import { PortalApiError } from '@/shared/api/portal-error';
 type DocumentResponse = ApiSchema<'DocumentResponse'>;
 type UserProfile = ApiSchema<'UserProfileResponse'>;
 
+const finalizationStatusDocumentSchema = z.object({
+  document_id: z.string(),
+  file_name: z.string(),
+  lifecycle: z.string(),
+  on_chain: z.boolean(),
+  permissions: z.object({
+    can_view: z.boolean(),
+    can_rename: z.boolean(),
+    can_create_draft: z.boolean(),
+    can_mark_ready: z.boolean(),
+    can_reopen: z.boolean(),
+    can_attach_signed_copy: z.boolean(),
+    can_replace_signed_copy: z.boolean(),
+    can_correct_entry: z.boolean(),
+    can_cancel: z.boolean(),
+    can_finalize: z.boolean(),
+    can_share: z.boolean(),
+    can_revoke: z.boolean(),
+  }),
+  created_at: z.string(),
+}).passthrough();
+
 async function getJson<T>(path: string): Promise<T> {
   const response = await portalRequest(`/api/portal/proxy?path=${encodeURIComponent(path)}`);
   return response.json();
@@ -110,7 +132,7 @@ export default function DocumentDetailPage({ params }: { params: Promise<{ id: s
   });
 
   const checkFinalizationMutation = useMutation({
-    mutationFn: () => getJson<DocumentResponse>(`/documents/${id}`),
+    mutationFn: async () => finalizationStatusDocumentSchema.parse(await getJson<unknown>(`/documents/${id}`)),
     retry: false,
     onSuccess: async (updatedDocument) => {
       if (updatedDocument.document_id !== id || updatedDocument.lifecycle !== 'FINALIZED') {

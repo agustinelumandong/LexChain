@@ -505,6 +505,19 @@ describe('document detail screen', () => {
     expect(state.finalizeDocument).not.toHaveBeenCalled();
   });
 
+  it('keeps finalization locked when GET returns an incomplete finalized document', async () => {
+    sessionStorage.setItem('portal-finalize-unknown:doc-1', '1');
+    state.queryClient.setQueryData.mockImplementation(() => {});
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json({ document_id: 'doc-1', lifecycle: 'FINALIZED' })));
+    await showPage();
+    fireEvent.click(screen.getByRole('button', { name: 'Check status' }));
+
+    expect(await screen.findByText(/Unable to check finalization status/)).toBeTruthy();
+    expect(sessionStorage.getItem('portal-finalize-unknown:doc-1')).toBe('1');
+    expect(state.queryClient.setQueryData).not.toHaveBeenCalled();
+    expect(screen.queryByText('Document finalized and anchored on-chain.')).toBeNull();
+  });
+
   it('keeps the returned chain record visible when the detail refresh fails', async () => {
     state.documentQuery = { ...state.documentQuery, data: { ...baseDocument, permissions: { ...baseDocument.permissions, can_finalize: true } } };
     state.finalizeDocument.mockResolvedValue({ document_id: 'doc-1', onchain_document_id: 'onchain-doc-101', data_hash: 'datahash101', tx_hash: '0xtxhash101' });
