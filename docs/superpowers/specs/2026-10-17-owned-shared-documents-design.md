@@ -2,7 +2,7 @@
 
 ## Status
 
-Design approved by the product owner on 2026-10-17. Implementation is not yet approved; this document must be reviewed before an implementation plan is written.
+Design approved by the product owner on 2026-10-17. This revision clarifies existing dashboard behavior discovered during plan preparation and is pending product-owner review. Implementation is not yet approved.
 
 ## Problem
 
@@ -29,7 +29,7 @@ The canonical `AWAITING_REVIEW` processing status is included in Ready for Revie
 
 ### Dashboard
 
-The dashboard keeps its current layout and has no second ownership-tab control. Its recent, attention, and processing document cards use the same role-based default ownership partition as the directory: owned records for lawyers and shared records for clients. Dashboard document summaries must not treat a non-finalized record's status as processing state.
+The dashboard keeps its current layout and has no second ownership-tab control. Existing recent, attention, and processing document cards are lawyer-only; those cards use owned records from `is_owner`. The client's current welcome panel remains unchanged and no shared-document cards are added to it. Dashboard cards must not treat a non-finalized record's status as processing state.
 
 ### Lifecycle and processing
 
@@ -60,7 +60,7 @@ Focused component tests cover:
 - Canonical `AWAITING_REVIEW`, with compatibility aliases tested only if retained.
 - Processing status hidden for `PREPARING`, `READY_FOR_SIGNATURE`, and `SIGNED`, and shown for `FINALIZED`.
 - `FINALIZED` plus `FAILED` wording and recovery link without an upload/refinalize action.
-- Dashboard cards scoped to the role-based default partition.
+- Existing lawyer dashboard cards scoped to owned records; the client welcome panel remains unchanged.
 - Existing loading, error, filtered-empty, and empty-partition behavior.
 
 A deterministic Playwright browser check with backend-shaped fixtures exercises a lawyer and client against mixed ownership and lifecycle/status combinations. It verifies the visible tabs, role defaults, filters, summary scope, lifecycle visibility, processing-status gating, and finalized processing-failure recovery. This is frontend browser evidence, not proof of live backend behavior.
@@ -77,7 +77,7 @@ Run the focused Vitest files, the browser check, and repository typecheck/lint/b
 
 ## Decisions and assumptions
 
-1. Dashboard ownership follows the role-specific default directory tab because the dashboard has no active ownership tab.
+1. Existing lawyer dashboard cards use owned records because the dashboard has no active ownership tab; the client dashboard remains the existing welcome panel.
 2. Library summaries use the active tab's full ownership partition, not only the filtered or paginated results. Tab counts remain unfiltered so the user can see how many records are in each partition.
 3. Document lifecycle is authoritative for whether processing status may be shown; a non-null status alone does not establish that processing has begun.
 4. A finalized `FAILED` processing result is recoverable by viewing the existing record. This frontend does not introduce a processing retry operation absent from the contract.
