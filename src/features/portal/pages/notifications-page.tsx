@@ -1,9 +1,11 @@
 'use client';
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import Link from 'next/link';
 import DoneAllIcon from '@mui/icons-material/DoneAll';
 import NotificationsNoneIcon from '@mui/icons-material/NotificationsNone';
 import { fetchNotifications, invalidateNotificationQueries, markAllNotificationsRead, markNotificationRead, notificationQueryKeys } from '@/features/portal/notifications-api';
+import { getNotificationDestination } from '@/features/portal/notification-destination';
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
@@ -14,6 +16,7 @@ export default function NotificationsPage() {
   const notificationsQuery = useQuery({
     queryKey: notificationQueryKeys.inbox,
     queryFn: fetchNotifications,
+    refetchInterval: 45_000,
   });
 
   const notifications = notificationsQuery.data?.notifications ?? [];
@@ -79,6 +82,10 @@ export default function NotificationsPage() {
         ) : (
           <div className="divide-y divide-[#E8F0F8]">
             {notifications.map((n) => {
+              const destination = getNotificationDestination(n);
+              const destinationProps = destination
+                ? { href: destination.href, ...(destination.external ? { target: '_blank', rel: 'noreferrer' } : {}) }
+                : undefined;
               const content = <>
                 <div aria-hidden="true" className={`mt-2 h-2 w-2 shrink-0 rounded-full ${n.is_read ? 'bg-[#CBD5E1]' : 'bg-[#0985E7]'}`} />
                 <div className="flex-1 min-w-0">
@@ -91,7 +98,11 @@ export default function NotificationsPage() {
                 </div>
               </>;
 
-              return n.is_read ? (
+              return destinationProps ? (
+                <Link key={n.id} {...destinationProps} onClick={() => { if (!n.is_read) markOneMutation.mutate(n.id); }} className={`flex items-start gap-3 border-l-[3px] px-5 py-5 text-left transition hover:bg-[#EEF6FF] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-[#0985E7] sm:px-6 ${n.is_read ? 'border-transparent' : 'border-l-[#0985E7] bg-[#F5FAFF]'}`}>
+                  {content}
+                </Link>
+              ) : n.is_read ? (
                 <article key={n.id} className="flex items-start gap-3 border-l-[3px] border-transparent px-5 py-5 sm:px-6">
                   {content}
                 </article>

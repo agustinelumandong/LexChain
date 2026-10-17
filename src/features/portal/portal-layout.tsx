@@ -14,7 +14,7 @@ import { getFinalizedProcessingDocuments, getPortalNavigation } from "@/features
 import { getPortalNavigationIcon, isPortalRouteActive, usePortalRole } from "@/features/access/components";
 import { PortalBottomNav } from "@/features/portal/components/portal-bottom-nav";
 import { PortalTopBar } from "@/features/portal/components/portal-topbar";
-import { fetchNotifications, fetchUnreadNotificationCount, invalidateNotificationQueries, markAllNotificationsRead, notificationQueryKeys } from "@/features/portal/notifications-api";
+import { fetchNotifications, fetchUnreadNotificationCount, invalidateNotificationQueries, markNotificationRead, notificationQueryKeys } from "@/features/portal/notifications-api";
 import { portalRequest } from '@/shared/api/client';
 
 type PortalDocument = { lifecycle: string; status?: string | null };
@@ -36,14 +36,16 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
     queryKey: notificationQueryKeys.unreadCount,
     queryFn: fetchUnreadNotificationCount,
     enabled: isSupportedPortalUiRole(uiRole),
+    refetchInterval: 45_000,
   });
   const notificationsQuery = useQuery({
     queryKey: notificationQueryKeys.shell,
     queryFn: fetchNotifications,
     enabled: isSupportedPortalUiRole(uiRole),
+    refetchInterval: 45_000,
   });
-  const markAllMutation = useMutation({
-    mutationFn: markAllNotificationsRead,
+  const markNotificationMutation = useMutation({
+    mutationFn: markNotificationRead,
     onSuccess: () => invalidateNotificationQueries(queryClient),
   });
   const roleLabel = getPortalRoleLabel(uiRole);
@@ -166,10 +168,10 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
             notifications={notificationsQuery.data?.notifications}
             notificationsLoading={notificationsQuery.isLoading}
             notificationsError={notificationsQuery.isError ? notificationsQuery.error.message : undefined}
-            markAllError={markAllMutation.isError ? markAllMutation.error.message : undefined}
-            markAllPending={markAllMutation.isPending}
+            markNotificationError={markNotificationMutation.isError ? markNotificationMutation.error.message : undefined}
+            markNotificationPending={markNotificationMutation.isPending}
             onRetryNotifications={() => { void Promise.all([notificationsQuery.refetch(), unreadCountQuery.refetch()]); }}
-            onMarkAllRead={() => markAllMutation.mutate()}
+            onMarkNotificationRead={(id) => markNotificationMutation.mutate(id)}
             onSignOut={handleLogout}
           />
           {children}
