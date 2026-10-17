@@ -129,6 +129,27 @@ describe('signed document upload screen', () => {
     expect(new URLSearchParams(uploadPath.split('?')[1]).get('page_no')).toBe('4');
   });
 
+  it('keeps number errors in the summary when manual-number controls are hidden', async () => {
+    setupFetch([Response.json({
+      message: 'Filing failed.',
+      details: { errors: [{ field: 'doc_no', message: 'Document number is unavailable.' }] },
+    }, { status: 422 })], [{ id: 'open-book', book_number: 5, series_year: 2026, status: 'OPEN' }]);
+    renderPage();
+    await screen.findByRole('button', { name: 'Register book' });
+    await waitFor(() => expect((screen.getByRole('button', { name: 'Register book' }) as HTMLButtonElement).disabled).toBe(false));
+    fireEvent.click(screen.getByRole('button', { name: 'Register book' }));
+    fireEvent.click(await screen.findByRole('option', { name: /Register book 5/ }));
+    fireEvent.change(screen.getByLabelText('Document title'), { target: { value: 'Signed deed' } });
+    fireEvent.change(document.querySelector('input[type="file"]')!, {
+      target: { files: [new File(['signed pdf'], 'Signed deed.pdf', { type: 'application/pdf' })] },
+    });
+    await screen.findByText(/Signed deed\.pdf/);
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm and file' }));
+
+    expect(await screen.findByText('doc_no: Document number is unavailable.')).toBeTruthy();
+    expect(document.getElementById('upload-doc-no')).toBeNull();
+  });
+
   it('retries the same closed-book upload only after the documented confirmation', async () => {
     const fetchMock = setupFetch([
       Response.json({ detail: 'READY_FOR_SIGNATURE_EXISTS' }, { status: 409 }),
@@ -151,16 +172,32 @@ describe('signed document upload screen', () => {
   });
 
   it('keeps selections when the user cancels the confirmation', async () => {
-    setupFetch([Response.json({ detail: 'READY_FOR_SIGNATURE_EXISTS' }, { status: 409 })]);
+    const duplicateKeyWarnings: unknown[] = [];
+    const consoleError = vi.spyOn(console, 'error').mockImplementation((message) => {
+      if (typeof message === 'string' && message.includes('same key')) duplicateKeyWarnings.push(message);
+    });
+    setupFetch([Response.json({
+      message: 'A signed copy is expected.',
+      details: {
+        reason: 'READY_FOR_SIGNATURE_EXISTS',
+        errors: [
+          { field: 'file_name', message: 'Please review this upload.' },
+          { field: 'file_name', message: 'Please review this upload.' },
+        ],
+      },
+    }, { status: 409 })]);
     renderPage();
     await fillClosedBookUpload();
     fireEvent.click(screen.getByRole('button', { name: 'Confirm and file' }));
     await screen.findByRole('button', { name: 'No, this is a new document' });
-    expect((screen.getByLabelText('Document title') as HTMLInputElement).disabled).toBe(true);
+    expect(screen.getAllByText('file_name: Please review this upload.')).toHaveLength(2);
+    expect(duplicateKeyWarnings).toEqual([]);
+    consoleError.mockRestore();
+    expect((document.getElementById('upload-title') as HTMLInputElement).disabled).toBe(true);
     fireEvent.click(await screen.findByRole('button', { name: 'Return without submitting' }));
 
-    expect(screen.getByLabelText('Document title')).toHaveProperty('value', 'Signed deed');
-    await waitFor(() => expect((screen.getByLabelText('Document title') as HTMLInputElement).disabled).toBe(false));
+    expect(document.getElementById('upload-title')).toHaveProperty('value', 'Signed deed');
+    await waitFor(() => expect((document.getElementById('upload-title') as HTMLInputElement).disabled).toBe(false));
     expect(screen.getByLabelText('Paper document number')).toHaveProperty('value', '12');
     expect(screen.getByLabelText('Paper page number')).toHaveProperty('value', '3');
     expect(screen.getByText(/Signed deed\.pdf/)).toBeTruthy();
@@ -261,19 +298,64 @@ describe('signed document upload screen', () => {
   });
 
   it('links duplicate uploads to the returned document and displays validation details', async () => {
+    const duplicateKeyWarnings: unknown[] = [];
+    const consoleError = vi.spyOn(console, 'error').mockImplementation((message) => {
+      if (typeof message === 'string' && message.includes('same key')) duplicateKeyWarnings.push(message);
+    });
     setupFetch([Response.json({
       message: 'This file is already filed.',
-      details: { reason: 'DUPLICATE_FILE', document_id: 'duplicate-doc', errors: [{ field: 'doc_no', message: 'Document number is already used.' }] },
+      details: { reason: 'DUPLICATE_FILE', document_id: 'duplicate-doc', errors: [
+        { field: 'doc_no', message: 'Document number is already used.' },
+        { field: 'doc_no', message: 'Use a positive number.' },
+        { field: 'doc_no', message: 'Use a positive number.' },
+        { field: 'unknown_column', message: 'This field is not available in the form.' },
+        { message: 'The backend returned an unassociated validation message.' },
+        null,
+        42,
+      ] },
     }, { status: 409 })]);
     renderPage();
     await fillClosedBookUpload();
     fireEvent.click(screen.getByRole('button', { name: 'Confirm and file' }));
 
     expect((await screen.findByRole('alert')).textContent).toContain('This file is already filed.');
-    expect(screen.getByText('doc_no: Document number is already used.')).toBeTruthy();
+    expect(screen.getByText('Document number is already used.')).toBeTruthy();
+    expect(screen.getAllByText('Use a positive number.')).toHaveLength(2);
+    expect(screen.getByText('unknown_column: This field is not available in the form.')).toBeTruthy();
+    expect(screen.getByText('The backend returned an unassociated validation message.')).toBeTruthy();
+    expect(screen.getAllByText('The backend returned an unreadable validation error.')).toHaveLength(2);
+    expect(duplicateKeyWarnings).toEqual([]);
+    consoleError.mockRestore();
+    expect(document.getElementById('upload-doc-no')!.getAttribute('aria-invalid')).toBe('true');
+    expect(document.getElementById('upload-doc-no')!.getAttribute('aria-describedby')).toBe('upload-doc-no-error');
+    expect(document.querySelectorAll('#upload-doc-no-error')).toHaveLength(1);
     expect(screen.getByRole('link', { name: 'View existing document' }).getAttribute('href')).toBe('/portal/documents/duplicate-doc');
     expect(screen.queryByRole('button', { name: 'No, this is a new document' })).toBeNull();
-    expect(screen.getByLabelText('Paper document number')).toHaveProperty('value', '12');
+    expect(document.getElementById('upload-doc-no')).toHaveProperty('value', '12');
     expect(screen.getByText(/Signed deed\.pdf/)).toBeTruthy();
+  });
+
+  it('shows attachment validation while retaining initial upload recovery details', async () => {
+    const conflict = {
+      message: 'A signed copy is expected.',
+      details: {
+        reason: 'READY_FOR_SIGNATURE_EXISTS',
+        related_documents: [{ document_id: 'waiting-doc', file_name: 'Prepared deed' }],
+        errors: [{ field: 'initial_field', message: 'Initial upload validation.' }],
+      },
+    };
+    setupFetch(
+      [Response.json(conflict, { status: 409 })],
+      [{ id: 'closed-book', book_number: 4, series_year: 2026, status: 'CLOSED' }],
+      [Response.json({ message: 'Attachment rejected.', details: { errors: [{ field: 'attachment_field', message: 'Attachment validation.' }] } }, { status: 422 })],
+    );
+    renderPage();
+    await fillClosedBookUpload();
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm and file' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Attach signed PDF to Prepared deed' }));
+
+    expect(await screen.findByText('attachment_field: Attachment validation.')).toBeTruthy();
+    expect(screen.getByRole('group', { name: 'Upload recovery' }).textContent).toContain('initial_field: Initial upload validation.');
+    expect(screen.queryByText('initial_field: Initial upload validation.', { selector: '[role="alert"] p' })).toBeNull();
   });
 });

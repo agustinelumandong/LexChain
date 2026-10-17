@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import type { components } from "@/shared/types/index";
-import { portalFetch } from "@/shared/api/client";
+import { portalFetch, portalRequest } from "@/shared/api/client";
 import { canAccessPortalFeature } from "@/features/access/portal-access";
 import { getPortalUiRole } from "@/features/access/portal-role";
 
@@ -19,11 +19,10 @@ function formatDate(value: string) {
 
 async function updateInvitation(invitationId: string, action: "accept" | "decline") {
   const path = `/documents/invitations/${invitationId}/${action}`;
-  const response = await fetch(`/api/portal/proxy-post?path=${encodeURIComponent(path)}`, {
+  await portalRequest(`/api/portal/proxy-post?path=${encodeURIComponent(path)}`, {
     method: "POST",
     credentials: "same-origin",
   });
-  if (!response.ok) throw new Error(`Unable to ${action} invitation`);
 }
 
 export default function InvitationsPage() {
@@ -48,8 +47,8 @@ export default function InvitationsPage() {
       await updateInvitation(invitation.invitation_id, action);
       await queryClient.invalidateQueries({ queryKey: ["portal-invitations"] });
       if (action === "accept") router.replace(`/portal/documents/${invitation.document_id}`);
-    } catch {
-      setActionError(`Unable to ${action} this invitation. Please try again.`);
+    } catch (reason) {
+      setActionError(reason instanceof Error ? reason.message : `Unable to ${action} this invitation. Please try again.`);
     } finally {
       setBusyId(null);
     }
@@ -66,7 +65,7 @@ export default function InvitationsPage() {
         <p className="mt-1 text-sm font-semibold text-[#64748b]">Accept or decline document access invitations.</p>
       </div>
       {isLoading ? <p className="text-sm font-semibold text-[#64748b]">Loading invitations…</p> : null}
-      {error ? <p className="rounded-xl bg-red-50 p-4 text-sm font-semibold text-red-700">Unable to load invitations. Please try again.</p> : null}
+      {error ? <p className="rounded-xl bg-red-50 p-4 text-sm font-semibold text-red-700" role="alert">{error.message}</p> : null}
       {actionError ? <p role="alert" className="rounded-xl bg-red-50 p-4 text-sm font-semibold text-red-700">{actionError}</p> : null}
       {!isLoading && !error && invitations.length === 0 ? <div className="rounded-[18px] border border-[#E8F0F8] bg-white p-8 text-center text-sm font-bold text-[#0C2B49]">No pending invitations</div> : null}
       {invitations.map((invitation) => {

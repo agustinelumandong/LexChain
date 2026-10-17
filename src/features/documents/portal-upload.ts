@@ -1,3 +1,5 @@
+import { portalRequest } from '@/shared/api/client';
+import { PortalApiError, parsePortalApiError } from '@/shared/api/portal-error';
 import type { ApiSchema } from '@/shared/types/index';
 
 type UploadedDocument = ApiSchema<'DocumentResponse'>;
@@ -10,34 +12,26 @@ export type RelatedWaitingDocument = {
   parties: Array<{ name: string; email?: string; role?: string }>;
 };
 
-export class UploadRequestError extends Error {
-  readonly status: number;
+export class UploadRequestError extends PortalApiError {
   readonly reason?: string;
-  readonly details?: Record<string, unknown>;
   readonly relatedDocuments: RelatedWaitingDocument[];
   readonly validationErrors: UploadValidationError[];
   readonly documentId?: string;
   readonly requiresConfirmation: boolean;
 
   constructor(body: unknown, status: number) {
+    const parsedError = parsePortalApiError(body, status);
     const envelope = isRecord(body) ? body : {};
-    const details = isRecord(envelope.details) ? envelope.details : undefined;
+    const details = isRecord(parsedError.details) ? parsedError.details : undefined;
     const legacyDetail = typeof envelope.detail === 'string' ? envelope.detail : undefined;
     const detailObject = isRecord(envelope.detail) ? envelope.detail : {};
     const reason = getString(details?.reason)
       ?? getString(detailObject.reason)
       ?? getString(envelope.code)
       ?? (legacyDetail === 'READY_FOR_SIGNATURE_EXISTS' ? legacyDetail : undefined);
-    const message = getString(envelope.message)
-      ?? getString(detailObject.message)
-      ?? legacyDetail
-      ?? 'Upload failed';
-
-    super(message);
+    super(parsedError.message, parsedError.status, parsedError.details, body);
     this.name = 'UploadRequestError';
-    this.status = status;
     this.reason = reason;
-    this.details = details;
     this.relatedDocuments = getRelatedWaitingDocuments(details?.related_documents);
     this.validationErrors = getUploadValidationErrors(details?.errors ?? details?.validation_errors ?? envelope.detail);
     this.documentId = getString(details?.document_id);
@@ -81,12 +75,12 @@ function getUploadValidationErrors(value: unknown): UploadValidationError[] {
     ? value
     : isRecord(value) ? Object.entries(value).flatMap(([field, messages]) => (Array.isArray(messages) ? messages : [messages]).map((message) => ({ field, message }))) : [];
   return entries.flatMap((entry) => {
-    if (typeof entry === 'string') return [{ message: entry }];
-    if (!isRecord(entry)) return [];
+    if (typeof entry === 'string') return [{ message: getString(entry) ?? 'The backend returned an unreadable validation error.' }];
+    if (!isRecord(entry)) return [{ message: 'The backend returned an unreadable validation error.' }];
     const location = Array.isArray(entry.loc) ? entry.loc.filter((part) => typeof part === 'string').join('.') : undefined;
     const field = getString(entry.field) ?? getString(entry.path) ?? location;
     const message = getString(entry.message) ?? getString(entry.msg) ?? getString(entry.detail);
-    return message ? [{ field, message }] : [];
+    return [{ field, message: message ?? 'The backend returned an unreadable validation error.' }];
   });
 }
 
@@ -147,15 +141,15 @@ export async function uploadDocument({ file, title, bookId, paperRegister, confi
   }
   if (confirmNewRecord) query.set('confirm_new_record', 'true');
 
-  const res = await fetch(
-    `/api/portal/proxy-post?path=${encodeURIComponent(`/documents/upload?${query.toString()}`)}`,
-    { method: 'POST', body: form, credentials: 'same-origin' },
-  );
-
-  if (!res.ok) {
-    const body: unknown = await res.json().catch(() => ({}));
-    throw new UploadRequestError(body, res.status);
+  let response: Response;
+  try {
+    response = await portalRequest(
+      `/api/portal/proxy-post?path=${encodeURIComponent(`/documents/upload?${query.toString()}`)}`,
+      { method: 'POST', body: form, credentials: 'same-origin' },
+    );
+  } catch (error) {
+    if (error instanceof PortalApiError) throw new UploadRequestError(error.body, error.status);
+    throw error;
   }
-
-  return res.json();
+  return response.json();
 }

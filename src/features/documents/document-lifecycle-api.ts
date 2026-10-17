@@ -1,17 +1,17 @@
+import { portalRequest } from '@/shared/api/client';
+import { PortalApiError } from '@/shared/api/portal-error';
 import type { ApiSchema } from '@/shared/types/index';
 import { UploadRequestError } from '@/features/documents/portal-upload';
 import { isGoogleDraftUrl } from '@/features/documents/document-draft-api';
 
-export class LifecycleRequestError extends Error {
-  readonly status: number;
+export class LifecycleRequestError extends PortalApiError {
   readonly reason?: string;
   readonly unresolved?: number;
   readonly draftUrl?: string;
 
-  constructor(message: string, status: number, details: unknown) {
-    super(message);
+  constructor(message: string, status: number, details: unknown, body?: unknown) {
+    super(message, status, details, body);
     this.name = 'LifecycleRequestError';
-    this.status = status;
 
     if (typeof details !== 'object' || details === null) return;
     const metadata = details as Record<string, unknown>;
@@ -32,22 +32,20 @@ function required(value: string, message: string): string {
 
 async function lifecycleFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const proxy = init?.method ? '/api/portal/proxy-post' : '/api/portal/proxy';
-  const response = await fetch(`${proxy}?path=${encodeURIComponent(path)}`, {
-    credentials: 'same-origin',
-    cache: 'no-store',
-    ...init,
-  });
-
-  if (!response.ok) {
-    const error: unknown = await response.json().catch(() => ({}));
-    if (init?.method === 'POST' && path.includes('/signed-copy')) throw new UploadRequestError(error, response.status);
-    const body = typeof error === 'object' && error !== null ? error : {};
-    const detail = 'detail' in body && typeof body.detail === 'string' ? body.detail : undefined;
-    const message = 'message' in body && typeof body.message === 'string' ? body.message : undefined;
-    const details = 'details' in body ? body.details : undefined;
-    throw new LifecycleRequestError(detail ?? message ?? `API error: ${response.status}`, response.status, details);
+  let response: Response;
+  try {
+    response = await portalRequest(`${proxy}?path=${encodeURIComponent(path)}`, {
+      credentials: 'same-origin',
+      cache: 'no-store',
+      ...init,
+    });
+  } catch (error) {
+    if (error instanceof PortalApiError) {
+      if (init?.method === 'POST' && path.includes('/signed-copy')) throw new UploadRequestError(error.body, error.status);
+      throw new LifecycleRequestError(error.message, error.status, error.details, error.body);
+    }
+    throw error;
   }
-
   return response.json() as Promise<T>;
 }
 

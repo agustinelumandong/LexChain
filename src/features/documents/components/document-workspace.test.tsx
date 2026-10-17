@@ -261,7 +261,7 @@ describe('DocumentWorkspace', () => {
     fireEvent.change(screen.getByRole('searchbox', { name: 'Search this document' }), { target: { value: 'lease' } });
     fireEvent.submit(screen.getByRole('button', { name: 'Search document' }).closest('form')!);
 
-    expect((await screen.findByRole('alert')).textContent).toBe('Search failed. Please try again.');
+    expect((await screen.findByRole('alert')).textContent).toBe('Unavailable');
   });
 
   it('shows supported signed-copy history separately from document versions', async () => {

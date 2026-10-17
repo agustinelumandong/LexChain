@@ -43,7 +43,7 @@ describe('PortalSearchBar', () => {
     expect(await screen.findByText('No results found')).toBeTruthy();
 
     fireEvent.change(input, { target: { value: 'offline' } });
-    await waitFor(() => expect(screen.getByRole('alert').textContent).toContain('Search failed'));
+    await waitFor(() => expect(screen.getByRole('alert').textContent).toBe('offline'));
     expect(screen.queryByText('No results found')).toBeNull();
   });
 });

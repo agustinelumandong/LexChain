@@ -14,6 +14,8 @@ import { MetricCard } from '@/features/portal/components/portal-metric-card';
 import { getDocumentStatusLabel } from "@/features/documents";
 import { dashboardResponseSchema, type DashboardResponse } from '@/features/admin';
 import { usePortalRole } from "@/features/access/components";
+import { portalRequest } from '@/shared/api/client';
+import { PortalApiError } from '@/shared/api/portal-error';
 
 interface Document {
   id: string;
@@ -24,8 +26,7 @@ interface Document {
 }
 
 async function fetchJson<T>(path: string): Promise<T> {
-  const response = await fetch(`/api/portal/proxy?path=${encodeURIComponent(path)}`, { credentials: 'same-origin' });
-  if (!response.ok) throw new Error('Unable to load documents');
+  const response = await portalRequest(`/api/portal/proxy?path=${encodeURIComponent(path)}`);
   return response.json();
 }
 
@@ -148,7 +149,7 @@ export default function DashboardPage() {
 
       {documentsQuery.isError && (
         <div role="alert" className={`${cardClass} flex flex-wrap items-center justify-between gap-3 p-5`}>
-          <div><p className="text-sm font-bold text-[#0C2B49]">We could not load your document repository.</p><p className="mt-1 text-xs text-[#64748b]">Retry loading it, or open Documents to continue your work.</p></div>
+          <div><p className="text-sm font-bold text-[#0C2B49]">{documentsQuery.error instanceof PortalApiError ? documentsQuery.error.message : 'We could not load your document repository.'}</p><p className="mt-1 text-xs text-[#64748b]">Retry loading it, or open Documents to continue your work.</p></div>
           <div className="flex items-center gap-2"><button type="button" onClick={() => void documentsQuery.refetch()} className="rounded-full border border-[#D7E4F2] px-4 py-2 text-sm font-black text-[#0985E7]">Retry</button><Link href="/portal/documents" className="rounded-full bg-[#0985E7] px-4 py-2 text-sm font-black text-white">View Documents</Link></div>
         </div>
       )}

@@ -1,3 +1,5 @@
+import { PortalApiError } from '@/shared/api/portal-error';
+
 export const documentParticipantPermissions = ["viewer", "signer", "editor"] as const;
 
 export type DocumentParticipantPermission = (typeof documentParticipantPermissions)[number];
@@ -26,5 +28,6 @@ export function validateParticipantInvitation(
 }
 
 export function isParticipantAccessCapabilityError(reason: unknown): boolean {
+  if (reason instanceof PortalApiError) return reason.status === 403;
   return reason instanceof Error && /\b403\b|forbidden|not permitted|capability/i.test(reason.message);
 }

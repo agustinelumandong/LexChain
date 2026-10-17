@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { searchUserByEmail } from '@/features/access/portal-access-api';
+import { inviteDocumentParty, listDocumentAuditLogs, listDocumentParties, revokeDocumentParty, searchUserByEmail } from '@/features/access/portal-access-api';
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -21,5 +21,31 @@ describe('searchUserByEmail', () => {
 
     await expect(searchUserByEmail('missing@example.com')).resolves.toBeNull();
     await expect(searchUserByEmail('person@example.com')).rejects.toThrow('API error: 429');
+  });
+});
+
+
+describe('access request failures', () => {
+  it.each([
+    () => listDocumentParties('doc-1'),
+    () => inviteDocumentParty('doc-1', { email: 'person@example.com', role: 'viewer' }),
+    () => revokeDocumentParty('doc-1', 'user-1'),
+    () => listDocumentAuditLogs('doc-1'),
+    () => searchUserByEmail('person@example.com'),
+  ])('preserves backend feedback and status', async (request) => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json({ message: 'Access rejected', details: { reason: 'DENIED', errors: [{ field: 'email', message: 'Account unavailable' }] } }, { status: 403 })));
+    await expect(request()).rejects.toMatchObject({ name: 'PortalApiError', status: 403, message: 'Access rejected', details: { reason: 'DENIED', errors: [{ field: 'email', message: 'Account unavailable' }] } });
+  });
+
+  it('recovers an unauthorized search through logout and sign-in', async () => {
+    vi.resetModules();
+    const replace = vi.fn();
+    vi.stubGlobal('window', { location: { replace } });
+    const fetchMock = vi.fn().mockImplementation((url: string) => Promise.resolve(url === '/api/portal/logout' ? new Response(null, { status: 204 }) : Response.json({ message: 'Session rejected' }, { status: 401 })));
+    vi.stubGlobal('fetch', fetchMock);
+    const { searchUserByEmail } = await import('./portal-access-api');
+    await expect(searchUserByEmail('person@example.com')).rejects.toMatchObject({ status: 401, message: 'Session rejected' });
+    expect(fetchMock).toHaveBeenCalledWith('/api/portal/logout', { method: 'POST', credentials: 'same-origin' });
+    expect(replace).toHaveBeenCalledExactlyOnceWith('/login');
   });
 });

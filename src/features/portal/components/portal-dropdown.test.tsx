@@ -11,6 +11,12 @@ const options = [
 afterEach(cleanup);
 
 describe('PortalDropdown', () => {
+  it('associates its trigger with described error text', () => {
+    render(<PortalDropdown ariaLabel="Register book" options={options} value="document" onChange={vi.fn()} ariaDescribedBy="book-error" />);
+
+    expect(screen.getByRole('button', { name: 'Register book' }).getAttribute('aria-describedby')).toBe('book-error');
+  });
+
   it('selects an option, closes, and returns focus to its trigger', () => {
     const onChange = vi.fn();
     render(<PortalDropdown ariaLabel="Report scope" options={options} value="document" onChange={onChange} />);

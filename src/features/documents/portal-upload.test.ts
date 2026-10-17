@@ -1,14 +1,47 @@
+import { PortalApiError, parsePortalApiError } from '@/shared/api/portal-error';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   MAX_SIGNED_PDF_BYTES,
+  UploadRequestError,
   getRequiredUploadMetadataError,
   getRegisterEntryError,
   getUploadFileError,
   uploadDocument,
 } from '@/features/documents/portal-upload';
 
+afterEach(() => vi.unstubAllGlobals());
+
 describe('portal document upload', () => {
-  afterEach(() => vi.unstubAllGlobals());
+
+  it('uses the shared error contract for empty upload failures', () => {
+    const error = new UploadRequestError(null, 503);
+    expect(error).toBeInstanceOf(PortalApiError);
+    expect(error).toMatchObject({ message: 'API error: 503', status: 503, details: undefined, relatedDocuments: [], validationErrors: [] });
+  });
+
+  it('reconstructs legacy upload recovery from the shared error body', () => {
+    const sharedError = parsePortalApiError({ code: 'DUPLICATE_FILE', detail: [{ loc: ['body', 'title'], msg: 'Required' }] }, 409);
+    const error = new UploadRequestError(sharedError.body, sharedError.status);
+    expect(error).toMatchObject({ reason: 'DUPLICATE_FILE', status: 409, validationErrors: [{ field: 'body.title', message: 'Required' }] });
+  });
+
+  it('keeps malformed validation entries readable in the form summary', () => {
+    const error = new UploadRequestError({
+      message: 'Invalid upload.',
+      details: { errors: [null, { field: 'doc_no' }, { field: 'page_no', message: '' }] },
+    }, 422);
+
+    expect(error.validationErrors).toEqual([
+      { message: 'The backend returned an unreadable validation error.' },
+      { field: 'doc_no', message: 'The backend returned an unreadable validation error.' },
+      { field: 'page_no', message: 'The backend returned an unreadable validation error.' },
+    ]);
+  });
+
+  it('preserves legacy upload conflict recovery', () => {
+    const error = new UploadRequestError({ detail: { message: 'Awaiting signed copy', reason: 'READY_FOR_SIGNATURE_EXISTS' } }, 409);
+    expect(error).toMatchObject({ message: 'Awaiting signed copy', reason: 'READY_FOR_SIGNATURE_EXISTS', requiresConfirmation: true });
+  });
 
   it('sends the selected book and title through the same-origin proxy', async () => {
     const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ document_id: 'doc-1', status: 'QUEUED', message: 'Accepted' }), { status: 202 }));
@@ -143,5 +176,14 @@ describe('portal document upload', () => {
 
     expect(error).toHaveProperty('message', duplicate.message);
     expect(error).toMatchObject({ status: 409, reason: 'DUPLICATE_FILE', documentId: 'existing-doc', details: duplicate.details, validationErrors: [] });
+  });
+});
+
+it('retains legacy top-level upload fields through a failed request', async () => {
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json({
+    code: 'DUPLICATE_FILE', detail: [{ loc: ['body', 'title'], msg: 'Required' }],
+  }, { status: 409 })));
+  await expect(uploadDocument({ file: new File(['PDF'], 'record.pdf'), title: 'Deed', bookId: 'book-1' })).rejects.toMatchObject({
+    name: 'UploadRequestError', status: 409, reason: 'DUPLICATE_FILE', validationErrors: [{ field: 'body.title', message: 'Required' }],
   });
 });

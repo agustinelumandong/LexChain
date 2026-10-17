@@ -129,10 +129,10 @@ describe('ReviewPage', () => {
   });
 
   it('shows profile failures without requesting extraction review', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json({}, { status: 500 })));
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json({ message: 'Review access is unavailable.' }, { status: 500 })));
     renderPage();
 
-    expect((await screen.findByRole('alert')).textContent).toContain('Unable to load your review access.');
+    expect((await screen.findByRole('alert')).textContent).toContain('Review access is unavailable.');
     expect(extractionMocks.get).not.toHaveBeenCalled();
   });
 

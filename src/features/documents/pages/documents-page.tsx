@@ -31,6 +31,8 @@ import {
   type DocumentListFilters,
 } from '@/features/documents/document-library';
 import type { ApiSchema } from '@/shared/types/index';
+import { portalRequest } from '@/shared/api/client';
+import { PortalApiError } from '@/shared/api/portal-error';
 
 type Document = DocumentListItem;
 
@@ -59,8 +61,7 @@ function getDatePickerLocaleText(label: string) {
 type UserProfile = ApiSchema<'UserProfileResponse'>;
 
 async function fetchDocuments(): Promise<Document[]> {
-  const res = await fetch('/api/portal/proxy?path=%2Fdocuments%2F', { credentials: 'same-origin' });
-  if (!res.ok) throw Object.assign(new Error('Failed to fetch documents'), { status: res.status });
+  const res = await portalRequest('/api/portal/proxy?path=%2Fdocuments%2F');
   return res.json();
 }
 
@@ -70,7 +71,7 @@ function documentsErrorMessage(error: unknown) {
     : undefined;
   return status === 401 || status === 403
     ? 'You do not have permission to view these documents.'
-    : 'Unable to load documents.';
+    : error instanceof PortalApiError ? error.message : 'Unable to load documents.';
 }
 
 function cn(...classes: Array<string | false | undefined>) {
@@ -193,8 +194,7 @@ export default function DocumentsPage() {
   const profileQuery = useQuery<UserProfile | null>({
     queryKey: ['portal-profile'],
     queryFn: async () => {
-      const response = await fetch('/api/portal/proxy?path=%2Fusers%2F', { credentials: 'same-origin' });
-      if (!response.ok) throw new Error('Failed to fetch profile');
+      const response = await portalRequest('/api/portal/proxy?path=%2Fusers%2F');
       return response.json();
     },
   });

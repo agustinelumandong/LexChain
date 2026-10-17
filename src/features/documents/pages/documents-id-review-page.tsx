@@ -13,13 +13,13 @@ import {
 } from '@/features/documents/extraction-api';
 import { getPortalUiRole } from "@/features/access";
 import ReviewWorkspace from '@/features/documents/components/review-workspace';
+import { portalRequest } from '@/shared/api/client';
 
 type BlockEdit = ApiSchema<'BlockEdit'>;
 type UserProfile = ApiSchema<'UserProfileResponse'>;
 
 async function getProfile(): Promise<UserProfile> {
-  const response = await fetch('/api/portal/proxy?path=%2Fusers%2F', { credentials: 'same-origin' });
-  if (!response.ok) throw new Error('Unable to load your review access.');
+  const response = await portalRequest('/api/portal/proxy?path=%2Fusers%2F');
   return response.json() as Promise<UserProfile>;
 }
 

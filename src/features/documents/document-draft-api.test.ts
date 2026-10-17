@@ -42,3 +42,12 @@ describe('createGoogleDraft errors', () => {
     });
   });
 });
+
+it('retains the shared backend message, HTTP status and structured details', async () => {
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json({
+    message: 'Backend action denied', detail: 'Legacy fallback', details: { reason: 'DENIED', retryable: false },
+  }, { status: 403 })));
+  await expect(createGoogleDraft('doc-101', 'blank')).rejects.toMatchObject({
+    message: 'Backend action denied', status: 403, details: { reason: 'DENIED', retryable: false },
+  });
+});
