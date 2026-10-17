@@ -127,6 +127,23 @@ function renderWorkspace(props: Partial<React.ComponentProps<typeof DocumentWork
 }
 
 describe('DocumentWorkspace', () => {
+  it.each([
+    ['PREPARING', 'Preparing', 'FAILED'],
+    ['READY_FOR_SIGNATURE', 'Ready for signature', 'PROCESSING'],
+    ['SIGNED', 'Signed', 'AWAITING_REVIEW'],
+  ])('hides processing status before finalization while keeping lifecycle visible (%s)', (lifecycle, label, status) => {
+    renderWorkspace({ document: { ...document, lifecycle, status } });
+    expect(screen.getByText('Document lifecycle').nextElementSibling?.textContent).toBe(label);
+    expect(screen.queryByText('Processing status')).toBeNull();
+    expect(screen.queryByText(/^(Failed|Processing|Ready for review)$/)).toBeNull();
+  });
+
+  it('shows finalized processing failure in the overview', () => {
+    renderWorkspace({ document: { ...document, lifecycle: 'FINALIZED', status: 'FAILED' } });
+    expect(screen.getByText('Document lifecycle').nextElementSibling?.textContent).toBe('Finalized');
+    expect(screen.getByText('Processing status').nextElementSibling?.textContent).toBe('Processing failed');
+  });
+
   beforeEach(() => {
     attachSignedCopyMock.mockResolvedValue(document);
     correctDocumentEntryMock.mockResolvedValue(document);
@@ -430,7 +447,7 @@ describe('DocumentWorkspace', () => {
     expect(within(overview).getByRole('heading', { name: 'Overview' })).toBeTruthy();
     expect(within(overview).getByText('Filename').nextElementSibling?.textContent).toBe('service-agreement.pdf');
     expect(within(overview).getByText('Signed copy content type').nextElementSibling?.textContent).toBe('application/pdf');
-    expect(within(overview).getByText('Processing status').nextElementSibling?.textContent).toBe('No processing status yet');
+    expect(within(overview).queryByText('Processing status')).toBeNull();
     expect(within(overview).getByText('Document lifecycle').nextElementSibling?.textContent).toBe('Preparing');
   });
 

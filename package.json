@@ -12,6 +12,7 @@
     "e2e:google-drafting": "node e2e/google-drafting.mjs",
     "e2e:google-comments": "node e2e/google-comments.mjs",
     "e2e:document-permissions": "node e2e/document-permissions.mjs",
+    "e2e:owned-shared-documents": "node e2e/owned-shared-documents.mjs",
     "lint": "eslint",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",

@@ -7,7 +7,7 @@ import type { ApiSchema } from '@/shared/types/index';
 import { searchDocument } from '@/features/documents/search-api';
 import { attachSignedCopy, correctDocumentEntry, LifecycleRequestError, listDocumentHistory, listDraftComments, listSignedCopies, replaceSignedCopy, syncDraftComments } from '@/features/documents/document-lifecycle-api';
 import { isGoogleDraftUrl } from '@/features/documents/document-draft-api';
-import { getDocumentLifecycleLabel, getDocumentStatusLabel } from '@/features/documents/document-ui';
+import { getDocumentLifecycleLabel, getDocumentProcessingStatusLabel } from '@/features/documents/document-ui';
 import { shortenIntegrityHash } from "@/features/verification";
 import { GoogleDraftPanel } from '@/features/documents/components/google-draft-panel';
 import { listDocumentParties, type PortalUiRole } from '@/features/access';
@@ -255,7 +255,7 @@ export function DocumentWorkspace({
             <dl className="grid gap-3 text-sm sm:grid-cols-2">
               <div><dt className="font-bold text-[#64748b]">Filename</dt><dd className="mt-1 text-[#0C2B49]">{document.file_name ?? 'Not supplied'}</dd></div>
               <div><dt className="font-bold text-[#64748b]">Signed copy content type</dt><dd className="mt-1 text-[#0C2B49]">{document.signed_copy?.content_type ?? 'Not supplied'}</dd></div>
-              <div><dt className="font-bold text-[#64748b]">Processing status</dt><dd className="mt-1 text-[#0C2B49]">{getDocumentStatusLabel(document.status)}</dd></div>
+              {document.lifecycle === 'FINALIZED' && <div><dt className="font-bold text-[#64748b]">Processing status</dt><dd className="mt-1 text-[#0C2B49]">{getDocumentProcessingStatusLabel(document.lifecycle, document.status)}</dd></div>}
               <div><dt className="font-bold text-[#64748b]">Register book</dt><dd className="mt-1 break-all text-[#0C2B49]">{document.book_id ? 'Assigned' : 'Not supplied'}</dd></div>
               <div><dt className="font-bold text-[#64748b]">Document number</dt><dd className="mt-1 text-[#0C2B49]">{document.doc_no ?? 'Not supplied'}</dd></div>
               <div><dt className="font-bold text-[#64748b]">Page number</dt><dd className="mt-1 text-[#0C2B49]">{document.page_no ?? 'Not supplied'}</dd></div>

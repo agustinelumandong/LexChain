@@ -6,7 +6,7 @@ import { useQuery } from '@tanstack/react-query';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ErrorIcon from '@mui/icons-material/Error';
 import type { ApiSchema } from '@/shared/types/index';
-import { getDocumentStatusLabel } from '@/features/documents/document-ui';
+import { getDocumentLifecycleLabel, getDocumentProcessingStatusLabel } from '@/features/documents/document-ui';
 import { portalRequest } from '@/shared/api/client';
 
 type DocumentResponse = ApiSchema<'DocumentResponse'>;
@@ -27,26 +27,36 @@ export default function ProcessingPage({
 }) {
   const id = use(searchParams).id ?? '';
 
-  const { data, isError, error, refetch } = useQuery({
+  const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ['portal-doc-status', id],
     queryFn: () => fetchDocument(id),
     enabled: !!id,
     refetchInterval: (query) => {
-      const currentStatus = query.state.data?.status?.toLowerCase() ?? '';
+      if (query.state.data?.lifecycle !== 'FINALIZED') return 2000;
+      const currentStatus = query.state.data?.status?.trim().toLowerCase() ?? '';
       return DONE.has(currentStatus) || FAILED.has(currentStatus) || REVIEW_READY.has(currentStatus) ? false : 2000;
     },
   });
 
-  const status = data?.status?.toLowerCase() ?? 'processing';
-  const done = DONE.has(status);
-  const reviewReady = REVIEW_READY.has(status);
+  const isFinalized = data?.lifecycle === 'FINALIZED';
+  const status = data?.status?.trim().toLowerCase() ?? 'processing';
+  const done = isFinalized && DONE.has(status);
+  const reviewReady = isFinalized && REVIEW_READY.has(status);
   const lookupError = isError && !!id;
-  const failed = FAILED.has(status) || !id;
-  const normalizedStatus = getDocumentStatusLabel(data?.status ?? (failed ? 'FAILED' : 'PROCESSING'));
+  const failed = (isFinalized && FAILED.has(status)) || !id;
+  const normalizedStatus = getDocumentProcessingStatusLabel(data?.lifecycle ?? '', data?.status ?? (failed ? 'FAILED' : 'PROCESSING'));
 
   return (
     <div className="flex min-h-[60vh] flex-col items-center justify-center gap-6 text-center">
-      {!done && !reviewReady && !lookupError && !failed && (
+      {isLoading && <p role="status" className="text-sm font-bold text-[#64748b]">Loading document…</p>}
+      {data && <p className="text-sm font-bold text-[#64748b]">Lifecycle: {getDocumentLifecycleLabel(data.lifecycle)}</p>}
+      {data && !isFinalized && !lookupError && (
+        <div>
+          <p className="text-xl font-black text-[#0C2B49]">Waiting for finalization</p>
+          <p className="mt-1 text-sm text-[#64748b]">OCR processing starts after the document is finalized.</p>
+        </div>
+      )}
+      {isFinalized && !done && !reviewReady && !lookupError && !failed && (
         <>
           <div className="h-16 w-16 animate-spin rounded-full border-4 border-[#0985E7] border-t-transparent" />
           <div>
@@ -92,10 +102,10 @@ export default function ProcessingPage({
           <div>
             <p className="text-xl font-black text-[#0C2B49]">Processing failed</p>
             <p className="mt-1 text-sm text-[#64748b]">
-              {id ? 'Please try uploading again.' : 'Missing document id.'}
+              {id ? 'The document is finalized, but processing failed. Open the document to inspect its available details.' : 'Missing document id.'}
             </p>
           </div>
-          <Link href="/portal/upload" className="rounded-full bg-[#0985E7] px-6 py-3 text-sm font-black text-white">Try Again</Link>
+          <Link href={id ? `/portal/documents/${id}` : '/portal/upload'} className="rounded-full bg-[#0985E7] px-6 py-3 text-sm font-black text-white">{id ? 'View document' : 'Try Again'}</Link>
         </>
       )}
     </div>

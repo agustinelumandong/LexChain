@@ -126,6 +126,26 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe('document detail screen', () => {
+  it.each([
+    ['PREPARING', 'Preparing', 'FAILED'],
+    ['READY_FOR_SIGNATURE', 'Ready for signature', 'PROCESSING'],
+    ['SIGNED', 'Signed', 'queued_for_embeddings'],
+  ])('hides processing status before finalization while keeping lifecycle visible (%s)', async (lifecycle, label, status) => {
+    state.documentQuery = { data: { ...baseDocument, lifecycle, status }, isLoading: false, isError: false, refetch: vi.fn() };
+    await showPage();
+    expect(screen.getAllByText(label).length).toBeGreaterThan(0);
+    expect(screen.queryByText('Processing status')).toBeNull();
+    expect(screen.queryByText(/^(Failed|Processing|Unknown)$/)).toBeNull();
+  });
+
+  it('shows finalized processing failure without offering finalization', async () => {
+    state.documentQuery = { data: { ...baseDocument, lifecycle: 'FINALIZED', status: 'FAILED' }, isLoading: false, isError: false, refetch: vi.fn() };
+    await showPage();
+    expect(screen.getAllByText('Finalized').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Processing failed').length).toBeGreaterThan(0);
+    expect(screen.queryByRole('button', { name: 'Finalize' })).toBeNull();
+  });
+
   it('shows an accessible loading state while the document is being read', async () => {
     state.documentQuery = { isLoading: true, isError: false, refetch: vi.fn() };
     await showPage();
@@ -138,7 +158,7 @@ describe('document detail screen', () => {
 
     expect(await screen.findByRole('heading', { name: 'Signed agreement.pdf' })).toBeTruthy();
     expect(screen.getAllByText('Signed').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('No processing status yet').length).toBeGreaterThan(0);
+    expect(screen.queryByText('No processing status yet')).toBeNull();
     expect(screen.queryByRole('button', { name: 'Rename document' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Finalize' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Cancel document' })).toBeNull();
@@ -299,7 +319,7 @@ describe('document detail screen', () => {
 
   it('links a lawyer to extracted text review when OCR is awaiting review', async () => {
     state.documentQuery = {
-      data: { ...baseDocument, status: 'AWAITING_REVIEW' },
+      data: { ...baseDocument, lifecycle: 'FINALIZED', status: 'AWAITING_REVIEW' },
       isLoading: false,
       isError: false,
       refetch: vi.fn(),
