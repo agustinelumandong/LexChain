@@ -4,6 +4,29 @@ import { isMockPortalToken, mockPortalGet, mockPortalMutate } from '@/lib/mocks/
 afterEach(() => vi.restoreAllMocks());
 
 describe('portal mock extraction contract', () => {
+  it('uses contract-shaped metadata for notification fixtures and uploads', async () => {
+    const initialNotifications = await mockPortalGet('/notifications/', 'mock-token:mock-document-issuer').json() as { notifications: Array<Record<string, unknown>> };
+    expect(initialNotifications.notifications).toEqual(expect.arrayContaining([
+      expect.objectContaining({ type: 'document_recorded', event_metadata: { document_id: 'mock-document-1' } }),
+      expect.objectContaining({ type: 'document_processed', event_metadata: { document_id: 'mock-document-2' } }),
+    ]));
+
+    const form = new FormData();
+    form.append('file', new File(['PDF'], 'uploaded.pdf', { type: 'application/pdf' }));
+    await mockPortalMutate(
+      'POST',
+      '/documents/upload?book_id=mock-book-1&file_name=Uploaded%20document',
+      new Request('https://mock.lexchain.local/api/portal/proxy-post', { method: 'POST', body: form }),
+      'mock-token:mock-document-issuer',
+    );
+
+    const uploadedNotifications = await mockPortalGet('/notifications/', 'mock-token:mock-document-issuer').json() as { notifications: Array<Record<string, unknown>> };
+    expect(uploadedNotifications.notifications[0]).toMatchObject({
+      type: 'document_processed',
+      event_metadata: { document_id: expect.stringMatching(/^mock-document-/) },
+    });
+  });
+
   it('includes issuer permissions in the shared document detail response', async () => {
     const response = mockPortalGet('/documents/mock-document-4', 'mock-token:mock-document-issuer');
 
