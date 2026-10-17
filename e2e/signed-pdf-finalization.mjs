@@ -172,8 +172,8 @@ await page.route('**/api/portal/proxy*', async (route) => {
 });
 
 try {
-  await page.goto(`${baseUrl}/portal/documents/${documentId}`);
   page.on('pageerror', (error) => console.error(`Browser error: ${error.message}`));
+  await page.goto(`${baseUrl}/portal/documents/${documentId}`);
   await page.getByRole('heading', { name: 'E2E signed agreement' }).waitFor();
 
   await page.getByRole('tab', { name: 'Files' }).click();

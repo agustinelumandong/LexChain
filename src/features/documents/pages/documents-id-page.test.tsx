@@ -535,6 +535,32 @@ describe('document detail screen', () => {
     expect(state.finalizeDocument).toHaveBeenCalledExactlyOnceWith('doc-1');
   });
 
+  it('identifies demo finalization and its returned fields as synthetic before submission', async () => {
+    vi.stubEnv('NEXT_PUBLIC_USE_MOCK_API', 'true');
+    state.documentQuery = { ...state.documentQuery, data: { ...baseDocument, permissions: { ...baseDocument.permissions, can_finalize: true } } };
+    state.finalizeDocument.mockResolvedValue({ document_id: 'doc-1', onchain_document_id: 'demo-chain-id', data_hash: 'demo-data-hash', tx_hash: 'demo-tx-hash' });
+    state.queryClient.invalidateQueries.mockImplementation(async ({ queryKey }) => {
+      if (queryKey[0] === 'portal-doc') state.documentQuery = { ...state.documentQuery, isError: true, error: new Error('Refresh unavailable') };
+    });
+    await showPage();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Finalize' }));
+    const confirmation = screen.getByRole('dialog', { name: 'Confirm finalization' });
+    expect(within(confirmation).getByText(/demo mode/i)).toBeTruthy();
+    expect(within(confirmation).getByText(/synthetic/i)).toBeTruthy();
+    expect(within(confirmation).getByText(/no real PDF digest or blockchain transaction will be produced/i)).toBeTruthy();
+    fireEvent.click(within(confirmation).getByRole('button', { name: 'Confirm finalization' }));
+
+    expect(await screen.findByText(/demo finalization completed/i)).toBeTruthy();
+    expect(screen.getAllByText(/synthetic/i).length).toBeGreaterThan(0);
+    expect(screen.getByText('demo-data-hash')).toBeTruthy();
+    expect(screen.getByText('demo-tx-hash')).toBeTruthy();
+    expect(screen.getByRole('alert').textContent).toMatch(/demo finalization completed/i);
+    expect(screen.queryByText(/finalization succeeded/i)).toBeNull();
+    expect(state.finalizeDocument).toHaveBeenCalledExactlyOnceWith('doc-1');
+    expect(screen.queryByText('Document finalized and anchored on-chain.')).toBeNull();
+  });
+
   it('offers document cancellation only when permitted and requires confirmation', async () => {
     state.documentQuery = {
       data: { ...baseDocument, lifecycle: 'PREPARING', permissions: { ...baseDocument.permissions, can_cancel: true } },

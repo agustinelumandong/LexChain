@@ -14,6 +14,7 @@ import { getPortalUiRole } from "@/features/access";
 import { Modal } from '@/features/admin/components/modal';
 import { portalRequest } from '@/shared/api/client';
 import { PortalApiError } from '@/shared/api/portal-error';
+import { isMockMode } from '@/lib/mocks/mode';
 
 type DocumentResponse = ApiSchema<'DocumentResponse'>;
 type UserProfile = ApiSchema<'UserProfileResponse'>;
@@ -69,6 +70,7 @@ function subscribeToFinalizationStatus(onStoreChange: () => void) {
 
 export default function DocumentDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
+  const mockMode = isMockMode();
   const queryClient = useQueryClient();
   const [renamePending, setRenamePending] = useState(false);
   const [renameOpen, setRenameOpen] = useState(false);
@@ -120,7 +122,9 @@ export default function DocumentDetailPage({ params }: { params: Promise<{ id: s
     onSuccess: async (result) => {
       setFinalizationResult(result);
       setConfirmingFinalize(false);
-      setSuccess('Document finalized and anchored on-chain.');
+      setSuccess(mockMode
+        ? 'Demo finalization complete. Synthetic demo data only; no real PDF digest or blockchain transaction was produced.'
+        : 'Document finalized and anchored on-chain.');
       await refreshLifecycleQueries();
     },
     onError: (error) => {
@@ -143,7 +147,9 @@ export default function DocumentDetailPage({ params }: { params: Promise<{ id: s
       sessionStorage.removeItem(unknownFinalizationKey);
       window.dispatchEvent(new Event('portal-finalization-status'));
       setStatusMessage(undefined);
-      setSuccess('Document finalized and anchored on-chain.');
+      setSuccess(mockMode
+        ? 'Demo document status confirmed. Synthetic demo data only; no real PDF digest or blockchain transaction was produced.'
+        : 'Document finalized and anchored on-chain.');
       await refreshLifecycleQueries();
     },
     onError: () => {
@@ -281,15 +287,18 @@ export default function DocumentDetailPage({ params }: { params: Promise<{ id: s
         <button type="button" onClick={() => checkFinalizationMutation.mutate()} disabled={checkFinalizationMutation.isPending} className="rounded-full border border-[#0985E7] px-4 py-2 font-bold text-[#0985E7] disabled:opacity-60">{checkFinalizationMutation.isPending ? 'Checking status…' : 'Check status'}</button>
       </div>}
       {success && <p role="status" className="rounded-xl border border-[#BCE8CC] bg-[#F1FBF5] px-4 py-3 text-sm font-bold text-[#0C7A3B]">{success}</p>}
-      {docQ.isError && finalizationResult && <p role="alert" className="text-sm font-bold text-[#B42318]">Finalization succeeded, but the document could not be refreshed.</p>}
-      {finalizationResult && <dl className="grid gap-3 rounded-xl bg-[#F8FBFF] p-4 text-sm sm:grid-cols-2"><div><dt className="font-bold text-[#64748b]">Document ID</dt><dd className="mt-1 break-all font-mono text-[#0C2B49]">{finalizationResult.document_id}</dd></div><div><dt className="font-bold text-[#64748b]">On-chain document ID</dt><dd className="mt-1 break-all font-mono text-[#0C2B49]">{finalizationResult.onchain_document_id}</dd></div><div><dt className="font-bold text-[#64748b]">Data hash</dt><dd className="mt-1 break-all font-mono text-[#0C2B49]">{finalizationResult.data_hash}</dd></div><div><dt className="font-bold text-[#64748b]">Transaction hash</dt><dd className="mt-1 break-all font-mono text-[#0C2B49]">{finalizationResult.tx_hash}</dd></div></dl>}
+      {docQ.isError && finalizationResult && <p role="alert" className="text-sm font-bold text-[#B42318]">{mockMode ? 'Demo finalization completed, but the document could not be refreshed.' : 'Finalization succeeded, but the document could not be refreshed.'}</p>}
+      {finalizationResult && <>
+        {mockMode && <p role="note" className="rounded-xl border border-[#F1D29A] bg-[#FFF8E8] px-4 py-3 text-sm font-bold text-[#785000]">Synthetic demo record. No real PDF digest or blockchain transaction was produced.</p>}
+        <dl className="grid gap-3 rounded-xl bg-[#F8FBFF] p-4 text-sm sm:grid-cols-2"><div><dt className="font-bold text-[#64748b]">Document ID{mockMode ? ' (synthetic)' : ''}</dt><dd className="mt-1 break-all font-mono text-[#0C2B49]">{finalizationResult.document_id}</dd></div><div><dt className="font-bold text-[#64748b]">On-chain document ID{mockMode ? ' (synthetic)' : ''}</dt><dd className="mt-1 break-all font-mono text-[#0C2B49]">{finalizationResult.onchain_document_id}</dd></div><div><dt className="font-bold text-[#64748b]">Data hash{mockMode ? ' (synthetic; not a real PDF digest)' : ''}</dt><dd className="mt-1 break-all font-mono text-[#0C2B49]">{finalizationResult.data_hash}</dd></div><div><dt className="font-bold text-[#64748b]">Transaction hash{mockMode ? ' (synthetic; no blockchain transaction)' : ''}</dt><dd className="mt-1 break-all font-mono text-[#0C2B49]">{finalizationResult.tx_hash}</dd></div></dl>
+      </>}
 
       {confirmingFinalize && (
         <div role="dialog" aria-modal="true" aria-label="Confirm finalization" className="fixed inset-0 z-50 flex items-center justify-center bg-[#0C2B49]/40 p-4">
           <div className="w-full max-w-md rounded-2xl border border-[#CFE7FC] bg-white p-6 shadow-[0_16px_40px_rgba(12,43,73,0.25)]">
             <p className="text-lg font-black text-[#0C2B49]">Finalize this document?</p>
-            <p className="mt-2 text-sm leading-6 text-[#64748b]">This freezes the signed copy and records its fingerprint on the blockchain. It cannot be undone.</p>
-            {finalizeMutation.isPending && <p role="status" className="mt-3 text-sm text-[#64748b]">Waiting for blockchain confirmation…</p>}
+            <p className="mt-2 text-sm leading-6 text-[#64748b]">{mockMode ? 'Demo mode: this action uses synthetic data. No real PDF digest or blockchain transaction will be produced.' : 'This freezes the signed copy and records its fingerprint on the blockchain. It cannot be undone.'}</p>
+            {finalizeMutation.isPending && <p role="status" className="mt-3 text-sm text-[#64748b]">{mockMode ? 'Completing demo finalization…' : 'Waiting for blockchain confirmation…'}</p>}
             {finalizeMutation.error instanceof Error && <p role="alert" className="mt-3 rounded-xl bg-red-50 p-3 text-sm font-bold text-[#B42318]">{finalizeMutation.error.message}</p>}
             <div className="mt-5 flex flex-wrap justify-end gap-2">
               <button type="button" onClick={() => setConfirmingFinalize(false)} disabled={finalizeMutation.isPending} className="rounded-full border border-[#D6E3F1] px-4 py-2 text-sm font-bold text-[#0C2B49] disabled:opacity-60">Cancel</button>
