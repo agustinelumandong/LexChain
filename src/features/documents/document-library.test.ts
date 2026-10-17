@@ -2,7 +2,7 @@
 import { createElement } from 'react';
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { getVisibleDocuments, type DocumentListItem } from '@/features/documents/document-library';
+import { getDocumentsByOwnership, getVisibleDocuments, type DocumentListItem } from '@/features/documents/document-library';
 import DocumentsPage from '@/features/documents/pages/documents-page';
 
 vi.mock('@tanstack/react-query', () => ({
@@ -50,6 +50,15 @@ afterEach(() => {
 });
 
 describe('document library list', () => {
+  it('getDocumentsByOwnership separates explicit owner and shared records', () => {
+    const missingOwnership = { ...documents[0] };
+    Reflect.deleteProperty(missingOwnership, 'is_owner');
+    const shared = { ...documents[0], id: 'shared', is_owner: false };
+    const rows = [documents[0], shared, missingOwnership, documents[1]];
+    expect(getDocumentsByOwnership(rows, 'owned')).toEqual([documents[0], documents[1]]);
+    expect(getDocumentsByOwnership(rows, 'shared')).toEqual([shared]);
+  });
+
   it('finds documents by title or reference and sorts the matching payload locally', () => {
     expect(getVisibleDocuments(documents, { query: '101', lifecycle: 'all', sort: 'newest' }).map((document) => document.id))
       .toEqual(['document-2']);
@@ -76,7 +85,7 @@ describe('document library list', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Oldest first' }));
     expect(screen.getAllByRole('row')[1].textContent).toContain('Certificate of Employment.pdf');
     fireEvent.change(screen.getByPlaceholderText('Search documents...'), { target: { value: 'missing' } });
-    expect(screen.getByText('No matching documents')).toBeTruthy();
+    expect(screen.getByText('No matching documents in My documents')).toBeTruthy();
     fireEvent.click(screen.getByText('More Filters'));
     fireEvent.click(screen.getByRole('button', { name: 'Reset filters' }));
     expect(screen.getByRole('button', { name: 'Newest first' })).toBeTruthy();
@@ -93,7 +102,7 @@ describe('document library list', () => {
     const search = screen.getByPlaceholderText('Search documents...') as HTMLInputElement;
     fireEvent.change(search, { target: { value: 'missing' } });
 
-    expect(screen.getByText('No matching documents')).toBeTruthy();
+    expect(screen.getByText('No matching documents in My documents')).toBeTruthy();
     expect(screen.getByText('Showing 0–0 of 0 documents')).toBeTruthy();
     const clear = screen.getByRole('button', { name: 'Clear search' });
     expect(clear.tagName).toBe('BUTTON');
@@ -103,7 +112,7 @@ describe('document library list', () => {
     fireEvent.click(clear);
 
     expect(search.value).toBe('');
-    expect(screen.queryByText('No matching documents')).toBeNull();
+    expect(screen.queryByText('No matching documents in My documents')).toBeNull();
     expect(screen.queryByRole('button', { name: 'Clear search' })).toBeNull();
     expect(screen.getByRole('button', { name: 'Oldest first' })).toBeTruthy();
     fireEvent.click(screen.getByText(/More Filters/));
@@ -127,7 +136,7 @@ describe('document library list', () => {
     documentQueryState = { isLoading: state === 'loading', isError: state === 'error' };
     view.rerender(createElement(DocumentsPage));
 
-    expect(screen.queryByText('No matching documents')).toBeNull();
+    expect(screen.queryByText('No matching documents in My documents')).toBeNull();
     expect(screen.queryByRole('button', { name: 'Clear search' })).toBeNull();
     if (state === 'loading') {
       expect(screen.getByLabelText('Loading documents')).toBeTruthy();

@@ -26,6 +26,7 @@ import { getPortalUiRole } from "@/features/access";
 import { CreateDocumentRecordForm } from '@/features/documents/components/create-document-record-form';
 import {
   getDocumentLifecycles,
+  getDocumentsByOwnership,
   getVisibleDocuments,
   type DocumentListItem,
   type DocumentListFilters,
@@ -119,7 +120,7 @@ function StatusDistribution({ docs }: { docs: Document[] }) {
     label: getDocumentLifecycleLabel(lifecycle), color: colors[i % colors.length],
     count: docs.filter((document) => document.lifecycle === lifecycle).length,
   }));
-  const total = Math.max(1, docs.length);
+  const total = docs.length;
   let cursor = 0;
   const gradient = groups.map((g) => {
     const start = cursor;
@@ -182,6 +183,7 @@ function RecentlyUpdated({ docs }: { docs: Document[] }) {
 
 export default function DocumentsPage() {
   const router = useRouter();
+  const [selectedOwnership, setSelectedOwnership] = useState<'owned' | 'shared' | null>(null);
   const [search, setSearch] = useState('');
   const [lifecycle, setLifecycle] = useState('all');
   const [sort, setSort] = useState<DocumentListFilters['sort']>('newest');
@@ -198,10 +200,17 @@ export default function DocumentsPage() {
       return response.json();
     },
   });
-  const documents = documentsQuery.data ?? [];
-  const lifecycles = getDocumentLifecycles(documents);
+  const allDocuments = documentsQuery.data ?? [];
   const uiRole = getPortalUiRole(profileQuery.data?.role);
   const isIssuer = uiRole === 'lawyer';
+  const ownership = selectedOwnership ?? (isIssuer ? 'owned' : 'shared');
+  const documents = getDocumentsByOwnership(allDocuments, ownership);
+  const lifecycles = getDocumentLifecycles(documents);
+  const ownershipLabel = ownership === 'owned' ? 'My documents' : 'Shared with me';
+  function changeOwnership(value: 'owned' | 'shared') {
+    setSelectedOwnership(value);
+    setPage(0);
+  }
   const visibleDocuments = getVisibleDocuments(documents, {
     query: search,
     lifecycle,
@@ -210,11 +219,11 @@ export default function DocumentsPage() {
     createdThrough,
   });
 
-  const documentStatuses = documents.map((document) => document.status?.toLowerCase());
+  const documentStatuses = documents.filter((document) => document.lifecycle === 'FINALIZED').map((document) => document.status?.trim().toLowerCase());
   const metrics = [
     { label: "Total Documents", value: documents.length, detail: "Uploaded documents", icon: <DescriptionIcon fontSize="small" />, color: "bg-[#EAF3FF] text-[#0879D8]" },
     { label: "Finalized", value: documents.filter((document) => document.lifecycle === 'FINALIZED').length, detail: "Finalized documents", icon: <CheckCircleIcon fontSize="small" />, color: "bg-[#EAFBF1] text-[#16A34A]" },
-    { label: "Ready for Review", value: documentStatuses.filter((value) => value === "ready_for_review").length, detail: "status ready_for_review", icon: <VisibilityIcon fontSize="small" />, color: "bg-[#FFF4DF] text-[#F59E0B]" },
+    { label: "Ready for Review", value: documentStatuses.filter((value) => value === "awaiting_review" || value === "ready_for_review").length, detail: "Finalized documents ready for review", icon: <VisibilityIcon fontSize="small" />, color: "bg-[#FFF4DF] text-[#F59E0B]" },
     { label: "Failed", value: documentStatuses.filter((value) => value === "failed").length, detail: "status failed", icon: <ErrorIcon fontSize="small" />, color: "bg-[#FEECEC] text-[#EF4444]" },
   ];
 
@@ -235,11 +244,27 @@ export default function DocumentsPage() {
 
       {isIssuer && showCreateRecord && <CreateDocumentRecordForm onCreated={(id) => router.push(`/portal/documents/${id}`)} />}
 
+      <div role="tablist" aria-label="Document ownership" className="flex shrink-0 gap-2">
+        {(['owned', 'shared'] as const).map((value) => (
+          <button key={value} id={`ownership-${value}`} type="button" role="tab" aria-selected={ownership === value} aria-controls="ownership-results" tabIndex={ownership === value ? 0 : -1}
+            onClick={() => changeOwnership(value)}
+            onKeyDown={(event) => {
+              if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+              event.preventDefault();
+              const next = event.key === 'Home' ? 'owned' : event.key === 'End' ? 'shared' : value === 'owned' ? 'shared' : 'owned';
+              changeOwnership(next);
+              document.getElementById(`ownership-${next}`)?.focus();
+            }}
+            className={cn('rounded-full border px-4 py-2 text-sm font-black focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0985E7]', ownership === value ? 'border-[#0985E7] bg-[#EAF3FF] text-[#0879D8]' : 'border-[#E4EEF9] text-[#0C2B49]')}
+          >{value === 'owned' ? 'My documents' : 'Shared with me'} ({getDocumentsByOwnership(allDocuments, value).length})</button>
+        ))}
+      </div>
+      <div id="ownership-results" role="tabpanel" aria-labelledby={`ownership-${ownership}`} className="flex min-h-0 flex-1 flex-col gap-5">
       {documentsQuery.isLoading ? (
         <div className="flex flex-col gap-3" aria-label="Loading documents">{[1, 2, 3].map((index) => <div key={index} className="h-[80px] animate-pulse rounded-[18px] border border-[#E8F0F8] bg-white" />)}</div>
       ) : documentsQuery.isError ? (
         <div role="alert" className="rounded-[18px] border border-[#E8F0F8] bg-white p-8 text-center"><p className="text-sm font-bold text-[#0C2B49]">{documentsErrorMessage(documentsQuery.error)}</p><p className="mt-1 text-xs text-[#64748b]">Check your connection and try again.</p><button type="button" onClick={() => void documentsQuery.refetch()} className="mt-4 rounded-full border border-[#D7E4F2] px-4 py-2 text-sm font-black text-[#0985E7]">Retry</button></div>
-      ) : documents.length === 0 ? (
+      ) : allDocuments.length === 0 ? (
         <div className="rounded-[18px] border border-[#E8F0F8] bg-white p-8 text-center">
           <p className="text-sm font-bold text-[#0C2B49]">{search || lifecycle !== 'all' ? 'No documents match your search or filter' : 'No documents yet'}</p>
           <p className="mt-1 text-xs text-[#64748b]">{isIssuer ? 'Upload your first document to get started.' : 'No documents are available yet.'}</p>
@@ -313,7 +338,7 @@ export default function DocumentsPage() {
                     {pagedDocs.length === 0 && (
                       <tr>
                         <td colSpan={5} className="px-5 py-10 text-center text-sm font-semibold text-[#5B6F8A]">
-                          <p>{search.trim() ? 'No matching documents' : 'No documents match the current filters.'}</p>
+                          <p>{documents.length === 0 ? `No documents in ${ownershipLabel} yet` : `No matching documents in ${ownershipLabel}`}</p>
                           {search.trim() && (
                             <button
                               type="button"
@@ -351,9 +376,10 @@ export default function DocumentsPage() {
               <RecentlyUpdated docs={documents} />
             </aside>
           </section>
-          <div className="flex flex-col gap-3 md:hidden">{visibleDocuments.map((document) => <article key={document.id} className="rounded-[18px] border border-[#E8F0F8] bg-white p-4"><div className="flex gap-3"><DescriptionIcon sx={{ fontSize: 22, color: '#0985E7' }} /><div className="min-w-0 flex-1"><p className="truncate text-sm font-bold text-[#0C2B49]">{document.file_name}</p><p className="mt-1 text-xs text-[#64748b]">{document.doc_no != null ? `Register ${document.doc_no}${document.page_no != null ? ` · page ${document.page_no}` : ''}` : 'Register entry unavailable'} · Created {formatDate(document.created_at)}</p><div className="mt-2"><DocumentBadges document={document} /></div></div></div><div className="mt-4 border-t border-[#E8F0F8] pt-3"><DocumentActions document={document} /></div></article>)}</div>
+          <div className="flex flex-col gap-3 md:hidden">{pagedDocs.map((document) => <article key={document.id} className="rounded-[18px] border border-[#E8F0F8] bg-white p-4"><div className="flex gap-3"><DescriptionIcon sx={{ fontSize: 22, color: '#0985E7' }} /><div className="min-w-0 flex-1"><p className="truncate text-sm font-bold text-[#0C2B49]">{document.file_name}</p><p className="mt-1 text-xs text-[#64748b]">{document.doc_no != null ? `Register ${document.doc_no}${document.page_no != null ? ` · page ${document.page_no}` : ''}` : 'Register entry unavailable'} · Created {formatDate(document.created_at)}</p><div className="mt-2"><DocumentBadges document={document} /></div></div></div><div className="mt-4 border-t border-[#E8F0F8] pt-3"><DocumentActions document={document} /></div></article>)}</div>
         </>
       )}
+      </div>
     </div>
   );
 }
