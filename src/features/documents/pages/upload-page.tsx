@@ -21,7 +21,7 @@ import { canAccessPortalFeature, getPortalUiRole } from "@/features/access";
 import { PortalDropdown } from "@/features/portal/components";
 import type { ApiSchema } from '@/shared/types/index';
 import { listRegisterBooks } from '@/features/office/books-api';
-import { getDocumentLifecycleLabel, getDocumentStatusLabel } from '@/features/documents/document-ui';
+import { getDocumentLifecycleLabel, getDocumentProcessingStatusLabel } from '@/features/documents/document-ui';
 import { portalRequest } from '@/shared/api/client';
 type UserProfile = ApiSchema<'UserProfileResponse'>;
 type UploadedDocument = ApiSchema<'DocumentResponse'>;
@@ -166,7 +166,7 @@ export default function UploadPage() {
         </div>
         <dl className="mt-5 grid gap-3 rounded-xl bg-[#F8FBFF] p-4 text-sm">
           <div><dt className="font-bold text-[#64748b]">Lifecycle</dt><dd className="mt-1 font-black text-[#0C2B49]">{getDocumentLifecycleLabel(outcome.lifecycle)}</dd></div>
-          <div><dt className="font-bold text-[#64748b]">Processing status</dt><dd className="mt-1 font-black text-[#0C2B49]">{getDocumentStatusLabel(outcome.status)}</dd></div>
+          {outcome.lifecycle === 'FINALIZED' && <div><dt className="font-bold text-[#64748b]">Processing status</dt><dd className="mt-1 font-black text-[#0C2B49]">{getDocumentProcessingStatusLabel(outcome.lifecycle, outcome.status)}</dd></div>}
           {(outcome.doc_no != null || outcome.page_no != null) && <div><dt className="font-bold text-[#64748b]">Paper register</dt><dd className="mt-1 font-black text-[#0C2B49]">{[outcome.doc_no != null ? `Document number ${outcome.doc_no}` : null, outcome.page_no != null ? `Page ${outcome.page_no}` : null].filter(Boolean).join(' · ')}</dd></div>}
         </dl>
         <button type="button" onClick={() => router.push(`/portal/documents/${outcome.document_id}`)} className="mt-5 rounded-full bg-[#0985E7] px-6 py-3 text-sm font-black text-white">

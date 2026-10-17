@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { getDocumentActions, getDocumentLifecycleLabel, getDocumentStatusLabel } from '@/features/documents/document-ui';
+import { getDocumentActions, getDocumentLifecycleLabel, getDocumentProcessingStatusLabel, getDocumentStatusLabel } from '@/features/documents/document-ui';
 import type { ApiSchema } from '@/shared/types';
 
 const document: ApiSchema<'DocumentResponse'> = {
@@ -26,6 +26,13 @@ const document: ApiSchema<'DocumentResponse'> = {
 };
 
 describe('getDocumentStatusLabel', () => {
+  it('labels finalized processing failure without changing extraction labels', () => {
+    expect(getDocumentProcessingStatusLabel('FINALIZED', ' failed ')).toBe('Processing failed');
+    expect(getDocumentProcessingStatusLabel('SIGNED', 'FAILED')).toBe('Failed');
+    expect(getDocumentProcessingStatusLabel('FINALIZED', 'AWAITING_REVIEW')).toBe('Ready for review');
+    expect(getDocumentStatusLabel('FAILED')).toBe('Failed');
+  });
+
   it('names an OCR review-ready document instead of treating it as unknown', () => {
     expect(getDocumentStatusLabel('AWAITING_REVIEW')).toBe('Ready for review');
   });

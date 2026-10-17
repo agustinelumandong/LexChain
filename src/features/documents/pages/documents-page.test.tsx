@@ -86,6 +86,29 @@ function metric(label: string): HTMLElement {
 }
 
 describe('document ownership directory', () => {
+  it('shows lifecycle and hides processing for pre-finalized list records', async () => {
+    setupFetch(undefined, Response.json([
+      documentFixture('Draft', true, 'PREPARING', 'FAILED'),
+      documentFixture('Signature', true, 'READY_FOR_SIGNATURE', 'PROCESSING'),
+      documentFixture('Signed', true, 'SIGNED', 'AWAITING_REVIEW'),
+      documentFixture('Review', true, 'FINALIZED', 'AWAITING_REVIEW'),
+      { ...documentFixture('Failure', true, 'FINALIZED', 'FAILED'), created_at: '2026-10-11T00:00:00Z' },
+    ]));
+    renderPage();
+    const table = await screen.findByRole('table');
+    for (const [name, lifecycle] of [['Draft', 'Preparing'], ['Signature', 'Ready for signature'], ['Signed', 'Signed']]) {
+      const row = within(table).getByText(`${name}.pdf`).closest('tr')!;
+      expect(within(row).getByText(lifecycle)).toBeTruthy();
+      expect(within(row).queryByText(/^(Failed|Processing|Ready for review)$/)).toBeNull();
+    }
+    expect(within(table).getByText('Ready for review')).toBeTruthy();
+    expect(within(table).getByText('Processing failed')).toBeTruthy();
+    const recent = screen.getByRole('heading', { name: 'Recently Created' }).closest('article')!;
+    expect(within(recent).getByText('Preparing')).toBeTruthy();
+    expect(within(recent).queryByText('Preparing · Failed')).toBeNull();
+    expect(within(recent).getByText('Finalized · Processing failed')).toBeTruthy();
+  });
+
   it.each(['document_issuer', 'document_participant'])('defaults each role to its ownership tab and scopes results and summaries (%s)', async (role) => {
     const rows = [documentFixture('Owned Z', true), documentFixture('Owned A', true, 'SIGNED'), documentFixture('Shared only', false, 'PREPARING')];
     setupFetch(undefined, Response.json(rows), role);

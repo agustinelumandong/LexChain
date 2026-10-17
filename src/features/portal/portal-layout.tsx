@@ -10,14 +10,14 @@ import MenuIcon from "@mui/icons-material/Menu";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import { Toaster } from 'sonner';
 import { getPortalLoginRedirect, getPortalRoleLabel, isSupportedPortalUiRole } from "@/features/access";
-import { getPortalNavigation } from "@/features/portal/portal-dashboard";
+import { getFinalizedProcessingDocuments, getPortalNavigation } from "@/features/portal/portal-dashboard";
 import { getPortalNavigationIcon, isPortalRouteActive, usePortalRole } from "@/features/access/components";
 import { PortalBottomNav } from "@/features/portal/components/portal-bottom-nav";
 import { PortalTopBar } from "@/features/portal/components/portal-topbar";
 import { fetchNotifications, fetchUnreadNotificationCount, invalidateNotificationQueries, markAllNotificationsRead, notificationQueryKeys } from "@/features/portal/notifications-api";
 import { portalRequest } from '@/shared/api/client';
 
-type PortalDocument = { status?: string | null };
+type PortalDocument = { lifecycle: string; status?: string | null };
 
 export default function PortalLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -51,10 +51,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
     ? getPortalNavigation(uiRole)
     : [];
   const portalHome = getPortalLoginRedirect(uiRole) ?? "/portal/dashboard";
-  const processingCount = documents.filter((document) => {
-    const status = document.status?.trim().toLowerCase();
-    return status === "processing" || status === "pending";
-  }).length;
+  const processingCount = getFinalizedProcessingDocuments(documents).length;
 
   async function handleLogout() {
     try {

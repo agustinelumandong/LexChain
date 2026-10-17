@@ -11,19 +11,17 @@ import EmailOutlinedIcon from '@mui/icons-material/EmailOutlined';
 import FileUploadIcon from '@mui/icons-material/FileUpload';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import { MetricCard } from '@/features/portal/components/portal-metric-card';
-import { getDocumentStatusLabel } from "@/features/documents";
+import { getDocumentProcessingStatusLabel } from "@/features/documents";
+import { getDocumentLifecycleLabel } from '@/features/documents/document-ui';
+import { getDocumentsByOwnership } from '@/features/documents/document-library';
+import { getFinalizedProcessingDocuments } from '@/features/portal/portal-dashboard';
+import type { ApiSchema } from '@/shared/types';
 import { dashboardResponseSchema, type DashboardResponse } from '@/features/admin';
 import { usePortalRole } from "@/features/access/components";
 import { portalRequest } from '@/shared/api/client';
 import { PortalApiError } from '@/shared/api/portal-error';
 
-interface Document {
-  id: string;
-  file_name: string;
-  status: string;
-  on_chain?: boolean | null;
-  created_at: string;
-}
+type Document = ApiSchema<'DocumentUploadResponse'>;
 
 async function fetchJson<T>(path: string): Promise<T> {
   const response = await portalRequest(`/api/portal/proxy?path=${encodeURIComponent(path)}`);
@@ -32,7 +30,7 @@ async function fetchJson<T>(path: string): Promise<T> {
 
 const cardClass = 'rounded-[18px] border border-[#E8F0F8] bg-white shadow-[0_4px_12px_rgba(19,59,115,0.05)]';
 
-function getStatusTone(status: string) {
+function getStatusTone(status?: string | null) {
   const value = status?.trim().toUpperCase();
   if (value === 'COMPLETED' || value === 'ANCHORED') return 'bg-[#EAF8F0] text-[#12A150]';
   if (value === 'PROCESSING' || value === 'PENDING') return 'bg-[#FFF4DD] text-[#B77900]';
@@ -44,13 +42,8 @@ function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
-function isProcessing(document: Document) {
-  const status = document.status?.trim().toUpperCase();
-  return status === 'PROCESSING' || status === 'PENDING';
-}
-
 function isAttentionDocument(document: Document) {
-  return document.status?.trim().toUpperCase() === 'FAILED';
+  return document.lifecycle === 'FINALIZED' && document.status?.trim().toUpperCase() === 'FAILED';
 }
 
 function getMetricIcon(label: string) {
@@ -116,12 +109,12 @@ export default function DashboardPage() {
     );
   }
 
-  const documents = documentsQuery.data ?? [];
+  const documents = getDocumentsByOwnership(documentsQuery.data ?? [], 'owned');
   const recentDocuments = [...documents]
     .sort((left, right) => new Date(right.created_at).getTime() - new Date(left.created_at).getTime())
     .slice(0, 5);
   const attentionDocuments = documents.filter(isAttentionDocument);
-  const processingDocuments = documents.filter(isProcessing);
+  const processingDocuments = getFinalizedProcessingDocuments(documents);
   const adminMetrics = adminDashboardQuery.data;
   const metrics = [
     ['Total Users', adminMetrics?.total_users],
@@ -203,7 +196,7 @@ export default function DashboardPage() {
 function DocumentLink({ document }: { document: Document }) {
   return <Link href={`/portal/documents/${document.id}`} className="flex items-center gap-4 py-4 first:pt-0 last:pb-0 transition hover:bg-[#F8FBFF]">
     <div className="flex h-[44px] w-[44px] shrink-0 items-center justify-center rounded-xl bg-[#EEF6FF]"><DescriptionIcon sx={{ fontSize: 20, color: '#0985E7' }} /></div>
-    <div className="min-w-0 flex-1"><div className="flex items-center gap-2"><span className="truncate text-sm font-bold text-[#0C2B49]">{document.file_name}</span><span className={`${getStatusTone(document.status)} shrink-0 rounded-full px-2.5 py-0.5 text-[11px] font-bold`}>{getDocumentStatusLabel(document.status)}</span></div><p className="mt-1 text-[11px] font-bold text-[#A0AAB8]">{formatDate(document.created_at)}</p></div>
+    <div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><span className="truncate text-sm font-bold text-[#0C2B49]">{document.file_name}</span><span className="shrink-0 rounded-full bg-[#EAF4FF] px-2.5 py-0.5 text-[11px] font-bold text-[#1689F5]">{getDocumentLifecycleLabel(document.lifecycle)}</span>{document.lifecycle === 'FINALIZED' && <span className={`${getStatusTone(document.status)} shrink-0 rounded-full px-2.5 py-0.5 text-[11px] font-bold`}>{getDocumentProcessingStatusLabel(document.lifecycle, document.status)}</span>}</div><p className="mt-1 text-[11px] font-bold text-[#A0AAB8]">{formatDate(document.created_at)}</p></div>
     <ChevronRightIcon sx={{ fontSize: 20, color: '#A0AAB8' }} />
   </Link>;
 }

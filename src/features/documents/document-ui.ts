@@ -14,6 +14,12 @@ export function getDocumentStatusLabel(status?: string | null): string {
   return 'Unknown';
 }
 
+export function getDocumentProcessingStatusLabel(lifecycle: string, status?: string | null): string {
+  return lifecycle === 'FINALIZED' && status?.trim().toUpperCase() === 'FAILED'
+    ? 'Processing failed'
+    : getDocumentStatusLabel(status);
+}
+
 export function getDocumentActions(
   role: PortalUiRole,
   document: ApiSchema<'DocumentResponse'>,

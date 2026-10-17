@@ -7,7 +7,7 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import type { ApiSchema } from '@/shared/types/index';
 import { PortalChatbot as PortalChatbot } from "@/features/portal/components";
 import { DocumentWorkspace } from '@/features/documents/components/document-workspace';
-import { getDocumentActions, getDocumentLifecycleLabel, getDocumentStatusLabel } from '@/features/documents/document-ui';
+import { getDocumentActions, getDocumentLifecycleLabel, getDocumentProcessingStatusLabel } from '@/features/documents/document-ui';
 import { renameDocument, finalizeDocument, markDocumentReady, reopenDocument, cancelDocument } from '@/features/documents/document-lifecycle-api';
 import { getPortalUiRole } from "@/features/access";
 import { Modal } from '@/features/admin/components/modal';
@@ -166,7 +166,7 @@ export default function DocumentDetailPage({ params }: { params: Promise<{ id: s
             <h1 className="mt-1 text-2xl font-extrabold leading-[30px] text-[#0C2B49]">{document.file_name}</h1>
             <div className="mt-2 flex flex-wrap items-center gap-2 text-[13px] font-medium text-[#64748b]">
               <span className="rounded-full bg-[#EAF4FF] px-2.5 py-0.5 text-[11px] font-bold text-[#1689F5]">{getDocumentLifecycleLabel(document.lifecycle)}</span>
-              <span className={`${statusStyle(document.status)} rounded-full px-2.5 py-0.5 text-[11px] font-bold`}>{getDocumentStatusLabel(document.status)}</span>
+              {document.lifecycle === 'FINALIZED' && <span className={`${statusStyle(document.status)} rounded-full px-2.5 py-0.5 text-[11px] font-bold`}>{getDocumentProcessingStatusLabel(document.lifecycle, document.status)}</span>}
             </div>
           </div>
           <div className="flex flex-wrap gap-2">

@@ -21,7 +21,7 @@ import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import { Dropdown } from "@/features/admin/components";
 import { MetricCard } from "@/features/portal/components";
-import { getDocumentLifecycleLabel, getDocumentStatusLabel } from '@/features/documents/document-ui';
+import { getDocumentLifecycleLabel, getDocumentProcessingStatusLabel } from '@/features/documents/document-ui';
 import { getPortalUiRole } from "@/features/access";
 import { CreateDocumentRecordForm } from '@/features/documents/components/create-document-record-form';
 import {
@@ -95,7 +95,7 @@ function DocumentBadges({ document }: { document: Document }) {
   return (
     <div className="flex flex-wrap items-center gap-2">
       <span className="rounded-full bg-[#EAF4FF] px-2.5 py-0.5 text-[11px] font-bold text-[#1689F5]">{getDocumentLifecycleLabel(document.lifecycle)}</span>
-      <span className={`${statusStyle(document.status)} rounded-full px-2.5 py-0.5 text-[11px] font-bold`}>{getDocumentStatusLabel(document.status)}</span>
+      {document.lifecycle === 'FINALIZED' && <span className={`${statusStyle(document.status)} rounded-full px-2.5 py-0.5 text-[11px] font-bold`}>{getDocumentProcessingStatusLabel(document.lifecycle, document.status)}</span>}
     </div>
   );
 }
@@ -171,7 +171,7 @@ function RecentlyUpdated({ docs }: { docs: Document[] }) {
             <div className="min-w-0">
               <Link href={`/portal/documents/${doc.id}`} className="truncate text-sm font-black text-[#071B33] hover:underline">{doc.file_name.length > 25 ? `${doc.file_name.slice(0, 25)}…` : doc.file_name}</Link>
               <p className="mt-0.5 text-xs font-semibold text-[#5B6F8A]">{formatDate(doc.created_at)}</p>
-              <span className={`mt-1 inline-block rounded-md px-2 py-0.5 text-[10px] font-black ${statusStyle(doc.status)}`}>{getDocumentLifecycleLabel(doc.lifecycle)} · {getDocumentStatusLabel(doc.status)}</span>
+              <span className={`mt-1 inline-block rounded-md px-2 py-0.5 text-[10px] font-black ${doc.lifecycle === 'FINALIZED' ? statusStyle(doc.status) : 'bg-[#EAF4FF] text-[#1689F5]'}`}>{getDocumentLifecycleLabel(doc.lifecycle)}{doc.lifecycle === 'FINALIZED' && ` · ${getDocumentProcessingStatusLabel(doc.lifecycle, doc.status)}`}</span>
             </div>
           </div>
         ))}
