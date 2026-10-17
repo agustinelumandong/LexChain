@@ -30,6 +30,18 @@ describe('notification requests', () => {
     ]);
   });
 
+  it('sends only one individual-read request for concurrent clicks on the same notification', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 204 }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await Promise.all([markNotificationRead('notice-1'), markNotificationRead('notice-1')]);
+
+    expect(fetchMock).toHaveBeenCalledExactlyOnceWith('/api/portal/proxy-post?path=%2Fnotifications%2Fnotice-1%2Fread', {
+      method: 'PATCH',
+      credentials: 'same-origin',
+    });
+  });
+
   it('rejects malformed unread counts', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json({ unread: '3' })));
     await expect(fetchUnreadNotificationCount()).rejects.toThrow('The unread notification count was unavailable. Please try again.');

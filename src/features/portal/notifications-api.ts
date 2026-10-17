@@ -11,6 +11,8 @@ export const notificationQueryKeys = {
   unreadCount: ['portal-notif-count'] as const,
 };
 
+const pendingNotificationReads = new Map<string, Promise<void>>();
+
 export async function fetchNotifications(): Promise<PortalNotificationList> {
   const response = await portalRequest('/api/portal/proxy?path=%2Fnotifications%2F', { credentials: 'same-origin' });
   return response.json();
@@ -32,11 +34,20 @@ export async function markAllNotificationsRead() {
   });
 }
 
-export async function markNotificationRead(id: string) {
-  await portalRequest(`/api/portal/proxy-post?path=${encodeURIComponent(`/notifications/${id}/read`)}`, {
+export function markNotificationRead(id: string): Promise<void> {
+  const pendingRequest = pendingNotificationReads.get(id);
+  if (pendingRequest) return pendingRequest;
+
+  const request = portalRequest(`/api/portal/proxy-post?path=${encodeURIComponent(`/notifications/${id}/read`)}`, {
     method: 'PATCH',
     credentials: 'same-origin',
-  });
+  }).then(() => undefined);
+  pendingNotificationReads.set(id, request);
+  void request.then(
+    () => pendingNotificationReads.delete(id),
+    () => pendingNotificationReads.delete(id),
+  );
+  return request;
 }
 
 export async function invalidateNotificationQueries(queryClient: QueryClient) {

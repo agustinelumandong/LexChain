@@ -101,8 +101,13 @@ try {
   await page.getByRole('link', { name: /New document/ }).waitFor();
   assert.ok(arrivedListResponses > 0, 'the active shell or inbox list must refetch after 45 seconds');
   await page.getByRole('button', { name: 'View notifications' }).locator('span').filter({ hasText: '6' }).waitFor();
+  await page.goto(`${baseUrl}/portal/dashboard`);
   await page.getByRole('button', { name: 'View notifications' }).click();
-  assert.equal(await page.getByRole('link', { name: /Missing metadata/ }).getAttribute('href'), '/portal/notifications');
+  const malformedMetadataLink = page.getByRole('link', { name: /Malformed metadata/ });
+  assert.equal(await malformedMetadataLink.getAttribute('href'), '/portal/notifications');
+  await malformedMetadataLink.click();
+  await page.waitForURL('**/portal/notifications');
+  assert.equal(itemReadAttempts.get('malformed-metadata'), 1);
   await page.getByRole('button', { name: 'View notifications' }).click();
 
   const missingMetadataButton = page.getByRole('button', { name: 'Mark Missing metadata as read' });
