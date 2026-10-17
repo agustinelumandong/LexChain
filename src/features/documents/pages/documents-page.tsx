@@ -206,6 +206,7 @@ export default function DocumentsPage() {
   const ownership = selectedOwnership ?? (isIssuer ? 'owned' : 'shared');
   const documents = getDocumentsByOwnership(allDocuments, ownership);
   const lifecycles = getDocumentLifecycles(documents);
+  if (lifecycle !== 'all' && !lifecycles.includes(lifecycle)) lifecycles.push(lifecycle);
   const ownershipLabel = ownership === 'owned' ? 'My documents' : 'Shared with me';
   function changeOwnership(value: 'owned' | 'shared') {
     setSelectedOwnership(value);
