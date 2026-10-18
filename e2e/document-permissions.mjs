@@ -122,7 +122,7 @@ try {
   await clientPage.getByText('Declined deed').waitFor({ state: 'detached' });
   assert.equal(new URL(clientPage.url()).pathname, '/portal/invitations');
   await clientPage.getByRole('button', { name: 'Accept' }).click();
-  await clientPage.getByRole('alert').filter({ hasText: 'Unable to accept this invitation.' }).waitFor();
+  await clientPage.getByRole('alert').filter({ hasText: 'Forbidden' }).waitFor();
   assert.equal(new URL(clientPage.url()).pathname, '/portal/invitations');
   await clientPage.getByRole('button', { name: 'Accept' }).click();
   await clientPage.waitForURL(`**/portal/documents/${documentId}`);

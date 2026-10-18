@@ -126,7 +126,8 @@ try {
   await startUpload('conflict');
   await page.getByRole('button', { name: 'Confirm and file' }).click();
   await page.getByRole('alert').filter({ hasText: 'The register page is full.' }).waitFor();
-  assert.match(await page.getByRole('alert').filter({ hasText: 'The register page is full.' }).innerText(), /page_no: Choose another page\./);
+  assert.match(await page.getByRole('alert').filter({ hasText: 'The register page is full.' }).innerText(), /selected PDF and information have been kept/i);
+  assert.equal(await page.locator('input[type="file"]').evaluate((input) => input.files?.[0]?.name), 'signed.pdf');
   assert.equal(await page.getByLabel('Paper page number').inputValue(), '3');
   assert.deepEqual(pageErrors, []);
 

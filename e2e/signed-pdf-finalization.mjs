@@ -179,7 +179,7 @@ try {
   await page.getByRole('tab', { name: 'Files' }).click();
   await page.getByRole('button', { name: 'Finalize' }).click();
   const confirmation = page.getByRole('dialog', { name: 'Confirm finalization' });
-  await confirmation.getByText('This freezes the signed copy and records its fingerprint on the blockchain. It cannot be undone.', { exact: true }).waitFor();
+  await confirmation.getByText('Demo mode: this action uses synthetic data. No real PDF digest or blockchain transaction will be produced.', { exact: true }).waitFor();
   await confirmation.getByRole('button', { name: 'Confirm finalization' }).click();
   await finalizeRequested;
   const pendingFinalize = confirmation.getByRole('button', { name: 'Finalizing…' });
@@ -188,7 +188,7 @@ try {
   assert.equal(finalizePosts.length, 1);
   releaseFinalize();
   for (const value of Object.values(record)) await page.getByText(value, { exact: true }).waitFor();
-  assert.equal(await page.getByText('Document finalized and anchored on-chain.').count(), 1);
+  await page.getByRole('status').filter({ hasText: 'Demo finalization complete. Synthetic demo data only; no real PDF digest or blockchain transaction was produced.' }).waitFor();
   assert.ok(detailFingerprints.every((fingerprint) => fingerprint === signedFingerprint));
 
   await page.goto(`${baseUrl}/portal/upload/processing?id=${documentId}`);

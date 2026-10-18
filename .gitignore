@@ -137,3 +137,6 @@ next-env.d.ts
 output
 
 lexchain_backend
+
+!docs/testing/
+!docs/testing/issue-125-journey-evidence.md
