@@ -5,6 +5,8 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ErrorIcon from '@mui/icons-material/Error';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import { useState } from 'react';
+import { getBaseSepoliaTransactionUrl } from '@/features/verification/integrity-ui';
+import { isMockMode } from '@/lib/mocks/mode';
 
 type VerificationResult = ApiSchema<'DocumentVerificationResponse'>;
 
@@ -17,7 +19,7 @@ function statusHeading(result: VerificationResult) {
   return 'Document integrity requires attention';
 }
 
-function HashRow({ label, hash }: { label: string; hash: string }) {
+function HashRow({ label, hash, transactionUrl }: { label: string; hash: string; transactionUrl?: string | null }) {
   const [copied, setCopied] = useState(false);
   const shortened = hash.length > 18 ? `${hash.slice(0, 10)}…${hash.slice(-6)}` : hash;
 
@@ -33,9 +35,12 @@ function HashRow({ label, hash }: { label: string; hash: string }) {
         <p className="text-[11px] font-black uppercase tracking-wide text-[#64748b]">{label}</p>
         <p className="mt-0.5 truncate font-mono text-xs font-semibold text-[#0C2B49]" title={hash}>{shortened}</p>
       </div>
-      <button type="button" onClick={() => void copyHash()} className="shrink-0 rounded-full border border-[#D7E4F2] bg-white px-3 py-1 text-[11px] font-black text-[#0985E7] transition hover:bg-[#EAF4FF]">
-        {copied ? 'Copied' : 'Copy'}
-      </button>
+      <div className="flex shrink-0 items-center gap-2">
+        {transactionUrl && <a href={transactionUrl} target="_blank" rel="noreferrer" aria-label="View transaction on Base Sepolia" className="text-[11px] font-black text-[#0985E7]">Base Sepolia</a>}
+        <button type="button" onClick={() => void copyHash()} className="rounded-full border border-[#D7E4F2] bg-white px-3 py-1 text-[11px] font-black text-[#0985E7] transition hover:bg-[#EAF4FF]">
+          {copied ? 'Copied' : 'Copy'}
+        </button>
+      </div>
     </div>
   );
 }
@@ -47,6 +52,7 @@ export default function VerifyWorkspace({ result, onRetry }: { result: Verificat
   const notAnchored = result.status === 'NOT_ANCHORED';
   const compromised = result.status === 'SNAPSHOT_COMPROMISED';
   const neutral = unavailable || notAnchored || compromised;
+  const simulated = isMockMode();
 
   return <section className="flex flex-col gap-5 md:min-h-0 md:flex-1">
     <div className={`rounded-[18px] border p-5 ${authentic ? 'border-green-200 bg-green-50' : neutral ? 'border-amber-200 bg-amber-50' : 'border-red-200 bg-red-50'}`}>
@@ -54,6 +60,7 @@ export default function VerifyWorkspace({ result, onRetry }: { result: Verificat
         {authentic ? <CheckCircleIcon className="text-[#12A150]" sx={{ fontSize: 38 }} /> : neutral ? <InfoOutlinedIcon className="text-[#B77900]" sx={{ fontSize: 38 }} /> : <ErrorIcon className="text-[#D94B66]" sx={{ fontSize: 38 }} />}
         <div><h2 className={`text-xl font-extrabold ${authentic ? 'text-[#12A150]' : neutral ? 'text-[#B77900]' : 'text-[#D94B66]'}`}>{statusHeading(result)}</h2><p className="mt-1 text-sm text-[#475467]">{contradictoryVerdict ? 'The backend returned conflicting verification fields, so integrity could not be confirmed.' : result.message}</p></div>
       </div>
+      {simulated && <p className="mt-2 text-sm font-semibold text-[#8A5B00]">Mock verification is simulated and does not represent a real backend or blockchain verification.</p>}
       {(unavailable || notAnchored) && <button type="button" onClick={onRetry} className="mt-4 rounded-full border border-[#0985E7] bg-white px-4 py-2 text-sm font-black text-[#0985E7]">Retry verification</button>}
     </div>
 
@@ -69,7 +76,7 @@ export default function VerifyWorkspace({ result, onRetry }: { result: Verificat
         {result.onchain_hash && <HashRow label="On-chain hash" hash={result.onchain_hash} />}
         {result.snapshot_hash && <HashRow label="Stored snapshot hash" hash={result.snapshot_hash} />}
         {result.current_hash && <HashRow label="Current document hash" hash={result.current_hash} />}
-        {result.tx_hash && <HashRow label="Transaction hash" hash={result.tx_hash} />}
+        {result.tx_hash && <HashRow label="Transaction hash" hash={result.tx_hash} transactionUrl={getBaseSepoliaTransactionUrl(result.tx_hash)} />}
       </div>
     </section>
   </section>;
