@@ -95,6 +95,7 @@ try {
       await page.reload();
     }
     await page.getByRole('heading', { name: heading, exact: true }).waitFor();
+    await page.getByText('Mock verification is simulated and does not represent a real backend or blockchain verification.', { exact: true }).waitFor();
     assert.equal(new URL(page.url()).pathname, `/portal/documents/${documentId}/verify`);
     const retryable = outcome === 'NOT_ANCHORED' || outcome === 'VERIFICATION_UNAVAILABLE';
     assert.equal(await page.getByRole('button', { name: 'Retry verification', exact: true }).count(), retryable ? 1 : 0);
@@ -119,7 +120,7 @@ try {
   assert.deepEqual(pageErrors, []);
   assert.deepEqual(unexpectedRequests, []);
   await context.close();
-  console.log('Document verification browser checks passed: finalized on_chain:false action, five distinct outcomes, retry availability, unavailable-to-authentic retry request count, copy control, and canonical Base Sepolia links for prefixed/repeated-prefix hashes. Same-origin API responses were intercepted: this is mocked frontend evidence, not real backend or blockchain verification.');
+  console.log('Document verification browser checks passed: finalized on_chain:false action, five distinct outcomes with the simulated-evidence notice, retry availability, unavailable-to-authentic retry request count, copy control, and canonical Base Sepolia links for prefixed/repeated-prefix hashes. Same-origin API responses were intercepted: this is mocked frontend evidence, not real backend or blockchain verification.');
 } finally {
   await browser.close();
 }
