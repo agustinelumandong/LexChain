@@ -79,6 +79,7 @@
 - [ ] Cover all five documented backend statuses with deterministic response fixtures, and assert unavailable is never shown as tampering.
 - [ ] Run against the local app using the existing `E2E_BASE_URL` convention; require a visible heading and bounded Playwright waits, no fixed sleeps.
 - [ ] Confirm the script states that API responses were intercepted and this is mocked frontend evidence.
+- [ ] With the local app started using mock-mode configuration, assert the browser-visible simulated-evidence warning; keep the page test's live-mode assertion that the warning is absent.
 - [ ] Add the package script and run the browser scenario successfully.
 - [ ] Commit as `test: cover document verification in browser`.
 
