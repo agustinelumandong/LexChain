@@ -6,6 +6,7 @@ import { IntegrityResult } from '@/features/verification/components/integrity-re
 import {
   INTEGRITY_SAFETY_MESSAGE,
   getDemoIntegrityState,
+  getBaseSepoliaTransactionUrl,
   getIntegrityUiCopy,
   getIntegrityUiState,
   getIntegrityResult,
@@ -44,6 +45,18 @@ describe('getIntegrityUiState', () => {
 
   it('reports a missing record as not recorded', () => {
     expect(getIntegrityUiState({ record: undefined, requestFailed: false })).toBe('not_recorded');
+  });
+});
+
+describe('getBaseSepoliaTransactionUrl', () => {
+  const hash = 'a'.repeat(64);
+
+  it.each([hash, `0x${hash}`, `0X0x${hash}`])('returns a canonical Base Sepolia URL for %s', (value) => {
+    expect(getBaseSepoliaTransactionUrl(value)).toBe(`https://sepolia.basescan.org/tx/0x${hash}`);
+  });
+
+  it.each([`${hash.slice(1)}`, `${hash.slice(1)}g`, ...['\n', '\r', '\u2028', '\u2029'].map((separator) => `${hash.slice(0, -1)}${separator}`), `${hash}\n`, `${hash}\r`, `${hash}\u2028`, `${hash}\u2029`])('rejects malformed transaction hash %s', (value) => {
+    expect(getBaseSepoliaTransactionUrl(value)).toBeNull();
   });
 });
 

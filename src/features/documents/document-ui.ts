@@ -29,7 +29,8 @@ export function getDocumentActions(
   if (role === 'lawyer' && document.permissions.can_rename) actions.push('Rename document');
   if (role === 'lawyer' && (status === 'AWAITING_REVIEW' || status === 'READY_FOR_REVIEW')) actions.push('Review extracted text');
   if (role === 'lawyer' && document.permissions.can_finalize) actions.push('Finalize');
-  if (document.permissions.can_view && document.on_chain) actions.push('Verify integrity');
+  const lifecycle = document.lifecycle?.trim().toUpperCase();
+  if (document.permissions.can_view && (lifecycle === 'FINALIZED' || document.on_chain)) actions.push('Verify integrity');
   return actions;
 }
 

@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, render, screen, within } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import DocumentVerifyPage from '@/features/documents/pages/documents-id-verify-page';
@@ -14,6 +14,8 @@ class ResizeObserverStub {
 
 beforeEach(() => {
   vi.stubGlobal('ResizeObserver', ResizeObserverStub);
+  vi.stubEnv('NEXT_PUBLIC_USE_MOCK_API', 'false');
+  vi.stubEnv('USE_MOCK_API', 'false');
 });
 
 function renderPage() {
@@ -31,10 +33,11 @@ afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
+  vi.unstubAllEnvs();
 });
 
 describe('DocumentVerifyPage', () => {
-  const verification = (status: string, isAuthentic: boolean, baselineTrusted: boolean) => ({
+  const verification = (status: string, isAuthentic: boolean, baselineTrusted: boolean, txHash: string | null = '0x' + 'a'.repeat(64)) => ({
     document_id: 'doc-1',
     status,
     is_authentic: isAuthentic,
@@ -42,7 +45,7 @@ describe('DocumentVerifyPage', () => {
     onchain_hash: 'on-chain-hash',
     snapshot_hash: 'snapshot-hash',
     current_hash: 'current-hash',
-    tx_hash: 'transaction-hash',
+    tx_hash: txHash,
     onchain_timestamp: 1_760_000_000,
     issued_by: null,
     finalized_at: '2026-10-07T10:00:00Z',
@@ -84,6 +87,7 @@ describe('DocumentVerifyPage', () => {
 
   it.each([
     ['AUTHENTIC', true, true, 'Document is authentic'],
+    ['TAMPERED', false, true, 'Document was tampered with'],
     ['NOT_ANCHORED', false, false, 'Document is not anchored'],
     ['VERIFICATION_UNAVAILABLE', false, true, 'Integrity status unavailable'],
     ['SNAPSHOT_COMPROMISED', false, false, 'Trusted snapshot is compromised'],
@@ -91,6 +95,59 @@ describe('DocumentVerifyPage', () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json(verification(status, authentic, baseline))));
     renderPage();
     expect(await screen.findByText(heading)).toBeTruthy();
+  });
+
+  it.each(['VERIFICATION_UNAVAILABLE', 'NOT_ANCHORED'])(
+    'allows retry for %s',
+    async (status) => {
+      const fetchMock = vi.fn()
+        .mockResolvedValueOnce(Response.json(verification(status, false, false)))
+        .mockResolvedValueOnce(Response.json(verification('AUTHENTIC', true, true)));
+      vi.stubGlobal('fetch', fetchMock);
+      renderPage();
+
+      await screen.findByRole('button', { name: 'Retry verification' });
+      screen.getByRole('button', { name: 'Retry verification' }).click();
+
+      expect(await screen.findByText('Document is authentic')).toBeTruthy();
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+    },
+  );
+
+  it('links a valid transaction hash to Base Sepolia beside the existing Copy control', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json(verification('AUTHENTIC', true, true))));
+    renderPage();
+
+    const transactionLink = await screen.findByRole('link', { name: 'View transaction on Base Sepolia' });
+    expect(transactionLink.getAttribute('href')).toBe(`https://sepolia.basescan.org/tx/0x${'a'.repeat(64)}`);
+    expect(within(screen.getByRole('region', { name: 'Verification result' })).getAllByRole('button', { name: 'Copy' })).not.toHaveLength(0);
+  });
+
+  it.each([null, 'not-a-transaction-hash'])(
+    'omits the transaction link for missing or malformed hash %s',
+    async (txHash) => {
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json(verification('AUTHENTIC', true, true, txHash))));
+      renderPage();
+
+      expect(await screen.findByText('Document is authentic')).toBeTruthy();
+      expect(screen.queryByRole('link', { name: 'View transaction on Base Sepolia' })).toBeNull();
+    },
+  );
+
+  it('labels mock verification as simulated but not live verification', async () => {
+    vi.stubEnv('NEXT_PUBLIC_USE_MOCK_API', 'true');
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json(verification('AUTHENTIC', true, true))));
+    const { unmount } = renderPage();
+
+    expect(await screen.findByText(/simulated and does not represent a real backend or blockchain verification/i)).toBeTruthy();
+
+    unmount();
+    vi.stubEnv('NEXT_PUBLIC_USE_MOCK_API', 'false');
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json(verification('AUTHENTIC', true, true))));
+    renderPage();
+
+    expect(await screen.findByText('Document is authentic')).toBeTruthy();
+    expect(screen.queryByText(/simulated and does not represent a real backend or blockchain verification/i)).toBeNull();
   });
 
   it('labels a failed verification request separately from a backend tamper verdict', async () => {

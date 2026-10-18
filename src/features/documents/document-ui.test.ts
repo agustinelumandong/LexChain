@@ -57,4 +57,16 @@ describe('getDocumentStatusLabel', () => {
     expect(getDocumentActions('lawyer', document)).toEqual([]);
     expect(getDocumentActions('user', permitted)).toEqual(['Verify integrity']);
   });
+
+  it('offers verification for finalized viewable documents without an on-chain record', () => {
+    expect(getDocumentActions('user', { ...document, lifecycle: 'FINALIZED' })).toEqual(['Verify integrity']);
+  });
+
+  it('does not offer verification for finalized documents without view permission', () => {
+    expect(getDocumentActions('user', {
+      ...document,
+      lifecycle: 'FINALIZED',
+      permissions: { ...document.permissions, can_view: false },
+    })).toEqual([]);
+  });
 });
