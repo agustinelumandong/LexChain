@@ -40,6 +40,8 @@ let document = {
 };
 const filingRequests = [];
 let attachmentAttempts = 0;
+let directUploadAttempts = 0;
+let replacementRequest;
 const oversizedPdfPath = join(tmpdir(), `lexchain-oversized-${process.pid}.pdf`);
 
 await context.addCookies([
@@ -76,9 +78,27 @@ await page.route('**/api/portal/proxy*', async (route) => {
       return;
     }
 
+    if (path === '/documents/prepared-document/signed-copy' && request.method() === 'PUT') {
+      replacementRequest = { contentType: request.headers()['content-type'] ?? '', body: request.postDataBuffer()?.toString('latin1') ?? '' };
+      document = {
+        ...document,
+        signed_copy: { ...document.signed_copy, original_filename: 'replacement.pdf' },
+      };
+      await route.fulfill({ status: 200, json: document });
+      return;
+    }
+
     if (path.startsWith('/documents/upload?')) {
       filingRequests.push({ path, contentType: request.headers()['content-type'] ?? '', body: request.postDataBuffer()?.toString('latin1') ?? '' });
-      const uploaded = { ...document, document_id: 'direct-upload', file_name: 'Direct deed', lifecycle: 'SIGNED', book_id: 'open-book' };
+      directUploadAttempts += 1;
+      const uploaded = {
+        ...document,
+        document_id: directUploadAttempts === 3 ? 'direct-upload-auto' : 'direct-upload',
+        file_name: 'Direct deed',
+        lifecycle: 'SIGNED',
+        book_id: 'open-book',
+        ...(directUploadAttempts === 3 ? { doc_no: 13, page_no: 1 } : {}),
+      };
       document = uploaded;
       await route.fulfill({ status: 201, json: uploaded });
       return;
@@ -133,6 +153,16 @@ try {
   assert.equal(attachmentQuery.has('doc_no'), false);
   assert.equal(attachmentQuery.has('page_no'), false);
 
+  await page.getByRole('button', { name: 'Replace signed PDF' }).click();
+  await page.getByLabel('Signed PDF').setInputFiles({ name: 'replacement.pdf', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-1.7 replacement') });
+  await page.getByLabel('Replacement reason').fill('Corrected signature page.');
+  await page.getByRole('button', { name: 'Confirm replacement' }).click();
+  await page.getByRole('status').filter({ hasText: 'Signed PDF replaced.' }).waitFor();
+  assert.match(replacementRequest.contentType, /^multipart\/form-data; boundary=/);
+  assert.match(replacementRequest.body, /filename="replacement\.pdf"/);
+  assert.match(replacementRequest.body, /name="reason"\r\n\r\nCorrected signature page\./);
+  await page.getByText('replacement.pdf', { exact: true }).waitFor();
+
   await page.goto(`${baseUrl}/portal/upload`);
   await page.getByRole('button', { name: 'Register book' }).waitFor({ state: 'visible' });
   const filePicker = page.locator('input[type="file"]');
@@ -175,7 +205,21 @@ try {
   assert.equal(closedUploadQuery.get('page_no'), '24');
   assert.equal(filingRequests.some(({ path }) => path.includes('processing')), false);
 
-  console.log('Signed filing browser checks passed: ready without a book, automatic attachment numbering, attachment retry, 60 MiB rejection, open-book manual and closed-book required numbering, and no OCR polling.');
+  await page.goto(`${baseUrl}/portal/upload`);
+  await page.getByRole('button', { name: 'Register book' }).waitFor({ state: 'visible' });
+  await page.getByRole('button', { name: 'Register book' }).click();
+  await page.getByRole('option', { name: /Register book 5/ }).click();
+  await page.getByLabel('Document title').fill('Open automatic deed');
+  await filePicker.setInputFiles(attachFile);
+  await page.getByRole('button', { name: 'Confirm and file' }).click();
+  await page.getByRole('status').filter({ hasText: 'Signed document filed' }).waitFor();
+  const automaticUploadQuery = new URLSearchParams(filingRequests[4].path.split('?')[1]);
+  assert.equal(automaticUploadQuery.get('book_id'), 'open-book');
+  assert.equal(automaticUploadQuery.has('doc_no'), false);
+  assert.equal(automaticUploadQuery.has('page_no'), false);
+  await page.getByText('Document number 13 · Page 1').waitFor();
+
+  console.log('Signed filing browser checks passed: ready without a book, automatic attachment numbering, attachment retry, 60 MiB rejection, open-book automatic and manual numbering, closed-book required numbering, and no OCR polling.');
 } finally {
   await unlink(oversizedPdfPath).catch(() => {});
   await browser.close();

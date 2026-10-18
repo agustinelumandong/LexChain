@@ -14,6 +14,7 @@
     "e2e:google-comments": "node e2e/google-comments.mjs",
     "e2e:document-permissions": "node e2e/document-permissions.mjs",
     "e2e:document-verification": "node e2e/document-verification.mjs",
+    "e2e:document-journeys": "node e2e/prepared-document-journey.mjs && node e2e/direct-filing-journey.mjs",
     "e2e:owned-shared-documents": "node e2e/owned-shared-documents.mjs",
     "lint": "eslint",
     "test": "vitest run",

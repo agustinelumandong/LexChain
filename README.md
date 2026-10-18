@@ -84,6 +84,10 @@ E2E_BASE_URL='http://localhost:3000' node e2e/pwa.mjs
 
 The separate `node e2e/full-flow.mjs` script mutates backend data and needs a test backend, test accounts and a PDF fixture. Supply `E2E_LAWYER_EMAIL`, `E2E_LAWYER_PASSWORD`, `E2E_PARTICIPANT_EMAIL`, `E2E_PARTICIPANT_PASSWORD` and `E2E_PDF_PATH` through the environment; `E2E_BASE_URL` selects the web server. It is not a production smoke test.
 
+Run the deterministic prepared and direct filing journeys with `pnpm e2e:document-journeys` against the local development server. These scripts intercept same-origin API responses with fixtures; they verify frontend behavior only and do not contact Google, OCR, a blockchain or the backend. Existing focused checks remain available through their `e2e:*` scripts above.
+
+`node e2e/full-flow.mjs` is a legacy live smoke that mutates backend data. It requires `E2E_BASE_URL` on localhost, `E2E_BACKEND_URL`, an identical `E2E_DISPOSABLE_BACKEND_CONFIRM`, both test accounts, and `E2E_PDF_PATH`. Configure the local Next.js server's `API_URL` to that exact disposable backend before running it; the script cannot verify the server's forwarding target. Never point it at production.
+
 ## Deployment and architecture
 
 Set the hosting project's root directory to **`.`**, install with `pnpm install --frozen-lockfile`, build with `pnpm build`, and use `pnpm start` when the host requires a start command. Configure the environment on the host; local environment files are not deployment configuration. Serve production over HTTPS for service-worker installation.
