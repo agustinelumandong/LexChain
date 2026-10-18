@@ -248,17 +248,21 @@ let documents: MockDocument[] = [
 let notifications = [
   {
     id: 'mock-notification-1',
+    type: 'document_recorded',
     title: 'Document anchored',
     body: 'Lease Agreement.pdf is now recorded on-chain.',
     is_read: false,
     created_at: '2026-07-10T09:05:00.000Z',
+    event_metadata: { document_id: 'mock-document-1' },
   },
   {
     id: 'mock-notification-2',
+    type: 'document_processed',
     title: 'Document processing',
     body: 'Certificate of Employment.pdf is being processed.',
     is_read: false,
     created_at: '2026-07-13T13:30:00.000Z',
+    event_metadata: { document_id: 'mock-document-2' },
   },
 ];
 
@@ -703,10 +707,12 @@ async function uploadDocument(request: Request, path: string) {
   } : candidate);
   notifications = [{
     id: `mock-notification-${Date.now()}`,
+    type: 'document_processed',
     title: 'Document uploaded',
     body: `${fileName} is ready to review.`,
     is_read: false,
     created_at: now,
+    event_metadata: { document_id: id },
   }, ...notifications];
   return json({ document_id: id, status: document.status }, 201);
 }

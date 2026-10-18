@@ -6,6 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "e2e:notifications": "node e2e/notifications.mjs",
     "e2e:session-recovery": "node e2e/session-recovery.mjs",
     "e2e:signed-filing": "node e2e/signed-filing.mjs",
     "e2e:upload-recovery": "node e2e/upload-recovery.mjs",

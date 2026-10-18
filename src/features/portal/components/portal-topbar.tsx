@@ -6,8 +6,8 @@ import LogoutIcon from '@mui/icons-material/Logout';
 import NotificationsNoneOutlinedIcon from '@mui/icons-material/NotificationsNoneOutlined';
 import type { PortalUiRole } from "@/features/access";
 import { PortalSearchBar } from '@/features/portal/components/portal-search-bar';
-
-type PortalNotification = { id: string; title: string; body: string; is_read: boolean; created_at: string };
+import { getNotificationDestination } from '@/features/portal/notification-destination';
+import type { PortalNotification } from '@/features/portal/notifications-api';
 
 type PortalTopBarProps = {
   fullName?: string;
@@ -21,10 +21,10 @@ type PortalTopBarProps = {
   notifications?: PortalNotification[];
   notificationsLoading?: boolean;
   notificationsError?: string;
-  markAllError?: string;
-  markAllPending?: boolean;
+  markNotificationError?: string;
+  markNotificationPending?: boolean;
   onRetryNotifications?: () => void;
-  onMarkAllRead?: () => void;
+  onMarkNotificationRead?: (id: string) => void;
   onSignOut: () => void;
 };
 
@@ -32,7 +32,7 @@ function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 }
 
-export function PortalTopBar({ fullName, initials, roleLabel, role, processingCount, unreadCount = 0, unreadCountLoading, unreadCountError, notifications = [], notificationsLoading, notificationsError, markAllError, markAllPending, onRetryNotifications, onMarkAllRead, onSignOut }: PortalTopBarProps) {
+export function PortalTopBar({ fullName, initials, roleLabel, role, processingCount, unreadCount = 0, unreadCountLoading, unreadCountError, notifications = [], notificationsLoading, notificationsError, markNotificationError, markNotificationPending, onRetryNotifications, onMarkNotificationRead, onSignOut }: PortalTopBarProps) {
   const processingLabel = processingCount === 1 ? '1 document processing' : `${processingCount} documents processing`;
   const { open: accountMenuOpen, setOpen: setAccountMenuOpen, ref: accountMenuRef } = usePopup();
   const { open: notificationMenuOpen, setOpen: setNotificationMenuOpen, ref: notificationMenuRef } = usePopup();
@@ -81,15 +81,13 @@ export function PortalTopBar({ fullName, initials, roleLabel, role, processingCo
                   ) : unreadCount !== undefined && unreadCount > 0 ? (
                     <span className="rounded-full bg-[#EAF4FF] px-2 py-0.5 text-[11px] font-black text-[#0985E7]">{unreadCount} unread</span>
                   ) : null}
-                  {markAllPending && <span role="status" className="text-[11px] font-semibold text-[var(--portal-text-muted)]">Updating…</span>}
+                  {markNotificationPending && <span role="status" className="text-[11px] font-semibold text-[var(--portal-text-muted)]">Marking as read…</span>}
                 </div>
                 <ul className="max-h-96 overflow-y-auto">
                   {notificationsLoading || (unreadCountLoading && unreadCount === undefined) ? (
                     <li role="status" className="px-4 py-6 text-center text-sm font-semibold text-[var(--portal-text-muted)]">Loading notifications…</li>
                   ) : notificationsError ? (
                     <li role="alert" className="px-4 py-6 text-center text-sm font-semibold text-red-700">{notificationsError}<button type="button" onClick={onRetryNotifications} className="ml-2 underline">Retry</button></li>
-                  ) : markAllError ? (
-                    <li role="alert" className="px-4 py-6 text-center text-sm font-semibold text-red-700">{markAllError}</li>
                   ) : unreadCountError ? (
                     <li className="px-4 py-6 text-center text-sm font-semibold text-[var(--portal-text-muted)]">Notification status is unavailable.<button type="button" onClick={onRetryNotifications} className="ml-2 underline">Retry</button></li>
                   ) : unreadCount === 0 ? (
@@ -97,22 +95,28 @@ export function PortalTopBar({ fullName, initials, roleLabel, role, processingCo
                   ) : unreadNotifications.length === 0 ? (
                     <li className="px-4 py-6 text-center text-sm font-semibold text-[var(--portal-text-muted)]">Unread notifications could not be listed.</li>
                   ) : (
-                    unreadNotifications.map((n) => (
-                      <li key={n.id} className="border-b border-[var(--portal-border-soft)] last:border-b-0">
-                        <button
-                          type="button"
-                          onClick={onMarkAllRead}
-                          disabled={markAllPending}
-                          className="block w-full px-4 py-3 text-left transition hover:bg-[var(--portal-surface-soft)]"
-                        >
-                          <p className="truncate text-sm font-black text-[var(--portal-navy)]">{n.title}</p>
-                          <p className="mt-0.5 line-clamp-2 text-xs font-medium text-[var(--portal-text-muted)]">{n.body}</p>
-                          <p className="mt-1 text-[11px] font-semibold text-[var(--portal-text-muted)]">{formatDate(n.created_at)}</p>
-                        </button>
-                      </li>
-                    ))
+                    unreadNotifications.map((n) => {
+                      const destination = getNotificationDestination(n);
+                      const href = destination?.href ?? '/portal/notifications';
+                      const linkProps = destination?.external ? { target: '_blank', rel: 'noreferrer' } : {};
+                      return (
+                        <li key={n.id} className="border-b border-[var(--portal-border-soft)] last:border-b-0">
+                          <Link
+                            href={href}
+                            {...linkProps}
+                            onClick={() => onMarkNotificationRead?.(n.id)}
+                            className="block w-full px-4 py-3 text-left transition hover:bg-[var(--portal-surface-soft)]"
+                          >
+                            <p className="truncate text-sm font-black text-[var(--portal-navy)]">{n.title}</p>
+                            <p className="mt-0.5 line-clamp-2 text-xs font-medium text-[var(--portal-text-muted)]">{n.body}</p>
+                            <p className="mt-1 text-[11px] font-semibold text-[var(--portal-text-muted)]">{formatDate(n.created_at)}</p>
+                          </Link>
+                        </li>
+                      );
+                    })
                   )}
                 </ul>
+                {markNotificationError && <p role="alert" className="border-t border-[var(--portal-border-soft)] px-4 py-2 text-xs font-semibold text-red-700">{markNotificationError}</p>}
                 <Link
                   href="/portal/notifications"
                   onClick={() => setNotificationMenuOpen(false)}
