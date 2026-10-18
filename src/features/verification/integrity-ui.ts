@@ -43,7 +43,7 @@ export function shortenIntegrityHash(hash: string): string {
 
 export function getBaseSepoliaTransactionUrl(hash: string): string | null {
   const transactionHash = hash.replace(/^(?:0x)+/i, '');
-  return transactionHash.length === 64 && /^[a-f\d]+$/i.test(transactionHash)
+  return transactionHash.length === 64 && /^[a-f\d]+(?![\s\S])/i.test(transactionHash)
     ? `https://sepolia.basescan.org/tx/0x${transactionHash}`
     : null;
 }
