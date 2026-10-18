@@ -41,6 +41,13 @@ export function shortenIntegrityHash(hash: string): string {
   return hash.length > 20 ? `${hash.slice(0, 10)}…${hash.slice(-8)}` : hash;
 }
 
+export function getBaseSepoliaTransactionUrl(hash: string): string | null {
+  const transactionHash = hash.replace(/^(?:0x)+/i, '');
+  return /^[a-f\d]{64}$/i.test(transactionHash)
+    ? `https://sepolia.basescan.org/tx/0x${transactionHash}`
+    : null;
+}
+
 export type IntegrityResult = {
   label: 'Match' | 'Mismatch' | 'No Record';
   description: string;
