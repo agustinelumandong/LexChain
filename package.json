@@ -18,7 +18,8 @@
     "typecheck": "tsc --noEmit",
     "generate:api-types": "openapi-typescript openapi-updated.json -o src/shared/types/generated/schema.ts",
     "refresh:api-contract": "node scripts/fetch-openapi.mjs",
-    "test:scripts": "node --test scripts/*.test.mjs"
+    "test:scripts": "node --test scripts/*.test.mjs",
+    "e2e:signed-pdf-finalization": "node e2e/signed-pdf-finalization.mjs"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",

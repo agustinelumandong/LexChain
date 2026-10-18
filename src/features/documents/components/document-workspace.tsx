@@ -67,35 +67,17 @@ function InsightGroup({ title, items }: { title: string; items?: unknown[] | nul
 type DocumentWorkspaceProps = {
   document: WorkspaceDocument;
   role?: PortalUiRole;
-  finalizationResult?: ApiSchema<'RecordResponse'>;
-  confirmingFinalize?: boolean;
-  isFinalizing?: boolean;
-  finalizeError?: string | null;
-  onCancelFinalize?: () => void;
-  onConfirmFinalize?: () => void;
-  success?: string;
   readinessError?: Error | null;
-  readinessSuccess?: string;
   isChangingReadiness?: boolean;
   onMarkReady?: () => void;
   onReopen?: () => void;
   onDocumentUpdated?: (document: WorkspaceDocument) => void;
 };
 
-const finalizationConfirmation = 'This will anchor the approved document hash on-chain and finalize the document. This action cannot be undone.';
-
 export function DocumentWorkspace({
   document,
   role = 'user',
-  finalizationResult,
-  confirmingFinalize = false,
-  isFinalizing = false,
-  finalizeError = null,
-  onCancelFinalize,
-  onConfirmFinalize,
-  success,
   readinessError,
-  readinessSuccess,
   isChangingReadiness = false,
   onMarkReady,
   onReopen,
@@ -301,22 +283,7 @@ export function DocumentWorkspace({
               <InsightGroup title="Entities" items={document.entities} />
               <InsightGroup title="Risk flags" items={document.risk_flags} />
             </div>}
-            {success && <p role="status" className="rounded-xl border border-[#BCE8CC] bg-[#F1FBF5] px-4 py-3 text-sm font-bold text-[#0C7A3B]">{success}</p>}
-            {finalizationResult && <dl className="grid gap-3 rounded-xl bg-[#F8FBFF] p-4 text-sm sm:grid-cols-2"><div><dt className="font-bold text-[#64748b]">Document ID</dt><dd className="mt-1 break-all font-mono text-[#0C2B49]">{finalizationResult.document_id}</dd></div><div><dt className="font-bold text-[#64748b]">On-chain document ID</dt><dd className="mt-1 break-all font-mono text-[#0C2B49]">{finalizationResult.onchain_document_id}</dd></div><div><dt className="font-bold text-[#64748b]">Data hash</dt><dd className="mt-1 break-all font-mono text-[#0C2B49]">{finalizationResult.data_hash}</dd></div><div><dt className="font-bold text-[#64748b]">Transaction hash</dt><dd className="mt-1 break-all font-mono text-[#0C2B49]">{finalizationResult.tx_hash}</dd></div></dl>}
             <p className="text-sm leading-6 text-[#64748b]">Use this workspace to review the original file, derived assistance, and available integrity information.</p>
-            {confirmingFinalize && (
-              <div role="dialog" aria-modal="true" aria-label="Confirm finalization" className="fixed inset-0 z-50 flex items-center justify-center bg-[#0C2B49]/40 p-4">
-                <div className="w-full max-w-md rounded-2xl border border-[#CFE7FC] bg-white p-6 shadow-[0_16px_40px_rgba(12,43,73,0.25)]">
-                  <p className="text-lg font-black text-[#0C2B49]">Finalize this document?</p>
-                  <p className="mt-2 text-sm leading-6 text-[#64748b]">{finalizationConfirmation}</p>
-                  {finalizeError && <p role="alert" className="mt-3 rounded-xl bg-red-50 p-3 text-sm font-bold text-[#B42318]">{finalizeError}</p>}
-                  <div className="mt-5 flex flex-wrap justify-end gap-2">
-                    <button type="button" onClick={onCancelFinalize} disabled={isFinalizing} className="rounded-full border border-[#D6E3F1] px-4 py-2 text-sm font-bold text-[#0C2B49] disabled:opacity-60">Cancel</button>
-                    <button type="button" onClick={onConfirmFinalize} disabled={isFinalizing} className="rounded-full bg-[#0985E7] px-4 py-2 text-sm font-bold text-white disabled:opacity-60">{isFinalizing ? 'Finalizing…' : 'Confirm finalization'}</button>
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
         )}
 
@@ -347,7 +314,6 @@ export function DocumentWorkspace({
             {syncComments.isError && <p role="alert" className="text-sm font-bold text-[#B42318]">{syncComments.error instanceof Error ? syncComments.error.message : 'Unable to sync comments.'}</p>}
             {commentsQuery.data && <><p className="text-sm font-bold text-[#64748b]">{commentsQuery.data.unresolved} unresolved · Last synced {formatDate(commentsQuery.data.synced_at)}</p>{commentsQuery.data.comments.length === 0 ? <p className="text-sm text-[#64748b]">No comments found in the draft.</p> : commentsQuery.data.comments.map((comment) => <article key={comment.id} className="space-y-2 rounded-xl border border-[#E8F0F8] bg-[#F8FBFF] p-4"><div className="flex justify-between gap-3"><p className="font-bold text-[#0C2B49]">{comment.author_name || 'Draft commenter'}</p><span className="text-xs text-[#64748b]">{comment.resolved ? 'Resolved' : 'Unresolved'}</span></div>{comment.quoted_text && <blockquote className="border-l-2 border-[#0985E7] pl-3 text-sm text-[#64748b]">{comment.quoted_text}</blockquote>}<p className="whitespace-pre-wrap text-sm text-[#0C2B49]">{comment.content}</p>{comment.replies?.map((reply, index) => <div key={`${comment.id}-reply-${index}`} className="ml-4 border-l border-[#D6E3F1] pl-3"><p className="text-xs font-bold text-[#64748b]">{reply.author_name || 'Reply'}{reply.action === 'resolve' ? ' · Resolved thread' : reply.action === 'reopen' ? ' · Reopened thread' : ''}</p><p className="whitespace-pre-wrap text-sm text-[#0C2B49]">{reply.content}</p></div>)}</article>)}</>}
             {readinessError && <div role="alert" className="space-y-2 rounded-xl bg-red-50 p-3 text-sm font-bold text-[#B42318]"><p>{readinessError.message}</p>{readinessError instanceof LifecycleRequestError && readinessError.reason === 'UNRESOLVED_COMMENTS' && <>{typeof readinessError.unresolved === 'number' && Number.isInteger(readinessError.unresolved) && readinessError.unresolved >= 0 && <p>{readinessError.unresolved} unresolved comments remain.</p>}{typeof readinessError.draftUrl === 'string' && isGoogleDraftUrl(readinessError.draftUrl) && <a className="underline" href={readinessError.draftUrl} target="_blank" rel="noreferrer">Open Google draft to resolve comments</a>}</>}</div>}
-            {readinessSuccess && <p role="status" className="text-sm font-bold text-[#067647]">{readinessSuccess}</p>}
             <div className="flex gap-2">{document.permissions.can_mark_ready && <button type="button" onClick={onMarkReady} disabled={isChangingReadiness} className="rounded-full bg-[#0985E7] px-4 py-2 text-sm font-bold text-white disabled:opacity-60">{isChangingReadiness ? 'Updating…' : 'Mark ready for signature'}</button>}{document.permissions.can_reopen && <button type="button" onClick={onReopen} disabled={isChangingReadiness} className="rounded-full border border-[#0985E7] px-4 py-2 text-sm font-bold text-[#0985E7] disabled:opacity-60">Reopen draft</button>}</div>
           </div>
         )}

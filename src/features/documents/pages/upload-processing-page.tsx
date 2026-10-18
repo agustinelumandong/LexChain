@@ -1,8 +1,8 @@
 'use client';
 
-import { use } from 'react';
+import { use, useEffect } from 'react';
 import Link from 'next/link';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ErrorIcon from '@mui/icons-material/Error';
 import type { ApiSchema } from '@/shared/types/index';
@@ -26,25 +26,36 @@ export default function ProcessingPage({
   searchParams: Promise<{ id?: string }>;
 }) {
   const id = use(searchParams).id ?? '';
+  const queryClient = useQueryClient();
 
   const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ['portal-doc-status', id],
     queryFn: () => fetchDocument(id),
     enabled: !!id,
     refetchInterval: (query) => {
-      if (query.state.data?.lifecycle !== 'FINALIZED') return 2000;
+      if (query.state.data?.lifecycle?.trim().toUpperCase() !== 'FINALIZED') return 2000;
       const currentStatus = query.state.data?.status?.trim().toLowerCase() ?? '';
       return DONE.has(currentStatus) || FAILED.has(currentStatus) || REVIEW_READY.has(currentStatus) ? false : 2000;
     },
   });
 
-  const isFinalized = data?.lifecycle === 'FINALIZED';
+  const isFinalized = data?.lifecycle?.trim().toUpperCase() === 'FINALIZED';
   const status = data?.status?.trim().toLowerCase() ?? 'processing';
   const done = isFinalized && DONE.has(status);
   const reviewReady = isFinalized && REVIEW_READY.has(status);
   const lookupError = isError && !!id;
   const failed = (isFinalized && FAILED.has(status)) || !id;
   const normalizedStatus = getDocumentProcessingStatusLabel(data?.lifecycle ?? '', data?.status ?? (failed ? 'FAILED' : 'PROCESSING'));
+  const processingTerminal = isFinalized && (done || reviewReady || FAILED.has(status));
+
+  useEffect(() => {
+    if (!id || !processingTerminal) return;
+    void Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['portal-doc', id] }),
+      queryClient.invalidateQueries({ queryKey: ['portal-documents'] }),
+      queryClient.invalidateQueries({ queryKey: ['portal-search'] }),
+    ]);
+  }, [id, processingTerminal, queryClient]);
 
   return (
     <div className="flex min-h-[60vh] flex-col items-center justify-center gap-6 text-center">

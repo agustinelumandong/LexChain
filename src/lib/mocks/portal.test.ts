@@ -53,23 +53,21 @@ describe('portal mock extraction contract', () => {
 });
 
 describe('portal mock mutations', () => {
-  it('requires extraction approval before finalizing once with its snapshot audit trail', async () => {
-    const premature = await mockPortalMutate(
-      'POST',
-      '/documents/mock-document-2/finalize',
-      new Request('https://mock.lexchain.local/api/portal/proxy-post', { method: 'POST' }),
-      'mock-token:mock-document-issuer',
-    );
-    expect(premature.status).toBe(400);
-
-    const approval = await mockPortalMutate(
-      'POST',
-      '/documents/mock-document-2/extraction/approve',
-      new Request('https://mock.lexchain.local/api/portal/proxy-post', { method: 'POST' }),
-      'mock-token:mock-document-issuer',
-    );
-    const approved = await approval.json() as { content_hash: string };
-    expect(approval.status).toBe(200);
+  it('finalizes the signed copy before extraction approval and returns the same synthetic record on repeat', async () => {
+    const before = await mockPortalGet('/documents/mock-document-2', 'mock-token:mock-document-issuer').json() as {
+      lifecycle: string;
+      status: string | null;
+      document_hash: string | null;
+      signed_copy: { sha256: string; storage_url: string; size_bytes: number; is_current: boolean };
+      permissions: { can_finalize: boolean };
+    };
+    expect(before).toMatchObject({
+      lifecycle: 'signed',
+      status: null,
+      document_hash: null,
+      signed_copy: { sha256: expect.stringMatching(/^mock-signed-pdf:/), is_current: true },
+      permissions: { can_finalize: true },
+    });
 
     const first = await mockPortalMutate(
       'POST',
@@ -79,20 +77,22 @@ describe('portal mock mutations', () => {
     );
 
     expect(first.status).toBe(200);
-    await expect(first.json()).resolves.toEqual({
+    const record = await first.json() as { data_hash: string };
+    expect(record).toEqual({
       document_id: 'mock-document-2',
       tx_hash: expect.any(String),
       onchain_document_id: 'chain-mock-document-2',
-      data_hash: approved.content_hash,
+      data_hash: before.signed_copy.sha256,
     });
 
     await expect(mockPortalGet('/documents/mock-document-2', 'mock-token:mock-document-issuer').json()).resolves.toMatchObject({
       lifecycle: 'finalized',
       on_chain: true,
-      document_hash: expect.stringMatching(/^[a-f0-9]{64}$/),
+      document_hash: before.signed_copy.sha256,
+      signed_copy: before.signed_copy,
       finalized_by: 'mock-document-issuer',
       anchor_status: 'confirmed',
-      snapshots: [expect.objectContaining({ document_id: 'mock-document-2' })],
+      snapshots: [expect.objectContaining({ document_id: 'mock-document-2', text_hash: before.signed_copy.sha256 })],
     });
 
     const snapshots = mockPortalGet('/documents/mock-document-2/snapshots', 'mock-token:mock-document-issuer');
@@ -112,9 +112,11 @@ describe('portal mock mutations', () => {
       'mock-token:mock-document-issuer',
     );
     expect(second.status).toBe(200);
-    await expect(second.json()).resolves.toMatchObject({
+    await expect(second.json()).resolves.toEqual({
       document_id: 'mock-document-2',
+      tx_hash: expect.any(String),
       onchain_document_id: 'chain-mock-document-2',
+      data_hash: record.data_hash,
     });
 
     const audits = await mockPortalGet('/documents/mock-document-2/audit-logs', 'mock-token:mock-document-issuer').json();
@@ -714,16 +716,11 @@ describe('portal mock extraction review', () => {
       is_reviewed: false,
     });
     await expect(extractionMock.mockPortalGet('/documents/mock-document-2', issuerToken).json()).resolves.toMatchObject({
-      status: 'ready_for_review',
+      lifecycle: 'signed',
+      status: null,
       on_chain: false,
-      lifecycle: 'draft',
+      permissions: { can_finalize: true },
     });
-    expect((await extractionMock.mockPortalMutate(
-      'POST',
-      '/documents/mock-document-2/finalize',
-      request('POST'),
-      issuerToken,
-    )).status).toBe(400);
 
     const denied = await extractionMock.mockPortalMutate(
       'POST',
@@ -734,7 +731,7 @@ describe('portal mock extraction review', () => {
     expect(denied.status).toBe(403);
   });
 
-  it('moves an upload from review-ready extraction through approval and completion before finalization', async () => {
+  it('keeps legacy uploaded drafts unfinalizable after extraction approval', async () => {
     const extractionMock = await freshMock();
     const form = new FormData();
     form.append('file', new File(['PDF'], 'new-document.pdf', { type: 'application/pdf' }));
@@ -760,28 +757,18 @@ describe('portal mock extraction review', () => {
     const approved = await approval.json() as { content_hash: string };
     expect(approval.status).toBe(200);
     await expect(extractionMock.mockPortalGet(path, issuerToken).json()).resolves.toMatchObject({
-      status: 'completed',
+      status: 'ready_for_review',
       lifecycle: 'draft',
       on_chain: false,
       snapshots: [],
       integrity_state: 'not-recorded',
     });
 
-    const finalized = await extractionMock.mockPortalMutate('POST', `${path}/finalize`, request('POST'), issuerToken);
-    expect(finalized.status).toBe(200);
-    await expect(finalized.json()).resolves.toEqual({
-      document_id: accepted.document_id,
-      tx_hash: expect.any(String),
-      onchain_document_id: `chain-${accepted.document_id}`,
-      data_hash: approved.content_hash,
-    });
+    expect(approved.content_hash).toMatch(/^[a-f0-9]{64}$/);
     await expect(extractionMock.mockPortalGet(path, issuerToken).json()).resolves.toMatchObject({
-      lifecycle: 'finalized',
-      on_chain: true,
-      document_hash: approved.content_hash,
-      snapshots: [expect.objectContaining({ text_hash: approved.content_hash })],
-      integrity_state: 'match',
-      audit_log: expect.arrayContaining([expect.objectContaining({ action: 'document_finalized' })]),
+      lifecycle: 'draft',
+      on_chain: false,
+      document_hash: null,
     });
   });
 
@@ -899,5 +886,77 @@ describe('portal mock extraction review', () => {
       blocks: expect.arrayContaining([expect.objectContaining({ index: 0, text: 'Approved extraction text.', edited: true })]),
       flags: expect.not.arrayContaining([expect.objectContaining({ kind: 'llm_missing_space' })]),
     });
+  });
+
+  it('keeps signed-copy metadata and its finalization fingerprint unchanged when extraction is reviewed', async () => {
+    const extractionMock = await freshMock();
+    const path = '/documents/mock-document-2';
+    const request = (method: 'POST' | 'PATCH', body?: unknown) => new Request('https://mock.lexchain.local/api/portal/proxy-post', {
+      method,
+      headers: body === undefined ? undefined : { 'content-type': 'application/json' },
+      body: body === undefined ? undefined : JSON.stringify(body),
+    });
+    const initial = await extractionMock.mockPortalGet(path, issuerToken).json() as { signed_copy: unknown };
+    const finalized = await extractionMock.mockPortalMutate('POST', `${path}/finalize`, request('POST'), issuerToken);
+    const record = await finalized.json() as { data_hash: string };
+    const afterFinalize = await extractionMock.mockPortalGet(path, issuerToken).json() as {
+      document_hash: string;
+      signed_copy: unknown;
+      snapshots: Array<{ text_hash: string }>;
+    };
+
+    expect(afterFinalize).toMatchObject({ document_hash: record.data_hash, snapshots: [{ text_hash: record.data_hash }] });
+    expect(afterFinalize.signed_copy).toEqual(initial.signed_copy);
+
+    expect((await extractionMock.mockPortalMutate('PATCH', `${path}/extraction`, request('PATCH', {
+      edits: [{ index: 0, text: 'Jane Doe is employed by LexChain under agreement 8792.' }],
+    }), issuerToken)).status).toBe(200);
+    expect((await extractionMock.mockPortalMutate('POST', `${path}/extraction/analyze`, request('POST'), issuerToken)).status).toBe(200);
+    const approval = await extractionMock.mockPortalMutate('POST', `${path}/extraction/approve`, request('POST'), issuerToken);
+    const approved = await approval.json() as { content_hash: string };
+
+    expect(approved.content_hash).not.toBe(record.data_hash);
+    await expect(extractionMock.mockPortalGet(path, issuerToken).json()).resolves.toMatchObject({
+      document_hash: record.data_hash,
+      signed_copy: initial.signed_copy,
+      snapshots: [{ text_hash: record.data_hash }],
+    });
+    await expect((await extractionMock.mockPortalMutate('POST', `${path}/finalize`, request('POST'), issuerToken)).json()).resolves.toMatchObject({ data_hash: record.data_hash });
+  });
+
+  it('makes only approved extraction text searchable and available to Ask', async () => {
+    const extractionMock = await freshMock();
+    const path = '/documents/mock-document-2';
+    const query = (value: string) => new Request('https://mock.lexchain.local/api/portal/proxy-post', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ query: value }),
+    });
+    const ask = (question: string) => new Request('https://mock.lexchain.local/api/portal/proxy-post', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ question }),
+    });
+    const uniqueText = 'agreement 8792';
+
+    await expect((await extractionMock.mockPortalMutate('POST', '/search', query(uniqueText), issuerToken)).json()).resolves.toMatchObject({ results: [] });
+    const unreviewedAnswer = await extractionMock.mockPortalMutate('POST', `${path}/ask`, ask(`Find ${uniqueText}`), issuerToken);
+    await expect(unreviewedAnswer.json()).resolves.not.toMatchObject({ answer: expect.stringContaining(uniqueText) });
+
+    await extractionMock.mockPortalMutate('POST', `${path}/finalize`, request('POST'), issuerToken);
+    await extractionMock.mockPortalMutate('PATCH', `${path}/extraction`, request('PATCH', {
+      edits: [{ index: 0, text: 'Jane Doe is employed by LexChain under agreement 8792.' }],
+    }), issuerToken);
+    await extractionMock.mockPortalMutate('POST', `${path}/extraction/approve`, request('POST'), issuerToken);
+
+    await expect((await extractionMock.mockPortalMutate('POST', '/search', query(uniqueText), issuerToken)).json()).resolves.toMatchObject({
+      results: [expect.objectContaining({ document_id: 'mock-document-2', text: expect.stringContaining(uniqueText) })],
+    });
+    await expect((await extractionMock.mockPortalMutate('POST', `${path}/ask`, ask(`Find ${uniqueText}`), issuerToken)).json()).resolves.toMatchObject({
+      answer: expect.stringContaining(uniqueText),
+    });
+    await expect((await extractionMock.mockPortalMutate('POST', '/search', query(uniqueText), participantToken)).json()).resolves.toMatchObject({ results: [] });
+    const inaccessibleAsk = await extractionMock.mockPortalMutate('POST', `${path}/ask`, ask(`Find ${uniqueText}`), participantToken);
+    expect(inaccessibleAsk.status).toBe(404);
   });
 });

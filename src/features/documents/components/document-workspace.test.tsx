@@ -7,10 +7,9 @@ import { LifecycleRequestError } from '@/features/documents/document-lifecycle-a
 import type { ApiSchema } from '@/shared/types';
 import { readGoogleDraftReturnContext, saveGoogleDraftReturnContext } from '@/shared/utils/google-draft-return-context';
 
-const { attachSignedCopyMock, correctDocumentEntryMock, finalizeDocumentMock, listDocumentPartiesMock, listRegisterBooksMock, listSignedCopiesMock, listDraftCommentsMock, replaceSignedCopyMock, syncDraftCommentsMock, LifecycleRequestErrorMock } = vi.hoisted(() => ({
+const { attachSignedCopyMock, correctDocumentEntryMock, listDocumentPartiesMock, listRegisterBooksMock, listSignedCopiesMock, listDraftCommentsMock, replaceSignedCopyMock, syncDraftCommentsMock, LifecycleRequestErrorMock } = vi.hoisted(() => ({
   attachSignedCopyMock: vi.fn(),
   correctDocumentEntryMock: vi.fn(),
-  finalizeDocumentMock: vi.fn(),
   listDocumentPartiesMock: vi.fn(),
   listRegisterBooksMock: vi.fn(),
   listSignedCopiesMock: vi.fn(),
@@ -39,7 +38,6 @@ vi.mock('@/features/access', () => ({
 vi.mock('@/features/documents/document-lifecycle-api', () => ({
   attachSignedCopy: attachSignedCopyMock,
   correctDocumentEntry: correctDocumentEntryMock,
-  finalizeDocument: finalizeDocumentMock,
   listSignedCopies: listSignedCopiesMock,
   listDraftComments: listDraftCommentsMock,
   replaceSignedCopy: replaceSignedCopyMock,
@@ -90,13 +88,6 @@ const document: ApiSchema<'DocumentResponse'> = {
   entities: [{ name: 'Acme Legal' }],
   risk_flags: [{ severity: 'review', detail: 'Payment term' }],
   created_at: '2026-07-28T00:00:00Z',
-};
-
-const finalizationRecord: ApiSchema<'RecordResponse'> = {
-  document_id: 'doc-101',
-  tx_hash: '0xtxhash101',
-  onchain_document_id: 'onchain-doc-101',
-  data_hash: 'datahash101',
 };
 
 function renderWorkspace(props: Partial<React.ComponentProps<typeof DocumentWorkspace>> = {}) {
@@ -745,54 +736,6 @@ describe('DocumentWorkspace', () => {
 
     expect(screen.getByText('Document lifecycle').nextElementSibling?.textContent).toBe('Preparing');
     expect(screen.queryByRole('button', { name: 'Finalize' })).toBeNull();
-  });
-
-  it('renders the confirmation dialog when the parent opens it', () => {
-    const onCancelFinalize = vi.fn();
-    const onConfirmFinalize = vi.fn();
-    renderWorkspace({ confirmingFinalize: true, onCancelFinalize, onConfirmFinalize });
-
-    const dialog = screen.getByRole('dialog', { name: 'Confirm finalization' });
-    expect(within(dialog).getByText(/This will anchor the approved document hash on-chain/)).toBeTruthy();
-
-    fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
-    expect(onCancelFinalize).toHaveBeenCalledOnce();
-    fireEvent.click(within(dialog).getByRole('button', { name: 'Confirm finalization' }));
-    expect(onConfirmFinalize).toHaveBeenCalledOnce();
-    expect(finalizeDocumentMock).not.toHaveBeenCalled();
-  });
-
-  it('disables the finalization mutation button while the parent reports it pending', () => {
-    renderWorkspace({ confirmingFinalize: true, isFinalizing: true, onCancelFinalize: vi.fn(), onConfirmFinalize: vi.fn() });
-
-    const confirm = screen.getByRole('button', { name: 'Finalizing…' });
-    expect(confirm.hasAttribute('disabled')).toBe(true);
-    expect(screen.getByRole('button', { name: 'Cancel' }).hasAttribute('disabled')).toBe(true);
-  });
-
-  it('shows the complete returned record and keeps processing separate from finalization', () => {
-    renderWorkspace({
-      document: { ...document, lifecycle: 'FINALIZED', status: 'QUEUED' },
-      finalizationResult: finalizationRecord,
-      success: 'Document finalized and anchored on-chain.',
-    });
-
-    expect(screen.getByText('Document finalized and anchored on-chain.')).toBeTruthy();
-    expect(screen.getByText('Document ID').nextElementSibling?.textContent).toBe('doc-101');
-    expect(screen.getByText('onchain-doc-101')).toBeTruthy();
-    expect(screen.getByText('datahash101')).toBeTruthy();
-    expect(screen.getByText('0xtxhash101')).toBeTruthy();
-    expect(screen.getByText('Document lifecycle').nextElementSibling?.textContent).toBe('Finalized');
-    expect(screen.getByText('Processing status').nextElementSibling?.textContent).toBe('Queued');
-  });
-
-  it('keeps failed finalization retryable and never claims success', () => {
-    renderWorkspace({ confirmingFinalize: true, finalizeError: 'Document cannot be finalized', onCancelFinalize: vi.fn(), onConfirmFinalize: vi.fn() });
-
-    expect(screen.getByRole('alert').textContent).toContain('Document cannot be finalized');
-    expect(screen.getByRole('button', { name: 'Confirm finalization' }).hasAttribute('disabled')).toBe(false);
-    expect(screen.queryByText('Document finalized and anchored on-chain.')).toBeNull();
-    expect(screen.queryByText('datahash101')).toBeNull();
   });
 
   it('links to participant management only when the backend grants share or revoke permission', () => {
