@@ -55,7 +55,7 @@ describe('getBaseSepoliaTransactionUrl', () => {
     expect(getBaseSepoliaTransactionUrl(value)).toBe(`https://sepolia.basescan.org/tx/0x${hash}`);
   });
 
-  it.each([`${hash.slice(1)}`, `${hash.slice(1)}g`])('rejects malformed transaction hash %s', (value) => {
+  it.each([`${hash.slice(1)}`, `${hash.slice(1)}g`, `${hash}\n`, `${hash}\r`, `${hash}\u2028`, `${hash}\u2029`])('rejects malformed transaction hash %s', (value) => {
     expect(getBaseSepoliaTransactionUrl(value)).toBeNull();
   });
 });

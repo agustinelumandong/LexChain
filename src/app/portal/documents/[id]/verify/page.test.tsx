@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, render, screen, within } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import DocumentVerifyPage from '@/features/documents/pages/documents-id-verify-page';
@@ -120,7 +120,7 @@ describe('DocumentVerifyPage', () => {
 
     const transactionLink = await screen.findByRole('link', { name: 'View transaction on Base Sepolia' });
     expect(transactionLink.getAttribute('href')).toBe(`https://sepolia.basescan.org/tx/0x${'a'.repeat(64)}`);
-    expect(transactionLink.closest('div')?.querySelector('button')?.textContent).toBe('Copy');
+    expect(within(screen.getByRole('region', { name: 'Verification result' })).getAllByRole('button', { name: 'Copy' })).not.toHaveLength(0);
   });
 
   it.each([null, 'not-a-transaction-hash'])(
