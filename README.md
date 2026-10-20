@@ -55,10 +55,10 @@ The checked-in contract is `openapi-updated.json`. Local type generation does no
 pnpm generate:api-types
 ```
 
-To update the contract intentionally, provide its full endpoint URL, review the diff, then regenerate:
+To update the contract intentionally, set `OPENAPI_URL` in the ignored `.env.local` file to the full endpoint URL, review the diff, then regenerate:
 
 ```bash
-OPENAPI_URL='http://localhost:8000/openapi.json' pnpm refresh:api-contract
+pnpm refresh:api-contract
 git diff -- openapi-updated.json
 pnpm generate:api-types
 git diff -- src/shared/types/generated/schema.ts
@@ -67,6 +67,8 @@ git diff -- src/shared/types/generated/schema.ts
 Refresh requires `OPENAPI_URL` and replaces the contract only after a successful response and validation. It does not generate types automatically. Do not edit the generated schema by hand.
 
 ## PWA and browser checks
+
+For ordered user journeys, expected outcomes, known blockers, and an operation checklist, use the [manual testing guide](docs/MANUAL-TESTING-GUIDE.md).
 
 The manifest installs LexChain with the existing routes. The service worker registers in production and caches only `/offline.html`. On a failed eligible navigation, the fallback asks the user to reconnect. Documents, API responses, uploads and credentials are not cached; there is no offline upload queue or background synchronization. Updates wait for old tabs to close instead of forcing a reload during editing.
 
@@ -83,10 +85,6 @@ E2E_BASE_URL='http://localhost:3000' node e2e/pwa.mjs
 ```
 
 The separate `node e2e/full-flow.mjs` script mutates backend data and needs a test backend, test accounts and a PDF fixture. Supply `E2E_LAWYER_EMAIL`, `E2E_LAWYER_PASSWORD`, `E2E_PARTICIPANT_EMAIL`, `E2E_PARTICIPANT_PASSWORD` and `E2E_PDF_PATH` through the environment; `E2E_BASE_URL` selects the web server. It is not a production smoke test.
-
-Run the deterministic prepared and direct filing journeys with `pnpm e2e:document-journeys` against the local development server. These scripts intercept same-origin API responses with fixtures; they verify frontend behavior only and do not contact Google, OCR, a blockchain or the backend. Existing focused checks remain available through their `e2e:*` scripts above.
-
-`node e2e/full-flow.mjs` is a legacy live smoke that mutates backend data. It requires `E2E_BASE_URL` on localhost, `E2E_BACKEND_URL`, an identical `E2E_DISPOSABLE_BACKEND_CONFIRM`, both test accounts, and `E2E_PDF_PATH`. Configure the local Next.js server's `API_URL` to that exact disposable backend before running it; the script cannot verify the server's forwarding target. Never point it at production.
 
 ## Deployment and architecture
 

@@ -2,7 +2,7 @@
 
 This repository contains the **LexChain frontend only**: a Next.js App Router application for document workflows, verification and administration, with an installable PWA. The Python/FastAPI backend is a separate service maintained outside this repository. Next.js server components, Server Actions and API route handlers support frontend rendering and integration; they do not make this repository the authoritative backend.
 
-Start with [README.md](README.md) and [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), then verify their paths against the current checkout. Source lives under `src/`. The Expo application is preserved only on the backup branch.
+Start with [README.md](README.md), [CODEBASE.md](CODEBASE.md), and [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), then verify their paths against the current checkout. Source lives under `src/`. The Expo application is preserved only on the backup branch.
 
 ## Frontend and backend API responsibilities
 
@@ -54,6 +54,10 @@ Use the canonical labels `needs-triage`, `needs-info`, `ready-for-agent`, `ready
 ### Domain docs
 
 Use the single-context root `GLOSSARY.md` and `docs/adr/` layout. See `docs/agents/domain.md`.
+
+### Backend integration context
+
+- For backend API, permissions, or document-lifecycle work, read `docs/ARCHITECTURE.md` for the whole-system map and `docs/USER-FLOW-ARCHITECTURE.md` for user flows. Verify contract claims against the sibling `lexchain-backend` repository when available; the frontend OpenAPI file and generated types are snapshots. The backend `CODEBASE.md` contains a superseded lifecycle and processing flow, so check current backend source. Treat dated handoffs and audits as leads to recheck, and mocks as frontend behavior rather than live proof.
 
 ## Working rules
 
@@ -144,7 +148,7 @@ pnpm build
 
 Vitest discovers `src/**/*.test.{ts,tsx}`. Script tests use Node's built-in test runner, including `scripts/architecture-boundaries.test.mjs`. Use `pnpm start` to serve a production build; the PWA browser check is `node e2e/pwa.mjs` against that server.
 
-`pnpm generate:api-types` uses the checked-in `openapi-updated.json` without a network refresh. Before regeneration, verify that its output matches the consumed schema at `src/shared/types/generated/schema.ts`: the current package script still targets the old `src/lib/types/generated/schema.ts` location. Resolve that mismatch within contract-maintenance work rather than generating a second unconsumed schema. Refresh explicitly with `OPENAPI_URL='http://localhost:8000/openapi.json' pnpm refresh:api-contract`, review the contract diff, then regenerate types. See README for setup and test-backend requirements.
+`pnpm generate:api-types` uses the checked-in `openapi-updated.json` without a network refresh and writes the consumed schema at `src/shared/types/generated/schema.ts`. Set `OPENAPI_URL` in the ignored `.env.local`, refresh with `pnpm refresh:api-contract`, review the contract diff, then regenerate types. See README for setup and test-backend requirements.
 
 ## Archive and handoff
 
