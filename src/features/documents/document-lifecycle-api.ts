@@ -102,6 +102,15 @@ export async function listSignedCopies(documentId: string): Promise<ApiSchema<'S
   return lifecycleFetch(`/documents/${required(documentId, 'Document ID is required')}/signed-copies`);
 }
 
+export function signedCopyFileUrl(documentId: string, options: { copyId?: string; download?: boolean; filename?: string } = {}): string {
+  const query = new URLSearchParams();
+  if (options.copyId) query.set('copy_id', options.copyId);
+  if (options.download) query.set('download', '1');
+  if (options.filename) query.set('filename', options.filename);
+  const suffix = query.size ? `?${query}` : '';
+  return `/api/portal/documents/${encodeURIComponent(required(documentId, 'Document ID is required'))}/file${suffix}`;
+}
+
 export async function attachSignedCopy(documentId: string, file: File, filing: { bookId: string; docNo?: number | null; pageNo?: number | null }): Promise<ApiSchema<'DocumentResponse'>> {
   const query = new URLSearchParams({ book_id: required(filing.bookId, 'Register book is required') });
   if (filing.docNo != null) query.set('doc_no', String(filing.docNo));

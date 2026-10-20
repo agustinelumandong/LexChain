@@ -41,6 +41,13 @@ vi.mock('@/features/documents/document-lifecycle-api', () => ({
   listSignedCopies: listSignedCopiesMock,
   listDraftComments: listDraftCommentsMock,
   replaceSignedCopy: replaceSignedCopyMock,
+  signedCopyFileUrl: (documentId: string, options: { copyId?: string; download?: boolean; filename?: string } = {}) => {
+    const query = new URLSearchParams();
+    if (options.copyId) query.set('copy_id', options.copyId);
+    if (options.download) query.set('download', '1');
+    if (options.filename) query.set('filename', options.filename);
+    return '/api/portal/documents/' + documentId + '/file' + (query.size ? '?' + query.toString() : '');
+  },
   syncDraftComments: syncDraftCommentsMock,
   LifecycleRequestError: LifecycleRequestErrorMock,
 }));
@@ -61,7 +68,6 @@ const document: ApiSchema<'DocumentResponse'> = {
   draft_url: 'https://docs.google.com/document/d/draft-101',
   signed_copy: {
     id: 'copy-101',
-    storage_url: 'https://files.example/service-agreement.pdf',
     sha256: 'signed-hash',
     content_type: 'application/pdf',
     size_bytes: 1024,
@@ -274,8 +280,8 @@ describe('DocumentWorkspace', () => {
 
   it('shows supported signed-copy history separately from document versions', async () => {
     listSignedCopiesMock.mockResolvedValue({ document_id: 'doc-101', copies: [
-      { id: 'copy-current', storage_url: 'https://files.example/current.pdf', sha256: 'current-hash', content_type: 'application/pdf', size_bytes: 100, original_filename: 'current.pdf', uploaded_by: null, replaced_reason: null, is_current: true, created_at: '2026-07-28T00:00:00Z' },
-      { id: 'copy-old', storage_url: 'https://files.example/old.pdf', sha256: 'old-hash', content_type: 'application/pdf', size_bytes: 90, original_filename: 'old.pdf', uploaded_by: null, replaced_reason: 'Corrected scan', is_current: false, created_at: '2026-07-27T00:00:00Z' },
+      { id: 'copy-current', sha256: 'current-hash', content_type: 'application/pdf', size_bytes: 100, original_filename: 'current.pdf', uploaded_by: null, replaced_reason: null, is_current: true, created_at: '2026-07-28T00:00:00Z' },
+      { id: 'copy-old', sha256: 'old-hash', content_type: 'application/pdf', size_bytes: 90, original_filename: 'old.pdf', uploaded_by: null, replaced_reason: 'Corrected scan', is_current: false, created_at: '2026-07-27T00:00:00Z' },
     ] });
     renderWorkspace();
     expect(listSignedCopiesMock).not.toHaveBeenCalled();
@@ -289,7 +295,7 @@ describe('DocumentWorkspace', () => {
   });
 
   it('attaches a signed PDF, submits the register details, and renders the returned current copy', async () => {
-    const attached = { ...document, lifecycle: 'SIGNED', signed_copy: { ...document.signed_copy!, id: 'copy-attached', storage_url: 'https://files.example/attached.pdf', original_filename: 'attached.pdf' } };
+    const attached = { ...document, lifecycle: 'SIGNED', signed_copy: { ...document.signed_copy!, id: 'copy-attached', original_filename: 'attached.pdf' } };
     attachSignedCopyMock.mockResolvedValue(attached);
     renderWorkspace({ document: { ...document, signed_copy: null, permissions: { ...document.permissions, can_attach_signed_copy: true } } });
 
@@ -304,7 +310,7 @@ describe('DocumentWorkspace', () => {
 
     await waitFor(() => expect(attachSignedCopyMock).toHaveBeenCalledWith('doc-101', file, { bookId: 'book-101', docNo: null, pageNo: null }));
     expect((await screen.findByRole('status')).textContent).toContain('Signed PDF attached.');
-    expect((await screen.findByRole('link', { name: 'Open current signed PDF' })).getAttribute('href')).toBe(attached.signed_copy.storage_url);
+    expect((await screen.findByRole('link', { name: 'Open current signed PDF' })).getAttribute('href')).toBe('/api/portal/documents/doc-101/file?copy_id=copy-attached');
   });
 
   it('attaches a prepared document without a book using automatic open-book numbering', async () => {
@@ -457,8 +463,8 @@ describe('DocumentWorkspace', () => {
     expect(screen.getByText(/original document remains authoritative/i)).toBeTruthy();
 
     fireEvent.click(screen.getByRole('tab', { name: 'Files' }));
-    expect(screen.getByRole('link', { name: 'Open current signed PDF' }).getAttribute('href')).toBe(document.signed_copy?.storage_url);
-    expect(screen.getByRole('link', { name: 'Download current signed PDF' }).hasAttribute('download')).toBe(true);
+    expect(screen.getByRole('link', { name: 'Open current signed PDF' }).getAttribute('href')).toBe('/api/portal/documents/doc-101/file?copy_id=copy-101');
+    expect(screen.getByRole('link', { name: 'Download current signed PDF' }).getAttribute('href')).toContain('copy_id=copy-101&download=1');
     expect(screen.getByRole('link', { name: 'Open Google draft' }).getAttribute('href')).toBe(document.draft_url);
 
     fireEvent.click(screen.getByRole('tab', { name: 'Blockchain' }));
@@ -487,7 +493,7 @@ describe('DocumentWorkspace', () => {
     expect(draftLink.getAttribute('href')).toBe('https://docs.google.com/document/d/blank-draft');
     expect(draftLink.getAttribute('target')).toBe('_blank');
     expect(screen.getByRole('tab', { name: 'Comments' })).toBeTruthy();
-    expect(screen.getByRole('link', { name: 'Open current signed PDF' }).getAttribute('href')).toBe(document.signed_copy?.storage_url);
+    expect(screen.getByRole('link', { name: 'Open current signed PDF' }).getAttribute('href')).toBe('/api/portal/documents/doc-101/file?copy_id=copy-101');
     fireEvent.click(screen.getByRole('tab', { name: 'Comments' }));
     expect(screen.getByRole('button', { name: 'Mark ready for signature' })).toBeTruthy();
     expect(fetchMock).toHaveBeenCalledWith(
@@ -605,7 +611,7 @@ describe('DocumentWorkspace', () => {
     fireEvent.click(screen.getByRole('tab', { name: 'Files' }));
     expect(screen.queryByRole('link', { name: 'Open Google draft' })).toBeNull();
     expect(screen.getByRole('alert').textContent).toContain('invalid Google draft link');
-    expect(screen.getByRole('link', { name: 'Open current signed PDF' }).getAttribute('href')).toBe(document.signed_copy?.storage_url);
+    expect(screen.getByRole('link', { name: 'Open current signed PDF' }).getAttribute('href')).toBe('/api/portal/documents/doc-101/file?copy_id=copy-101');
   });
 
   it.each(['GOOGLE_NOT_CONNECTED', 'GOOGLE_RECONNECT_REQUIRED'])(

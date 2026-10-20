@@ -19,7 +19,7 @@ import { portalRequest } from '@/shared/api/client';
 
 type PortalDocument = { lifecycle: string; status?: string | null };
 
-export default function PortalLayout({ children }: { children: React.ReactNode }) {
+export default function PortalLayout({ children, demoMode }: { children: React.ReactNode; demoMode: boolean }) {
   const pathname = usePathname();
   const queryClient = useQueryClient();
   const [collapsed, setCollapsed] = useState(false);
@@ -174,6 +174,12 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
             onMarkNotificationRead={(id) => markNotificationMutation.mutate(id)}
             onSignOut={handleLogout}
           />
+          {demoMode && (
+            <p role="status" className="mb-4 flex flex-wrap items-center gap-2 rounded-xl border border-[#D9E7F5] bg-white px-4 py-2.5 text-xs font-medium text-[#526579]">
+              <span className="rounded-full bg-[#EAF4FF] px-2 py-1 text-[10px] font-black uppercase tracking-wide text-[#0A67B1]">Prototype</span>
+              Document processing and blockchain results are simulated; no live transaction was sent.
+            </p>
+          )}
           {children}
         </section>
       </div>

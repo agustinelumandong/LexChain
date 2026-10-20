@@ -168,6 +168,13 @@ describe('PdfDocumentViewer', () => {
     expect((await screen.findAllByRole('button', { name: 'Select block 4' }))[1].className).toContain('border-2 border-blue-700');
   });
 
+  it('marks tampered blocks with the existing red overlay', async () => {
+    renderViewer({ tamperedBlockIndexes: new Set([4]) });
+
+    expect((await screen.findByRole('button', { name: 'Select block 4' })).className)
+      .toContain('border-2 border-[#D94B66]');
+  });
+
   it('cross-highlights editable overlays while keyboard focused', async () => {
     const { onHoverBlockChange } = renderViewer();
     const overlay = await screen.findByRole('button', { name: 'Select block 4' });

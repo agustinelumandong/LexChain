@@ -28,6 +28,13 @@ vi.mock('@/features/documents/document-lifecycle-api', () => ({
   markDocumentReady: state.markDocumentReady,
   reopenDocument: state.reopenDocument,
   cancelDocument: vi.fn(),
+  signedCopyFileUrl: (documentId: string, options: { copyId?: string; download?: boolean; filename?: string } = {}) => {
+    const query = new URLSearchParams();
+    if (options.copyId) query.set('copy_id', options.copyId);
+    if (options.download) query.set('download', '1');
+    if (options.filename) query.set('filename', options.filename);
+    return '/api/portal/documents/' + documentId + '/file' + (query.size ? '?' + query.toString() : '');
+  },
   LifecycleRequestError: class LifecycleRequestError extends Error {},
 }));
 
@@ -80,7 +87,7 @@ const baseDocument: DocumentResponse = {
   draft_url: 'https://docs.google.com/document/d/draft-1',
   signed_copy: {
     id: 'copy-1',
-    storage_url: 'https://files.example.test/signed.pdf',
+
     sha256: 'abc123',
     content_type: 'application/pdf',
     size_bytes: 1024,
@@ -182,7 +189,7 @@ describe('document detail screen', () => {
 
     fireEvent.click(screen.getByRole('tab', { name: 'Files' }));
     expect(screen.getByRole('link', { name: 'Open current signed PDF' }).getAttribute('href'))
-      .toBe('https://files.example.test/signed.pdf');
+      .toBe('/api/portal/documents/doc-1/file?copy_id=copy-1');
     expect(screen.getByRole('link', { name: 'Open Google draft' }).getAttribute('href'))
       .toBe('https://docs.google.com/document/d/draft-1');
   });

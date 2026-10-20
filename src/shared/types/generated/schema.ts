@@ -395,6 +395,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/documents/{document_id}/file": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Short-lived link to a signed copy's PDF
+         * @description Checks the caller's current access, then returns a signed URL valid for `expires_in` seconds. Defaults to the current copy; pass `copy_id` for an older one from /signed-copies. Ask again when it expires.
+         */
+        get: operations["get_signed_copy_file_documents__document_id__file_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/documents/{document_id}/entry": {
         parameters: {
             query?: never;
@@ -1659,11 +1679,6 @@ export interface components {
              */
             file_name?: string | null;
             /**
-             * Storage Url
-             * @description URL of the document as it stands now, for rendering pages
-             */
-            storage_url?: string | null;
-            /**
              * Status
              * @description AUTHENTIC — the stored file matches the chain; TAMPERED — it does not; SNAPSHOT_COMPROMISED — the stored original was altered too, so no trustworthy baseline exists to diff against; NOT_ANCHORED — the document was never finalized; VERIFICATION_UNAVAILABLE — the document could not be re-read, so integrity is unknown (this is not a tamper result)
              */
@@ -1912,10 +1927,11 @@ export interface components {
              */
             file_name: string;
             /**
-             * Storage Url
-             * @description URL of the source PDF, for rendering pages behind the blocks
+             * Signed Copy Id
+             * Format: uuid
+             * @description The PDF behind the blocks; read it through GET /documents/{document_id}/file for rendering pages
              */
-            storage_url: string;
+            signed_copy_id: string;
             /** Engine */
             engine: string;
             /** Page Count */
@@ -2294,6 +2310,32 @@ export interface components {
              */
             requires_email_confirmation: boolean;
         };
+        /**
+         * SignedCopyFileResponse
+         * @description A short-lived link to read one signed copy's PDF.
+         *
+         *     Issued only after the reader's current access is checked; it stops
+         *     working after `expires_in` seconds, so ask again rather than storing it.
+         */
+        SignedCopyFileResponse: {
+            /**
+             * Document Id
+             * Format: uuid
+             */
+            document_id: string;
+            /**
+             * Copy Id
+             * Format: uuid
+             */
+            copy_id: string;
+            /** Url */
+            url: string;
+            /**
+             * Expires In
+             * @description Seconds until `url` stops working
+             */
+            expires_in: number;
+        };
         /** SignedCopyListResponse */
         SignedCopyListResponse: {
             /**
@@ -2314,8 +2356,6 @@ export interface components {
              * Format: uuid
              */
             id: string;
-            /** Storage Url */
-            storage_url: string;
             /**
              * Sha256
              * @description SHA-256 of the PDF bytes
@@ -3364,6 +3404,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SignedCopyListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_signed_copy_file_documents__document_id__file_get: {
+        parameters: {
+            query?: {
+                copy_id?: string | null;
+            };
+            header?: never;
+            path: {
+                document_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SignedCopyFileResponse"];
                 };
             };
             /** @description Validation Error */

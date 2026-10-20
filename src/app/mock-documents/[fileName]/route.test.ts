@@ -1,6 +1,12 @@
-import { expect, it } from 'vitest';
+import { readFile } from 'node:fs/promises';
+import { afterEach, expect, it, vi } from 'vitest';
 import { mockPortalGet, mockPortalMutate } from '@/lib/mocks/portal';
 import { GET } from './route';
+
+const sampleDeedFileName = 'sample_scanned_deed_of_sale_app_test.pdf';
+const tamperedDeedFileName = 'sample_scanned_deed_of_sale_app_test_tampered.pdf';
+
+afterEach(() => vi.unstubAllEnvs());
 
 type RouteContext = { params: Promise<{ fileName: string }> };
 
@@ -24,15 +30,15 @@ function uploadMockDocument(fileName: string) {
 }
 
 it('serves a seeded mock extraction source as a renderable one-page PDF', async () => {
-  const extractionResponse = mockPortalGet(
-    '/documents/mock-document-2/extraction',
+  const fileLinkResponse = mockPortalGet(
+    '/documents/mock-document-2/file',
     'mock-token:mock-document-issuer',
   );
-  const extraction = await extractionResponse.json() as { storage_url: string };
+  const fileLink = await fileLinkResponse.json() as { url: string };
 
   const response = await GET(
-    new Request(`http://localhost${extraction.storage_url}`),
-    contextFor(extraction.storage_url),
+    new Request(`http://localhost${fileLink.url}`),
+    contextFor(fileLink.url),
   );
 
   expect(response.status).toBe(200);
@@ -49,6 +55,94 @@ it('serves a seeded mock extraction source as a renderable one-page PDF', async 
   expect(document.numPages).toBe(1);
   await loadingTask.destroy();
 }, 10_000);
+
+it('uses the exact scanned deed PDF and matching three-page mock extraction after upload', async () => {
+  vi.stubEnv('NEXT_PUBLIC_USE_MOCK_API', 'true');
+  vi.stubEnv('USE_MOCK_API', 'false');
+  const sampleBytes = await readFile(`docs/scanned-docx-for-testing/${sampleDeedFileName}`);
+  const form = new FormData();
+  form.append('file', new File([sampleBytes], sampleDeedFileName, { type: 'application/pdf' }));
+  const upload = await mockPortalMutate(
+    'POST',
+    '/documents/upload?book_id=mock-book-1&file_name=Pitch%20Test%20Deed',
+    new Request('http://localhost/api/portal/proxy-post', { method: 'POST', body: form }),
+    'mock-token:mock-document-issuer',
+  );
+  const uploaded = await upload.json() as {
+    document_id: string;
+    lifecycle?: string;
+    status?: string | null;
+  };
+  const { document_id: documentId } = uploaded;
+  vi.resetModules();
+  const independentMockRoute = await import('@/lib/mocks/portal');
+  const documents = await independentMockRoute.mockPortalGet(
+    '/documents/',
+    'mock-token:mock-document-issuer',
+  ).json() as Array<{ id: string }>;
+  const detail = await independentMockRoute.mockPortalGet(
+    `/documents/${documentId}`,
+    'mock-token:mock-document-issuer',
+  ).json() as { storage_url: string; book_id: string };
+  const extraction = await independentMockRoute.mockPortalGet(
+    `/documents/${documentId}/extraction`,
+    'mock-token:mock-document-issuer',
+  ).json() as { page_count: number; blocks: Array<{ text: string }> };
+
+  expect(upload.status).toBe(201);
+  expect(uploaded.lifecycle).toBe('SIGNED');
+  expect(uploaded.status).toBe('READY_FOR_REVIEW');
+  expect(documents.some((document) => document.id === documentId)).toBe(true);
+  expect(detail.book_id).toBe('mock-book-1');
+  expect(detail.storage_url).toBe(`/mock-documents/${sampleDeedFileName}`);
+  expect(extraction.page_count).toBe(3);
+  expect(extraction.blocks.map((block) => block.text)).toContain('DEED OF ABSOLUTE SALE');
+
+  const response = await GET(
+    new Request(`http://localhost${detail.storage_url}`, {
+      headers: { cookie: 'portal_token=mock-token%3Amock-document-issuer' },
+    }),
+    contextFor(detail.storage_url),
+  );
+  expect(response.status).toBe(200);
+  expect(new Uint8Array(await response.arrayBuffer())).toEqual(new Uint8Array(sampleBytes));
+}, 10_000);
+
+it('serves the exact tampered deed PDF for the mock blockchain demo', async () => {
+  vi.stubEnv('NEXT_PUBLIC_USE_MOCK_API', 'true');
+  vi.stubEnv('USE_MOCK_API', 'false');
+  const sampleBytes = await readFile(`docs/scanned-docx-for-testing/${tamperedDeedFileName}`);
+
+  const response = await GET(
+    new Request(`http://localhost/mock-documents/${tamperedDeedFileName}`, {
+      headers: { cookie: 'portal_token=mock-token%3Amock-document-issuer' },
+    }),
+    { params: Promise.resolve({ fileName: tamperedDeedFileName }) },
+  );
+
+  expect(response.status).toBe(200);
+  expect(response.headers.get('content-type')).toBe('application/pdf');
+  expect(response.headers.get('cache-control')).toBe('no-store');
+  expect(Buffer.compare(Buffer.from(await response.arrayBuffer()), sampleBytes)).toBe(0);
+}, 30_000);
+
+it.each([
+  [sampleDeedFileName, 'false', 'portal_token=mock-token%3Amock-document-issuer'],
+  [tamperedDeedFileName, 'false', 'portal_token=mock-token%3Amock-document-issuer'],
+  [sampleDeedFileName, 'true', ''],
+  [tamperedDeedFileName, 'true', ''],
+])('does not serve %s when mock mode is %s and the session is %s', async (fileName, mockMode, cookie) => {
+  vi.stubEnv('NEXT_PUBLIC_USE_MOCK_API', mockMode);
+  vi.stubEnv('USE_MOCK_API', 'false');
+  const response = await GET(
+    new Request(`http://localhost/mock-documents/${fileName}`, {
+      headers: cookie ? { cookie } : undefined,
+    }),
+    { params: Promise.resolve({ fileName }) },
+  );
+
+  expect(response.status).toBe(404);
+});
 
 it('keeps an extensionless mock upload title behind a PDF storage URL', async () => {
   const upload = await uploadMockDocument('Deed of Sale');

@@ -58,7 +58,7 @@ const review: ExtractionReview = {
   extraction_id: 'extraction-1',
   status: 'AWAITING_REVIEW',
   file_name: 'Deed.pdf',
-  storage_url: '/deed.pdf',
+  signed_copy_id: 'copy-1',
   engine: 'LexChain OCR',
   page_count: 2,
   confidence_avg: 0.88,
@@ -219,7 +219,7 @@ describe('ReviewWorkspace', () => {
     expect(screen.getByRole('region', { name: 'Source document' }).className).not.toContain('md:overflow-y-auto');
     expect(screen.getByRole('region', { name: 'Reviewed document' }).className).toContain('md:overflow-y-auto');
     expect(dynamicMocks.viewerProps).toMatchObject({
-      sourceUrl: '/deed.pdf',
+      sourceUrl: '/api/portal/documents/doc-1/file?copy_id=copy-1',
       pageCount: 2,
       currentPage: 0,
       selectedBlockIndex: null,

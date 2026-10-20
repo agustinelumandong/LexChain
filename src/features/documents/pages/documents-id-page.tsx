@@ -9,7 +9,7 @@ import type { ApiSchema } from '@/shared/types/index';
 import { PortalChatbot as PortalChatbot } from "@/features/portal/components";
 import { DocumentWorkspace } from '@/features/documents/components/document-workspace';
 import { getDocumentActions, getDocumentLifecycleLabel, getDocumentProcessingStatusLabel } from '@/features/documents/document-ui';
-import { renameDocument, finalizeDocument, markDocumentReady, reopenDocument, cancelDocument } from '@/features/documents/document-lifecycle-api';
+import { renameDocument, finalizeDocument, markDocumentReady, reopenDocument, cancelDocument, signedCopyFileUrl } from '@/features/documents/document-lifecycle-api';
 import { getPortalUiRole } from "@/features/access";
 import { Modal } from '@/features/admin/components/modal';
 import { portalRequest } from '@/shared/api/client';
@@ -250,7 +250,7 @@ export default function DocumentDetailPage({ params }: { params: Promise<{ id: s
           <div className="flex flex-wrap gap-2">
             {actions.includes('Rename document') && <button type="button" onClick={requestRename} disabled={renamePending} className="rounded-full border border-[#D7E4F2] px-4 py-2.5 text-sm font-extrabold text-[#0C2B49]">Rename document</button>}
             {actions.includes('Review extracted text') && <Link href={`/portal/documents/${id}/review`} className="rounded-full bg-[#0985E7] px-4 py-2.5 text-sm font-extrabold text-white">Review extracted text</Link>}
-            {document.signed_copy && <a href={document.signed_copy.storage_url} download className="rounded-full bg-[#0985E7] px-4 py-2.5 text-sm font-extrabold text-white">Download current signed PDF</a>}
+            {document.signed_copy && <a href={signedCopyFileUrl(id, { copyId: document.signed_copy.id, download: true, filename: document.signed_copy.original_filename ?? document.file_name ?? undefined })} className="rounded-full bg-[#0985E7] px-4 py-2.5 text-sm font-extrabold text-white">Download current signed PDF</a>}
             {actions.includes('Finalize') && !finalizationResult && !hasUnknownFinalization && <button type="button" onClick={openFinalizeConfirmation} className="rounded-full bg-[#0985E7] px-4 py-2.5 text-sm font-extrabold text-white">Finalize</button>}
             {document.permissions.can_cancel && <button type="button" onClick={openCancelConfirmation} className="rounded-full border border-[#B42318] px-4 py-2.5 text-sm font-extrabold text-[#B42318]">Cancel document</button>}
             {actions.includes('Verify integrity') && <Link href={`/portal/documents/${id}/verify`} className="rounded-full border border-[#E8F0F8] bg-white px-4 py-2.5 text-sm font-extrabold text-[#0C2B49]">Verify integrity</Link>}

@@ -5,7 +5,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import type { ApiSchema } from '@/shared/types/index';
 import { searchDocument } from '@/features/documents/search-api';
-import { attachSignedCopy, correctDocumentEntry, LifecycleRequestError, listDocumentHistory, listDraftComments, listSignedCopies, replaceSignedCopy, syncDraftComments } from '@/features/documents/document-lifecycle-api';
+import { attachSignedCopy, correctDocumentEntry, LifecycleRequestError, listDocumentHistory, listDraftComments, listSignedCopies, replaceSignedCopy, signedCopyFileUrl, syncDraftComments } from '@/features/documents/document-lifecycle-api';
 import { isGoogleDraftUrl } from '@/features/documents/document-draft-api';
 import { getDocumentLifecycleLabel, getDocumentProcessingStatusLabel } from '@/features/documents/document-ui';
 import { shortenIntegrityHash } from "@/features/verification";
@@ -325,8 +325,8 @@ export function DocumentWorkspace({
               <div className="space-y-3 rounded-xl border border-[#E8F0F8] bg-[#F8FBFF] p-4">
                 <div><p className="font-bold text-[#0C2B49]">Current signed PDF</p><p className="mt-1 text-sm text-[#64748b]">{document.signed_copy.original_filename ?? document.file_name}</p></div>
                 <div className="flex flex-wrap gap-3">
-                  <a href={document.signed_copy.storage_url} target="_blank" rel="noreferrer" className="rounded-full bg-[#0985E7] px-4 py-2.5 text-sm font-extrabold text-white">Open current signed PDF</a>
-                  <a href={document.signed_copy.storage_url} download className="rounded-full border border-[#E8F0F8] px-4 py-2.5 text-sm font-extrabold text-[#0C2B49]">Download current signed PDF</a>
+                  <a href={signedCopyFileUrl(document.document_id, { copyId: document.signed_copy.id })} target="_blank" rel="noreferrer" className="rounded-full bg-[#0985E7] px-4 py-2.5 text-sm font-extrabold text-white">Open current signed PDF</a>
+                  <a href={signedCopyFileUrl(document.document_id, { copyId: document.signed_copy.id, download: true, filename: document.signed_copy.original_filename ?? document.file_name ?? undefined })} className="rounded-full border border-[#E8F0F8] px-4 py-2.5 text-sm font-extrabold text-[#0C2B49]">Download current signed PDF</a>
                 </div>
               </div>
             ) : <p className="text-sm text-[#64748b]">No signed PDF is attached to this document yet.</p>}
@@ -423,7 +423,7 @@ export function DocumentWorkspace({
             {signedCopiesQuery.isLoading && <p className="text-sm text-[#64748b]">Loading signed copies…</p>}
             {signedCopiesQuery.isError && <p role="alert" className="text-sm font-bold text-[#B42318]">Unable to load signed-copy history.</p>}
             {signedCopiesQuery.data?.copies.length === 0 && <p className="text-sm text-[#64748b]">No signed copies have been uploaded.</p>}
-            {signedCopiesQuery.data?.copies.map((copy) => <article key={copy.id} className="space-y-3 rounded-xl border border-[#E8F0F8] bg-[#F8FBFF] p-4"><div className="flex flex-wrap items-center justify-between gap-2"><p className="font-bold text-[#0C2B49]">{copy.original_filename ?? 'Signed PDF'}</p>{copy.is_current && <span className="rounded-full bg-[#EAF8F0] px-2.5 py-1 text-xs font-bold text-[#067647]">Current copy</span>}</div><p className="text-sm text-[#64748b]">Uploaded {formatDate(copy.created_at)} · {copy.content_type} · {copy.size_bytes.toLocaleString()} bytes</p><p className="break-all font-mono text-xs text-[#64748b]">{copy.sha256}</p>{copy.replaced_reason && <p className="text-sm text-[#64748b]">Replaced: {copy.replaced_reason}</p>}<div className="flex gap-3"><a href={copy.storage_url} target="_blank" rel="noreferrer" className="text-sm font-bold text-[#0985E7]">Open signed copy</a><a href={copy.storage_url} download className="text-sm font-bold text-[#0C2B49]">Download signed copy</a></div></article>)}
+            {signedCopiesQuery.data?.copies.map((copy) => <article key={copy.id} className="space-y-3 rounded-xl border border-[#E8F0F8] bg-[#F8FBFF] p-4"><div className="flex flex-wrap items-center justify-between gap-2"><p className="font-bold text-[#0C2B49]">{copy.original_filename ?? 'Signed PDF'}</p>{copy.is_current && <span className="rounded-full bg-[#EAF8F0] px-2.5 py-1 text-xs font-bold text-[#067647]">Current copy</span>}</div><p className="text-sm text-[#64748b]">Uploaded {formatDate(copy.created_at)} · {copy.content_type} · {copy.size_bytes.toLocaleString()} bytes</p><p className="break-all font-mono text-xs text-[#64748b]">{copy.sha256}</p>{copy.replaced_reason && <p className="text-sm text-[#64748b]">Replaced: {copy.replaced_reason}</p>}<div className="flex gap-3"><a href={signedCopyFileUrl(document.document_id, { copyId: copy.id })} target="_blank" rel="noreferrer" className="text-sm font-bold text-[#0985E7]">Open signed copy</a><a href={signedCopyFileUrl(document.document_id, { copyId: copy.id, download: true, filename: copy.original_filename ?? undefined })} className="text-sm font-bold text-[#0C2B49]">Download signed copy</a></div></article>)}
           </div>
         )}
 
