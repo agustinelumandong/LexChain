@@ -54,6 +54,10 @@ export async function finalizeDocument(documentId: string): Promise<ApiSchema<'R
   return lifecycleFetch(`/documents/${id}/finalize`, { method: 'POST' });
 }
 
+export function retryDocumentProcessing(documentId: string): Promise<ApiSchema<'RetryProcessingResponse'>> {
+  return lifecycleFetch(`/documents/${required(documentId, 'Document ID is required')}/retry-processing`, { method: 'POST' });
+}
+
 export function listDraftComments(documentId: string): Promise<ApiSchema<'DraftCommentListResponse'>> {
   return lifecycleFetch(`/documents/${required(documentId, 'Document ID is required')}/comments`);
 }

@@ -31,6 +31,7 @@ export function getDocumentActions(
   if (role === 'lawyer' && document.permissions.can_finalize) actions.push('Finalize');
   const lifecycle = document.lifecycle?.trim().toUpperCase();
   if (document.permissions.can_view && (lifecycle === 'FINALIZED' || document.on_chain)) actions.push('Verify integrity');
+  if (role === 'lawyer' && document.permissions.can_retry_processing) actions.push('Retry processing');
   return actions;
 }
 

@@ -18,6 +18,7 @@ const { state } = vi.hoisted(() => ({
     finalizeDocument: vi.fn(),
     markDocumentReady: vi.fn(),
     reopenDocument: vi.fn(),
+    retryDocumentProcessing: vi.fn(),
     queryClient: { setQueryData: vi.fn(), invalidateQueries: vi.fn() },
   },
 }));
@@ -29,6 +30,7 @@ vi.mock('@/features/documents/document-lifecycle-api', () => ({
   reopenDocument: state.reopenDocument,
   cancelDocument: vi.fn(),
   LifecycleRequestError: class LifecycleRequestError extends Error {},
+  retryDocumentProcessing: state.retryDocumentProcessing,
 }));
 
 vi.mock('@tanstack/react-query', () => ({
@@ -98,6 +100,7 @@ const baseDocument: DocumentResponse = {
     can_correct_entry: false,
     can_cancel: false,
     can_finalize: false,
+    can_retry_processing: false,
     can_share: false,
     can_revoke: false,
   },
@@ -132,6 +135,7 @@ beforeEach(() => {
   state.finalizeDocument.mockReset();
   state.markDocumentReady.mockReset();
   state.reopenDocument.mockReset();
+  state.retryDocumentProcessing.mockReset();
   state.mutations = [];
 });
 
@@ -631,6 +635,26 @@ describe('document detail screen', () => {
     }
   });
 
+  it('retries failed processing only when backend permission is granted', async () => {
+    state.retryDocumentProcessing.mockResolvedValue({
+      document_id: 'doc-1',
+      status: 'QUEUED',
+      job: 'extract',
+      message: 'Text extraction has been queued again.',
+    });
+    state.documentQuery = {
+      data: { ...baseDocument, lifecycle: 'FINALIZED', status: 'FAILED', permissions: { ...baseDocument.permissions, can_retry_processing: true } },
+      isLoading: false,
+      isError: false,
+      refetch: vi.fn(),
+    };
+
+    await showPage();
+    fireEvent.click(screen.getByRole('button', { name: 'Retry processing' }));
+
+    await waitFor(() => expect(state.retryDocumentProcessing).toHaveBeenCalledExactlyOnceWith('doc-1'));
+    expect(await screen.findByText('Text extraction has been queued again.')).toBeTruthy();
+  });
   it('shows a clear unavailable message when the current signed copy is missing', async () => {
     state.documentQuery = {
       data: { ...baseDocument, signed_copy: null },

@@ -559,6 +559,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/documents/{document_id}/retry-processing": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Retry processing a failed document
+         * @description Queue a FAILED document again from the phase that failed: OCR if the text was never approved, otherwise chunking, embedding and analysis. Nothing is re-anchored — the on-chain record from finalize stands. Shown to the client as `permissions.can_retry_processing`.
+         */
+        post: operations["retry_processing_documents__document_id__retry_processing_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/documents/{document_id}/verify": {
         parameters: {
             query?: never;
@@ -1455,6 +1475,11 @@ export interface components {
              */
             can_finalize: boolean;
             /**
+             * Can Retry Processing
+             * @description May send a FAILED document back through processing
+             */
+            can_retry_processing: boolean;
+            /**
              * Can Share
              * @description May whitelist other users
              */
@@ -2142,6 +2167,29 @@ export interface components {
              * @description Email address to resend verification to
              */
             email: string;
+        };
+        /**
+         * RetryProcessingResponse
+         * @description A FAILED document queued again.
+         */
+        RetryProcessingResponse: {
+            /**
+             * Document Id
+             * Format: uuid
+             */
+            document_id: string;
+            /**
+             * Status
+             * @description QUEUED (OCR again) or ENRICHING
+             */
+            status: string;
+            /**
+             * Job
+             * @description extract | enrich — the phase that failed
+             */
+            job: string;
+            /** Message */
+            message: string;
         };
         /** SearchHit */
         SearchHit: {
@@ -3777,6 +3825,65 @@ export interface operations {
                 content?: never;
             };
             /** @description Not SIGNED, or the stored file no longer matches the upload */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    retry_processing_documents__document_id__retry_processing_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                document_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Queued again */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RetryProcessingResponse"];
+                };
+            };
+            /** @description Not authenticated — missing or invalid bearer token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden — only the document owner may retry */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Document not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The document is not FAILED */
             409: {
                 headers: {
                     [name: string]: unknown;

@@ -80,6 +80,7 @@ const document: ApiSchema<'DocumentResponse'> = {
     can_correct_entry: false,
     can_cancel: false,
     can_finalize: false,
+    can_retry_processing: false,
     can_share: false,
     can_revoke: false,
   },
