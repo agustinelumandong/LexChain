@@ -1241,6 +1241,72 @@
         }
       }
     },
+    "/documents/{document_id}/file": {
+      "get": {
+        "tags": [
+          "Documents · Signed copy & register"
+        ],
+        "summary": "Short-lived link to a signed copy's PDF",
+        "description": "Checks the caller's current access, then returns a signed URL valid for `expires_in` seconds. Defaults to the current copy; pass `copy_id` for an older one from /signed-copies. Ask again when it expires.",
+        "operationId": "get_signed_copy_file_documents__document_id__file_get",
+        "security": [
+          {
+            "Bearer Token": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "document_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Document Id"
+            }
+          },
+          {
+            "name": "copy_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Copy Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SignedCopyFileResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/documents/{document_id}/entry": {
       "patch": {
         "tags": [
@@ -4257,18 +4323,6 @@
             "title": "File Name",
             "description": "Display name of the document"
           },
-          "storage_url": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Storage Url",
-            "description": "URL of the document as it stands now, for rendering pages"
-          },
           "status": {
             "type": "string",
             "title": "Status",
@@ -4722,10 +4776,11 @@
             "title": "File Name",
             "description": "Display name of the document"
           },
-          "storage_url": {
+          "signed_copy_id": {
             "type": "string",
-            "title": "Storage Url",
-            "description": "URL of the source PDF, for rendering pages behind the blocks"
+            "format": "uuid",
+            "title": "Signed Copy Id",
+            "description": "The PDF behind the blocks; read it through GET /documents/{document_id}/file for rendering pages"
           },
           "engine": {
             "type": "string",
@@ -4807,7 +4862,7 @@
           "extraction_id",
           "status",
           "file_name",
-          "storage_url",
+          "signed_copy_id",
           "engine",
           "page_count",
           "blocks",
@@ -5460,6 +5515,38 @@
         ],
         "title": "SignUpResponse"
       },
+      "SignedCopyFileResponse": {
+        "properties": {
+          "document_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Document Id"
+          },
+          "copy_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Copy Id"
+          },
+          "url": {
+            "type": "string",
+            "title": "Url"
+          },
+          "expires_in": {
+            "type": "integer",
+            "title": "Expires In",
+            "description": "Seconds until `url` stops working"
+          }
+        },
+        "type": "object",
+        "required": [
+          "document_id",
+          "copy_id",
+          "url",
+          "expires_in"
+        ],
+        "title": "SignedCopyFileResponse",
+        "description": "A short-lived link to read one signed copy's PDF.\n\nIssued only after the reader's current access is checked; it stops\nworking after `expires_in` seconds, so ask again rather than storing it."
+      },
       "SignedCopyListResponse": {
         "properties": {
           "document_id": {
@@ -5488,10 +5575,6 @@
             "type": "string",
             "format": "uuid",
             "title": "Id"
-          },
-          "storage_url": {
-            "type": "string",
-            "title": "Storage Url"
           },
           "sha256": {
             "type": "string",
@@ -5556,7 +5639,6 @@
         "type": "object",
         "required": [
           "id",
-          "storage_url",
           "sha256",
           "content_type",
           "size_bytes",

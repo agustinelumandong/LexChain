@@ -8,6 +8,7 @@ import dynamic from 'next/dynamic';
 import type { ApiSchema } from '@/shared/types/index';
 import { portalRequest } from '@/shared/api/client';
 import { PortalApiError } from '@/shared/api/portal-error';
+import { signedCopyFileUrl } from '@/features/documents/document-lifecycle-api';
 
 const PdfDocumentViewer = dynamic(() => import('@/features/documents/components/pdf-document-viewer'), {
   ssr: false,
@@ -32,7 +33,6 @@ export default function PdfViewerPage() {
     retry: false,
   });
   const document = documentQuery.data;
-  const pdfUrl = document?.signed_copy?.storage_url;
 
   return (
     <div className="space-y-5">
@@ -50,7 +50,7 @@ export default function PdfViewerPage() {
           <p className="mt-2 text-sm text-[var(--portal-text-muted)]">{documentQuery.error instanceof PortalApiError ? documentQuery.error.message : 'The document details could not be loaded.'}</p>
           <button type="button" onClick={() => void documentQuery.refetch()} className="mt-4 rounded-full border border-[var(--portal-border-soft)] px-4 py-2 text-sm font-bold text-[var(--portal-primary)]">Try again</button>
         </section>
-      ) : !pdfUrl ? (
+      ) : !document?.signed_copy ? (
         <section aria-labelledby="preview-unavailable-heading" className="rounded-[18px] border border-[var(--portal-border-soft)] bg-white p-6">
           <h2 id="preview-unavailable-heading" className="font-extrabold text-[var(--portal-navy)]">Preview unavailable</h2>
           <p className="mt-2 text-sm text-[var(--portal-text-muted)]">No signed PDF is attached to this document.</p>
@@ -62,11 +62,11 @@ export default function PdfViewerPage() {
               <h2 id="document-preview-heading" className="break-words font-extrabold text-[var(--portal-navy)]">{document.signed_copy?.original_filename ?? document.file_name}</h2>
               <p className="mt-1 text-sm text-[var(--portal-text-muted)]">Current signed PDF</p>
             </div>
-            <a href={pdfUrl} download className="rounded-xl bg-[var(--portal-primary)] px-4 py-2.5 text-sm font-semibold text-white">Download signed PDF</a>
+            <a href={signedCopyFileUrl(document.document_id, { copyId: document.signed_copy.id, download: true, filename: document.signed_copy.original_filename ?? document.file_name ?? undefined })} className="rounded-xl bg-[var(--portal-primary)] px-4 py-2.5 text-sm font-semibold text-white">Download signed PDF</a>
           </div>
           <div className="relative flex min-h-[320px] min-w-0 flex-1 flex-col">
             <PdfDocumentViewer
-              sourceUrl={pdfUrl}
+              sourceUrl={signedCopyFileUrl(document.document_id, { copyId: document.signed_copy.id })}
               currentPage={currentPage}
               blocks={[]}
               selectedBlockIndex={null}

@@ -23,7 +23,7 @@ export default function DocumentVerifyPage() {
         <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
           <h1 className="text-[28px] font-black text-[#0C2B49]">Document Verification</h1>
         </div>
-        <p className="mt-1 text-sm text-[#64748b]">The backend compares the current signed PDF with its anchored hash and returns the verification verdict.</p>
+        <p className="mt-1 text-sm text-[#64748b]">The current PDF is compared with the trusted baseline recorded at finalization.</p>
       </header>
 
       {verifyQuery.isPending || verifyQuery.isFetching ? (

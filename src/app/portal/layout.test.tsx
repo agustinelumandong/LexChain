@@ -36,6 +36,7 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
+  vi.unstubAllEnvs();
   roleCookie.value = undefined;
 });
 
@@ -113,6 +114,12 @@ describe("portal layout role hint", () => {
     expect(queryClient.getQueryCache().find({ queryKey: ['portal-notif-count'] })?.observers[0]?.options.refetchInterval).toBe(45_000);
   });
 
+  it("labels portal pages as simulated when mock mode is enabled", async () => {
+    vi.stubEnv("USE_MOCK_API", "true");
+    await renderPortal("lawyer");
+
+    expect(screen.getByText(/Document processing and blockchain results are simulated/).parentElement?.textContent).toContain("Prototype");
+  });
   it.each([
     ["missing", undefined],
     ["unsupported", "staff"],

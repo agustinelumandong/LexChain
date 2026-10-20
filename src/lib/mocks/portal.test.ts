@@ -46,7 +46,7 @@ describe('portal mock extraction contract', () => {
     await expect(response.json()).resolves.toMatchObject({
       document_id: 'mock-document-2',
       file_name: 'Certificate of Employment.pdf',
-      storage_url: '/mock-documents/certificate-of-employment.pdf',
+      signed_copy_id: 'mock-signed-copy-2',
       blocks: expect.arrayContaining([
         expect.objectContaining({
           index: 0,
@@ -56,6 +56,18 @@ describe('portal mock extraction contract', () => {
         }),
         expect.objectContaining({ index: 2, editable: false, type: 'image' }),
       ]),
+    });
+  });
+
+  it('returns a short-lived mock file link for an accessible document', async () => {
+    const response = mockPortalGet('/documents/mock-document-2/file', 'mock-token:mock-document-issuer');
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      document_id: 'mock-document-2',
+      copy_id: 'mock-signed-copy-2',
+      url: '/mock-documents/certificate-of-employment.pdf',
+      expires_in: 300,
     });
   });
 
@@ -81,7 +93,7 @@ describe('portal mock mutations', () => {
       lifecycle: string;
       status: string | null;
       document_hash: string | null;
-      signed_copy: { sha256: string; storage_url: string; size_bytes: number; is_current: boolean };
+      signed_copy: { sha256: string; size_bytes: number; is_current: boolean };
       permissions: { can_finalize: boolean };
     };
     expect(before).toMatchObject({
@@ -125,7 +137,7 @@ describe('portal mock mutations', () => {
       is_authentic: true,
     });
     const repository = await mockPortalGet('/documents/', 'mock-token:mock-document-issuer').json() as Array<{ document_id: string; on_chain: boolean }>;
-    expect(repository.filter((document) => document.on_chain)).toHaveLength(3);
+    expect(repository.filter((document) => document.on_chain)).toHaveLength(4);
     expect(repository.find((document) => document.document_id === 'mock-document-2')).toMatchObject({ on_chain: true });
 
     const second = await mockPortalMutate(
@@ -182,6 +194,37 @@ describe('portal mock mutations', () => {
     }));
   });
 
+  it('returns a mock blockchain tamper report with the changed deed price block', async () => {
+    const documents = await mockPortalGet('/documents', 'mock-token:mock-document-issuer').json() as Array<Record<string, unknown>>;
+    expect(documents).toContainEqual(expect.objectContaining({
+      document_id: 'mock-document-5',
+      file_name: 'Tampered Deed of Sale.pdf',
+      on_chain: true,
+      integrity_state: 'mismatch',
+    }));
+
+    const verification = mockPortalGet('/documents/mock-document-5/verify', 'mock-token:mock-document-issuer');
+    expect(verification.status).toBe(200);
+    await expect(verification.json()).resolves.toMatchObject({
+      document_id: 'mock-document-5',
+      file_name: 'Tampered Deed of Sale.pdf',
+      status: 'TAMPERED',
+      is_authentic: false,
+      baseline_trusted: true,
+      tamper_report: {
+        total_changes: 1,
+        critical_changes: 1,
+        segments: [expect.objectContaining({
+          index: 3,
+          text: 'Price: PHP 10,000,000.00',
+          original_text: 'Price: PHP 2,750,000.00',
+          bbox: [100, 520, 700, 565],
+          page_idx: 0,
+        })],
+      },
+    });
+  });
+
   it('rejects an issuer restore request when the integrity state is not a mismatch', async () => {
     const response = await mockPortalMutate(
       'POST',
@@ -213,7 +256,7 @@ describe('portal mock mutations', () => {
     );
 
     expect(response.status).toBe(201);
-    await expect(response.json()).resolves.toMatchObject({ status: 'ready_for_review' });
+    await expect(response.json()).resolves.toMatchObject({ status: 'READY_FOR_REVIEW' });
   });
 
   it('rejects an upload that omits the required file-name metadata', async () => {
@@ -272,6 +315,7 @@ describe('portal mock mutations', () => {
     const { document_id } = await upload.json() as { document_id: string };
     await expect(mockPortalGet(`/documents/${document_id}`, 'mock-token:mock-document-issuer').json()).resolves.toMatchObject({
       file_name: 'Issuer document title',
+      summary: 'Document uploaded and ready for review.',
     });
   });
 
@@ -733,7 +777,7 @@ describe('portal mock extraction review', () => {
     await expect(review.json()).resolves.toMatchObject({
       document_id: 'mock-document-2',
       file_name: 'Certificate of Employment.pdf',
-      storage_url: '/mock-documents/certificate-of-employment.pdf',
+      signed_copy_id: 'mock-signed-copy-2',
       blocks: expect.arrayContaining([expect.objectContaining({ index: 0, edited: false, original_text: expect.any(String) })]),
       flags: expect.any(Array),
       is_reviewed: false,
@@ -767,7 +811,7 @@ describe('portal mock extraction review', () => {
     const accepted = await upload.json() as { document_id: string; status: string };
     const path = `/documents/${accepted.document_id}`;
 
-    expect(accepted.status).toBe('ready_for_review');
+    expect(accepted.status).toBe('READY_FOR_REVIEW');
     await expect(extractionMock.mockPortalGet(`${path}/extraction`, issuerToken).json()).resolves.toMatchObject({
       document_id: accepted.document_id,
       status: 'AWAITING_REVIEW',
