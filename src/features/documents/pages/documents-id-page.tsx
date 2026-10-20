@@ -15,6 +15,7 @@ import { Modal } from '@/features/admin/components/modal';
 import { portalRequest } from '@/shared/api/client';
 import { PortalApiError } from '@/shared/api/portal-error';
 import { isMockMode } from '@/lib/mocks/mode';
+import { retryDocumentProcessing } from '@/features/documents/document-lifecycle-api';
 
 type DocumentResponse = ApiSchema<'DocumentResponse'>;
 type UserProfile = ApiSchema<'UserProfileResponse'>;
@@ -184,6 +185,17 @@ export default function DocumentDetailPage({ params }: { params: Promise<{ id: s
     },
   });
 
+  const retryProcessingMutation = useMutation({
+    mutationFn: () => retryDocumentProcessing(id),
+    onSuccess: async (result) => {
+      setSuccess(result.message);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['portal-doc', id] }),
+        queryClient.invalidateQueries({ queryKey: ['portal-documents'] }),
+      ]);
+    },
+  });
+
   function openFinalizeConfirmation() {
     finalizeMutation.reset();
     setSuccess(undefined);
@@ -252,10 +264,12 @@ export default function DocumentDetailPage({ params }: { params: Promise<{ id: s
             {actions.includes('Review extracted text') && <Link href={`/portal/documents/${id}/review`} className="rounded-full bg-[#0985E7] px-4 py-2.5 text-sm font-extrabold text-white">Review extracted text</Link>}
             {document.signed_copy && <a href={signedCopyFileUrl(id, { copyId: document.signed_copy.id, download: true, filename: document.signed_copy.original_filename ?? document.file_name ?? undefined })} className="rounded-full bg-[#0985E7] px-4 py-2.5 text-sm font-extrabold text-white">Download current signed PDF</a>}
             {actions.includes('Finalize') && !finalizationResult && !hasUnknownFinalization && <button type="button" onClick={openFinalizeConfirmation} className="rounded-full bg-[#0985E7] px-4 py-2.5 text-sm font-extrabold text-white">Finalize</button>}
+            {actions.includes('Retry processing') && <button type="button" onClick={() => { setSuccess(undefined); retryProcessingMutation.mutate(); }} disabled={retryProcessingMutation.isPending} className="rounded-full border border-[#0985E7] px-4 py-2.5 text-sm font-extrabold text-[#0985E7] disabled:opacity-50">{retryProcessingMutation.isPending ? 'Retrying…' : 'Retry processing'}</button>}
             {document.permissions.can_cancel && <button type="button" onClick={openCancelConfirmation} className="rounded-full border border-[#B42318] px-4 py-2.5 text-sm font-extrabold text-[#B42318]">Cancel document</button>}
             {actions.includes('Verify integrity') && <Link href={`/portal/documents/${id}/verify`} className="rounded-full border border-[#E8F0F8] bg-white px-4 py-2.5 text-sm font-extrabold text-[#0C2B49]">Verify integrity</Link>}
           </div>
         </div>
+        {retryProcessingMutation.error instanceof Error && <p role="alert" className="text-sm font-bold text-[#B42318]">{retryProcessingMutation.error.message || "Unable to retry document processing."}</p>}
       </header>
 
       <Modal open={renameOpen} onClose={() => { if (!renamePending) setRenameOpen(false); }} title="Rename document">

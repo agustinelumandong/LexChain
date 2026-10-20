@@ -196,6 +196,27 @@ describe('document lifecycle client', () => {
     );
   });
 
+  it('queues failed-document processing through the existing mutation proxy', async () => {
+    const response = {
+      document_id: 'document-1',
+      status: 'QUEUED',
+      job: 'extract',
+      message: 'Text extraction has been queued again.',
+    };
+    const fetchMock = vi.fn().mockResolvedValue(Response.json(response, { status: 202 }));
+    vi.stubGlobal('fetch', fetchMock);
+    const api = await import('@/features/documents/document-lifecycle-api');
+    const retryDocumentProcessing = Reflect.get(api, 'retryDocumentProcessing') as ((id: string) => Promise<unknown>) | undefined;
+
+    expect(retryDocumentProcessing).toBeTypeOf('function');
+    if (!retryDocumentProcessing) return;
+    await expect(retryDocumentProcessing('document-1')).resolves.toEqual(response);
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/portal/proxy-post?path=%2Fdocuments%2Fdocument-1%2Fretry-processing',
+      expect.objectContaining({ method: 'POST' }),
+    );
+  });
+
   it('rejects a blank document ID before fetching', async () => {
     const fetchMock = vi.fn();
     vi.stubGlobal('fetch', fetchMock);

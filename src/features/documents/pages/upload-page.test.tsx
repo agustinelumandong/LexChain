@@ -25,7 +25,7 @@ const signedDocument = {
   permissions: {
     can_view: true, can_rename: false, can_create_draft: false, can_mark_ready: false,
     can_reopen: false, can_attach_signed_copy: false, can_replace_signed_copy: false,
-    can_correct_entry: false, can_cancel: false, can_finalize: false, can_share: false, can_revoke: false,
+    can_correct_entry: false, can_cancel: false, can_finalize: false, can_retry_processing: false, can_share: false, can_revoke: false,
   },
   summary: null,
   labels: [],

@@ -19,6 +19,7 @@ const document: ApiSchema<'DocumentResponse'> = {
     can_correct_entry: false,
     can_cancel: false,
     can_finalize: false,
+    can_retry_processing: false,
     can_share: false,
     can_revoke: false,
   },
@@ -60,6 +61,17 @@ describe('getDocumentStatusLabel', () => {
 
   it('offers verification for finalized viewable documents without an on-chain record', () => {
     expect(getDocumentActions('user', { ...document, lifecycle: 'FINALIZED' })).toEqual(['Verify integrity']);
+  });
+
+  it('shows the retry action only to a lawyer granted retry permission', () => {
+    const failed = {
+      ...document,
+      status: 'FAILED',
+      permissions: { ...document.permissions, can_retry_processing: true },
+    };
+
+    expect(getDocumentActions('lawyer', failed)).toEqual(['Retry processing']);
+    expect(getDocumentActions('user', failed)).toEqual([]);
   });
 
   it('does not offer verification for finalized documents without view permission', () => {

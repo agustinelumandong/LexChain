@@ -1814,6 +1814,67 @@
         }
       }
     },
+    "/documents/{document_id}/retry-processing": {
+      "post": {
+        "tags": [
+          "Documents · Finalize & verify"
+        ],
+        "summary": "Retry processing a failed document",
+        "description": "Queue a FAILED document again from the phase that failed: OCR if the text was never approved, otherwise chunking, embedding and analysis. Nothing is re-anchored — the on-chain record from finalize stands. Shown to the client as `permissions.can_retry_processing`.",
+        "operationId": "retry_processing_documents__document_id__retry_processing_post",
+        "security": [
+          {
+            "Bearer Token": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "document_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Document Id"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Queued again",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RetryProcessingResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated — missing or invalid bearer token"
+          },
+          "403": {
+            "description": "Forbidden — only the document owner may retry"
+          },
+          "404": {
+            "description": "Document not found"
+          },
+          "409": {
+            "description": "The document is not FAILED"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/documents/{document_id}/verify": {
       "get": {
         "tags": [
@@ -3944,6 +4005,11 @@
             "title": "Can Finalize",
             "description": "May snapshot and anchor on-chain"
           },
+          "can_retry_processing": {
+            "type": "boolean",
+            "title": "Can Retry Processing",
+            "description": "May send a FAILED document back through processing"
+          },
           "can_share": {
             "type": "boolean",
             "title": "Can Share",
@@ -3966,6 +4032,7 @@
           "can_correct_entry",
           "can_cancel",
           "can_finalize",
+          "can_retry_processing",
           "can_share",
           "can_revoke"
         ],
@@ -5276,6 +5343,38 @@
           "email"
         ],
         "title": "ResendVerificationRequest"
+      },
+      "RetryProcessingResponse": {
+        "properties": {
+          "document_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Document Id"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "description": "QUEUED (OCR again) or ENRICHING"
+          },
+          "job": {
+            "type": "string",
+            "title": "Job",
+            "description": "extract | enrich — the phase that failed"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          }
+        },
+        "type": "object",
+        "required": [
+          "document_id",
+          "status",
+          "job",
+          "message"
+        ],
+        "title": "RetryProcessingResponse",
+        "description": "A FAILED document queued again."
       },
       "SearchHit": {
         "properties": {

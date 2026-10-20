@@ -283,6 +283,31 @@ let documents: MockDocument[] = [
   },
 ];
 
+documents.push({
+  ...documents[0],
+  id: 'mock-document-retry',
+  document_id: 'mock-document-retry',
+  document_number: 1006,
+  file_name: 'Failed processing example.pdf',
+  status: 'FAILED',
+  on_chain: true,
+  summary: 'A fictional finalized document whose processing failed and can be retried.',
+  labels: ['processing', 'retry'],
+  created_at: '2026-07-21T10:00:00.000Z',
+  updated_at: '2026-07-21T10:05:00.000Z',
+  audit_log: [mockCreationAudit('mock-document-retry', '2026-07-21T10:00:00.000Z')],
+  document_hash: 'd'.repeat(64),
+  finalized_at: '2026-07-21T10:05:00.000Z',
+  finalized_by: mockIssuerId,
+  snapshots: [{
+    id: 'mock-snapshot-retry',
+    document_id: 'mock-document-retry',
+    text_hash: 'd'.repeat(64),
+    created_at: '2026-07-21T10:05:00.000Z',
+  }],
+  integrity_state: 'match',
+});
+
 let notifications = [
   {
     id: 'mock-notification-1',
@@ -489,6 +514,7 @@ function documentPermissions(document: MockDocument, token?: string) {
     can_correct_entry: false,
     can_cancel: false,
     can_finalize: issuer && canFinalizeMockDocument(document),
+    can_retry_processing: Boolean(issuer && canMutateDocumentLifecycle(document) && document.status?.trim().toUpperCase() === 'FAILED'),
     can_share: false,
     can_revoke: false,
   };
@@ -1170,6 +1196,28 @@ export async function mockPortalMutate(method: 'POST' | 'PUT' | 'PATCH' | 'DELET
     };
     documents = [...documents.map((item) => item.id === document.id ? { ...item, is_latest: false } : item), next];
     return json({ document_id: next.id, status: next.status }, 202);
+  }
+
+  const retryProcessingMatch = requestPathname.match(/^\/documents\/([^/]+)\/retry-processing\/?$/);
+  if (method === 'POST' && retryProcessingMatch) {
+    if (!isMockDocumentIssuerToken(token)) return error('Lawyer access required', 403);
+    const document = documentFor(retryProcessingMatch[1]);
+    if (!document) return error('Document not found', 404);
+    if (!canMutateDocumentLifecycle(document)) return error('Only the document owner may retry processing', 403);
+    if (document.status?.trim().toUpperCase() !== 'FAILED') return error('Only failed documents may be retried', 409);
+
+    const job = extractions[document.id]?.is_reviewed ? 'enrich' : 'extract';
+    const status = job === 'extract' ? 'queued' : 'enriching';
+    const updated = { ...document, status, updated_at: new Date().toISOString() };
+    documents = documents.map((candidate) => candidate.id === updated.id ? updated : candidate);
+    return json({
+      document_id: document.id,
+      status: status.toUpperCase(),
+      job,
+      message: job === 'extract'
+        ? 'Text extraction has been queued again.'
+        : 'Chunking, embedding and analysis have been queued again.',
+    }, 202);
   }
 
   const extractionMatch = requestPathname.match(/^\/documents\/([^/]+)\/extraction\/?$/);

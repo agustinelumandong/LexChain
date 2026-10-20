@@ -1027,3 +1027,48 @@ describe('portal mock extraction review', () => {
     expect(inaccessibleAsk.status).toBe(404);
   });
 });
+
+describe('portal mock processing retry', () => {
+  it('retries a failed record without changing its existing on-chain anchor', async () => {
+    vi.resetModules();
+    const mock = await import('@/lib/mocks/portal');
+    const request = new Request('https://mock.lexchain.local/api/portal/proxy-post', { method: 'POST' });
+    const before = mock.mockPortalGet('/documents/mock-document-retry', 'mock-token:mock-document-issuer');
+    await expect(before.json()).resolves.toMatchObject({
+      status: 'FAILED',
+      on_chain: true,
+      permissions: { can_retry_processing: true },
+    });
+
+    const retried = await mock.mockPortalMutate(
+      'POST',
+      '/documents/mock-document-retry/retry-processing',
+      request,
+      'mock-token:mock-document-issuer',
+    );
+
+    expect(retried.status).toBe(202);
+    await expect(retried.json()).resolves.toMatchObject({
+      document_id: 'mock-document-retry',
+      status: 'QUEUED',
+      job: 'extract',
+    });
+    await expect(mock.mockPortalGet('/documents/mock-document-retry', 'mock-token:mock-document-issuer').json()).resolves.toMatchObject({
+      status: 'queued',
+      on_chain: true,
+      permissions: { can_retry_processing: false },
+    });
+    expect((await mock.mockPortalMutate(
+      'POST',
+      '/documents/mock-document-retry/retry-processing',
+      request,
+      'mock-token:mock-document-issuer',
+    )).status).toBe(409);
+    expect((await mock.mockPortalMutate(
+      'POST',
+      '/documents/mock-document-retry/retry-processing',
+      request,
+      'mock-token:mock-document-participant',
+    )).status).toBe(403);
+  });
+});
