@@ -137,7 +137,7 @@ describe('portal mock mutations', () => {
       is_authentic: true,
     });
     const repository = await mockPortalGet('/documents/', 'mock-token:mock-document-issuer').json() as Array<{ document_id: string; on_chain: boolean }>;
-    expect(repository.filter((document) => document.on_chain)).toHaveLength(4);
+    expect(repository.filter((document) => document.on_chain)).toHaveLength(5);
     expect(repository.find((document) => document.document_id === 'mock-document-2')).toMatchObject({ on_chain: true });
 
     const second = await mockPortalMutate(
