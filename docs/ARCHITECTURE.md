@@ -2,7 +2,7 @@
 
 LexChain is a two-repository system: this repository contains the Next.js web application and PWA; the separate `lexchain-backend` repository contains the FastAPI service. The former Expo application is preserved at `codex/backup-expo-before-web-pwa-2026-09-09`; it is not part of the active workspace.
 
-For lawyer and participant journeys paired with backend endpoints, see the [user-flow architecture](USER-FLOW-ARCHITECTURE.md) and [use-case overview](lexchain-usecase-flow.md). The user-flow guide distinguishes declared backend behavior, frontend callers, mock differences, and runtime verification limits.
+For lawyer and participant journeys paired with backend endpoints, see the [user-flow architecture](USER-FLOW-ARCHITECTURE.md) and [use-case overview](lexchain-usecase-flow.md). The [2026-10-21 system audit](SYSTEM-AUDIT-2026-10-21.md) summarizes source-confirmed behavior, current documentation drift, and runtime checks still needed. The user-flow guide distinguishes declared backend behavior, frontend callers, mock differences, and runtime verification limits.
 
 ## Whole-system flow
 

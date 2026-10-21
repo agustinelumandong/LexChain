@@ -32,7 +32,7 @@ The backend URL is configured with `API_URL` or `NEXT_PUBLIC_API_URL`. The front
 1. A person signs in from `/login`. The browser posts to `/api/auth`, which forwards credentials to the backend sign-in operation.
 2. The response establishes the local portal session cookies and includes the account role.
 3. The backend has two account roles: `lawyer` and `user`. The frontend maps legacy/UI aliases (`document_issuer`, `admin`, `super_admin`) to Lawyer navigation and `document_participant` to User navigation; these aliases do not add backend permissions.
-4. Lawyers land on `/portal/dashboard`; participants land on `/portal/documents`. Unsupported roles see an access-unavailable message.
+4. Lawyers land on `/portal/dashboard`; participants land on `/portal/documents`. The login page redirects unsupported roles back to `/login`; the portal shell also has an unavailable state if an unsupported role reaches `/portal` directly.
 5. Signing out calls the portal logout route. The server attempts backend sign-out and clears the local session cookies even if the backend cannot be reached.
 
 These mappings control presentation only. Backend authorization checks the local account role and the individual document relationship. There is no separate backend administrator tier; lawyer accounts also pass the `/admin/*` router's lawyer-role checks. [Sources: `src/features/access/portal-role.ts:8–18`; backend `backend/app/shared/constants.py:16–27`, `backend/app/infrastructure/security/dependencies.py:159–165`, `backend/app/features/admin/router.py:13–26` at commit `05f99cfdd5047bd8214fb328fb963b09704e80a2`.]
@@ -45,6 +45,27 @@ These mappings control presentation only. Backend authorization checks the local
 | Load the account profile | Portal UI → `/api/portal/proxy` | `GET /users/`; sign-in response is the primary role source |
 | Sign out | `/api/portal/logout` | `POST /auth/signout`, then local cookies are cleared |
 
+### Lawyer account invitations are not document-party invitations
+
+The lawyer invitation screen creates an **account-role invitation** through `/admin/invitations`. That flow is separate from a lawyer inviting an existing account to one document through `/documents/{document_id}/parties`.
+
+```mermaid
+flowchart LR
+    lawyer["Lawyer"] --> create["Create lawyer account invitation<br/>POST /admin/invitations"]
+    create --> exists{"Matching account already exists?"}
+    exists -->|"Yes, different role"| upgrade["Backend changes role immediately<br/>and marks invitation claimed"]
+    exists -->|"Yes, same role"| pending["Invitation remains pending<br/>existing-account sync does not claim it"]
+    exists -->|"No"| signup["Recipient signs up using invited email<br/>POST /auth/signup"]
+    signup --> claim["Backend matches pending, unexpired invite by email<br/>assigns invited role and claims invite"]
+    signup -. "token is not submitted or validated" .-> token["Invitation token"]
+    claim --> signin["Sign in as invited role"]
+    upgrade --> signin
+```
+
+The account invitation token is not sent by the website signup form and the backend signup schema does not accept it. For a **new** account, the backend instead looks up a pending, unexpired invitation by exact email and assigns that role during account creation. An existing account with a different role is upgraded when the invitation is created; an existing account already on the invited role is not claimed by the new-user signup lookup. These behaviors come from `backend/app/features/admin/service.py:104–174`, `backend/app/features/auth/schemas.py:14–19`, `backend/app/features/auth/service.py:144–154`, `backend/app/features/users/repository.py:61–82`, and `backend/app/features/admin/repository.py:21–29` at backend commit `05f99cfdd5047bd8214fb328fb963b09704e80a2`.
+
+The backend invitation response uses a `lexchain://sign-up?token=...` link. This frontend also has a web fallback at `/invite/{token}`, but the active web signup path does not redeem the token. The current invite and registration copy says web signup creates a standard account; that is misleading for same-email signup against a pending lawyer invitation. Account-role invitations do not grant access to any specific document. Mail delivery and opening the link in a deployed browser, PWA, or mobile app were not verified.
+
 ## Overall end-to-end use case
 
 The [compact use-case flow](lexchain-usecase-flow.md) shows the complete journey from account access through lawyer/client roles, filing, finalization, and search. The sections below expand the lawyer and client steps into frontend routes and backend operations. Evidence is based on this frontend checkout and backend source commit `05f99cfdd5047bd8214fb328fb963b09704e80a2`; it does not prove authenticated deployed execution.
@@ -52,6 +73,7 @@ The [compact use-case flow](lexchain-usecase-flow.md) shows the complete journey
 ### Why the flow has these boundaries
 
 - Backend account role and document access answer different questions. A pending invitation grants no access; an accepted party can read only the shared document and cannot perform owner mutations. A regular client (`user`) can be invited as a `viewer`; assigning `signer` or `editor` requires the invited account itself to have the backend `lawyer` role. These are document-party roles, not global account roles. This protects one lawyer’s records from writes by other accounts. [Backend source: `backend/app/features/documents/workflow/sharing.py:48–77`.]
+- An accepted party can call the backend extraction **read** endpoint because it uses document view access. The current frontend review page is restricted to lawyer accounts, and only lawyers can edit, analyze, or approve the extraction. So this is an API read capability, not a client review screen in the current web flow. [Backend source: `backend/app/features/documents/extraction/service.py:52–85,236–268`; frontend: `src/features/documents/pages/documents-id-review-page.tsx`.]
 - Google Docs is the collaboration draft. The signed PDF is the filing and integrity artifact. Finalization fingerprints that PDF before OCR review, so corrections to extracted text do not change the signed-copy fingerprint.
 - Finalization and text processing are separate. Finalization can succeed while OCR or indexing remains pending or fails. The dispatch record commits with document state before Celery processing runs.
 
@@ -65,7 +87,11 @@ flowchart TD
     workspace --> choice{"Start with a working record or a signed PDF?"}
     choice -->|"Working record"| record["Create document record<br/>POST /documents/"]
     record --> google["Create the working Google Doc draft once<br/>POST /documents/{id}/draft"]
-    google --> ready["Prepare and mark ready when permitted<br/>comments, ready/reopen endpoints"]
+    google --> shareChoice{"Invite a client to this draft?"}
+    shareChoice -->|"Yes"| invite["Invite an existing account<br/>POST /parties"]
+    invite --> accept["Client accepts this document invitation<br/>POST /invitations/{id}/accept"]
+    accept --> ready["Prepare and mark ready when permitted<br/>comments, ready/reopen endpoints"]
+    shareChoice -->|"No"| ready
     ready --> signing["Complete signing outside LexChain"]
     signing --> chooseBook["Select register book<br/>enter paper numbers when needed"]
     chooseBook --> attach["Attach signed PDF with book_id<br/>POST /documents/{id}/signed-copy"]
@@ -153,13 +179,13 @@ flowchart TD
 | Read or mark notifications | Top bar and `/portal/notifications` | `GET /notifications/`, `GET /notifications/unread-count`, `PATCH /notifications/{notification_id}/read`, `PATCH /notifications/read-all` |
 | View e-copy request status | `/portal/requests/my` | No matching request-status operation appears in the current OpenAPI contract; the page shows an unavailable state |
 
-The invitation screen lets a client accept or decline an invitation. A pending invite does not expose the document; accepting grants access to that document only. Clients do not own lifecycle actions such as editing register data, replacing a signed copy, finalizing, or approving extraction. The lawyer handles physical signing and uploads the signed scan.
+The invitation screen lets a client accept or decline a document-party invitation. A pending invite does not expose the document; accepting grants access to that document only. Clients do not own lifecycle actions such as editing register data, replacing a signed copy, finalizing, or approving extraction. The lawyer handles physical signing and uploads the signed scan. Although an accepted party can read extraction data through the backend API, the current frontend review page is lawyer-only and does not present that data to clients.
 
 The **My E-copy Requests** screen currently displays that request status is unavailable. The lawyer’s **Document Requests** screen likewise says request review is unavailable. Those screens should not be read as evidence that e-copy request submission and review are fully connected.
 
 ### Frontend callers verified in source
 
-The following additional contract operations have frontend call paths in the 2026-10-20 checkout; these establish source wiring, not live success:
+The following additional contract operations have frontend call paths in the 2026-10-21 checkout; these establish source wiring, not live success:
 
 | Backend operation | Frontend caller |
 |---|---|
@@ -201,7 +227,8 @@ Backend source at commit `05f99cfdd5047bd8214fb328fb963b09704e80a2` defines `GET
 - [Step-by-step manual testing guide](MANUAL-TESTING-GUIDE.md)
 - [Repository setup and API configuration](../README.md)
 - [Frontend/backend ownership and boundaries](ARCHITECTURE.md)
-- [Current integration review](BACKEND-FRONTEND-INTEGRATION-AUDIT.md) — a dated review snapshot; re-check the live contract and source before using it as current status
+- [Earlier integration audit](BACKEND-FRONTEND-INTEGRATION-AUDIT.md) — dated 2026-10-08 and historical; use this guide and the current source for today's flow
+- [System audit](SYSTEM-AUDIT-2026-10-21.md) — current source-level findings, documentation drift, and runtime checks still needed
 - [Checked-in OpenAPI contract](../openapi-updated.json)
 - [Portal navigation and role mapping](../src/features/portal/portal-dashboard.ts)
 - [Role mapping and landing routes](../src/features/access/portal-role.ts)
