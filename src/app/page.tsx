@@ -90,6 +90,16 @@ export default function Home() {
           </div>
         </section>
 
+        <section className="landing-section landing-container" aria-labelledby="landing-google-heading">
+          <div className="landing-section-heading">
+            <h2 id="landing-google-heading">Work with Google Docs drafts.</h2>
+            <p>
+              Lawyers can optionally connect Google Drive to create or choose working drafts and share them with authorized document parties. LexChain uses only files it creates or files the lawyer selects, not the rest of the Drive. Read our{" "}
+              <Link className="landing-text-link" href="/privacy">Privacy Policy</Link> for details about Google data.
+            </p>
+          </div>
+        </section>
+
         <section className="landing-section landing-container" id="workflow">
           <div className="landing-section-heading">
             <h2>One controlled flow.<br />From upload to verification.</h2>

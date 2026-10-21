@@ -114,6 +114,10 @@ function GoogleConnectionCard({ google, message, documentReturn }: { google?: st
     <section aria-labelledby="google-connection-heading" className="rounded-[18px] border border-[#E8F0F8] bg-white p-5 shadow-[0_4px_12px_rgba(19,59,115,0.05)]">
       <h2 id="google-connection-heading" className="text-lg font-black text-[#0C2B49]">Google Drive</h2>
       <p className="mt-1 text-sm text-[#64748b]">Connect Google to create working document drafts in your Drive.</p>
+      <p className="mt-2 text-sm leading-6 text-[#64748b]">
+        LexChain can access files it creates or you select in Google Picker, and share drafts with accepted document parties. We store your Google account email and encrypt connection tokens. Disconnecting revokes LexChain access; existing drafts stay in your Drive. See the{" "}
+        <Link className="font-bold text-[#0985E7]" href="/privacy">Privacy Policy</Link>.
+      </p>
 
       {callbackOutcome && <p role={callbackOutcome === 'failed' ? 'alert' : 'status'} className={`mt-4 rounded-xl p-3 text-sm font-bold ${callbackOutcome === 'connected' ? 'bg-green-50 text-green-800' : 'bg-amber-50 text-amber-900'}`}>
         {callbackOutcome === 'connected'
