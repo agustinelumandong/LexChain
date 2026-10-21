@@ -7,6 +7,7 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ErrorIcon from '@mui/icons-material/Error';
 import type { ApiSchema } from '@/shared/types/index';
 import { getDocumentLifecycleLabel, getDocumentProcessingStatusLabel } from '@/features/documents/document-ui';
+import { DocumentProcessingStatus } from '@/features/documents/components/document-processing-status';
 import { portalRequest } from '@/shared/api/client';
 
 type DocumentResponse = ApiSchema<'DocumentResponse'>;
@@ -57,26 +58,33 @@ export default function ProcessingPage({
     ]);
   }, [id, processingTerminal, queryClient]);
 
+  if (isLoading && id) {
+    return <DocumentProcessingStatus heading="Checking document status…" currentStatus="Loading backend status" description="Fetching the latest status from the document service." />;
+  }
+
+  if (data && !isFinalized && !lookupError) {
+    return (
+      <DocumentProcessingStatus
+        heading="Waiting for finalization"
+        currentStatus={getDocumentLifecycleLabel(data.lifecycle)}
+        description="OCR processing starts after the document is finalized. This page will update when the document reaches its next backend state."
+      />
+    );
+  }
+
+  if (isFinalized && !done && !reviewReady && !lookupError && !failed) {
+    return (
+      <DocumentProcessingStatus
+        heading="Processing your document…"
+        currentStatus={normalizedStatus}
+        description="This page will update when the document reaches its next backend state."
+      />
+    );
+  }
+
   return (
     <div className="flex min-h-[60vh] flex-col items-center justify-center gap-6 text-center">
-      {isLoading && <p role="status" className="text-sm font-bold text-[#64748b]">Loading document…</p>}
-      {data && <p className="text-sm font-bold text-[#64748b]">Lifecycle: {getDocumentLifecycleLabel(data.lifecycle)}</p>}
-      {data && !isFinalized && !lookupError && (
-        <div>
-          <p className="text-xl font-black text-[#0C2B49]">Waiting for finalization</p>
-          <p className="mt-1 text-sm text-[#64748b]">OCR processing starts after the document is finalized.</p>
-        </div>
-      )}
-      {isFinalized && !done && !reviewReady && !lookupError && !failed && (
-        <>
-          <div className="h-16 w-16 animate-spin rounded-full border-4 border-[#0985E7] border-t-transparent" />
-          <div>
-            <p className="text-xl font-black text-[#0C2B49]">Processing your document...</p>
-            <p className="mt-1 text-sm text-[#64748b]">Current status: {normalizedStatus}</p>
-            <p className="mt-3 text-sm text-[#64748b]">This page will update when the document reaches its next backend state.</p>
-          </div>
-        </>
-      )}
+      {data && <p className="text-sm text-[#64748b]">Lifecycle: {getDocumentLifecycleLabel(data.lifecycle)}</p>}
       {reviewReady && !lookupError && !failed && (
         <>
           <CheckCircleIcon sx={{ fontSize: 64, color: '#12A150' }} />

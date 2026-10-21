@@ -35,8 +35,8 @@ describe('ProcessingPage', () => {
   it('shows document loading before its lifecycle is known', async () => {
     vi.stubGlobal('fetch', vi.fn(() => new Promise<Response>(() => {})));
     renderPage();
-    expect(await screen.findByRole('status')).toHaveProperty('textContent', 'Loading document…');
-    expect(screen.queryByText('Processing your document...')).toBeNull();
+    expect(await screen.findByRole('progressbar', { name: 'Checking document status…' })).toBeTruthy();
+    expect(screen.getByRole('status').textContent).toContain('Loading backend status');
   });
 
   it.each([
@@ -49,9 +49,9 @@ describe('ProcessingPage', () => {
       .mockResolvedValue(documentResponse('AWAITING_REVIEW'));
     vi.stubGlobal('fetch', fetchMock);
     renderPage();
-    expect(await screen.findByText(`Lifecycle: ${label}`)).toBeTruthy();
-    expect(screen.getByText('OCR processing starts after the document is finalized.')).toBeTruthy();
-    expect(screen.queryByText(/Current status:/)).toBeNull();
+    expect(await screen.findByRole('progressbar', { name: 'Waiting for finalization' })).toBeTruthy();
+    expect(screen.getByRole('status').textContent).toContain(`Current status: ${label}`);
+    expect(screen.getByText(/OCR processing starts after the document is finalized/)).toBeTruthy();
     expect(screen.queryByText('Processing failed')).toBeNull();
     expect(screen.queryByRole('link')).toBeNull();
     expect(await screen.findByRole('link', { name: 'Review extracted text' }, { timeout: 3_000 })).toBeTruthy();
@@ -78,7 +78,9 @@ describe('ProcessingPage', () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(documentResponse('processing')));
     const { container } = renderPage();
 
+    expect(await screen.findByRole('progressbar', { name: 'Processing your document…' })).toBeTruthy();
     expect(await screen.findByText('Current status: Processing')).toBeTruthy();
+    expect(screen.getByRole('progressbar').getAttribute('aria-valuetext')).toBe('Processing');
     expect(container.querySelector('.w-2\\/3')).toBeNull();
     expect(screen.queryByText(/summary will appear here/i)).toBeNull();
   });

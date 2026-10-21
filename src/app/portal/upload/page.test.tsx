@@ -124,10 +124,12 @@ describe('UploadPage', () => {
     fireEvent.change(screen.getByLabelText('Document title'), { target: { value: 'Assignment deed' } });
     completeUploadForm(container);
 
-    const submit = await screen.findByRole('button', { name: 'Uploading…' }) as HTMLButtonElement;
-    expect(submit.disabled).toBe(true);
-    expect(screen.getByRole('status').textContent).toContain('Uploading…');
-    fireEvent.click(submit);
+    expect(await screen.findByRole('heading', { name: 'Uploading your document…' })).toBeTruthy();
+    expect(screen.getByRole('progressbar', { name: 'Uploading your document…' })).toBeTruthy();
+    expect(screen.getByRole('status').textContent).toContain('Current status: Uploading PDF');
+    expect(screen.getByRole('status').textContent).toContain('Please keep this page open');
+    expect(screen.queryByLabelText('Document title')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Confirm and file' })).toBeNull();
     expect(uploadDocumentMock).toHaveBeenCalledTimes(1);
 
     pending.reject(new Error('Unable to connect to the upload service.'));

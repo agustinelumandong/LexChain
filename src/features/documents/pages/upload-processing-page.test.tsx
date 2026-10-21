@@ -17,6 +17,25 @@ afterEach(() => {
 });
 
 describe('document processing cache updates', () => {
+  it('shows a live status screen while a prepared document waits for finalization', async () => {
+    portalRequest.mockResolvedValue({
+      json: async () => ({ document_id: 'doc-1', file_name: 'Signed agreement.pdf', lifecycle: 'PREPARING', status: null, on_chain: false }),
+    });
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+
+    await act(async () => render(createElement(QueryClientProvider, { client: queryClient },
+      createElement(Suspense, { fallback: null },
+        createElement(ProcessingPage, { searchParams: Promise.resolve({ id: 'doc-1' }) }),
+      ),
+    )));
+
+    expect(await screen.findByRole('heading', { name: 'Waiting for finalization' })).toBeTruthy();
+    expect(screen.getByRole('progressbar', { name: 'Waiting for finalization' })).toBeTruthy();
+    expect(screen.getByRole('status').textContent).toContain('Current status: Preparing');
+    expect(screen.getByRole('status').textContent).toContain('OCR processing starts after the document is finalized.');
+    queryClient.clear();
+  });
+
   it('recognizes the finalized review-ready state returned by the portal mock', async () => {
     await mockPortalMutate('POST', '/documents/mock-document-2/finalize', new Request('https://mock.lexchain.local/api/portal/proxy-post', { method: 'POST' }), 'mock-token:mock-document-issuer');
     portalRequest.mockResolvedValue(mockPortalGet('/documents/mock-document-2', 'mock-token:mock-document-issuer'));
