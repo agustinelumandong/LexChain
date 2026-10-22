@@ -128,10 +128,10 @@ describe('NotificationsPage', () => {
     expect(screen.queryByRole('link', { name: /Document anchored/ })).toBeNull();
   });
 
-  it('polls the inbox every 45 seconds while mounted', async () => {
+  it('polls the inbox every 15 seconds while mounted', async () => {
     fetchMock.mockResolvedValue(Response.json({ notifications: [], total: 0 }));
     const { queryClient } = renderNotifications();
 
-    expect(queryClient.getQueryCache().find({ queryKey: ['portal-notifications'] })?.observers[0]?.options.refetchInterval).toBe(45_000);
+    expect(queryClient.getQueryCache().find({ queryKey: ['portal-notifications'] })?.observers[0]?.options.refetchInterval).toBe(15_000);
   });
 });

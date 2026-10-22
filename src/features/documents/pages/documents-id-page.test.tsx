@@ -10,6 +10,7 @@ const { state } = vi.hoisted(() => ({
   state: {
     documentQuery: {} as Record<string, unknown>,
     profileQuery: {} as Record<string, unknown>,
+    documentQueries: [] as Array<Record<string, unknown>>,
     signedCopiesQuery: {} as Record<string, unknown>,
     commentsQuery: {} as Record<string, unknown>,
     queryKeys: [] as string[][],
@@ -43,6 +44,7 @@ vi.mock('@/features/documents/document-lifecycle-api', () => ({
 vi.mock('@tanstack/react-query', () => ({
   useQueries: ({ queries }: { queries: { queryKey: readonly unknown[] }[] }) => {
     state.queryKeys = queries.map(({ queryKey }) => queryKey.map(String));
+    state.documentQueries = queries as Array<Record<string, unknown>>;
     return [state.documentQuery, state.profileQuery];
   },
   useQuery: ({ queryKey }: { queryKey: readonly unknown[] }) => {
@@ -152,6 +154,15 @@ afterEach(() => {
 });
 
 describe('document detail screen', () => {
+  it('refreshes document status while the detail page stays open', async () => {
+    await showPage();
+
+    expect(state.documentQueries[0]).toMatchObject({
+      queryKey: ['portal-doc', 'doc-1'],
+      refetchInterval: 10_000,
+    });
+  });
+
   it.each([
     ['PREPARING', 'Preparing', 'FAILED'],
     ['READY_FOR_SIGNATURE', 'Ready for signature', 'PROCESSING'],

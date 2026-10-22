@@ -60,6 +60,15 @@ beforeEach(() => {
 });
 
 describe('DashboardPage', () => {
+  it('refreshes aggregate dashboard metrics while the page stays open', () => {
+    renderDashboard();
+
+    expect(useQuery).toHaveBeenCalledWith(expect.objectContaining({
+      queryKey: ['admin-dashboard'],
+      refetchInterval: 10_000,
+    }));
+  });
+
   it('shows lifecycle and only owned finalized records in lawyer document cards', () => {
     queryState.documents = [
       { id: 'draft', file_name: 'Draft.pdf', is_owner: true, lifecycle: 'PREPARING', status: 'FAILED', created_at: '2026-10-16T00:00:00Z' },

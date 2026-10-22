@@ -16,7 +16,7 @@ export default function NotificationsPage() {
   const notificationsQuery = useQuery({
     queryKey: notificationQueryKeys.inbox,
     queryFn: fetchNotifications,
-    refetchInterval: 45_000,
+    refetchInterval: 15_000,
   });
 
   const notifications = notificationsQuery.data?.notifications ?? [];

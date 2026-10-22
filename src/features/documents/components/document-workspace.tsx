@@ -106,6 +106,7 @@ export function DocumentWorkspace({
     queryFn: listRegisterBooks,
     enabled: (correctingEntry && canCorrectEntry) || signedCopyMode === 'attach',
     retry: false,
+    refetchInterval: 15_000,
   });
   const selectedSignedCopyBook = registerBooksQuery.data?.find((book) => book.id === signedCopyBookId);
   const signedCopyUsesManualNumbers = selectedSignedCopyBook?.status === 'CLOSED' || enterPaperNumbers;
@@ -148,21 +149,23 @@ export function DocumentWorkspace({
     },
   });
   const documentSearch = useMutation({ mutationFn: (query: string) => searchDocument(document.document_id, query) });
-  const signedCopiesQuery = useQuery({ queryKey: ['portal-doc-signed-copies', document.document_id], queryFn: () => listSignedCopies(document.document_id), enabled: activeTab === 'Signed copies' });
+  const signedCopiesQuery = useQuery({ queryKey: ['portal-doc-signed-copies', document.document_id], queryFn: () => listSignedCopies(document.document_id), enabled: activeTab === 'Signed copies', refetchInterval: 15_000 });
   const partiesQuery = useQuery({
     queryKey: ['portal-document-parties', document.document_id],
     queryFn: () => listDocumentParties(document.document_id),
     enabled: role === 'lawyer' && activeTab === 'Access',
     retry: false,
+    refetchInterval: 15_000,
   });
   const historyQuery = useQuery({
     queryKey: ['portal-document-history', document.document_id],
     queryFn: () => listDocumentHistory(document.document_id),
     enabled: activeTab === 'History',
     retry: false,
+    refetchInterval: 15_000,
   });
   const commentsKey = ['portal-document-comments', document.document_id];
-  const commentsQuery = useQuery({ queryKey: commentsKey, queryFn: () => listDraftComments(document.document_id), enabled: activeTab === 'Comments' && Boolean(document.draft_url), retry: false });
+  const commentsQuery = useQuery({ queryKey: commentsKey, queryFn: () => listDraftComments(document.document_id), enabled: activeTab === 'Comments' && Boolean(document.draft_url), retry: false, refetchInterval: 15_000 });
   const syncComments = useMutation({ mutationFn: () => syncDraftComments(document.document_id), onSuccess: (comments) => queryClient.setQueryData(commentsKey, comments) });
   const registerBooks = registerBooksQuery.data ?? [];
   const registerBookOptions = [

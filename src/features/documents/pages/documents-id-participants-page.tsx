@@ -36,10 +36,10 @@ function getUnavailableParticipantAccessMessage({
 export default function DocumentParticipantsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const queryClient = useQueryClient();
-  const documentQuery = useQuery<DocumentResponse>({ queryKey: ['portal-doc', id], queryFn: () => portalFetch<DocumentResponse>(`/documents/${id}`), retry: false });
+  const documentQuery = useQuery<DocumentResponse>({ queryKey: ['portal-doc', id], queryFn: () => portalFetch<DocumentResponse>(`/documents/${id}`), retry: false, refetchInterval: 10_000 });
   const canShare = documentQuery.data?.permissions?.can_share === true;
   const canRevoke = documentQuery.data?.permissions?.can_revoke === true;
-  const partiesQuery = useQuery({ queryKey: ['portal-document-parties', id], queryFn: () => listDocumentParties(id), enabled: canShare || canRevoke, retry: false });
+  const partiesQuery = useQuery({ queryKey: ['portal-document-parties', id], queryFn: () => listDocumentParties(id), enabled: canShare || canRevoke, retry: false, refetchInterval: 15_000 });
   const [capabilityError, setCapabilityError] = useState(false);
   const unavailableMessage = getUnavailableParticipantAccessMessage({ documentError: documentQuery.isError, capabilityError, canShare, canRevoke });
 

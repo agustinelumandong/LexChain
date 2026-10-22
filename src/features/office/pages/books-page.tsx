@@ -109,6 +109,7 @@ export default function BooksPage() {
     queryKey: ['portal-books'],
     queryFn: listRegisterBooks,
     enabled: isIssuer,
+    refetchInterval: 15_000,
   });
   const createBookMutation = useMutation({
     mutationFn: createBook,
@@ -124,6 +125,7 @@ export default function BooksPage() {
     queryKey: ['portal-book', selectedBookId],
     queryFn: () => portalGet(`/books/${selectedBookId}`),
     enabled: Boolean(selectedBookId),
+    refetchInterval: 15_000,
   });
   const deleteBookMutation = useMutation({
     mutationFn: deleteBook,

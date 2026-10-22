@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import PortalRouteLayout from "./layout";
 import type React from 'react';
@@ -35,6 +35,7 @@ beforeEach(() => {
 
 afterEach(() => {
   cleanup();
+  vi.useRealTimers();
   vi.unstubAllGlobals();
   vi.unstubAllEnvs();
   roleCookie.value = undefined;
@@ -107,11 +108,27 @@ describe("portal layout role hint", () => {
     expect(fetchMock).not.toHaveBeenCalledWith(expect.stringContaining(encodeURIComponent('/notifications/read-all')), expect.anything());
   });
 
-  it("polls the shell list and unread count every 45 seconds for supported roles", async () => {
+  it("polls the shell list and unread count every 15 seconds for supported roles", async () => {
     const { queryClient } = await renderPortal('lawyer');
 
-    expect(queryClient.getQueryCache().find({ queryKey: ['portal-shell-notifications'] })?.observers[0]?.options.refetchInterval).toBe(45_000);
-    expect(queryClient.getQueryCache().find({ queryKey: ['portal-notif-count'] })?.observers[0]?.options.refetchInterval).toBe(45_000);
+    expect(queryClient.getQueryCache().find({ queryKey: ['portal-shell-notifications'] })?.observers[0]?.options.refetchInterval).toBe(15_000);
+    expect(queryClient.getQueryCache().find({ queryKey: ['portal-notif-count'] })?.observers[0]?.options.refetchInterval).toBe(15_000);
+  });
+
+  it("refreshes shared document status every 10 seconds while the portal is open", async () => {
+    vi.useFakeTimers();
+    const { queryClient } = await renderPortal('lawyer');
+    const documentRequests = () => fetchMock.mock.calls.filter(([url]) => String(url).includes('%2Fdocuments%2F')).length;
+
+    await act(async () => { await Promise.resolve(); });
+    expect(documentRequests()).toBe(1);
+    const documentQuery = queryClient.getQueryCache().find({ queryKey: ['portal-documents'] });
+    expect(documentQuery?.observers[0]?.options.refetchInterval).toBe(10_000);
+    expect(documentQuery?.observers[0]?.options.refetchOnWindowFocus).toBe('always');
+
+    await act(async () => { await vi.advanceTimersByTimeAsync(10_000); });
+
+    expect(documentRequests()).toBe(2);
   });
 
   it("labels portal pages as simulated when mock mode is enabled", async () => {

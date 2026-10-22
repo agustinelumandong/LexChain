@@ -36,6 +36,7 @@ export default function InvitationsPage() {
     queryKey: ["portal-invitations"],
     queryFn: () => portalFetch<InvitationList>("/documents/invitations/mine"),
     enabled: isParticipant,
+    refetchInterval: 15_000,
   });
   const invitations = list?.invitations ?? [];
 

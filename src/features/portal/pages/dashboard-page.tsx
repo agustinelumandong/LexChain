@@ -91,6 +91,7 @@ export default function DashboardPage() {
       return parsed.success ? parsed.data : null;
     },
     enabled: isIssuer,
+    refetchInterval: 10_000,
   });
   if (!isIssuer) {
     return (

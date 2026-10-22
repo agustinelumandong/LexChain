@@ -90,7 +90,7 @@ export default function DocumentDetailPage({ params }: { params: Promise<{ id: s
   );
   const [docQ, profileQ] = useQueries({
     queries: [
-      { queryKey: ['portal-doc', id], queryFn: () => getJson<DocumentResponse>(`/documents/${id}`) },
+      { queryKey: ['portal-doc', id], queryFn: () => getJson<DocumentResponse>(`/documents/${id}`), refetchInterval: 10_000 },
       { queryKey: ['portal-profile'], queryFn: () => getJson<UserProfile | null>('/users/') },
     ],
   });

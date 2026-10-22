@@ -25,24 +25,26 @@ export default function PortalLayout({ children, demoMode }: { children: React.R
   const [collapsed, setCollapsed] = useState(false);
   const uiRole = usePortalRole();
   const { data: documents = [] } = useQuery<PortalDocument[]>({
-    queryKey: ['portal-shell-documents'],
+    queryKey: ['portal-documents'],
     queryFn: async () => {
       const res = await portalRequest('/api/portal/proxy?path=%2Fdocuments%2F');
       return res.json();
     },
     enabled: uiRole === "lawyer",
+    refetchInterval: 10_000,
+    refetchOnWindowFocus: 'always',
   });
   const unreadCountQuery = useQuery({
     queryKey: notificationQueryKeys.unreadCount,
     queryFn: fetchUnreadNotificationCount,
     enabled: isSupportedPortalUiRole(uiRole),
-    refetchInterval: 45_000,
+    refetchInterval: 15_000,
   });
   const notificationsQuery = useQuery({
     queryKey: notificationQueryKeys.shell,
     queryFn: fetchNotifications,
     enabled: isSupportedPortalUiRole(uiRole),
-    refetchInterval: 45_000,
+    refetchInterval: 15_000,
   });
   const markNotificationMutation = useMutation({
     mutationFn: markNotificationRead,

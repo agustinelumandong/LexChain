@@ -31,6 +31,7 @@ export default function PdfViewerPage() {
     queryFn: () => fetchDocument(id),
     enabled: Boolean(id),
     retry: false,
+    refetchInterval: 10_000,
   });
   const document = documentQuery.data;
 

@@ -52,11 +52,13 @@ export default function DocumentActivityPage({ params }: { params: Promise<{ id:
     queryKey: ['portal-document', id],
     queryFn: () => getDocument(id),
     enabled: canLoadActivity,
+    refetchInterval: 15_000,
   });
   const auditQuery = useQuery({
     queryKey: ['portal-document-audit', id],
     queryFn: () => listDocumentAuditLogs(id),
     enabled: canLoadActivity,
+    refetchInterval: 15_000,
   });
   const role = getPortalUiRole(profileQuery.data?.role);
   const logs = auditQuery.data ?? [];
