@@ -49,13 +49,12 @@ afterEach(() => {
 });
 
 describe('VerifyWorkspace', () => {
-  it('shows the changed PDF region only in mock mode', () => {
-    vi.stubEnv('NEXT_PUBLIC_USE_MOCK_API', 'true');
+  it('shows available text comparison data even outside mock mode', () => {
+    vi.stubEnv('NEXT_PUBLIC_USE_MOCK_API', 'false');
     vi.stubEnv('USE_MOCK_API', 'false');
     render(<VerifyWorkspace result={result} onRetry={vi.fn()} />);
 
-    expect(screen.getByText('Changed area in PDF')).toBeTruthy();
-    expect(screen.getByText(/Blockchain baseline confirmed/)).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Current PDF' })).toBeTruthy();
     expect(screen.getByText('Price: PHP 2,750,000.00')).toBeTruthy();
     expect(screen.getByText('Price: PHP 10,000,000.00')).toBeTruthy();
     expect(dynamicMocks.viewerProps).toMatchObject({
@@ -65,13 +64,18 @@ describe('VerifyWorkspace', () => {
     expect((dynamicMocks.viewerProps?.tamperedBlockIndexes as ReadonlySet<number>).has(3)).toBe(true);
   });
 
-  it('does not render mock tamper previews outside mock mode', () => {
+  it('explains when a real verification response has no text comparison data', () => {
     vi.stubEnv('NEXT_PUBLIC_USE_MOCK_API', 'false');
     vi.stubEnv('USE_MOCK_API', 'false');
-    render(<VerifyWorkspace result={result} onRetry={vi.fn()} />);
+    render(<VerifyWorkspace result={{ ...result, tamper_report: null }} onRetry={vi.fn()} />);
 
-    expect(screen.queryByText('Changed area in PDF')).toBeNull();
-    expect(dynamicMocks.viewerProps).toBeNull();
+    expect(screen.getByRole('region', { name: 'Current document' })).toBeTruthy();
+    expect(screen.getByRole('status', { name: 'Comparison details unavailable' })).toBeTruthy();
+    expect(screen.getByText(/no extracted-text differences or baseline PDF/i)).toBeTruthy();
+    expect(dynamicMocks.viewerProps).toMatchObject({
+      sourceUrl: '/api/portal/documents/mock-document-5/file?filename=Tampered+Deed+of+Sale.pdf',
+      blocks: [],
+    });
   });
 
   it('does not link to a PDF when the document is not anchored', () => {

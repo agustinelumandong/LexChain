@@ -99,14 +99,15 @@ export default function VerifyWorkspace({ result, onRetry }: { result: Verificat
   const notAnchored = result.status === 'NOT_ANCHORED';
   const compromised = result.status === 'SNAPSHOT_COMPROMISED';
   const neutral = unavailable || notAnchored || compromised;
-  const tamperReport = isMockMode()
-    && result.status === 'TAMPERED'
+  const tamperReport = result.status === 'TAMPERED'
     && !result.is_authentic
     && result.baseline_trusted
     ? result.tamper_report
     : null;
   const tamperedSegments = tamperReport?.segments ?? [];
-  const showTamperPreview = tamperedSegments.length > 0;
+  const showTamperComparison = result.status === 'TAMPERED'
+    && !result.is_authentic
+    && result.baseline_trusted;
 
   return <section className="flex flex-col gap-5 md:min-h-0 md:flex-1">
     <div className={`rounded-[18px] border p-5 ${authentic ? 'border-green-200 bg-green-50' : neutral ? 'border-amber-200 bg-amber-50' : 'border-red-200 bg-red-50'}`}>
@@ -117,13 +118,13 @@ export default function VerifyWorkspace({ result, onRetry }: { result: Verificat
       {(unavailable || notAnchored) && <button type="button" onClick={onRetry} className="mt-4 rounded-full border border-[#0985E7] bg-white px-4 py-2 text-sm font-black text-[#0985E7]">Retry verification</button>}
     </div>
 
-    {showTamperPreview ? (
+    {showTamperComparison ? (
       <div className="grid min-w-0 gap-5 md:min-h-0 md:flex-1 md:grid-cols-[minmax(0,1.25fr)_minmax(18rem,0.9fr)]">
-        <section aria-label="Tampered PDF preview" className="flex min-h-[30rem] min-w-0 flex-col overflow-hidden rounded-[18px] border border-[#E8F0F8] bg-white p-4 md:min-h-0">
+        <section aria-label="Current document" className="flex min-h-[30rem] min-w-0 flex-col overflow-hidden rounded-[18px] border border-[#E8F0F8] bg-white p-4 md:min-h-0">
           <header className="mb-3 flex flex-wrap items-start justify-between gap-2">
             <div>
-              <h3 className="font-extrabold text-[#0C2B49]">Changed area in PDF</h3>
-              <p className="mt-1 text-xs text-[#64748b]">The red box marks the changed area in the current PDF.</p>
+              <h3 className="font-extrabold text-[#0C2B49]">Current PDF</h3>
+              <p className="mt-1 text-xs text-[#64748b]">Review the current document beside its trusted baseline comparison.</p>
             </div>
           </header>
           <div className="min-h-0 flex-1 overflow-hidden">
@@ -142,22 +143,33 @@ export default function VerifyWorkspace({ result, onRetry }: { result: Verificat
         </section>
         <div className="flex min-h-0 min-w-0 flex-col gap-5 overflow-auto">
           <section aria-label="Changed content" className="space-y-4 rounded-[18px] border border-[#E8F0F8] bg-white p-5">
-            <div>
-              <h3 className="font-extrabold text-[#0C2B49]">Changed content</h3>
-              <p className="mt-1 text-sm text-[#64748b]">{tamperReport?.total_changes} {tamperReport?.total_changes === 1 ? 'change' : 'changes'} found.</p>
-            </div>
-            {tamperedSegments.map((segment) => (
-              <dl key={segment.index} className="grid gap-3 text-sm">
-                <div className="rounded-xl border border-[#E8F0F8] bg-[#F8FBFF] p-3">
-                  <dt className="font-bold text-[#64748b]">Anchored version</dt>
-                  <dd className="mt-1 font-semibold text-[#0C2B49]">{segment.original_text || 'Not provided'}</dd>
+            {tamperedSegments.length > 0 ? (
+              <>
+                <div>
+                  <h3 className="font-extrabold text-[#0C2B49]">Changed content</h3>
+                  <p className="mt-1 text-sm text-[#64748b]">{tamperReport?.total_changes} {tamperReport?.total_changes === 1 ? 'change' : 'changes'} found.</p>
                 </div>
-                <div className="rounded-xl border border-red-200 bg-red-50 p-3">
-                  <dt className="font-bold text-[#D94B66]">Current PDF</dt>
-                  <dd className="mt-1 font-semibold text-[#0C2B49]">{segment.text || 'Not provided'}</dd>
-                </div>
-              </dl>
-            ))}
+                {tamperedSegments.map((segment) => (
+                  <dl key={segment.index} className="grid gap-3 text-sm">
+                    <div className="rounded-xl border border-[#E8F0F8] bg-[#F8FBFF] p-3">
+                      <dt className="font-bold text-[#64748b]">Anchored version</dt>
+                      <dd className="mt-1 font-semibold text-[#0C2B49]">{segment.original_text || 'Not provided'}</dd>
+                    </div>
+                    <div className="rounded-xl border border-red-200 bg-red-50 p-3">
+                      <dt className="font-bold text-[#D94B66]">Current PDF</dt>
+                      <dd className="mt-1 font-semibold text-[#0C2B49]">{segment.text || 'Not provided'}</dd>
+                    </div>
+                  </dl>
+                ))}
+              </>
+            ) : (
+              <div role="status" aria-label="Comparison details unavailable" className="rounded-xl border border-[#D7E4F2] bg-[#F8FBFF] p-4">
+                <h3 className="font-extrabold text-[#0C2B49]">Detailed comparison unavailable</h3>
+                <p className="mt-2 text-sm leading-6 text-[#64748b]">
+                  This verification response includes the verdict and file hashes, but no extracted-text differences or baseline PDF.
+                </p>
+              </div>
+            )}
           </section>
           <VerificationDetails result={result} />
         </div>

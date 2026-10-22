@@ -3,6 +3,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
+import RestoreIcon from '@mui/icons-material/Restore';
 import { verifyRepositoryDocument } from "@/features/verification";
 import { VerifyWorkspace as VerifyWorkspace } from "@/features/verification/components";
 
@@ -14,6 +15,9 @@ export default function DocumentVerifyPage() {
     retry: false,
     refetchOnMount: 'always',
   });
+  const canOfferRestore = verifyQuery.data?.status === 'TAMPERED'
+    && !verifyQuery.data.is_authentic
+    && verifyQuery.data.baseline_trusted;
   const isNotFoundOrUnanchored = verifyQuery.error instanceof Error && 'status' in verifyQuery.error && verifyQuery.error.status === 404;
 
   return (
@@ -22,8 +26,20 @@ export default function DocumentVerifyPage() {
         <Link href={`/portal/documents/${id}`} className="text-sm font-bold text-[#0985E7]">← Back to document</Link>
         <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
           <h1 className="text-[28px] font-black text-[#0C2B49]">Document Verification</h1>
+          {canOfferRestore && (
+            <button
+              type="button"
+              disabled
+              aria-label="Restore from backup, coming soon"
+              className="inline-flex cursor-not-allowed items-center gap-2 rounded-full border border-[#D7E4F2] bg-white px-4 py-2.5 text-sm font-black text-[#64748b]"
+            >
+              <RestoreIcon aria-hidden="true" sx={{ fontSize: 18 }} />
+              Restore from backup
+              <span className="rounded-full bg-[#F1F5F9] px-2 py-1 text-[10px] font-black uppercase tracking-wide text-[#64748b]">Coming soon</span>
+            </button>
+          )}
         </div>
-        <p className="mt-1 text-sm text-[#64748b]">The current PDF is compared with the trusted baseline recorded at finalization.</p>
+        <p className="mt-1 text-sm text-[#64748b]">The current PDF is checked against the trusted baseline recorded at finalization.</p>
       </header>
 
       {verifyQuery.isPending || verifyQuery.isFetching ? (

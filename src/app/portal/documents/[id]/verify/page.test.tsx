@@ -68,13 +68,14 @@ describe('DocumentVerifyPage', () => {
     expect(screen.getByRole('status', { name: 'Verifying document integrity' })).toBeTruthy();
   });
 
-  it('shows tampering as distinct from a compromised snapshot without an undocumented report', async () => {
+  it('shows the truthful comparison empty state and disabled restore control for a trusted tampered document', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json(verification('TAMPERED', false, true))));
     renderPage();
     expect(await screen.findByText('Document was tampered with')).toBeTruthy();
     expect(screen.getAllByText('on-chain-hash').length).toBeGreaterThan(0);
     expect(screen.getAllByText('current-hash').length).toBeGreaterThan(0);
-    expect(screen.queryByRole('button', { name: 'Restore' })).toBeNull();
+    expect(screen.getByText('Detailed comparison unavailable')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Restore from backup, coming soon' }).hasAttribute('disabled')).toBe(true);
   });
 
   it('fails closed when AUTHENTIC conflicts with is_authentic=false', async () => {
