@@ -155,3 +155,9 @@ Vitest discovers `src/**/*.test.{ts,tsx}`. Script tests use Node's built-in test
 The published archive `codex/backup-expo-before-web-pwa-2026-09-09` preserves Expo at `1d3852c74c5162d1cb30f5aa5782acafe7e17b57`. Do not modify the archive or restore it wholesale onto the active branch. Revert the relevant migration commit for rollback; inspect the archive in a separate worktree if needed.
 
 Deployment uses repository root `.`. A passing local build does not verify hosting-dashboard settings, deployed CI, real backend flows or installation on physical Android/iOS devices. Record those checks explicitly when performed.
+
+## Browser debugging
+
+When debugging LexChain UI, frontend behavior, browser runtime, console or network issues, use Chrome DevTools MCP when available. Inspect the relevant live Chrome page before changing frontend code, and limit browser inspection to LexChain tabs. Never expose credentials, cookies, tokens or personal browsing data.
+
+Check screenshots, DOM, computed styles/layout, console, relevant network requests and runtime state as needed. After a frontend fix, reload the affected page, inspect it visually, confirm the original issue is gone, and check for new console or network errors. Do not claim a visual fix from source inspection alone when browser verification is available.
