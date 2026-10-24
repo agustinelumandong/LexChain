@@ -36,13 +36,15 @@ async function proxy(request: NextRequest, method: 'GET' | 'POST', context: Rout
   const mockMode = isMockMode();
   if (mockMode && !isMockPortalToken(token)) return unauthenticated();
 
-  const issuer = await isDocumentIssuer(token, mockMode);
-  if (issuer instanceof Response) return issuer;
-  if (!issuer) {
-    return NextResponse.json(
-      { message: 'Participant management is available to Lawyers only.' },
-      { status: 403 },
-    );
+  if (method === 'POST') {
+    const issuer = await isDocumentIssuer(token, mockMode);
+    if (issuer instanceof Response) return issuer;
+    if (!issuer) {
+      return NextResponse.json(
+        { message: 'Participant management is available to Lawyers only.' },
+        { status: 403 },
+      );
+    }
   }
 
   const { id } = await context.params;
