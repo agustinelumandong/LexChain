@@ -20,6 +20,21 @@ export function getDocumentProcessingStatusLabel(lifecycle: string, status?: str
     : getDocumentStatusLabel(status);
 }
 
+export function getDocumentLifecycleBadgeClasses(lifecycle: string): string {
+  const value = lifecycle.trim().toUpperCase();
+  if (value === 'FINALIZED' || value === 'SIGNED') return 'bg-emerald-50 text-emerald-700';
+  if (value === 'CANCELLED') return 'bg-red-50 text-red-700';
+  return 'bg-blue-50 text-blue-700';
+}
+
+export function getDocumentProcessingBadgeClasses(status?: string | null): string {
+  const value = status?.trim().toUpperCase();
+  if (value === 'COMPLETED' || value === 'ANCHORED' || value === 'PROCESSED') return 'bg-emerald-50 text-emerald-700';
+  if (value === 'FAILED') return 'bg-red-50 text-red-700';
+  if (value === 'QUEUED' || value === 'PROCESSING' || value === 'ENRICHING' || value === 'PENDING' || value === 'ACCEPTED' || value === 'AWAITING_REVIEW' || value === 'READY_FOR_REVIEW') return 'bg-amber-50 text-amber-700';
+  return 'bg-slate-100 text-slate-700';
+}
+
 export function getDocumentActions(
   role: PortalUiRole,
   document: ApiSchema<'DocumentResponse'>,
@@ -30,7 +45,7 @@ export function getDocumentActions(
   if (role === 'lawyer' && (status === 'AWAITING_REVIEW' || status === 'READY_FOR_REVIEW')) actions.push('Review extracted text');
   if (role === 'lawyer' && document.permissions.can_finalize) actions.push('Finalize');
   const lifecycle = document.lifecycle?.trim().toUpperCase();
-  if (document.permissions.can_view && (lifecycle === 'FINALIZED' || document.on_chain)) actions.push('Verify integrity');
+  if (document.permissions.can_view && (lifecycle === 'FINALIZED' || document.on_chain)) actions.push('Check document');
   if (role === 'lawyer' && document.permissions.can_retry_processing) actions.push('Retry processing');
   return actions;
 }

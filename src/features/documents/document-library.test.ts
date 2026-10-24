@@ -180,6 +180,6 @@ describe('document library list', () => {
     expect(finalizedRow.textContent).toContain('Register 101 · page 2');
     expect(within(finalizedRow).getByRole('link', { name: 'Open' })).toBeTruthy();
     expect(within(finalizedRow).queryByRole('link', { name: 'View / Download' })).toBeNull();
-    expect(within(finalizedRow).queryByRole('link', { name: 'Verify integrity' })).toBeNull();
+    expect(within(finalizedRow).queryByRole('link', { name: 'Check document' })).toBeNull();
   });
 });

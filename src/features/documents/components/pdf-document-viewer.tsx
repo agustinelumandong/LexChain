@@ -1,8 +1,12 @@
 'use client';
 
+import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
+import ChevronRightIcon from '@mui/icons-material/ChevronRight';
+import ZoomInOutlinedIcon from '@mui/icons-material/ZoomInOutlined';
+import ZoomOutOutlinedIcon from '@mui/icons-material/ZoomOutOutlined';
 import type { ApiSchema } from '@/shared/types/index';
 import type { PDFDocumentLoadingTask, PDFDocumentProxy, RenderTask } from 'pdfjs-dist';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
 import type { CSSProperties } from 'react';
 
 export type PdfDocumentViewerProps = {
@@ -23,6 +27,14 @@ const DEFAULT_ZOOM = 0.85;
 const MIN_ZOOM = 0.5;
 const MAX_ZOOM = 1.5;
 const ZOOM_STEP = 0.1;
+
+type PanStart = {
+  pointerId: number;
+  x: number;
+  y: number;
+  scrollLeft: number;
+  scrollTop: number;
+};
 
 export function normalizedBoxStyle(bbox?: number[] | null): CSSProperties | undefined {
   if (
@@ -57,8 +69,10 @@ export default function PdfDocumentViewer({
 }: PdfDocumentViewerProps) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const panStart = useRef<PanStart | null>(null);
   const [availableWidth, setAvailableWidth] = useState(0);
   const [zoom, setZoom] = useState(DEFAULT_ZOOM);
+  const [isPanning, setIsPanning] = useState(false);
   const [loadResult, setLoadResult] = useState<{
     sourceUrl: string;
     pdf: PDFDocumentProxy | null;
@@ -70,6 +84,41 @@ export default function PdfDocumentViewer({
   const displayedPageCount = pageCount ?? pdf?.numPages ?? 1;
   const renderFailed = loadResult.sourceUrl === sourceUrl && loadResult.failed
     || failedRenderKey === renderKey;
+  const canPan = zoom > DEFAULT_ZOOM;
+
+  function startPan(event: ReactPointerEvent<HTMLDivElement>) {
+    if (!canPan || event.pointerType === 'touch' || event.button !== 0) return;
+    if (event.target instanceof Element && event.target.closest('button, a, input, select, textarea')) return;
+
+    panStart.current = {
+      pointerId: event.pointerId,
+      x: event.clientX,
+      y: event.clientY,
+      scrollLeft: event.currentTarget.scrollLeft,
+      scrollTop: event.currentTarget.scrollTop,
+    };
+    event.currentTarget.setPointerCapture(event.pointerId);
+    setIsPanning(true);
+    event.preventDefault();
+  }
+
+  function movePan(event: ReactPointerEvent<HTMLDivElement>) {
+    const start = panStart.current;
+    if (!start || start.pointerId !== event.pointerId) return;
+
+    event.currentTarget.scrollLeft = start.scrollLeft - (event.clientX - start.x);
+    event.currentTarget.scrollTop = start.scrollTop - (event.clientY - start.y);
+  }
+
+  function stopPan(event: ReactPointerEvent<HTMLDivElement>) {
+    if (panStart.current?.pointerId !== event.pointerId) return;
+
+    panStart.current = null;
+    setIsPanning(false);
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+  }
 
   useEffect(() => {
     const wrapper = wrapperRef.current;
@@ -156,45 +205,52 @@ export default function PdfDocumentViewer({
   });
 
   return (
-    <section aria-label="Source PDF" className="flex min-h-0 flex-col md:flex-1">
-      <div role="toolbar" aria-label="PDF controls" className="mb-3 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
+    <section aria-label="Source PDF" className="flex min-h-0 flex-1 flex-col md:flex-1">
+      <div role="toolbar" aria-label="PDF controls" className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[#D7E4F2] bg-[#F1F7FC] px-2 py-1.5">
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            aria-label="Zoom out"
+            className="inline-flex min-h-9 min-w-9 items-center justify-center rounded-md text-[#0C2B49] hover:bg-white disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[#0985E7]"
+            disabled={zoom <= MIN_ZOOM}
+            onClick={() => setZoom((value) => Math.max(MIN_ZOOM, value - ZOOM_STEP))}
+          >
+            <ZoomOutOutlinedIcon aria-hidden="true" sx={{ fontSize: 19 }} />
+          </button>
+          <button
+            type="button"
+            aria-label="Zoom in"
+            className="inline-flex min-h-9 min-w-9 items-center justify-center rounded-md text-[#0C2B49] hover:bg-white disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[#0985E7]"
+            disabled={zoom >= MAX_ZOOM}
+            onClick={() => setZoom((value) => Math.min(MAX_ZOOM, value + ZOOM_STEP))}
+          >
+            <ZoomInOutlinedIcon aria-hidden="true" sx={{ fontSize: 19 }} />
+          </button>
+        </div>
+        <div className="flex items-center gap-1 border-l border-[#D7E4F2] pl-2">
           <button
             type="button"
             aria-label="Previous PDF page"
             disabled={currentPage <= 0}
             onClick={() => onPageChange(currentPage - 1)}
+            className="inline-flex min-h-9 items-center gap-0.5 rounded-md px-2 text-xs font-semibold text-[#0C2B49] hover:bg-white disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[#0985E7]"
           >
-            Previous
+            <ChevronLeftIcon aria-hidden="true" sx={{ fontSize: 17 }} />Previous
           </button>
-          <span>Page {currentPage + 1} of {displayedPageCount}</span>
+          <div className="inline-flex min-h-8 items-center gap-1.5 rounded-md border border-[#D7E4F2] bg-white px-2 text-xs text-[#4B6382]">
+            <span>Page</span>
+            <span className="min-w-6 rounded-sm border border-[#D7E4F2] px-1.5 py-0.5 text-center font-semibold text-[#0C2B49]">{currentPage + 1}</span>
+            <span>of</span>
+            <span className="font-semibold text-[#0C2B49]">{displayedPageCount}</span>
+          </div>
           <button
             type="button"
             aria-label="Next PDF page"
             disabled={currentPage >= displayedPageCount - 1}
             onClick={() => onPageChange(currentPage + 1)}
+            className="inline-flex min-h-9 items-center gap-0.5 rounded-md px-2 text-xs font-semibold text-[#0C2B49] hover:bg-white disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[#0985E7]"
           >
-            Next
-          </button>
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            aria-label="Zoom out"
-            className="border px-2 leading-none"
-            disabled={zoom <= MIN_ZOOM}
-            onClick={() => setZoom((value) => Math.max(MIN_ZOOM, value - ZOOM_STEP))}
-          >
-            −
-          </button>
-          <button
-            type="button"
-            aria-label="Zoom in"
-            className="border px-2 leading-none"
-            disabled={zoom >= MAX_ZOOM}
-            onClick={() => setZoom((value) => Math.min(MAX_ZOOM, value + ZOOM_STEP))}
-          >
-            +
+            Next<ChevronRightIcon aria-hidden="true" sx={{ fontSize: 17 }} />
           </button>
         </div>
       </div>
@@ -209,7 +265,11 @@ export default function PdfDocumentViewer({
         ref={wrapperRef}
         aria-label="PDF page"
         aria-hidden={renderFailed || undefined}
-        className={`min-h-0 flex-1 overflow-auto ${renderFailed ? 'hidden' : ''}`}
+        className={`pdf-scroll-area min-h-0 flex-1 overflow-auto overscroll-contain ${canPan ? isPanning ? 'cursor-grabbing select-none' : 'cursor-grab' : ''} ${renderFailed ? 'hidden' : ''}`}
+        onPointerDown={startPan}
+        onPointerMove={movePan}
+        onPointerUp={stopPan}
+        onPointerCancel={stopPan}
       >
         {pdf && pageCount != null && pdf.numPages !== pageCount ? (
           <p role="status">

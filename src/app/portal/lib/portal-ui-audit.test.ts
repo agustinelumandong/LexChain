@@ -74,11 +74,14 @@ describe("portal UI source audit", () => {
     expect(screen.getByText('Track requests sent to your Lawyer')).toBeTruthy();
   });
 
-  it('offers safe document-assistant guidance', () => {
-    render(createElement(PortalChatbot));
+  it('opens the document-assistant pop-up with guidance and a full-page option', () => {
+    render(createElement(PortalChatbot, { documentId: 'doc-101' }));
     fireEvent.click(screen.getByRole('button', { name: 'Open document assistant' }));
 
-    expect(screen.getByText('Suggested questions')).toBeTruthy();
-    expect(screen.getByText('AI-generated assistance. Review the original PDF before relying on an answer.')).toBeTruthy();
+    expect(screen.getByRole('dialog', { name: 'Ask about this document' })).toBeTruthy();
+    expect(screen.getByText(/AI-generated help/i)).toBeTruthy();
+    expect(screen.getByRole('textbox', { name: 'Ask a question about this document' })).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'Open full-page assistant' }).getAttribute('href'))
+      .toBe('/portal/documents/doc-101/ask');
   });
 });

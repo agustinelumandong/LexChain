@@ -79,12 +79,6 @@ function documentFixture(id: string, isOwner: boolean, lifecycle = 'FINALIZED', 
   return { id, file_name: `${id}.pdf`, is_owner: isOwner, lifecycle, status, my_role: isOwner ? 'owner' : 'viewer', on_chain: false, created_at: '2026-10-10T00:00:00Z' };
 }
 
-function metric(label: string): HTMLElement {
-  const card = screen.getAllByText(label).find((element) => element.closest('article')?.querySelector('p') === element)?.closest('article');
-  if (!(card instanceof HTMLElement)) throw new Error(`Missing metric: ${label}`);
-  return card;
-}
-
 describe('document ownership directory', () => {
   it('shows lifecycle and hides processing for pre-finalized list records', async () => {
     setupFetch(undefined, Response.json([
@@ -103,33 +97,42 @@ describe('document ownership directory', () => {
     }
     expect(within(table).getByText('Ready for review')).toBeTruthy();
     expect(within(table).getByText('Processing failed')).toBeTruthy();
-    const recent = screen.getByRole('heading', { name: 'Recently Created' }).closest('article')!;
-    expect(within(recent).getByText('Preparing')).toBeTruthy();
-    expect(within(recent).queryByText('Preparing · Failed')).toBeNull();
-    expect(within(recent).getByText('Finalized · Processing failed')).toBeTruthy();
+    const distribution = screen.getByRole('heading', { name: 'Status Distribution' }).closest('article')!;
+    expect(within(distribution).getByText('Preparing')).toBeTruthy();
+    expect(within(distribution).getByText('Ready for review')).toBeTruthy();
+    expect(within(distribution).getByText('Processing failed')).toBeTruthy();
+    expect(screen.queryByRole('heading', { name: 'Recently Created' })).toBeNull();
   });
 
-  it.each(['document_issuer', 'document_participant'])('defaults each role to its ownership tab and scopes results and summaries (%s)', async (role) => {
+  it.each(['document_issuer', 'document_participant'])('shows the correct document collection for %s', async (role) => {
     const rows = [documentFixture('Owned Z', true), documentFixture('Owned A', true, 'SIGNED'), documentFixture('Shared only', false, 'PREPARING')];
     setupFetch(undefined, Response.json(rows), role);
     renderPage();
     const isLawyer = role === 'document_issuer';
-    const ownedTab = await screen.findByRole('tab', { name: 'My documents (2)' });
-    const sharedTab = screen.getByRole('tab', { name: 'Shared with me (1)' });
-    await waitFor(() => expect((isLawyer ? ownedTab : sharedTab).getAttribute('aria-selected')).toBe('true'));
-    expect(within(metric('Total Documents')).getByText(isLawyer ? '2' : '1')).toBeTruthy();
-    expect(screen.queryByRole('button', { name: 'Create document draft' }) !== null).toBe(isLawyer);
+    if (isLawyer) {
+      expect(await screen.findByText('Showing 1–3 of 3 documents')).toBeTruthy();
+      expect(screen.queryByRole('tablist', { name: 'Document ownership' })).toBeNull();
+      expect(screen.queryByRole('tab')).toBeNull();
+      expect(screen.getAllByText('Shared only.pdf')).toHaveLength(2);
+      expect(screen.getByRole('button', { name: 'Create document draft' })).toBeTruthy();
+      const distribution = screen.getByRole('heading', { name: 'Status Distribution' }).closest('article')!;
+      expect(within(distribution).getByLabelText('Total documents: 3')).toBeTruthy();
+      return;
+    }
+    const sharedTab = await screen.findByRole('tab', { name: 'Shared with me (1)' });
+    const ownedTab = screen.getByRole('tab', { name: 'My documents (2)' });
+    await waitFor(() => expect(sharedTab.getAttribute('aria-selected')).toBe('true'));
+    const distribution = screen.getByRole('heading', { name: 'Status Distribution' }).closest('article')!;
+    expect(within(distribution).getAllByText('1').length).toBeGreaterThan(0);
+    expect(screen.queryByRole('button', { name: 'Create document draft' })).toBeNull();
     fireEvent.click(ownedTab);
     expect(screen.queryByText('Shared only.pdf')).toBeNull();
-    expect(within(metric('Finalized')).getByText('1')).toBeTruthy();
-    const distribution = screen.getByRole('heading', { name: 'Status Distribution' }).closest('article')!;
+    expect(within(distribution).getByText('Finalized')).toBeTruthy();
     expect(within(distribution).getByText('Signed')).toBeTruthy();
     expect(within(distribution).queryByText('Preparing')).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Newest first' }));
     fireEvent.click(screen.getByRole('button', { name: 'Name A\u2013Z' }));
     expect(within(screen.getByRole('table')).getAllByRole('row')[1].textContent).toContain('Owned A.pdf');
-    const recent = screen.getByRole('heading', { name: 'Recently Created' }).closest('article')!;
-    expect(within(recent).queryByText('Shared only.pdf')).toBeNull();
     fireEvent.click(screen.getByText('More Filters'));
     fireEvent.click(screen.getByRole('button', { name: 'All Lifecycles' }));
     expect(screen.queryByRole('button', { name: 'Preparing' })).toBeNull();
@@ -137,11 +140,11 @@ describe('document ownership directory', () => {
     expect(within(screen.getByRole('table')).queryByText('Owned Z.pdf')).toBeNull();
     fireEvent.change(screen.getByRole('textbox', { name: 'Search documents' }), { target: { value: 'Shared' } });
     expect(screen.getByText('No matching documents in My documents')).toBeTruthy();
-    expect(within(metric('Total Documents')).getByText('2')).toBeTruthy();
+    expect(within(distribution).getByText('2')).toBeTruthy();
     expect(ownedTab.textContent).toBe('My documents (2)');
     fireEvent.click(sharedTab);
     expect(screen.getByText('No matching documents in Shared with me')).toBeTruthy();
-    expect(within(metric('Total Documents')).getByText('1')).toBeTruthy();
+    expect(within(distribution).getAllByText('1').length).toBeGreaterThan(0);
   });
 
   it('keeps the retained lifecycle visibly selected when the next ownership partition has no matching records', async () => {
@@ -149,9 +152,9 @@ describe('document ownership directory', () => {
       documentFixture('Owned signed', true, 'SIGNED'),
       documentFixture('Owned finalized', true),
       documentFixture('Shared preparing', false, 'PREPARING'),
-    ]));
+    ]), 'document_participant');
     renderPage();
-    await screen.findByRole('tab', { name: 'My documents (2)' });
+    fireEvent.click(await screen.findByRole('tab', { name: 'My documents (2)' }));
     fireEvent.click(screen.getByText('More Filters'));
     fireEvent.click(screen.getByRole('button', { name: 'All Lifecycles' }));
     fireEvent.click(screen.getByRole('button', { name: 'Signed' }));
@@ -169,15 +172,15 @@ describe('document ownership directory', () => {
 
   it('resets page on tab change and shares paginated results across layouts', async () => {
     const rows = [true, false].flatMap((isOwner) => Array.from({ length: 7 }, (_, index) => documentFixture(`${isOwner ? 'Owned' : 'Shared'} match ${index}`, isOwner)));
-    setupFetch(undefined, Response.json(rows));
+    setupFetch(undefined, Response.json(rows), 'document_participant');
     renderPage();
-    await screen.findByRole('tab', { name: 'My documents (7)' });
+    fireEvent.click(await screen.findByRole('tab', { name: 'My documents (7)' }));
     fireEvent.change(screen.getByRole('textbox', { name: 'Search documents' }), { target: { value: 'match' } });
     fireEvent.click(screen.getByText('More Filters'));
     fireEvent.click(screen.getByRole('button', { name: 'All Lifecycles' }));
     fireEvent.click(screen.getByRole('button', { name: 'Finalized' }));
     expect(screen.queryByText('Owned match 6.pdf')).toBeNull();
-    expect(screen.getAllByText('Owned match 0.pdf')).toHaveLength(3);
+    expect(screen.getAllByText('Owned match 0.pdf')).toHaveLength(2);
     fireEvent.click(screen.getByRole('button', { name: 'Next page' }));
     expect(screen.getByText('Showing 6–7 of 7 documents')).toBeTruthy();
     expect(within(screen.getByRole('table')).queryByText('Owned match 0.pdf')).toBeNull();
@@ -187,11 +190,11 @@ describe('document ownership directory', () => {
     fireEvent.click(screen.getByText(/More Filters/));
     expect(screen.getByRole('button', { name: 'Finalized' })).toBeTruthy();
     expect(screen.queryByText('Shared match 6.pdf')).toBeNull();
-    expect(screen.getAllByText('Shared match 0.pdf')).toHaveLength(3);
+    expect(screen.getAllByText('Shared match 0.pdf')).toHaveLength(2);
   });
 
   it('supports keyboard tab changes and distinguishes an empty ownership partition', async () => {
-    setupFetch(undefined, Response.json([documentFixture('Owned only', true)]));
+    setupFetch(undefined, Response.json([documentFixture('Owned only', true)]), 'document_participant');
     renderPage();
     const ownedTab = await screen.findByRole('tab', { name: 'My documents (1)' });
     const sharedTab = screen.getByRole('tab', { name: 'Shared with me (0)' });
@@ -200,9 +203,11 @@ describe('document ownership directory', () => {
     expect(document.activeElement).toBe(sharedTab);
     expect(sharedTab.getAttribute('aria-selected')).toBe('true');
     expect(screen.getByText('No documents in Shared with me yet')).toBeTruthy();
-    expect(within(metric('Total Documents')).getByText('0')).toBeTruthy();
     const distribution = screen.getByRole('heading', { name: 'Status Distribution' }).closest('article')!;
     expect(within(distribution).getByText('0')).toBeTruthy();
+    expect(within(distribution).getByLabelText('Total documents: 1')).toBeTruthy();
+    const failedRow = within(distribution).getByText('Failed').closest('li')!;
+    expect(within(failedRow).getByText('0')).toBeTruthy();
     fireEvent.keyDown(sharedTab, { key: 'Home' });
     expect(document.activeElement).toBe(ownedTab);
     expect(ownedTab.getAttribute('aria-selected')).toBe('true');
@@ -212,7 +217,7 @@ describe('document ownership directory', () => {
     expect(document.activeElement).toBe(ownedTab);
   });
 
-  it('counts canonical review status only for finalized documents', async () => {
+  it('counts processing statuses across all document lifecycle states', async () => {
     setupFetch(undefined, Response.json([
       documentFixture('Review', true, 'FINALIZED', 'AWAITING_REVIEW'),
       documentFixture('Failed', true, 'FINALIZED', 'FAILED'),
@@ -222,7 +227,10 @@ describe('document ownership directory', () => {
     ]));
     renderPage();
     await screen.findByRole('table');
-    expect(within(metric('Ready for Review')).getByText('1')).toBeTruthy();
-    expect(within(metric('Failed')).getByText('1')).toBeTruthy();
+    const distribution = screen.getByRole('heading', { name: 'Status Distribution' }).closest('article')!;
+    expect(within(distribution).getByText('All documents')).toBeTruthy();
+    expect(within(distribution).getByText('Ready for review')).toBeTruthy();
+    expect(within(distribution).getByText('Processing failed')).toBeTruthy();
+    expect(within(distribution).getByText('Failed')).toBeTruthy();
   });
 });
