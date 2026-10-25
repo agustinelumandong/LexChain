@@ -134,6 +134,9 @@ let documents: MockDocument[] = [
     id: 'mock-document-1',
     document_id: 'mock-document-1',
     document_number: 1001,
+    book_id: 'mock-book-1',
+    doc_no: 1,
+    page_no: 1,
     file_name: 'Lease Agreement.pdf',
     storage_url: '/mock-documents/lease-agreement.pdf',
     content_type: 'application/pdf',
@@ -164,6 +167,9 @@ let documents: MockDocument[] = [
     id: 'mock-document-2',
     document_id: 'mock-document-2',
     document_number: 1002,
+    book_id: 'mock-book-1',
+    doc_no: 2,
+    page_no: 2,
     file_name: 'Certificate of Employment.pdf',
     storage_url: '/mock-documents/certificate-of-employment.pdf',
     content_type: 'application/pdf',
@@ -288,6 +294,9 @@ documents.push({
   id: 'mock-document-retry',
   document_id: 'mock-document-retry',
   document_number: 1006,
+  book_id: null,
+  doc_no: null,
+  page_no: null,
   file_name: 'Failed processing example.pdf',
   status: 'FAILED',
   on_chain: true,
@@ -595,6 +604,30 @@ export function mockPortalGet(path: string, token?: string): Response {
   if (requestPathname === '/books' || requestPathname === '/books/') {
     if (!hasMockIssuerAccess(token)) return error('Lawyer access required', 403);
     return json(books);
+  }
+  const bookEntriesMatch = requestPathname.match(/^\/books\/([^/]+)\/entries\/?$/);
+  if (bookEntriesMatch) {
+    if (!hasMockIssuerAccess(token)) return error('Lawyer access required', 403);
+    const book = books.find((candidate) => candidate.id === bookEntriesMatch[1]);
+    if (!book) return error('Book not found', 404);
+    const params = new URL(path, 'https://mock.lexchain.local').searchParams;
+    const limit = Number(params.get('limit') ?? 50);
+    const offset = Number(params.get('offset') ?? 0);
+    if (!Number.isInteger(limit) || limit < 1 || limit > 100 || !Number.isInteger(offset) || offset < 0) {
+      return error('Invalid pagination parameters', 422);
+    }
+    const entries = documents.flatMap((document) => {
+      if (document.book_id !== book.id || document.doc_no == null || document.page_no == null) return [];
+      return [{
+        id: document.id,
+        file_name: document.file_name,
+        doc_no: document.doc_no,
+        page_no: document.page_no,
+        lifecycle: document.lifecycle === 'draft' ? 'PREPARING' : 'FINALIZED',
+        status: document.status?.toUpperCase() ?? null,
+      }];
+    }).sort((left, right) => left.doc_no - right.doc_no || left.page_no - right.page_no || left.id.localeCompare(right.id));
+    return json({ book, entries: entries.slice(offset, offset + limit) });
   }
   const bookMatch = requestPathname.match(/^\/books\/([^/]+)\/?$/);
   if (bookMatch) {

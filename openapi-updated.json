@@ -3337,6 +3337,80 @@
           }
         ]
       }
+    },
+    "/books/{book_id}/entries": {
+      "get": {
+        "tags": [
+          "Books"
+        ],
+        "summary": "List a book's entries",
+        "description": "Return the book and a page of the documents filed in it, ordered by Doc. No., then Page No. The book's entry_count is the total number of entries for paging. Only documents with a LexChain record are listed — not paper-only lines of the physical register. Only the owner may access it.",
+        "operationId": "get_book_entries_books__book_id__entries_get",
+        "security": [
+          {
+            "Bearer Token": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "book_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Book Id"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 50,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "Offset"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Book and a page of its entries; empty past the last entry",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookEntriesResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated — missing or invalid bearer token"
+          },
+          "403": {
+            "description": "Forbidden — only lawyers may access books"
+          },
+          "404": {
+            "description": "Book not found"
+          },
+          "422": {
+            "description": "limit outside 1–100, or negative offset"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -3622,6 +3696,78 @@
           "series_year"
         ],
         "title": "BookCreateRequest"
+      },
+      "BookEntriesResponse": {
+        "properties": {
+          "book": {
+            "$ref": "#/components/schemas/BookResponse",
+            "description": "The book; its entry_count is the total for paging"
+          },
+          "entries": {
+            "items": {
+              "$ref": "#/components/schemas/BookEntryResponse"
+            },
+            "type": "array",
+            "title": "Entries",
+            "description": "One page of entries, by Doc. No., then Page No."
+          }
+        },
+        "type": "object",
+        "required": [
+          "book"
+        ],
+        "title": "BookEntriesResponse"
+      },
+      "BookEntryResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id",
+            "description": "Document ID — opens /documents/{id}"
+          },
+          "file_name": {
+            "type": "string",
+            "title": "File Name",
+            "description": "Display name"
+          },
+          "doc_no": {
+            "type": "integer",
+            "title": "Doc No",
+            "description": "Doc. No. in the register"
+          },
+          "page_no": {
+            "type": "integer",
+            "title": "Page No",
+            "description": "Page No. in the register"
+          },
+          "lifecycle": {
+            "type": "string",
+            "title": "Lifecycle",
+            "description": "PREPARING | READY_FOR_SIGNATURE | SIGNED | FINALIZED | CANCELLED"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status",
+            "description": "Processing status; null until the document is finalized"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "file_name",
+          "doc_no",
+          "page_no",
+          "lifecycle"
+        ],
+        "title": "BookEntryResponse"
       },
       "BookResponse": {
         "properties": {

@@ -402,6 +402,34 @@ describe('portal mock document isolation', () => {
 });
 
 describe('portal mock books', () => {
+  it('lists the book’s recorded documents in register order with pagination and lawyer access', async () => {
+    vi.resetModules();
+    const freshMock = await import('@/lib/mocks/portal');
+    const issuerToken = 'mock-token:mock-document-issuer';
+    const response = freshMock.mockPortalGet('/books/mock-book-1/entries?limit=50&offset=0', issuerToken);
+
+    expect(response.status).toBe(200);
+    const result = await response.json() as {
+      book: { id: string; entry_count: number };
+      entries: Array<{ id: string; file_name: string; doc_no: number; page_no: number; lifecycle: string; status: string | null }>;
+    };
+    expect(result.book).toMatchObject({ id: 'mock-book-1', entry_count: 2 });
+    expect(result.entries.map(({ id, doc_no, page_no }) => [id, doc_no, page_no])).toEqual([
+      ['mock-document-1', 1, 1],
+      ['mock-document-2', 2, 2],
+    ]);
+    expect(result.entries[0]).toMatchObject({ file_name: 'Lease Agreement.pdf', lifecycle: 'FINALIZED', status: 'ANCHORED' });
+    expect(result.entries[1].status).toBeNull();
+
+    await expect(freshMock.mockPortalGet('/books/mock-book-1/entries?limit=1&offset=1', issuerToken).json()).resolves.toMatchObject({
+      entries: [{ id: 'mock-document-2', doc_no: 2, page_no: 2 }],
+    });
+    expect(freshMock.mockPortalGet('/books/mock-book-1/entries', 'mock-token:mock-document-participant').status).toBe(403);
+    expect(freshMock.mockPortalGet('/books/missing/entries', issuerToken).status).toBe(404);
+    expect(freshMock.mockPortalGet('/books/mock-book-1/entries?limit=0', issuerToken).status).toBe(422);
+    expect(freshMock.mockPortalGet('/books/mock-book-1/entries?offset=-1', issuerToken).status).toBe(422);
+  });
+
   it('lists the latest PDF version first when an issuer renames and updates within the same millisecond', async () => {
     vi.spyOn(Date.prototype, 'toISOString').mockReturnValue('2026-09-14T00:00:00.000Z');
     const uploadForm = new FormData();
@@ -440,11 +468,13 @@ describe('portal mock books', () => {
   });
 
   it('lists active issuer books and creates a book that can be used for upload', async () => {
-    const initial = mockPortalGet('/books/?limit=50&offset=0', 'mock-token:mock-document-issuer');
+    vi.resetModules();
+    const freshMock = await import('@/lib/mocks/portal');
+    const initial = freshMock.mockPortalGet('/books/?limit=50&offset=0', 'mock-token:mock-document-issuer');
     expect(initial.status).toBe(200);
     await expect(initial.json()).resolves.toContainEqual(expect.objectContaining({ id: 'mock-book-1', is_full: false }));
 
-    const created = await mockPortalMutate(
+    const created = await freshMock.mockPortalMutate(
       'POST',
       '/books/',
       new Request('https://mock.lexchain.local/api/portal/proxy-post', {
@@ -461,13 +491,18 @@ describe('portal mock books', () => {
 
     const form = new FormData();
     form.append('file', new File(['PDF'], 'registered-book.pdf', { type: 'application/pdf' }));
-    const upload = await mockPortalMutate(
+    const upload = await freshMock.mockPortalMutate(
       'POST',
       `/documents/upload?book_id=${book.id}&file_name=Registered%20book`,
       new Request('https://mock.lexchain.local/api/portal/proxy-post', { method: 'POST', body: form }),
       'mock-token:mock-document-issuer',
     );
     expect(upload.status).toBe(201);
+
+    await expect(freshMock.mockPortalGet(`/books/${book.id}/entries?limit=50&offset=0`, 'mock-token:mock-document-issuer').json()).resolves.toMatchObject({
+      book: { entry_count: 1 },
+      entries: [],
+    });
   });
 
   it('denies participant book access and book registration', async () => {

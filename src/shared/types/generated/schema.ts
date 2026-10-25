@@ -1065,6 +1065,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/books/{book_id}/entries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List a book's entries
+         * @description Return the book and a page of the documents filed in it, ordered by Doc. No., then Page No. The book's entry_count is the total number of entries for paging. Only documents with a LexChain record are listed — not paper-only lines of the physical register. Only the owner may access it.
+         */
+        get: operations["get_book_entries_books__book_id__entries_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1212,6 +1232,50 @@ export interface components {
              * @enum {string}
              */
             status: "OPEN" | "CLOSED";
+        };
+        /** BookEntriesResponse */
+        BookEntriesResponse: {
+            /** @description The book; its entry_count is the total for paging */
+            book: components["schemas"]["BookResponse"];
+            /**
+             * Entries
+             * @description One page of entries, by Doc. No., then Page No.
+             */
+            entries?: components["schemas"]["BookEntryResponse"][];
+        };
+        /** BookEntryResponse */
+        BookEntryResponse: {
+            /**
+             * Id
+             * Format: uuid
+             * @description Document ID — opens /documents/{id}
+             */
+            id: string;
+            /**
+             * File Name
+             * @description Display name
+             */
+            file_name: string;
+            /**
+             * Doc No
+             * @description Doc. No. in the register
+             */
+            doc_no: number;
+            /**
+             * Page No
+             * @description Page No. in the register
+             */
+            page_no: number;
+            /**
+             * Lifecycle
+             * @description PREPARING | READY_FOR_SIGNATURE | SIGNED | FINALIZED | CANCELLED
+             */
+            lifecycle: string;
+            /**
+             * Status
+             * @description Processing status; null until the document is finalized
+             */
+            status?: string | null;
         };
         /** BookResponse */
         BookResponse: {
@@ -5238,6 +5302,59 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["GooglePickerToken"];
                 };
+            };
+        };
+    };
+    get_book_entries_books__book_id__entries_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path: {
+                book_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Book and a page of its entries; empty past the last entry */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BookEntriesResponse"];
+                };
+            };
+            /** @description Not authenticated — missing or invalid bearer token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden — only lawyers may access books */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Book not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description limit outside 1–100, or negative offset */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
