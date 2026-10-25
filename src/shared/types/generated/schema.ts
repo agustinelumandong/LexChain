@@ -630,7 +630,7 @@ export interface paths {
         };
         /**
          * Verify a document against the chain
-         * @description Hashes the stored signed copy as it is now and compares it with the hash anchored on-chain. The verdict is computed server-side.
+         * @description Hashes the stored signed copy as it is now and compares it with the hash anchored on-chain. The verdict is computed server-side. When the status is TAMPERED, the archived original (re-hashed against the chain) and the current file are both extracted and diffed: `tamper_report` lists the changed segments with page and bbox where the OCR engine reports layout. If that diff cannot be produced, `tamper_report_status` is UNAVAILABLE and the TAMPERED verdict still stands.
          */
         get: operations["verify_document_documents__document_id__verify_get"];
         put?: never;
@@ -1077,6 +1077,80 @@ export interface paths {
          * @description Return the book and a page of the documents filed in it, ordered by Doc. No., then Page No. The book's entry_count is the total number of entries for paging. Only documents with a LexChain record are listed — not paper-only lines of the physical register. Only the owner may access it.
          */
         get: operations["get_book_entries_books__book_id__entries_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/documents/{document_id}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Restore a tampered document from its archive
+         * @description For a FINALIZED document whose verification is TAMPERED. The archived original is re-hashed against the on-chain hash, then becomes the current signed copy; the tampered file is kept in /signed-copies and the restore is recorded in /history with both hashes. The lifecycle and the on-chain record are unchanged. If the document is already AUTHENTIC nothing changes and `restored` is false, so a retry is safe. `verification` is a fresh check of the result.
+         */
+        post: operations["restore_document_documents__document_id__restore_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/backups/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Verify document backups
+         * @description Downloads every finalized document's archive and checks it against the hash anchored on-chain. With `repair=true`, a missing archive is written from the live signed copy, if the snapshot matches the on-chain hash and the live copy still matches it. A bad archive is reported, never overwritten. Also runs daily without repair.
+         */
+        post: operations["verify_backups_admin_backups_verify_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/health": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Liveness */
+        get: operations["health_health_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/health/ready": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Readiness */
+        get: operations["ready_health_ready_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1834,6 +1908,20 @@ export interface components {
              * @description Human-readable verdict
              */
             message: string;
+            /**
+             * Tamper Report Status
+             * @description AVAILABLE — `tamper_report` holds a diff against a trusted baseline; UNAVAILABLE — the document is TAMPERED but no trustworthy diff could be produced (the verdict still stands); NOT_APPLICABLE — any status other than TAMPERED
+             * @default NOT_APPLICABLE
+             * @enum {string}
+             */
+            tamper_report_status: "AVAILABLE" | "UNAVAILABLE" | "NOT_APPLICABLE";
+            /** @description Present only when `tamper_report_status` is AVAILABLE */
+            tamper_report?: components["schemas"]["TamperReport"] | null;
+            /**
+             * Tamper Report Unavailable Reason
+             * @description Why no diff, when `tamper_report_status` is UNAVAILABLE
+             */
+            tamper_report_unavailable_reason?: string | null;
         };
         /** DraftCommentListResponse */
         DraftCommentListResponse: {
@@ -2597,6 +2685,16 @@ export interface components {
             /** Actor Id */
             actor_id: string | null;
             /**
+             * From Hash
+             * @description Restore only: SHA-256 of the file that was replaced
+             */
+            from_hash?: string | null;
+            /**
+             * To Hash
+             * @description Restore only: SHA-256 of the archived bytes restored
+             */
+            to_hash?: string | null;
+            /**
              * Created At
              * Format: date-time
              */
@@ -2681,6 +2779,221 @@ export interface components {
             input?: unknown;
             /** Context */
             ctx?: Record<string, never>;
+        };
+        /** BackupCheck */
+        BackupCheck: {
+            /**
+             * Document Id
+             * Format: uuid
+             */
+            document_id: string;
+            /**
+             * Status
+             * @description ok: archive present and matches the anchored hash. missing: no archive. mismatch: the archive's bytes differ from the anchored hash. repaired: re-archived from the live copy. unrecoverable: no good archive and the live copy no longer matches either.
+             * @enum {string}
+             */
+            status: "ok" | "missing" | "mismatch" | "repaired" | "unrecoverable";
+            /** Backup Key */
+            backup_key?: string | null;
+        };
+        /** BackupVerificationResponse */
+        BackupVerificationResponse: {
+            /**
+             * Checked
+             * @description Finalized snapshots checked
+             */
+            checked: number;
+            /** Ok */
+            ok: number;
+            /** Missing */
+            missing: number;
+            /** Mismatch */
+            mismatch: number;
+            /** Repaired */
+            repaired: number;
+            /** Unrecoverable */
+            unrecoverable: number;
+            /**
+             * Problems
+             * @description Every snapshot whose status is not ok
+             */
+            problems?: components["schemas"]["BackupCheck"][];
+        };
+        /**
+         * RestoreResponse
+         * @description The outcome of restoring a finalized document from its archive.
+         *
+         *     `restored` is false when the document was already authentic: nothing was
+         *     changed, so a retry is safe. Either way `verification` is a fresh check of
+         *     the current copy against the chain, to show the resulting integrity status.
+         */
+        RestoreResponse: {
+            /**
+             * Document Id
+             * Format: uuid
+             */
+            document_id: string;
+            /**
+             * Restored
+             * @description False if it was already authentic
+             */
+            restored: boolean;
+            /**
+             * Previous Hash
+             * @description SHA-256 of the file that was replaced; null if none was
+             */
+            previous_hash?: string | null;
+            /**
+             * Restored Hash
+             * @description SHA-256 now current: the on-chain hash
+             */
+            restored_hash: string;
+            /**
+             * Restored Copy Id
+             * Format: uuid
+             * @description The signed copy now current
+             */
+            restored_copy_id: string;
+            /**
+             * Preserved Copy Id
+             * @description The replaced file, kept in signed-copy history
+             */
+            preserved_copy_id?: string | null;
+            /** Restored By */
+            restored_by?: string | null;
+            /** Restored At */
+            restored_at?: string | null;
+            verification: components["schemas"]["DocumentVerificationResponse"];
+        };
+        /**
+         * TamperReport
+         * @description Where the current file differs from the finalized original.
+         *
+         *     The baseline is the archived original, re-hashed against the chain before
+         *     use; both sides are extracted fresh from their bytes by the same engine.
+         *     Segments are ordered most severe first.
+         */
+        TamperReport: {
+            /**
+             * Localized
+             * @description Whether the OCR engine reported layout; when false every segment's `page_idx` and `bbox` are null and the diff is text-only
+             */
+            localized: boolean;
+            /**
+             * Total Changes
+             * @description Number of segments returned
+             */
+            total_changes: number;
+            /** Critical Changes */
+            critical_changes: number;
+            /**
+             * Replaced
+             * @description Changed regions found, including any not returned
+             */
+            replaced: number;
+            /** Inserted */
+            inserted: number;
+            /** Deleted */
+            deleted: number;
+            /**
+             * Similarity
+             * @description 0-1 text similarity, original vs current
+             */
+            similarity: number;
+            /**
+             * Truncated
+             * @description Whether more changes were found than `segments` returns
+             */
+            truncated: boolean;
+            /** Segments */
+            segments: components["schemas"]["TamperSegment"][];
+        };
+        /**
+         * TamperSegment
+         * @description One changed region between the finalized original and the current file.
+         */
+        TamperSegment: {
+            /**
+             * Type
+             * @enum {string}
+             */
+            type: "replace" | "insert" | "delete";
+            /**
+             * Severity
+             * @description critical: amounts or reference numbers; major: dates or figures
+             * @enum {string}
+             */
+            severity: "critical" | "major" | "minor";
+            /**
+             * Reason
+             * @description What changed, in plain terms
+             */
+            reason: string;
+            /**
+             * Original Text
+             * @description Text in the finalized original; empty for an insert
+             */
+            original_text: string;
+            /**
+             * Current Text
+             * @description Text in the current file; empty for a delete
+             */
+            current_text: string;
+            /**
+             * Original Line Start
+             * @description 1-based block position in the original
+             */
+            original_line_start: number;
+            /** Original Line End */
+            original_line_end: number;
+            /**
+             * Current Line Start
+             * @description 1-based block position in the current file
+             */
+            current_line_start: number;
+            /** Current Line End */
+            current_line_end: number;
+            /**
+             * Block Index
+             * @description Block in the current file's extraction; for a delete, the block in the original's extraction
+             */
+            block_index?: number | null;
+            /**
+             * Original Block Index
+             * @description Block in the original's extraction the change starts at
+             */
+            original_block_index?: number | null;
+            /**
+             * Location
+             * @description Which PDF `page_idx`/`bbox` refer to: the current file, or — for a delete, whose text is no longer there — the finalized original
+             * @enum {string}
+             */
+            location: "current" | "original";
+            /**
+             * Page Idx
+             * @description Zero-based page; null when the OCR engine reports no layout
+             */
+            page_idx?: number | null;
+            /**
+             * Bbox
+             * @description [x0, y0, x1, y1] normalized to a 0-1000 box per page, same convention as ExtractionBlock.bbox; null when the OCR engine reports no layout
+             */
+            bbox?: number[] | null;
+            /** Word Diff */
+            word_diff: components["schemas"]["WordDiffPart"][];
+        };
+        /**
+         * WordDiffPart
+         * @description One run of words inside a changed segment, for inline highlighting.
+         */
+        WordDiffPart: {
+            /**
+             * Op
+             * @enum {string}
+             */
+            op: "equal" | "removed" | "added";
+            /** Text */
+            text: string;
         };
     };
     responses: never;
@@ -4177,7 +4490,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Verification result, with a tamper report when applicable */
+            /** @description Verification result; `tamper_report` is present only when status is TAMPERED and `tamper_report_status` is AVAILABLE */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -5351,6 +5664,160 @@ export interface operations {
             };
             /** @description limit outside 1–100, or negative offset */
             422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    restore_document_documents__document_id__restore_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                document_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Restored, or already authentic */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RestoreResponse"];
+                };
+            };
+            /** @description Not authenticated — missing or invalid bearer token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden — only the document owner may restore */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Document not found, or it has no on-chain record */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not FINALIZED, SNAPSHOT_COMPROMISED, no archived original, or the archive does not match the chain */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Storage or the archive is unavailable; nothing changed */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    verify_backups_admin_backups_verify_post: {
+        parameters: {
+            query?: {
+                /** @description Re-archive missing or bad backups */
+                repair?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Verification summary */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BackupVerificationResponse"];
+                };
+            };
+            /** @description Not a lawyer */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    health_health_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Process is up */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    ready_health_ready_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Every dependency is reachable */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description At least one dependency is down */
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };

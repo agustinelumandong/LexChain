@@ -1965,7 +1965,7 @@
           "Documents · Finalize & verify"
         ],
         "summary": "Verify a document against the chain",
-        "description": "Hashes the stored signed copy as it is now and compares it with the hash anchored on-chain. The verdict is computed server-side.",
+        "description": "Hashes the stored signed copy as it is now and compares it with the hash anchored on-chain. The verdict is computed server-side. When the status is TAMPERED, the archived original (re-hashed against the chain) and the current file are both extracted and diffed: `tamper_report` lists the changed segments with page and bbox where the OCR engine reports layout. If that diff cannot be produced, `tamper_report_status` is UNAVAILABLE and the TAMPERED verdict still stands.",
         "operationId": "verify_document_documents__document_id__verify_get",
         "security": [
           {
@@ -1986,7 +1986,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Verification result, with a tamper report when applicable",
+            "description": "Verification result; `tamper_report` is present only when status is TAMPERED and `tamper_report_status` is AVAILABLE",
             "content": {
               "application/json": {
                 "schema": {
@@ -3411,6 +3411,169 @@
           }
         }
       }
+    },
+    "/documents/{document_id}/restore": {
+      "post": {
+        "tags": [
+          "Documents · Finalize & verify"
+        ],
+        "summary": "Restore a tampered document from its archive",
+        "description": "For a FINALIZED document whose verification is TAMPERED. The archived original is re-hashed against the on-chain hash, then becomes the current signed copy; the tampered file is kept in /signed-copies and the restore is recorded in /history with both hashes. The lifecycle and the on-chain record are unchanged. If the document is already AUTHENTIC nothing changes and `restored` is false, so a retry is safe. `verification` is a fresh check of the result.",
+        "operationId": "restore_document_documents__document_id__restore_post",
+        "security": [
+          {
+            "Bearer Token": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "document_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Document Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Restored, or already authentic",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RestoreResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated — missing or invalid bearer token"
+          },
+          "403": {
+            "description": "Forbidden — only the document owner may restore"
+          },
+          "404": {
+            "description": "Document not found, or it has no on-chain record"
+          },
+          "409": {
+            "description": "Not FINALIZED, SNAPSHOT_COMPROMISED, no archived original, or the archive does not match the chain"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Storage or the archive is unavailable; nothing changed"
+          }
+        }
+      }
+    },
+    "/admin/backups/verify": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Verify document backups",
+        "description": "Downloads every finalized document's archive and checks it against the hash anchored on-chain. With `repair=true`, a missing archive is written from the live signed copy, if the snapshot matches the on-chain hash and the live copy still matches it. A bad archive is reported, never overwritten. Also runs daily without repair.",
+        "operationId": "verify_backups_admin_backups_verify_post",
+        "security": [
+          {
+            "Bearer Token": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "repair",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "description": "Re-archive missing or bad backups",
+              "default": false,
+              "title": "Repair"
+            },
+            "description": "Re-archive missing or bad backups"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Verification summary",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BackupVerificationResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not a lawyer"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "tags": [
+          "Health"
+        ],
+        "summary": "Liveness",
+        "operationId": "health_health_get",
+        "responses": {
+          "200": {
+            "description": "Process is up",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Health Health Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health/ready": {
+      "get": {
+        "tags": [
+          "Health"
+        ],
+        "summary": "Readiness",
+        "operationId": "ready_health_ready_get",
+        "responses": {
+          "200": {
+            "description": "Every dependency is reachable",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "503": {
+            "description": "At least one dependency is down"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -4724,6 +4887,40 @@
             "type": "string",
             "title": "Message",
             "description": "Human-readable verdict"
+          },
+          "tamper_report_status": {
+            "type": "string",
+            "enum": [
+              "AVAILABLE",
+              "UNAVAILABLE",
+              "NOT_APPLICABLE"
+            ],
+            "title": "Tamper Report Status",
+            "description": "AVAILABLE — `tamper_report` holds a diff against a trusted baseline; UNAVAILABLE — the document is TAMPERED but no trustworthy diff could be produced (the verdict still stands); NOT_APPLICABLE — any status other than TAMPERED",
+            "default": "NOT_APPLICABLE"
+          },
+          "tamper_report": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TamperReport"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Present only when `tamper_report_status` is AVAILABLE"
+          },
+          "tamper_report_unavailable_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tamper Report Unavailable Reason",
+            "description": "Why no diff, when `tamper_report_status` is UNAVAILABLE"
           }
         },
         "type": "object",
@@ -6099,6 +6296,30 @@
             ],
             "title": "Actor Id"
           },
+          "from_hash": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "From Hash",
+            "description": "Restore only: SHA-256 of the file that was replaced"
+          },
+          "to_hash": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "To Hash",
+            "description": "Restore only: SHA-256 of the archived bytes restored"
+          },
           "created_at": {
             "type": "string",
             "format": "date-time",
@@ -6274,6 +6495,403 @@
           "type"
         ],
         "title": "ValidationError"
+      },
+      "BackupCheck": {
+        "properties": {
+          "document_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Document Id"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "missing",
+              "mismatch",
+              "repaired",
+              "unrecoverable"
+            ],
+            "title": "Status",
+            "description": "ok: archive present and matches the anchored hash. missing: no archive. mismatch: the archive's bytes differ from the anchored hash. repaired: re-archived from the live copy. unrecoverable: no good archive and the live copy no longer matches either."
+          },
+          "backup_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Backup Key"
+          }
+        },
+        "type": "object",
+        "required": [
+          "document_id",
+          "status"
+        ],
+        "title": "BackupCheck"
+      },
+      "BackupVerificationResponse": {
+        "properties": {
+          "checked": {
+            "type": "integer",
+            "title": "Checked",
+            "description": "Finalized snapshots checked"
+          },
+          "ok": {
+            "type": "integer",
+            "title": "Ok"
+          },
+          "missing": {
+            "type": "integer",
+            "title": "Missing"
+          },
+          "mismatch": {
+            "type": "integer",
+            "title": "Mismatch"
+          },
+          "repaired": {
+            "type": "integer",
+            "title": "Repaired"
+          },
+          "unrecoverable": {
+            "type": "integer",
+            "title": "Unrecoverable"
+          },
+          "problems": {
+            "items": {
+              "$ref": "#/components/schemas/BackupCheck"
+            },
+            "type": "array",
+            "title": "Problems",
+            "description": "Every snapshot whose status is not ok"
+          }
+        },
+        "type": "object",
+        "required": [
+          "checked",
+          "ok",
+          "missing",
+          "mismatch",
+          "repaired",
+          "unrecoverable"
+        ],
+        "title": "BackupVerificationResponse"
+      },
+      "RestoreResponse": {
+        "properties": {
+          "document_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Document Id"
+          },
+          "restored": {
+            "type": "boolean",
+            "title": "Restored",
+            "description": "False if it was already authentic"
+          },
+          "previous_hash": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Previous Hash",
+            "description": "SHA-256 of the file that was replaced; null if none was"
+          },
+          "restored_hash": {
+            "type": "string",
+            "title": "Restored Hash",
+            "description": "SHA-256 now current: the on-chain hash"
+          },
+          "restored_copy_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Restored Copy Id",
+            "description": "The signed copy now current"
+          },
+          "preserved_copy_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Preserved Copy Id",
+            "description": "The replaced file, kept in signed-copy history"
+          },
+          "restored_by": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Restored By"
+          },
+          "restored_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Restored At"
+          },
+          "verification": {
+            "$ref": "#/components/schemas/DocumentVerificationResponse"
+          }
+        },
+        "type": "object",
+        "required": [
+          "document_id",
+          "restored",
+          "restored_hash",
+          "restored_copy_id",
+          "verification"
+        ],
+        "title": "RestoreResponse",
+        "description": "The outcome of restoring a finalized document from its archive.\n\n`restored` is false when the document was already authentic: nothing was\nchanged, so a retry is safe. Either way `verification` is a fresh check of\nthe current copy against the chain, to show the resulting integrity status."
+      },
+      "TamperReport": {
+        "properties": {
+          "localized": {
+            "type": "boolean",
+            "title": "Localized",
+            "description": "Whether the OCR engine reported layout; when false every segment's `page_idx` and `bbox` are null and the diff is text-only"
+          },
+          "total_changes": {
+            "type": "integer",
+            "title": "Total Changes",
+            "description": "Number of segments returned"
+          },
+          "critical_changes": {
+            "type": "integer",
+            "title": "Critical Changes"
+          },
+          "replaced": {
+            "type": "integer",
+            "title": "Replaced",
+            "description": "Changed regions found, including any not returned"
+          },
+          "inserted": {
+            "type": "integer",
+            "title": "Inserted"
+          },
+          "deleted": {
+            "type": "integer",
+            "title": "Deleted"
+          },
+          "similarity": {
+            "type": "number",
+            "title": "Similarity",
+            "description": "0-1 text similarity, original vs current"
+          },
+          "truncated": {
+            "type": "boolean",
+            "title": "Truncated",
+            "description": "Whether more changes were found than `segments` returns"
+          },
+          "segments": {
+            "items": {
+              "$ref": "#/components/schemas/TamperSegment"
+            },
+            "type": "array",
+            "title": "Segments"
+          }
+        },
+        "type": "object",
+        "required": [
+          "localized",
+          "total_changes",
+          "critical_changes",
+          "replaced",
+          "inserted",
+          "deleted",
+          "similarity",
+          "truncated",
+          "segments"
+        ],
+        "title": "TamperReport",
+        "description": "Where the current file differs from the finalized original.\n\nThe baseline is the archived original, re-hashed against the chain before\nuse; both sides are extracted fresh from their bytes by the same engine.\nSegments are ordered most severe first."
+      },
+      "TamperSegment": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "replace",
+              "insert",
+              "delete"
+            ],
+            "title": "Type"
+          },
+          "severity": {
+            "type": "string",
+            "enum": [
+              "critical",
+              "major",
+              "minor"
+            ],
+            "title": "Severity",
+            "description": "critical: amounts or reference numbers; major: dates or figures"
+          },
+          "reason": {
+            "type": "string",
+            "title": "Reason",
+            "description": "What changed, in plain terms"
+          },
+          "original_text": {
+            "type": "string",
+            "title": "Original Text",
+            "description": "Text in the finalized original; empty for an insert"
+          },
+          "current_text": {
+            "type": "string",
+            "title": "Current Text",
+            "description": "Text in the current file; empty for a delete"
+          },
+          "original_line_start": {
+            "type": "integer",
+            "title": "Original Line Start",
+            "description": "1-based block position in the original"
+          },
+          "original_line_end": {
+            "type": "integer",
+            "title": "Original Line End"
+          },
+          "current_line_start": {
+            "type": "integer",
+            "title": "Current Line Start",
+            "description": "1-based block position in the current file"
+          },
+          "current_line_end": {
+            "type": "integer",
+            "title": "Current Line End"
+          },
+          "block_index": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Block Index",
+            "description": "Block in the current file's extraction; for a delete, the block in the original's extraction"
+          },
+          "original_block_index": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Original Block Index",
+            "description": "Block in the original's extraction the change starts at"
+          },
+          "location": {
+            "type": "string",
+            "enum": [
+              "current",
+              "original"
+            ],
+            "title": "Location",
+            "description": "Which PDF `page_idx`/`bbox` refer to: the current file, or — for a delete, whose text is no longer there — the finalized original"
+          },
+          "page_idx": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Page Idx",
+            "description": "Zero-based page; null when the OCR engine reports no layout"
+          },
+          "bbox": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "number"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bbox",
+            "description": "[x0, y0, x1, y1] normalized to a 0-1000 box per page, same convention as ExtractionBlock.bbox; null when the OCR engine reports no layout"
+          },
+          "word_diff": {
+            "items": {
+              "$ref": "#/components/schemas/WordDiffPart"
+            },
+            "type": "array",
+            "title": "Word Diff"
+          }
+        },
+        "type": "object",
+        "required": [
+          "type",
+          "severity",
+          "reason",
+          "original_text",
+          "current_text",
+          "original_line_start",
+          "original_line_end",
+          "current_line_start",
+          "current_line_end",
+          "location",
+          "word_diff"
+        ],
+        "title": "TamperSegment",
+        "description": "One changed region between the finalized original and the current file."
+      },
+      "WordDiffPart": {
+        "properties": {
+          "op": {
+            "type": "string",
+            "enum": [
+              "equal",
+              "removed",
+              "added"
+            ],
+            "title": "Op"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          }
+        },
+        "type": "object",
+        "required": [
+          "op",
+          "text"
+        ],
+        "title": "WordDiffPart",
+        "description": "One run of words inside a changed segment, for inline highlighting."
       }
     },
     "securitySchemes": {
@@ -6327,6 +6945,9 @@
     },
     {
       "name": "Admin"
+    },
+    {
+      "name": "Health"
     }
   ]
 }
