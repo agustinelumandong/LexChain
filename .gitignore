@@ -125,6 +125,7 @@ openapi.json
 !README.md
 !CODEBASE.md
 !GLOSSARY.md
+!PRODUCT.md
 !docs/adr/*.md
 !docs/MOCK-ACCOUNTS.md
 !docs/BACKEND-FRONTEND-INTEGRATION-AUDIT.md

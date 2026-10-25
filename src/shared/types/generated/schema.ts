@@ -182,6 +182,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/documents/register-lookup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Find a document by its register reference
+         * @description Exact lookup by a complete notarial register reference: Doc. No., Page No., Book No. and Series year must all match. Searches every document the user owns or was accepted onto, filed in an open or closed book, whether or not it has been processed.
+         *
+         *     Book numbers are per lawyer, so more than one document can match; each is returned. No match is an empty `results` list.
+         */
+        get: operations["lookup_register_reference_documents_register_lookup_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/documents/upload": {
         parameters: {
             query?: never;
@@ -2158,6 +2180,69 @@ export interface components {
             data_hash: string;
         };
         /**
+         * RegisterLookupHit
+         * @description A document found by its register reference.
+         */
+        RegisterLookupHit: {
+            /**
+             * Document Id
+             * Format: uuid
+             */
+            document_id: string;
+            /**
+             * File Name
+             * @description Display name of the document
+             */
+            file_name: string;
+            /**
+             * Created At
+             * Format: date-time
+             * @description When the document was created
+             */
+            created_at: string;
+            /** @description Where the document is filed */
+            register_reference: components["schemas"]["RegisterReference"];
+        };
+        /** RegisterLookupResponse */
+        RegisterLookupResponse: {
+            /**
+             * Results
+             * @description Every accessible document with this reference; empty if none
+             */
+            results: components["schemas"]["RegisterLookupHit"][];
+        };
+        /**
+         * RegisterReference
+         * @description Where a document sits in the notarial register, with its book's numbers.
+         */
+        RegisterReference: {
+            /**
+             * Doc No
+             * @description Doc. No. in the register
+             */
+            doc_no: number;
+            /**
+             * Page No
+             * @description Page No. in the register
+             */
+            page_no: number;
+            /**
+             * Book Number
+             * @description Book No. of the register book
+             */
+            book_number: number;
+            /**
+             * Series Year
+             * @description Series year of the register book
+             */
+            series_year: number;
+            /**
+             * Label
+             * @description The entry as written in the notarial block
+             */
+            readonly label: string;
+        };
+        /**
          * RemovePartyResponse
          * @description Confirmation after removing a party
          */
@@ -2924,6 +3009,49 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
+            };
+        };
+    };
+    lookup_register_reference_documents_register_lookup_get: {
+        parameters: {
+            query: {
+                /** @description Doc. No. in the register */
+                doc_no: number;
+                /** @description Page No. in the register */
+                page_no: number;
+                /** @description Book No. of the physical register */
+                book_number: number;
+                /** @description Series year of the book */
+                series_year: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Matching documents; empty if none */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RegisterLookupResponse"];
+                };
+            };
+            /** @description Not authenticated — missing or invalid bearer token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A number is missing, not an integer, or out of range */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

@@ -444,6 +444,90 @@
         }
       }
     },
+    "/documents/register-lookup": {
+      "get": {
+        "tags": [
+          "Documents"
+        ],
+        "summary": "Find a document by its register reference",
+        "description": "Exact lookup by a complete notarial register reference: Doc. No., Page No., Book No. and Series year must all match. Searches every document the user owns or was accepted onto, filed in an open or closed book, whether or not it has been processed.\n\nBook numbers are per lawyer, so more than one document can match; each is returned. No match is an empty `results` list.",
+        "operationId": "lookup_register_reference_documents_register_lookup_get",
+        "security": [
+          {
+            "Bearer Token": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "doc_no",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "Doc. No. in the register",
+              "title": "Doc No"
+            },
+            "description": "Doc. No. in the register"
+          },
+          {
+            "name": "page_no",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "Page No. in the register",
+              "title": "Page No"
+            },
+            "description": "Page No. in the register"
+          },
+          {
+            "name": "book_number",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "maximum": 1000,
+              "minimum": 1,
+              "description": "Book No. of the physical register",
+              "title": "Book Number"
+            },
+            "description": "Book No. of the physical register"
+          },
+          {
+            "name": "series_year",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 2000,
+              "description": "Series year of the book",
+              "title": "Series Year"
+            },
+            "description": "Series year of the book"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Matching documents; empty if none",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisterLookupResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated — missing or invalid bearer token"
+          },
+          "422": {
+            "description": "A number is missing, not an integer, or out of range"
+          }
+        }
+      }
+    },
     "/documents/upload": {
       "post": {
         "tags": [
@@ -5302,6 +5386,96 @@
         ],
         "title": "RecordResponse",
         "description": "Response returned after recording a document on-chain."
+      },
+      "RegisterLookupHit": {
+        "properties": {
+          "document_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Document Id"
+          },
+          "file_name": {
+            "type": "string",
+            "title": "File Name",
+            "description": "Display name of the document"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At",
+            "description": "When the document was created"
+          },
+          "register_reference": {
+            "$ref": "#/components/schemas/RegisterReference",
+            "description": "Where the document is filed"
+          }
+        },
+        "type": "object",
+        "required": [
+          "document_id",
+          "file_name",
+          "created_at",
+          "register_reference"
+        ],
+        "title": "RegisterLookupHit",
+        "description": "A document found by its register reference."
+      },
+      "RegisterLookupResponse": {
+        "properties": {
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/RegisterLookupHit"
+            },
+            "type": "array",
+            "title": "Results",
+            "description": "Every accessible document with this reference; empty if none"
+          }
+        },
+        "type": "object",
+        "required": [
+          "results"
+        ],
+        "title": "RegisterLookupResponse"
+      },
+      "RegisterReference": {
+        "properties": {
+          "doc_no": {
+            "type": "integer",
+            "title": "Doc No",
+            "description": "Doc. No. in the register"
+          },
+          "page_no": {
+            "type": "integer",
+            "title": "Page No",
+            "description": "Page No. in the register"
+          },
+          "book_number": {
+            "type": "integer",
+            "title": "Book Number",
+            "description": "Book No. of the register book"
+          },
+          "series_year": {
+            "type": "integer",
+            "title": "Series Year",
+            "description": "Series year of the register book"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label",
+            "description": "The entry as written in the notarial block",
+            "readOnly": true
+          }
+        },
+        "type": "object",
+        "required": [
+          "doc_no",
+          "page_no",
+          "book_number",
+          "series_year",
+          "label"
+        ],
+        "title": "RegisterReference",
+        "description": "Where a document sits in the notarial register, with its book's numbers."
       },
       "RemovePartyResponse": {
         "properties": {
