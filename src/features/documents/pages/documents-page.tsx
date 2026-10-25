@@ -12,7 +12,10 @@ import { useQuery } from '@tanstack/react-query';
 import SearchIcon from '@mui/icons-material/Search';
 import FileUploadIcon from '@mui/icons-material/FileUpload';
 import FilterListIcon from '@mui/icons-material/FilterList';
+import CircleIcon from '@mui/icons-material/Circle';
 import DescriptionIcon from '@mui/icons-material/Description';
+import LinkIcon from '@mui/icons-material/Link';
+import LinkOffIcon from '@mui/icons-material/LinkOff';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import { Dropdown } from "@/features/admin/components";
@@ -79,12 +82,33 @@ function formatDate(iso?: string | null) {
   return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
+function DocumentIconBadge() {
+  return (
+    <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-[#EAF3FF]">
+      <DescriptionIcon aria-hidden="true" sx={{ fontSize: 18, color: '#0985E7' }} />
+    </span>
+  );
+}
+
 function DocumentBadges({ document }: { document: Document }) {
+  const badgeClasses = 'inline-flex items-center gap-1.5 rounded-full border border-current/15 px-2.5 py-0.5 text-xs font-bold';
+
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <span className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${getDocumentLifecycleBadgeClasses(document.lifecycle)}`}>{getDocumentLifecycleLabel(document.lifecycle)}</span>
-      {document.lifecycle === 'FINALIZED' && <span className={`${getDocumentProcessingBadgeClasses(document.status)} rounded-full px-2.5 py-0.5 text-xs font-bold`}>{getDocumentProcessingStatusLabel(document.lifecycle, document.status)}</span>}
+      <span className={`${badgeClasses} ${getDocumentLifecycleBadgeClasses(document.lifecycle)}`}><CircleIcon aria-hidden="true" sx={{ fontSize: 8 }} />{getDocumentLifecycleLabel(document.lifecycle)}</span>
+      {document.lifecycle === 'FINALIZED' && <span className={`${badgeClasses} ${getDocumentProcessingBadgeClasses(document.status)}`}><CircleIcon aria-hidden="true" sx={{ fontSize: 8 }} />{getDocumentProcessingStatusLabel(document.lifecycle, document.status)}</span>}
     </div>
+  );
+}
+
+function OnChainBadge({ onChain, label }: { onChain: boolean; label: string }) {
+  const Icon = onChain ? LinkIcon : LinkOffIcon;
+
+  return (
+    <span className={`inline-flex items-center gap-1.5 rounded-full border border-current/15 px-2.5 py-0.5 text-xs font-bold ${onChain ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-700'}`}>
+      <Icon aria-hidden="true" sx={{ fontSize: 14 }} />
+      {label}
+    </span>
   );
 }
 
@@ -111,26 +135,35 @@ function NeedsAttention({ docs }: { docs: Document[] }) {
   });
 
   return (
-    <article className="h-fit w-full min-w-0 rounded-2xl border border-[#E4EEF9] bg-white p-5 shadow-sm shadow-[#DDEAF7]/35 min-[1680px]:h-full">
-      <div className="mb-4 flex items-baseline justify-between gap-3">
+    <article className="flex h-fit w-full min-w-0 flex-col overflow-hidden rounded-2xl border border-[#E4EEF9] bg-white p-5 shadow-sm shadow-[#DDEAF7]/35 min-[1680px]:h-full min-[1680px]:min-h-0">
+      <div className="mb-4 flex shrink-0 items-baseline justify-between gap-3">
         <h2 className="text-lg font-black text-[#071B33]">Needs attention</h2>
         <span className="text-xs font-semibold text-[#5B6F8A]">{items.length}</span>
       </div>
       {items.length > 0 ? (
-        <ul className="space-y-2">
-          {items.map(({ document, status }) => (
-            <li key={document.id} className="flex min-w-0 items-center justify-between gap-3 border-l-2 border-[#D7E4F2] py-1 pl-3">
-              <div className="min-w-0 flex-1">
-                <Link href={`/portal/documents/${document.id}`} className="inline-flex min-h-11 min-w-0 items-center truncate rounded-sm text-sm font-bold text-[#071B33] hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0985E7]">
-                  {document.file_name}
-                </Link>
-                <p className="text-xs font-semibold text-[#5B6F8A]">Created {formatDate(document.created_at)}</p>
-              </div>
-              <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-bold ${document.status ? getDocumentProcessingBadgeClasses(document.status) : getDocumentLifecycleBadgeClasses(document.lifecycle)}`}>
-                {status}
-              </span>
-            </li>
-          ))}
+        <ul className="max-h-96 min-h-0 space-y-2 overflow-y-auto overscroll-contain pr-2 min-[1680px]:flex-1">
+          {items.map(({ document, status }) => {
+            const characters = Array.from(document.file_name);
+            const displayName = characters.length > 30 ? `${characters.slice(0, 29).join('')}…` : document.file_name;
+
+            return (
+              <li key={document.id} className="relative flex min-w-0 cursor-pointer items-center justify-between gap-3 rounded-sm border-l-2 border-[#D7E4F2] py-1 pl-3 transition-colors duration-150 ease-out hover:bg-[#EFF6FF] focus-within:bg-[#E1F0FF] active:bg-[#D7EBFF] motion-reduce:transition-none">
+                <div className="min-w-0 flex-1">
+                  <div className="flex min-w-0 items-center gap-1.5">
+                    <DocumentIconBadge />
+                    <Link href={`/portal/documents/${document.id}`} aria-label={document.file_name} className="flex h-11 w-full min-w-0 max-w-full items-center rounded-sm text-sm font-bold text-[#071B33] after:absolute after:inset-0 after:content-[''] focus-visible:after:ring-2 focus-visible:after:ring-inset focus-visible:after:ring-[#0985E7]">
+                      <span className="block w-full min-w-0 truncate">{displayName}</span>
+                    </Link>
+                  </div>
+                  <p className="text-xs font-semibold text-[#5B6F8A]">Created {formatDate(document.created_at)}</p>
+                </div>
+                <span className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border border-current/15 px-2.5 py-0.5 text-xs font-bold ${document.status ? getDocumentProcessingBadgeClasses(document.status) : getDocumentLifecycleBadgeClasses(document.lifecycle)}`}>
+                  <CircleIcon aria-hidden="true" sx={{ fontSize: 8 }} />
+                  {status}
+                </span>
+              </li>
+            );
+          })}
         </ul>
       ) : (
         <p className="text-sm font-semibold text-[#5B6F8A]">No documents need attention.</p>
@@ -344,13 +377,18 @@ export default function DocumentsPage() {
                   </thead>
                   <tbody>
                     {pagedDocs.map((doc) => (
-                      <tr key={doc.id} className="h-[68px] border-b border-[#F1F5F9] transition hover:bg-[#F8FBFF]">
+                      <tr key={doc.id} className="relative h-[68px] cursor-pointer border-b border-[#D8E5F2] transition-colors duration-150 ease-out hover:bg-[#EFF6FF] focus-within:bg-[#E1F0FF] active:bg-[#D7EBFF] motion-reduce:transition-none">
                         <td className="max-w-[260px] px-5 py-3">
-                          <Link href={`/portal/documents/${doc.id}`} className="inline-flex min-h-11 max-w-full items-center truncate rounded-sm font-bold text-[#071B33] hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0985E7]">{doc.file_name}</Link>
-                          <p className="mt-0.5 text-xs font-semibold text-[#5B6F8A]">{doc.doc_no != null ? `Register ${doc.doc_no}${doc.page_no != null ? ` · page ${doc.page_no}` : ''}` : 'Register entry unavailable'}</p>
+                          <div className="flex min-w-0 items-center gap-2">
+                            <DocumentIconBadge />
+                            <div className="min-w-0">
+                              <Link href={`/portal/documents/${doc.id}`} className="inline-flex min-h-7 min-w-0 max-w-full items-center truncate rounded-sm font-bold text-[#071B33] after:absolute after:inset-0 after:content-[''] focus-visible:after:ring-2 focus-visible:after:ring-inset focus-visible:after:ring-[#0985E7]">{doc.file_name}</Link>
+                              <p className="mt-0.5 text-xs font-semibold text-[#5B6F8A]">{doc.doc_no != null ? `Register ${doc.doc_no}${doc.page_no != null ? ` · page ${doc.page_no}` : ''}` : 'Register entry unavailable'}</p>
+                            </div>
+                          </div>
                         </td>
                         <td className="px-5 py-3"><DocumentBadges document={doc} /></td>
-                        <td className="px-5 py-3 text-xs font-bold text-[#5B6F8A]">{doc.on_chain ? 'Recorded' : 'Not recorded'}</td>
+                        <td className="px-5 py-3"><OnChainBadge onChain={doc.on_chain} label={doc.on_chain ? 'Recorded' : 'Not recorded'} /></td>
                         <td className="px-5 py-3 font-semibold text-[#5B6F8A]">{formatDate(doc.created_at)}</td>
                       </tr>
                     ))}
@@ -359,13 +397,13 @@ export default function DocumentsPage() {
               </div>
               <div className="min-[1240px]:hidden flex flex-col gap-3 px-5 pb-4">
                 {pagedDocs.map((document) => (
-                  <article key={document.id} className="rounded-xl border border-[#E4EEF9] p-4">
+                  <article key={document.id} className="relative cursor-pointer rounded-xl border border-[#D8E5F2] p-4 transition-colors duration-150 ease-out hover:bg-[#EFF6FF] focus-within:bg-[#E1F0FF] active:bg-[#D7EBFF] motion-reduce:transition-none">
                     <div className="flex gap-3">
-                      <DescriptionIcon sx={{ fontSize: 20, color: '#5B6F8A' }} aria-hidden="true" />
+                      <DocumentIconBadge />
                       <div className="min-w-0 flex-1">
-                        <Link href={`/portal/documents/${document.id}`} className="inline-flex min-h-11 max-w-full items-center truncate rounded-sm text-sm font-bold text-[#071B33] hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0985E7]">{document.file_name}</Link>
+                        <Link href={`/portal/documents/${document.id}`} className="inline-flex min-h-11 max-w-full items-center truncate rounded-sm text-sm font-bold text-[#071B33] after:absolute after:inset-0 after:content-[''] focus-visible:after:ring-2 focus-visible:after:ring-inset focus-visible:after:ring-[#0985E7]">{document.file_name}</Link>
                         <p className="mt-1 text-xs text-[#64748b]">{document.doc_no != null ? `Register ${document.doc_no}${document.page_no != null ? ` · page ${document.page_no}` : ''}` : 'Register entry unavailable'} · Created {formatDate(document.created_at)}</p>
-                        <p className="mt-1 text-xs font-semibold text-[#5B6F8A]">{document.on_chain ? 'Recorded on-chain' : 'Not recorded on-chain'}</p>
+                        <div className="mt-1"><OnChainBadge onChain={document.on_chain} label={document.on_chain ? 'Recorded on-chain' : 'Not recorded on-chain'} /></div>
                         <div className="mt-2"><DocumentBadges document={document} /></div>
                       </div>
                     </div>
