@@ -175,6 +175,20 @@ describe('PdfDocumentViewer', () => {
       .toContain('border-2 border-[#D94B66]');
   });
 
+  it('marks read-only tampered blocks with a red, non-interactive region', async () => {
+    renderViewer({ blocks: [{ ...blocks[0], editable: false }], tamperedBlockIndexes: new Set([4]) });
+
+    const overlay = await screen.findByRole('region', { name: 'Changed block 4' });
+    expect(overlay.className).toContain('border-2 border-[#D94B66]');
+    expect(screen.queryByRole('button', { name: 'Select block 4' })).toBeNull();
+  });
+
+  it('labels tampered regions without a backend block index as regions', async () => {
+    renderViewer({ blocks: [{ ...blocks[0], index: -1, editable: false }], tamperedBlockIndexes: new Set([-1]) });
+
+    expect(await screen.findByRole('region', { name: 'Changed region 1' })).toBeTruthy();
+  });
+
   it('cross-highlights editable overlays while keyboard focused', async () => {
     const { onHoverBlockChange } = renderViewer();
     const overlay = await screen.findByRole('button', { name: 'Select block 4' });

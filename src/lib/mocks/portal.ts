@@ -77,6 +77,7 @@ type MockBook = {
 };
 
 type ExtractionBlock = ApiSchema<'ExtractionBlock'>;
+type TamperSegment = ApiSchema<'TamperSegment'>;
 type ExtractionFlag = ApiSchema<'ExtractionFlag'>;
 type ExtractionReview = ApiSchema<'ExtractionReviewResponse'>;
 type UpdateExtractionRequest = ApiSchema<'UpdateExtractionRequest'>;
@@ -726,22 +727,28 @@ export function mockPortalGet(path: string, token?: string): Response {
         status: 'NOT_ANCHORED',
         is_authentic: false,
         baseline_trusted: false,
+        tamper_report_status: 'NOT_APPLICABLE',
         verified_at: new Date().toISOString(),
         message: 'This document has not been finalized and anchored yet.',
       });
       const isAuthentic = document.integrity_state !== 'mismatch';
-      const changedPrice: ExtractionBlock = {
-        index: 3,
-        editable: true,
-        type: 'text',
-        text: 'Price: PHP 10,000,000.00',
+      const hasTextComparison = document.id === 'mock-document-5';
+      const changedPrice: TamperSegment = {
+        type: 'replace',
+        severity: 'critical',
+        reason: 'The sale price increased substantially.',
         original_text: 'Price: PHP 2,750,000.00',
+        current_text: 'Price: PHP 10,000,000.00',
+        original_line_start: 4,
+        original_line_end: 4,
+        current_line_start: 4,
+        current_line_end: 4,
+        block_index: 3,
+        original_block_index: 3,
+        location: 'current',
         bbox: [100, 520, 700, 565],
         page_idx: 0,
-        text_level: null,
-        score: 0.94,
-        is_html: false,
-        edited: false,
+        word_diff: [],
       };
       return json({
         document_id: document.id,
@@ -757,11 +764,21 @@ export function mockPortalGet(path: string, token?: string): Response {
         issued_by: '0xMockIssuer',
         finalized_at: document.updated_at,
         verified_at: new Date().toISOString(),
-        tamper_report: isAuthentic ? null : {
+        tamper_report_status: isAuthentic ? 'NOT_APPLICABLE' : hasTextComparison ? 'AVAILABLE' : 'UNAVAILABLE',
+        tamper_report_unavailable_reason: !isAuthentic && !hasTextComparison
+          ? 'Text comparison is not available for this mock document.'
+          : null,
+        tamper_report: !isAuthentic && hasTextComparison ? {
+          localized: true,
           total_changes: 1,
-          critical_changes: document.id === 'mock-document-5' ? 1 : 0,
-          segments: document.id === 'mock-document-5' ? [changedPrice] : [],
-        },
+          critical_changes: 1,
+          replaced: 1,
+          inserted: 0,
+          deleted: 0,
+          similarity: 0.72,
+          truncated: false,
+          segments: [changedPrice],
+        } : null,
         message: isAuthentic ? 'Document matches the anchored hash.' : 'Document content differs from the anchored hash.',
       });
     }

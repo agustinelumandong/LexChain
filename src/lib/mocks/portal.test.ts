@@ -135,6 +135,8 @@ describe('portal mock mutations', () => {
     await expect(mockPortalGet('/documents/mock-document-2/verify', 'mock-token:mock-document-issuer').json()).resolves.toMatchObject({
       document_id: 'mock-document-2',
       is_authentic: true,
+      tamper_report_status: 'NOT_APPLICABLE',
+      tamper_report: null,
     });
     const repository = await mockPortalGet('/documents/', 'mock-token:mock-document-issuer').json() as Array<{ document_id: string; on_chain: boolean }>;
     expect(repository.filter((document) => document.on_chain)).toHaveLength(5);
@@ -160,7 +162,11 @@ describe('portal mock mutations', () => {
 
   it('restores a mismatched finalized document from its retained snapshot with a reason', async () => {
     const integrity = mockPortalGet('/documents/mock-document-3/verify', 'mock-token:mock-document-issuer');
-    await expect(integrity.json()).resolves.toMatchObject({ is_authentic: false });
+    await expect(integrity.json()).resolves.toMatchObject({
+      is_authentic: false,
+      tamper_report_status: 'UNAVAILABLE',
+      tamper_report: null,
+    });
     const sourceSnapshots = await mockPortalGet('/documents/mock-document-3/snapshots', 'mock-token:mock-document-issuer').json();
     const blankReason = await mockPortalMutate(
       'POST',
@@ -211,13 +217,23 @@ describe('portal mock mutations', () => {
       status: 'TAMPERED',
       is_authentic: false,
       baseline_trusted: true,
+      tamper_report_status: 'AVAILABLE',
       tamper_report: {
+        localized: true,
         total_changes: 1,
         critical_changes: 1,
+        replaced: 1,
+        inserted: 0,
+        deleted: 0,
+        similarity: 0.72,
+        truncated: false,
         segments: [expect.objectContaining({
-          index: 3,
-          text: 'Price: PHP 10,000,000.00',
+          type: 'replace',
+          severity: 'critical',
+          reason: 'The sale price increased substantially.',
           original_text: 'Price: PHP 2,750,000.00',
+          current_text: 'Price: PHP 10,000,000.00',
+          location: 'current',
           bbox: [100, 520, 700, 565],
           page_idx: 0,
         })],
