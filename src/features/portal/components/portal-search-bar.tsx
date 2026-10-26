@@ -149,9 +149,6 @@ export function PortalSearchBar() {
                 {hit.register_reference && (
                   <p className="mt-0.5 break-words text-xs text-[var(--portal-text-muted)]">Register reference: {hit.register_reference.label}</p>
                 )}
-                <p className="mt-0.5 truncate text-[11px] text-[var(--portal-text-muted)]">
-                  Document ID: {hit.document_id} · Chunk ID: {hit.chunk_id} · Chunk index: {hit.chunk_index} · Score: {hit.score}
-                </p>
                 {hit.text?.trim() && <p className="mt-0.5 line-clamp-2 text-xs text-[var(--portal-text-muted)]">{hit.text}</p>}
               </li>
             ))

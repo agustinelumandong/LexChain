@@ -152,9 +152,6 @@ export default function SearchPage({
                         Register reference: <span className="font-bold text-[#0C2B49]">{result.register_reference.label}</span>
                       </p>
                     )}
-                    <p className="mt-1 break-words text-[11px] font-semibold text-[#64748b]">
-                      Document ID: {result.document_id} · Chunk ID: {result.chunk_id} · Chunk index: {result.chunk_index} · Score: {result.score}
-                    </p>
                     {result.text?.trim() && <p className="line-clamp-3 text-sm text-[#0C2B49]">{result.text}</p>}
                   </Link>
                 ))}

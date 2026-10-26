@@ -44,7 +44,7 @@ describe('PortalSearchBar', () => {
     const result = await screen.findByRole('option', { name: /Lease Agreement\.pdf/ });
     expect(result.textContent).toContain('Document created: Oct 20, 2026');
     expect(result.textContent).toContain('Doc. No. 12, Page No. 7, Book No. 3, Series of 2026');
-    expect(result.textContent).toContain('Chunk index: 2 · Score: 0.91');
+    expect(result.textContent).not.toMatch(/Document ID:|Chunk ID:|Chunk index:|Score:/);
     fireEvent.mouseDown(result);
 
     expect(pushMock).toHaveBeenCalledWith('/portal/documents/document-12345678');
