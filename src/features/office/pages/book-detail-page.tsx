@@ -8,16 +8,24 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import MenuBookIcon from '@mui/icons-material/MenuBook';
+import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import { toast } from 'sonner';
 import { Dropdown } from '@/features/admin/components';
 import { canAccessPortalFeature } from '@/features/access';
 import { usePortalRole } from '@/features/access/components';
-import { getDocumentLifecycleLabel, getDocumentStatusLabel } from '@/features/documents/document-ui';
+import { getDocumentLifecycleLabel, getDocumentProcessingStatusLabel } from '@/features/documents/document-ui';
 import { BOOK_ENTRIES_PAGE_SIZE, closeRegisterBook, deleteRegisterBook, listRegisterBookEntries } from '@/features/office/books-api';
 import type { BookEntriesResponse, RegisterBook } from '@/features/office/books-api';
 
 const cardClass = 'rounded-[18px] border border-[#E8F0F8] bg-white';
+
+function processingStatusStyle(status?: string | null) {
+  const value = status?.toLowerCase();
+  if (value === 'anchored' || value === 'completed') return 'bg-[#EAF8F0] text-[#12A150]';
+  if (value === 'processing' || value === 'pending') return 'bg-[#FFF4DD] text-[#B77900]';
+  return 'bg-[#EAF4FF] text-[#1689F5]';
+}
 
 export default function BookDetailPage({ bookId }: { bookId: string }) {
   const queryClient = useQueryClient();
@@ -156,35 +164,43 @@ export default function BookDetailPage({ bookId }: { bookId: string }) {
             </div>
             <p className="border-b border-[#E8F0F8] bg-[#F8FBFF] px-5 py-3 text-xs leading-5 text-[#64748b] sm:px-6">Only documents recorded in LexChain appear here. Paper-only register lines are outside this list.</p>
 
-            {entries.length > 0 ? (
-              <ol start={entryOffset + 1} aria-label={`Entries in Book ${book.book_number}`} className="list-decimal marker:font-black marker:text-[#98AFC8]">
-                {entries.map((entry) => (
-                  <li key={entry.id} className="border-b border-[#E8F0F8] text-sm last:border-b-0">
-                    <Link href={`/portal/documents/${entry.id}`} title={entry.file_name} aria-label={`Open ${entry.file_name}, document ${entry.doc_no}, register page ${entry.page_no}`} className="grid gap-x-4 gap-y-1 px-5 py-4 pl-2 transition-colors hover:bg-[#F8FBFF] focus-visible:bg-[#F8FBFF] focus-visible:outline focus-visible:outline-2 focus-visible:outline-inset focus-visible:outline-[#0985E7] sm:grid-cols-[minmax(10rem,0.75fr)_minmax(0,1.5fr)] sm:px-6 sm:py-4">
-                      <div className="min-w-0 sm:pl-2">
-                        <p className="font-black text-[#0C2B49]">Doc. {entry.doc_no}</p>
-                        <p className="mt-1 text-xs font-semibold text-[#4B6382]">Register page {entry.page_no}</p>
-                      </div>
-                      <div className="min-w-0">
-                        <span className="block break-words font-bold text-[#0876CC]">{entry.file_name}</span>
-                        <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs leading-5 text-[#64748b]">
-                          <span>Lifecycle: {getDocumentLifecycleLabel(entry.lifecycle)}</span>
-                          <span>Processing: {getDocumentStatusLabel(entry.status)}</span>
-                        </div>
-                      </div>
-                    </Link>
-                  </li>
-                ))}
-              </ol>
-            ) : totalEntries === 0 ? (
-              <div className="px-5 py-10 text-center sm:px-6">
-                <MenuBookIcon sx={{ fontSize: 36, color: '#8EBCE5' }} />
-                <h3 className="mt-2 text-sm font-black text-[#0C2B49]">This book is ready for its first entry</h3>
-                <p className="mt-1 text-sm text-[#64748b]">Documents filed in this register will appear here in order.</p>
+            <p className="px-5 pb-3 text-xs font-semibold text-[#5B6F8A] md:hidden">Swipe horizontally to view all table columns.</p>
+            <div role="region" aria-label={`Book ${book.book_number} entries. Scroll horizontally to view all columns.`} tabIndex={0} className="admin-table-scroll min-h-0 overflow-auto focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[#0985E7]">
+              <div className="min-w-[760px]">
+                <div className="grid grid-cols-[minmax(0,1fr)_minmax(15rem,0.9fr)_7rem] border-b border-[#D9E5F0] bg-[#F8FBFF] text-left text-xs font-black uppercase tracking-[0.08em] text-[#4B6382]">
+                  <span className="px-5 py-3">Document</span>
+                  <span className="px-5 py-3">Lifecycle / processing</span>
+                  <span className="px-5 py-3">Actions</span>
+                </div>
+                {entries.length > 0 ? (
+                  <ol start={entryOffset + 1} aria-label={`Entries in Book ${book.book_number}`} className="list-none">
+                    {entries.map((entry) => (
+                      <li key={entry.id} className="border-b border-[#F1F5F9] last:border-b-0">
+                        <Link href={`/portal/documents/${entry.id}`} title={entry.file_name} aria-label={`Open ${entry.file_name}, document ${entry.doc_no}, register page ${entry.page_no}`} className="grid h-[68px] w-full grid-cols-[minmax(0,1fr)_minmax(15rem,0.9fr)_7rem] items-center text-left text-sm transition hover:bg-[#F8FBFF] focus-visible:bg-[#F8FBFF] focus-visible:outline focus-visible:outline-2 focus-visible:outline-inset focus-visible:outline-[#0985E7]">
+                          <span className="min-w-0 px-5 py-3">
+                            <span className="block truncate font-bold text-[#071B33]">{entry.file_name}</span>
+                            <span className="mt-0.5 block text-xs font-semibold text-[#5B6F8A]">Register {entry.doc_no} · page {entry.page_no}</span>
+                          </span>
+                          <span className="flex flex-wrap items-center gap-2 px-5 py-3">
+                            <span className="rounded-full bg-[#EAF4FF] px-2.5 py-0.5 text-[11px] font-bold text-[#1689F5]">{getDocumentLifecycleLabel(entry.lifecycle)}</span>
+                            {entry.lifecycle === 'FINALIZED' && <span className={`${processingStatusStyle(entry.status)} rounded-full px-2.5 py-0.5 text-[11px] font-bold`}>{getDocumentProcessingStatusLabel(entry.lifecycle, entry.status)}</span>}
+                          </span>
+                          <span aria-hidden="true" className="px-5 py-3 text-[#5B6F8A]"><OpenInNewIcon sx={{ fontSize: 18 }} /></span>
+                        </Link>
+                      </li>
+                    ))}
+                  </ol>
+                ) : totalEntries === 0 ? (
+                  <div className="px-5 py-10 text-center">
+                    <MenuBookIcon sx={{ fontSize: 36, color: '#8EBCE5' }} />
+                    <h3 className="mt-2 text-sm font-black text-[#0C2B49]">This book is ready for its first entry</h3>
+                    <p className="mt-1 text-sm text-[#64748b]">Documents filed in this register will appear here in order.</p>
+                  </div>
+                ) : (
+                  <p className="px-5 py-8 text-center text-sm text-[#64748b]">No entries on this page.</p>
+                )}
               </div>
-            ) : (
-              <p className="px-5 py-8 text-center text-sm text-[#64748b]">No entries on this page.</p>
-            )}
+            </div>
 
             {totalEntries > 0 && (
               <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#E8F0F8] bg-[#FBFDFF] px-5 py-3 sm:px-6">
