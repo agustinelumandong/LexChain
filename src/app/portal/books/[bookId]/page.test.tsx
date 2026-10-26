@@ -108,7 +108,7 @@ describe('BookRoutePage', () => {
     expect(within(rows[1]).getByText('Processing: Completed')).toBeTruthy();
     expect(within(rows[2]).getByText('Processing: No processing status yet')).toBeTruthy();
     expect(screen.getByText('Ordered by document number, then page number')).toBeTruthy();
-    expect(fetchMock).toHaveBeenCalledWith('/api/portal/proxy?path=%2Fbooks%2Fbook-1%2Fentries%3Flimit%3D50%26offset%3D0', expect.objectContaining({ credentials: 'same-origin', cache: 'no-store' }));
+    expect(fetchMock).toHaveBeenCalledWith('/api/portal/proxy?path=%2Fbooks%2Fbook-1%2Fentries%3Flimit%3D5%26offset%3D0', expect.objectContaining({ credentials: 'same-origin', cache: 'no-store' }));
   });
 
   it('does not show close or delete controls until the book entries are loaded', async () => {
@@ -142,31 +142,62 @@ describe('BookRoutePage', () => {
   });
 
   it('paginates entries while preserving the API ordering on each page', async () => {
-    const firstPage = Array.from({ length: 50 }, (_, index) => ({
+    const firstPage = Array.from({ length: 5 }, (_, index) => ({
       ...entry,
       id: `document-${index + 1}`,
       file_name: `Document ${index + 1}.pdf`,
       doc_no: index + 1,
       page_no: index + 1,
     }));
-    const lastEntry = { ...entry, id: 'document-51', file_name: 'Document 51.pdf', doc_no: 51, page_no: 1 };
+    const lastEntry = { ...entry, id: 'document-6', file_name: 'Document 6.pdf', doc_no: 6, page_no: 1 };
     const fetchMock = vi.fn((input: RequestInfo | URL) => {
       const url = String(input);
-      if (url.includes('offset%3D50')) return Promise.resolve(entryResponse({ ...book, entry_count: 51 }, [lastEntry]));
-      if (url.includes('%2Fbooks%2Fbook-1%2Fentries')) return Promise.resolve(entryResponse({ ...book, entry_count: 51 }, firstPage));
+      if (url.includes('offset%3D5')) return Promise.resolve(entryResponse({ ...book, entry_count: 6 }, [lastEntry]));
+      if (url.includes('%2Fbooks%2Fbook-1%2Fentries')) return Promise.resolve(entryResponse({ ...book, entry_count: 6 }, firstPage));
       return Promise.resolve(new Response(null, { status: 404 }));
     });
     vi.stubGlobal('fetch', fetchMock);
 
     await renderPage();
     expect(await screen.findByRole('link', { name: /^Open Document 1\.pdf/ })).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+    expect(screen.getByRole('link', { name: /^Open Document 5\.pdf/ })).toBeTruthy();
+    expect(screen.queryByRole('link', { name: /^Open Document 6\.pdf/ })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Page 2' }));
 
-    expect(await screen.findByRole('link', { name: /^Open Document 51\.pdf/ })).toBeTruthy();
-    expect(screen.getByText('Showing 51–51 of 51 entries')).toBeTruthy();
-    expect(fetchMock).toHaveBeenCalledWith('/api/portal/proxy?path=%2Fbooks%2Fbook-1%2Fentries%3Flimit%3D50%26offset%3D50', expect.objectContaining({ credentials: 'same-origin' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Previous' }));
+    expect(await screen.findByRole('link', { name: /^Open Document 6\.pdf/ })).toBeTruthy();
+    expect(screen.getByText('Showing 6–6 of 6 entries')).toBeTruthy();
+    expect(fetchMock).toHaveBeenCalledWith('/api/portal/proxy?path=%2Fbooks%2Fbook-1%2Fentries%3Flimit%3D5%26offset%3D5', expect.objectContaining({ credentials: 'same-origin' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Previous page' }));
     expect(await screen.findByRole('link', { name: /^Open Document 1\.pdf/ })).toBeTruthy();
+  });
+
+  it('matches the documents page-size selector and refetches the selected count', async () => {
+    const allEntries = Array.from({ length: 6 }, (_, index) => ({
+      ...entry,
+      id: `document-${index + 1}`,
+      file_name: `Document ${index + 1}.pdf`,
+      doc_no: index + 1,
+      page_no: index + 1,
+    }));
+    const fetchMock = vi.fn((input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes('limit%3D10')) return Promise.resolve(entryResponse({ ...book, entry_count: 6 }, allEntries));
+      if (url.includes('%2Fbooks%2Fbook-1%2Fentries')) return Promise.resolve(entryResponse({ ...book, entry_count: 6 }, allEntries.slice(0, 5)));
+      return Promise.resolve(new Response(null, { status: 404 }));
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    await renderPage();
+    expect(await screen.findByRole('link', { name: /^Open Document 5\.pdf/ })).toBeTruthy();
+    expect(screen.getAllByRole('link', { name: /^Open Document/ })).toHaveLength(5);
+
+    fireEvent.click(screen.getByRole('button', { name: '5 / page' }));
+    fireEvent.click(screen.getByRole('button', { name: '10 / page' }));
+
+    expect(await screen.findByRole('link', { name: /^Open Document 6\.pdf/ })).toBeTruthy();
+    expect(screen.getAllByRole('link', { name: /^Open Document/ })).toHaveLength(6);
+    expect(screen.getByText('Showing 1–6 of 6 entries')).toBeTruthy();
+    expect(fetchMock).toHaveBeenCalledWith('/api/portal/proxy?path=%2Fbooks%2Fbook-1%2Fentries%3Flimit%3D10%26offset%3D0', expect.objectContaining({ credentials: 'same-origin' }));
   });
 
   it('allows retrying when book entries fail to load', async () => {

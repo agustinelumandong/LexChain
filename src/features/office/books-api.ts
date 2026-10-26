@@ -9,7 +9,7 @@ export type BookCreateRequest = {
   status?: 'OPEN' | 'CLOSED';
 };
 
-export const BOOK_ENTRIES_PAGE_SIZE = 50;
+export const BOOK_ENTRIES_PAGE_SIZE = 5;
 
 export async function listRegisterBooks(): Promise<RegisterBook[]> {
   const response = await fetch(`/api/portal/proxy?path=${encodeURIComponent('/books/?limit=50&offset=0')}`, {
@@ -19,8 +19,8 @@ export async function listRegisterBooks(): Promise<RegisterBook[]> {
   return response.json() as Promise<RegisterBook[]>;
 }
 
-export async function listRegisterBookEntries(bookId: string, offset: number): Promise<BookEntriesResponse> {
-  const path = `/books/${bookId}/entries?limit=${BOOK_ENTRIES_PAGE_SIZE}&offset=${offset}`;
+export async function listRegisterBookEntries(bookId: string, offset: number, limit = BOOK_ENTRIES_PAGE_SIZE): Promise<BookEntriesResponse> {
+  const path = `/books/${bookId}/entries?limit=${limit}&offset=${offset}`;
   return portalFetch<BookEntriesResponse>(path);
 }
 

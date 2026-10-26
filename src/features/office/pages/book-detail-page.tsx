@@ -5,10 +5,12 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
+import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
+import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import MenuBookIcon from '@mui/icons-material/MenuBook';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import { toast } from 'sonner';
+import { Dropdown } from '@/features/admin/components';
 import { canAccessPortalFeature } from '@/features/access';
 import { usePortalRole } from '@/features/access/components';
 import { getDocumentLifecycleLabel, getDocumentStatusLabel } from '@/features/documents/document-ui';
@@ -22,11 +24,13 @@ export default function BookDetailPage({ bookId }: { bookId: string }) {
   const router = useRouter();
   const role = usePortalRole();
   const [entryOffset, setEntryOffset] = useState(0);
+  const [entryPageSize, setEntryPageSize] = useState(String(BOOK_ENTRIES_PAGE_SIZE));
+  const entriesPerPage = Number(entryPageSize);
   const isIssuer = canAccessPortalFeature(role, 'books');
 
   const bookEntriesQuery = useQuery<BookEntriesResponse>({
-    queryKey: ['portal-book-entries', bookId, entryOffset],
-    queryFn: () => listRegisterBookEntries(bookId, entryOffset),
+    queryKey: ['portal-book-entries', bookId, entriesPerPage, entryOffset],
+    queryFn: () => listRegisterBookEntries(bookId, entryOffset, entriesPerPage),
     enabled: isIssuer && Boolean(bookId),
     refetchInterval: 15_000,
   });
@@ -70,7 +74,11 @@ export default function BookDetailPage({ bookId }: { bookId: string }) {
   const entries = [...(bookEntriesQuery.data?.entries ?? [])].sort((left, right) => left.doc_no - right.doc_no || left.page_no - right.page_no);
   const totalEntries = book?.entry_count ?? 0;
   const entryRangeEnd = Math.min(entryOffset + entries.length, totalEntries);
-  const hasNextEntryPage = entryOffset + BOOK_ENTRIES_PAGE_SIZE < totalEntries;
+  const totalEntryPages = Math.max(1, Math.ceil(totalEntries / entriesPerPage));
+  const currentEntryPage = Math.floor(entryOffset / entriesPerPage);
+  const entryPageStart = Math.min(Math.max(currentEntryPage - 1, 0), Math.max(totalEntryPages - 3, 0));
+  const entryPageNumbers = Array.from({ length: Math.min(3, totalEntryPages) }, (_, index) => entryPageStart + index);
+  const hasNextEntryPage = entryOffset + entriesPerPage < totalEntries;
   const closeError = closeBookMutation.error instanceof Error ? closeBookMutation.error.message : null;
   const deleteError = deleteBookMutation.error instanceof Error ? deleteBookMutation.error.message : null;
 
@@ -183,13 +191,21 @@ export default function BookDetailPage({ bookId }: { bookId: string }) {
                 <p role="status" className="text-xs font-semibold text-[#64748b]">
                   {entries.length > 0 ? `Showing ${entryOffset + 1}–${entryRangeEnd} of ${totalEntries} entries` : `${totalEntries} entries recorded`}
                 </p>
-                <nav aria-label="Book entries pagination" className="flex gap-2">
-                  <button type="button" onClick={() => setEntryOffset((current) => Math.max(0, current - BOOK_ENTRIES_PAGE_SIZE))} disabled={entryOffset === 0} className="inline-flex min-h-11 items-center gap-1 rounded-full border border-[#D7E4F2] px-4 py-2 text-sm font-bold text-[#0C2B49] hover:bg-[#EEF6FF] disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0985E7]">
-                    <ArrowBackIcon sx={{ fontSize: 17 }} />Previous
+                <nav aria-label="Book entries pagination" className="flex flex-wrap items-center gap-2">
+                  <button type="button" onClick={() => setEntryOffset((current) => Math.max(0, current - entriesPerPage))} disabled={entryOffset === 0} aria-label="Previous page" className="rounded-lg border border-[#E4EEF9] p-2 text-[#4B6382] transition hover:bg-[#EEF4FB] disabled:opacity-35">
+                    <ChevronLeftIcon fontSize="small" />
                   </button>
-                  <button type="button" onClick={() => setEntryOffset((current) => current + BOOK_ENTRIES_PAGE_SIZE)} disabled={!hasNextEntryPage} className="inline-flex min-h-11 items-center gap-1 rounded-full border border-[#D7E4F2] px-4 py-2 text-sm font-bold text-[#0C2B49] hover:bg-[#EEF6FF] disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0985E7]">
-                    Next<ArrowForwardIcon sx={{ fontSize: 17 }} />
+                  {entryPageStart > 0 && <span aria-hidden="true" className="px-2 text-sm font-black text-[#5B6F8A]">...</span>}
+                  {entryPageNumbers.map((pageNumber) => (
+                    <button key={pageNumber} type="button" onClick={() => setEntryOffset(pageNumber * entriesPerPage)} aria-label={`Page ${pageNumber + 1}`} aria-current={currentEntryPage === pageNumber ? 'page' : undefined} className={`size-9 rounded-lg border text-sm font-black transition ${currentEntryPage === pageNumber ? 'border-[#0985E7] bg-[#EAF3FF] text-[#0879D8]' : 'border-[#E4EEF9] text-[#0C2B49] hover:bg-[#EEF4FB]'}`}>
+                      {pageNumber + 1}
+                    </button>
+                  ))}
+                  {entryPageStart + entryPageNumbers.length < totalEntryPages && <span aria-hidden="true" className="px-2 text-sm font-black text-[#5B6F8A]">...</span>}
+                  <button type="button" onClick={() => setEntryOffset((current) => current + entriesPerPage)} disabled={!hasNextEntryPage} aria-label="Next page" className="rounded-lg border border-[#E4EEF9] p-2 text-[#4B6382] transition hover:bg-[#EEF4FB] disabled:opacity-35">
+                    <ChevronRightIcon fontSize="small" />
                   </button>
+                  <Dropdown description="Book entries per page" openUp value={entryPageSize} onChange={(value) => { setEntryPageSize(value); setEntryOffset(0); }} options={[{ label: '5 / page', value: '5' }, { label: '10 / page', value: '10' }, { label: '20 / page', value: '20' }]} />
                 </nav>
               </div>
             )}
