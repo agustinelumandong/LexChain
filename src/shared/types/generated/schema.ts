@@ -182,6 +182,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/documents/register-lookup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Find a document by its register reference
+         * @description Exact lookup by a complete notarial register reference: Doc. No., Page No., Book No. and Series year must all match. Searches every document the user owns or was accepted onto, filed in an open or closed book, whether or not it has been processed.
+         *
+         *     Book numbers are per lawyer, so more than one document can match; each is returned. No match is an empty `results` list.
+         */
+        get: operations["lookup_register_reference_documents_register_lookup_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/documents/upload": {
         parameters: {
             query?: never;
@@ -982,6 +1004,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/books/{book_id}/entries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List a book's entries
+         * @description Return the book and a page of the documents filed in it, ordered by Doc. No., then Page No. The book's entry_count is the total number of entries for paging. Only documents with a LexChain record are listed — not paper-only lines of the physical register. Only the owner may access it.
+         */
+        get: operations["get_book_entries_books__book_id__entries_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/books/{book_id}/close": {
         parameters: {
             query?: never;
@@ -1303,6 +1345,50 @@ export interface components {
              * @enum {string}
              */
             status: "OPEN" | "CLOSED";
+        };
+        /** BookEntriesResponse */
+        BookEntriesResponse: {
+            /** @description The book; its entry_count is the total for paging */
+            book: components["schemas"]["BookResponse"];
+            /**
+             * Entries
+             * @description One page of entries, by Doc. No., then Page No.
+             */
+            entries?: components["schemas"]["BookEntryResponse"][];
+        };
+        /** BookEntryResponse */
+        BookEntryResponse: {
+            /**
+             * Id
+             * Format: uuid
+             * @description Document ID — opens /documents/{id}
+             */
+            id: string;
+            /**
+             * File Name
+             * @description Display name
+             */
+            file_name: string;
+            /**
+             * Doc No
+             * @description Doc. No. in the register
+             */
+            doc_no: number;
+            /**
+             * Page No
+             * @description Page No. in the register
+             */
+            page_no: number;
+            /**
+             * Lifecycle
+             * @description PREPARING | READY_FOR_SIGNATURE | SIGNED | FINALIZED | CANCELLED
+             */
+            lifecycle: string;
+            /**
+             * Status
+             * @description Processing status; null until the document is finalized
+             */
+            status?: string | null;
         };
         /** BookResponse */
         BookResponse: {
@@ -2123,6 +2209,19 @@ export interface components {
             chunk_index: number;
             /** Score */
             score: number;
+            /**
+             * File Name
+             * @description Display name of the document
+             */
+            file_name: string;
+            /**
+             * Created At
+             * Format: date-time
+             * @description When the document was created
+             */
+            created_at: string;
+            /** @description Where the document is filed; null if not in a register */
+            register_reference?: components["schemas"]["RegisterReference"] | null;
         };
         /** GlobalSearchResponse */
         GlobalSearchResponse: {
@@ -2283,6 +2382,69 @@ export interface components {
              * @description SHA256 hash stored on-chain.
              */
             data_hash: string;
+        };
+        /**
+         * RegisterLookupHit
+         * @description A document found by its register reference.
+         */
+        RegisterLookupHit: {
+            /**
+             * Document Id
+             * Format: uuid
+             */
+            document_id: string;
+            /**
+             * File Name
+             * @description Display name of the document
+             */
+            file_name: string;
+            /**
+             * Created At
+             * Format: date-time
+             * @description When the document was created
+             */
+            created_at: string;
+            /** @description Where the document is filed */
+            register_reference: components["schemas"]["RegisterReference"];
+        };
+        /** RegisterLookupResponse */
+        RegisterLookupResponse: {
+            /**
+             * Results
+             * @description Every accessible document with this reference; empty if none
+             */
+            results: components["schemas"]["RegisterLookupHit"][];
+        };
+        /**
+         * RegisterReference
+         * @description Where a document sits in the notarial register, with its book's numbers.
+         */
+        RegisterReference: {
+            /**
+             * Doc No
+             * @description Doc. No. in the register
+             */
+            doc_no: number;
+            /**
+             * Page No
+             * @description Page No. in the register
+             */
+            page_no: number;
+            /**
+             * Book Number
+             * @description Book No. of the register book
+             */
+            book_number: number;
+            /**
+             * Series Year
+             * @description Series year of the register book
+             */
+            series_year: number;
+            /**
+             * Label
+             * @description The entry as written in the notarial block
+             */
+            readonly label: string;
         };
         /**
          * RemovePartyResponse
@@ -3237,6 +3399,49 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
+            };
+        };
+    };
+    lookup_register_reference_documents_register_lookup_get: {
+        parameters: {
+            query: {
+                /** @description Doc. No. in the register */
+                doc_no: number;
+                /** @description Page No. in the register */
+                page_no: number;
+                /** @description Book No. of the physical register */
+                book_number: number;
+                /** @description Series year of the book */
+                series_year: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Matching documents; empty if none */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RegisterLookupResponse"];
+                };
+            };
+            /** @description Not authenticated — missing or invalid bearer token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A number is missing, not an integer, or out of range */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -5357,6 +5562,59 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
+            };
+        };
+    };
+    get_book_entries_books__book_id__entries_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path: {
+                book_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Book and a page of its entries; empty past the last entry */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BookEntriesResponse"];
+                };
+            };
+            /** @description Not authenticated — missing or invalid bearer token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden — only lawyers may access books */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Book not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description limit outside 1–100, or negative offset */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
