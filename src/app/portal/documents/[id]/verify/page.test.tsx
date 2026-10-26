@@ -155,9 +155,10 @@ describe('DocumentVerifyPage', () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json({ detail: 'Gateway unavailable' }, { status: 503 })));
     renderPage();
 
-    expect(await screen.findByText('Verification request failed')).toBeTruthy();
+    expect(await screen.findByText('We could not check this document')).toBeTruthy();
+    expect(screen.getByText('API error: 503')).toBeTruthy();
     expect(screen.queryByText('This PDF differs from the saved version')).toBeNull();
-    expect(screen.queryByText('We could not check this document')).toBeNull();
+    expect(screen.queryByText('This PDF matches the saved version')).toBeNull();
   });
 
   it('explains a 404 as a missing or unanchored document without offering a retry', async () => {

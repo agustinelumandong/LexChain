@@ -278,9 +278,9 @@ export default function PdfDocumentViewer({
         ) : null}
         <div className="relative mx-auto w-fit">
           <canvas ref={canvasRef} className="block" />
-          {pageBlocks.map(({ block, style }) => block.editable !== false ? (
+          {pageBlocks.map(({ block, style }, pageBlockIndex) => block.editable !== false ? (
           <button
-            key={block.index}
+            key={`${block.index}-${pageBlockIndex}`}
             type="button"
             aria-label={`Select block ${block.index}`}
             className={`absolute bg-transparent ${
@@ -301,14 +301,16 @@ export default function PdfDocumentViewer({
           />
         ) : (
           <div
-            key={block.index}
+            key={`${block.index}-${pageBlockIndex}`}
             role="region"
-            aria-label={`Non-editable block ${block.index}`}
-            className={`absolute border border-dashed ${
-              hoveredBlockIndex === block.index
+            aria-label={`${tamperedBlockIndexes?.has(block.index)
+              ? block.index < 0 ? `Changed region ${Math.abs(block.index)}` : `Changed block ${block.index}`
+              : `Non-editable block ${block.index}`}`}
+            className={`absolute ${tamperedBlockIndexes?.has(block.index)
+              ? 'border-2 border-[#D94B66] bg-[#D94B66]/20'
+              : hoveredBlockIndex === block.index
                 ? 'border-2 border-amber-600 bg-amber-100/30'
-                : 'border-amber-500'
-            }`}
+                : 'border border-dashed border-amber-500'}`}
             style={style}
             onMouseEnter={() => onHoverBlockChange(block.index)}
             onMouseLeave={() => onHoverBlockChange(null)}

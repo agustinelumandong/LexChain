@@ -103,8 +103,8 @@ export function PortalSearchBar() {
           onChange={(e) => onChange(e.target.value)}
           onKeyDown={onKeyDown}
           onFocus={() => { if (results.length > 0) setOpen(true); }}
-          placeholder="Search documents..."
-          aria-label="Search documents"
+          placeholder="Quick text search…"
+          aria-label="Quick text search"
           role="combobox"
           aria-expanded={open}
           aria-controls="search-results"

@@ -25,6 +25,7 @@ const matchingRecord = {
   issued_by: 'issuer-address',
   verified_at: '2026-07-19T00:00:00Z',
   message: 'Document is authentic.',
+  tamper_report_status: 'NOT_APPLICABLE' as const,
 };
 
 afterEach(cleanup);

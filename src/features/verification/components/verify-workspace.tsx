@@ -15,13 +15,7 @@ const PdfDocumentViewer = dynamic(() => import('@/features/documents/components/
   loading: () => <p>Loading PDF preview…</p>,
 });
 
-type VerificationResult = ApiSchema<'DocumentVerificationResponse'> & {
-  tamper_report?: {
-    total_changes: number;
-    critical_changes: number;
-    segments: ApiSchema<'ExtractionBlock'>[];
-  } | null;
-};
+type VerificationResult = ApiSchema<'DocumentVerificationResponse'>;
 
 function statusHeading(result: VerificationResult) {
   if (result.status === 'AUTHENTIC') return result.is_authentic ? 'This PDF matches the saved version' : 'We could not check this document';
@@ -46,7 +40,7 @@ function HashRow({ label, hash, transactionUrl }: { label: string; hash: string;
     <div className="flex items-center justify-between gap-3 rounded-xl border border-[#E8F0F8] bg-[#F8FBFF] px-3 py-2.5">
       <div className="min-w-0">
         <p className="text-[11px] font-black uppercase tracking-wide text-[#64748b]">{label}</p>
-      <p className="mt-0.5 truncate font-mono text-xs font-semibold text-[#0C2B49]">{shortened}</p>
+        <p className="mt-0.5 truncate font-mono text-xs font-semibold text-[#0C2B49]" title={hash}>{shortened}</p>
       </div>
       <div className="flex shrink-0 items-center gap-2">
         {transactionUrl && <a href={transactionUrl} target="_blank" rel="noreferrer" aria-label="View transaction on Base Sepolia" className="text-[11px] font-black text-[#0985E7]">Base Sepolia</a>}
@@ -102,9 +96,25 @@ export default function VerifyWorkspace({ result, onRetry }: { result: Verificat
   const tamperReport = result.status === 'TAMPERED'
     && !result.is_authentic
     && result.baseline_trusted
+    && result.tamper_report_status === 'AVAILABLE'
     ? result.tamper_report
     : null;
   const tamperedSegments = tamperReport?.segments ?? [];
+  const currentPdfSegments = tamperedSegments
+    .filter((segment) => segment.location === 'current')
+    .map((segment, index): ApiSchema<'ExtractionBlock'> => ({
+      index: segment.block_index ?? -(index + 1),
+      editable: false,
+      type: 'text',
+      text: segment.current_text,
+      original_text: segment.original_text,
+      bbox: segment.bbox ?? null,
+      page_idx: segment.page_idx ?? null,
+      text_level: null,
+      score: null,
+      is_html: false,
+      edited: false,
+    }));
   const showTamperComparison = result.status === 'TAMPERED'
     && !result.is_authentic
     && result.baseline_trusted;
@@ -131,10 +141,10 @@ export default function VerifyWorkspace({ result, onRetry }: { result: Verificat
             <PdfDocumentViewer
               sourceUrl={signedCopyFileUrl(result.document_id, { filename: result.file_name ?? undefined })}
               currentPage={currentPage}
-              blocks={tamperedSegments}
+              blocks={currentPdfSegments}
               selectedBlockIndex={null}
               hoveredBlockIndex={null}
-              tamperedBlockIndexes={new Set(tamperedSegments.map((segment) => segment.index))}
+              tamperedBlockIndexes={new Set(currentPdfSegments.map((segment) => segment.index))}
               onPageChange={setCurrentPage}
               onSelectBlock={() => undefined}
               onHoverBlockChange={() => undefined}
@@ -147,18 +157,24 @@ export default function VerifyWorkspace({ result, onRetry }: { result: Verificat
               <>
                 <div>
                   <h3 className="font-extrabold text-[#0C2B49]">Changed content</h3>
-                  <p className="mt-1 text-sm text-[#64748b]">{tamperReport?.total_changes} {tamperReport?.total_changes === 1 ? 'change' : 'changes'} found.</p>
+                  <p className="mt-1 text-sm text-[#64748b]">{tamperReport?.total_changes ?? 0} {tamperReport?.total_changes === 1 ? 'change' : 'changes'} returned.</p>
+                  {tamperReport?.truncated && <p role="note" className="mt-1 text-sm text-[#8A5B00]">Additional changes were found. Only the listed segments are shown here.</p>}
                 </div>
-                {tamperedSegments.map((segment) => (
-                  <dl key={segment.index} className="grid gap-3 text-sm">
+                {tamperedSegments.map((segment, index) => (
+                  <dl key={index} className="grid gap-3 text-sm">
+                    <div>
+                      <dt className="font-bold capitalize text-[#0C2B49]">{segment.type} · {segment.severity}</dt>
+                      <dd className="mt-1 text-sm text-[#64748b]">{segment.reason}</dd>
+                    </div>
                     <div className="rounded-xl border border-[#E8F0F8] bg-[#F8FBFF] p-3">
                       <dt className="font-bold text-[#64748b]">Anchored version</dt>
-                      <dd className="mt-1 font-semibold text-[#0C2B49]">{segment.original_text || 'Not provided'}</dd>
+                      <dd className="mt-1 font-semibold text-[#0C2B49]">{segment.original_text || (segment.type === 'insert' ? 'Not present in the anchored version' : 'Not provided')}</dd>
                     </div>
                     <div className="rounded-xl border border-red-200 bg-red-50 p-3">
                       <dt className="font-bold text-[#D94B66]">Current PDF</dt>
-                      <dd className="mt-1 font-semibold text-[#0C2B49]">{segment.text || 'Not provided'}</dd>
+                      <dd className="mt-1 font-semibold text-[#0C2B49]">{segment.current_text || (segment.type === 'delete' ? 'Removed from the current PDF' : 'Not provided')}</dd>
                     </div>
+                    <div><dt className="font-bold text-[#64748b]">Location</dt><dd className="mt-1 text-[#0C2B49]">{segment.location === 'current' ? 'Current PDF' : 'Anchored version'}{segment.page_idx == null ? ' · text only' : ` · page ${segment.page_idx + 1}`}</dd></div>
                   </dl>
                 ))}
               </>
@@ -166,7 +182,11 @@ export default function VerifyWorkspace({ result, onRetry }: { result: Verificat
               <div role="status" aria-label="Comparison details unavailable" className="rounded-xl border border-[#D7E4F2] bg-[#F8FBFF] p-4">
                 <h3 className="font-extrabold text-[#0C2B49]">Detailed comparison unavailable</h3>
                 <p className="mt-2 text-sm leading-6 text-[#64748b]">
-                  This verification response includes the verdict and file hashes, but no extracted-text differences or baseline PDF.
+                  {result.tamper_report_status === 'UNAVAILABLE'
+                    ? result.tamper_report_unavailable_reason || 'The tampered verdict still stands, but a trustworthy text comparison could not be produced.'
+                    : result.tamper_report_status === 'NOT_APPLICABLE'
+                      ? 'No text comparison applies to this verification response.'
+                      : 'This verification response includes the verdict and file hashes, but no extracted-text differences or baseline PDF.'}
                 </p>
               </div>
             )}

@@ -26,7 +26,7 @@ describe('PortalSearchBar', () => {
     ] }));
     render(<PortalSearchBar />);
 
-    fireEvent.change(screen.getByRole('combobox', { name: 'Search documents' }), { target: { value: 'lease' } });
+    fireEvent.change(screen.getByRole('combobox', { name: 'Quick text search' }), { target: { value: 'lease' } });
     const result = await screen.findByRole('option', { name: /document id: document-12345678.*chunk index: 2.*score: 0.91/i });
     fireEvent.mouseDown(result);
 
@@ -37,7 +37,7 @@ describe('PortalSearchBar', () => {
     fetchMock.mockResolvedValueOnce(Response.json({ query: 'missing', results: [] }))
       .mockResolvedValueOnce(Response.json({ message: 'offline' }, { status: 503 }));
     render(<PortalSearchBar />);
-    const input = screen.getByRole('combobox', { name: 'Search documents' });
+    const input = screen.getByRole('combobox', { name: 'Quick text search' });
 
     fireEvent.change(input, { target: { value: 'missing' } });
     expect(await screen.findByText('No results found')).toBeTruthy();
