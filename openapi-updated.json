@@ -2014,6 +2014,70 @@
         }
       }
     },
+    "/documents/{document_id}/restore": {
+      "post": {
+        "tags": [
+          "Documents · Finalize & verify"
+        ],
+        "summary": "Restore a tampered document from its archive",
+        "description": "For a FINALIZED document whose verification is TAMPERED. The archived original is re-hashed against the on-chain hash, then becomes the current signed copy; the tampered file is kept in /signed-copies and the restore is recorded in /history with both hashes. The lifecycle and the on-chain record are unchanged. If the document is already AUTHENTIC nothing changes and `restored` is false, so a retry is safe. `verification` is a fresh check of the result.",
+        "operationId": "restore_document_documents__document_id__restore_post",
+        "security": [
+          {
+            "Bearer Token": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "document_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Document Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Restored, or already authentic",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RestoreResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated — missing or invalid bearer token"
+          },
+          "403": {
+            "description": "Forbidden — only the document owner may restore"
+          },
+          "404": {
+            "description": "Document not found, or it has no on-chain record"
+          },
+          "409": {
+            "description": "Not FINALIZED, SNAPSHOT_COMPROMISED, no archived original, or the archive does not match the chain"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Storage or the archive is unavailable; nothing changed"
+          }
+        }
+      }
+    },
     "/documents/{document_id}/extraction": {
       "get": {
         "tags": [
@@ -2682,6 +2746,60 @@
         }
       }
     },
+    "/admin/backups/verify": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Verify document backups",
+        "description": "Downloads every finalized document's archive and checks it against the hash anchored on-chain. With `repair=true`, a missing archive is written from the live signed copy, if the snapshot matches the on-chain hash and the live copy still matches it. A bad archive is reported, never overwritten. Also runs daily without repair.",
+        "operationId": "verify_backups_admin_backups_verify_post",
+        "security": [
+          {
+            "Bearer Token": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "repair",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "description": "Re-archive missing or bad backups",
+              "default": false,
+              "title": "Repair"
+            },
+            "description": "Re-archive missing or bad backups"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Verification summary",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BackupVerificationResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not a lawyer"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/notifications/": {
       "get": {
         "tags": [
@@ -3097,6 +3215,80 @@
         }
       }
     },
+    "/books/{book_id}/entries": {
+      "get": {
+        "tags": [
+          "Books"
+        ],
+        "summary": "List a book's entries",
+        "description": "Return the book and a page of the documents filed in it, ordered by Doc. No., then Page No. The book's entry_count is the total number of entries for paging. Only documents with a LexChain record are listed — not paper-only lines of the physical register. Only the owner may access it.",
+        "operationId": "get_book_entries_books__book_id__entries_get",
+        "security": [
+          {
+            "Bearer Token": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "book_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Book Id"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 50,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "Offset"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Book and a page of its entries; empty past the last entry",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookEntriesResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated — missing or invalid bearer token"
+          },
+          "403": {
+            "description": "Forbidden — only lawyers may access books"
+          },
+          "404": {
+            "description": "Book not found"
+          },
+          "422": {
+            "description": "limit outside 1–100, or negative offset"
+          }
+        }
+      }
+    },
     "/books/{book_id}/close": {
       "post": {
         "tags": [
@@ -3338,198 +3530,6 @@
         ]
       }
     },
-    "/books/{book_id}/entries": {
-      "get": {
-        "tags": [
-          "Books"
-        ],
-        "summary": "List a book's entries",
-        "description": "Return the book and a page of the documents filed in it, ordered by Doc. No., then Page No. The book's entry_count is the total number of entries for paging. Only documents with a LexChain record are listed — not paper-only lines of the physical register. Only the owner may access it.",
-        "operationId": "get_book_entries_books__book_id__entries_get",
-        "security": [
-          {
-            "Bearer Token": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "book_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid",
-              "title": "Book Id"
-            }
-          },
-          {
-            "name": "limit",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "maximum": 100,
-              "minimum": 1,
-              "default": 50,
-              "title": "Limit"
-            }
-          },
-          {
-            "name": "offset",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "minimum": 0,
-              "default": 0,
-              "title": "Offset"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Book and a page of its entries; empty past the last entry",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/BookEntriesResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Not authenticated — missing or invalid bearer token"
-          },
-          "403": {
-            "description": "Forbidden — only lawyers may access books"
-          },
-          "404": {
-            "description": "Book not found"
-          },
-          "422": {
-            "description": "limit outside 1–100, or negative offset"
-          }
-        }
-      }
-    },
-    "/documents/{document_id}/restore": {
-      "post": {
-        "tags": [
-          "Documents · Finalize & verify"
-        ],
-        "summary": "Restore a tampered document from its archive",
-        "description": "For a FINALIZED document whose verification is TAMPERED. The archived original is re-hashed against the on-chain hash, then becomes the current signed copy; the tampered file is kept in /signed-copies and the restore is recorded in /history with both hashes. The lifecycle and the on-chain record are unchanged. If the document is already AUTHENTIC nothing changes and `restored` is false, so a retry is safe. `verification` is a fresh check of the result.",
-        "operationId": "restore_document_documents__document_id__restore_post",
-        "security": [
-          {
-            "Bearer Token": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "document_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid",
-              "title": "Document Id"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Restored, or already authentic",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/RestoreResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Not authenticated — missing or invalid bearer token"
-          },
-          "403": {
-            "description": "Forbidden — only the document owner may restore"
-          },
-          "404": {
-            "description": "Document not found, or it has no on-chain record"
-          },
-          "409": {
-            "description": "Not FINALIZED, SNAPSHOT_COMPROMISED, no archived original, or the archive does not match the chain"
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "Storage or the archive is unavailable; nothing changed"
-          }
-        }
-      }
-    },
-    "/admin/backups/verify": {
-      "post": {
-        "tags": [
-          "Admin"
-        ],
-        "summary": "Verify document backups",
-        "description": "Downloads every finalized document's archive and checks it against the hash anchored on-chain. With `repair=true`, a missing archive is written from the live signed copy, if the snapshot matches the on-chain hash and the live copy still matches it. A bad archive is reported, never overwritten. Also runs daily without repair.",
-        "operationId": "verify_backups_admin_backups_verify_post",
-        "security": [
-          {
-            "Bearer Token": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "repair",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "boolean",
-              "description": "Re-archive missing or bad backups",
-              "default": false,
-              "title": "Repair"
-            },
-            "description": "Re-archive missing or bad backups"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Verification summary",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/BackupVerificationResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Not a lawyer"
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/health": {
       "get": {
         "tags": [
@@ -3756,6 +3756,91 @@
           "question"
         ],
         "title": "AskRequest"
+      },
+      "BackupCheck": {
+        "properties": {
+          "document_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Document Id"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "missing",
+              "mismatch",
+              "repaired",
+              "unrecoverable"
+            ],
+            "title": "Status",
+            "description": "ok: archive present and matches the anchored hash. missing: no archive. mismatch: the archive's bytes differ from the anchored hash. repaired: re-archived from the live copy. unrecoverable: no good archive and the live copy no longer matches either."
+          },
+          "backup_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Backup Key"
+          }
+        },
+        "type": "object",
+        "required": [
+          "document_id",
+          "status"
+        ],
+        "title": "BackupCheck"
+      },
+      "BackupVerificationResponse": {
+        "properties": {
+          "checked": {
+            "type": "integer",
+            "title": "Checked",
+            "description": "Finalized snapshots checked"
+          },
+          "ok": {
+            "type": "integer",
+            "title": "Ok"
+          },
+          "missing": {
+            "type": "integer",
+            "title": "Missing"
+          },
+          "mismatch": {
+            "type": "integer",
+            "title": "Mismatch"
+          },
+          "repaired": {
+            "type": "integer",
+            "title": "Repaired"
+          },
+          "unrecoverable": {
+            "type": "integer",
+            "title": "Unrecoverable"
+          },
+          "problems": {
+            "items": {
+              "$ref": "#/components/schemas/BackupCheck"
+            },
+            "type": "array",
+            "title": "Problems",
+            "description": "Every snapshot whose status is not ok"
+          }
+        },
+        "type": "object",
+        "required": [
+          "checked",
+          "ok",
+          "missing",
+          "mismatch",
+          "repaired",
+          "unrecoverable"
+        ],
+        "title": "BackupVerificationResponse"
       },
       "BlockEdit": {
         "properties": {
@@ -5409,9 +5494,7 @@
                 "type": "null"
               }
             ],
-            "title": "Register Reference",
-            "description": "Where the document is filed; null if not in a register",
-            "default": null
+            "description": "Where the document is filed; null if not in a register"
           }
         },
         "type": "object",
@@ -5886,6 +5969,93 @@
           "email"
         ],
         "title": "ResendVerificationRequest"
+      },
+      "RestoreResponse": {
+        "properties": {
+          "document_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Document Id"
+          },
+          "restored": {
+            "type": "boolean",
+            "title": "Restored",
+            "description": "False if it was already authentic"
+          },
+          "previous_hash": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Previous Hash",
+            "description": "SHA-256 of the file that was replaced; null if none was"
+          },
+          "restored_hash": {
+            "type": "string",
+            "title": "Restored Hash",
+            "description": "SHA-256 now current: the on-chain hash"
+          },
+          "restored_copy_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Restored Copy Id",
+            "description": "The signed copy now current"
+          },
+          "preserved_copy_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Preserved Copy Id",
+            "description": "The replaced file, kept in signed-copy history"
+          },
+          "restored_by": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Restored By"
+          },
+          "restored_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Restored At"
+          },
+          "verification": {
+            "$ref": "#/components/schemas/DocumentVerificationResponse"
+          }
+        },
+        "type": "object",
+        "required": [
+          "document_id",
+          "restored",
+          "restored_hash",
+          "restored_copy_id",
+          "verification"
+        ],
+        "title": "RestoreResponse",
+        "description": "The outcome of restoring a finalized document from its archive.\n\n`restored` is false when the document was already authentic: nothing was\nchanged, so a retry is safe. Either way `verification` is a fresh check of\nthe current copy against the chain, to show the resulting integrity status."
       },
       "RetryProcessingResponse": {
         "properties": {
@@ -6363,337 +6533,6 @@
         "title": "StageChangeResponse",
         "description": "One lifecycle action on a document."
       },
-      "UnreadCountResponse": {
-        "properties": {
-          "unread": {
-            "type": "integer",
-            "title": "Unread"
-          }
-        },
-        "type": "object",
-        "required": [
-          "unread"
-        ],
-        "title": "UnreadCountResponse"
-      },
-      "UpdateDocumentRequest": {
-        "properties": {
-          "file_name": {
-            "type": "string",
-            "maxLength": 255,
-            "minLength": 1,
-            "title": "File Name"
-          }
-        },
-        "type": "object",
-        "required": [
-          "file_name"
-        ],
-        "title": "UpdateDocumentRequest",
-        "description": "Rename the document."
-      },
-      "UpdateExtractionRequest": {
-        "properties": {
-          "edits": {
-            "items": {
-              "$ref": "#/components/schemas/BlockEdit"
-            },
-            "type": "array",
-            "minItems": 1,
-            "title": "Edits",
-            "description": "Blocks to correct"
-          }
-        },
-        "type": "object",
-        "required": [
-          "edits"
-        ],
-        "title": "UpdateExtractionRequest",
-        "description": "Save corrections without approving yet — callable repeatedly."
-      },
-      "UserProfileResponse": {
-        "properties": {
-          "email": {
-            "type": "string",
-            "title": "Email",
-            "description": "User's email address"
-          },
-          "f_name": {
-            "type": "string",
-            "title": "F Name",
-            "description": "Valid first name"
-          },
-          "l_name": {
-            "type": "string",
-            "title": "L Name",
-            "description": "Valid last name"
-          },
-          "avatar": {
-            "type": "string",
-            "title": "Avatar",
-            "description": "User Avatar",
-            "default": "icon1"
-          },
-          "role": {
-            "type": "string",
-            "title": "Role",
-            "description": "User role"
-          }
-        },
-        "type": "object",
-        "required": [
-          "email",
-          "f_name",
-          "l_name",
-          "role"
-        ],
-        "title": "UserProfileResponse"
-      },
-      "UserSearchResponse": {
-        "properties": {
-          "user_id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "User Id",
-            "description": ""
-          },
-          "email": {
-            "type": "string",
-            "title": "Email",
-            "description": ""
-          },
-          "f_name": {
-            "type": "string",
-            "title": "F Name",
-            "description": ""
-          },
-          "l_name": {
-            "type": "string",
-            "title": "L Name",
-            "description": ""
-          }
-        },
-        "type": "object",
-        "required": [
-          "user_id",
-          "email",
-          "f_name",
-          "l_name"
-        ],
-        "title": "UserSearchResponse"
-      },
-      "ValidationError": {
-        "properties": {
-          "loc": {
-            "items": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "integer"
-                }
-              ]
-            },
-            "type": "array",
-            "title": "Location"
-          },
-          "msg": {
-            "type": "string",
-            "title": "Message"
-          },
-          "type": {
-            "type": "string",
-            "title": "Error Type"
-          },
-          "input": {
-            "title": "Input"
-          },
-          "ctx": {
-            "type": "object",
-            "title": "Context"
-          }
-        },
-        "type": "object",
-        "required": [
-          "loc",
-          "msg",
-          "type"
-        ],
-        "title": "ValidationError"
-      },
-      "BackupCheck": {
-        "properties": {
-          "document_id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Document Id"
-          },
-          "status": {
-            "type": "string",
-            "enum": [
-              "ok",
-              "missing",
-              "mismatch",
-              "repaired",
-              "unrecoverable"
-            ],
-            "title": "Status",
-            "description": "ok: archive present and matches the anchored hash. missing: no archive. mismatch: the archive's bytes differ from the anchored hash. repaired: re-archived from the live copy. unrecoverable: no good archive and the live copy no longer matches either."
-          },
-          "backup_key": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Backup Key"
-          }
-        },
-        "type": "object",
-        "required": [
-          "document_id",
-          "status"
-        ],
-        "title": "BackupCheck"
-      },
-      "BackupVerificationResponse": {
-        "properties": {
-          "checked": {
-            "type": "integer",
-            "title": "Checked",
-            "description": "Finalized snapshots checked"
-          },
-          "ok": {
-            "type": "integer",
-            "title": "Ok"
-          },
-          "missing": {
-            "type": "integer",
-            "title": "Missing"
-          },
-          "mismatch": {
-            "type": "integer",
-            "title": "Mismatch"
-          },
-          "repaired": {
-            "type": "integer",
-            "title": "Repaired"
-          },
-          "unrecoverable": {
-            "type": "integer",
-            "title": "Unrecoverable"
-          },
-          "problems": {
-            "items": {
-              "$ref": "#/components/schemas/BackupCheck"
-            },
-            "type": "array",
-            "title": "Problems",
-            "description": "Every snapshot whose status is not ok"
-          }
-        },
-        "type": "object",
-        "required": [
-          "checked",
-          "ok",
-          "missing",
-          "mismatch",
-          "repaired",
-          "unrecoverable"
-        ],
-        "title": "BackupVerificationResponse"
-      },
-      "RestoreResponse": {
-        "properties": {
-          "document_id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Document Id"
-          },
-          "restored": {
-            "type": "boolean",
-            "title": "Restored",
-            "description": "False if it was already authentic"
-          },
-          "previous_hash": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Previous Hash",
-            "description": "SHA-256 of the file that was replaced; null if none was"
-          },
-          "restored_hash": {
-            "type": "string",
-            "title": "Restored Hash",
-            "description": "SHA-256 now current: the on-chain hash"
-          },
-          "restored_copy_id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Restored Copy Id",
-            "description": "The signed copy now current"
-          },
-          "preserved_copy_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Preserved Copy Id",
-            "description": "The replaced file, kept in signed-copy history"
-          },
-          "restored_by": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Restored By"
-          },
-          "restored_at": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "date-time"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Restored At"
-          },
-          "verification": {
-            "$ref": "#/components/schemas/DocumentVerificationResponse"
-          }
-        },
-        "type": "object",
-        "required": [
-          "document_id",
-          "restored",
-          "restored_hash",
-          "restored_copy_id",
-          "verification"
-        ],
-        "title": "RestoreResponse",
-        "description": "The outcome of restoring a finalized document from its archive.\n\n`restored` is false when the document was already authentic: nothing was\nchanged, so a retry is safe. Either way `verification` is a fresh check of\nthe current copy against the chain, to show the resulting integrity status."
-      },
       "TamperReport": {
         "properties": {
           "localized": {
@@ -6894,6 +6733,165 @@
         ],
         "title": "TamperSegment",
         "description": "One changed region between the finalized original and the current file."
+      },
+      "UnreadCountResponse": {
+        "properties": {
+          "unread": {
+            "type": "integer",
+            "title": "Unread"
+          }
+        },
+        "type": "object",
+        "required": [
+          "unread"
+        ],
+        "title": "UnreadCountResponse"
+      },
+      "UpdateDocumentRequest": {
+        "properties": {
+          "file_name": {
+            "type": "string",
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "File Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "file_name"
+        ],
+        "title": "UpdateDocumentRequest",
+        "description": "Rename the document."
+      },
+      "UpdateExtractionRequest": {
+        "properties": {
+          "edits": {
+            "items": {
+              "$ref": "#/components/schemas/BlockEdit"
+            },
+            "type": "array",
+            "minItems": 1,
+            "title": "Edits",
+            "description": "Blocks to correct"
+          }
+        },
+        "type": "object",
+        "required": [
+          "edits"
+        ],
+        "title": "UpdateExtractionRequest",
+        "description": "Save corrections without approving yet — callable repeatedly."
+      },
+      "UserProfileResponse": {
+        "properties": {
+          "email": {
+            "type": "string",
+            "title": "Email",
+            "description": "User's email address"
+          },
+          "f_name": {
+            "type": "string",
+            "title": "F Name",
+            "description": "Valid first name"
+          },
+          "l_name": {
+            "type": "string",
+            "title": "L Name",
+            "description": "Valid last name"
+          },
+          "avatar": {
+            "type": "string",
+            "title": "Avatar",
+            "description": "User Avatar",
+            "default": "icon1"
+          },
+          "role": {
+            "type": "string",
+            "title": "Role",
+            "description": "User role"
+          }
+        },
+        "type": "object",
+        "required": [
+          "email",
+          "f_name",
+          "l_name",
+          "role"
+        ],
+        "title": "UserProfileResponse"
+      },
+      "UserSearchResponse": {
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "User Id",
+            "description": ""
+          },
+          "email": {
+            "type": "string",
+            "title": "Email",
+            "description": ""
+          },
+          "f_name": {
+            "type": "string",
+            "title": "F Name",
+            "description": ""
+          },
+          "l_name": {
+            "type": "string",
+            "title": "L Name",
+            "description": ""
+          }
+        },
+        "type": "object",
+        "required": [
+          "user_id",
+          "email",
+          "f_name",
+          "l_name"
+        ],
+        "title": "UserSearchResponse"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
       },
       "WordDiffPart": {
         "properties": {

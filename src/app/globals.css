@@ -58,8 +58,8 @@
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background: var(--surface-page);
+  color: var(--text-primary);
   font-family: Arial, Helvetica, sans-serif;
 }
 
@@ -84,4 +84,26 @@ button:not(:disabled),
 }
 *::-webkit-scrollbar {
   display: none;
+}
+
+.pdf-scroll-area {
+  scrollbar-color: #94a9bd #edf3f9;
+  scrollbar-width: thin;
+  -ms-overflow-style: auto;
+}
+.pdf-scroll-area::-webkit-scrollbar {
+  display: block;
+  width: 8px;
+  height: 8px;
+}
+.pdf-scroll-area::-webkit-scrollbar-track {
+  background: #edf3f9;
+}
+.pdf-scroll-area::-webkit-scrollbar-thumb {
+  border: 2px solid #edf3f9;
+  border-radius: 9999px;
+  background: #94a9bd;
+}
+.pdf-scroll-area::-webkit-scrollbar-thumb:hover {
+  background: #6f879e;
 }

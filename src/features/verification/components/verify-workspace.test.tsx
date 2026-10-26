@@ -158,7 +158,7 @@ describe('VerifyWorkspace', () => {
       if (tamper_report_status === 'UNAVAILABLE') {
         expect(screen.getByText('Text comparison failed.')).toBeTruthy();
       }
-      expect(screen.getByRole('heading', { name: 'Document was tampered with' })).toBeTruthy();
+      expect(screen.getByRole('heading', { name: 'This PDF differs from the saved version' })).toBeTruthy();
     },
   );
 

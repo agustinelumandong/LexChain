@@ -1,9 +1,10 @@
 'use client';
 
 import { useState, type FormEvent } from 'react';
+import { Modal } from '@/features/admin/components/modal';
 import { openDocumentRecord } from '@/features/documents/document-draft-api';
 
-export function CreateDocumentRecordForm({ onCreated }: { onCreated: (documentId: string) => void }) {
+export function CreateDocumentRecordForm({ onClose, onCreated }: { onClose: () => void; onCreated: (documentId: string) => void }) {
   const [name, setName] = useState('');
   const [error, setError] = useState('');
   const [pending, setPending] = useState(false);
@@ -22,12 +23,21 @@ export function CreateDocumentRecordForm({ onCreated }: { onCreated: (documentId
     }
   }
 
-  return <form onSubmit={submit} className="mt-4 grid gap-3 rounded-2xl border border-[#E4EEF9] bg-white p-4 sm:grid-cols-[1fr_auto] sm:items-end">
-    <label className="grid gap-1.5 text-sm font-bold text-[#0C2B49]">Document name
-      <input required maxLength={255} value={name} onChange={(event) => setName(event.target.value)} className="rounded-xl border border-[#D7E4F2] px-3 py-2.5 font-normal" />
-    </label>
-    <button type="submit" disabled={pending || !name.trim()} className="rounded-full bg-[#0985E7] px-5 py-2.5 text-sm font-black text-white disabled:opacity-60">{pending ? 'Opening record…' : 'Open document record'}</button>
-    {error && <p role="alert" className="text-sm font-bold text-[#B42318] sm:col-span-2">{error}</p>}
-    <p className="text-xs text-[#64748b] sm:col-span-2">This creates a PREPARING record. You can create a working draft from its Files tab.</p>
-  </form>;
+  function close() {
+    if (!pending) onClose();
+  }
+
+  return <Modal open onClose={close} title="Create document draft">
+    <p className="text-sm leading-6 text-[#4B6382]">This opens a PREPARING record. You can create a working draft from its Files tab.</p>
+    <form onSubmit={submit} className="mt-4 grid gap-3">
+      <label htmlFor="new-document-name" className="grid gap-1.5 text-sm font-bold text-[#0C2B49]">Document name
+        <input id="new-document-name" required maxLength={255} value={name} onChange={(event) => setName(event.target.value)} className="w-full rounded-xl border border-[#D7E4F2] px-3 py-2.5 font-normal outline-none focus:border-[#0985E7]" />
+      </label>
+      {error && <p role="alert" className="text-sm font-bold text-[#B42318]">{error}</p>}
+      <div className="mt-2 flex justify-end gap-2">
+        <button type="button" onClick={close} disabled={pending} className="min-h-11 rounded-full border border-[#D7E4F2] px-5 py-2.5 text-sm font-bold text-[#0C2B49] disabled:opacity-50">Cancel</button>
+        <button type="submit" disabled={pending || !name.trim()} className="min-h-11 rounded-full bg-[#0985E7] px-5 py-2.5 text-sm font-black text-white disabled:opacity-60">{pending ? 'Opening record…' : 'Open document record'}</button>
+      </div>
+    </form>
+  </Modal>;
 }

@@ -130,8 +130,8 @@ describe('PdfDocumentViewer', () => {
     const overlayWrapper = canvas?.parentElement;
     expect(overlayWrapper?.className).toContain('mx-auto');
     expect(overlayWrapper?.className).toContain('w-fit');
-    expect(screen.getByRole('button', { name: 'Zoom out' }).textContent).toBe('−');
-    expect(screen.getByRole('button', { name: 'Zoom in' }).textContent).toBe('+');
+    expect(screen.getByRole('button', { name: 'Zoom out' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Zoom in' })).toBeTruthy();
   });
 
   it('renders at 85% of the fit-to-pane scale and rerenders when zoomed', async () => {

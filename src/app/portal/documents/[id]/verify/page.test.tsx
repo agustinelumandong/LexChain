@@ -58,20 +58,20 @@ describe('DocumentVerifyPage', () => {
     vi.stubGlobal('fetch', fetchMock);
 
     renderPage();
-    expect(await screen.findByText('Document is authentic')).toBeTruthy();
+    expect(await screen.findByText('This PDF matches the saved version')).toBeTruthy();
     expect(fetchMock.mock.calls[0]?.[0]).toContain(encodeURIComponent('/documents/doc-1/verify'));
   });
 
   it('shows a skeleton while verification is pending', () => {
     vi.stubGlobal('fetch', () => new Promise(() => undefined));
     renderPage();
-    expect(screen.getByRole('status', { name: 'Verifying document integrity' })).toBeTruthy();
+    expect(screen.getByRole('status', { name: 'Checking the document' })).toBeTruthy();
   });
 
   it('shows the truthful comparison empty state and disabled restore control for a trusted tampered document', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json(verification('TAMPERED', false, true))));
     renderPage();
-    expect(await screen.findByText('Document was tampered with')).toBeTruthy();
+    expect(await screen.findByText('This PDF differs from the saved version')).toBeTruthy();
     expect(screen.getAllByText('on-chain-hash').length).toBeGreaterThan(0);
     expect(screen.getAllByText('current-hash').length).toBeGreaterThan(0);
     expect(screen.getByText('Detailed comparison unavailable')).toBeTruthy();
@@ -82,16 +82,16 @@ describe('DocumentVerifyPage', () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json(verification('AUTHENTIC', false, true))));
     renderPage();
 
-    expect(await screen.findByText('Integrity status unavailable')).toBeTruthy();
-    expect(screen.queryByText('Document is authentic')).toBeNull();
+    expect(await screen.findByText('We could not check this document')).toBeTruthy();
+    expect(screen.queryByText('This PDF matches the saved version')).toBeNull();
   });
 
   it.each([
-    ['AUTHENTIC', true, true, 'Document is authentic'],
-    ['TAMPERED', false, true, 'Document was tampered with'],
-    ['NOT_ANCHORED', false, false, 'Document is not anchored'],
-    ['VERIFICATION_UNAVAILABLE', false, true, 'Integrity status unavailable'],
-    ['SNAPSHOT_COMPROMISED', false, false, 'Trusted snapshot is compromised'],
+    ['AUTHENTIC', true, true, 'This PDF matches the saved version'],
+    ['TAMPERED', false, true, 'This PDF differs from the saved version'],
+    ['NOT_ANCHORED', false, false, 'No blockchain record is saved'],
+    ['VERIFICATION_UNAVAILABLE', false, true, 'We could not check this document'],
+    ['SNAPSHOT_COMPROMISED', false, false, 'The saved reference needs attention'],
   ])('preserves the %s verification verdict', async (status, authentic, baseline, heading) => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json(verification(status, authentic, baseline))));
     renderPage();
@@ -107,10 +107,10 @@ describe('DocumentVerifyPage', () => {
       vi.stubGlobal('fetch', fetchMock);
       renderPage();
 
-      await screen.findByRole('button', { name: 'Retry verification' });
-      screen.getByRole('button', { name: 'Retry verification' }).click();
+      await screen.findByRole('button', { name: 'Try again' });
+      screen.getByRole('button', { name: 'Try again' }).click();
 
-      expect(await screen.findByText('Document is authentic')).toBeTruthy();
+      expect(await screen.findByText('This PDF matches the saved version')).toBeTruthy();
       expect(fetchMock).toHaveBeenCalledTimes(2);
     },
   );
@@ -130,7 +130,7 @@ describe('DocumentVerifyPage', () => {
       vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json(verification('AUTHENTIC', true, true, txHash))));
       renderPage();
 
-      expect(await screen.findByText('Document is authentic')).toBeTruthy();
+      expect(await screen.findByText('This PDF matches the saved version')).toBeTruthy();
       expect(screen.queryByRole('link', { name: 'View transaction on Base Sepolia' })).toBeNull();
     },
   );
@@ -147,7 +147,7 @@ describe('DocumentVerifyPage', () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json(verification('AUTHENTIC', true, true))));
     renderPage();
 
-    expect(await screen.findByText('Document is authentic')).toBeTruthy();
+    expect(await screen.findByText('This PDF matches the saved version')).toBeTruthy();
     expect(screen.queryByText(/simulated and does not represent a real backend or blockchain verification/i)).toBeNull();
   });
 
@@ -155,16 +155,17 @@ describe('DocumentVerifyPage', () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json({ detail: 'Gateway unavailable' }, { status: 503 })));
     renderPage();
 
-    expect(await screen.findByText('Verification request failed')).toBeTruthy();
-    expect(screen.queryByText('Document was tampered with')).toBeNull();
-    expect(screen.queryByText('Integrity status unavailable')).toBeNull();
+    expect(await screen.findByText('We could not check this document')).toBeTruthy();
+    expect(screen.getByText('API error: 503')).toBeTruthy();
+    expect(screen.queryByText('This PDF differs from the saved version')).toBeNull();
+    expect(screen.queryByText('This PDF matches the saved version')).toBeNull();
   });
 
   it('explains a 404 as a missing or unanchored document without offering a retry', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json({ detail: 'Document not found' }, { status: 404 })));
     renderPage();
 
-    expect(await screen.findByText('Document not found or no on-chain record')).toBeTruthy();
-    expect(screen.queryByRole('button', { name: 'Retry verification' })).toBeNull();
+    expect(await screen.findByText('No saved blockchain record found')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Try again' })).toBeNull();
   });
 });

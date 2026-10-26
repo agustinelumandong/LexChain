@@ -641,6 +641,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/documents/{document_id}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Restore a tampered document from its archive
+         * @description For a FINALIZED document whose verification is TAMPERED. The archived original is re-hashed against the on-chain hash, then becomes the current signed copy; the tampered file is kept in /signed-copies and the restore is recorded in /history with both hashes. The lifecycle and the on-chain record are unchanged. If the document is already AUTHENTIC nothing changes and `restored` is false, so a retry is safe. `verification` is a fresh check of the result.
+         */
+        post: operations["restore_document_documents__document_id__restore_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/documents/{document_id}/extraction": {
         parameters: {
             query?: never;
@@ -848,6 +868,26 @@ export interface paths {
         patch: operations["set_user_active_admin_users__user_id__active_patch"];
         trace?: never;
     };
+    "/admin/backups/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Verify document backups
+         * @description Downloads every finalized document's archive and checks it against the hash anchored on-chain. With `repair=true`, a missing archive is written from the live signed copy, if the snapshot matches the on-chain hash and the live copy still matches it. A bad archive is reported, never overwritten. Also runs daily without repair.
+         */
+        post: operations["verify_backups_admin_backups_verify_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/notifications/": {
         parameters: {
             query?: never;
@@ -964,6 +1004,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/books/{book_id}/entries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List a book's entries
+         * @description Return the book and a page of the documents filed in it, ordered by Doc. No., then Page No. The book's entry_count is the total number of entries for paging. Only documents with a LexChain record are listed — not paper-only lines of the physical register. Only the owner may access it.
+         */
+        get: operations["get_book_entries_books__book_id__entries_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/books/{book_id}/close": {
         parameters: {
             query?: never;
@@ -1059,66 +1119,6 @@ export interface paths {
         get: operations["picker_token_google_picker_token_get"];
         put?: never;
         post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/books/{book_id}/entries": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List a book's entries
-         * @description Return the book and a page of the documents filed in it, ordered by Doc. No., then Page No. The book's entry_count is the total number of entries for paging. Only documents with a LexChain record are listed — not paper-only lines of the physical register. Only the owner may access it.
-         */
-        get: operations["get_book_entries_books__book_id__entries_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/documents/{document_id}/restore": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Restore a tampered document from its archive
-         * @description For a FINALIZED document whose verification is TAMPERED. The archived original is re-hashed against the on-chain hash, then becomes the current signed copy; the tampered file is kept in /signed-copies and the restore is recorded in /history with both hashes. The lifecycle and the on-chain record are unchanged. If the document is already AUTHENTIC nothing changes and `restored` is false, so a retry is safe. `verification` is a fresh check of the result.
-         */
-        post: operations["restore_document_documents__document_id__restore_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/admin/backups/verify": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Verify document backups
-         * @description Downloads every finalized document's archive and checks it against the hash anchored on-chain. With `repair=true`, a missing archive is written from the live signed copy, if the snapshot matches the on-chain hash and the live copy still matches it. A bad archive is reported, never overwritten. Also runs daily without repair.
-         */
-        post: operations["verify_backups_admin_backups_verify_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1253,6 +1253,45 @@ export interface components {
         AskRequest: {
             /** Question */
             question: string;
+        };
+        /** BackupCheck */
+        BackupCheck: {
+            /**
+             * Document Id
+             * Format: uuid
+             */
+            document_id: string;
+            /**
+             * Status
+             * @description ok: archive present and matches the anchored hash. missing: no archive. mismatch: the archive's bytes differ from the anchored hash. repaired: re-archived from the live copy. unrecoverable: no good archive and the live copy no longer matches either.
+             * @enum {string}
+             */
+            status: "ok" | "missing" | "mismatch" | "repaired" | "unrecoverable";
+            /** Backup Key */
+            backup_key?: string | null;
+        };
+        /** BackupVerificationResponse */
+        BackupVerificationResponse: {
+            /**
+             * Checked
+             * @description Finalized snapshots checked
+             */
+            checked: number;
+            /** Ok */
+            ok: number;
+            /** Missing */
+            missing: number;
+            /** Mismatch */
+            mismatch: number;
+            /** Repaired */
+            repaired: number;
+            /** Unrecoverable */
+            unrecoverable: number;
+            /**
+             * Problems
+             * @description Every snapshot whose status is not ok
+             */
+            problems?: components["schemas"]["BackupCheck"][];
         };
         /**
          * BlockEdit
@@ -2181,12 +2220,8 @@ export interface components {
              * @description When the document was created
              */
             created_at: string;
-            /**
-             * Register Reference
-             * @description Where the document is filed; null if not in a register
-             * @default null
-             */
-            register_reference: components["schemas"]["RegisterReference"] | null;
+            /** @description Where the document is filed; null if not in a register */
+            register_reference?: components["schemas"]["RegisterReference"] | null;
         };
         /** GlobalSearchResponse */
         GlobalSearchResponse: {
@@ -2437,6 +2472,52 @@ export interface components {
              * @description Email address to resend verification to
              */
             email: string;
+        };
+        /**
+         * RestoreResponse
+         * @description The outcome of restoring a finalized document from its archive.
+         *
+         *     `restored` is false when the document was already authentic: nothing was
+         *     changed, so a retry is safe. Either way `verification` is a fresh check of
+         *     the current copy against the chain, to show the resulting integrity status.
+         */
+        RestoreResponse: {
+            /**
+             * Document Id
+             * Format: uuid
+             */
+            document_id: string;
+            /**
+             * Restored
+             * @description False if it was already authentic
+             */
+            restored: boolean;
+            /**
+             * Previous Hash
+             * @description SHA-256 of the file that was replaced; null if none was
+             */
+            previous_hash?: string | null;
+            /**
+             * Restored Hash
+             * @description SHA-256 now current: the on-chain hash
+             */
+            restored_hash: string;
+            /**
+             * Restored Copy Id
+             * Format: uuid
+             * @description The signed copy now current
+             */
+            restored_copy_id: string;
+            /**
+             * Preserved Copy Id
+             * @description The replaced file, kept in signed-copy history
+             */
+            preserved_copy_id?: string | null;
+            /** Restored By */
+            restored_by?: string | null;
+            /** Restored At */
+            restored_at?: string | null;
+            verification: components["schemas"]["DocumentVerificationResponse"];
         };
         /**
          * RetryProcessingResponse
@@ -2717,171 +2798,6 @@ export interface components {
              */
             created_at: string;
         };
-        /** UnreadCountResponse */
-        UnreadCountResponse: {
-            /** Unread */
-            unread: number;
-        };
-        /**
-         * UpdateDocumentRequest
-         * @description Rename the document.
-         */
-        UpdateDocumentRequest: {
-            /** File Name */
-            file_name: string;
-        };
-        /**
-         * UpdateExtractionRequest
-         * @description Save corrections without approving yet — callable repeatedly.
-         */
-        UpdateExtractionRequest: {
-            /**
-             * Edits
-             * @description Blocks to correct
-             */
-            edits: components["schemas"]["BlockEdit"][];
-        };
-        /** UserProfileResponse */
-        UserProfileResponse: {
-            /**
-             * Email
-             * @description User's email address
-             */
-            email: string;
-            /**
-             * F Name
-             * @description Valid first name
-             */
-            f_name: string;
-            /**
-             * L Name
-             * @description Valid last name
-             */
-            l_name: string;
-            /**
-             * Avatar
-             * @description User Avatar
-             * @default icon1
-             */
-            avatar: string;
-            /**
-             * Role
-             * @description User role
-             */
-            role: string;
-        };
-        /** UserSearchResponse */
-        UserSearchResponse: {
-            /**
-             * User Id
-             * Format: uuid
-             */
-            user_id: string;
-            /** Email */
-            email: string;
-            /** F Name */
-            f_name: string;
-            /** L Name */
-            l_name: string;
-        };
-        /** ValidationError */
-        ValidationError: {
-            /** Location */
-            loc: (string | number)[];
-            /** Message */
-            msg: string;
-            /** Error Type */
-            type: string;
-            /** Input */
-            input?: unknown;
-            /** Context */
-            ctx?: Record<string, never>;
-        };
-        /** BackupCheck */
-        BackupCheck: {
-            /**
-             * Document Id
-             * Format: uuid
-             */
-            document_id: string;
-            /**
-             * Status
-             * @description ok: archive present and matches the anchored hash. missing: no archive. mismatch: the archive's bytes differ from the anchored hash. repaired: re-archived from the live copy. unrecoverable: no good archive and the live copy no longer matches either.
-             * @enum {string}
-             */
-            status: "ok" | "missing" | "mismatch" | "repaired" | "unrecoverable";
-            /** Backup Key */
-            backup_key?: string | null;
-        };
-        /** BackupVerificationResponse */
-        BackupVerificationResponse: {
-            /**
-             * Checked
-             * @description Finalized snapshots checked
-             */
-            checked: number;
-            /** Ok */
-            ok: number;
-            /** Missing */
-            missing: number;
-            /** Mismatch */
-            mismatch: number;
-            /** Repaired */
-            repaired: number;
-            /** Unrecoverable */
-            unrecoverable: number;
-            /**
-             * Problems
-             * @description Every snapshot whose status is not ok
-             */
-            problems?: components["schemas"]["BackupCheck"][];
-        };
-        /**
-         * RestoreResponse
-         * @description The outcome of restoring a finalized document from its archive.
-         *
-         *     `restored` is false when the document was already authentic: nothing was
-         *     changed, so a retry is safe. Either way `verification` is a fresh check of
-         *     the current copy against the chain, to show the resulting integrity status.
-         */
-        RestoreResponse: {
-            /**
-             * Document Id
-             * Format: uuid
-             */
-            document_id: string;
-            /**
-             * Restored
-             * @description False if it was already authentic
-             */
-            restored: boolean;
-            /**
-             * Previous Hash
-             * @description SHA-256 of the file that was replaced; null if none was
-             */
-            previous_hash?: string | null;
-            /**
-             * Restored Hash
-             * @description SHA-256 now current: the on-chain hash
-             */
-            restored_hash: string;
-            /**
-             * Restored Copy Id
-             * Format: uuid
-             * @description The signed copy now current
-             */
-            restored_copy_id: string;
-            /**
-             * Preserved Copy Id
-             * @description The replaced file, kept in signed-copy history
-             */
-            preserved_copy_id?: string | null;
-            /** Restored By */
-            restored_by?: string | null;
-            /** Restored At */
-            restored_at?: string | null;
-            verification: components["schemas"]["DocumentVerificationResponse"];
-        };
         /**
          * TamperReport
          * @description Where the current file differs from the finalized original.
@@ -2998,6 +2914,86 @@ export interface components {
             bbox?: number[] | null;
             /** Word Diff */
             word_diff: components["schemas"]["WordDiffPart"][];
+        };
+        /** UnreadCountResponse */
+        UnreadCountResponse: {
+            /** Unread */
+            unread: number;
+        };
+        /**
+         * UpdateDocumentRequest
+         * @description Rename the document.
+         */
+        UpdateDocumentRequest: {
+            /** File Name */
+            file_name: string;
+        };
+        /**
+         * UpdateExtractionRequest
+         * @description Save corrections without approving yet — callable repeatedly.
+         */
+        UpdateExtractionRequest: {
+            /**
+             * Edits
+             * @description Blocks to correct
+             */
+            edits: components["schemas"]["BlockEdit"][];
+        };
+        /** UserProfileResponse */
+        UserProfileResponse: {
+            /**
+             * Email
+             * @description User's email address
+             */
+            email: string;
+            /**
+             * F Name
+             * @description Valid first name
+             */
+            f_name: string;
+            /**
+             * L Name
+             * @description Valid last name
+             */
+            l_name: string;
+            /**
+             * Avatar
+             * @description User Avatar
+             * @default icon1
+             */
+            avatar: string;
+            /**
+             * Role
+             * @description User role
+             */
+            role: string;
+        };
+        /** UserSearchResponse */
+        UserSearchResponse: {
+            /**
+             * User Id
+             * Format: uuid
+             */
+            user_id: string;
+            /** Email */
+            email: string;
+            /** F Name */
+            f_name: string;
+            /** L Name */
+            l_name: string;
+        };
+        /** ValidationError */
+        ValidationError: {
+            /** Location */
+            loc: (string | number)[];
+            /** Message */
+            msg: string;
+            /** Error Type */
+            type: string;
+            /** Input */
+            input?: unknown;
+            /** Context */
+            ctx?: Record<string, never>;
         };
         /**
          * WordDiffPart
@@ -4541,6 +4537,72 @@ export interface operations {
             };
         };
     };
+    restore_document_documents__document_id__restore_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                document_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Restored, or already authentic */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RestoreResponse"];
+                };
+            };
+            /** @description Not authenticated — missing or invalid bearer token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden — only the document owner may restore */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Document not found, or it has no on-chain record */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not FINALIZED, SNAPSHOT_COMPROMISED, no archived original, or the archive does not match the chain */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Storage or the archive is unavailable; nothing changed */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     get_extraction_review_documents__document_id__extraction_get: {
         parameters: {
             query?: never;
@@ -5118,6 +5180,45 @@ export interface operations {
             };
         };
     };
+    verify_backups_admin_backups_verify_post: {
+        parameters: {
+            query?: {
+                /** @description Re-archive missing or bad backups */
+                repair?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Verification summary */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BackupVerificationResponse"];
+                };
+            };
+            /** @description Not a lawyer */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_notifications_notifications__get: {
         parameters: {
             query?: {
@@ -5464,6 +5565,59 @@ export interface operations {
             };
         };
     };
+    get_book_entries_books__book_id__entries_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path: {
+                book_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Book and a page of its entries; empty past the last entry */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BookEntriesResponse"];
+                };
+            };
+            /** @description Not authenticated — missing or invalid bearer token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden — only lawyers may access books */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Book not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description limit outside 1–100, or negative offset */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     close_book_books__book_id__close_post: {
         parameters: {
             query?: never;
@@ -5631,164 +5785,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["GooglePickerToken"];
-                };
-            };
-        };
-    };
-    get_book_entries_books__book_id__entries_get: {
-        parameters: {
-            query?: {
-                limit?: number;
-                offset?: number;
-            };
-            header?: never;
-            path: {
-                book_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Book and a page of its entries; empty past the last entry */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["BookEntriesResponse"];
-                };
-            };
-            /** @description Not authenticated — missing or invalid bearer token */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Forbidden — only lawyers may access books */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Book not found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description limit outside 1–100, or negative offset */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    restore_document_documents__document_id__restore_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                document_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Restored, or already authentic */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RestoreResponse"];
-                };
-            };
-            /** @description Not authenticated — missing or invalid bearer token */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Forbidden — only the document owner may restore */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Document not found, or it has no on-chain record */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Not FINALIZED, SNAPSHOT_COMPROMISED, no archived original, or the archive does not match the chain */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-            /** @description Storage or the archive is unavailable; nothing changed */
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    verify_backups_admin_backups_verify_post: {
-        parameters: {
-            query?: {
-                /** @description Re-archive missing or bad backups */
-                repair?: boolean;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Verification summary */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["BackupVerificationResponse"];
-                };
-            };
-            /** @description Not a lawyer */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

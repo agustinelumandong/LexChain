@@ -54,13 +54,13 @@ describe('getDocumentStatusLabel', () => {
       permissions: { ...document.permissions, can_rename: true, can_finalize: true },
     };
 
-    expect(getDocumentActions('lawyer', permitted)).toEqual(['Rename document', 'Finalize', 'Verify integrity']);
+    expect(getDocumentActions('lawyer', permitted)).toEqual(['Rename document', 'Finalize', 'Check document']);
     expect(getDocumentActions('lawyer', document)).toEqual([]);
-    expect(getDocumentActions('user', permitted)).toEqual(['Verify integrity']);
+    expect(getDocumentActions('user', permitted)).toEqual(['Check document']);
   });
 
   it('offers verification for finalized viewable documents without an on-chain record', () => {
-    expect(getDocumentActions('user', { ...document, lifecycle: 'FINALIZED' })).toEqual(['Verify integrity']);
+    expect(getDocumentActions('user', { ...document, lifecycle: 'FINALIZED' })).toEqual(['Check document']);
   });
 
   it('shows the retry action only to a lawyer granted retry permission', () => {

@@ -18,12 +18,12 @@ const PdfDocumentViewer = dynamic(() => import('@/features/documents/components/
 type VerificationResult = ApiSchema<'DocumentVerificationResponse'>;
 
 function statusHeading(result: VerificationResult) {
-  if (result.status === 'AUTHENTIC') return result.is_authentic ? 'Document is authentic' : 'Integrity status unavailable';
-  if (result.status === 'VERIFICATION_UNAVAILABLE' || (result.status === 'TAMPERED' && result.is_authentic)) return 'Integrity status unavailable';
-  if (result.status === 'NOT_ANCHORED') return 'Document is not anchored';
-  if (result.status === 'SNAPSHOT_COMPROMISED') return 'Trusted snapshot is compromised';
-  if (result.status === 'TAMPERED') return 'Document was tampered with';
-  return 'Document integrity requires attention';
+  if (result.status === 'AUTHENTIC') return result.is_authentic ? 'This PDF matches the saved version' : 'We could not check this document';
+  if (result.status === 'VERIFICATION_UNAVAILABLE' || (result.status === 'TAMPERED' && result.is_authentic)) return 'We could not check this document';
+  if (result.status === 'NOT_ANCHORED') return 'No blockchain record is saved';
+  if (result.status === 'SNAPSHOT_COMPROMISED') return 'The saved reference needs attention';
+  if (result.status === 'TAMPERED') return 'This PDF differs from the saved version';
+  return 'We could not check this document';
 }
 
 function HashRow({ label, hash, transactionUrl }: { label: string; hash: string; transactionUrl?: string | null }) {
@@ -125,7 +125,7 @@ export default function VerifyWorkspace({ result, onRetry }: { result: Verificat
         {authentic ? <CheckCircleIcon className="text-[#12A150]" sx={{ fontSize: 38 }} /> : neutral ? <InfoOutlinedIcon className="text-[#B77900]" sx={{ fontSize: 38 }} /> : <ErrorIcon className="text-[#D94B66]" sx={{ fontSize: 38 }} />}
         <div><h2 className={`text-xl font-extrabold ${authentic ? 'text-[#12A150]' : neutral ? 'text-[#B77900]' : 'text-[#D94B66]'}`}>{statusHeading(result)}</h2><p className="mt-1 text-sm text-[#475467]">{contradictoryVerdict ? 'The backend returned conflicting verification fields, so integrity could not be confirmed.' : result.message}</p></div>
       </div>
-      {(unavailable || notAnchored) && <button type="button" onClick={onRetry} className="mt-4 rounded-full border border-[#0985E7] bg-white px-4 py-2 text-sm font-black text-[#0985E7]">Retry verification</button>}
+      {(unavailable || notAnchored) && <button type="button" onClick={onRetry} className="mt-4 rounded-full border border-[#0985E7] bg-white px-4 py-2 text-sm font-black text-[#0985E7]">Try again</button>}
     </div>
 
     {showTamperComparison ? (

@@ -21,6 +21,7 @@ type PortalDocument = { lifecycle: string; status?: string | null };
 
 export default function PortalLayout({ children, demoMode }: { children: React.ReactNode; demoMode: boolean }) {
   const pathname = usePathname();
+  const isDocumentWorkspace = pathname === '/portal/documents' || /^\/portal\/documents\/[^/]+$/.test(pathname);
   const queryClient = useQueryClient();
   const [collapsed, setCollapsed] = useState(false);
   const uiRole = usePortalRole();
@@ -86,8 +87,8 @@ export default function PortalLayout({ children, demoMode }: { children: React.R
   }
 
   return (
-    <main className="min-h-screen bg-[#F5FAFF] text-[#111827]">
-      <div className="flex min-h-screen">
+    <main className={`${isDocumentWorkspace ? 'h-dvh overflow-hidden' : 'min-h-screen'} bg-[#F5FAFF] text-[#111827]`}>
+      <div className={`flex ${isDocumentWorkspace ? 'h-dvh min-h-0 overflow-hidden' : 'min-h-screen'}`}>
         <a
           href="#portal-content"
           className="sr-only z-[60] rounded-md bg-[#0C2B49] px-4 py-2 text-sm font-bold text-white focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:outline-none"
@@ -95,7 +96,7 @@ export default function PortalLayout({ children, demoMode }: { children: React.R
           Skip to content
         </a>
         {/* Desktop office navigation */}
-        <aside className={`relative sticky top-0 hidden h-screen shrink-0 flex-col gap-7 border-r border-[#E8F0F8] bg-white pb-[22px] pt-[26px] transition-all duration-300 md:flex ${collapsed ? "w-[72px] px-3" : "w-[260px] px-[22px]"}`}>
+        <aside className={`relative sticky top-0 hidden ${isDocumentWorkspace ? 'h-dvh' : 'h-screen'} shrink-0 flex-col gap-7 border-r border-[#E8F0F8] bg-white pb-[22px] pt-[26px] transition-all duration-300 md:flex ${collapsed ? "w-[72px] px-3" : "w-[260px] px-[22px]"}`}>
           <button
             type="button"
             onClick={() => setCollapsed(!collapsed)}
@@ -158,7 +159,7 @@ export default function PortalLayout({ children, demoMode }: { children: React.R
         </aside>
 
         {/* Main content */}
-        <section id="portal-content" tabIndex={-1} className="flex min-w-0 flex-1 flex-col overflow-x-clip px-6 pb-24 pt-0 md:pb-6">
+        <section id="portal-content" tabIndex={-1} className={`flex min-w-0 flex-1 flex-col overflow-x-clip px-6 pb-24 pt-0 md:pb-6 ${isDocumentWorkspace ? 'h-dvh min-h-0 overflow-y-hidden' : ''}`}>
           <PortalTopBar
             initials="?"
             roleLabel={roleLabel}

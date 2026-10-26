@@ -6,6 +6,7 @@ import PortalRouteLayout from "./layout";
 import type React from 'react';
 
 const roleCookie = vi.hoisted(() => ({ value: undefined as string | undefined }));
+const routePathname = vi.hoisted(() => ({ value: '/portal/documents' }));
 
 vi.mock("next/headers", () => ({
   cookies: async () => ({
@@ -15,7 +16,7 @@ vi.mock("next/headers", () => ({
   }),
 }));
 vi.mock("next/navigation", () => ({
-  usePathname: () => "/portal/documents",
+  usePathname: () => routePathname.value,
   useRouter: () => ({ push: vi.fn() }),
 }));
 vi.mock('next/link', () => ({ default: ({ href, onClick, ...props }: React.AnchorHTMLAttributes<HTMLAnchorElement> & { href: string }) => <a href={href} onClick={(event) => { event.preventDefault(); onClick?.(event); }} {...props} /> }));
@@ -39,6 +40,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
   vi.unstubAllEnvs();
   roleCookie.value = undefined;
+  routePathname.value = '/portal/documents';
 });
 
 async function renderPortal(role?: string) {
@@ -49,6 +51,25 @@ async function renderPortal(role?: string) {
 }
 
 describe("portal layout role hint", () => {
+  it.each(['/portal/documents', '/portal/documents/doc-123'])(
+    'keeps %s inside the viewport-locked document shell',
+    async (pathname) => {
+      routePathname.value = pathname;
+      await renderPortal('lawyer');
+
+      expect(document.querySelector('main')?.className).toContain('h-dvh overflow-hidden');
+      expect(document.getElementById('portal-content')?.className).toContain('overflow-y-hidden');
+    },
+  );
+
+  it('leaves nested document review routes with normal page scrolling', async () => {
+    routePathname.value = '/portal/documents/doc-123/verify';
+    await renderPortal('lawyer');
+
+    expect(document.querySelector('main')?.className).toContain('min-h-screen');
+    expect(document.getElementById('portal-content')?.className).not.toContain('overflow-y-hidden');
+  });
+
   it("renders lawyer navigation and Books without a successful profile request", async () => {
     await renderPortal("lawyer");
 

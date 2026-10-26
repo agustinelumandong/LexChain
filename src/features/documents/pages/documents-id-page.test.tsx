@@ -6,12 +6,15 @@ import type { ApiSchema } from '@/shared/types';
 import DocumentDetailPage from '@/features/documents/pages/documents-id-page';
 import { PortalApiError } from '@/shared/api/portal-error';
 
+vi.mock('@/features/documents/components/pdf-document-viewer', () => ({ default: () => null }));
+
 const { state } = vi.hoisted(() => ({
   state: {
     documentQuery: {} as Record<string, unknown>,
     profileQuery: {} as Record<string, unknown>,
     documentQueries: [] as Array<Record<string, unknown>>,
     signedCopiesQuery: {} as Record<string, unknown>,
+    partiesQuery: {} as Record<string, unknown>,
     commentsQuery: {} as Record<string, unknown>,
     queryKeys: [] as string[][],
     mutations: [] as { options: unknown }[],
@@ -49,6 +52,7 @@ vi.mock('@tanstack/react-query', () => ({
   },
   useQuery: ({ queryKey }: { queryKey: readonly unknown[] }) => {
     if (queryKey[0] === 'portal-document-comments') return state.commentsQuery;
+    if (queryKey[0] === 'portal-document-parties') return state.partiesQuery;
     if (queryKey[0] === 'portal-books') return { data: [], isLoading: false, isError: false };
     return state.signedCopiesQuery;
   },
@@ -116,6 +120,15 @@ const baseDocument: DocumentResponse = {
   created_at: '2026-10-08T09:00:00Z',
 };
 
+class ResizeObserverStub {
+  constructor(private callback: ResizeObserverCallback) {}
+  observe(target: Element) {
+    this.callback([{ target, contentRect: { width: 500 } } as ResizeObserverEntry], this as unknown as ResizeObserver);
+  }
+  disconnect() {}
+  unobserve() {}
+}
+
 function renderPage() {
   return render(createElement(
     Suspense,
@@ -131,10 +144,12 @@ async function showPage() {
 }
 
 beforeEach(() => {
+  vi.stubGlobal('ResizeObserver', ResizeObserverStub);
   sessionStorage.clear();
   state.documentQuery = { data: baseDocument, isLoading: false, isError: false, refetch: vi.fn() };
   state.profileQuery = { data: { role: 'document_issuer' }, isLoading: false, isError: false };
   state.signedCopiesQuery = { data: { document_id: 'doc-1', copies: [] }, isLoading: false, isError: false };
+  state.partiesQuery = { data: { document_id: 'doc-1', issuer: { id: 'owner-1', user_id: 'owner-1', email: 'lawyer@example.com', f_name: 'Jordan', l_name: 'Lawyer', role: 'owner', status: 'accepted', responded_at: null, created_at: '2026-10-20T00:00:00Z' }, parties: [] }, isLoading: false, isError: false };
   state.commentsQuery = { data: { document_id: 'doc-1', unresolved: 0, synced_at: null, comments: [] }, isLoading: false, isError: false };
   state.queryClient.setQueryData.mockReset();
   state.queryClient.setQueryData.mockImplementation((queryKey, document) => {
@@ -167,12 +182,19 @@ describe('document detail screen', () => {
     ['PREPARING', 'Preparing', 'FAILED'],
     ['READY_FOR_SIGNATURE', 'Ready for signature', 'PROCESSING'],
     ['SIGNED', 'Signed', 'queued_for_embeddings'],
-  ])('hides processing status before finalization while keeping lifecycle visible (%s)', async (lifecycle, label, status) => {
+  ])('keeps drafting status separate from post-finalization processing (%s)', async (lifecycle, label, status) => {
     state.documentQuery = { data: { ...baseDocument, lifecycle, status }, isLoading: false, isError: false, refetch: vi.fn() };
     await showPage();
     expect(screen.getAllByText(label).length).toBeGreaterThan(0);
     expect(screen.queryByText('Processing status')).toBeNull();
-    expect(screen.queryByText(/^(Failed|Processing|Unknown)$/)).toBeNull();
+    expect(screen.queryByText('Finalized', { selector: 'dt' })).toBeNull();
+    if (lifecycle === 'SIGNED') {
+      const overview = screen.getByRole('tabpanel');
+      expect(within(overview).queryByText('Processing', { selector: 'dt' })).toBeNull();
+    } else {
+      expect(screen.getByText(lifecycle === 'PREPARING' ? 'Drafting workspace' : 'Ready for signature', { selector: 'p' })).toBeTruthy();
+      expect(screen.queryByRole('tablist')).toBeNull();
+    }
   });
 
   it('shows finalized processing failure without offering finalization', async () => {
@@ -199,17 +221,18 @@ describe('document detail screen', () => {
     expect(screen.queryByRole('button', { name: 'Rename document' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Finalize' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Cancel document' })).toBeNull();
-    expect(screen.getByText('record-hash')).toBeTruthy();
     expect(state.queryKeys.some(([key]) => key === 'portal-doc-chain')).toBe(false);
 
-    fireEvent.click(screen.getByRole('tab', { name: 'Files' }));
-    expect(screen.getByRole('link', { name: 'Open current signed PDF' }).getAttribute('href'))
-      .toBe('/api/portal/documents/doc-1/file?copy_id=copy-1');
     expect(screen.getByRole('link', { name: 'Open Google draft' }).getAttribute('href'))
       .toBe('https://docs.google.com/document/d/draft-1');
+    fireEvent.click(screen.getByRole('tab', { name: 'Files' }));
+    expect(screen.getByRole('link', { name: 'Download current signed PDF' }).getAttribute('href'))
+      .toContain('copy_id=copy-1&download=1');
+    fireEvent.click(screen.getByRole('tab', { name: 'Blockchain' }));
+    expect(screen.getByText('record-hash')).toBeTruthy();
   });
 
-  it('shows a newly opened PREPARING record and its draft action in the Files tab', async () => {
+  it('shows a newly opened PREPARING record in the drafting workspace', async () => {
     state.documentQuery = {
       data: { ...baseDocument, lifecycle: 'PREPARING', draft_url: null, signed_copy: null, permissions: { ...baseDocument.permissions, can_create_draft: true } },
       isLoading: false,
@@ -220,8 +243,9 @@ describe('document detail screen', () => {
     await showPage();
 
     expect(screen.getAllByText('Preparing').length).toBeGreaterThan(0);
-    fireEvent.click(screen.getByRole('tab', { name: 'Files' }));
     expect(screen.getByRole('button', { name: 'Create blank Google draft' })).toBeTruthy();
+    expect(screen.getByText('Drafting workspace')).toBeTruthy();
+    expect(screen.queryByRole('tablist')).toBeNull();
   });
 
   it('publishes a created draft into the document query and refreshes list and history', async () => {
@@ -241,7 +265,6 @@ describe('document detail screen', () => {
     vi.stubGlobal('fetch', vi.fn(async () => Response.json(createdDocument, { status: 201 })));
 
     await showPage();
-    fireEvent.click(screen.getByRole('tab', { name: 'Files' }));
     fireEvent.click(screen.getByRole('button', { name: 'Create blank Google draft' }));
     await waitFor(() => expect(state.queryClient.setQueryData).toHaveBeenCalled());
 
@@ -257,7 +280,6 @@ describe('document detail screen', () => {
     };
     await showPage();
 
-    fireEvent.click(screen.getByRole('tab', { name: 'Comments' }));
     expect(screen.getByRole('button', { name: 'Mark ready for signature' })).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Reopen draft' })).toBeNull();
   });
@@ -268,7 +290,6 @@ describe('document detail screen', () => {
     state.documentQuery = { data: preparing, isLoading: false, isError: false, refetch: vi.fn() };
     state.markDocumentReady.mockResolvedValue(ready);
     await showPage();
-    fireEvent.click(screen.getByRole('tab', { name: 'Comments' }));
     fireEvent.click(screen.getByRole('button', { name: 'Mark ready for signature' }));
 
     await waitFor(() => expect(state.queryClient.setQueryData).toHaveBeenCalledWith(['portal-doc', 'doc-1'], ready));
@@ -284,7 +305,6 @@ describe('document detail screen', () => {
     state.documentQuery = { data: ready, isLoading: false, isError: false, refetch: vi.fn() };
     state.reopenDocument.mockResolvedValue(reopened);
     await showPage();
-    fireEvent.click(screen.getByRole('tab', { name: 'Comments' }));
     fireEvent.click(screen.getByRole('button', { name: 'Reopen draft' }));
 
     await waitFor(() => expect(state.queryClient.setQueryData).toHaveBeenCalledWith(['portal-doc', 'doc-1'], reopened));
@@ -299,7 +319,6 @@ describe('document detail screen', () => {
     state.documentQuery = { data: preparing, isLoading: false, isError: false, refetch: vi.fn() };
     state.markDocumentReady.mockRejectedValue(Object.assign(new Error('Resolve two comments before marking ready.'), { status: 409 }));
     await showPage();
-    fireEvent.click(screen.getByRole('tab', { name: 'Comments' }));
     fireEvent.click(screen.getByRole('button', { name: 'Mark ready for signature' }));
 
     expect(await screen.findByText('Resolve two comments before marking ready.')).toBeTruthy();
@@ -321,7 +340,7 @@ describe('document detail screen', () => {
     expect(screen.getByRole('button', { name: 'Finalize' })).toBeTruthy();
   });
 
-  it.each(['Overview', 'Search', 'Files', 'Comments', 'Blockchain', 'Signed copies', 'Access', 'History'])('keeps finalization confirmation visible from the %s tab', async (tab) => {
+  it.each(['Overview', 'Files', 'Comments', 'Blockchain', 'Activity'])('keeps finalization confirmation visible from the %s tab', async (tab) => {
     state.documentQuery = { ...state.documentQuery, data: { ...baseDocument, permissions: { ...baseDocument.permissions, can_finalize: true } } };
     await showPage();
     fireEvent.click(screen.getByRole('tab', { name: tab }));
@@ -359,12 +378,12 @@ describe('document detail screen', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Finalize' }));
     fireEvent.click(screen.getByRole('button', { name: 'Confirm finalization' }));
     expect(await screen.findByText('Document finalized and anchored on-chain.')).toBeTruthy();
-    expect(screen.getByText('Document lifecycle').nextElementSibling?.textContent).toBe('Finalized');
-    expect(screen.getByText('Processing status').nextElementSibling?.textContent).toBe('Queued');
-    for (const tab of ['Overview', 'Search', 'Files', 'Comments', 'Blockchain', 'Signed copies', 'Access', 'History']) {
+    expect(screen.getAllByText('Finalized').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Queued').length).toBeGreaterThan(0);
+    for (const tab of ['Overview', 'Files', 'Comments', 'Blockchain', 'Activity']) {
       fireEvent.click(screen.getByRole('tab', { name: tab }));
       expect(screen.getByText('Document finalized and anchored on-chain.')).toBeTruthy();
-      expect(screen.getByText('Document ID').nextElementSibling?.textContent).toBe('doc-1');
+      expect(screen.getByText('Document ID').parentElement?.querySelector('code')?.textContent).toBe('doc-1');
       expect(screen.getByText('onchain-doc-101')).toBeTruthy();
       expect(screen.getByText('datahash101')).toBeTruthy();
       expect(screen.getByText('0xtxhash101')).toBeTruthy();
@@ -406,7 +425,7 @@ describe('document detail screen', () => {
     fireEvent.click(checkStatus);
 
     expect(await screen.findByText('Document finalized and anchored on-chain.')).toBeTruthy();
-    expect(screen.getByText('Document lifecycle').nextElementSibling?.textContent).toBe('Finalized');
+    expect(screen.getAllByText('Finalized').length).toBeGreaterThan(0);
     expect(screen.queryByText('Transaction hash')).toBeNull();
     expect(screen.queryByText('On-chain document ID')).toBeNull();
     expect(screen.queryByText('Data hash')).toBeNull();

@@ -12,20 +12,19 @@ import { useQuery } from '@tanstack/react-query';
 import SearchIcon from '@mui/icons-material/Search';
 import FileUploadIcon from '@mui/icons-material/FileUpload';
 import FilterListIcon from '@mui/icons-material/FilterList';
+import CircleIcon from '@mui/icons-material/Circle';
 import DescriptionIcon from '@mui/icons-material/Description';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import ErrorIcon from '@mui/icons-material/Error';
-import VisibilityIcon from '@mui/icons-material/Visibility';
+import LinkIcon from '@mui/icons-material/Link';
+import LinkOffIcon from '@mui/icons-material/LinkOff';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
-import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import { Dropdown } from "@/features/admin/components";
-import { MetricCard } from "@/features/portal/components";
-import { getDocumentLifecycleLabel, getDocumentProcessingStatusLabel } from '@/features/documents/document-ui';
+import { getDocumentLifecycleBadgeClasses, getDocumentLifecycleLabel, getDocumentProcessingBadgeClasses, getDocumentProcessingStatusLabel } from '@/features/documents/document-ui';
 import { getPortalUiRole } from "@/features/access";
 import { CreateDocumentRecordForm } from '@/features/documents/components/create-document-record-form';
 import {
   getDocumentLifecycles,
+  getDocumentsByOwnership,
   getVisibleDocuments,
   type DocumentListItem,
   type DocumentListFilters,
@@ -83,42 +82,113 @@ function formatDate(iso?: string | null) {
   return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
-function statusStyle(status?: string | null) {
-  const value = status?.toLowerCase();
-  if (value === 'anchored' || value === 'completed') return 'bg-[#EAF8F0] text-[#12A150]';
-  if (value === 'processing' || value === 'pending') return 'bg-[#FFF4DD] text-[#B77900]';
-  return 'bg-[#EAF4FF] text-[#1689F5]';
+function DocumentIconBadge() {
+  return (
+    <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-[#EAF3FF]">
+      <DescriptionIcon aria-hidden="true" sx={{ fontSize: 18, color: '#0985E7' }} />
+    </span>
+  );
 }
 
 function DocumentBadges({ document }: { document: Document }) {
+  const badgeClasses = 'inline-flex items-center gap-1.5 rounded-full border border-current/15 px-2.5 py-0.5 text-xs font-bold';
+
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <span className="rounded-full bg-[#EAF4FF] px-2.5 py-0.5 text-[11px] font-bold text-[#1689F5]">{getDocumentLifecycleLabel(document.lifecycle)}</span>
-      {document.lifecycle === 'FINALIZED' && <span className={`${statusStyle(document.status)} rounded-full px-2.5 py-0.5 text-[11px] font-bold`}>{getDocumentProcessingStatusLabel(document.lifecycle, document.status)}</span>}
+      <span className={`${badgeClasses} ${getDocumentLifecycleBadgeClasses(document.lifecycle)}`}><CircleIcon aria-hidden="true" sx={{ fontSize: 8 }} />{getDocumentLifecycleLabel(document.lifecycle)}</span>
+      {document.lifecycle === 'FINALIZED' && <span className={`${badgeClasses} ${getDocumentProcessingBadgeClasses(document.status)}`}><CircleIcon aria-hidden="true" sx={{ fontSize: 8 }} />{getDocumentProcessingStatusLabel(document.lifecycle, document.status)}</span>}
     </div>
   );
 }
 
-const actionIcons: Record<string, React.ReactNode> = {
-  'Open': <OpenInNewIcon sx={{ fontSize: 18 }} />,
-};
+function OnChainBadge({ onChain, label }: { onChain: boolean; label: string }) {
+  const Icon = onChain ? LinkIcon : LinkOffIcon;
 
-function DocumentActions({ document }: { document: Document }) {
   return (
-    <div className="flex items-center gap-1">
-      <Link href={`/portal/documents/${document.id}`} aria-label="Open" className="flex size-8 items-center justify-center rounded-lg text-[#5B6F8A] transition hover:bg-[#EAF3FF] hover:text-[#0985E7]">
-        {actionIcons.Open}
-      </Link>
-    </div>
+    <span className={`inline-flex items-center gap-1.5 rounded-full border border-current/15 px-2.5 py-0.5 text-xs font-bold ${onChain ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-700'}`}>
+      <Icon aria-hidden="true" sx={{ fontSize: 14 }} />
+      {label}
+    </span>
+  );
+}
+
+function getAttentionStatus(document: Document) {
+  const status = document.status?.trim().toUpperCase();
+  const lifecycle = document.lifecycle.trim().toUpperCase();
+
+  if (status === 'FAILED' || status === 'AWAITING_REVIEW' || status === 'READY_FOR_REVIEW') {
+    return getDocumentProcessingStatusLabel(document.lifecycle, document.status);
+  }
+  if (['QUEUED', 'PROCESSING', 'ENRICHING', 'PENDING', 'ACCEPTED'].includes(status ?? '')) {
+    return getDocumentProcessingStatusLabel(document.lifecycle, document.status);
+  }
+  if (['PREPARING', 'READY_FOR_SIGNATURE', 'SIGNED'].includes(lifecycle)) {
+    return getDocumentLifecycleLabel(document.lifecycle);
+  }
+  return null;
+}
+
+function NeedsAttention({ docs }: { docs: Document[] }) {
+  const items = docs.flatMap((document) => {
+    const status = getAttentionStatus(document);
+    return status ? [{ document, status }] : [];
+  });
+
+  return (
+    <article className="flex h-fit w-full min-w-0 flex-col overflow-hidden rounded-2xl border border-[#E4EEF9] bg-white p-5 shadow-sm shadow-[#DDEAF7]/35 min-[1680px]:h-full min-[1680px]:min-h-0">
+      <div className="mb-4 flex shrink-0 items-baseline justify-between gap-3">
+        <h2 className="text-lg font-black text-[#071B33]">Needs attention</h2>
+        <span className="text-xs font-semibold text-[#5B6F8A]">{items.length}</span>
+      </div>
+      {items.length > 0 ? (
+        <ul className="max-h-96 min-h-0 space-y-2 overflow-y-auto overscroll-contain pr-2 min-[1680px]:flex-1">
+          {items.map(({ document, status }) => {
+            const characters = Array.from(document.file_name);
+            const displayName = characters.length > 30 ? `${characters.slice(0, 29).join('')}…` : document.file_name;
+
+            return (
+              <li key={document.id} className="relative flex min-w-0 cursor-pointer items-center justify-between gap-3 rounded-sm border-l-2 border-[#D7E4F2] py-1 pl-3 transition-colors duration-150 ease-out hover:bg-[#EFF6FF] focus-within:bg-[#E1F0FF] active:bg-[#D7EBFF] motion-reduce:transition-none">
+                <div className="min-w-0 flex-1">
+                  <div className="flex min-w-0 items-center gap-1.5">
+                    <DocumentIconBadge />
+                    <Link href={`/portal/documents/${document.id}`} aria-label={document.file_name} className="flex h-11 w-full min-w-0 max-w-full items-center rounded-sm text-sm font-bold text-[#071B33] after:absolute after:inset-0 after:content-[''] focus-visible:after:ring-2 focus-visible:after:ring-inset focus-visible:after:ring-[#0985E7]">
+                      <span className="block w-full min-w-0 truncate">{displayName}</span>
+                    </Link>
+                  </div>
+                  <p className="text-xs font-semibold text-[#5B6F8A]">Created {formatDate(document.created_at)}</p>
+                </div>
+                <span className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border border-current/15 px-2.5 py-0.5 text-xs font-bold ${document.status ? getDocumentProcessingBadgeClasses(document.status) : getDocumentLifecycleBadgeClasses(document.lifecycle)}`}>
+                  <CircleIcon aria-hidden="true" sx={{ fontSize: 8 }} />
+                  {status}
+                </span>
+              </li>
+            );
+          })}
+        </ul>
+      ) : (
+        <p className="text-sm font-semibold text-[#5B6F8A]">No documents need attention.</p>
+      )}
+    </article>
   );
 }
 
 function StatusDistribution({ docs }: { docs: Document[] }) {
   const colors = ["#0879D8", "#59C878", "#9B6AF3", "#F6B52E", "#22C7D8", "#EF4444"];
-  const groups = [...new Set(docs.map((document) => document.lifecycle))].map((lifecycle, i) => ({
-    label: getDocumentLifecycleLabel(lifecycle), color: colors[i % colors.length],
-    count: docs.filter((document) => document.lifecycle === lifecycle).length,
-  }));
+  const lifecycleCounts = new Map<string, number>();
+  for (const document of docs) {
+    const label = getDocumentLifecycleLabel(document.lifecycle);
+    lifecycleCounts.set(label, (lifecycleCounts.get(label) ?? 0) + 1);
+  }
+  const groups = [...lifecycleCounts].map(([label, count], index) => ({ label, count, color: colors[index % colors.length] }));
+  const processingCounts = new Map<string, { status?: string | null; count: number }>();
+  for (const document of docs) {
+    const label = getDocumentProcessingStatusLabel(document.lifecycle, document.status);
+    const group = processingCounts.get(label);
+    if (group) group.count += 1;
+    else processingCounts.set(label, { status: document.status, count: 1 });
+  }
+  if (!processingCounts.has('Failed')) processingCounts.set('Failed', { status: 'FAILED', count: 0 });
+  const processingGroups = [...processingCounts].sort(([left], [right]) => left.localeCompare(right));
   const total = docs.length;
   let cursor = 0;
   const gradient = groups.map((g) => {
@@ -128,13 +198,13 @@ function StatusDistribution({ docs }: { docs: Document[] }) {
   }).join(", ");
 
   return (
-    <article className="flex h-fit self-start flex-col rounded-2xl border border-[#E4EEF9] bg-white p-5 shadow-sm shadow-[#DDEAF7]/35">
+    <article className="flex h-fit w-full min-w-0 flex-col rounded-2xl border border-[#E4EEF9] bg-white p-5 shadow-sm shadow-[#DDEAF7]/35">
       <h2 className="mb-4 text-lg font-black text-[#071B33]">Status Distribution</h2>
-      <div className="grid items-center gap-5 sm:grid-cols-[160px_1fr] xl:grid-cols-1 2xl:grid-cols-[160px_1fr]">
-        <div className="relative mx-auto size-36 rounded-full" style={{ background: `conic-gradient(${gradient})` }}>
-          <div className="absolute inset-6 flex flex-col items-center justify-center rounded-full bg-white text-center">
-            <strong className="text-2xl font-black text-[#071B33]">{total}</strong>
-            <span className="text-xs font-semibold text-[#6B7E95]">Total Documents</span>
+      <div className="grid min-w-0 items-center gap-3 sm:grid-cols-[128px_minmax(0,1fr)]">
+        <div className="relative mx-auto size-32 rounded-full" style={{ background: total ? `conic-gradient(${gradient})` : 'conic-gradient(#E4EEF9 0% 100%)' }}>
+          <div className="absolute inset-5 flex flex-col items-center justify-center rounded-full bg-white text-center">
+            <strong className="text-2xl font-black tabular-nums text-[#071B33]">{total}</strong>
+            <span className="text-xs font-semibold text-[#6B7E95]">Total documents</span>
           </div>
         </div>
         <div className="space-y-3">
@@ -146,42 +216,38 @@ function StatusDistribution({ docs }: { docs: Document[] }) {
               <span className="text-xs font-semibold text-[#5B6F8A]">({Math.round((g.count / total) * 100)}%)</span>
             </div>
           ))}
+          <div className="flex items-center justify-between border-t border-[#E4EEF9] pt-2 text-sm" aria-label={`Total documents: ${total}`}>
+            <span className="font-semibold text-[#5B6F8A]">Total documents</span>
+            <strong className="tabular-nums text-[#071B33]">{total}</strong>
+          </div>
+          {total === 0 && <p className="text-sm font-semibold text-[#5B6F8A]">No documents to summarize yet.</p>}
         </div>
       </div>
-    </article>
-  );
-}
-
-function RecentlyUpdated({ docs }: { docs: Document[] }) {
-  const recent = [...docs].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-
-  return (
-    <article className="flex h-fit self-start flex-col rounded-2xl border border-[#E4EEF9] bg-white p-5 shadow-sm shadow-[#DDEAF7]/35">
-      <div className="mb-4 flex shrink-0 items-center justify-between">
-        <h2 className="text-lg font-black text-[#071B33]">Recently Created</h2>
-        <span className="text-xs font-black text-[#5B6F8A]">3 latest</span>
-      </div>
-      <div className="space-y-3 pr-1">
-        {recent.slice(0, 3).map((doc) => (
-          <div key={doc.id} className="grid grid-cols-[40px_1fr] items-center gap-3 rounded-xl p-1.5 transition hover:bg-[#F8FBFF]">
-            <div className="flex size-10 items-center justify-center rounded-xl bg-[#EAF3FF] text-xs font-black text-[#0879D8]">
-              <DescriptionIcon sx={{ fontSize: 18 }} />
-            </div>
-            <div className="min-w-0">
-              <Link href={`/portal/documents/${doc.id}`} className="truncate text-sm font-black text-[#071B33] hover:underline">{doc.file_name.length > 25 ? `${doc.file_name.slice(0, 25)}…` : doc.file_name}</Link>
-              <p className="mt-0.5 text-xs font-semibold text-[#5B6F8A]">{formatDate(doc.created_at)}</p>
-              <span className={`mt-1 inline-block rounded-md px-2 py-0.5 text-[10px] font-black ${doc.lifecycle === 'FINALIZED' ? statusStyle(doc.status) : 'bg-[#EAF4FF] text-[#1689F5]'}`}>{getDocumentLifecycleLabel(doc.lifecycle)}{doc.lifecycle === 'FINALIZED' && ` · ${getDocumentProcessingStatusLabel(doc.lifecycle, doc.status)}`}</span>
-            </div>
-          </div>
-        ))}
-        {recent.length === 0 ? <p className="text-sm font-semibold text-[#5B6F8A]">No documents available.</p> : null}
-      </div>
+      <section className="mt-5 border-t border-[#E4EEF9] pt-4" aria-labelledby="processing-status-heading">
+        <div className="mb-3 flex items-baseline justify-between gap-3">
+          <h3 id="processing-status-heading" className="text-sm font-bold text-[#071B33]">Processing status</h3>
+          <span className="text-xs font-semibold text-[#5B6F8A]">All documents</span>
+        </div>
+        {processingGroups.length > 0 ? (
+          <ul className="space-y-2">
+            {processingGroups.map(([label, group]) => (
+              <li key={label} className="flex min-w-0 items-center justify-between gap-3 text-sm">
+                <span className={`min-w-0 truncate rounded-full px-2.5 py-0.5 text-xs font-bold ${getDocumentProcessingBadgeClasses(group.status)}`}>{label}</span>
+                <strong className="shrink-0 tabular-nums text-[#071B33]">{group.count}</strong>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-sm font-semibold text-[#5B6F8A]">No processing statuses yet.</p>
+        )}
+      </section>
     </article>
   );
 }
 
 export default function DocumentsPage() {
   const router = useRouter();
+  const [selectedOwnership, setSelectedOwnership] = useState<'owned' | 'shared' | null>(null);
   const [search, setSearch] = useState('');
   const [lifecycle, setLifecycle] = useState('all');
   const [sort, setSort] = useState<DocumentListFilters['sort']>('newest');
@@ -201,9 +267,16 @@ export default function DocumentsPage() {
   const allDocuments = documentsQuery.data ?? [];
   const uiRole = getPortalUiRole(profileQuery.data?.role);
   const isIssuer = uiRole === 'lawyer';
-  const documents = allDocuments;
+  const hasOwnershipTabs = uiRole === 'user';
+  const ownership = selectedOwnership ?? (isIssuer ? 'owned' : 'shared');
+  const documents = isIssuer ? allDocuments : getDocumentsByOwnership(allDocuments, ownership);
   const lifecycles = getDocumentLifecycles(documents);
   if (lifecycle !== 'all' && !lifecycles.includes(lifecycle)) lifecycles.push(lifecycle);
+  const ownershipLabel = isIssuer ? 'office repository' : ownership === 'owned' ? 'My documents' : 'Shared with me';
+  function changeOwnership(value: 'owned' | 'shared') {
+    setSelectedOwnership(value);
+    setPage(0);
+  }
   const visibleDocuments = getVisibleDocuments(documents, {
     query: search,
     lifecycle,
@@ -212,21 +285,13 @@ export default function DocumentsPage() {
     createdThrough,
   });
 
-  const documentStatuses = documents.filter((document) => document.lifecycle === 'FINALIZED').map((document) => document.status?.trim().toLowerCase());
-  const metrics = [
-    { label: "Total Documents", value: documents.length, detail: "Uploaded documents", icon: <DescriptionIcon fontSize="small" />, color: "bg-[#EAF3FF] text-[#0879D8]" },
-    { label: "Finalized", value: documents.filter((document) => document.lifecycle === 'FINALIZED').length, detail: "Finalized documents", icon: <CheckCircleIcon fontSize="small" />, color: "bg-[#EAFBF1] text-[#16A34A]" },
-    { label: "Ready for Review", value: documentStatuses.filter((value) => value === "awaiting_review" || value === "ready_for_review").length, detail: "Finalized documents ready for review", icon: <VisibilityIcon fontSize="small" />, color: "bg-[#FFF4DF] text-[#F59E0B]" },
-    { label: "Failed", value: documentStatuses.filter((value) => value === "failed").length, detail: "status failed", icon: <ErrorIcon fontSize="small" />, color: "bg-[#FEECEC] text-[#EF4444]" },
-  ];
-
   const perPage = Number(pageSize);
   const totalPages = Math.max(1, Math.ceil(visibleDocuments.length / perPage));
   const safePage = Math.min(page, totalPages - 1);
   const pagedDocs = visibleDocuments.slice(safePage * perPage, (safePage + 1) * perPage);
 
   return (
-    <div className="flex h-full flex-col gap-5">
+    <div className="flex min-h-0 flex-1 flex-col gap-5">
       <div className="shrink-0 flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-[28px] font-black text-[#0C2B49]">Documents</h1>
@@ -235,9 +300,24 @@ export default function DocumentsPage() {
         {isIssuer && <div className="flex flex-wrap gap-2"><button type="button" onClick={() => setShowCreateRecord((open) => !open)} aria-expanded={showCreateRecord} className="rounded-full border border-[#0985E7] px-5 py-2.5 text-sm font-black text-[#0985E7]">Create document draft</button><Link href="/portal/upload" className="inline-flex items-center gap-2 rounded-full bg-[#0985E7] px-5 py-2.5 text-sm font-black text-white"><FileUploadIcon sx={{ fontSize: 16 }} />Upload Document</Link></div>}
       </div>
 
-      {isIssuer && showCreateRecord && <CreateDocumentRecordForm onCreated={(id) => router.push(`/portal/documents/${id}`)} />}
+      {isIssuer && showCreateRecord && <CreateDocumentRecordForm onClose={() => setShowCreateRecord(false)} onCreated={(id) => router.push(`/portal/documents/${id}`)} />}
 
-      <div className="flex min-h-0 flex-1 flex-col gap-5">
+      {hasOwnershipTabs && <div role="tablist" aria-label="Document ownership" className="flex shrink-0 gap-2">
+        {(['owned', 'shared'] as const).map((value) => (
+          <button key={value} id={`ownership-${value}`} type="button" role="tab" aria-selected={ownership === value} aria-controls="ownership-results" tabIndex={ownership === value ? 0 : -1}
+            onClick={() => changeOwnership(value)}
+            onKeyDown={(event) => {
+              if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+              event.preventDefault();
+              const next = event.key === 'Home' ? 'owned' : event.key === 'End' ? 'shared' : value === 'owned' ? 'shared' : 'owned';
+              changeOwnership(next);
+              document.getElementById(`ownership-${next}`)?.focus();
+            }}
+            className={cn('rounded-full border px-4 py-2 text-sm font-black focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0985E7]', ownership === value ? 'border-[#0985E7] bg-[#EAF3FF] text-[#0879D8]' : 'border-[#E4EEF9] text-[#0C2B49]')}
+          >{value === 'owned' ? 'My documents' : 'Shared with me'} ({getDocumentsByOwnership(allDocuments, value).length})</button>
+        ))}
+      </div>}
+      <div id="ownership-results" role={hasOwnershipTabs ? 'tabpanel' : 'region'} aria-labelledby={hasOwnershipTabs ? `ownership-${ownership}` : undefined} aria-label={hasOwnershipTabs ? undefined : isIssuer ? 'Office document results' : 'Document results'} className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto min-[1680px]:overflow-hidden">
       {documentsQuery.isLoading ? (
         <div className="flex flex-col gap-3" aria-label="Loading documents">{[1, 2, 3].map((index) => <div key={index} className="h-[80px] animate-pulse rounded-[18px] border border-[#E8F0F8] bg-white" />)}</div>
       ) : documentsQuery.isError ? (
@@ -250,11 +330,8 @@ export default function DocumentsPage() {
         </div>
       ) : (
         <>
-          <section className="shrink-0 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {metrics.map((metric) => <MetricCard key={metric.label} {...metric} />)}
-          </section>
-          <section className="grid min-h-0 flex-1 gap-4 xl:grid-cols-[minmax(0,1fr)_420px] overflow-hidden">
-            <article className="flex min-h-0 min-w-0 flex-col overflow-hidden rounded-2xl border border-[#E4EEF9] bg-white shadow-sm shadow-[#DDEAF7]/35">
+          <section className="grid gap-4 min-[1680px]:min-h-0 min-[1680px]:flex-1 min-[1680px]:grid-cols-[minmax(0,1fr)_340px] min-[1680px]:overflow-hidden">
+            <article className="flex min-w-0 flex-col rounded-2xl border border-[#E4EEF9] bg-white shadow-sm shadow-[#DDEAF7]/35 min-[1680px]:min-h-0 min-[1680px]:overflow-hidden">
               <div className="border-b border-[#E4EEF9] p-5">
                 <div className="flex flex-wrap items-center gap-3">
                   <h2 className="mr-auto shrink-0 text-lg font-black text-[#071B33]">Document Directory</h2>
@@ -287,8 +364,7 @@ export default function DocumentsPage() {
                   </FilterDetails>
                 </div>
               </div>
-              <p className="px-5 pb-3 text-xs font-semibold text-[#5B6F8A] md:hidden">Swipe horizontally to view all table columns.</p>
-              <div role="region" aria-label="Document directory results. Scroll horizontally to view all columns." tabIndex={0} className="admin-table-scroll min-h-0 flex-1 overflow-auto focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[#0985E7]">
+              <div role="region" aria-label="Document directory results" tabIndex={0} className="admin-table-scroll hidden min-h-0 flex-1 overflow-auto focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[#0985E7] min-[1240px]:block">
                 <table className="w-full min-w-[920px] text-sm">
                   <caption className="sr-only">Documents in the office repository</caption>
                   <thead>
@@ -297,41 +373,49 @@ export default function DocumentsPage() {
                       <th className="px-5 py-3">Lifecycle / processing</th>
                       <th className="px-5 py-3">On-chain</th>
                       <th className="px-5 py-3">Created</th>
-                      <th className="px-5 py-3">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
                     {pagedDocs.map((doc) => (
-                      <tr key={doc.id} onClick={() => router.push(`/portal/documents/${doc.id}`)} className="h-[68px] cursor-pointer border-b border-[#F1F5F9] transition hover:bg-[#F8FBFF]">
+                      <tr key={doc.id} className="relative h-[68px] cursor-pointer border-b border-[#D8E5F2] transition-colors duration-150 ease-out hover:bg-[#EFF6FF] focus-within:bg-[#E1F0FF] active:bg-[#D7EBFF] motion-reduce:transition-none">
                         <td className="max-w-[260px] px-5 py-3">
-                          <p className="truncate font-bold text-[#071B33]">{doc.file_name}</p>
-                          <p className="mt-0.5 text-xs font-semibold text-[#5B6F8A]">{doc.doc_no != null ? `Register ${doc.doc_no}${doc.page_no != null ? ` · page ${doc.page_no}` : ''}` : 'Register entry unavailable'}</p>
+                          <div className="flex min-w-0 items-center gap-2">
+                            <DocumentIconBadge />
+                            <div className="min-w-0">
+                              <Link href={`/portal/documents/${doc.id}`} className="inline-flex min-h-7 min-w-0 max-w-full items-center truncate rounded-sm font-bold text-[#071B33] after:absolute after:inset-0 after:content-[''] focus-visible:after:ring-2 focus-visible:after:ring-inset focus-visible:after:ring-[#0985E7]">{doc.file_name}</Link>
+                              <p className="mt-0.5 text-xs font-semibold text-[#5B6F8A]">{doc.doc_no != null ? `Register ${doc.doc_no}${doc.page_no != null ? ` · page ${doc.page_no}` : ''}` : 'Register entry unavailable'}</p>
+                            </div>
+                          </div>
                         </td>
                         <td className="px-5 py-3"><DocumentBadges document={doc} /></td>
-                        <td className="px-5 py-3 text-xs font-bold text-[#5B6F8A]">{doc.on_chain ? 'Recorded' : 'Not recorded'}</td>
+                        <td className="px-5 py-3"><OnChainBadge onChain={doc.on_chain} label={doc.on_chain ? 'Recorded' : 'Not recorded'} /></td>
                         <td className="px-5 py-3 font-semibold text-[#5B6F8A]">{formatDate(doc.created_at)}</td>
-                        <td className="px-5 py-3" onClick={(e) => e.stopPropagation()}><DocumentActions document={doc} /></td>
                       </tr>
                     ))}
-                    {pagedDocs.length === 0 && (
-                      <tr>
-                        <td colSpan={5} className="px-5 py-10 text-center text-sm font-semibold text-[#5B6F8A]">
-                          <p>No matching documents</p>
-                          {search.trim() && (
-                            <button
-                              type="button"
-                              onClick={() => { setSearch(''); setPage(0); }}
-                              className="mt-4 rounded-full border border-[#D7E4F2] px-4 py-2 text-sm font-black text-[#0985E7] hover:bg-[#EEF4FB] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0985E7]"
-                            >
-                              Clear search
-                            </button>
-                          )}
-                        </td>
-                      </tr>
-                    )}
                   </tbody>
                 </table>
               </div>
+              <div className="min-[1240px]:hidden flex flex-col gap-3 px-5 pb-4">
+                {pagedDocs.map((document) => (
+                  <article key={document.id} className="relative cursor-pointer rounded-xl border border-[#D8E5F2] p-4 transition-colors duration-150 ease-out hover:bg-[#EFF6FF] focus-within:bg-[#E1F0FF] active:bg-[#D7EBFF] motion-reduce:transition-none">
+                    <div className="flex gap-3">
+                      <DocumentIconBadge />
+                      <div className="min-w-0 flex-1">
+                        <Link href={`/portal/documents/${document.id}`} className="inline-flex min-h-11 max-w-full items-center truncate rounded-sm text-sm font-bold text-[#071B33] after:absolute after:inset-0 after:content-[''] focus-visible:after:ring-2 focus-visible:after:ring-inset focus-visible:after:ring-[#0985E7]">{document.file_name}</Link>
+                        <p className="mt-1 text-xs text-[#64748b]">{document.doc_no != null ? `Register ${document.doc_no}${document.page_no != null ? ` · page ${document.page_no}` : ''}` : 'Register entry unavailable'} · Created {formatDate(document.created_at)}</p>
+                        <div className="mt-1"><OnChainBadge onChain={document.on_chain} label={document.on_chain ? 'Recorded on-chain' : 'Not recorded on-chain'} /></div>
+                        <div className="mt-2"><DocumentBadges document={document} /></div>
+                      </div>
+                    </div>
+                  </article>
+                ))}
+              </div>
+              {pagedDocs.length === 0 && (
+                <div className="px-5 py-6 text-center text-sm font-semibold text-[#5B6F8A]">
+                  <p>{documents.length === 0 ? `No documents in ${ownershipLabel} yet` : `No matching documents in ${ownershipLabel}`}</p>
+                  {search.trim() && <button type="button" onClick={() => { setSearch(''); setPage(0); }} className="mt-4 min-h-11 rounded-full border border-[#D7E4F2] px-4 text-sm font-black text-[#0985E7] hover:bg-[#EEF4FB] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0985E7]">Clear search</button>}
+                </div>
+              )}
               <div className="flex shrink-0 flex-col gap-3 border-t border-[#E4EEF9] px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
                 <p className="text-sm font-semibold text-[#5B6F8A]">Showing {visibleDocuments.length === 0 ? 0 : safePage * perPage + 1}–{Math.min((safePage + 1) * perPage, visibleDocuments.length)} of {visibleDocuments.length} documents</p>
                 <div className="flex flex-wrap items-center gap-2">
@@ -349,12 +433,11 @@ export default function DocumentsPage() {
                 </div>
               </div>
             </article>
-            <aside className="hidden content-start gap-4 md:grid">
+            <aside className="grid min-h-0 min-w-0 content-start gap-4 min-[1680px]:grid-rows-[auto_minmax(0,1fr)] min-[1680px]:overflow-auto">
               <StatusDistribution docs={documents} />
-              <RecentlyUpdated docs={documents} />
+              <NeedsAttention docs={documents} />
             </aside>
           </section>
-          <div className="flex flex-col gap-3 md:hidden">{pagedDocs.map((document) => <article key={document.id} className="rounded-[18px] border border-[#E8F0F8] bg-white p-4"><div className="flex gap-3"><DescriptionIcon sx={{ fontSize: 22, color: '#0985E7' }} /><div className="min-w-0 flex-1"><p className="truncate text-sm font-bold text-[#0C2B49]">{document.file_name}</p><p className="mt-1 text-xs text-[#64748b]">{document.doc_no != null ? `Register ${document.doc_no}${document.page_no != null ? ` · page ${document.page_no}` : ''}` : 'Register entry unavailable'} · Created {formatDate(document.created_at)}</p><div className="mt-2"><DocumentBadges document={document} /></div></div></div><div className="mt-4 border-t border-[#E8F0F8] pt-3"><DocumentActions document={document} /></div></article>)}</div>
         </>
       )}
       </div>
