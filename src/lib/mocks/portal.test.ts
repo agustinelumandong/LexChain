@@ -736,7 +736,13 @@ describe('portal mock search and document questions', () => {
       'mock-token:mock-document-issuer',
     );
     await expect(issuerSearch.json()).resolves.toMatchObject({
-      results: [expect.objectContaining({ document_id: 'mock-document-3' })],
+      results: [expect.objectContaining({
+        document_id: 'mock-document-3',
+        chunk_index: 0,
+        file_name: 'Restoration Review.pdf',
+        created_at: '2026-07-15T10:00:00.000Z',
+        register_reference: null,
+      })],
     });
     expect((await scopedMock.mockPortalMutate(
       'POST',
@@ -774,7 +780,19 @@ describe('portal mock search and document questions', () => {
       'mock-token:mock-document-participant',
     );
     await expect(sharedSearch.json()).resolves.toMatchObject({
-      results: [expect.objectContaining({ document_id: 'mock-document-1' })],
+      results: [expect.objectContaining({
+        document_id: 'mock-document-1',
+        chunk_index: 0,
+        file_name: 'Lease Agreement.pdf',
+        created_at: '2026-07-10T09:00:00.000Z',
+        register_reference: {
+          doc_no: 1,
+          page_no: 1,
+          book_number: 1,
+          series_year: 2026,
+          label: 'Doc. No. 1, Page No. 1, Book No. 1, Series of 2026',
+        },
+      })],
     });
     expect((await scopedMock.mockPortalMutate(
       'POST',

@@ -5388,6 +5388,30 @@
           "score": {
             "type": "number",
             "title": "Score"
+          },
+          "file_name": {
+            "type": "string",
+            "title": "File Name",
+            "description": "Display name of the document"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At",
+            "description": "When the document was created"
+          },
+          "register_reference": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RegisterReference"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Register Reference",
+            "description": "Where the document is filed; null if not in a register",
+            "default": null
           }
         },
         "type": "object",
@@ -5395,7 +5419,9 @@
           "chunk_id",
           "document_id",
           "chunk_index",
-          "score"
+          "score",
+          "file_name",
+          "created_at"
         ],
         "title": "GlobalSearchHit"
       },

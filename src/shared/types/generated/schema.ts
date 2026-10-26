@@ -2170,6 +2170,23 @@ export interface components {
             chunk_index: number;
             /** Score */
             score: number;
+            /**
+             * File Name
+             * @description Display name of the document
+             */
+            file_name: string;
+            /**
+             * Created At
+             * Format: date-time
+             * @description When the document was created
+             */
+            created_at: string;
+            /**
+             * Register Reference
+             * @description Where the document is filed; null if not in a register
+             * @default null
+             */
+            register_reference: components["schemas"]["RegisterReference"] | null;
         };
         /** GlobalSearchResponse */
         GlobalSearchResponse: {
