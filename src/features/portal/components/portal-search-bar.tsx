@@ -7,6 +7,8 @@ import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile';
 import type { PortalSearchHit } from "@/features/access";
 import { searchPortalDocuments } from '@/features/documents/search-api';
 
+const recordDateFormat = new Intl.DateTimeFormat('en-US', { dateStyle: 'medium', timeZone: 'UTC' });
+
 export function PortalSearchBar() {
   const router = useRouter();
   const [input, setInput] = useState('');
@@ -103,8 +105,8 @@ export function PortalSearchBar() {
           onChange={(e) => onChange(e.target.value)}
           onKeyDown={onKeyDown}
           onFocus={() => { if (results.length > 0) setOpen(true); }}
-          placeholder="Search documents..."
-          aria-label="Search documents"
+          placeholder="Quick text search…"
+          aria-label="Quick text search"
           role="combobox"
           aria-expanded={open}
           aria-controls="search-results"
@@ -118,7 +120,7 @@ export function PortalSearchBar() {
         <ul
           id="search-results"
           role="listbox"
-          className="absolute left-0 right-0 top-full mt-1 max-h-64 overflow-y-auto rounded-xl border border-[var(--portal-border-soft)] bg-white shadow-lg z-50"
+          className="absolute left-0 top-full mt-1 w-[min(28rem,calc(100vw-2rem))] max-h-64 overflow-y-auto rounded-xl border border-[var(--portal-border-soft)] bg-white shadow-lg z-50"
         >
           {loading ? (
             <li role="status" className="px-3 py-4 text-center text-sm text-[var(--portal-text-muted)]">Searching…</li>
@@ -137,14 +139,16 @@ export function PortalSearchBar() {
                 onMouseEnter={() => setSelectedIndex(i)}
                 className={`cursor-pointer px-3 py-2.5 text-sm ${i === selectedIndex ? 'bg-[#EAF4FF]' : 'hover:bg-[#F5F8FA]'}`}
               >
-                <div className="flex items-center gap-2">
+                <div className="flex min-w-0 items-start gap-2">
                   <InsertDriveFileIcon sx={{ fontSize: 16, color: '#0985E7' }} />
-                  <p className="font-semibold text-[var(--portal-navy)]">
-                    Document ID: {hit.document_id}
-                  </p>
+                  <p className="min-w-0 break-words font-semibold text-[var(--portal-navy)]">{hit.file_name}</p>
                 </div>
-                <p className="mt-0.5 text-xs text-[var(--portal-text-muted)]">Chunk ID: {hit.chunk_id}</p>
-                <p className="mt-0.5 text-xs text-[var(--portal-text-muted)]">Chunk index: {hit.chunk_index} · Score: {hit.score}</p>
+                <p className="mt-0.5 text-xs text-[var(--portal-text-muted)]">
+                  Document created: <time dateTime={hit.created_at}>{recordDateFormat.format(new Date(hit.created_at))}</time>
+                </p>
+                {hit.register_reference && (
+                  <p className="mt-0.5 break-words text-xs text-[var(--portal-text-muted)]">Register reference: {hit.register_reference.label}</p>
+                )}
                 {hit.text?.trim() && <p className="mt-0.5 line-clamp-2 text-xs text-[var(--portal-text-muted)]">{hit.text}</p>}
               </li>
             ))

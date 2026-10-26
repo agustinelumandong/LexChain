@@ -135,6 +135,8 @@ describe('portal mock mutations', () => {
     await expect(mockPortalGet('/documents/mock-document-2/verify', 'mock-token:mock-document-issuer').json()).resolves.toMatchObject({
       document_id: 'mock-document-2',
       is_authentic: true,
+      tamper_report_status: 'NOT_APPLICABLE',
+      tamper_report: null,
     });
     const repository = await mockPortalGet('/documents/', 'mock-token:mock-document-issuer').json() as Array<{ document_id: string; on_chain: boolean }>;
     expect(repository.filter((document) => document.on_chain)).toHaveLength(5);
@@ -160,7 +162,11 @@ describe('portal mock mutations', () => {
 
   it('restores a mismatched finalized document from its retained snapshot with a reason', async () => {
     const integrity = mockPortalGet('/documents/mock-document-3/verify', 'mock-token:mock-document-issuer');
-    await expect(integrity.json()).resolves.toMatchObject({ is_authentic: false });
+    await expect(integrity.json()).resolves.toMatchObject({
+      is_authentic: false,
+      tamper_report_status: 'UNAVAILABLE',
+      tamper_report: null,
+    });
     const sourceSnapshots = await mockPortalGet('/documents/mock-document-3/snapshots', 'mock-token:mock-document-issuer').json();
     const blankReason = await mockPortalMutate(
       'POST',
@@ -211,13 +217,23 @@ describe('portal mock mutations', () => {
       status: 'TAMPERED',
       is_authentic: false,
       baseline_trusted: true,
+      tamper_report_status: 'AVAILABLE',
       tamper_report: {
+        localized: true,
         total_changes: 1,
         critical_changes: 1,
+        replaced: 1,
+        inserted: 0,
+        deleted: 0,
+        similarity: 0.72,
+        truncated: false,
         segments: [expect.objectContaining({
-          index: 3,
-          text: 'Price: PHP 10,000,000.00',
+          type: 'replace',
+          severity: 'critical',
+          reason: 'The sale price increased substantially.',
           original_text: 'Price: PHP 2,750,000.00',
+          current_text: 'Price: PHP 10,000,000.00',
+          location: 'current',
           bbox: [100, 520, 700, 565],
           page_idx: 0,
         })],
@@ -402,6 +418,34 @@ describe('portal mock document isolation', () => {
 });
 
 describe('portal mock books', () => {
+  it('lists the book’s recorded documents in register order with pagination and lawyer access', async () => {
+    vi.resetModules();
+    const freshMock = await import('@/lib/mocks/portal');
+    const issuerToken = 'mock-token:mock-document-issuer';
+    const response = freshMock.mockPortalGet('/books/mock-book-1/entries?limit=50&offset=0', issuerToken);
+
+    expect(response.status).toBe(200);
+    const result = await response.json() as {
+      book: { id: string; entry_count: number };
+      entries: Array<{ id: string; file_name: string; doc_no: number; page_no: number; lifecycle: string; status: string | null }>;
+    };
+    expect(result.book).toMatchObject({ id: 'mock-book-1', entry_count: 2 });
+    expect(result.entries.map(({ id, doc_no, page_no }) => [id, doc_no, page_no])).toEqual([
+      ['mock-document-1', 1, 1],
+      ['mock-document-2', 2, 2],
+    ]);
+    expect(result.entries[0]).toMatchObject({ file_name: 'Lease Agreement.pdf', lifecycle: 'FINALIZED', status: 'ANCHORED' });
+    expect(result.entries[1].status).toBeNull();
+
+    await expect(freshMock.mockPortalGet('/books/mock-book-1/entries?limit=1&offset=1', issuerToken).json()).resolves.toMatchObject({
+      entries: [{ id: 'mock-document-2', doc_no: 2, page_no: 2 }],
+    });
+    expect(freshMock.mockPortalGet('/books/mock-book-1/entries', 'mock-token:mock-document-participant').status).toBe(403);
+    expect(freshMock.mockPortalGet('/books/missing/entries', issuerToken).status).toBe(404);
+    expect(freshMock.mockPortalGet('/books/mock-book-1/entries?limit=0', issuerToken).status).toBe(422);
+    expect(freshMock.mockPortalGet('/books/mock-book-1/entries?offset=-1', issuerToken).status).toBe(422);
+  });
+
   it('lists the latest PDF version first when an issuer renames and updates within the same millisecond', async () => {
     vi.spyOn(Date.prototype, 'toISOString').mockReturnValue('2026-09-14T00:00:00.000Z');
     const uploadForm = new FormData();
@@ -440,11 +484,13 @@ describe('portal mock books', () => {
   });
 
   it('lists active issuer books and creates a book that can be used for upload', async () => {
-    const initial = mockPortalGet('/books/?limit=50&offset=0', 'mock-token:mock-document-issuer');
+    vi.resetModules();
+    const freshMock = await import('@/lib/mocks/portal');
+    const initial = freshMock.mockPortalGet('/books/?limit=50&offset=0', 'mock-token:mock-document-issuer');
     expect(initial.status).toBe(200);
     await expect(initial.json()).resolves.toContainEqual(expect.objectContaining({ id: 'mock-book-1', is_full: false }));
 
-    const created = await mockPortalMutate(
+    const created = await freshMock.mockPortalMutate(
       'POST',
       '/books/',
       new Request('https://mock.lexchain.local/api/portal/proxy-post', {
@@ -461,13 +507,18 @@ describe('portal mock books', () => {
 
     const form = new FormData();
     form.append('file', new File(['PDF'], 'registered-book.pdf', { type: 'application/pdf' }));
-    const upload = await mockPortalMutate(
+    const upload = await freshMock.mockPortalMutate(
       'POST',
       `/documents/upload?book_id=${book.id}&file_name=Registered%20book`,
       new Request('https://mock.lexchain.local/api/portal/proxy-post', { method: 'POST', body: form }),
       'mock-token:mock-document-issuer',
     );
     expect(upload.status).toBe(201);
+
+    await expect(freshMock.mockPortalGet(`/books/${book.id}/entries?limit=50&offset=0`, 'mock-token:mock-document-issuer').json()).resolves.toMatchObject({
+      book: { entry_count: 1 },
+      entries: [],
+    });
   });
 
   it('denies participant book access and book registration', async () => {
@@ -685,7 +736,13 @@ describe('portal mock search and document questions', () => {
       'mock-token:mock-document-issuer',
     );
     await expect(issuerSearch.json()).resolves.toMatchObject({
-      results: [expect.objectContaining({ document_id: 'mock-document-3' })],
+      results: [expect.objectContaining({
+        document_id: 'mock-document-3',
+        chunk_index: 0,
+        file_name: 'Restoration Review.pdf',
+        created_at: '2026-07-15T10:00:00.000Z',
+        register_reference: null,
+      })],
     });
     expect((await scopedMock.mockPortalMutate(
       'POST',
@@ -723,7 +780,19 @@ describe('portal mock search and document questions', () => {
       'mock-token:mock-document-participant',
     );
     await expect(sharedSearch.json()).resolves.toMatchObject({
-      results: [expect.objectContaining({ document_id: 'mock-document-1' })],
+      results: [expect.objectContaining({
+        document_id: 'mock-document-1',
+        chunk_index: 0,
+        file_name: 'Lease Agreement.pdf',
+        created_at: '2026-07-10T09:00:00.000Z',
+        register_reference: {
+          doc_no: 1,
+          page_no: 1,
+          book_number: 1,
+          series_year: 2026,
+          label: 'Doc. No. 1, Page No. 1, Book No. 1, Series of 2026',
+        },
+      })],
     });
     expect((await scopedMock.mockPortalMutate(
       'POST',

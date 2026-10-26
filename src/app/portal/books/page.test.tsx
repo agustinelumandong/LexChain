@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import BooksPage from '@/features/office/pages/books-page';
 import { PortalRoleProvider } from '@/features/access/components';
@@ -38,6 +38,24 @@ const emptyBook = {
   last_page_no: null,
 };
 
+const entry = {
+  id: 'document-1',
+  file_name: 'Deed of Sale.pdf',
+  doc_no: 11,
+  page_no: 17,
+  lifecycle: 'FINALIZED',
+  status: 'COMPLETED',
+};
+
+const secondEntry = {
+  ...entry,
+  id: 'document-2',
+  file_name: 'Affidavit.pdf',
+  doc_no: 12,
+  page_no: 18,
+  status: null,
+};
+
 vi.mock('sonner', () => ({ toast: { success: vi.fn() } }));
 
 function renderPage(roleHint?: string) {
@@ -56,25 +74,102 @@ describe('BooksPage', () => {
     vi.restoreAllMocks();
   });
 
-  it('shows API-backed book details when requested', async () => {
+  it('lists a book’s API-backed entries and links each one to document details', async () => {
     const fetchMock = vi.fn((input: RequestInfo | URL) => {
       const url = String(input);
       if (url.includes('%2Fbooks%2F%3Flimit')) return Promise.resolve(Response.json([book]));
-      if (url.includes('%2Fbooks%2Fbook-1')) return Promise.resolve(Response.json(book));
+      if (url.includes('%2Fbooks%2Fbook-1%2Fentries')) return Promise.resolve(Response.json({ book, entries: [entry, secondEntry] }));
       return Promise.resolve(new Response(null, { status: 404 }));
     });
     vi.stubGlobal('fetch', fetchMock);
 
     renderPage('lawyer');
-    fireEvent.click(await screen.findByRole('button', { name: 'View details for Book 1' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Open entries for Book 1' }));
 
-    expect(await screen.findByRole('dialog', { name: 'Book details' })).toBeTruthy();
-    expect(await screen.findByText('Book details')).toBeTruthy();
-    expect(screen.getByText('Status: Open')).toBeTruthy();
-    expect(screen.getByText('Entries: 2')).toBeTruthy();
-    expect(screen.getByText('Last filing: Doc. 12 · Page 18')).toBeTruthy();
-    expect(screen.getByText('Created Jul 1, 2026')).toBeTruthy();
+    const dialog = screen.getByRole('dialog', { name: 'Book entries' });
+    await within(dialog).findByRole('heading', { name: 'Book 1' });
+    expect(within(dialog).getByRole('heading', { name: 'Book 1' })).toBeTruthy();
+    expect(within(dialog).getByText('Open')).toBeTruthy();
+    expect(within(dialog).getByText('Showing 1–2 of 2 entries')).toBeTruthy();
+    expect(within(dialog).getByText('Doc. 11 · Page 17')).toBeTruthy();
+    expect(within(dialog).getByText('Created').nextElementSibling?.textContent).toBe('Jul 1, 2026');
+    expect(within(dialog).getByText('Only documents recorded in LexChain appear here. Paper-only register lines are outside this list.')).toBeTruthy();
+    const documentLink = within(dialog).getByRole('link', { name: /Deed of Sale\.pdf/ });
+    expect(within(documentLink).getByText('Lifecycle: Finalized')).toBeTruthy();
+    expect(within(documentLink).getByText('Processing status: Completed')).toBeTruthy();
+    expect(documentLink.getAttribute('href')).toBe('/portal/documents/document-1');
+    const notYetProcessedLink = within(dialog).getByRole('link', { name: /Affidavit\.pdf/ });
+    expect(within(notYetProcessedLink).getByText('Processing status: No processing status yet')).toBeTruthy();
+    expect(fetchMock).toHaveBeenCalledWith('/api/portal/proxy?path=%2Fbooks%2Fbook-1%2Fentries%3Flimit%3D50%26offset%3D0', expect.objectContaining({ credentials: 'same-origin' }));
     expect(fetchMock).not.toHaveBeenCalledWith(expect.stringContaining('%2Fusers%2F'), expect.anything());
+  });
+
+  it('shows an empty state for a book with no recorded documents', async () => {
+    vi.stubGlobal('fetch', vi.fn((input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes('%2Fbooks%2F%3Flimit')) return Promise.resolve(Response.json([emptyBook]));
+      if (url.includes('%2Fbooks%2Fbook-empty%2Fentries')) return Promise.resolve(Response.json({ book: emptyBook, entries: [] }));
+      return Promise.resolve(new Response(null, { status: 404 }));
+    }));
+
+    renderPage('lawyer');
+    fireEvent.click(await screen.findByRole('button', { name: 'Open entries for Book 3' }));
+
+    expect(await screen.findByText('No entries have been recorded in this book yet.')).toBeTruthy();
+    expect(screen.queryByRole('link')).toBeNull();
+    expect(screen.queryByRole('navigation', { name: 'Book entries pagination' })).toBeNull();
+  });
+
+  it('paginates through register entries and can return to the previous page', async () => {
+    const firstPage = Array.from({ length: 50 }, (_, index) => ({
+      ...entry,
+      id: `document-${index + 1}`,
+      file_name: `Document ${index + 1}.pdf`,
+      doc_no: index + 1,
+      page_no: index + 1,
+    }));
+    const lastEntry = { ...entry, id: 'document-51', file_name: 'Document 51.pdf', doc_no: 51, page_no: 1 };
+    const fetchMock = vi.fn((input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes('%2Fbooks%2F%3Flimit')) return Promise.resolve(Response.json([{ ...book, entry_count: 51 }]));
+      if (url.includes('offset%3D50')) return Promise.resolve(Response.json({ book: { ...book, entry_count: 51 }, entries: [lastEntry] }));
+      if (url.includes('%2Fbooks%2Fbook-1%2Fentries')) return Promise.resolve(Response.json({ book: { ...book, entry_count: 51 }, entries: firstPage }));
+      return Promise.resolve(new Response(null, { status: 404 }));
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    renderPage('lawyer');
+    fireEvent.click(await screen.findByRole('button', { name: 'Open entries for Book 1' }));
+    expect(await screen.findByRole('link', { name: /Document 1\.pdf/ })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+
+    expect(await screen.findByRole('link', { name: /Document 51\.pdf/ })).toBeTruthy();
+    expect(fetchMock).toHaveBeenCalledWith('/api/portal/proxy?path=%2Fbooks%2Fbook-1%2Fentries%3Flimit%3D50%26offset%3D50', expect.objectContaining({ credentials: 'same-origin' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Previous' }));
+    expect(await screen.findByRole('link', { name: /Document 1\.pdf/ })).toBeTruthy();
+  });
+
+  it('allows retrying when book entries fail to load', async () => {
+    let requests = 0;
+    vi.stubGlobal('fetch', vi.fn((input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes('%2Fbooks%2F%3Flimit')) return Promise.resolve(Response.json([book]));
+      if (url.includes('%2Fbooks%2Fbook-1%2Fentries')) {
+        requests += 1;
+        return Promise.resolve(requests === 1
+          ? Response.json({ detail: 'Service unavailable' }, { status: 503 })
+          : Response.json({ book, entries: [entry, secondEntry] }));
+      }
+      return Promise.resolve(new Response(null, { status: 404 }));
+    }));
+
+    renderPage('lawyer');
+    fireEvent.click(await screen.findByRole('button', { name: 'Open entries for Book 1' }));
+    expect(await screen.findByRole('alert')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
+
+    expect(await screen.findByRole('link', { name: /Deed of Sale\.pdf/ })).toBeTruthy();
+    expect(requests).toBe(2);
   });
 
   it('shows open and closed states with only backend-provided filing counts', async () => {
@@ -132,15 +227,17 @@ describe('BooksPage', () => {
       if (url.includes('%2Fbooks%2Fbook-1%2Fclose') && init?.method === 'POST') {
         return new Promise<Response>((resolve) => { resolveClose = resolve; });
       }
-      if (url.includes('%2Fbooks%2Fbook-1')) return Promise.resolve(Response.json(visibleBook));
+      if (url.includes('%2Fbooks%2Fbook-1%2Fentries')) return Promise.resolve(Response.json({ book: visibleBook, entries: [entry, secondEntry] }));
       return Promise.resolve(new Response(null, { status: 404 }));
     });
     vi.stubGlobal('fetch', fetchMock);
     vi.spyOn(window, 'confirm').mockReturnValue(true);
 
     renderPage('lawyer');
-    fireEvent.click(await screen.findByRole('button', { name: 'View details for Book 1' }));
-    expect(await screen.findByText('Status: Open')).toBeTruthy();
+    fireEvent.click(await screen.findByRole('button', { name: 'Open entries for Book 1' }));
+    const dialog = screen.getByRole('dialog', { name: 'Book entries' });
+    await within(dialog).findByText('Doc. 11 · Page 17');
+    expect(within(dialog).getByText('Open', { selector: 'span' })).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Close Book 1' }));
 
     const closeButton = await screen.findByRole('button', { name: 'Closing Book 1' }) as HTMLButtonElement;
@@ -150,8 +247,8 @@ describe('BooksPage', () => {
     visibleBook = { ...book, status: 'CLOSED', closed_at: '2026-08-01T08:00:00Z' };
     resolveClose(Response.json(visibleBook));
 
-    expect(await screen.findByText('Status: Closed')).toBeTruthy();
-    expect(screen.getByText('Closed Aug 1, 2026')).toBeTruthy();
+    expect(await within(dialog).findByText('Closed', { selector: 'span' })).toBeTruthy();
+    expect(within(dialog).getByText('Closed', { selector: 'dt' }).nextElementSibling?.textContent).toBe('Aug 1, 2026');
     expect(screen.queryByRole('button', { name: 'Close Book 1' })).toBeNull();
   });
 

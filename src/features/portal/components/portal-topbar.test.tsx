@@ -28,6 +28,13 @@ const actionableNotification = {
 };
 
 describe("PortalTopBar", () => {
+  it("links to exact register reference search from the top bar", () => {
+    render(<PortalTopBar {...sharedProps} role="user" />);
+
+    expect(screen.getByRole("link", { name: "Search by register reference" }).getAttribute("href"))
+      .toBe("/portal/search?mode=register");
+  });
+
   it("switches menus and dismisses them on Escape, outside taps, and focus leaving", () => {
     render(<PortalTopBar {...sharedProps} role="user" />);
     const account = screen.getByRole("button", { name: "Open account menu" });
@@ -43,7 +50,7 @@ describe("PortalTopBar", () => {
     fireEvent.pointerDown(document.body);
     expect(screen.queryByRole("link", { name: "Profile" })).toBeNull();
     fireEvent.click(account);
-    fireEvent.focusIn(screen.getByRole("combobox", { name: "Search documents" }));
+    fireEvent.focusIn(screen.getByRole("combobox", { name: "Quick text search" }));
     expect(screen.queryByRole("link", { name: "Profile" })).toBeNull();
   });
 

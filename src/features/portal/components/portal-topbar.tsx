@@ -3,6 +3,7 @@
 import { usePopup } from '@/shared/components/ui/use-popup';
 import Link from 'next/link';
 import LogoutIcon from '@mui/icons-material/Logout';
+import MenuBookOutlinedIcon from '@mui/icons-material/MenuBookOutlined';
 import NotificationsNoneOutlinedIcon from '@mui/icons-material/NotificationsNoneOutlined';
 import type { PortalUiRole } from "@/features/access";
 import { PortalSearchBar } from '@/features/portal/components/portal-search-bar';
@@ -42,6 +43,16 @@ export function PortalTopBar({ fullName, initials, roleLabel, role, processingCo
     <header className="sticky top-0 z-40 -mx-6 mb-6 border-b border-[var(--portal-border-soft)] bg-[var(--portal-surface)] px-4 md:px-6">
       <div className="flex min-h-16 items-center gap-3">
         <PortalSearchBar />
+        <Link
+          href="/portal/search?mode=register"
+          aria-label="Search by register reference"
+          title="Search by register reference"
+          className="inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-[var(--portal-border-soft)] bg-white px-2.5 py-2 text-xs font-bold text-[var(--portal-navy)] transition-colors hover:bg-[var(--portal-surface-soft)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0985E7] sm:px-3"
+        >
+          <MenuBookOutlinedIcon sx={{ fontSize: 17, color: '#0985E7' }} aria-hidden="true" />
+          <span className="sm:hidden">Register</span>
+          <span className="hidden sm:inline">Register reference</span>
+        </Link>
         {role === 'lawyer' ? (
           <Link
             href="/portal/dashboard"

@@ -77,6 +77,7 @@ type MockBook = {
 };
 
 type ExtractionBlock = ApiSchema<'ExtractionBlock'>;
+type TamperSegment = ApiSchema<'TamperSegment'>;
 type ExtractionFlag = ApiSchema<'ExtractionFlag'>;
 type ExtractionReview = ApiSchema<'ExtractionReviewResponse'>;
 type UpdateExtractionRequest = ApiSchema<'UpdateExtractionRequest'>;
@@ -134,6 +135,9 @@ let documents: MockDocument[] = [
     id: 'mock-document-1',
     document_id: 'mock-document-1',
     document_number: 1001,
+    book_id: 'mock-book-1',
+    doc_no: 1,
+    page_no: 1,
     file_name: 'Lease Agreement.pdf',
     storage_url: '/mock-documents/lease-agreement.pdf',
     content_type: 'application/pdf',
@@ -164,6 +168,9 @@ let documents: MockDocument[] = [
     id: 'mock-document-2',
     document_id: 'mock-document-2',
     document_number: 1002,
+    book_id: 'mock-book-1',
+    doc_no: 2,
+    page_no: 2,
     file_name: 'Certificate of Employment.pdf',
     storage_url: '/mock-documents/certificate-of-employment.pdf',
     content_type: 'application/pdf',
@@ -288,6 +295,9 @@ documents.push({
   id: 'mock-document-retry',
   document_id: 'mock-document-retry',
   document_number: 1006,
+  book_id: null,
+  doc_no: null,
+  page_no: null,
   file_name: 'Failed processing example.pdf',
   status: 'FAILED',
   on_chain: true,
@@ -596,6 +606,30 @@ export function mockPortalGet(path: string, token?: string): Response {
     if (!hasMockIssuerAccess(token)) return error('Lawyer access required', 403);
     return json(books);
   }
+  const bookEntriesMatch = requestPathname.match(/^\/books\/([^/]+)\/entries\/?$/);
+  if (bookEntriesMatch) {
+    if (!hasMockIssuerAccess(token)) return error('Lawyer access required', 403);
+    const book = books.find((candidate) => candidate.id === bookEntriesMatch[1]);
+    if (!book) return error('Book not found', 404);
+    const params = new URL(path, 'https://mock.lexchain.local').searchParams;
+    const limit = Number(params.get('limit') ?? 50);
+    const offset = Number(params.get('offset') ?? 0);
+    if (!Number.isInteger(limit) || limit < 1 || limit > 100 || !Number.isInteger(offset) || offset < 0) {
+      return error('Invalid pagination parameters', 422);
+    }
+    const entries = documents.flatMap((document) => {
+      if (document.book_id !== book.id || document.doc_no == null || document.page_no == null) return [];
+      return [{
+        id: document.id,
+        file_name: document.file_name,
+        doc_no: document.doc_no,
+        page_no: document.page_no,
+        lifecycle: document.lifecycle === 'draft' ? 'PREPARING' : 'FINALIZED',
+        status: document.status?.toUpperCase() ?? null,
+      }];
+    }).sort((left, right) => left.doc_no - right.doc_no || left.page_no - right.page_no || left.id.localeCompare(right.id));
+    return json({ book, entries: entries.slice(offset, offset + limit) });
+  }
   const bookMatch = requestPathname.match(/^\/books\/([^/]+)\/?$/);
   if (bookMatch) {
     if (!hasMockIssuerAccess(token)) return error('Lawyer access required', 403);
@@ -693,22 +727,28 @@ export function mockPortalGet(path: string, token?: string): Response {
         status: 'NOT_ANCHORED',
         is_authentic: false,
         baseline_trusted: false,
+        tamper_report_status: 'NOT_APPLICABLE',
         verified_at: new Date().toISOString(),
         message: 'This document has not been finalized and anchored yet.',
       });
       const isAuthentic = document.integrity_state !== 'mismatch';
-      const changedPrice: ExtractionBlock = {
-        index: 3,
-        editable: true,
-        type: 'text',
-        text: 'Price: PHP 10,000,000.00',
+      const hasTextComparison = document.id === 'mock-document-5';
+      const changedPrice: TamperSegment = {
+        type: 'replace',
+        severity: 'critical',
+        reason: 'The sale price increased substantially.',
         original_text: 'Price: PHP 2,750,000.00',
+        current_text: 'Price: PHP 10,000,000.00',
+        original_line_start: 4,
+        original_line_end: 4,
+        current_line_start: 4,
+        current_line_end: 4,
+        block_index: 3,
+        original_block_index: 3,
+        location: 'current',
         bbox: [100, 520, 700, 565],
         page_idx: 0,
-        text_level: null,
-        score: 0.94,
-        is_html: false,
-        edited: false,
+        word_diff: [],
       };
       return json({
         document_id: document.id,
@@ -724,11 +764,21 @@ export function mockPortalGet(path: string, token?: string): Response {
         issued_by: '0xMockIssuer',
         finalized_at: document.updated_at,
         verified_at: new Date().toISOString(),
-        tamper_report: isAuthentic ? null : {
+        tamper_report_status: isAuthentic ? 'NOT_APPLICABLE' : hasTextComparison ? 'AVAILABLE' : 'UNAVAILABLE',
+        tamper_report_unavailable_reason: !isAuthentic && !hasTextComparison
+          ? 'Text comparison is not available for this mock document.'
+          : null,
+        tamper_report: !isAuthentic && hasTextComparison ? {
+          localized: true,
           total_changes: 1,
-          critical_changes: document.id === 'mock-document-5' ? 1 : 0,
-          segments: document.id === 'mock-document-5' ? [changedPrice] : [],
-        },
+          critical_changes: 1,
+          replaced: 1,
+          inserted: 0,
+          deleted: 0,
+          similarity: 0.72,
+          truncated: false,
+          segments: [changedPrice],
+        } : null,
         message: isAuthentic ? 'Document matches the anchored hash.' : 'Document content differs from the anchored hash.',
       });
     }
@@ -934,12 +984,29 @@ async function searchDocuments(request: Request, token?: string) {
   const results = documents
     .filter((document) => canAccessDocument(token, document))
     .filter((document) => `${document.file_name} ${document.summary} ${document.labels.join(' ')} ${reviewedExtractionText(document.id)}`.toLowerCase().includes(normalized))
-    .map((document) => ({
-      chunk_id: `mock-search-${document.id}`,
-      document_id: document.id,
-      text: reviewedExtractionText(document.id).toLowerCase().includes(normalized) ? reviewedExtractionText(document.id) : document.summary,
-      score: 0.95,
-    }));
+    .map((document) => {
+      const book = books.find((candidate) => candidate.id === document.book_id);
+      const registerReference = book && document.doc_no != null && document.page_no != null
+        ? {
+          doc_no: document.doc_no,
+          page_no: document.page_no,
+          book_number: book.book_number,
+          series_year: book.series_year,
+          label: `Doc. No. ${document.doc_no}, Page No. ${document.page_no}, Book No. ${book.book_number}, Series of ${book.series_year}`,
+        }
+        : null;
+
+      return {
+        chunk_id: `mock-search-${document.id}`,
+        document_id: document.id,
+        chunk_index: 0,
+        text: reviewedExtractionText(document.id).toLowerCase().includes(normalized) ? reviewedExtractionText(document.id) : document.summary,
+        score: 0.95,
+        file_name: document.file_name,
+        created_at: document.created_at,
+        register_reference: registerReference,
+      };
+    });
   return json({ query, results });
 }
 
