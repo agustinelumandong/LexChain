@@ -2220,8 +2220,17 @@ export interface components {
              * @description When the document was created
              */
             created_at: string;
+<<<<<<< HEAD
             /** @description Where the document is filed; null if not in a register */
             register_reference?: components["schemas"]["RegisterReference"] | null;
+=======
+            /**
+             * Register Reference
+             * @description Where the document is filed; null if not in a register
+             * @default null
+             */
+            register_reference: components["schemas"]["RegisterReference"] | null;
+>>>>>>> 67111508d9ea9566b83ddc17aa2d123330268e41
         };
         /** GlobalSearchResponse */
         GlobalSearchResponse: {

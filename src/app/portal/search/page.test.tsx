@@ -34,19 +34,55 @@ afterEach(() => {
 });
 
 describe('SearchPage', () => {
-  it('renders documented identifiers and score, opens the matching document, and omits absent snippets', async () => {
+  it('shows human-readable record details alongside match data and opens the document', async () => {
     fetchMock.mockResolvedValue(Response.json({
       query: 'lease',
-      results: [{ chunk_id: 'chunk-1', document_id: 'document-12345678', chunk_index: 3, score: 0.87 }],
+      results: [{
+        chunk_id: 'chunk-1',
+        document_id: 'document-12345678',
+        chunk_index: 3,
+        score: 0.87,
+        file_name: 'Lease Agreement.pdf',
+        created_at: '2026-10-20T00:00:00Z',
+        register_reference: {
+          doc_no: 12,
+          page_no: 7,
+          book_number: 3,
+          series_year: 2026,
+          label: 'Doc. No. 12, Page No. 7, Book No. 3, Series of 2026',
+        },
+      }],
     }));
     await renderSearch('lease');
 
-    const result = await screen.findByRole('link', { name: /Document ID: document-12345678/ });
+    const result = await screen.findByRole('link', { name: /Lease Agreement\.pdf/ });
     expect(result.getAttribute('href')).toBe('/portal/documents/document-12345678');
+    expect(result.textContent).toContain('Document created: Oct 20, 2026');
+    expect(result.textContent).toContain('Doc. No. 12, Page No. 7, Book No. 3, Series of 2026');
+    expect(result.textContent).toContain('Document ID: document-12345678');
     expect(result.textContent).toContain('Chunk index: 3');
     expect(result.textContent).toContain('Score: 0.87');
     expect(result.textContent).not.toContain('undefined');
-    expect(result.querySelector('p')).toBeNull();
+  });
+
+  it('omits the register line for an unregistered global-search result', async () => {
+    fetchMock.mockResolvedValue(Response.json({
+      query: 'draft',
+      results: [{
+        chunk_id: 'chunk-2',
+        document_id: 'document-87654321',
+        chunk_index: 0,
+        score: 0.81,
+        file_name: 'Unfiled draft.pdf',
+        created_at: '2026-10-21T00:00:00Z',
+        register_reference: null,
+      }],
+    }));
+    await renderSearch('draft');
+
+    expect(await screen.findByRole('heading', { name: 'Unfiled draft.pdf' })).toBeTruthy();
+    expect(screen.getByText(/Document created:/).textContent).toContain('Oct 21, 2026');
+    expect(screen.queryByText(/Register reference:/)).toBeNull();
   });
 
   it('shows no matches separately from a service failure', async () => {

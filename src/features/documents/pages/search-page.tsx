@@ -140,13 +140,21 @@ export default function SearchPage({
                     href={`/portal/documents/${result.document_id}`}
                     className="block rounded-[18px] border border-[#E8F0F8] bg-white p-4 transition hover:border-[#0985E7] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0985E7]"
                   >
-                    <div className="mb-2 flex flex-wrap items-center gap-2">
+                    <div className="flex min-w-0 items-start gap-2">
                       <InsertDriveFileIcon sx={{ fontSize: 16, color: '#0985E7' }} aria-hidden="true" />
-                      <span className="text-xs font-black text-[#0985E7]">Document ID: {result.document_id}</span>
-                      <span className="text-[11px] font-semibold text-[#64748b]">Chunk ID: {result.chunk_id}</span>
-                      <span className="text-[11px] font-semibold text-[#64748b]">Chunk index: {result.chunk_index}</span>
-                      <span className="ml-auto text-[11px] font-bold text-[#A0AAB8]">Score: {result.score}</span>
+                      <h2 className="min-w-0 break-words text-sm font-black text-[#0C2B49]">{result.file_name}</h2>
                     </div>
+                    <p className="mt-1 text-xs font-semibold text-[#64748b]">
+                      Document created: <time dateTime={result.created_at}>{recordDateFormat.format(new Date(result.created_at))}</time>
+                    </p>
+                    {result.register_reference && (
+                      <p className="mt-1 break-words text-xs font-semibold text-[#64748b]">
+                        Register reference: <span className="font-bold text-[#0C2B49]">{result.register_reference.label}</span>
+                      </p>
+                    )}
+                    <p className="mt-1 break-words text-[11px] font-semibold text-[#64748b]">
+                      Document ID: {result.document_id} · Chunk ID: {result.chunk_id} · Chunk index: {result.chunk_index} · Score: {result.score}
+                    </p>
                     {result.text?.trim() && <p className="line-clamp-3 text-sm text-[#0C2B49]">{result.text}</p>}
                   </Link>
                 ))}

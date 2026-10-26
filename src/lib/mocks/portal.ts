@@ -984,12 +984,29 @@ async function searchDocuments(request: Request, token?: string) {
   const results = documents
     .filter((document) => canAccessDocument(token, document))
     .filter((document) => `${document.file_name} ${document.summary} ${document.labels.join(' ')} ${reviewedExtractionText(document.id)}`.toLowerCase().includes(normalized))
-    .map((document) => ({
-      chunk_id: `mock-search-${document.id}`,
-      document_id: document.id,
-      text: reviewedExtractionText(document.id).toLowerCase().includes(normalized) ? reviewedExtractionText(document.id) : document.summary,
-      score: 0.95,
-    }));
+    .map((document) => {
+      const book = books.find((candidate) => candidate.id === document.book_id);
+      const registerReference = book && document.doc_no != null && document.page_no != null
+        ? {
+          doc_no: document.doc_no,
+          page_no: document.page_no,
+          book_number: book.book_number,
+          series_year: book.series_year,
+          label: `Doc. No. ${document.doc_no}, Page No. ${document.page_no}, Book No. ${book.book_number}, Series of ${book.series_year}`,
+        }
+        : null;
+
+      return {
+        chunk_id: `mock-search-${document.id}`,
+        document_id: document.id,
+        chunk_index: 0,
+        text: reviewedExtractionText(document.id).toLowerCase().includes(normalized) ? reviewedExtractionText(document.id) : document.summary,
+        score: 0.95,
+        file_name: document.file_name,
+        created_at: document.created_at,
+        register_reference: registerReference,
+      };
+    });
   return json({ query, results });
 }
 
