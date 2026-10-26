@@ -1,11 +1,71 @@
 {
   "version": 1,
   "skills": {
+    "algorithmic-color-palette": {
+      "source": "dembrandt/dembrandt-skills",
+      "sourceType": "github",
+      "skillPath": "skills/algorithmic-color-palette/SKILL.md",
+      "computedHash": "16c854bd5cdb1586108ea6de72a4b180fb6cccbf409882539c1d5f8b190f1f75"
+    },
+    "app-shell": {
+      "source": "dembrandt/dembrandt-skills",
+      "sourceType": "github",
+      "skillPath": "skills/app-shell/SKILL.md",
+      "computedHash": "8db49201c1976ca29f9784d7d68070110c6bb398f845162aedaa15606ec5ffd1"
+    },
     "ask-matt": {
       "source": "mattpocock/skills",
       "sourceType": "github",
       "skillPath": "skills/engineering/ask-matt/SKILL.md",
       "computedHash": "9eead017d1708983aea08e98edc915defe7bf23719ac053ca98ab53dc518bd52"
+    },
+    "authentic-product-representation": {
+      "source": "dembrandt/dembrandt-skills",
+      "sourceType": "github",
+      "skillPath": "skills/authentic-product-representation/SKILL.md",
+      "computedHash": "1f5328879b171eeecf94a644e39ad4607db6f6c254024da5781f0ed9838f8652"
+    },
+    "awwwards-doctor": {
+      "source": "INSANE0777/Awwwards-mcp",
+      "sourceType": "github",
+      "skillPath": "skills/awwwards-doctor/SKILL.md",
+      "computedHash": "78cabd25094a3d40c759ba5cda126ef1690b4889bde815beeeaf745e7d6f6698"
+    },
+    "awwwards-inspiration": {
+      "source": "INSANE0777/Awwwards-mcp",
+      "sourceType": "github",
+      "skillPath": "skills/awwwards-inspiration/SKILL.md",
+      "computedHash": "a94086e1da34681206695cf611ff930cb34f83fc0988f11a5824ecfb75129879"
+    },
+    "awwwards-motion-study": {
+      "source": "INSANE0777/Awwwards-mcp",
+      "sourceType": "github",
+      "skillPath": "skills/awwwards-motion-study/SKILL.md",
+      "computedHash": "5088a5075eb450a3790c1cb47b4505306483e4c985494f98a9e36adde4c05b09"
+    },
+    "awwwards-section-loop": {
+      "source": "INSANE0777/Awwwards-mcp",
+      "sourceType": "github",
+      "skillPath": "skills/awwwards-section-loop/SKILL.md",
+      "computedHash": "b2fd71c594c8e3edeb74a207a21e55af4cc6126fd309694b08b983754ae433dd"
+    },
+    "awwwards-setup": {
+      "source": "INSANE0777/Awwwards-mcp",
+      "sourceType": "github",
+      "skillPath": "skills/awwwards-setup/SKILL.md",
+      "computedHash": "9a8a6fca32667d9b6635274866cf0a2ccb90056d9315c9429bbbcfe54a61bf17"
+    },
+    "brand-visual-language": {
+      "source": "dembrandt/dembrandt-skills",
+      "sourceType": "github",
+      "skillPath": "skills/brand-visual-language/SKILL.md",
+      "computedHash": "bb65ec54941d4442e557df5945a9116f56d7217b01fa131e0d79fb0955a1a199"
+    },
+    "button-states": {
+      "source": "dembrandt/dembrandt-skills",
+      "sourceType": "github",
+      "skillPath": "skills/button-states/SKILL.md",
+      "computedHash": "3bc79603120439eb5eb7a9f63de0db00a64c4fca92da3d30617e527ffba7e874"
     },
     "caveman": {
       "source": "mattpocock/skills",
@@ -25,6 +85,12 @@
       "skillPath": "skills/in-progress/claude-handoff/SKILL.md",
       "computedHash": "7286edfcb9237c72b3bd96cdab1d6a515f529b25380923569924b96d2d265701"
     },
+    "clone-website": {
+      "source": "dembrandt/dembrandt-skills",
+      "sourceType": "github",
+      "skillPath": "skills/clone-website/SKILL.md",
+      "computedHash": "e662f6e5ce544aebf4fca3b246ce3833b7df1a4dee896e6d3593e16a8f027b26"
+    },
     "code-review": {
       "source": "mattpocock/skills",
       "sourceType": "github",
@@ -36,6 +102,36 @@
       "sourceType": "github",
       "skillPath": "skills/engineering/codebase-design/SKILL.md",
       "computedHash": "fb1d8ab98ad151551eeade003e3ae55a46578a380fd9fc3ed4dbf9c2fbce0a9f"
+    },
+    "color-mode-and-theme": {
+      "source": "dembrandt/dembrandt-skills",
+      "sourceType": "github",
+      "skillPath": "skills/color-mode-and-theme/SKILL.md",
+      "computedHash": "4416a107a02d9225325456f11b6878b27852c38ac4be8cc402265bdb3733d4a1"
+    },
+    "component-family-consistency": {
+      "source": "dembrandt/dembrandt-skills",
+      "sourceType": "github",
+      "skillPath": "skills/component-family-consistency/SKILL.md",
+      "computedHash": "4bf09829e0fa1256e49b56314b3e246520044a957945131744935a3126255a92"
+    },
+    "coordinated-data-views": {
+      "source": "dembrandt/dembrandt-skills",
+      "sourceType": "github",
+      "skillPath": "skills/coordinated-data-views/SKILL.md",
+      "computedHash": "196fba6d2fa59364a057a09d2ba87edf75a298df9b8390f10a6edead915bfc67"
+    },
+    "data-display-and-selection": {
+      "source": "dembrandt/dembrandt-skills",
+      "sourceType": "github",
+      "skillPath": "skills/data-display-and-selection/SKILL.md",
+      "computedHash": "0e8e8bab9943d04187cb9a30403bf59feb40c50e320086b1627bb500f412b5a9"
+    },
+    "dembrandt": {
+      "source": "dembrandt/dembrandt-skills",
+      "sourceType": "github",
+      "skillPath": "skills/dembrandt/SKILL.md",
+      "computedHash": "b870ebe6eb784c995110bd5268b28ba1ee05e99e9b6fc50c3b26be6a6fe996b9"
     },
     "design-an-interface": {
       "source": "mattpocock/skills",
@@ -55,6 +151,12 @@
       "skillPath": "skills/engineering/diagnosing-bugs/SKILL.md",
       "computedHash": "aec3686657177071076dc1586c22cdf95137c230bc74cbb5d069903d73804817"
     },
+    "domain-expert-configuration": {
+      "source": "dembrandt/dembrandt-skills",
+      "sourceType": "github",
+      "skillPath": "skills/domain-expert-configuration/SKILL.md",
+      "computedHash": "63b9cc1ba31a16da7804bfa282521714954ac5d8be5455c686e9c6b30162882b"
+    },
     "domain-modeling": {
       "source": "mattpocock/skills",
       "sourceType": "github",
@@ -67,11 +169,54 @@
       "skillPath": "skills/personal/edit-article/SKILL.md",
       "computedHash": "6d29872a4015fcbb4879fe1bddf1919995c477dcf7248885efb85722f50e6c4d"
     },
+    "elevation-and-depth": {
+      "source": "dembrandt/dembrandt-skills",
+      "sourceType": "github",
+      "skillPath": "skills/elevation-and-depth/SKILL.md",
+      "computedHash": "dc5d21afa3e3c125445af3271b2f4e5e9a68b0fc265cf86fffb8833f991acffc"
+    },
+    "extract-design": {
+      "source": "dembrandt/dembrandt-skills",
+      "sourceType": "github",
+      "skillPath": "skills/extract-design/SKILL.md",
+      "computedHash": "95344de451405f56b4bef36d455c3e62ece0f3baf4694e44aae5f1361de59da5"
+    },
+    "form-design": {
+      "source": "dembrandt/dembrandt-skills",
+      "sourceType": "github",
+      "skillPath": "skills/form-design/SKILL.md",
+      "computedHash": "678e8a0d65913575a2b06081105e10d5154cb2efbaa0ad5bd392771527b278f0"
+    },
+    "generate-ui-from-brand": {
+      "source": "dembrandt/dembrandt-skills",
+      "sourceType": "github",
+      "skillPath": "skills/generate-ui-from-brand/SKILL.md",
+      "computedHash": "cd226ab0e3ec9c7c2c478d90888ca3fa74b9d933988c547e4da8f5d4e4b1484f"
+    },
+    "genjutsu": {
+      "source": "genjutsu.athevon.dev",
+      "sourceUrl": "https://genjutsu.athevon.dev",
+      "sourceType": "well-known",
+      "computedHash": "ffbd56b8fed6a5ce617d9314f72987243c90cd9840af29ed2815ca25f190c500",
+      "wellKnownDigest": "sha256:2d74fdddb7eb1f5ef39eb9c666b078b3fdbcd6a9645bdb0c88edfc1f5970034f"
+    },
+    "gestalt-ui-organisation": {
+      "source": "dembrandt/dembrandt-skills",
+      "sourceType": "github",
+      "skillPath": "skills/gestalt-ui-organisation/SKILL.md",
+      "computedHash": "16b2d799412f49ca475594c0fe3f018cbac9d4722b49b25d62fe3f7ac4e72348"
+    },
     "git-guardrails-claude-code": {
       "source": "mattpocock/skills",
       "sourceType": "github",
       "skillPath": "skills/misc/git-guardrails-claude-code/SKILL.md",
       "computedHash": "fa22f1aa2708d95cc3149640f33e085381b184a0322609930f7971c1dca11835"
+    },
+    "global-toolbar-controls": {
+      "source": "dembrandt/dembrandt-skills",
+      "sourceType": "github",
+      "skillPath": "skills/global-toolbar-controls/SKILL.md",
+      "computedHash": "1315e463d96d6e648252e0e5a350cc80f553b084a91b9dc301d7e90963bba31a"
     },
     "grill-me": {
       "source": "mattpocock/skills",
@@ -90,6 +235,12 @@
       "sourceType": "github",
       "skillPath": "skills/productivity/grilling/SKILL.md",
       "computedHash": "c3b3e67f18495984385413bc6be7e2acbf2139c6cf52ef42abdda7242a791822"
+    },
+    "hallmark": {
+      "source": "nutlope/hallmark",
+      "sourceType": "github",
+      "skillPath": "skills/hallmark/SKILL.md",
+      "computedHash": "875f1c119caf79277d32cacbcbc69fa42fb637b216bea35b43d15553108a05d9"
     },
     "handoff": {
       "source": "mattpocock/skills",
@@ -115,11 +266,41 @@
       "skillPath": "skills/engineering/improve-codebase-architecture/SKILL.md",
       "computedHash": "f74b0bf1be26220dd615523fc1c0562567f9c463d9e9b255d4031345ffb37cd3"
     },
+    "information-architecture": {
+      "source": "dembrandt/dembrandt-skills",
+      "sourceType": "github",
+      "skillPath": "skills/information-architecture/SKILL.md",
+      "computedHash": "7dbb8c60163d60fa50f2c2403815a9a213b77291cb93b5b09eba52e506599aa9"
+    },
+    "layout-paradigms-and-consistency": {
+      "source": "dembrandt/dembrandt-skills",
+      "sourceType": "github",
+      "skillPath": "skills/layout-paradigms-and-consistency/SKILL.md",
+      "computedHash": "ebd6e10a2ecf6f66a48c45086e42d3c30f0c9994a8284351c78dd644ae00577a"
+    },
+    "loading-states-and-perceived-performance": {
+      "source": "dembrandt/dembrandt-skills",
+      "sourceType": "github",
+      "skillPath": "skills/loading-states-and-perceived-performance/SKILL.md",
+      "computedHash": "d92e05de02bba340a6f464d451f9840984417a3b1304a3574d778f31a7781d2e"
+    },
     "loop-me": {
       "source": "mattpocock/skills",
       "sourceType": "github",
       "skillPath": "skills/in-progress/loop-me/SKILL.md",
       "computedHash": "d7fbcf41b5af203a6f2a7937afaaaebdd9941b0aa4cc3654b52daec01d3fb564"
+    },
+    "marketing-vs-product-system": {
+      "source": "dembrandt/dembrandt-skills",
+      "sourceType": "github",
+      "skillPath": "skills/marketing-vs-product-system/SKILL.md",
+      "computedHash": "9e498b5c8d772b75e5f8a2ccc72bb53928df6e9d3ea979470db7ee98f4b89f2e"
+    },
+    "micro-interactions": {
+      "source": "dembrandt/dembrandt-skills",
+      "sourceType": "github",
+      "skillPath": "skills/micro-interactions/SKILL.md",
+      "computedHash": "6e1ed88fb922081a8852964b6ffca4fc903d237e99301385203432de4d17f61e"
     },
     "migrate-to-shoehorn": {
       "source": "mattpocock/skills",
@@ -127,11 +308,59 @@
       "skillPath": "skills/misc/migrate-to-shoehorn/SKILL.md",
       "computedHash": "7d31e494a384d1a5b88d1dec6e1f50e673ef1a60f7b0b6e92babfbb242f79b62"
     },
+    "modal-and-overlay-patterns": {
+      "source": "dembrandt/dembrandt-skills",
+      "sourceType": "github",
+      "skillPath": "skills/modal-and-overlay-patterns/SKILL.md",
+      "computedHash": "2ed35bf2636e9c9ea924916873c52505754b3eea37e7da2842ec29e70d8898b6"
+    },
+    "modular-scale-typography": {
+      "source": "dembrandt/dembrandt-skills",
+      "sourceType": "github",
+      "skillPath": "skills/modular-scale-typography/SKILL.md",
+      "computedHash": "4b4b0842bedca6c0b5b6c389cb9270654043d0799f7e5813520dbfc08edd5953"
+    },
+    "motion-and-storytelling": {
+      "source": "dembrandt/dembrandt-skills",
+      "sourceType": "github",
+      "skillPath": "skills/motion-and-storytelling/SKILL.md",
+      "computedHash": "9937067f4b34d73a8c12775bf66393bb25d03a16a5466265234b3faac5bc960b"
+    },
+    "motion-authoring": {
+      "source": "INSANE0777/Awwwards-mcp",
+      "sourceType": "github",
+      "skillPath": "skills/motion-authoring/SKILL.md",
+      "computedHash": "2cd91bca2842b15734cda9b2c2efe8fbd64dfdb68826c9f2faa7a24893bafb68"
+    },
+    "nielsen-usability-heuristics": {
+      "source": "dembrandt/dembrandt-skills",
+      "sourceType": "github",
+      "skillPath": "skills/nielsen-usability-heuristics/SKILL.md",
+      "computedHash": "4fc656c7934dec5e6904bcdffcd112e7396f15e745a846d4cc739cbac3d33f5a"
+    },
+    "notifications-and-recovery": {
+      "source": "dembrandt/dembrandt-skills",
+      "sourceType": "github",
+      "skillPath": "skills/notifications-and-recovery/SKILL.md",
+      "computedHash": "4063313e12a762575d3f94aaf79f550940f16b1d2f7f65162bd07e0389afa396"
+    },
     "obsidian-vault": {
       "source": "mattpocock/skills",
       "sourceType": "github",
       "skillPath": "skills/personal/obsidian-vault/SKILL.md",
       "computedHash": "960437c7c2febc15cf9d49964f0c8bd889d90a56e81b6eaa33f3ac5b594291c3"
+    },
+    "operational-expert-tool-ui": {
+      "source": "dembrandt/dembrandt-skills",
+      "sourceType": "github",
+      "skillPath": "skills/operational-expert-tool-ui/SKILL.md",
+      "computedHash": "012f19ccd054e9a15884064028706c86377455945e90a69c8cb065f06956358a"
+    },
+    "performance-and-web-vitals": {
+      "source": "dembrandt/dembrandt-skills",
+      "sourceType": "github",
+      "skillPath": "skills/performance-and-web-vitals/SKILL.md",
+      "computedHash": "534fd2136d706f46fdce4adce963e0c2f5c46e12f8db984d11257037b1237adb"
     },
     "pr": {
       "source": "mattpocock/skills",
@@ -151,6 +380,24 @@
       "skillPath": "skills/deprecated/qa/SKILL.md",
       "computedHash": "20c63e29b268b1f0762cff524b5e321d5e1a773b4f61b90d84811b755948a66c"
     },
+    "real-world-metaphors": {
+      "source": "dembrandt/dembrandt-skills",
+      "sourceType": "github",
+      "skillPath": "skills/real-world-metaphors/SKILL.md",
+      "computedHash": "d7cfdbaea213703adde40c0730ab19bcebee42bff133b385bdd9f91e3322d124"
+    },
+    "recreate": {
+      "source": "INSANE0777/Awwwards-mcp",
+      "sourceType": "github",
+      "skillPath": "skills/recreate/SKILL.md",
+      "computedHash": "f90cdf689887a154377c832f30247979ac6d1473390200a00a8cc108cd344064"
+    },
+    "repeated-component-alignment": {
+      "source": "dembrandt/dembrandt-skills",
+      "sourceType": "github",
+      "skillPath": "skills/repeated-component-alignment/SKILL.md",
+      "computedHash": "467ad2a999bece979ed41b59c25c37599ae55c8809401f320cd94e27eb8d4588"
+    },
     "request-refactor-plan": {
       "source": "mattpocock/skills",
       "sourceType": "github",
@@ -162,6 +409,12 @@
       "sourceType": "github",
       "skillPath": "skills/engineering/research/SKILL.md",
       "computedHash": "2c8b768d5f0309eaea9f92ef740101e813645b39aef88fb82733a52eae23dc0b"
+    },
+    "responsive-paradigms": {
+      "source": "dembrandt/dembrandt-skills",
+      "sourceType": "github",
+      "skillPath": "skills/responsive-paradigms/SKILL.md",
+      "computedHash": "0d3b210bc5f3386a4bae2f4ebc47bb1584006b395a629f55695a638f3d0fb3b6"
     },
     "retro": {
       "source": "mattpocock/skills",
@@ -181,6 +434,18 @@
       "skillPath": "skills/misc/scaffold-exercises/SKILL.md",
       "computedHash": "0f8154a7be9fc5ebe6ae0550d520259fadfdd512c166cb7f137f8e697aae4017"
     },
+    "scroll-areas": {
+      "source": "dembrandt/dembrandt-skills",
+      "sourceType": "github",
+      "skillPath": "skills/scroll-areas/SKILL.md",
+      "computedHash": "b681e19b836f4de5a5c19696566f9e3fc30086d9a8f748e7b54197668c4b05e5"
+    },
+    "semantic-html-and-seo": {
+      "source": "dembrandt/dembrandt-skills",
+      "sourceType": "github",
+      "skillPath": "skills/semantic-html-and-seo/SKILL.md",
+      "computedHash": "2cd535117644c6393c89f3ed7926fb3e8ef24c9602e9277076819aa553464afb"
+    },
     "setup-matt-pocock-skills": {
       "source": "mattpocock/skills",
       "sourceType": "github",
@@ -198,6 +463,36 @@
       "sourceType": "github",
       "skillPath": "skills/in-progress/setup-ts-deep-modules/SKILL.md",
       "computedHash": "0b0e7124ad1272d59e44bcb4224275e76421351294a91480ada62234158c1023"
+    },
+    "sizing-units": {
+      "source": "dembrandt/dembrandt-skills",
+      "sourceType": "github",
+      "skillPath": "skills/sizing-units/SKILL.md",
+      "computedHash": "8f75926e5d191df15e72d8285700e73714c8b01f3222b1092cf229119424f99f"
+    },
+    "status-colors-and-errors": {
+      "source": "dembrandt/dembrandt-skills",
+      "sourceType": "github",
+      "skillPath": "skills/status-colors-and-errors/SKILL.md",
+      "computedHash": "ed912b1d8e90ca5ee0aa8bfbdd10ce868088489d4c5734d0b87c3347371dab41"
+    },
+    "sticky-and-fixed-elements": {
+      "source": "dembrandt/dembrandt-skills",
+      "sourceType": "github",
+      "skillPath": "skills/sticky-and-fixed-elements/SKILL.md",
+      "computedHash": "1c26c5b73d071602b1853d0296fdbc03b0d5db7869df71ff6ac3dcabe66549b1"
+    },
+    "surface-separation": {
+      "source": "dembrandt/dembrandt-skills",
+      "sourceType": "github",
+      "skillPath": "skills/surface-separation/SKILL.md",
+      "computedHash": "45167c1d579edb9b5d53b66a12769b89e68a814a453fc19995de0303163d1c7d"
+    },
+    "tab-navigation": {
+      "source": "dembrandt/dembrandt-skills",
+      "sourceType": "github",
+      "skillPath": "skills/tab-navigation/SKILL.md",
+      "computedHash": "a429af1598f0a0b7a2aab6aa03106f7a0e6dfe2049aef8c3208a5335ae0c72c5"
     },
     "tdd": {
       "source": "mattpocock/skills",
@@ -253,6 +548,30 @@
       "skillPath": "skills/deprecated/ubiquitous-language/SKILL.md",
       "computedHash": "c8968b02b83c365bc81d85cc17fb4c8854b80f5b6dece322164fff5b00142231"
     },
+    "ui-context-and-scope": {
+      "source": "dembrandt/dembrandt-skills",
+      "sourceType": "github",
+      "skillPath": "skills/ui-context-and-scope/SKILL.md",
+      "computedHash": "2117c9f3022b013539880e402f23f749fe7d4432f631a26d8a942281b3d567e1"
+    },
+    "ui-density": {
+      "source": "dembrandt/dembrandt-skills",
+      "sourceType": "github",
+      "skillPath": "skills/ui-density/SKILL.md",
+      "computedHash": "cdc89a8cc6cde653b6ecdaecb3b55c90c96619b176973f6e26af8b9a3fe25020"
+    },
+    "user-flows-and-guided-paths": {
+      "source": "dembrandt/dembrandt-skills",
+      "sourceType": "github",
+      "skillPath": "skills/user-flows-and-guided-paths/SKILL.md",
+      "computedHash": "bb9c3850fdc8912a94519a021412f154b4fe31a5b6bdf83bd4ace4bb48e7b6b7"
+    },
+    "visual-emphasis-and-hierarchy": {
+      "source": "dembrandt/dembrandt-skills",
+      "sourceType": "github",
+      "skillPath": "skills/visual-emphasis-and-hierarchy/SKILL.md",
+      "computedHash": "92104930e36b075bab6d5594ed29c21e99065f56d74224b90bcf7e65f19ddbef"
+    },
     "wait-what": {
       "source": "mattpocock/skills",
       "sourceType": "github",
@@ -264,6 +583,12 @@
       "sourceType": "github",
       "skillPath": "skills/engineering/wayfinder/SKILL.md",
       "computedHash": "1160b9561238f91ba9eb6bb655eb7e3eb4cc571ffcc5477b9d45095a4cca40bf"
+    },
+    "wcag-accessibility": {
+      "source": "dembrandt/dembrandt-skills",
+      "sourceType": "github",
+      "skillPath": "skills/wcag-accessibility/SKILL.md",
+      "computedHash": "a22614c32cc5e3968858a26cca5d99ab4b280a6aeb5d7c46c2e22318dc3236e6"
     },
     "wizard": {
       "source": "mattpocock/skills",

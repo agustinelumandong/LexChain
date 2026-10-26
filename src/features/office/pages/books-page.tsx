@@ -4,80 +4,18 @@ import { FormEvent, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import AddIcon from '@mui/icons-material/Add';
+import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import MenuBookIcon from '@mui/icons-material/MenuBook';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import { toast } from 'sonner';
-import { canAccessPortalFeature } from "@/features/access";
-import { usePortalRole } from "@/features/access/components";
+import { canAccessPortalFeature } from '@/features/access';
+import { usePortalRole } from '@/features/access/components';
 import { Modal } from '@/features/admin/components/modal';
-import { getDocumentLifecycleLabel, getDocumentStatusLabel } from '@/features/documents/document-ui';
 import { PortalDropdown } from '@/features/portal/components';
-import { BOOK_ENTRIES_PAGE_SIZE, listRegisterBookEntries, listRegisterBooks } from '@/features/office/books-api';
-import type { BookEntriesResponse, RegisterBook } from '@/features/office/books-api';
+import { createRegisterBook, listRegisterBooks } from '@/features/office/books-api';
+import type { BookCreateRequest, RegisterBook } from '@/features/office/books-api';
 
-type Book = RegisterBook;
-
-type BookCreateRequest = {
-  book_number: number;
-  series_year: number;
-  status?: 'OPEN' | 'CLOSED';
-};
-
-const cardClass = 'rounded-[18px] border border-[#E8F0F8] bg-white shadow-[0_4px_12px_rgba(19,59,115,0.05)]';
-
-function getBookErrorMessage(payload: unknown, fallback: string) {
-  if (typeof payload !== 'object' || payload === null) return fallback;
-
-  const detail = 'detail' in payload ? payload.detail : undefined;
-  const message = 'message' in payload ? payload.message : undefined;
-  if (typeof detail === 'string') return detail;
-  if (Array.isArray(detail)) {
-    const messages = detail.flatMap((item) => {
-      if (typeof item !== 'object' || item === null || !('msg' in item) || typeof item.msg !== 'string') return [];
-      return [item.msg];
-    });
-    if (messages.length) return messages.join(' ');
-  }
-  if (typeof message === 'string') return message;
-  return fallback;
-}
-
-async function createBook(payload: BookCreateRequest): Promise<Book> {
-  const response = await fetch(`/api/portal/proxy-post?path=${encodeURIComponent('/books/')}`, {
-    method: 'POST',
-    credentials: 'same-origin',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify(payload),
-  });
-  if (!response.ok) {
-    const error = await response.json().catch(() => null);
-    throw new Error(getBookErrorMessage(error, 'Unable to register book'));
-  }
-  return response.json();
-}
-
-async function deleteBook(bookId: string) {
-  const response = await fetch(`/api/portal/proxy-post?path=${encodeURIComponent(`/books/${bookId}`)}`, {
-    method: 'DELETE',
-    credentials: 'same-origin',
-  });
-  if (!response.ok) {
-    const error = await response.json().catch(() => null);
-    throw new Error(getBookErrorMessage(error, 'Unable to delete book'));
-  }
-}
-
-async function closeBook(bookId: string): Promise<Book> {
-  const response = await fetch(`/api/portal/proxy-post?path=${encodeURIComponent(`/books/${bookId}/close`)}`, {
-    method: 'POST',
-    credentials: 'same-origin',
-  });
-  if (!response.ok) {
-    const error = await response.json().catch(() => null);
-    throw new Error(getBookErrorMessage(error, 'Unable to close book'));
-  }
-  return response.json();
-}
+const cardClass = 'rounded-[18px] border border-[#E8F0F8] bg-white';
 
 export default function BooksPage() {
   const queryClient = useQueryClient();
@@ -86,56 +24,22 @@ export default function BooksPage() {
   const [seriesYear, setSeriesYear] = useState(String(new Date().getFullYear()));
   const [bookStatus, setBookStatus] = useState<'OPEN' | 'CLOSED'>('OPEN');
   const [isRegistering, setIsRegistering] = useState(false);
-  const [selectedBookId, setSelectedBookId] = useState<string>();
-  const [entryOffset, setEntryOffset] = useState(0);
 
   const isIssuer = canAccessPortalFeature(role, 'books');
-  const booksQuery = useQuery<Book[]>({
+  const booksQuery = useQuery<RegisterBook[]>({
     queryKey: ['portal-books'],
     queryFn: listRegisterBooks,
     enabled: isIssuer,
     refetchInterval: 15_000,
   });
   const createBookMutation = useMutation({
-    mutationFn: createBook,
+    mutationFn: createRegisterBook,
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['portal-books'] });
       setBookNumber('');
       setBookStatus('OPEN');
       setIsRegistering(false);
       toast.success('Register book created');
-    },
-  });
-  const bookEntriesQuery = useQuery<BookEntriesResponse>({
-    queryKey: ['portal-book-entries', selectedBookId, entryOffset],
-    queryFn: () => listRegisterBookEntries(selectedBookId!, entryOffset),
-    enabled: Boolean(selectedBookId),
-    refetchInterval: 15_000,
-  });
-  const deleteBookMutation = useMutation({
-    mutationFn: deleteBook,
-    onSuccess: async () => {
-      closeBookEntries();
-      await queryClient.invalidateQueries({ queryKey: ['portal-books'] });
-      toast.success('Book deleted');
-    },
-  });
-  const closeBookMutation = useMutation({
-    mutationFn: closeBook,
-    onSuccess: async (closedBook) => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['portal-books'] }),
-        queryClient.invalidateQueries({ queryKey: ['portal-book-entries', closedBook.id] }),
-      ]);
-      queryClient.setQueryData<Book[]>(['portal-books'], (current) => current?.map((book) => book.id === closedBook.id ? closedBook : book));
-      queryClient.setQueriesData<BookEntriesResponse>({ queryKey: ['portal-book-entries', closedBook.id] }, (current) => current ? { ...current, book: closedBook } : current);
-      toast.success('Register book closed');
-    },
-    onError: async (_error, bookId) => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['portal-books'] }),
-        queryClient.invalidateQueries({ queryKey: ['portal-book-entries', bookId] }),
-      ]);
     },
   });
 
@@ -150,31 +54,8 @@ export default function BooksPage() {
   function handleRegister(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!isIssuer || !canSubmit) return;
-    createBookMutation.mutate({ book_number: parsedBookNumber, series_year: parsedSeriesYear, status: bookStatus });
-  }
-
-  function handleDelete(book: Book) {
-    if (book.entry_count !== 0 || deleteBookMutation.isPending) return;
-    if (window.confirm(`Delete Book ${book.book_number}? Only an empty book can be deleted. Deleting it does not delete any documents.`)) {
-      deleteBookMutation.mutate(book.id);
-    }
-  }
-
-  function handleClose(book: Book) {
-    if (book.status !== 'OPEN' || closeBookMutation.isPending) return;
-    if (window.confirm(`Close Book ${book.book_number}? It cannot be reopened. You can still file documents with the paper register numbers.`)) {
-      closeBookMutation.mutate(book.id);
-    }
-  }
-
-  function openBookEntries(bookId: string) {
-    setEntryOffset(0);
-    setSelectedBookId(bookId);
-  }
-
-  function closeBookEntries() {
-    setSelectedBookId(undefined);
-    setEntryOffset(0);
+    const payload: BookCreateRequest = { book_number: parsedBookNumber, series_year: parsedSeriesYear, status: bookStatus };
+    createBookMutation.mutate(payload);
   }
 
   if (!isIssuer) {
@@ -186,25 +67,18 @@ export default function BooksPage() {
     );
   }
 
-  const books = booksQuery.data ?? [];
+  const books = [...(booksQuery.data ?? [])].sort((left, right) => right.series_year - left.series_year || left.book_number - right.book_number);
   const error = createBookMutation.error instanceof Error ? createBookMutation.error.message : null;
-  const deleteError = deleteBookMutation.error instanceof Error ? deleteBookMutation.error.message : null;
-  const closeError = closeBookMutation.error instanceof Error ? closeBookMutation.error.message : null;
-  const selectedBook = bookEntriesQuery.data?.book;
-  const selectedEntries = bookEntriesQuery.data?.entries ?? [];
-  const totalEntries = selectedBook?.entry_count ?? 0;
-  const entryRangeEnd = Math.min(entryOffset + selectedEntries.length, totalEntries);
-  const hasNextEntryPage = entryOffset + BOOK_ENTRIES_PAGE_SIZE < totalEntries;
 
   return (
     <div className="flex w-full flex-col gap-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="text-xs font-black tracking-[0.16em] text-[#0985E7]">REGISTER BOOKS</p>
-          <h1 className="mt-1 text-[28px] font-black text-[#0C2B49]">Books</h1>
-          <p className="mt-1 text-sm font-medium text-[#64748b]">Manage legal register volumes and their documents.</p>
+          <p className="text-xs font-black tracking-[0.16em] text-[#0985E7]">OFFICE REGISTERS</p>
+          <h1 className="mt-1 text-[28px] font-black text-[#0C2B49]">Register books</h1>
+          <p className="mt-1 text-sm font-medium text-[#64748b]">Browse physical volumes and the documents recorded in each one.</p>
         </div>
-        <button type="button" onClick={() => setIsRegistering(true)} className="flex items-center gap-2 rounded-full bg-[#0985E7] px-5 py-2.5 text-sm font-black text-white transition hover:bg-[#0770c4]">
+        <button type="button" onClick={() => setIsRegistering(true)} className="flex min-h-11 items-center gap-2 rounded-full bg-[#0985E7] px-5 py-2.5 text-sm font-black text-white transition hover:bg-[#0770c4] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0985E7]">
           <AddIcon sx={{ fontSize: 18 }} />
           Register book
         </button>
@@ -233,121 +107,78 @@ export default function BooksPage() {
           {bookStatus === 'CLOSED' && <p className="mt-3 text-sm text-[#64748b]">When filing into a migrated book, use the document and page numbers from its paper register.</p>}
           {error && <p role="alert" className="mt-3 text-sm font-bold text-red-600">{error}</p>}
           <div className="mt-5 flex justify-end gap-2">
-            <button type="button" onClick={() => setIsRegistering(false)} className="rounded-full border border-[#D7E4F2] px-5 py-2.5 text-sm font-bold text-[#0C2B49]">Cancel</button>
-            <button disabled={!canSubmit || createBookMutation.isPending} className="rounded-full bg-[#0985E7] px-5 py-2.5 text-sm font-black text-white transition hover:bg-[#0770c4] disabled:opacity-40">
+            <button type="button" onClick={() => setIsRegistering(false)} className="min-h-11 rounded-full border border-[#D7E4F2] px-5 py-2.5 text-sm font-bold text-[#0C2B49]">Cancel</button>
+            <button disabled={!canSubmit || createBookMutation.isPending} className="min-h-11 rounded-full bg-[#0985E7] px-5 py-2.5 text-sm font-black text-white transition hover:bg-[#0770c4] disabled:opacity-40">
               {createBookMutation.isPending ? 'Registering…' : 'Register book'}
             </button>
           </div>
         </form>
       </Modal>
 
-      <Modal open={Boolean(selectedBookId)} onClose={closeBookEntries} title="Book entries">
-        <div className="max-h-[65vh] overscroll-y-contain overflow-y-auto pr-1">
-          {bookEntriesQuery.isLoading ? (
-            <p role="status" className="text-sm text-[#64748b]">Loading book entries…</p>
-          ) : bookEntriesQuery.isError ? (
-            <div className="rounded-xl border border-red-100 bg-red-50 p-4">
-              <p role="alert" className="text-sm font-bold text-red-700">Unable to load book entries. Please try again.</p>
-              <button type="button" onClick={() => void bookEntriesQuery.refetch()} className="mt-3 inline-flex min-h-11 items-center gap-2 rounded-full border border-[#D7E4F2] px-4 py-2 text-sm font-black text-[#0985E7] hover:bg-[#EEF6FF] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0985E7]">
-                <RefreshIcon sx={{ fontSize: 17 }} />Retry
-              </button>
-            </div>
-          ) : selectedBook ? (
-            <>
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <h3 className="text-base font-black text-[#0C2B49]">Book {selectedBook.book_number}</h3>
-                  <p className="mt-1 text-sm text-[#64748b]">Series {selectedBook.series_year}</p>
-                </div>
-                <span className={`rounded-full px-2.5 py-1 text-xs font-black ${selectedBook.status === 'CLOSED' ? 'bg-[#EEF4FB] text-[#4B6382]' : selectedBook.status === 'OPEN' ? 'bg-[#EAF8F0] text-[#12A150]' : 'bg-[#F1F5F9] text-[#64748b]'}`}>
-                  {selectedBook.status === 'OPEN' ? 'Open' : selectedBook.status === 'CLOSED' ? 'Closed' : selectedBook.status}
-                </span>
-              </div>
-              <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 border-y border-[#E8F0F8] py-3 text-sm">
-                <div><dt className="font-semibold text-[#64748b]">Entries</dt><dd className="mt-1 font-bold text-[#0C2B49]">{selectedBook.entry_count ?? '—'}</dd></div>
-                <div><dt className="font-semibold text-[#64748b]">Last filing</dt><dd className="mt-1 font-bold text-[#0C2B49]">Doc. {selectedBook.last_doc_no ?? '—'} · Page {selectedBook.last_page_no ?? '—'}</dd></div>
-                <div><dt className="font-semibold text-[#64748b]">Created</dt><dd className="mt-1 font-bold text-[#0C2B49]">{new Date(selectedBook.created_at).toLocaleDateString('en-US', { dateStyle: 'medium' })}</dd></div>
-                {selectedBook.updated_at && <div><dt className="font-semibold text-[#64748b]">Last updated</dt><dd className="mt-1 font-bold text-[#0C2B49]">{new Date(selectedBook.updated_at).toLocaleDateString('en-US', { dateStyle: 'medium' })}</dd></div>}
-                {selectedBook.closed_at && <div><dt className="font-semibold text-[#64748b]">Closed</dt><dd className="mt-1 font-bold text-[#0C2B49]">{new Date(selectedBook.closed_at).toLocaleDateString('en-US', { dateStyle: 'medium' })}</dd></div>}
-              </dl>
-              <p className="mt-3 text-xs leading-5 text-[#64748b]">Only documents recorded in LexChain appear here. Paper-only register lines are outside this list.</p>
-              <h4 className="mt-4 text-sm font-black text-[#0C2B49]">Entries</h4>
-              {selectedEntries.length > 0 ? (
-                <ul aria-label={`Entries in Book ${selectedBook.book_number}`} className="mt-2 space-y-2">
-                  {selectedEntries.map((entry) => (
-                    <li key={entry.id}>
-                      <Link href={`/portal/documents/${entry.id}`} className="block min-h-11 rounded-xl border border-[#E8F0F8] px-3 py-2.5 transition hover:border-[#B9D9F4] hover:bg-[#F8FBFF] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0985E7]">
-                        <span title={entry.file_name} className="block break-words text-sm font-bold text-[#0C2B49]">{entry.file_name}</span>
-                        <span className="mt-1 block text-xs font-black text-[#4B6382]">Doc. {entry.doc_no} · Page {entry.page_no}</span>
-                        <span className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs leading-5 text-[#64748b]">
-                          <span>Lifecycle: {getDocumentLifecycleLabel(entry.lifecycle)}</span>
-                          <span>Processing status: {getDocumentStatusLabel(entry.status)}</span>
-                        </span>
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              ) : selectedBook.entry_count === 0 ? (
-                <p className="mt-2 rounded-xl border border-dashed border-[#D7E4F2] bg-[#F8FBFF] px-4 py-3 text-sm text-[#64748b]">No entries have been recorded in this book yet.</p>
-              ) : (
-                <p className="mt-2 rounded-xl border border-dashed border-[#D7E4F2] bg-[#F8FBFF] px-4 py-3 text-sm text-[#64748b]">No entries on this page.</p>
-              )}
-              {selectedBook.entry_count > 0 && (
-                <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-[#E8F0F8] pt-3">
-                  <p role="status" className="text-xs font-semibold text-[#64748b]">
-                    {selectedEntries.length > 0 ? `Showing ${entryOffset + 1}–${entryRangeEnd} of ${totalEntries} entries` : `${totalEntries} entries recorded`}
-                  </p>
-                  <nav aria-label="Book entries pagination" className="flex gap-2">
-                    <button type="button" onClick={() => setEntryOffset((current) => Math.max(0, current - BOOK_ENTRIES_PAGE_SIZE))} disabled={entryOffset === 0} className="min-h-11 rounded-full border border-[#D7E4F2] px-4 py-2 text-sm font-bold text-[#0C2B49] hover:bg-[#EEF6FF] disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0985E7]">Previous</button>
-                    <button type="button" onClick={() => setEntryOffset((current) => current + BOOK_ENTRIES_PAGE_SIZE)} disabled={!hasNextEntryPage} className="min-h-11 rounded-full border border-[#D7E4F2] px-4 py-2 text-sm font-bold text-[#0C2B49] hover:bg-[#EEF6FF] disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0985E7]">Next</button>
-                  </nav>
-                </div>
-              )}
-            </>
-          ) : null}
-        </div>
-      </Modal>
-
       {booksQuery.isLoading ? (
-        <div className={`${cardClass} p-8 text-center text-sm font-semibold text-[#64748b]`}>Loading books…</div>
+        <div role="status" className={`${cardClass} p-8 text-center text-sm font-semibold text-[#64748b]`}>Loading books…</div>
       ) : booksQuery.isError ? (
         <div className={`${cardClass} p-8 text-center`}>
           <p className="text-sm font-bold text-[#0C2B49]">Unable to load books</p>
           <p className="mt-1 text-sm text-[#64748b]">Please try again.</p>
-          <button type="button" onClick={() => void booksQuery.refetch()} className="mt-4 inline-flex items-center gap-2 rounded-full border border-[#D7E4F2] px-4 py-2 text-sm font-black text-[#0985E7] hover:bg-[#EEF6FF]"><RefreshIcon sx={{ fontSize: 17 }} />Retry</button>
+          <button type="button" onClick={() => void booksQuery.refetch()} className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-full border border-[#D7E4F2] px-4 py-2 text-sm font-black text-[#0985E7] hover:bg-[#EEF6FF] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0985E7]"><RefreshIcon sx={{ fontSize: 17 }} />Retry</button>
         </div>
       ) : books.length === 0 ? (
         <div className={`${cardClass} p-10 text-center`}>
           <MenuBookIcon sx={{ fontSize: 42, color: '#0985E7' }} />
           <h2 className="mt-3 text-lg font-black text-[#0C2B49]">No register books yet</h2>
           <p className="mx-auto mt-2 max-w-md text-sm text-[#64748b]">Register a book before uploading a document, so it can be recorded in the correct physical volume.</p>
-          <button type="button" onClick={() => setIsRegistering(true)} className="mt-5 rounded-full bg-[#0985E7] px-5 py-2.5 text-sm font-black text-white transition hover:bg-[#0770c4]">Register book</button>
+          <button type="button" onClick={() => setIsRegistering(true)} className="mt-5 min-h-11 rounded-full bg-[#0985E7] px-5 py-2.5 text-sm font-black text-white transition hover:bg-[#0770c4]">Register book</button>
         </div>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {books.map((book) => {
-            const statusLabel = book.status === 'OPEN' ? 'Open' : book.status === 'CLOSED' ? 'Closed' : book.status;
-            return <article key={book.id} className={`${cardClass} p-5`}>
-              <div className="flex items-start justify-between gap-3">
-                <div><h2 className="text-lg font-black text-[#0C2B49]">Book {book.book_number}</h2><p className="mt-1 text-sm text-[#64748b]">Series {book.series_year}</p></div>
-                <span className={`rounded-full px-2.5 py-1 text-[11px] font-black ${book.status === 'CLOSED' ? 'bg-[#EEF4FB] text-[#4B6382]' : book.status === 'OPEN' ? 'bg-[#EAF8F0] text-[#12A150]' : 'bg-[#F1F5F9] text-[#64748b]'}`}>{statusLabel}</span>
-              </div>
-              <div className="mt-5 grid grid-cols-2 gap-3 border-t border-[#E8F0F8] pt-4">
-                <div><p className="text-xl font-black text-[#0C2B49]">{book.entry_count ?? '—'}</p><p className="text-xs font-medium text-[#64748b]">Entries</p></div>
-                <div><p className="text-sm font-black text-[#0C2B49]">Doc. {book.last_doc_no ?? '—'} · Page {book.last_page_no ?? '—'}</p><p className="text-xs font-medium text-[#64748b]">Last filing</p></div>
-              </div>
-              <div className="mt-4 flex flex-wrap gap-2">
-                <button type="button" onClick={() => openBookEntries(book.id)} className="min-h-11 rounded-full border border-[#D7E4F2] px-4 py-2 text-sm font-bold text-[#0C2B49] hover:bg-[#EEF6FF] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0985E7]" aria-label={`Open entries for Book ${book.book_number}`}>Open book</button>
-                {book.status === 'OPEN' && <button type="button" onClick={() => handleClose(book)} disabled={closeBookMutation.isPending} className="rounded-full border border-[#D7E4F2] px-3 py-1.5 text-sm font-bold text-[#0C2B49] disabled:opacity-40" aria-label={`${closeBookMutation.isPending && closeBookMutation.variables === book.id ? 'Closing' : 'Close'} Book ${book.book_number}`}>{closeBookMutation.isPending && closeBookMutation.variables === book.id ? 'Closing…' : 'Close'}</button>}
-                {book.entry_count === 0 && <button type="button" onClick={() => handleDelete(book)} disabled={deleteBookMutation.isPending} className="rounded-full border border-red-200 px-3 py-1.5 text-sm font-bold text-red-600 disabled:opacity-40" aria-label={`Delete Book ${book.book_number}`}>{deleteBookMutation.isPending ? 'Deleting…' : 'Delete'}</button>}
-              </div>
-              <p className="mt-4 truncate text-[11px] font-semibold text-[#A0AAB8]" title={book.id}>ID: {book.id}</p>
-            </article>;
-          })}
-        </div>
+        <section aria-label="Register book shelf">
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <h2 className="text-sm font-black uppercase tracking-[0.12em] text-[#4B6382]">Volumes</h2>
+            <p className="text-xs font-semibold text-[#64748b]">{books.length} {books.length === 1 ? 'book' : 'books'}</p>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            {books.map((book) => {
+              const statusLabel = book.status === 'OPEN' ? 'Open' : book.status === 'CLOSED' ? 'Closed' : book.status;
+              return (
+                <Link
+                  key={book.id}
+                  href={`/portal/books/${book.id}`}
+                  className="group block h-full rounded-[18px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#0985E7]"
+                >
+                  <article className="relative h-full overflow-hidden rounded-[18px] border border-[#D7E4F2] bg-white p-5 transition duration-150 group-hover:-translate-y-0.5 group-hover:border-[#A9CCE9] group-hover:bg-[#FBFDFF] group-hover:shadow-[0_10px_24px_rgba(19,59,115,0.08)]">
+                    <span aria-hidden="true" className="absolute inset-y-0 left-0 w-2.5 border-r border-[#0876CC]/20 bg-[#0985E7]" />
+                    <div className="ml-1.5 flex h-full flex-col">
+                      <div className="flex items-start justify-between gap-3">
+                        <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#64748b]">Office register</p>
+                        <span className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-black ${book.status === 'CLOSED' ? 'bg-[#EEF4FB] text-[#4B6382]' : book.status === 'OPEN' ? 'bg-[#EAF8F0] text-[#12A150]' : 'bg-[#F1F5F9] text-[#64748b]'}`}>{statusLabel}</span>
+                      </div>
+                      <div className="mt-5 flex items-center gap-3">
+                        <span className="grid size-11 shrink-0 place-items-center rounded-xl border border-[#D7E4F2] bg-white text-[#0985E7] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.7)]">
+                          <MenuBookIcon sx={{ fontSize: 23 }} />
+                        </span>
+                        <div>
+                          <h3 className="text-xl font-black leading-tight text-[#0C2B49]">Book {book.book_number}</h3>
+                          <p className="mt-1 text-xs font-medium text-[#64748b]">Series {book.series_year}</p>
+                        </div>
+                      </div>
+                      <div className="mt-5 grid grid-cols-2 gap-3 border-t border-[#D7E4F2] pt-4">
+                        <div><p className="text-lg font-black text-[#0C2B49]">{book.entry_count ?? '—'}</p><p className="text-xs font-medium text-[#64748b]">Recorded entries</p></div>
+                        <div><p className="text-sm font-black text-[#0C2B49]">Doc. {book.last_doc_no ?? '—'} · Page {book.last_page_no ?? '—'}</p><p className="text-xs font-medium text-[#64748b]">Last filing</p></div>
+                      </div>
+                      <div className="mt-auto flex items-center justify-between gap-3 pt-5">
+                        <span className="inline-flex min-h-10 items-center gap-2 rounded-full border border-[#B9D9F4] bg-white px-4 py-2 text-sm font-black text-[#0876CC] transition group-hover:bg-[#EAF4FE]">
+                          Open book
+                          <ArrowForwardIcon className="transition-transform group-hover:translate-x-1" sx={{ fontSize: 18 }} />
+                        </span>
+                      </div>
+                    </div>
+                  </article>
+                </Link>
+              );
+            })}
+          </div>
+        </section>
       )}
-      {deleteError && <p role="alert" className="text-sm font-bold text-red-600">{deleteError}</p>}
-      {closeError && <p role="alert" className="text-sm font-bold text-red-600">{closeError}</p>}
     </div>
   );
 }

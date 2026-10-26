@@ -113,7 +113,7 @@ describe('document ownership directory', () => {
       expect(await screen.findByText('Showing 1–3 of 3 documents')).toBeTruthy();
       expect(screen.queryByRole('tablist', { name: 'Document ownership' })).toBeNull();
       expect(screen.queryByRole('tab')).toBeNull();
-      expect(screen.getAllByText('Shared only.pdf')).toHaveLength(2);
+      expect(within(screen.getByRole('table')).getByText('Shared only.pdf')).toBeTruthy();
       expect(screen.getByRole('button', { name: 'Create document draft' })).toBeTruthy();
       const distribution = screen.getByRole('heading', { name: 'Status Distribution' }).closest('article')!;
       expect(within(distribution).getByLabelText('Total documents: 3')).toBeTruthy();
@@ -140,7 +140,7 @@ describe('document ownership directory', () => {
     expect(within(screen.getByRole('table')).queryByText('Owned Z.pdf')).toBeNull();
     fireEvent.change(screen.getByRole('textbox', { name: 'Search documents' }), { target: { value: 'Shared' } });
     expect(screen.getByText('No matching documents in My documents')).toBeTruthy();
-    expect(within(distribution).getByText('2')).toBeTruthy();
+    expect(within(distribution).getByLabelText('Total documents: 2')).toBeTruthy();
     expect(ownedTab.textContent).toBe('My documents (2)');
     fireEvent.click(sharedTab);
     expect(screen.getByText('No matching documents in Shared with me')).toBeTruthy();
@@ -204,8 +204,7 @@ describe('document ownership directory', () => {
     expect(sharedTab.getAttribute('aria-selected')).toBe('true');
     expect(screen.getByText('No documents in Shared with me yet')).toBeTruthy();
     const distribution = screen.getByRole('heading', { name: 'Status Distribution' }).closest('article')!;
-    expect(within(distribution).getByText('0')).toBeTruthy();
-    expect(within(distribution).getByLabelText('Total documents: 1')).toBeTruthy();
+    expect(within(distribution).getByLabelText('Total documents: 0')).toBeTruthy();
     const failedRow = within(distribution).getByText('Failed').closest('li')!;
     expect(within(failedRow).getByText('0')).toBeTruthy();
     fireEvent.keyDown(sharedTab, { key: 'Home' });

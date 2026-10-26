@@ -59,9 +59,7 @@ describe('SearchPage', () => {
     expect(result.getAttribute('href')).toBe('/portal/documents/document-12345678');
     expect(result.textContent).toContain('Document created: Oct 20, 2026');
     expect(result.textContent).toContain('Doc. No. 12, Page No. 7, Book No. 3, Series of 2026');
-    expect(result.textContent).toContain('Document ID: document-12345678');
-    expect(result.textContent).toContain('Chunk index: 3');
-    expect(result.textContent).toContain('Score: 0.87');
+    expect(result.textContent).not.toMatch(/Document ID:|Chunk ID:|Chunk index:|Score:/);
     expect(result.textContent).not.toContain('undefined');
   });
 
