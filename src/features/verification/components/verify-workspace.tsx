@@ -100,8 +100,6 @@ export default function VerifyWorkspace({ result, onRetry }: { result: Verificat
     ? result.tamper_report
     : null;
   const tamperedSegments = tamperReport?.segments ?? [];
-<<<<<<< HEAD
-=======
   const currentPdfSegments = tamperedSegments
     .filter((segment) => segment.location === 'current')
     .map((segment, index): ApiSchema<'ExtractionBlock'> => ({
@@ -117,7 +115,6 @@ export default function VerifyWorkspace({ result, onRetry }: { result: Verificat
       is_html: false,
       edited: false,
     }));
->>>>>>> 4a042bb21dafb3272a021770f3f2a72c293811ca
   const showTamperComparison = result.status === 'TAMPERED'
     && !result.is_authentic
     && result.baseline_trusted;
@@ -160,20 +157,6 @@ export default function VerifyWorkspace({ result, onRetry }: { result: Verificat
               <>
                 <div>
                   <h3 className="font-extrabold text-[#0C2B49]">Changed content</h3>
-<<<<<<< HEAD
-                  <p className="mt-1 text-sm text-[#64748b]">{tamperReport?.total_changes} {tamperReport?.total_changes === 1 ? 'change' : 'changes'} found.</p>
-                </div>
-                {tamperedSegments.map((segment) => (
-                  <dl key={segment.index} className="grid gap-3 text-sm">
-                    <div className="rounded-xl border border-[#E8F0F8] bg-[#F8FBFF] p-3">
-                      <dt className="font-bold text-[#64748b]">Anchored version</dt>
-                      <dd className="mt-1 font-semibold text-[#0C2B49]">{segment.original_text || 'Not provided'}</dd>
-                    </div>
-                    <div className="rounded-xl border border-red-200 bg-red-50 p-3">
-                      <dt className="font-bold text-[#D94B66]">Current PDF</dt>
-                      <dd className="mt-1 font-semibold text-[#0C2B49]">{segment.text || 'Not provided'}</dd>
-                    </div>
-=======
                   <p className="mt-1 text-sm text-[#64748b]">{tamperReport?.total_changes ?? 0} {tamperReport?.total_changes === 1 ? 'change' : 'changes'} returned.</p>
                   {tamperReport?.truncated && <p role="note" className="mt-1 text-sm text-[#8A5B00]">Additional changes were found. Only the listed segments are shown here.</p>}
                 </div>
@@ -192,7 +175,6 @@ export default function VerifyWorkspace({ result, onRetry }: { result: Verificat
                       <dd className="mt-1 font-semibold text-[#0C2B49]">{segment.current_text || (segment.type === 'delete' ? 'Removed from the current PDF' : 'Not provided')}</dd>
                     </div>
                     <div><dt className="font-bold text-[#64748b]">Location</dt><dd className="mt-1 text-[#0C2B49]">{segment.location === 'current' ? 'Current PDF' : 'Anchored version'}{segment.page_idx == null ? ' · text only' : ` · page ${segment.page_idx + 1}`}</dd></div>
->>>>>>> 4a042bb21dafb3272a021770f3f2a72c293811ca
                   </dl>
                 ))}
               </>
@@ -200,15 +182,11 @@ export default function VerifyWorkspace({ result, onRetry }: { result: Verificat
               <div role="status" aria-label="Comparison details unavailable" className="rounded-xl border border-[#D7E4F2] bg-[#F8FBFF] p-4">
                 <h3 className="font-extrabold text-[#0C2B49]">Detailed comparison unavailable</h3>
                 <p className="mt-2 text-sm leading-6 text-[#64748b]">
-<<<<<<< HEAD
-                  This verification response includes the verdict and file hashes, but no extracted-text differences or baseline PDF.
-=======
                   {result.tamper_report_status === 'UNAVAILABLE'
                     ? result.tamper_report_unavailable_reason || 'The tampered verdict still stands, but a trustworthy text comparison could not be produced.'
                     : result.tamper_report_status === 'NOT_APPLICABLE'
                       ? 'No text comparison applies to this verification response.'
                       : 'This verification response includes the verdict and file hashes, but no extracted-text differences or baseline PDF.'}
->>>>>>> 4a042bb21dafb3272a021770f3f2a72c293811ca
                 </p>
               </div>
             )}

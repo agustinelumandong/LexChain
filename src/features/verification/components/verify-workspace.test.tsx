@@ -82,32 +82,11 @@ afterEach(() => {
 });
 
 describe('VerifyWorkspace', () => {
-<<<<<<< HEAD
-  it('shows available text comparison data even outside mock mode', () => {
+  it('renders backend comparison details and overlays only current-PDF coordinates', () => {
     vi.stubEnv('NEXT_PUBLIC_USE_MOCK_API', 'false');
     vi.stubEnv('USE_MOCK_API', 'false');
     render(<VerifyWorkspace result={result} onRetry={vi.fn()} />);
 
-    expect(screen.getByRole('heading', { name: 'Current PDF' })).toBeTruthy();
-    expect(screen.getByText('Price: PHP 2,750,000.00')).toBeTruthy();
-    expect(screen.getByText('Price: PHP 10,000,000.00')).toBeTruthy();
-    expect(dynamicMocks.viewerProps).toMatchObject({
-      sourceUrl: '/api/portal/documents/mock-document-5/file?filename=Tampered+Deed+of+Sale.pdf',
-      blocks: [priceBlock],
-    });
-    expect((dynamicMocks.viewerProps?.tamperedBlockIndexes as ReadonlySet<number>).has(3)).toBe(true);
-  });
-
-  it('explains when a real verification response has no text comparison data', () => {
-=======
-  it('renders backend comparison details and overlays only current-PDF coordinates', () => {
->>>>>>> 4a042bb21dafb3272a021770f3f2a72c293811ca
-    vi.stubEnv('NEXT_PUBLIC_USE_MOCK_API', 'false');
-    vi.stubEnv('USE_MOCK_API', 'false');
-    render(<VerifyWorkspace result={{ ...result, tamper_report: null }} onRetry={vi.fn()} />);
-
-<<<<<<< HEAD
-=======
     expect(screen.getByRole('heading', { name: 'Current PDF' })).toBeTruthy();
     expect(screen.getByText('The sale price increased substantially.')).toBeTruthy();
     expect(screen.getByText(/replace · critical/)).toBeTruthy();
@@ -197,7 +176,6 @@ describe('VerifyWorkspace', () => {
     vi.stubEnv('USE_MOCK_API', 'false');
     render(<VerifyWorkspace result={{ ...result, tamper_report: null }} onRetry={vi.fn()} />);
 
->>>>>>> 4a042bb21dafb3272a021770f3f2a72c293811ca
     expect(screen.getByRole('region', { name: 'Current document' })).toBeTruthy();
     expect(screen.getByRole('status', { name: 'Comparison details unavailable' })).toBeTruthy();
     expect(screen.getByText(/no extracted-text differences or baseline PDF/i)).toBeTruthy();
