@@ -85,7 +85,7 @@ describe('document library list', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Oldest first' }));
     expect(screen.getAllByRole('row')[1].textContent).toContain('Certificate of Employment.pdf');
     fireEvent.change(screen.getByPlaceholderText('Search documents...'), { target: { value: 'missing' } });
-    expect(screen.getByText('No matching documents in My documents')).toBeTruthy();
+    expect(screen.getByText('No matching documents')).toBeTruthy();
     fireEvent.click(screen.getByText('More Filters'));
     fireEvent.click(screen.getByRole('button', { name: 'Reset filters' }));
     expect(screen.getByRole('button', { name: 'Newest first' })).toBeTruthy();
@@ -102,7 +102,7 @@ describe('document library list', () => {
     const search = screen.getByPlaceholderText('Search documents...') as HTMLInputElement;
     fireEvent.change(search, { target: { value: 'missing' } });
 
-    expect(screen.getByText('No matching documents in My documents')).toBeTruthy();
+    expect(screen.getByText('No matching documents')).toBeTruthy();
     expect(screen.getByText('Showing 0–0 of 0 documents')).toBeTruthy();
     const clear = screen.getByRole('button', { name: 'Clear search' });
     expect(clear.tagName).toBe('BUTTON');
@@ -112,7 +112,7 @@ describe('document library list', () => {
     fireEvent.click(clear);
 
     expect(search.value).toBe('');
-    expect(screen.queryByText('No matching documents in My documents')).toBeNull();
+    expect(screen.queryByText('No matching documents')).toBeNull();
     expect(screen.queryByRole('button', { name: 'Clear search' })).toBeNull();
     expect(screen.getByRole('button', { name: 'Oldest first' })).toBeTruthy();
     fireEvent.click(screen.getByText(/More Filters/));
@@ -136,7 +136,7 @@ describe('document library list', () => {
     documentQueryState = { isLoading: state === 'loading', isError: state === 'error' };
     view.rerender(createElement(DocumentsPage));
 
-    expect(screen.queryByText('No matching documents in My documents')).toBeNull();
+    expect(screen.queryByText('No matching documents')).toBeNull();
     expect(screen.queryByRole('button', { name: 'Clear search' })).toBeNull();
     if (state === 'loading') {
       expect(screen.getByLabelText('Loading documents')).toBeTruthy();
