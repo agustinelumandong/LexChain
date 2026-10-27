@@ -834,7 +834,7 @@ describe('DocumentWorkspace', () => {
     expect(screen.getByRole('heading', { name: 'Participants' })).toBeTruthy();
     expect(screen.getByRole('list', { name: 'Participants' }).textContent).toContain('Jordan Lawyer');
     expect(screen.getByRole('list', { name: 'Participants' }).textContent).toContain('Avery Reviewer');
-    expect(screen.getByText('Document owner')).toBeTruthy();
+    expect(screen.getByText('Lawyer')).toBeTruthy();
     expect(screen.getByText('Viewer · Has access')).toBeTruthy();
     expect(screen.queryByText('reviewer@example.com')).toBeNull();
     expect(screen.queryByRole('tablist')).toBeNull();
@@ -864,11 +864,11 @@ describe('DocumentWorkspace', () => {
 
     expect(screen.getByRole('alert').textContent).toContain('UNRESOLVED_COMMENTS');
     expect((screen.getByRole('button', { name: 'Mark ready for signature' }) as HTMLButtonElement).disabled).toBe(true);
-    expect(await screen.findByText(/Resolve 1 unresolved comment in Google Docs, then sync comments/)).toBeTruthy();
+    expect(await screen.findByText(/Resolve 1 unresolved comment in Google Docs, then refresh comments/)).toBeTruthy();
     expect(await screen.findByText('Please correct this clause.')).toBeTruthy();
     expect(screen.getByText('Payment is due.')).toBeTruthy();
     expect(screen.getByText('I will update it.')).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: 'Sync comments' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Refresh comments' }));
     expect(await screen.findByText('Google Docs is unavailable')).toBeTruthy();
     expect(screen.getByText('Please correct this clause.')).toBeTruthy();
   });
@@ -880,10 +880,10 @@ describe('DocumentWorkspace', () => {
       comments: [{ id: 'comment-synced', author_name: 'Reviewer', content: 'Resolved externally.', resolved: true, created_at: '2026-07-28T00:00:00Z' }],
     });
     renderWorkspace({ document: { ...document, permissions: { ...document.permissions, can_mark_ready: true } } });
-    fireEvent.click(screen.getByRole('button', { name: 'Sync comments' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Refresh comments' }));
 
     expect(await screen.findByText('Resolved externally.')).toBeTruthy();
-    expect(screen.getByText('0 unresolved · Last synced Not available')).toBeTruthy();
+    expect(screen.getByText('0 unresolved · Last checked Not available')).toBeTruthy();
     await waitFor(() => expect((screen.getByRole('button', { name: 'Mark ready for signature' }) as HTMLButtonElement).disabled).toBe(false));
   });
 

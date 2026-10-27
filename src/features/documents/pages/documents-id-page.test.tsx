@@ -336,7 +336,8 @@ describe('document detail screen', () => {
 
     await showPage();
 
-    expect(await screen.findByRole('button', { name: 'Rename document' })).toBeTruthy();
+    fireEvent.click(await screen.findByRole('button', { name: 'More document actions' }));
+    expect(await screen.findByRole('button', { name: 'Rename' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Finalize' })).toBeTruthy();
   });
 
@@ -612,6 +613,7 @@ describe('document detail screen', () => {
 
     await showPage();
 
+    fireEvent.click(screen.getByRole('button', { name: 'More document actions' }));
     fireEvent.click(screen.getByRole('button', { name: 'Cancel document' }));
 
     expect(screen.getByRole('dialog', { name: 'Cancel document?' })).toBeTruthy();
@@ -627,7 +629,8 @@ describe('document detail screen', () => {
     };
     await showPage();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Rename document' }));
+    fireEvent.click(screen.getByRole('button', { name: 'More document actions' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Rename' }));
     expect(screen.getByRole('dialog', { name: 'Rename document' })).toBeTruthy();
     const input = screen.getByRole('textbox', { name: 'Document name' }) as HTMLInputElement;
     expect(input.value).toBe('Signed agreement.pdf');

@@ -4,6 +4,7 @@ import { use, useState, useSyncExternalStore } from 'react';
 import { useMutation, useQueries, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import MoreVertIcon from '@mui/icons-material/MoreVert';
 import ShieldOutlinedIcon from '@mui/icons-material/ShieldOutlined';
 import { toast } from 'sonner';
 import { z } from 'zod';
@@ -18,6 +19,7 @@ import { portalRequest } from '@/shared/api/client';
 import { PortalApiError } from '@/shared/api/portal-error';
 import { isMockMode } from '@/lib/mocks/mode';
 import { retryDocumentProcessing } from '@/features/documents/document-lifecycle-api';
+import { usePopup } from '@/shared/components/ui/use-popup';
 
 type DocumentResponse = ApiSchema<'DocumentResponse'>;
 type UserProfile = ApiSchema<'UserProfileResponse'>;
@@ -72,6 +74,7 @@ export default function DocumentDetailPage({ params }: { params: Promise<{ id: s
   const [renameOpen, setRenameOpen] = useState(false);
   const [renameName, setRenameName] = useState('');
   const [renameError, setRenameError] = useState<string>();
+  const { open: documentActionsOpen, setOpen: setDocumentActionsOpen, ref: documentActionsRef } = usePopup();
   const [confirmingFinalize, setConfirmingFinalize] = useState(false);
   const [cancelConfirmationOpen, setCancelConfirmationOpen] = useState(false);
   const [finalizationResult, setFinalizationResult] = useState<ApiSchema<'RecordResponse'>>();
@@ -252,12 +255,19 @@ export default function DocumentDetailPage({ params }: { params: Promise<{ id: s
               {document.lifecycle === 'FINALIZED' && <span className={`${getDocumentProcessingBadgeClasses(document.status)} rounded-full px-2.5 py-0.5 text-xs font-bold`}>{getDocumentProcessingStatusLabel(document.lifecycle, document.status)}</span>}
             </div>
           </div>
-          <div className="flex flex-wrap gap-2">
-            {actions.includes('Rename document') && <button type="button" aria-label="Rename document" onClick={requestRename} disabled={renamePending} className="min-h-11 rounded-full border border-[#D7E4F2] px-3 py-2 text-sm font-extrabold text-[#0C2B49]">Rename</button>}
+          <div className="flex flex-wrap items-center gap-2">
+            {(actions.includes('Rename document') || document.permissions.can_cancel) && <div ref={documentActionsRef} className="relative">
+              <button type="button" aria-label="More document actions" aria-expanded={documentActionsOpen} aria-controls="document-actions-menu" onClick={() => setDocumentActionsOpen((open) => !open)} className="grid min-h-11 min-w-11 place-items-center rounded-full border border-[#D7E4F2] text-[#0C2B49] hover:bg-[#EAF4FF] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0985E7]">
+                <MoreVertIcon aria-hidden="true" sx={{ fontSize: 20 }} />
+              </button>
+              {documentActionsOpen && <div id="document-actions-menu" role="group" aria-label="Document actions" className="absolute right-0 top-full z-50 mt-1 w-48 overflow-hidden rounded-xl border border-[#D7E4F2] bg-white p-1 shadow-lg shadow-[#183B6B]/10">
+                {actions.includes('Rename document') && <button type="button" onClick={() => { setDocumentActionsOpen(false); requestRename(); }} disabled={renamePending} className="block min-h-11 w-full rounded-lg px-3 py-2 text-left text-sm font-bold text-[#0C2B49] hover:bg-[#EEF4FB] disabled:opacity-50">Rename</button>}
+                {document.permissions.can_cancel && <button type="button" onClick={() => { setDocumentActionsOpen(false); openCancelConfirmation(); }} className="block min-h-11 w-full rounded-lg px-3 py-2 text-left text-sm font-bold text-[#B42318] hover:bg-red-50">Cancel document</button>}
+              </div>}
+            </div>}
             {actions.includes('Review extracted text') && <Link href={`/portal/documents/${id}/review`} aria-label="Review extracted text" className="inline-flex min-h-11 items-center rounded-full bg-[#0985E7] px-3 py-2 text-sm font-extrabold text-white">Review text</Link>}
             {actions.includes('Finalize') && !finalizationResult && !hasUnknownFinalization && <button type="button" onClick={openFinalizeConfirmation} className="min-h-11 rounded-full bg-[#0673C4] px-3 py-2 text-sm font-extrabold text-white hover:bg-[#005FA3] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0985E7]">Finalize</button>}
             {actions.includes('Retry processing') && <button type="button" onClick={() => retryProcessingMutation.mutate()} disabled={retryProcessingMutation.isPending} className="min-h-11 rounded-full border border-[#0985E7] px-3 py-2 text-sm font-extrabold text-[#0985E7] disabled:opacity-50">{retryProcessingMutation.isPending ? 'Retrying…' : 'Retry processing'}</button>}
-            {document.permissions.can_cancel && <button type="button" aria-label="Cancel document" onClick={openCancelConfirmation} className="min-h-11 rounded-full border border-[#B42318] px-3 py-2 text-sm font-extrabold text-[#B42318]">Cancel</button>}
             {actions.includes('Check document') && <Link href={`/portal/documents/${id}/verify`} className="group inline-flex min-h-11 items-center gap-1.5 rounded-full border border-[#0985E7] bg-[#EAF4FF] px-3 py-2 text-sm font-extrabold text-[#0C2B49] transition-colors hover:border-[#0985E7] hover:bg-[#0985E7] hover:text-white active:bg-[#0879D8] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0985E7]"><ShieldOutlinedIcon aria-hidden="true" className="text-[#0985E7] transition-colors group-hover:text-white group-focus-visible:text-white" sx={{ fontSize: 18 }} />Verify integrity</Link>}
           </div>
         </div>

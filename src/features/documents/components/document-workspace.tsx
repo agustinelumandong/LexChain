@@ -162,7 +162,7 @@ function participantName(party: ApiSchema<'DocumentPartyResponse'>) {
 }
 
 function participantRole(party: ApiSchema<'DocumentPartyResponse'>) {
-  if (party.role === 'owner') return 'Document owner';
+  if (party.role === 'owner') return 'Lawyer';
   const role = ({ viewer: 'Viewer', signer: 'Signer', editor: 'Editor' } as Record<string, string>)[party.role];
   const access = party.status === 'accepted' ? 'Has access' : party.status === 'pending' ? 'Invitation pending' : null;
   return [role ?? 'Participant', access].filter(Boolean).join(' · ');
@@ -227,17 +227,17 @@ function DraftCommentsPanel({
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 id="draft-comments-heading" className="inline-flex items-center gap-2 text-lg font-bold leading-6 text-[#0C2B49]"><CommentOutlinedIcon aria-hidden="true" sx={{ fontSize: 20, color: '#0985E7' }} />Draft comments</h2>
-          <p className="mt-1 text-base leading-7 text-[#4B6382]">Comments are mirrored from the linked Google Doc.</p>
+          <p className="mt-1 text-base leading-7 text-[#4B6382]">{document.lifecycle === 'PREPARING' ? 'New comments are checked automatically while the draft is in progress. Use Refresh comments to check Google Docs now.' : 'Comments are no longer checked automatically after the draft is marked ready for signature.'}</p>
         </div>
-        {document.lifecycle === 'PREPARING' && document.permissions.can_mark_ready && <button type="button" onClick={onSync} disabled={isSyncing} className="min-h-11 rounded-full border border-[#006BB6] px-4 py-2 text-sm font-bold text-[#006BB6] disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0985E7]">{isSyncing ? 'Syncing comments…' : 'Sync comments'}</button>}
+        {document.lifecycle === 'PREPARING' && document.permissions.can_mark_ready && <button type="button" onClick={onSync} disabled={isSyncing} className="min-h-11 rounded-full border border-[#006BB6] px-4 py-2 text-sm font-bold text-[#006BB6] disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0985E7]">{isSyncing ? 'Refreshing comments…' : 'Refresh comments'}</button>}
       </div>
       {document.lifecycle === 'PREPARING' && role === 'user' && <p className="mt-4 rounded-lg bg-[#F8FBFF] p-4 text-base leading-7 text-[#344054]">Leave feedback with comments (select text, then choose the comment button), not by editing the document. Google Docs suggestions are not shown here.</p>}
       {document.lifecycle === 'PREPARING' && role === 'lawyer' && document.permissions.can_mark_ready && <p className="mt-4 rounded-lg bg-[#F8FBFF] p-4 text-base leading-7 text-[#344054]">Resolve comments and pending Google Docs suggestions before marking the draft ready. Afterward, clients can read the draft but cannot comment. Reopen it if revisions are needed.</p>}
       {isLoading && <p role="status" className="mt-4 text-base leading-7 text-[#4B6382]">Loading comments…</p>}
       {isError && <div className="mt-4 flex flex-wrap items-center gap-2"><p role="alert" className="text-base leading-7 text-[#B42318]">Unable to load draft comments.</p><button type="button" onClick={onRetry} className="min-h-11 rounded-full border border-[#D7E4F2] px-4 py-2 text-sm font-bold text-[#0C2B49] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0985E7]">Retry comments</button></div>}
-      {syncError && <p role="alert" className="mt-4 text-base font-bold leading-7 text-[#B42318]">{syncError.message || 'Unable to sync comments.'}</p>}
+      {syncError && <p role="alert" className="mt-4 text-base font-bold leading-7 text-[#B42318]">{syncError.message || 'Unable to refresh comments.'}</p>}
       {comments && <div className="mt-3 space-y-3">
-        <p className="text-base font-bold leading-7 text-[#344054]">{comments.unresolved} unresolved · Last synced {formatDate(comments.synced_at)}</p>
+        <p className="text-base font-bold leading-7 text-[#344054]">{comments.unresolved} unresolved · Last checked {formatDate(comments.synced_at)}</p>
         {comments.comments.length === 0 ? <p className="text-base leading-7 text-[#4B6382]">No comments found in the draft.</p> : comments.comments.map((comment) => <article key={comment.id} className="max-w-4xl space-y-3 rounded-xl border border-[#D7E4F2] bg-[#F8FBFF] p-5">
           <div className="flex justify-between gap-3"><p className="text-base font-bold leading-6 text-[#0C2B49]">{comment.author_name || 'Draft commenter'}</p><span className="shrink-0 text-sm font-medium text-[#4B6382]">{comment.resolved ? 'Resolved' : 'Unresolved'}</span></div>
           {comment.quoted_text && <blockquote className="break-words border-l-2 border-[#0985E7] pl-3 text-base leading-7 text-[#4B6382]">{comment.quoted_text}</blockquote>}
@@ -686,11 +686,11 @@ export function DocumentWorkspace({
       <p className="text-sm font-bold uppercase tracking-[0.08em] text-[#344054]">Before marking ready</p>
       {commentsQuery.isLoading && <p role="status" className="mt-2 text-base leading-7 text-[#344054]">Checking unresolved comments…</p>}
       {commentsQuery.isError && <p role="alert" className="mt-2 text-base leading-7 text-[#B42318]">Comments could not be checked. Retry comments above before continuing.</p>}
-      {syncComments.isPending && <p role="status" className="mt-2 text-base leading-7 text-[#344054]">Syncing comments…</p>}
-      {syncComments.isError && <p role="alert" className="mt-2 text-base leading-7 text-[#B42318]">Comments could not be synced. Retry Sync comments above before continuing.</p>}
-      {typeof unresolvedCommentCount === 'number' && unresolvedCommentCount > 0 && <p role="status" className="mt-2 text-base leading-7 text-[#B42318]">Resolve {unresolvedCommentCount} unresolved {unresolvedCommentCount === 1 ? 'comment' : 'comments'} in Google Docs, then sync comments before marking the draft ready.</p>}
+      {syncComments.isPending && <p role="status" className="mt-2 text-base leading-7 text-[#344054]">Refreshing comments…</p>}
+      {syncComments.isError && <p role="alert" className="mt-2 text-base leading-7 text-[#B42318]">Comments could not be refreshed. Choose Refresh comments above before continuing.</p>}
+      {typeof unresolvedCommentCount === 'number' && unresolvedCommentCount > 0 && <p role="status" className="mt-2 text-base leading-7 text-[#B42318]">Resolve {unresolvedCommentCount} unresolved {unresolvedCommentCount === 1 ? 'comment' : 'comments'} in Google Docs, then refresh comments before marking the draft ready.</p>}
       {unresolvedCommentCount === 0 && !commentsQuery.isLoading && !commentsQuery.isError && !syncComments.isPending && !syncComments.isError && <>
-        <p role="status" className="mt-2 text-base leading-7 text-[#344054]">All synced comments are resolved.</p>
+        <p role="status" className="mt-2 text-base leading-7 text-[#344054]">All comments are resolved.</p>
         <label className="mt-3 flex items-start gap-2.5 text-sm font-semibold leading-6 text-[#344054]">
           <input type="checkbox" checked={suggestionsReviewed} onChange={(event) => setReviewedSuggestionsFor(event.target.checked ? document.document_id : null)} className="mt-1 h-4 w-4 shrink-0 accent-[#0673C4] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0985E7]" />
           <span>I checked Google Docs and resolved any pending suggestions.</span>
