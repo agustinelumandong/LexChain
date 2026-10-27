@@ -21,7 +21,7 @@ import { toast } from 'sonner';
 import type { ApiSchema } from '@/shared/types/index';
 import { attachSignedCopy, correctDocumentEntry, LifecycleRequestError, listDocumentHistory, listDraftComments, listSignedCopies, replaceSignedCopy, signedCopyFileUrl, syncDraftComments } from '@/features/documents/document-lifecycle-api';
 import { isGoogleDraftUrl } from '@/features/documents/document-draft-api';
-import { getDocumentLifecycleBadgeClasses, getDocumentLifecycleLabel, getDocumentProcessingBadgeClasses, getDocumentProcessingStatusLabel } from '@/features/documents/document-ui';
+import { getDocumentLifecycleLabel } from '@/features/documents/document-ui';
 import { shortenIntegrityHash } from '@/features/verification';
 import { GoogleDraftPanel } from '@/features/documents/components/google-draft-panel';
 import { listDocumentParties, type PortalUiRole } from '@/features/access';
@@ -38,6 +38,7 @@ const PdfDocumentViewer = dynamic(() => import('@/features/documents/components/
 
 const tabs = ['Overview', 'Files', 'Comments', 'Participants', 'Blockchain', 'Activity'] as const;
 type Tab = typeof tabs[number];
+const overviewSectionHeadingClassName = 'inline-flex items-center gap-2 text-lg font-bold leading-6 text-[#0C2B49]';
 
 function readable(value: unknown): string {
   if (value == null) return 'Not supplied';
@@ -289,7 +290,7 @@ function RiskFlags({ items }: { items?: unknown[] | null }) {
         {items.map((item, index) => {
           const level = riskLevel(item);
           const description = riskDescription(item);
-          return <li key={index} className="flex items-start justify-between gap-3 py-2 text-sm leading-5 text-[#0C2B49]">
+          return <li key={index} className="flex items-start justify-between gap-3 py-3 text-base leading-6 text-[#0C2B49]">
             <span title={description} className="line-clamp-2 min-w-0 flex-1">{description}</span>
             <span role="img" aria-label={`${level.label} concern level`} className={`mt-0.5 inline-flex min-h-6 shrink-0 items-center justify-center rounded-full px-2 text-xs font-bold ${level.badge}`}>
               {level.label}
@@ -306,17 +307,17 @@ function SignedPdfPreview({ document }: { document: WorkspaceDocument }) {
   const signedCopy = document.signed_copy;
 
   return (
-    <section aria-labelledby="signed-pdf-preview-heading" className="flex min-w-0 flex-col lg:h-full lg:min-h-0">
+    <section aria-labelledby="signed-pdf-preview-heading" className="flex min-w-0 flex-col rounded-xl border border-[#D7E4F2] bg-white p-4 sm:p-5 2xl:h-full 2xl:min-h-0">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
-          <h2 id="signed-pdf-preview-heading" className="inline-flex items-center gap-1.5 text-sm font-bold leading-5 text-[#0C2B49]"><PictureAsPdfOutlinedIcon aria-hidden="true" sx={{ fontSize: 18, color: '#0985E7' }} />Signed PDF</h2>
-          {signedCopy && <p className="mt-1 break-words text-sm text-[#4B6382]">{signedCopy.original_filename ?? document.file_name}</p>}
+          <h2 id="signed-pdf-preview-heading" className="inline-flex items-center gap-2 text-lg font-bold leading-6 text-[#0C2B49]"><PictureAsPdfOutlinedIcon aria-hidden="true" sx={{ fontSize: 20, color: '#0985E7' }} />Signed PDF</h2>
+          {signedCopy && <p className="mt-1 break-words text-sm leading-5 text-[#4B6382]">{signedCopy.original_filename ?? document.file_name}</p>}
         </div>
         {signedCopy && <a href={signedCopyFileUrl(document.document_id, { copyId: signedCopy.id, download: true, filename: signedCopy.original_filename ?? document.file_name ?? undefined })} className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-[#D7E4F2] px-2.5 py-1 text-sm font-semibold text-[#0C2B49] hover:bg-[#EAF4FF] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0985E7] sm:min-h-9"><DownloadOutlinedIcon aria-hidden="true" sx={{ fontSize: 17 }} />Download PDF</a>}
       </div>
 
       {signedCopy ? (
-        <div className="relative mt-3 flex h-[65vh] min-h-[320px] max-h-[720px] flex-col overflow-hidden rounded-lg border border-[#D7E4F2] bg-[#EDF3F9] p-2 lg:h-auto lg:min-h-0 lg:flex-1">
+        <div className="relative mt-4 flex h-[65vh] min-h-[320px] max-h-[720px] flex-col overflow-hidden rounded-lg bg-[#F4F8FC] p-2 2xl:h-auto 2xl:min-h-0 2xl:flex-1">
           <PdfDocumentViewer
             sourceUrl={signedCopyFileUrl(document.document_id, { copyId: signedCopy.id })}
             currentPage={currentPage}
@@ -331,7 +332,7 @@ function SignedPdfPreview({ document }: { document: WorkspaceDocument }) {
           {pdfLoading && <div role="status" aria-label="Loading signed PDF" className="absolute inset-0 flex items-center justify-center bg-white/90"><span className="text-sm font-semibold text-[#4B6382]">Loading signed PDF…</span></div>}
         </div>
       ) : (
-        <p className="mt-3 text-sm text-[#4B6382]">No signed PDF is attached to this document yet.</p>
+        <p className="mt-4 rounded-lg bg-[#F8FBFF] p-4 text-base leading-7 text-[#4B6382]">No signed PDF is attached to this document yet.</p>
       )}
     </section>
   );
@@ -488,7 +489,7 @@ export function DocumentWorkspace({
   useEffect(() => {
     if (signedCopyMode === 'attach') signedCopyFileInput.current?.focus({ preventScroll: true });
   }, [signedCopyMode]);
-  const hasInsights = Boolean(document.summary || document.labels?.length || document.entities?.length || document.risk_flags?.length);
+  const hasReviewDetails = Boolean(document.labels?.length || document.entities?.length);
   const people = partiesQuery.data
     ? [partiesQuery.data.issuer, ...(partiesQuery.data.parties ?? []).filter((party) => party.status !== 'declined')]
     : [];
@@ -706,7 +707,7 @@ export function DocumentWorkspace({
   </section>;
 
   return (
-    <section className={`flex min-h-0 flex-col ${isDrafting ? 'overflow-hidden bg-transparent' : 'overflow-hidden rounded-[18px] border border-[#E8F0F8] bg-white shadow-[0_4px_12px_rgba(19,59,115,0.05)]'} ${className ?? ''}`}>
+    <section className={`mx-auto flex min-h-0 w-full flex-col bg-transparent ${isDrafting ? 'overflow-hidden' : 'max-w-7xl'} ${className ?? ''}`}>
       {isDrafting ? (
         <div className="mx-auto min-h-0 w-full max-w-4xl flex-1 overflow-y-auto px-4 py-6 sm:px-8">
           <header className="mb-6">
@@ -736,7 +737,7 @@ export function DocumentWorkspace({
         </div>
       ) : (
         <>
-      <div role="tablist" aria-label="Document workspace" className="flex shrink-0 overflow-x-auto border-b border-[#E8F0F8] px-3">
+      <div role="tablist" aria-label="Document workspace" className="flex shrink-0 overflow-x-auto border-b border-[#D7E4F2] px-4 sm:px-6">
         {visibleTabs.map((tab) => (
           <button
             key={tab}
@@ -744,7 +745,7 @@ export function DocumentWorkspace({
             type="button"
             aria-selected={activeTab === tab}
             onClick={() => setActiveTab(tab)}
-            className={`flex min-h-11 shrink-0 items-center gap-1.5 border-b-2 px-4 py-3 text-sm font-extrabold ${activeTab === tab ? 'border-[#0985E7] text-[#0C2B49]' : 'border-transparent text-[#4B6382]'}`}
+            className={`flex min-h-11 shrink-0 items-center gap-1.5 rounded-t-md border-b-2 px-4 py-3 text-sm font-semibold focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[#0985E7] ${activeTab === tab ? 'border-[#0985E7] text-[#0C2B49]' : 'border-transparent text-[#4B6382] hover:text-[#0C2B49]'}`}
           >
             {tab === 'Blockchain' && <AccountTreeIcon aria-hidden="true" sx={{ fontSize: 18, color: '#0985E7' }} />}
             {tab}
@@ -752,26 +753,20 @@ export function DocumentWorkspace({
         ))}
       </div>
 
-      <div role="tabpanel" className={`min-h-0 flex-1 p-3 ${activeTab === 'Overview' ? 'overflow-y-auto lg:overflow-hidden' : 'overflow-y-auto'}`}>
+      <div role="tabpanel" className={`min-h-0 w-full flex-1 px-4 py-5 sm:px-6 sm:py-6 ${activeTab === 'Overview' ? 'overflow-y-auto 2xl:overflow-hidden' : 'overflow-y-auto'}`}>
         {activeTab === 'Overview' && (
-          <div className="grid min-w-0 gap-3 lg:h-full lg:min-h-0 lg:flex-1 lg:grid-rows-[minmax(0,1fr)] lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
-            <div className="min-w-0 space-y-0 lg:min-h-0 lg:overflow-y-auto">
-              {(document.lifecycle === 'SIGNED' || document.lifecycle === 'FINALIZED') && <DraftProgress lifecycle={document.lifecycle} />}
+          <div className="grid min-w-0 gap-5 2xl:h-full 2xl:min-h-0 2xl:flex-1 2xl:grid-rows-[minmax(0,1fr)] 2xl:grid-cols-[minmax(0,3fr)_minmax(360px,2fr)]">
+            <div className="min-w-0 space-y-4 2xl:min-h-0 2xl:overflow-y-auto">
               {document.lifecycle === 'SIGNED' && <FinalizationNextStep document={document} role={role} outcomeUnknown={finalizationOutcomeUnknown} />}
               {document.draft_url && <GoogleDraftPanel document={document} onDocumentUpdated={onDocumentUpdated} />}
-              <section aria-labelledby="document-summary-heading" className="pb-3">
-                <dl className="grid grid-cols-1 gap-x-4 gap-y-2 text-xs sm:grid-cols-3">
-                  <div className="min-w-0 sm:col-start-1 sm:row-start-1"><dt className="font-semibold leading-4 text-[#4B6382]">Document name</dt><dd title={document.file_name} className="mt-0.5 truncate text-sm font-medium leading-5 text-[#0C2B49]">{document.file_name}</dd></div>
-                  <div className="min-w-0 sm:col-start-1 sm:row-start-2"><dt className="font-semibold leading-4 text-[#4B6382]">Register entry</dt><dd className="mt-0.5 truncate text-sm font-medium leading-5 text-[#0C2B49]" title={registerEntry}>{registerEntry}</dd></div>
-                  <div className="sm:col-start-2 sm:row-start-1"><dt className="font-semibold leading-4 text-[#4B6382]">Status</dt><dd className="mt-1"><span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-bold ${getDocumentLifecycleBadgeClasses(document.lifecycle)}`}>{getDocumentLifecycleLabel(document.lifecycle)}</span></dd></div>
-                  {document.lifecycle === 'FINALIZED' && <div className="sm:col-start-2 sm:row-start-2"><dt className="font-semibold leading-4 text-[#4B6382]">Processing</dt><dd className="mt-1"><span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-bold ${getDocumentProcessingBadgeClasses(document.status)}`}>{getDocumentProcessingStatusLabel(document.lifecycle, document.status)}</span></dd></div>}
-                  <div className="sm:col-start-3 sm:row-start-1"><dt className="font-semibold leading-4 text-[#4B6382]">Created</dt><dd className="mt-0.5 text-sm font-medium leading-5 text-[#0C2B49]">{formatDate(document.created_at)}</dd></div>
-                  {document.lifecycle === 'FINALIZED' && <div className="sm:col-start-3 sm:row-start-2"><dt className="font-semibold leading-4 text-[#4B6382]">Finalized</dt><dd className="mt-0.5 text-sm font-medium leading-5 text-[#0C2B49]">{formatDate(document.finalized_at)}</dd></div>}
+              <section aria-labelledby="document-summary-heading" className="rounded-xl border border-[#D7E4F2] bg-white p-4 sm:p-5">
+                <h2 id="document-summary-heading" className="inline-flex items-center gap-2 text-lg font-bold leading-6 text-[#0C2B49]"><DescriptionOutlinedIcon aria-hidden="true" sx={{ fontSize: 20, color: '#0985E7' }} />Document summary</h2>
+                <p className="mt-2 break-words text-base leading-7 text-[#344054]">{document.summary || 'No summary is available for this document yet.'}</p>
+                <dl className="mt-4 grid grid-cols-1 gap-x-6 gap-y-3 border-t border-[#E8F0F8] pt-4 text-xs sm:grid-cols-2">
+                  <div className="min-w-0 sm:col-span-2"><dt className="font-semibold leading-4 text-[#4B6382]">Register entry</dt><dd className="mt-1 break-words text-sm font-medium leading-5 text-[#0C2B49]">{registerEntry}</dd></div>
+                  <div><dt className="font-semibold leading-4 text-[#4B6382]">Created</dt><dd className="mt-1 text-sm font-medium leading-5 text-[#0C2B49]">{formatDate(document.created_at)}</dd></div>
+                  {document.lifecycle === 'FINALIZED' && <div><dt className="font-semibold leading-4 text-[#4B6382]">Finalized</dt><dd className="mt-1 text-sm font-medium leading-5 text-[#0C2B49]">{formatDate(document.finalized_at)}</dd></div>}
                 </dl>
-                <div className="mt-2 border-t border-[#E8F0F8] pt-2">
-                  <h2 id="document-summary-heading" className="inline-flex items-center gap-1.5 text-sm font-bold leading-5 text-[#0C2B49]"><DescriptionOutlinedIcon aria-hidden="true" sx={{ fontSize: 17, color: '#0985E7' }} />Document summary</h2>
-                  {document.summary && <p className="mt-1 break-words text-sm leading-5 text-[#0C2B49]">{document.summary}</p>}
-                </div>
               </section>
 
               {participantsPanel}
@@ -794,36 +789,40 @@ export function DocumentWorkspace({
                 </form>}
               </div>}
 
-              <div className="grid gap-3 border-t border-[#E8F0F8] py-3">
-                {hasInsights ? <section className="space-y-2">
-                  <div className="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-0.5">
-                    <h2 className="inline-flex items-center gap-1.5 text-sm font-bold leading-5 text-[#0C2B49]"><WarningAmberOutlinedIcon aria-hidden="true" sx={{ fontSize: 17, color: '#B77900' }} />Potential concerns</h2>
-                    <p className="text-xs leading-4 text-[#4B6382]">AI review · verify against original</p>
+              <div className="grid gap-4">
+                <section aria-labelledby="potential-concerns-heading" className="space-y-3 rounded-xl border border-[#D7E4F2] bg-white p-4 sm:p-5">
+                  <div className="flex min-h-11 flex-wrap items-center justify-between gap-x-2 gap-y-1">
+                    <h2 id="potential-concerns-heading" className={overviewSectionHeadingClassName}><WarningAmberOutlinedIcon aria-hidden="true" sx={{ fontSize: 20, color: '#B77900' }} />Potential concerns</h2>
+                    <p className="text-sm leading-5 text-[#4B6382]">AI review · verify against original</p>
                   </div>
-                  <RiskFlags items={document.risk_flags} />
-                  {(document.labels?.length || document.entities?.length) ? <details className="w-full border-t border-[#E8F0F8] pt-2">
-                    <summary className="cursor-pointer text-xs font-semibold leading-4 text-[#0C2B49]">Extracted details <span className="font-normal text-[#4B6382]">({document.labels?.length ?? 0} labels · {document.entities?.length ?? 0} entities)</span></summary>
-                    <div className="mt-2 space-y-3">
+                  {document.risk_flags?.length ? <RiskFlags items={document.risk_flags} /> : <p className="text-base leading-7 text-[#4B6382]">No review findings are available for this document yet.</p>}
+                </section>
+
+                {hasReviewDetails && <details className="rounded-xl border border-[#D7E4F2] bg-white p-4 sm:p-5">
+                    <summary className="min-h-11 cursor-pointer py-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0985E7]">
+                      <span className={overviewSectionHeadingClassName}><DescriptionOutlinedIcon aria-hidden="true" sx={{ fontSize: 20, color: '#0985E7' }} />Extracted details</span>{' '}
+                      <span className="text-sm font-normal leading-5 text-[#4B6382]">({document.labels?.length ?? 0} labels · {document.entities?.length ?? 0} entities)</span>
+                    </summary>
+                    <div className="mt-3 space-y-3">
                       <InsightGroup title="Labels" items={document.labels} />
                       <InsightGroup title="Entities" items={document.entities} />
                     </div>
-                  </details> : null}
-                </section> : <p className="text-sm leading-5 text-[#4B6382]">A summary and review notes will appear here when available.</p>}
+                </details>}
 
-                <section aria-labelledby="recent-activity-heading" className="border-t border-[#E8F0F8] pt-3">
-                  <div className="flex items-center justify-between gap-3">
-                    <h2 id="recent-activity-heading" className="inline-flex items-center gap-1.5 text-sm font-bold leading-5 text-[#0C2B49]"><HistoryOutlinedIcon aria-hidden="true" sx={{ fontSize: 17, color: '#0985E7' }} />Recent activity</h2>
+                <section aria-labelledby="recent-activity-heading" className="space-y-3 rounded-xl border border-[#D7E4F2] bg-white p-4 sm:p-5">
+                  <div className="flex min-h-11 items-center justify-between gap-3">
+                    <h2 id="recent-activity-heading" className={overviewSectionHeadingClassName}><HistoryOutlinedIcon aria-hidden="true" sx={{ fontSize: 20, color: '#0985E7' }} />Recent activity</h2>
                     <button type="button" onClick={() => setActiveTab('Activity')} className="inline-flex min-h-11 items-center gap-1 text-sm font-semibold text-[#0985E7] hover:underline sm:min-h-9">View all<ArrowForwardIcon aria-hidden="true" sx={{ fontSize: 16 }} /></button>
                   </div>
-                  {historyQuery.isLoading && <p role="status" className="mt-3 text-sm text-[#4B6382]">Loading activity…</p>}
-                  {historyQuery.isError && <p role="alert" className="mt-3 text-sm font-semibold text-[#B42318]">Unable to load recent activity.</p>}
-                  {historyQuery.data && historyChanges.length === 0 && <p className="mt-3 text-sm text-[#4B6382]">No activity has been recorded for this document yet.</p>}
-                  {historyChanges.length > 0 && <div className="mt-1"><ActivityTimeline changes={historyChanges.slice(-2).reverse()} ariaLabel="Recent document activity" /></div>}
+                  {historyQuery.isLoading && <p role="status" className="text-base leading-7 text-[#4B6382]">Loading activity…</p>}
+                  {historyQuery.isError && <p role="alert" className="text-base font-semibold leading-7 text-[#B42318]">Unable to load recent activity.</p>}
+                  {historyQuery.data && historyChanges.length === 0 && <p className="text-base leading-7 text-[#4B6382]">No activity has been recorded for this document yet.</p>}
+                  {historyChanges.length > 0 && <ActivityTimeline changes={historyChanges.slice(-2).reverse()} ariaLabel="Recent document activity" />}
                 </section>
               </div>
             </div>
 
-            <div className="min-w-0 lg:h-full lg:min-h-0">
+            <div className="min-w-0 2xl:h-full 2xl:min-h-0">
               <SignedPdfPreview key={`${document.document_id}:${document.signed_copy?.id ?? 'missing'}`} document={document} />
             </div>
           </div>
@@ -905,13 +904,13 @@ export function DocumentWorkspace({
         )}
 
         {activeTab === 'Activity' && (
-          <div className="space-y-3">
-            <div><h2 className="inline-flex items-center gap-2 text-lg font-extrabold text-[#0C2B49]"><HistoryOutlinedIcon aria-hidden="true" sx={{ fontSize: 20, color: '#0985E7' }} />Document activity</h2><p className="mt-1 text-sm text-[#4B6382]">Important changes to this document, from oldest to newest.</p></div>
-            {historyQuery.isLoading && <p role="status" className="text-sm text-[#4B6382]">Loading activity…</p>}
-            {historyQuery.isError && <p role="alert" className="text-sm font-semibold text-[#B42318]">Unable to load document activity.</p>}
-            {historyQuery.data && historyChanges.length === 0 && <p className="rounded-xl border border-dashed border-[#D6E3F1] bg-[#F8FBFF] px-4 py-3 text-sm text-[#5B6F8A]">No activity has been recorded for this document yet.</p>}
+          <section aria-labelledby="document-activity-heading" className="space-y-4 rounded-xl border border-[#D7E4F2] bg-white p-4 sm:p-5">
+            <div><h2 id="document-activity-heading" className={overviewSectionHeadingClassName}><HistoryOutlinedIcon aria-hidden="true" sx={{ fontSize: 20, color: '#0985E7' }} />Document activity</h2><p className="mt-1 text-sm leading-5 text-[#4B6382]">Important changes to this document, from oldest to newest.</p></div>
+            {historyQuery.isLoading && <p role="status" className="text-base leading-7 text-[#4B6382]">Loading activity…</p>}
+            {historyQuery.isError && <p role="alert" className="text-base font-semibold leading-7 text-[#B42318]">Unable to load document activity.</p>}
+            {historyQuery.data && historyChanges.length === 0 && <p className="text-base leading-7 text-[#4B6382]">No activity has been recorded for this document yet.</p>}
             {historyChanges.length > 0 && <ActivityTimeline changes={historyChanges} ariaLabel="Document activity" showActor />}
-          </div>
+          </section>
         )}
 
       </div>

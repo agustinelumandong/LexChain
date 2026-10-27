@@ -240,7 +240,7 @@ export default function DocumentDetailPage({ params }: { params: Promise<{ id: s
 
   return (
     <div className="flex min-h-0 w-full min-w-0 flex-1 flex-col gap-3 overflow-hidden">
-      <header className={`mx-auto flex w-full flex-col gap-2 ${isDrafting ? 'max-w-4xl' : ''}`}>
+      <header className={`mx-auto flex w-full flex-col gap-2 ${isDrafting ? 'max-w-4xl' : 'max-w-7xl'}`}>
         <Link href="/portal/documents" className="flex w-fit shrink-0 items-center gap-1.5 text-sm font-semibold text-[#0C2B49] hover:text-[#0985E7]">
           <ArrowBackIcon sx={{ fontSize: 16 }} /> Back to documents
         </Link>
