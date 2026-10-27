@@ -1,5 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&family=Montserrat:wght@900&display=swap');
-
 :root {
   --portal-bg: #F3F8FF;
   --portal-surface: #FFFFFF;
@@ -18,7 +16,6 @@
 
 .portal-root {
   background-color: var(--portal-bg);
-  font-family: 'Inter', sans-serif;
   overflow-x: hidden;
   max-width: 100vw;
 }
