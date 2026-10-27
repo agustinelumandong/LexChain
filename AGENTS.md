@@ -29,6 +29,7 @@ Apply these principles to new code, bug fixes, reviews and refactors. A folder m
 - **Accessibility by default:** use semantic HTML, labels, keyboard access, visible focus, focus management and appropriate ARIA. Include accessible names for icon-only actions.
 - **Behavior-focused tests:** verify visible outcomes, interaction and API/security contracts. Do not test incidental internals; preserve existing assertions and discovery when moving tests.
 - **Consistent naming and ownership:** use predictable domain names and module locations. Keep feature-specific code with its feature and promote code to shared only when it serves genuine cross-domain consumers.
+- **Shared UI typography:** follow [DESIGN.md](DESIGN.md) for the app font and type scale; prefer its existing Tailwind size utilities over arbitrary font sizes.
 - **Enforced quality:** retain ESLint, strict TypeScript, project formatting conventions, import-boundary checks, focused regression tests and CI verification. Reuse established API/error handling and React Query behavior.
 
 ## Skills and Ponytail

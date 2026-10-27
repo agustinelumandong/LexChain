@@ -125,6 +125,7 @@ openapi.json
 !README.md
 !CODEBASE.md
 !GLOSSARY.md
+!DESIGN.md
 !PRODUCT.md
 !docs/adr/*.md
 !docs/MOCK-ACCOUNTS.md
@@ -142,5 +143,7 @@ openapi.json
 .superpowers/
 next-env.d.ts
 output
+.taste-skill
+
 
 lexchain_backend
