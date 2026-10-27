@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
+import DescriptionIcon from '@mui/icons-material/Description';
 import MenuBookIcon from '@mui/icons-material/MenuBook';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import RefreshIcon from '@mui/icons-material/Refresh';
@@ -177,9 +178,14 @@ export default function BookDetailPage({ bookId }: { bookId: string }) {
                     {entries.map((entry) => (
                       <li key={entry.id} className="border-b border-[#F1F5F9] last:border-b-0">
                         <Link href={`/portal/documents/${entry.id}`} title={entry.file_name} aria-label={`Open ${entry.file_name}, document ${entry.doc_no}, register page ${entry.page_no}`} className="grid h-[68px] w-full grid-cols-[minmax(0,1fr)_minmax(15rem,0.9fr)_7rem] items-center text-left text-sm transition hover:bg-[#F8FBFF] focus-visible:bg-[#F8FBFF] focus-visible:outline focus-visible:outline-2 focus-visible:outline-inset focus-visible:outline-[#0985E7]">
-                          <span className="min-w-0 px-5 py-3">
-                            <span className="block truncate font-bold text-[#071B33]">{entry.file_name}</span>
-                            <span className="mt-0.5 block text-xs font-semibold text-[#5B6F8A]">Register {entry.doc_no} · page {entry.page_no}</span>
+                          <span className="flex min-w-0 items-center gap-2 px-5 py-3">
+                            <span aria-hidden="true" className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-[#EAF3FF]">
+                              <DescriptionIcon sx={{ fontSize: 18, color: '#0985E7' }} />
+                            </span>
+                            <span className="min-w-0">
+                              <span className="block truncate font-bold text-[#071B33]">{entry.file_name}</span>
+                              <span className="mt-0.5 block text-xs font-semibold text-[#5B6F8A]">Register {entry.doc_no} · page {entry.page_no}</span>
+                            </span>
                           </span>
                           <span className="flex flex-wrap items-center gap-2 px-5 py-3">
                             <span className="rounded-full bg-[#EAF4FF] px-2.5 py-0.5 text-[11px] font-bold text-[#1689F5]">{getDocumentLifecycleLabel(entry.lifecycle)}</span>

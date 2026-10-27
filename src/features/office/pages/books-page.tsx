@@ -145,30 +145,25 @@ export default function BooksPage() {
                   href={`/portal/books/${book.id}`}
                   className="group block h-full rounded-[18px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#0985E7]"
                 >
-                  <article className="relative h-full overflow-hidden rounded-[18px] border border-[#D7E4F2] bg-white p-5 transition duration-150 group-hover:-translate-y-0.5 group-hover:border-[#A9CCE9] group-hover:bg-[#FBFDFF] group-hover:shadow-[0_10px_24px_rgba(19,59,115,0.08)]">
-                    <span aria-hidden="true" className="absolute inset-y-0 left-0 w-2.5 border-r border-[#0876CC]/20 bg-[#0985E7]" />
-                    <div className="ml-1.5 flex h-full flex-col">
+                  <article className="relative flex h-full min-h-[272px] flex-col overflow-hidden rounded-xl border border-[#D7E4F2] border-l-4 border-l-[#0673C4] bg-[#F4F8FC] p-5 transition-colors duration-150 group-hover:border-[#A9CCE9] group-hover:border-l-[#0673C4] group-hover:bg-[#EEF6FF] sm:p-6">
+                    <div className="flex h-full flex-col">
                       <div className="flex items-start justify-between gap-3">
-                        <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#64748b]">Office register</p>
+                        <p className="text-xs font-black uppercase tracking-[0.14em] text-[#4B6382]">Office register</p>
                         <span className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-black ${book.status === 'CLOSED' ? 'bg-[#EEF4FB] text-[#4B6382]' : book.status === 'OPEN' ? 'bg-[#EAF8F0] text-[#12A150]' : 'bg-[#F1F5F9] text-[#64748b]'}`}>{statusLabel}</span>
                       </div>
-                      <div className="mt-5 flex items-center gap-3">
-                        <span className="grid size-11 shrink-0 place-items-center rounded-xl border border-[#D7E4F2] bg-white text-[#0985E7] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.7)]">
-                          <MenuBookIcon sx={{ fontSize: 23 }} />
-                        </span>
-                        <div>
-                          <h3 className="text-xl font-black leading-tight text-[#0C2B49]">Book {book.book_number}</h3>
-                          <p className="mt-1 text-xs font-medium text-[#64748b]">Series {book.series_year}</p>
-                        </div>
+                      <div className="mt-2">
+                        <h3 className="text-xl font-black leading-tight text-[#0C2B49]">Book {book.book_number}</h3>
+                        <p className="mt-1 text-sm font-medium text-[#64748b]">Series {book.series_year}</p>
                       </div>
-                      <div className="mt-5 grid grid-cols-2 gap-3 border-t border-[#D7E4F2] pt-4">
-                        <div><p className="text-lg font-black text-[#0C2B49]">{book.entry_count ?? '—'}</p><p className="text-xs font-medium text-[#64748b]">Recorded entries</p></div>
-                        <div><p className="text-sm font-black text-[#0C2B49]">Doc. {book.last_doc_no ?? '—'} · Page {book.last_page_no ?? '—'}</p><p className="text-xs font-medium text-[#64748b]">Last filing</p></div>
+                      <div className="mt-5 border-t border-[#D7E4F2] pt-4">
+                        <p className="text-xs font-black uppercase tracking-[0.12em] text-[#4B6382]">Volume details</p>
+                        <p className="mt-2 text-sm text-[#4B6382]"><span className="font-black text-[#0C2B49]">{book.entry_count ?? '—'}</span> recorded entries</p>
+                        <p className="mt-1 text-sm text-[#4B6382]"><span className="font-semibold">Last filing:</span> Doc. {book.last_doc_no ?? '—'} · Page {book.last_page_no ?? '—'}</p>
                       </div>
-                      <div className="mt-auto flex items-center justify-between gap-3 pt-5">
-                        <span className="inline-flex min-h-10 items-center gap-2 rounded-full border border-[#B9D9F4] bg-white px-4 py-2 text-sm font-black text-[#0876CC] transition group-hover:bg-[#EAF4FE]">
+                      <div className="mt-auto pt-5">
+                        <span className="inline-flex min-h-11 items-center gap-2 rounded-full bg-[#0985E7] px-5 py-2.5 text-sm font-black text-white transition-colors group-hover:bg-[#0770c4]">
                           Open book
-                          <ArrowForwardIcon className="transition-transform group-hover:translate-x-1" sx={{ fontSize: 18 }} />
+                          <ArrowForwardIcon sx={{ fontSize: 18 }} />
                         </span>
                       </div>
                     </div>
