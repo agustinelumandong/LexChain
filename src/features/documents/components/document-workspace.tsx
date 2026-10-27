@@ -71,20 +71,26 @@ function formatDate(value: string | null | undefined) {
 
 const draftWorkflowStages = ['Draft and review', 'Mark ready for signature', 'Sign and attach the PDF', 'Finalize'] as const;
 
-function DraftProgress({ lifecycle }: { lifecycle: 'PREPARING' | 'READY_FOR_SIGNATURE' }) {
-  const currentStage = lifecycle === 'PREPARING' ? 0 : 2;
+function DraftProgress({ lifecycle, readinessPending = false }: {
+  lifecycle: 'PREPARING' | 'READY_FOR_SIGNATURE' | 'SIGNED' | 'FINALIZED';
+  readinessPending?: boolean;
+}) {
+  const isFinalized = lifecycle === 'FINALIZED';
+  const currentStage = lifecycle === 'PREPARING' ? (readinessPending ? 1 : 0)
+    : lifecycle === 'READY_FOR_SIGNATURE' ? 2
+      : lifecycle === 'SIGNED' ? 3 : 4;
 
   return (
     <nav aria-label="Draft and filing progress" className="border-b border-[#D7E4F2] pb-5">
-      <p className="text-sm font-bold uppercase tracking-[0.08em] text-[#4B6382]">Step {currentStage + 1} of {draftWorkflowStages.length}</p>
+      <p className="text-sm font-bold uppercase tracking-[0.08em] text-[#4B6382]">{isFinalized ? 'All four steps complete' : `Step ${currentStage + 1} of ${draftWorkflowStages.length}`}</p>
       <ol className="mt-3 grid gap-x-5 gap-y-3 sm:grid-cols-2 xl:grid-cols-4">
         {draftWorkflowStages.map((stage, index) => (
-          <li key={stage} aria-current={index === currentStage ? 'step' : undefined} className="flex min-w-0 items-start gap-2.5">
-            <span aria-hidden="true" className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold ${index < currentStage ? 'bg-[#E7F5EC] text-[#067647]' : index === currentStage ? 'bg-[#EAF4FF] text-[#0C2B49]' : 'bg-[#F2F5F8] text-[#4B6382]'}`}>
-              {index < currentStage ? '✓' : index + 1}
+          <li key={stage} aria-current={!isFinalized && index === currentStage ? 'step' : undefined} className="flex min-w-0 items-start gap-2.5">
+            <span aria-hidden="true" className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold ${isFinalized || index < currentStage ? 'bg-[#E7F5EC] text-[#067647]' : index === currentStage ? 'bg-[#EAF4FF] text-[#0C2B49]' : 'bg-[#F2F5F8] text-[#4B6382]'}`}>
+              {isFinalized || index < currentStage ? '✓' : index + 1}
             </span>
-            <span className={`text-base leading-6 ${index === currentStage ? 'font-bold text-[#0C2B49]' : 'font-medium text-[#4B6382]'}`}>
-              <span className="sr-only">{index < currentStage ? 'Completed: ' : index === currentStage ? 'Current step: ' : 'Upcoming: '}</span>
+            <span className={`text-base leading-6 ${!isFinalized && index === currentStage ? 'font-bold text-[#0C2B49]' : 'font-medium text-[#4B6382]'}`}>
+              <span className="sr-only">{isFinalized || index < currentStage ? 'Completed: ' : index === currentStage ? 'Current step: ' : 'Upcoming: '}</span>
               {stage}
             </span>
           </li>
@@ -389,6 +395,7 @@ export function DocumentWorkspace({
   const [enterPaperNumbers, setEnterPaperNumbers] = useState(false);
   const [signedCopyError, setSignedCopyError] = useState<string | null>(null);
   const [signedCopySuccess, setSignedCopySuccess] = useState<string | null>(null);
+  const [reviewedSuggestionsFor, setReviewedSuggestionsFor] = useState<string | null>(null);
   const [correctingEntry, setCorrectingEntry] = useState(false);
   const [entryBookId, setEntryBookId] = useState(document.book_id ?? '');
   const [entryDocNo, setEntryDocNo] = useState(document.doc_no == null ? '' : String(document.doc_no));
@@ -464,7 +471,8 @@ export function DocumentWorkspace({
   const commentsQuery = useQuery({ queryKey: commentsKey, queryFn: () => listDraftComments(document.document_id), enabled: (isDrafting || activeTab === 'Comments') && Boolean(document.draft_url), retry: false, refetchInterval: 15_000 });
   const syncComments = useMutation({ mutationFn: () => syncDraftComments(document.document_id), onSuccess: (comments) => queryClient.setQueryData(commentsKey, comments) });
   const unresolvedCommentCount = commentsQuery.data?.unresolved;
-  const readinessBlocked = commentsQuery.isLoading || commentsQuery.isError || syncComments.isPending || unresolvedCommentCount !== 0;
+  const suggestionsReviewed = reviewedSuggestionsFor === document.document_id;
+  const readinessBlocked = commentsQuery.isLoading || commentsQuery.isError || syncComments.isPending || syncComments.isError || unresolvedCommentCount !== 0 || !suggestionsReviewed;
   const registerBooks = registerBooksQuery.data ?? [];
   const registerBookOptions = [
     { label: document.book_id ? 'Keep current book' : 'Use current book', value: '' },
@@ -503,7 +511,7 @@ export function DocumentWorkspace({
     isError={commentsQuery.isError}
     syncError={syncComments.error}
     isSyncing={syncComments.isPending}
-    onSync={() => syncComments.mutate()}
+    onSync={() => { setReviewedSuggestionsFor(null); syncComments.mutate(); }}
     onRetry={() => { void commentsQuery.refetch(); }}
   />;
 
@@ -657,7 +665,7 @@ export function DocumentWorkspace({
         ? 'Create or link the Google Doc in Working draft above. Once it is linked, review and resolve comments before marking it ready.'
         : 'Your lawyer is preparing the Google Doc. It will appear above when it is linked to this record.'
       : role === 'lawyer'
-        ? 'Review the wording and comments. Resolve all comments and pending Google Docs suggestions before marking the draft ready.'
+        ? 'Review the wording in Google Docs, then confirm below when the draft is ready.'
         : 'Review the Google Doc and leave feedback in its comments. Your lawyer will mark it ready when the text is settled.'
     : role === 'lawyer' && document.permissions.can_attach_signed_copy
       ? 'Print the approved text, collect signatures and any required notary stamp, then upload the signed PDF here. It will be attached to this same record with its register details.'
@@ -681,14 +689,21 @@ export function DocumentWorkspace({
       {commentsQuery.isLoading && <p role="status" className="mt-2 text-base leading-7 text-[#344054]">Checking unresolved comments…</p>}
       {commentsQuery.isError && <p role="alert" className="mt-2 text-base leading-7 text-[#B42318]">Comments could not be checked. Retry comments above before continuing.</p>}
       {syncComments.isPending && <p role="status" className="mt-2 text-base leading-7 text-[#344054]">Syncing comments…</p>}
+      {syncComments.isError && <p role="alert" className="mt-2 text-base leading-7 text-[#B42318]">Comments could not be synced. Retry Sync comments above before continuing.</p>}
       {typeof unresolvedCommentCount === 'number' && unresolvedCommentCount > 0 && <p role="status" className="mt-2 text-base leading-7 text-[#B42318]">Resolve {unresolvedCommentCount} unresolved {unresolvedCommentCount === 1 ? 'comment' : 'comments'} in Google Docs, then sync comments before marking the draft ready.</p>}
-      {unresolvedCommentCount === 0 && !commentsQuery.isError && <p role="status" className="mt-2 text-base leading-7 text-[#344054]">All synced comments are resolved. Check Google Docs for any pending suggestions before continuing.</p>}
+      {unresolvedCommentCount === 0 && !commentsQuery.isLoading && !commentsQuery.isError && !syncComments.isPending && !syncComments.isError && <>
+        <p role="status" className="mt-2 text-base leading-7 text-[#344054]">All synced comments are resolved.</p>
+        <label className="mt-3 flex items-start gap-2.5 text-sm font-semibold leading-6 text-[#344054]">
+          <input type="checkbox" checked={suggestionsReviewed} onChange={(event) => setReviewedSuggestionsFor(event.target.checked ? document.document_id : null)} className="mt-1 h-4 w-4 shrink-0 accent-[#0673C4] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0985E7]" />
+          <span>I checked Google Docs and resolved any pending suggestions.</span>
+        </label>
+      </>}
       <button type="button" onClick={onMarkReady} disabled={isChangingReadiness || readinessBlocked} className="mt-4 min-h-12 rounded-full bg-[#0673C4] px-5 py-3 text-base font-bold text-white hover:bg-[#005FA3] disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0985E7]">{isChangingReadiness ? 'Updating…' : 'Mark ready for signature'}</button>
     </div>}
 
     {document.lifecycle === 'READY_FOR_SIGNATURE' && <div className="mt-5 flex flex-wrap gap-3 border-t border-[#D7E4F2] pt-5">
       {document.permissions.can_attach_signed_copy && !signedCopyMode && <button type="button" onClick={openSignedCopyForm} className="min-h-12 rounded-full bg-[#0673C4] px-5 py-3 text-base font-bold text-white hover:bg-[#005FA3] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0985E7]">Attach signed PDF</button>}
-      {document.permissions.can_reopen && <button type="button" onClick={onReopen} disabled={isChangingReadiness} className="min-h-12 rounded-full border border-[#B8C9D9] bg-white px-5 py-3 text-base font-bold text-[#0C2B49] hover:bg-[#EAF4FF] disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0985E7]">Reopen draft</button>}
+      {document.permissions.can_reopen && <button type="button" onClick={() => { setReviewedSuggestionsFor(null); onReopen?.(); }} disabled={isChangingReadiness} className="min-h-12 rounded-full border border-[#B8C9D9] bg-white px-5 py-3 text-base font-bold text-[#0C2B49] hover:bg-[#EAF4FF] disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0985E7]">Reopen draft</button>}
     </div>}
     {document.lifecycle === 'READY_FOR_SIGNATURE' && signedCopyMode === 'attach' && signedCopyForm}
   </section>;
@@ -700,11 +715,11 @@ export function DocumentWorkspace({
         <div className="mx-auto min-h-0 w-full max-w-4xl flex-1 overflow-y-auto px-4 py-6 sm:px-8">
           <header className="mb-6">
             <p className="text-sm font-bold uppercase tracking-[0.1em] text-[#4B6382]">{document.lifecycle === 'PREPARING' ? 'Drafting workspace' : 'Ready for signature'}</p>
-            <h2 className="mt-1 text-2xl font-bold leading-8 text-[#0C2B49]">{document.lifecycle === 'PREPARING' ? 'Prepare and review the document' : 'Sign the document and return the PDF'}</h2>
+            <h2 className="mt-1 text-xl font-bold leading-7 text-[#0C2B49]">{document.lifecycle === 'PREPARING' ? 'Prepare and review the document' : 'Sign the document and return the PDF'}</h2>
             <p className="mt-2 max-w-3xl text-base leading-7 text-[#344054]">{document.lifecycle === 'PREPARING' ? 'The Google Doc is the working draft. Comments and participants stay with this record while you agree on the text.' : 'Signing happens outside LexChain. Upload the signed PDF here to keep it attached to this same record.'}</p>
           </header>
 
-          <DraftProgress lifecycle={document.lifecycle === 'PREPARING' ? 'PREPARING' : 'READY_FOR_SIGNATURE'} />
+          <DraftProgress lifecycle={document.lifecycle === 'PREPARING' ? 'PREPARING' : 'READY_FOR_SIGNATURE'} readinessPending={document.lifecycle === 'PREPARING' && isChangingReadiness} />
 
           <div className="mt-6 flex flex-col gap-6 pb-6">
             <section aria-labelledby="working-draft-heading" className="space-y-3">
@@ -745,6 +760,7 @@ export function DocumentWorkspace({
         {activeTab === 'Overview' && (
           <div className="grid min-w-0 gap-3 lg:h-full lg:min-h-0 lg:flex-1 lg:grid-rows-[minmax(0,1fr)] lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
             <div className="min-w-0 space-y-0 lg:min-h-0 lg:overflow-y-auto">
+              {(document.lifecycle === 'SIGNED' || document.lifecycle === 'FINALIZED') && <DraftProgress lifecycle={document.lifecycle} />}
               {document.lifecycle === 'SIGNED' && <FinalizationNextStep document={document} role={role} outcomeUnknown={finalizationOutcomeUnknown} />}
               {document.draft_url && <GoogleDraftPanel document={document} onDocumentUpdated={onDocumentUpdated} />}
               <section aria-labelledby="document-summary-heading" className="pb-3">

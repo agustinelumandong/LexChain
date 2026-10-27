@@ -189,7 +189,7 @@ export default function PortalLayout({ children, demoMode }: { children: React.R
       {isSupportedPortalUiRole(uiRole) ? (
         <PortalBottomNav pathname={pathname} role={uiRole} />
       ) : null}
-      <Toaster position="top-center" richColors />
+      <Toaster position="bottom-right" richColors />
     </main>
   );
 }
