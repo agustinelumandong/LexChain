@@ -14,10 +14,10 @@ import EditIcon from "@mui/icons-material/Edit";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
+import { toast } from "sonner";
 import { Dropdown } from "@/features/admin/components/dropdown";
 import { FilterDetails } from "@/shared/components/ui/filter-details";
 import { usePopup } from "@/shared/components/ui/use-popup";
-import { useMockToast } from "@/features/admin/components/mock-ui";
 import { getPortalRoleLabel } from "@/features/access";
 import { UsersMetrics, RoleDistribution, RecentlyCreatedAccounts, StatusPill } from "./users-summary";
 import { UserDialogs, type UserDialogSelection } from "./user-dialogs";
@@ -118,8 +118,7 @@ function ActionsMenu({ user, onView, onEdit, onChangeStatus }: { user: Directory
   );
 }
 
-export function UsersManagementView({ users, total }: { users: AdminUser[]; total: number }) {
-  const { showToast } = useMockToast();
+export function UsersManagementView({ users, total, loadError }: { users: AdminUser[]; total: number; loadError?: string }) {
   const [tableSearch, setTableSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -165,7 +164,7 @@ export function UsersManagementView({ users, total }: { users: AdminUser[]; tota
         throw new Error("The API returned an invalid account status. Please refresh and try again.");
       }
       setUserRows((currentUsers) => currentUsers.map((current) => current.id === user.id ? { ...current, is_active: returnedIsActive } : current));
-      showToast({ title: returnedIsActive ? "Account reactivated" : "Account suspended" });
+      toast.success(returnedIsActive ? "Account reactivated" : "Account suspended");
       setDialogSelection(null);
     } catch (error) {
       setStatusError(error instanceof Error ? error.message : "Unable to update account status. Please try again.");
@@ -199,6 +198,18 @@ export function UsersManagementView({ users, total }: { users: AdminUser[]; tota
   const totalPages = Math.max(1, Math.ceil(filtered.length / perPage));
   const safePage = Math.min(page, totalPages - 1);
   const visibleUsers = filtered.slice(safePage * perPage, (safePage + 1) * perPage);
+
+  if (loadError) {
+    return (
+      <div className="flex w-full flex-col gap-5">
+        <h1 className="text-3xl font-black text-[#071B33]">Users</h1>
+        <div role="alert" className="rounded-2xl border border-red-200 bg-red-50 p-5 text-sm font-semibold text-red-700">
+          <p>{loadError}</p>
+          <button type="button" onClick={() => window.location.reload()} className="mt-3 rounded-full border border-red-300 px-4 py-2 font-bold hover:bg-white">Retry</button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex w-full flex-col gap-5 xl:h-[calc(100dvh-113px)] xl:min-h-0">
@@ -371,7 +382,7 @@ export function UsersManagementView({ users, total }: { users: AdminUser[]; tota
           statusError={statusError}
           onSave={(changes) => {
             setUserRows((currentUsers) => updateDemoUser(currentUsers, dialogSelection.user.id, changes));
-            showToast({ title: "Demo account updated", detail: "Demo mode — changes reset when this page is refreshed." });
+            toast.success("Demo account updated", { description: "Demo mode — changes reset when this page is refreshed." });
             setDialogSelection(null);
           }}
         />

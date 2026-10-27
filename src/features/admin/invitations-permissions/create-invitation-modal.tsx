@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Modal } from "@/features/admin/components/modal";
+import { queueNextNavigationToast } from "@/shared/utils/next-navigation-toast";
 import AddIcon from "@mui/icons-material/Add";
 
 type CreateInvitationModalProps = {
@@ -33,6 +34,7 @@ export function CreateInvitationModal({ label = "Create Invitation", className, 
           const payload = await response.json().catch(() => null);
           throw new Error(payload?.message ?? "Failed to create invitation.");
         }
+        queueNextNavigationToast("Invitation created.");
         window.location.reload();
       }
       setEmail("");

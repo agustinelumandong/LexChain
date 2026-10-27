@@ -17,6 +17,7 @@ import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import CommentOutlinedIcon from '@mui/icons-material/CommentOutlined';
 import FolderOutlinedIcon from '@mui/icons-material/FolderOutlined';
+import { toast } from 'sonner';
 import type { ApiSchema } from '@/shared/types/index';
 import { attachSignedCopy, correctDocumentEntry, LifecycleRequestError, listDocumentHistory, listDraftComments, listSignedCopies, replaceSignedCopy, signedCopyFileUrl, syncDraftComments } from '@/features/documents/document-lifecycle-api';
 import { isGoogleDraftUrl } from '@/features/documents/document-draft-api';
@@ -394,14 +395,12 @@ export function DocumentWorkspace({
   const [signedCopyBookId, setSignedCopyBookId] = useState(document.book_id ?? '');
   const [enterPaperNumbers, setEnterPaperNumbers] = useState(false);
   const [signedCopyError, setSignedCopyError] = useState<string | null>(null);
-  const [signedCopySuccess, setSignedCopySuccess] = useState<string | null>(null);
   const [reviewedSuggestionsFor, setReviewedSuggestionsFor] = useState<string | null>(null);
   const [correctingEntry, setCorrectingEntry] = useState(false);
   const [entryBookId, setEntryBookId] = useState(document.book_id ?? '');
   const [entryDocNo, setEntryDocNo] = useState(document.doc_no == null ? '' : String(document.doc_no));
   const [entryPageNo, setEntryPageNo] = useState(document.page_no == null ? '' : String(document.page_no));
   const [entryCorrectionValidationError, setEntryCorrectionValidationError] = useState<string | null>(null);
-  const [entryCorrectionSuccess, setEntryCorrectionSuccess] = useState<string | null>(null);
   const queryClient = useQueryClient();
   const canCorrectEntry = document.permissions?.can_correct_entry === true
     && document.lifecycle.trim().toUpperCase() === 'SIGNED';
@@ -428,7 +427,7 @@ export function DocumentWorkspace({
       setSignedCopyFile(null);
       setReplacementReason('');
       setSignedCopyError(null);
-      setSignedCopySuccess(mode === 'attach' ? 'Signed PDF attached.' : 'Signed PDF replaced.');
+      toast.success(mode === 'attach' ? 'Signed PDF attached.' : 'Signed PDF replaced.');
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['portal-doc', document.document_id] }),
         queryClient.invalidateQueries({ queryKey: ['portal-documents'] }),
@@ -443,7 +442,7 @@ export function DocumentWorkspace({
       queryClient.setQueryData(['portal-doc', document.document_id], updatedDocument);
       setCorrectingEntry(false);
       setEntryCorrectionValidationError(null);
-      setEntryCorrectionSuccess('Register entry corrected.');
+      toast.success('Register entry corrected.');
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['portal-doc', document.document_id] }),
         queryClient.invalidateQueries({ queryKey: ['portal-documents'] }),
@@ -529,7 +528,6 @@ export function DocumentWorkspace({
     setEntryDocNo(document.doc_no == null ? '' : String(document.doc_no));
     setEntryPageNo(document.page_no == null ? '' : String(document.page_no));
     setEntryCorrectionValidationError(null);
-    setEntryCorrectionSuccess(null);
     correctEntryMutation.reset();
     setCorrectingEntry(true);
   }
@@ -560,7 +558,6 @@ export function DocumentWorkspace({
     setActiveTab(isDrafting ? 'Overview' : 'Files');
     setSignedCopyMode('attach');
     setSignedCopyError(null);
-    setSignedCopySuccess(null);
     signedCopyMutation.reset();
   }
 
@@ -710,7 +707,6 @@ export function DocumentWorkspace({
 
   return (
     <section className={`flex min-h-0 flex-col ${isDrafting ? 'overflow-hidden bg-transparent' : 'overflow-hidden rounded-[18px] border border-[#E8F0F8] bg-white shadow-[0_4px_12px_rgba(19,59,115,0.05)]'} ${className ?? ''}`}>
-      {signedCopySuccess && <p role="status" className="shrink-0 rounded-xl border border-[#BCE8CC] bg-[#F1FBF5] px-4 py-3 text-sm font-bold text-[#067647]">{signedCopySuccess}</p>}
       {isDrafting ? (
         <div className="mx-auto min-h-0 w-full max-w-4xl flex-1 overflow-y-auto px-4 py-6 sm:px-8">
           <header className="mb-6">
@@ -781,7 +777,6 @@ export function DocumentWorkspace({
               {participantsPanel}
 
               {canCorrectEntry && <div className="space-y-3 border-t border-[#E8F0F8] py-3">
-                {entryCorrectionSuccess && <p role="status" className="text-sm font-bold text-[#067647]">{entryCorrectionSuccess}</p>}
                 {!correctingEntry ? <button type="button" onClick={openEntryCorrection} className="inline-flex items-center gap-1.5 rounded-full border border-[#0985E7] px-4 py-2 text-sm font-extrabold text-[#0985E7]"><EditOutlinedIcon aria-hidden="true" sx={{ fontSize: 17 }} />Correct register entry</button> : <form aria-labelledby="correct-entry-heading" className="space-y-3 rounded-xl border border-[#D7E4F2] bg-[#F8FBFF] p-4" onSubmit={submitEntryCorrection}>
                   <h3 id="correct-entry-heading" className="inline-flex items-center gap-1.5 text-sm font-black text-[#0C2B49]"><EditOutlinedIcon aria-hidden="true" sx={{ fontSize: 17, color: '#0985E7' }} />Correct document register entry</h3>
                   <label className="flex flex-col gap-1.5 text-sm font-bold text-[#0C2B49]">Register book
@@ -859,7 +854,7 @@ export function DocumentWorkspace({
             ) : <p className="text-sm text-[#4B6382]">No signed PDF is attached to this document yet.</p>}
             <div className="flex flex-wrap gap-2">
               {document.permissions?.can_attach_signed_copy && <button type="button" onClick={openSignedCopyForm} className="rounded-full bg-[#0985E7] px-4 py-2.5 text-sm font-extrabold text-white">Attach signed PDF</button>}
-              {document.permissions?.can_replace_signed_copy && <button type="button" onClick={() => { setSignedCopyMode('replace'); setSignedCopyError(null); setSignedCopySuccess(null); signedCopyMutation.reset(); }} className="rounded-full border border-[#0985E7] px-4 py-2.5 text-sm font-extrabold text-[#0985E7]">Replace signed PDF</button>}
+              {document.permissions?.can_replace_signed_copy && <button type="button" onClick={() => { setSignedCopyMode('replace'); setSignedCopyError(null); signedCopyMutation.reset(); }} className="rounded-full border border-[#0985E7] px-4 py-2.5 text-sm font-extrabold text-[#0985E7]">Replace signed PDF</button>}
             </div>
             {signedCopyForm}
             {signedCopiesQuery.isLoading && <p role="status" className="text-sm text-[#4B6382]">Loading earlier signed PDFs…</p>}

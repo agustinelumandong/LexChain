@@ -14,8 +14,9 @@ import ReplayIcon from "@mui/icons-material/Replay";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
+import { toast } from "sonner";
 import { Dropdown } from "@/features/admin/components/dropdown";
-import { MockModal, exportMockRows, useMockToast } from "@/features/admin/components/mock-ui";
+import { MockModal, exportMockRows } from "@/features/admin/components/mock-ui";
 import { CreateInvitationModal } from "@/features/admin/invitations-permissions/create-invitation-modal";
 import { getPortalRoleLabel } from "@/features/access";
 
@@ -252,7 +253,6 @@ function ActivityPanel({ invitations, mockMode }: { invitations: DirectoryInvita
 }
 
 export function InvitationsManagementView({ invitations, mockMode = false }: { invitations: Invitation[]; mockMode?: boolean }) {
-  const { showToast } = useMockToast();
   const [tableSearch, setTableSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [roleFilter, setRoleFilter] = useState("all");
@@ -260,8 +260,10 @@ export function InvitationsManagementView({ invitations, mockMode = false }: { i
   const [page, setPage] = useState(0);
   const [selectedInvite, setSelectedInvite] = useState<DirectoryInvitation | null>(null);
   const [modalMode, setModalMode] = useState<"view" | "revoke" | null>(null);
+  const [revokedInvitationIds, setRevokedInvitationIds] = useState<string[]>([]);
+  const [isRevoking, setIsRevoking] = useState(false);
 
-  const directoryInvites = useMemo(() => invitations.map(enrichInvitation), [invitations]);
+  const directoryInvites = useMemo(() => invitations.filter((invite) => !revokedInvitationIds.includes(invite.id)).map(enrichInvitation), [invitations, revokedInvitationIds]);
   const roleOptions = useMemo(() => [...new Set(directoryInvites.map((invite) => invite.roleLabel))], [directoryInvites]);
 
   const filtered = useMemo(() => {
@@ -281,13 +283,41 @@ export function InvitationsManagementView({ invitations, mockMode = false }: { i
   const pendingCount = directoryInvites.filter((invite) => invite.statusLabel === "Pending").length;
   const copyInviteLink = async (invite: DirectoryInvitation) => {
     if (!invite.magic_link) {
-      showToast({ title: "No magic link returned", detail: invite.email, tone: "info" });
+      toast.info("No invitation link returned", { description: invite.email });
       return;
     }
 
-    await navigator.clipboard?.writeText(invite.magic_link);
-    showToast({ title: "Invitation link copied", detail: invite.email, tone: "success" });
+    try {
+      await navigator.clipboard.writeText(invite.magic_link);
+      toast.success("Invitation link copied", { description: invite.email });
+    } catch {
+      toast.error("Could not copy invitation link", {
+        description: "Open invitation details to copy the link manually.",
+        duration: Infinity,
+      });
+    }
   };
+
+  async function revokeInvitation() {
+    if (!selectedInvite || isRevoking) return;
+
+    setIsRevoking(true);
+    try {
+      const response = await fetch(`/api/admin/invitations/${encodeURIComponent(selectedInvite.id)}`, { method: "DELETE" });
+      if (!response.ok) throw new Error();
+
+      setRevokedInvitationIds((current) => [...current, selectedInvite.id]);
+      toast.success("Invitation revoked", { description: selectedInvite.email });
+      setModalMode(null);
+    } catch {
+      toast.error("Could not revoke invitation", {
+        description: "Refresh the list before retrying to confirm the invitation is still active.",
+        duration: Infinity,
+      });
+    } finally {
+      setIsRevoking(false);
+    }
+  }
 
   const metrics = [
     { label: "Total Invites", value: directoryInvites.length, detail: "All invitation records", icon: <EmailIcon fontSize="small" />, tone: "blue" as const },
@@ -332,7 +362,7 @@ export function InvitationsManagementView({ invitations, mockMode = false }: { i
               <div className="[&>div>button]:py-2.5">
                 <Dropdown value={statusFilter} onChange={(value) => { setStatusFilter(value); setPage(0); }} options={[{ label: "Status", value: "all" }, { label: "Pending", value: "Pending" }, { label: "Accepted", value: "Accepted" }, { label: "Expired", value: "Expired" }, { label: "Revoked", value: "Revoked" }]} />
               </div>
-              <button type="button" onClick={() => { exportMockRows("lexchain-invitations", filtered, "csv"); showToast({ title: "Invitations exported", detail: `${filtered.length} invitations downloaded.` }); }} className="inline-flex items-center gap-2 rounded-xl border border-[#E4EEF9] bg-white px-4 py-2.5 text-sm font-black text-[#0C2B49] transition hover:border-[#0985E7]">
+              <button type="button" onClick={() => { exportMockRows("lexchain-invitations", filtered, "csv"); toast.success("Invitations exported", { description: `${filtered.length} invitations downloaded.` }); }} className="inline-flex items-center gap-2 rounded-xl border border-[#E4EEF9] bg-white px-4 py-2.5 text-sm font-black text-[#0C2B49] transition hover:border-[#0985E7]">
                 <DownloadIcon fontSize="small" />
                 Export
               </button>
@@ -410,8 +440,8 @@ export function InvitationsManagementView({ invitations, mockMode = false }: { i
       <MockModal open={modalMode === "view"} onClose={() => setModalMode(null)} title={selectedInvite?.invitee ?? "Invitation details"} description="Invitation details from the backend response." footer={<button type="button" onClick={() => setModalMode(null)} className="w-full rounded-xl bg-[#0985E7] px-5 py-3 text-sm font-black text-white">Done</button>}>
         {selectedInvite ? <div className="space-y-3 text-sm font-semibold text-[#4B6382]"><p><strong className="text-[#071B33]">Email:</strong> {selectedInvite.email}</p><p><strong className="text-[#071B33]">Role:</strong> {selectedInvite.roleLabel}</p><p><strong className="text-[#071B33]">Status:</strong> {selectedInvite.statusLabel}</p><p><strong className="text-[#071B33]">Magic link:</strong> {selectedInvite.magic_link ?? "Not returned"}</p></div> : null}
       </MockModal>
-      <MockModal open={modalMode === "revoke"} onClose={() => setModalMode(null)} title={`Revoke ${selectedInvite?.email ?? "invitation"}?`} description="This sends a revoke request to the invitations backend." footer={<div className="flex gap-3"><button type="button" onClick={() => setModalMode(null)} className="flex-1 rounded-xl border border-[#E4EEF9] px-5 py-3 text-sm font-black text-[#0C2B49]">Cancel</button><button type="button" onClick={async () => { if (!selectedInvite) return; const response = await fetch(`/api/admin/invitations/${encodeURIComponent(selectedInvite.id)}`, { method: "DELETE" }); if (!response.ok) { showToast({ title: "Revoke failed", detail: selectedInvite.email, tone: "error" }); return; } showToast({ title: "Invitation revoked", detail: selectedInvite.email, tone: "warning" }); setModalMode(null); window.location.reload(); }} className="flex-1 rounded-xl bg-red-600 px-5 py-3 text-sm font-black text-white">Revoke</button></div>}>
-        <p className="text-sm font-semibold text-[#5B6F8A]">After revoke succeeds, this page reloads from the backend response.</p>
+      <MockModal open={modalMode === "revoke"} onClose={() => setModalMode(null)} title={`Revoke ${selectedInvite?.email ?? "invitation"}?`} description="This sends a revoke request to the invitations backend." footer={<div className="flex gap-3"><button type="button" onClick={() => setModalMode(null)} disabled={isRevoking} className="flex-1 rounded-xl border border-[#E4EEF9] px-5 py-3 text-sm font-black text-[#0C2B49] disabled:opacity-50">Cancel</button><button type="button" onClick={() => { void revokeInvitation(); }} disabled={isRevoking} className="flex-1 rounded-xl bg-red-600 px-5 py-3 text-sm font-black text-white disabled:cursor-wait disabled:opacity-60">{isRevoking ? "Revoking…" : "Revoke"}</button></div>}>
+        <p className="text-sm font-semibold text-[#5B6F8A]">After revoke succeeds, the invitation is removed from this list.</p>
       </MockModal>
     </div>
   );

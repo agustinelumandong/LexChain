@@ -8,6 +8,7 @@ import PersonIcon from "@mui/icons-material/Person";
 import LockIcon from "@mui/icons-material/Lock";
 import TuneIcon from "@mui/icons-material/Tune";
 import NotificationsIcon from "@mui/icons-material/Notifications";
+import { toast } from "sonner";
 
 export default function AdminSystemSettingsPage() {
   const [displayName, setDisplayName] = useState("LexChain Admin");
@@ -18,11 +19,8 @@ export default function AdminSystemSettingsPage() {
   const [network, setNetwork] = useState("polygon-amoy");
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(true);
   const [maintenanceMode, setMaintenanceMode] = useState(false);
-  const [saved, setSaved] = useState(false);
-
   function handleSave() {
-    setSaved(true);
-    window.setTimeout(() => setSaved(false), 2200);
+    toast.success("Settings updated for this session.");
   }
 
   return (
@@ -41,12 +39,6 @@ export default function AdminSystemSettingsPage() {
             </button>
           }
         />
-
-        {saved ? (
-          <div className="rounded-2xl border border-green-200 bg-green-50 px-5 py-4 text-sm font-bold text-green-700">
-            Settings saved.
-          </div>
-        ) : null}
 
         <section className="grid gap-5 xl:grid-cols-[1fr_0.9fr]">
           <article className="rounded-2xl border border-[#E4EEF9] bg-white p-6 shadow-sm">

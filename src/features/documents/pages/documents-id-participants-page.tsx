@@ -4,6 +4,7 @@ import { use, useState } from 'react';
 import Link from 'next/link';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import type { ApiSchema, components } from '@/shared/types/index';
 import { InviteParticipantForm, ParticipantAccessTable } from "@/features/access/components";
 import { inviteDocumentParty, listDocumentParties, revokeDocumentParty, searchUserByEmail, isParticipantAccessCapabilityError } from "@/features/access";
@@ -47,11 +48,21 @@ export default function DocumentParticipantsPage({ params }: { params: Promise<{
   const rejectUnavailableCapability = (reason: unknown) => {
     if (isParticipantAccessCapabilityError(reason)) setCapabilityError(true);
   };
-  const inviteMutation = useMutation({ mutationFn: (invitation: { email: string; role: string }) => inviteDocumentParty(id, invitation), onSuccess: refreshParties, onError: rejectUnavailableCapability });
+  const inviteMutation = useMutation({
+    mutationFn: (invitation: { email: string; role: string }) => inviteDocumentParty(id, invitation),
+    onSuccess: () => {
+      toast.success('Invitation sent.');
+      return refreshParties();
+    },
+    onError: rejectUnavailableCapability,
+  });
   const revokeMutation = useMutation({ mutationFn: (party: DocumentParty) => {
     if (!party.user_id) return Promise.reject(new Error('This participant cannot be revoked because no user identifier was returned.'));
     return revokeDocumentParty(id, party.user_id);
-  }, onSuccess: refreshParties, onError: rejectUnavailableCapability });
+  }, onSuccess: () => {
+    toast.success('Participant access revoked.');
+    return refreshParties();
+  }, onError: rejectUnavailableCapability });
 
   if (documentQuery.isPending) return <div role="status" aria-label="Loading participant permissions" className="h-40 animate-pulse rounded-[18px] border border-[#E8F0F8] bg-white" />;
 

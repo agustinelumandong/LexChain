@@ -17,7 +17,8 @@ async function fetchProfile(): Promise<PortalUserProfile> {
 }
 
 export default function SecurityPage() {
-  const { data: profile, isLoading } = useQuery({ queryKey: ['portal-profile'], queryFn: fetchProfile });
+  const { data: profile, isLoading, isError, refetch } = useQuery({ queryKey: ['portal-profile'], queryFn: fetchProfile });
+  const profileUnavailable = isError && !profile;
 
   return (
     <div className="flex flex-col gap-5">
@@ -26,13 +27,15 @@ export default function SecurityPage() {
       </Link>
       <h1 className="text-[28px] font-black text-[#0C2B49]">Security</h1>
 
+      {profileUnavailable && <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700"><span>Unable to load your security status.</span><button type="button" onClick={() => void refetch()} className="rounded-full border border-red-300 px-4 py-2 font-bold hover:bg-white">Retry</button></div>}
+
       <div className="divide-y divide-[#E8F0F8] rounded-[18px] border border-[#E8F0F8] bg-white shadow-[0_4px_12px_rgba(19,59,115,0.05)]">
         <SecurityItem icon={VerifiedUserIcon} title="Email verification" description="Verify your email from the message sent when you register before signing in." />
         <SecurityItem
           icon={SecurityIcon}
           title="Authenticator-app MFA"
-          description={profile?.mfa_enabled ? 'Authenticator-app MFA is enabled for this account.' : 'Authenticator-app MFA is not enabled for this account.'}
-          status={isLoading ? 'Checking' : profile?.mfa_enabled ? 'Enabled' : 'Not enabled'}
+          description={profileUnavailable ? 'MFA status could not be checked.' : profile?.mfa_enabled ? 'Authenticator-app MFA is enabled for this account.' : 'Authenticator-app MFA is not enabled for this account.'}
+          status={isLoading ? 'Checking' : profileUnavailable ? 'Unavailable' : profile?.mfa_enabled ? 'Enabled' : 'Not enabled'}
         />
         <SecurityItem icon={PhonelinkLockIcon} title="Device lock" description="Use your device screen lock to protect access to this browser." />
         <SecurityItem icon={NotificationsActiveIcon} title="Trusted-device alerts" description="Trusted-device alerts are not available in this browser portal yet." />

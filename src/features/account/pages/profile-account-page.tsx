@@ -10,6 +10,7 @@ import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogContentText from '@mui/material/DialogContentText';
 import DialogTitle from '@mui/material/DialogTitle';
+import { toast } from 'sonner';
 import type { ApiSchema } from '@/shared/types/index';
 import { getPortalUiRole } from '@/features/access';
 import { clearGoogleDraftReturnContext, googleDraftReturnPath, readGoogleDraftReturnContext } from '@/shared/utils/google-draft-return-context';
@@ -85,6 +86,7 @@ function GoogleConnectionCard({ google, message, documentReturn }: { google?: st
     onSuccess: async () => {
       queryClient.setQueryData<GoogleConnectionStatus>(['google-connection'], { connected: false, google_email: null });
       setDisconnectConfirmationOpen(false);
+      toast.success('Google disconnected');
       await queryClient.invalidateQueries({ queryKey: ['google-connection'] });
     },
   });

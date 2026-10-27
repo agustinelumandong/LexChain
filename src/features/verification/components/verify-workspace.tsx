@@ -4,6 +4,7 @@ import type { ApiSchema } from '@/shared/types/index';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ErrorIcon from '@mui/icons-material/Error';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
+import { toast } from 'sonner';
 import { getBaseSepoliaTransactionUrl } from '@/features/verification/integrity-ui';
 import dynamic from 'next/dynamic';
 import { useState } from 'react';
@@ -27,13 +28,19 @@ function statusHeading(result: VerificationResult) {
 }
 
 function HashRow({ label, hash, transactionUrl }: { label: string; hash: string; transactionUrl?: string | null }) {
-  const [copied, setCopied] = useState(false);
   const shortened = hash.length > 18 ? `${hash.slice(0, 10)}…${hash.slice(-6)}` : hash;
 
   async function copyHash() {
-    await navigator.clipboard?.writeText(hash);
-    setCopied(true);
-    window.setTimeout(() => setCopied(false), 1500);
+    if (!navigator.clipboard?.writeText) {
+      toast.error(`Could not copy ${label.toLowerCase()}. Try again.`, { duration: Infinity });
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(hash);
+      toast.success(`${label} copied.`);
+    } catch {
+      toast.error(`Could not copy ${label.toLowerCase()}. Try again.`, { duration: Infinity });
+    }
   }
 
   return (
@@ -44,8 +51,8 @@ function HashRow({ label, hash, transactionUrl }: { label: string; hash: string;
       </div>
       <div className="flex shrink-0 items-center gap-2">
         {transactionUrl && <a href={transactionUrl} target="_blank" rel="noreferrer" aria-label="View transaction on Base Sepolia" className="text-[11px] font-black text-[#0985E7]">Base Sepolia</a>}
-        <button type="button" onClick={() => void copyHash()} className="rounded-full border border-[#D7E4F2] bg-white px-3 py-1 text-[11px] font-black text-[#0985E7] transition hover:bg-[#EAF4FF]">
-        {copied ? 'Copied' : 'Copy'}
+        <button type="button" aria-label={`Copy ${label}`} onClick={() => void copyHash()} className="rounded-full border border-[#D7E4F2] bg-white px-3 py-1 text-[11px] font-black text-[#0985E7] transition hover:bg-[#EAF4FF]">
+        Copy
         </button>
       </div>
     </div>

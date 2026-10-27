@@ -17,8 +17,9 @@ import VisibilityIcon from "@mui/icons-material/Visibility";
 import EditIcon from "@mui/icons-material/Edit";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
+import { toast } from "sonner";
 import { Dropdown } from "@/features/admin/components/dropdown";
-import { Field, MockModal, exportMockRows, inputClassName, useMockToast } from "@/features/admin/components/mock-ui";
+import { Field, MockModal, exportMockRows, inputClassName } from "@/features/admin/components/mock-ui";
 
 type RoleRow = {
   id: string;
@@ -223,7 +224,6 @@ function RecentRoleActivity() {
 }
 
 export function RolesPermissionsView() {
-  const { showToast } = useMockToast();
   const [roleRows, setRoleRows] = useState<RoleRow[]>(roles);
   const [permissionRows, setPermissionRows] = useState<PermissionRow[]>(permissions);
   const [headerSearch, setHeaderSearch] = useState("");
@@ -308,11 +308,11 @@ export function RolesPermissionsView() {
     if (activeView === "roles") {
       if (!roleDraft.name.trim()) return;
       setRoleRows((current) => modalMode === "edit" ? current.map((role) => role.id === roleDraft.id ? roleDraft : role) : [roleDraft, ...current]);
-      showToast({ title: modalMode === "edit" ? "Role updated" : "Role created", detail: roleDraft.name });
+      toast.success(modalMode === "edit" ? "Role updated" : "Role created", { description: roleDraft.name });
     } else {
       if (!permissionDraft.name.trim()) return;
       setPermissionRows((current) => modalMode === "edit" ? current.map((permission) => permission.id === permissionDraft.id ? permissionDraft : permission) : [permissionDraft, ...current]);
-      showToast({ title: modalMode === "edit" ? "Permission updated" : "Permission created", detail: permissionDraft.name });
+      toast.success(modalMode === "edit" ? "Permission updated" : "Permission created", { description: permissionDraft.name });
     }
     setModalMode(null);
   }
@@ -320,11 +320,11 @@ export function RolesPermissionsView() {
   function archiveCurrent() {
     if (selectedRole) {
       setRoleRows((current) => current.filter((role) => role.id !== selectedRole.id));
-      showToast({ title: "Role archived", detail: selectedRole.name, tone: "warning" });
+      toast.success("Role archived", { description: selectedRole.name });
     }
     if (selectedPermission) {
       setPermissionRows((current) => current.filter((permission) => permission.id !== selectedPermission.id));
-      showToast({ title: "Permission archived", detail: selectedPermission.name, tone: "warning" });
+      toast.success("Permission archived", { description: selectedPermission.name });
     }
     setModalMode(null);
   }
@@ -348,7 +348,7 @@ export function RolesPermissionsView() {
           </button>
           <button type="button" onClick={() => {
             exportMockRows(activeView === "roles" ? "lexchain-roles" : "lexchain-permissions", activeView === "roles" ? roleFiltered : permissionFiltered, "csv");
-            showToast({ title: "Export ready", detail: `${visibleCount} ${activeView === "roles" ? "roles" : "permissions"} exported.` });
+            toast.success("Export ready", { description: `${visibleCount} ${activeView === "roles" ? "roles" : "permissions"} exported.` });
           }} className="inline-flex items-center gap-2 rounded-xl border border-[#E4EEF9] bg-white px-4 py-3 text-sm font-black text-[#0C2B49] shadow-sm shadow-[#DDEAF7]/35 transition hover:border-[#0985E7]">
             <DownloadIcon fontSize="small" />
             Export

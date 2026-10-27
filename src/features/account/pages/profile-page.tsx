@@ -36,7 +36,7 @@ function initialsFor(user?: UserProfile) {
 }
 
 export default function ProfilePage() {
-  const { data: user, isLoading } = useQuery({ queryKey: ['portal-profile'], queryFn: fetchProfile });
+  const { data: user, isLoading, isError, refetch } = useQuery({ queryKey: ['portal-profile'], queryFn: fetchProfile });
 
   const handleLogout = async () => {
     try {
@@ -48,7 +48,7 @@ export default function ProfilePage() {
     }
   };
 
-  const fullName = user ? `${user.f_name} ${user.l_name}` : 'Loading...';
+  const fullName = user ? `${user.f_name} ${user.l_name}` : isLoading ? 'Loading...' : 'Profile unavailable';
   const uiRole = getPortalUiRole(user?.role);
   const roleLabel = getPortalRoleLabel(user?.role);
   const requestShortcut = getPortalProfileRequestShortcut(uiRole);
@@ -71,6 +71,8 @@ export default function ProfilePage() {
   return (
     <div className="flex flex-col gap-5">
       <h1 className="text-[28px] font-black text-[#0C2B49]">Profile</h1>
+
+      {isError && <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700"><span>Unable to load your profile.</span><button type="button" onClick={() => void refetch()} className="rounded-full border border-red-300 px-4 py-2 font-bold hover:bg-white">Retry</button></div>}
 
       <div className="flex items-center gap-5 rounded-[18px] border border-[#E8F0F8] bg-white p-6 shadow-[0_4px_12px_rgba(19,59,115,0.05)]">
         <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-[#0985E7] text-xl font-black text-white">

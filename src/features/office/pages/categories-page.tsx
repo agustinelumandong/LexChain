@@ -7,6 +7,7 @@ import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import BlockOutlinedIcon from '@mui/icons-material/BlockOutlined';
 import CategoryOutlinedIcon from '@mui/icons-material/CategoryOutlined';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import { toast } from 'sonner';
 import type { ApiSchema } from '@/shared/types/index';
 import { canAccessPortalFeature, getPortalUiRole } from "@/features/access";
 import { Modal } from '@/features/admin/components/modal';
@@ -23,7 +24,7 @@ type UserProfile = ApiSchema<'UserProfileResponse'>;
 
 async function fetchProfile(): Promise<UserProfile | null> {
   const response = await fetch('/api/portal/proxy?path=%2Fusers%2F', { credentials: 'same-origin' });
-  if (!response.ok) return null;
+  if (!response.ok) throw new Error('Unable to verify office access.');
   return response.json();
 }
 
@@ -63,14 +64,20 @@ export default function CategoriesPage() {
     event.preventDefault();
     if (!draftName.trim()) return;
 
+    const message = editingCategory ? 'Category updated' : 'Category created';
     setCategories((current) => editingCategory
       ? editDemoCategory(current, editingCategory.id, draftName)
       : [...current, createDemoCategory(current, draftName)]);
     closeEditor();
+    toast.success(message);
   }
 
   if (profileQuery.isLoading) {
     return <p className="py-10 text-sm font-semibold text-[#64748b]">Loading category access…</p>;
+  }
+
+  if (profileQuery.isError && !profileQuery.data) {
+    return <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700"><p>Unable to verify your access to categories.</p><button type="button" onClick={() => void profileQuery.refetch()} className="mt-3 rounded-full border border-red-300 px-4 py-2 font-bold hover:bg-white">Retry</button></div>;
   }
 
   if (!isIssuer) {
@@ -156,7 +163,11 @@ export default function CategoriesPage() {
           <p className="mt-2 text-sm text-[#64748b]">Documents already using this category keep their existing label.</p>
           <div className="mt-5 flex justify-end gap-3">
             <button type="button" onClick={() => setCategoryToDeactivate(null)} className="rounded-xl border border-[#D9E5F0] px-4 py-2 text-sm font-black text-[#0C2B49]">Cancel</button>
-            <button type="button" onClick={() => { setCategories((current) => deactivateDemoCategory(current, categoryToDeactivate.id)); setCategoryToDeactivate(null); }} className="rounded-xl bg-[#B45309] px-4 py-2 text-sm font-black text-white">Deactivate category</button>
+            <button type="button" onClick={() => {
+              setCategories((current) => deactivateDemoCategory(current, categoryToDeactivate.id));
+              setCategoryToDeactivate(null);
+              toast.success('Category deactivated');
+            }} className="rounded-xl bg-[#B45309] px-4 py-2 text-sm font-black text-white">Deactivate category</button>
           </div>
         </Modal>
       )}

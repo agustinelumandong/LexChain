@@ -14,7 +14,6 @@ import LogoutIcon from "@mui/icons-material/Logout";
 import MenuIcon from "@mui/icons-material/Menu";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
-import { MockToastProvider } from "@/features/admin/components/mock-ui";
 
 const adminLinks = [
   { label: "Dashboard", href: "/admin/dashboard", icon: <DashboardIcon fontSize="small" /> },
@@ -172,11 +171,9 @@ export function AdminShell({ activeHref = "/admin/dashboard", children }: AdminS
           </div>
         </aside>
 
-        <MockToastProvider>
-          <section className="flex min-w-0 flex-1 flex-col px-5 py-6 sm:px-7">
-            {children}
-          </section>
-        </MockToastProvider>
+        <section className="flex min-w-0 flex-1 flex-col px-5 py-6 sm:px-7">
+          {children}
+        </section>
       </div>
     </main>
   );

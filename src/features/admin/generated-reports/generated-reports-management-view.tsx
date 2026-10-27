@@ -7,6 +7,7 @@ import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import AssessmentOutlinedIcon from "@mui/icons-material/AssessmentOutlined";
 import DownloadOutlinedIcon from "@mui/icons-material/DownloadOutlined";
+import { toast } from "sonner";
 import { createDemoReport, downloadDemoReport, type DemoReport, type DemoReportType } from "@/features/office/reports";
 import { PortalDropdown } from "@/features/portal/components";
 
@@ -50,6 +51,17 @@ export function GeneratedReportsManagementView({ embedded = false }: { embedded?
     } catch (cause) {
       setReport(undefined);
       setError(cause instanceof Error ? cause.message : "Report generation failed.");
+    }
+  }
+
+  function downloadReport() {
+    if (!report) return;
+
+    try {
+      downloadDemoReport(report);
+      toast.success("Report downloaded.");
+    } catch {
+      toast.error("Could not download the report. Please try again.", { duration: Infinity });
     }
   }
 
@@ -179,7 +191,7 @@ export function GeneratedReportsManagementView({ embedded = false }: { embedded?
                 <p className="mt-1 text-sm font-semibold text-[#5B6F8A]">{report.rows.length} {report.rows.length === 1 ? "row" : "rows"} in this preview <span aria-hidden="true">·</span> {report.from} to {report.to}</p>
               </div>
             </div>
-            <button type="button" onClick={() => downloadDemoReport(report)} className="inline-flex items-center gap-2 rounded-xl border border-[#B9D6ED] bg-white px-4 py-2.5 text-sm font-black text-[#0879D8] transition hover:border-[#0985E7] hover:bg-[#F0F7FF] active:translate-y-px">
+            <button type="button" onClick={downloadReport} className="inline-flex items-center gap-2 rounded-xl border border-[#B9D6ED] bg-white px-4 py-2.5 text-sm font-black text-[#0879D8] transition hover:border-[#0985E7] hover:bg-[#F0F7FF] active:translate-y-px">
               <DownloadOutlinedIcon fontSize="small" />
               Download CSV
             </button>

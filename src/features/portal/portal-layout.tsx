@@ -8,7 +8,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import MenuIcon from "@mui/icons-material/Menu";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
-import { Toaster } from 'sonner';
 import { getPortalLoginRedirect, getPortalRoleLabel, isSupportedPortalUiRole } from "@/features/access";
 import { getFinalizedProcessingDocuments, getPortalNavigation } from "@/features/portal/portal-dashboard";
 import { getPortalNavigationIcon, isPortalRouteActive, usePortalRole } from "@/features/access/components";
@@ -189,7 +188,6 @@ export default function PortalLayout({ children, demoMode }: { children: React.R
       {isSupportedPortalUiRole(uiRole) ? (
         <PortalBottomNav pathname={pathname} role={uiRole} />
       ) : null}
-      <Toaster position="bottom-right" richColors />
     </main>
   );
 }

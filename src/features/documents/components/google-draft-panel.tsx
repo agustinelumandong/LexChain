@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { toast } from 'sonner';
 import type { ApiSchema } from '@/shared/types';
 import { createGoogleDraft, getGooglePickerToken, isGoogleDraftUrl } from '@/features/documents/document-draft-api';
 import { clearGoogleDraftReturnContext, readGoogleDraftReturnContext, saveGoogleDraftReturnContext } from '@/shared/utils/google-draft-return-context';
@@ -147,6 +148,7 @@ export function GoogleDraftPanel({ document, onDocumentUpdated }: {
     setNeedsGoogleConnection(false);
     try {
       const result = await createGoogleDraft(document.document_id, source, picked?.id);
+      toast.success('Google draft is ready.');
       onDocumentUpdated(result);
     } catch (cause) {
       const failure = errorMessage(cause);

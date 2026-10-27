@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import type { components } from "@/shared/types/index";
 import { portalFetch, portalRequest } from "@/shared/api/client";
 import { canAccessPortalFeature } from "@/features/access/portal-access";
@@ -46,6 +47,7 @@ export default function InvitationsPage() {
     setActionError(null);
     try {
       await updateInvitation(invitation.invitation_id, action);
+      toast.success(action === "accept" ? "Invitation accepted." : "Invitation declined.");
       await queryClient.invalidateQueries({ queryKey: ["portal-invitations"] });
       if (action === "accept") router.replace(`/portal/documents/${invitation.document_id}`);
     } catch (reason) {

@@ -3,10 +3,11 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
+import { toast } from "sonner";
 import { resendVerificationRequestSchema } from "@/features/auth";
 
 type ResendState = {
-  status: "idle" | "success" | "error";
+  status: "idle" | "error";
   message: string;
 };
 
@@ -53,7 +54,8 @@ export function VerifiedContent() {
 
     try {
       const message = await resendVerification(parsed.data.email);
-      setResendState({ status: "success", message });
+      toast.success(message);
+      setResendState({ status: "idle", message: "" });
     } catch (error) {
       setResendState({
         status: "error",
@@ -130,13 +132,10 @@ export function VerifiedContent() {
               onChange={(event) => setEmail(event.currentTarget.value)}
             />
           </label>
-          {resendState.message ? (
+          {resendState.status === "error" && resendState.message ? (
             <p
-              role={resendState.status === "success" ? "status" : "alert"}
-              className={[
-                "mt-3 text-sm font-semibold",
-                resendState.status === "success" ? "text-[#127A43]" : "text-red-600",
-              ].join(" ")}
+              role="alert"
+              className="mt-3 text-sm font-semibold text-red-600"
             >
               {resendState.message}
             </p>

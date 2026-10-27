@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import type { ApiSchema } from '@/shared/types/index';
 import {
   defaultOfficeSettings,
@@ -38,7 +39,7 @@ const fields: Array<{
 
 async function fetchProfile(): Promise<UserProfile | null> {
   const response = await fetch('/api/portal/proxy?path=%2Fusers%2F', { credentials: 'same-origin' });
-  if (!response.ok) return null;
+  if (!response.ok) throw new Error('Unable to verify office access.');
   return response.json();
 }
 
@@ -47,6 +48,10 @@ export default function OfficeSettingsPage() {
 
   if (profileQuery.isLoading) {
     return <p className="py-10 text-sm font-semibold text-[#64748b]">Loading office settings access…</p>;
+  }
+
+  if (profileQuery.isError && !profileQuery.data) {
+    return <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700"><p>Unable to verify your access to Office Settings.</p><button type="button" onClick={() => void profileQuery.refetch()} className="mt-3 rounded-full border border-red-300 px-4 py-2 font-bold hover:bg-white">Retry</button></div>;
   }
 
   if (getPortalUiRole(profileQuery.data?.role) !== 'lawyer') {
@@ -59,7 +64,6 @@ export default function OfficeSettingsPage() {
 function OfficeSettingsForm() {
   const [savedSettings, setSavedSettings] = useState<OfficeSettings>(defaultOfficeSettings);
   const [settings, setSettings] = useState<OfficeSettingsDraft>(defaultOfficeSettings);
-  const [savedMessage, setSavedMessage] = useState(false);
   const errors = useMemo(() => validateOfficeSettings({
     invitationExpiryDays: Number(settings.invitationExpiryDays),
     uploadLimitMegabytes: Number(settings.uploadLimitMegabytes),
@@ -70,7 +74,6 @@ function OfficeSettingsForm() {
   ));
 
   function updateSetting(key: NumberSettingField, value: string) {
-    setSavedMessage(false);
     setSettings((current) => ({ ...current, [key]: value === '' ? '' : Number(value) }));
   }
 
@@ -82,12 +85,11 @@ function OfficeSettingsForm() {
     };
     setSavedSettings(nextSettings);
     setSettings(nextSettings);
-    setSavedMessage(true);
+    toast.success('Settings saved for this demo session.');
   }
 
   function handleCancel() {
     setSettings(savedSettings);
-    setSavedMessage(false);
   }
 
   return (
@@ -157,7 +159,6 @@ function OfficeSettingsForm() {
             Cancel
           </button>
           {isDirty && !hasErrors ? <p role="status" className="text-sm font-semibold text-[#B77900]">Unsaved changes</p> : null}
-          {savedMessage ? <p role="status" className="text-sm font-semibold text-[#16834B]">Settings saved for this demo session.</p> : null}
         </div>
       </form>
     </div>

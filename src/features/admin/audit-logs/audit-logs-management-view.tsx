@@ -191,7 +191,7 @@ export function AuditLogsManagementView({
   total: number;
 }) {
   const showToast = ({ title, detail, tone }: { title: string; detail?: string; tone?: string }) => {
-    if (tone === "error") toast.error(title, { description: detail });
+    if (tone === "error") toast.error(title, { description: detail, duration: Infinity });
     else toast.success(title, { description: detail });
   };
   const [tableSearch, setTableSearch] = useState("");

@@ -7,6 +7,7 @@ import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { getPortalLoginRedirect } from "@/features/access";
+import { queueNextNavigationToast } from "@/shared/utils/next-navigation-toast";
 
 async function signIn(data: { email: string; password: string }) {
   const res = await fetch("/api/auth", {
@@ -46,28 +47,28 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
+  const [validationError, setValidationError] = useState<string | null>(null);
 
   const mutation = useMutation({
     mutationFn: signIn,
     onSuccess: (data) => {
-      toast.success("Signed in successfully");
+      queueNextNavigationToast("Signed in successfully");
       window.location.href = getRedirectPath(data);
     },
     onError: (error: Error) => {
-      toast.error(error.message);
+      toast.error(error.message, { duration: Infinity });
     },
   });
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!email.trim() || !password.trim()) {
-      toast.warning("Enter your email and password");
+      setValidationError("Enter your email and password.");
       return;
     }
+    setValidationError(null);
     mutation.mutate({ email: email.trim(), password });
   }
-
-  const error = mutation.error?.message || null;
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-[#F5FAFF] p-5 text-[#111827]">
@@ -92,7 +93,7 @@ export default function LoginPage() {
               required
               autoComplete="email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => { setEmail(e.target.value); setValidationError(null); }}
             />
           </label>
           <label className="block">
@@ -103,7 +104,7 @@ export default function LoginPage() {
               required
               autoComplete="current-password"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e) => { setPassword(e.target.value); setValidationError(null); }}
             />
           </label>
 
@@ -123,11 +124,7 @@ export default function LoginPage() {
             </Link>
           </div>
 
-          {error && (
-            <p className="rounded-xl bg-red-50 px-4 py-2.5 text-sm font-semibold text-red-600">
-              {error}
-            </p>
-          )}
+          {validationError && <p role="alert" className="rounded-xl bg-red-50 px-4 py-2.5 text-sm font-semibold text-red-600">{validationError}</p>}
 
           <button
             type="submit"

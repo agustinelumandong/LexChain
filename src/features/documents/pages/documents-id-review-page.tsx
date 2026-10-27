@@ -5,6 +5,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { ApiSchema } from '@/shared/types/index';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 import {
   analyzeExtraction,
   approveExtraction,
@@ -65,6 +66,7 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
     mutationFn: (edits: BlockEdit[]) => saveExtractionEdits(id, edits),
     onSuccess: async (result) => {
       queryClient.setQueryData(extractionKey, result);
+      toast.success('Review changes saved.');
       await invalidateDocumentQueries();
     },
     onError: refreshStaleReview,
@@ -73,6 +75,7 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
     mutationFn: () => analyzeExtraction(id),
     onSuccess: async (result) => {
       queryClient.setQueryData(extractionKey, result);
+      toast.success('Semantic analysis complete.');
       await invalidateDocumentQueries();
     },
     onError: refreshStaleReview,
@@ -80,6 +83,7 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
   const approveMutation = useMutation({
     mutationFn: () => approveExtraction(id),
     onSuccess: async () => {
+      toast.success('Reviewed text approved. Processing started.');
       await Promise.all([
         invalidateDocumentQueries(),
         queryClient.invalidateQueries({ queryKey: extractionKey }),

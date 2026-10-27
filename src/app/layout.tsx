@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Toaster } from "sonner";
 import { PwaRegistration } from "@/pwa/pwa-registration";
 import { Providers } from "./providers";
 import "./globals.css";
@@ -19,7 +20,10 @@ export default function RootLayout({
   return (
     <html lang="en" className="h-full antialiased">
       <body className="min-h-full flex flex-col" suppressHydrationWarning>
-        <Providers>{children}</Providers>
+        <Providers>
+          {children}
+          <Toaster position="bottom-right" richColors closeButton visibleToasts={1} mobileOffset={{ bottom: 120 }} />
+        </Providers>
         <PwaRegistration />
       </body>
     </html>
