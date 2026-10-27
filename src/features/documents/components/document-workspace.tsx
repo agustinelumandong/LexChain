@@ -307,17 +307,17 @@ function SignedPdfPreview({ document }: { document: WorkspaceDocument }) {
   const signedCopy = document.signed_copy;
 
   return (
-    <section aria-labelledby="signed-pdf-preview-heading" className="flex min-w-0 flex-col rounded-xl border border-[#D7E4F2] bg-white p-4 sm:p-5 2xl:h-full 2xl:min-h-0">
+    <section aria-labelledby="signed-pdf-preview-heading" className="flex min-w-0 flex-col rounded-xl border border-[#D7E4F2] bg-white p-4 sm:p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <h2 id="signed-pdf-preview-heading" className="inline-flex items-center gap-2 text-lg font-bold leading-6 text-[#0C2B49]"><PictureAsPdfOutlinedIcon aria-hidden="true" sx={{ fontSize: 20, color: '#0985E7' }} />Signed PDF</h2>
           {signedCopy && <p className="mt-1 break-words text-sm leading-5 text-[#4B6382]">{signedCopy.original_filename ?? document.file_name}</p>}
         </div>
-        {signedCopy && <a href={signedCopyFileUrl(document.document_id, { copyId: signedCopy.id, download: true, filename: signedCopy.original_filename ?? document.file_name ?? undefined })} className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-[#D7E4F2] px-2.5 py-1 text-sm font-semibold text-[#0C2B49] hover:bg-[#EAF4FF] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0985E7] sm:min-h-9"><DownloadOutlinedIcon aria-hidden="true" sx={{ fontSize: 17 }} />Download PDF</a>}
+        {signedCopy && <a aria-label="Download current signed PDF" href={signedCopyFileUrl(document.document_id, { copyId: signedCopy.id, download: true, filename: signedCopy.original_filename ?? document.file_name ?? undefined })} className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-[#D7E4F2] px-2.5 py-1 text-sm font-semibold text-[#0C2B49] hover:bg-[#EAF4FF] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0985E7] sm:min-h-9"><DownloadOutlinedIcon aria-hidden="true" sx={{ fontSize: 17 }} />Download PDF</a>}
       </div>
 
       {signedCopy ? (
-        <div className="relative mt-4 flex h-[65vh] min-h-[320px] max-h-[720px] flex-col overflow-hidden rounded-lg bg-[#F4F8FC] p-2 2xl:h-auto 2xl:min-h-0 2xl:flex-1">
+        <div className="relative mt-4 flex h-[65vh] min-h-[320px] max-h-[720px] flex-col overflow-hidden rounded-lg bg-[#F4F8FC] p-2">
           <PdfDocumentViewer
             sourceUrl={signedCopyFileUrl(document.document_id, { copyId: signedCopy.id })}
             currentPage={currentPage}
@@ -753,10 +753,10 @@ export function DocumentWorkspace({
         ))}
       </div>
 
-      <div role="tabpanel" className={`min-h-0 w-full flex-1 px-4 py-5 sm:px-6 sm:py-6 ${activeTab === 'Overview' ? 'overflow-y-auto 2xl:overflow-hidden' : 'overflow-y-auto'}`}>
+      <div role="tabpanel" className="min-h-0 w-full flex-1 overflow-y-auto px-4 py-5 sm:px-6 sm:py-6">
         {activeTab === 'Overview' && (
-          <div className="grid min-w-0 gap-5 2xl:h-full 2xl:min-h-0 2xl:flex-1 2xl:grid-rows-[minmax(0,1fr)] 2xl:grid-cols-[minmax(0,3fr)_minmax(360px,2fr)]">
-            <div className="min-w-0 space-y-4 2xl:min-h-0 2xl:overflow-y-auto">
+          <div className="min-w-0">
+            <div className="space-y-4">
               {document.lifecycle === 'SIGNED' && <FinalizationNextStep document={document} role={role} outcomeUnknown={finalizationOutcomeUnknown} />}
               {document.draft_url && <GoogleDraftPanel document={document} onDocumentUpdated={onDocumentUpdated} />}
               <section aria-labelledby="document-summary-heading" className="rounded-xl border border-[#D7E4F2] bg-white p-4 sm:p-5">
@@ -821,10 +821,6 @@ export function DocumentWorkspace({
                 </section>
               </div>
             </div>
-
-            <div className="min-w-0 2xl:h-full 2xl:min-h-0">
-              <SignedPdfPreview key={`${document.document_id}:${document.signed_copy?.id ?? 'missing'}`} document={document} />
-            </div>
           </div>
         )}
 
@@ -843,19 +839,12 @@ export function DocumentWorkspace({
         {activeTab === 'Files' && (
           <div className="space-y-4">
             <h2 className="inline-flex items-center gap-2 text-lg font-extrabold text-[#0C2B49]"><FolderOutlinedIcon aria-hidden="true" sx={{ fontSize: 20, color: '#0985E7' }} />Document files</h2>
-            {document.signed_copy ? (
-              <div className="space-y-3 rounded-xl border border-[#E8F0F8] bg-[#F8FBFF] p-4">
-                <div><p className="font-bold text-[#0C2B49]">Current signed PDF</p><p className="mt-1 text-sm text-[#4B6382]">{document.signed_copy.original_filename ?? document.file_name}</p></div>
-                <div className="flex flex-wrap gap-3">
-                  <a href={signedCopyFileUrl(document.document_id, { copyId: document.signed_copy.id, download: true, filename: document.signed_copy.original_filename ?? document.file_name ?? undefined })} className="rounded-full bg-[#0985E7] px-4 py-2.5 text-sm font-extrabold text-white">Download current signed PDF</a>
-                </div>
-              </div>
-            ) : <p className="text-sm text-[#4B6382]">No signed PDF is attached to this document yet.</p>}
             <div className="flex flex-wrap gap-2">
               {document.permissions?.can_attach_signed_copy && <button type="button" onClick={openSignedCopyForm} className="rounded-full bg-[#0985E7] px-4 py-2.5 text-sm font-extrabold text-white">Attach signed PDF</button>}
               {document.permissions?.can_replace_signed_copy && <button type="button" onClick={() => { setSignedCopyMode('replace'); setSignedCopyError(null); signedCopyMutation.reset(); }} className="rounded-full border border-[#0985E7] px-4 py-2.5 text-sm font-extrabold text-[#0985E7]">Replace signed PDF</button>}
             </div>
             {signedCopyForm}
+            <SignedPdfPreview key={`${document.document_id}:${document.signed_copy?.id ?? 'missing'}`} document={document} />
             {signedCopiesQuery.isLoading && <p role="status" className="text-sm text-[#4B6382]">Loading earlier signed PDFs…</p>}
             {signedCopiesQuery.isError && <p role="alert" className="text-sm font-bold text-[#B42318]">Unable to load earlier signed PDFs.</p>}
             {earlierSignedCopies.length > 0 && <details className="rounded-xl border border-[#E8F0F8] p-4">
