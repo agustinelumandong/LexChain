@@ -12,6 +12,7 @@ import WarningAmberOutlinedIcon from '@mui/icons-material/WarningAmberOutlined';
 import HistoryOutlinedIcon from '@mui/icons-material/HistoryOutlined';
 import PictureAsPdfOutlinedIcon from '@mui/icons-material/PictureAsPdfOutlined';
 import DownloadOutlinedIcon from '@mui/icons-material/DownloadOutlined';
+import CloseOutlinedIcon from '@mui/icons-material/CloseOutlined';
 import ManageAccountsOutlinedIcon from '@mui/icons-material/ManageAccountsOutlined';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
@@ -28,6 +29,7 @@ import { listDocumentParties, type PortalUiRole } from '@/features/access';
 import { listRegisterBooks } from '@/features/office/books-api';
 import { PortalDropdown } from '@/features/portal/components';
 import { getRegisterEntryError, getUploadFileError } from '@/features/documents/portal-upload';
+import { createWatermarkedSignedPdf } from '@/features/documents/watermark-signed-pdf';
 
 type WorkspaceDocument = ApiSchema<'DocumentResponse'>;
 
@@ -302,9 +304,46 @@ function RiskFlags({ items }: { items?: unknown[] | null }) {
 }
 
 function SignedPdfPreview({ document }: { document: WorkspaceDocument }) {
-  const [currentPage, setCurrentPage] = useState(0);
   const [pdfLoading, setPdfLoading] = useState(true);
+  const [pdfViewerOpen, setPdfViewerOpen] = useState(false);
+  const pdfDialogRef = useRef<HTMLDialogElement>(null);
+  const [watermarkedCopyStatus, setWatermarkedCopyStatus] = useState<'idle' | 'preparing' | 'downloaded' | 'failed'>('idle');
   const signedCopy = document.signed_copy;
+
+  useEffect(() => {
+    const dialog = pdfDialogRef.current;
+    if (!dialog) return;
+    if (pdfViewerOpen && !dialog.open) dialog.showModal();
+    else if (!pdfViewerOpen && dialog.open) dialog.close();
+  }, [pdfViewerOpen]);
+
+  async function downloadWatermarkedCopy() {
+    if (!signedCopy || watermarkedCopyStatus === 'preparing') return;
+
+    setWatermarkedCopyStatus('preparing');
+    try {
+      const bytes = await createWatermarkedSignedPdf(signedCopyFileUrl(document.document_id, { copyId: signedCopy.id }));
+      const objectUrl = URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' }));
+      const link = window.document.createElement('a');
+      const baseName = (signedCopy.original_filename ?? document.file_name ?? 'signed-copy.pdf')
+        .replace(/\.pdf$/i, '')
+        .replace(/[\\/:*?"<>|\u0000-\u001f]/g, '_');
+      link.href = objectUrl;
+      link.download = `${baseName || 'signed-copy'} - LEXCHAIN COPY.pdf`;
+      window.document.body.append(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
+      setWatermarkedCopyStatus('downloaded');
+    } catch {
+      setWatermarkedCopyStatus('failed');
+    }
+  }
+
+  function openPdfViewer() {
+    setPdfLoading(true);
+    setPdfViewerOpen(true);
+  }
 
   return (
     <section aria-labelledby="signed-pdf-preview-heading" className="flex min-w-0 flex-col rounded-xl border border-[#D7E4F2] bg-white p-4 sm:p-5">
@@ -313,27 +352,84 @@ function SignedPdfPreview({ document }: { document: WorkspaceDocument }) {
           <h2 id="signed-pdf-preview-heading" className="inline-flex items-center gap-2 text-lg font-bold leading-6 text-[#0C2B49]"><PictureAsPdfOutlinedIcon aria-hidden="true" sx={{ fontSize: 20, color: '#0985E7' }} />Signed PDF</h2>
           {signedCopy && <p className="mt-1 break-words text-sm leading-5 text-[#4B6382]">{signedCopy.original_filename ?? document.file_name}</p>}
         </div>
-        {signedCopy && <a aria-label="Download current signed PDF" href={signedCopyFileUrl(document.document_id, { copyId: signedCopy.id, download: true, filename: signedCopy.original_filename ?? document.file_name ?? undefined })} className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-[#D7E4F2] px-2.5 py-1 text-sm font-semibold text-[#0C2B49] hover:bg-[#EAF4FF] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0985E7] sm:min-h-9"><DownloadOutlinedIcon aria-hidden="true" sx={{ fontSize: 17 }} />Download PDF</a>}
+        {signedCopy && <button type="button" onClick={() => void downloadWatermarkedCopy()} disabled={watermarkedCopyStatus === 'preparing'} className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-[#D7E4F2] px-2.5 py-1 text-sm font-semibold text-[#0C2B49] hover:bg-[#EAF4FF] disabled:cursor-wait disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0985E7] sm:min-h-9">
+          <DownloadOutlinedIcon aria-hidden="true" sx={{ fontSize: 17 }} />{watermarkedCopyStatus === 'preparing' ? 'Preparing copy…' : 'Download PDF Copy'}
+        </button>}
       </div>
+      {signedCopy && <p aria-live="polite" className="mt-2 text-xs leading-5 text-[#4B6382]">
+        {watermarkedCopyStatus === 'failed'
+          ? 'Could not create the watermarked copy. The signed original is unchanged.'
+          : watermarkedCopyStatus === 'downloaded'
+            ? 'Watermarked PDF copy downloaded. The signed original remains unchanged for integrity checks.'
+            : 'This copy includes the LEXCHAIN COPY watermark. The signed original remains unchanged for integrity checks.'}
+      </p>}
 
       {signedCopy ? (
-        <div className="relative mt-4 flex h-[65vh] min-h-[320px] max-h-[720px] flex-col overflow-hidden rounded-lg bg-[#F4F8FC] p-2">
-          <PdfDocumentViewer
-            sourceUrl={signedCopyFileUrl(document.document_id, { copyId: signedCopy.id })}
-            currentPage={currentPage}
-            blocks={[]}
-            selectedBlockIndex={null}
-            hoveredBlockIndex={null}
-            onPageChange={setCurrentPage}
-            onSelectBlock={() => undefined}
-            onHoverBlockChange={() => undefined}
-            onLoadChange={setPdfLoading}
-          />
-          {pdfLoading && <div role="status" aria-label="Loading signed PDF" className="absolute inset-0 flex items-center justify-center bg-white/90"><span className="text-sm font-semibold text-[#4B6382]">Loading signed PDF…</span></div>}
+        <div className="mt-4 flex min-h-56 flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-[#C9DDF2] bg-[#F8FBFF] px-4 py-8 text-center">
+          <span className="grid h-12 w-12 place-items-center rounded-xl bg-[#EAF4FF] text-[#0985E7]">
+            <PictureAsPdfOutlinedIcon aria-hidden="true" sx={{ fontSize: 28 }} />
+          </span>
+          <div>
+            <p className="text-sm font-bold text-[#0C2B49]">Open the signed PDF</p>
+            <p className="mt-1 text-sm text-[#4B6382]">View pages and zoom in a full-screen viewer.</p>
+          </div>
+          <button
+            type="button"
+            aria-haspopup="dialog"
+            aria-controls="signed-pdf-viewer-dialog"
+            onClick={openPdfViewer}
+            className="inline-flex min-h-11 items-center gap-2 rounded-full bg-[#0985E7] px-4 py-2 text-sm font-bold text-white shadow-sm hover:bg-[#0673C4] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0985E7]"
+          >
+            <PictureAsPdfOutlinedIcon aria-hidden="true" sx={{ fontSize: 18 }} />View PDF
+          </button>
         </div>
       ) : (
         <p className="mt-4 rounded-lg bg-[#F8FBFF] p-4 text-base leading-7 text-[#4B6382]">No signed PDF is attached to this document yet.</p>
       )}
+
+      {signedCopy && <dialog
+        ref={pdfDialogRef}
+        id="signed-pdf-viewer-dialog"
+        aria-labelledby="signed-pdf-viewer-title"
+        onClose={() => setPdfViewerOpen(false)}
+        className="fixed inset-0 m-0 h-dvh max-h-none w-screen max-w-none overflow-hidden border-0 bg-transparent p-0 text-white backdrop:bg-transparent backdrop:backdrop-blur-md"
+      >
+        <div className="flex h-full min-h-0 flex-col bg-transparent">
+          <header className="flex shrink-0 items-center justify-between gap-4 border-b border-[#D7E4F2]/70 bg-transparent px-4 py-3 text-[#0C2B49] backdrop-blur-sm sm:px-6">
+            <div className="min-w-0">
+              <p className="text-xs font-bold uppercase tracking-[0.12em] text-[#4B6382]">Signed PDF</p>
+              <h2 id="signed-pdf-viewer-title" className="truncate text-base font-bold sm:text-lg">{signedCopy.original_filename ?? document.file_name ?? 'Signed PDF'}</h2>
+            </div>
+            <button
+              type="button"
+              aria-label="Close PDF viewer"
+              autoFocus
+              onClick={() => setPdfViewerOpen(false)}
+              className="inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-full border border-[#D7E4F2] bg-white/70 text-[#0C2B49] hover:bg-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0985E7]"
+            >
+              <CloseOutlinedIcon aria-hidden="true" sx={{ fontSize: 20 }} />
+            </button>
+          </header>
+          <div className="flex min-h-0 flex-1 justify-center p-2 sm:p-4 lg:p-6">
+            <div className="relative flex min-h-0 w-full max-w-[1440px] flex-1 overflow-hidden rounded-xl bg-transparent p-2 sm:p-3">
+              {pdfViewerOpen && <PdfDocumentViewer
+                sourceUrl={signedCopyFileUrl(document.document_id, { copyId: signedCopy.id })}
+                watermarkText="LEXCHAIN COPY"
+                continuous
+                currentPage={0}
+                blocks={[]}
+                selectedBlockIndex={null}
+                hoveredBlockIndex={null}
+                onPageChange={() => undefined}
+                onSelectBlock={() => undefined}
+                onHoverBlockChange={() => undefined}
+                onLoadChange={setPdfLoading}
+              />}
+              {pdfLoading && <div role="status" aria-label="Loading signed PDF" className="absolute inset-0 flex items-center justify-center bg-[#0C2B49]/70 backdrop-blur-sm"><span className="text-sm font-semibold text-white">Loading signed PDF…</span></div>}
+            </div>
+          </div>
+        </div>
+      </dialog>}
     </section>
   );
 }
