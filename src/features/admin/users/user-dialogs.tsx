@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Field, MockModal, inputClassName } from "@/features/admin/components/mock-ui";
+import { Dropdown } from "@/shared/components/ui";
 import type { AdminUser, DemoAdminUserChanges, DirectoryUser } from "./users-types";
 
 export type UserDialogSelection = {
@@ -37,7 +38,7 @@ export function UserDialogs({
         onClose={onClose}
         title={selectedUser.displayName}
         description="User profile details from the System Management directory."
-        footer={<button type="button" onClick={onClose} className="w-full rounded-xl bg-[#0985E7] px-5 py-3 text-sm font-black text-white">Done</button>}
+        footer={<button type="button" onClick={onClose} className="w-full rounded-xl bg-[#0067B3] px-5 py-3 text-sm font-black text-white">Done</button>}
       >
           <div className="space-y-3 text-sm font-semibold text-[#4B6382]">
             <p><strong className="text-[#071B33]">Email:</strong> {selectedUser.email}</p>
@@ -61,7 +62,7 @@ export function UserDialogs({
                 email: userDraft.email,
                 role: userDraft.role,
               });
-            }} className="flex-1 rounded-xl bg-[#0985E7] px-5 py-3 text-sm font-black text-white">Save</button>
+            }} className="flex-1 rounded-xl bg-[#0067B3] px-5 py-3 text-sm font-black text-white">Save</button>
           </div>
         }
       >
@@ -69,7 +70,7 @@ export function UserDialogs({
             <Field label="First name"><input className={inputClassName} value={userDraft.f_name ?? ""} onChange={(event) => setUserDraft((draft) => ({ ...draft, f_name: event.target.value }))} /></Field>
             <Field label="Last name"><input className={inputClassName} value={userDraft.l_name ?? ""} onChange={(event) => setUserDraft((draft) => ({ ...draft, l_name: event.target.value }))} /></Field>
             <Field label="Email"><input className={inputClassName} value={userDraft.email} onChange={(event) => setUserDraft((draft) => ({ ...draft, email: event.target.value }))} /></Field>
-            <Field label="Role"><select className={inputClassName} value={userDraft.role} onChange={(event) => setUserDraft((draft) => ({ ...draft, role: event.target.value }))}><option value="lawyer">Lawyer</option><option value="user">User</option></select></Field>
+            <Field label="Role"><Dropdown ariaLabel="Role" fullWidth value={userDraft.role} onChange={(value) => setUserDraft((draft) => ({ ...draft, role: value }))} options={[{ label: "Lawyer", value: "lawyer" }, { label: "User", value: "user" }]} /></Field>
             <p className="text-xs font-semibold text-[#5B6F8A]">Demo mode — changes reset when this page is refreshed.</p>
           </div>
       </MockModal>

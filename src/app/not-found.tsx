@@ -7,19 +7,19 @@ export default function NotFound() {
       <div className="text-center max-w-md">
         <div className="flex items-center justify-center gap-2 mb-8">
           <Image src="/lexchain/logo-lexchain.svg" alt="LexChain" width={44} height={44} className="rounded-[14px]" />
-          <span className="text-2xl font-black text-[#0C2B49]">Lex<span className="text-[#0985E7]">Chain</span></span>
+          <span className="text-2xl font-black text-[#0C2B49]">Lex<span className="text-[#0067B3]">Chain</span></span>
         </div>
 
-        <h1 className="text-[96px] font-black leading-none text-[#0985E7]">404</h1>
+        <h1 className="text-[96px] font-black leading-none text-[#0067B3]">404</h1>
         <h2 className="text-2xl font-black text-[#0C2B49] mt-2">Page not found</h2>
-        <p className="text-sm text-[#64748b] mt-3 leading-relaxed">
+        <p className="text-sm text-[#5B6F8A] mt-3 leading-relaxed">
           The page you&apos;re looking for doesn&apos;t exist or has been moved.
         </p>
 
         <div className="flex items-center justify-center gap-3 mt-8">
           <Link
             href="/portal/dashboard"
-            className="rounded-full bg-[#0985E7] px-6 py-3 text-sm font-black text-white transition hover:bg-[#0770c4]"
+            className="rounded-full bg-[#0067B3] px-6 py-3 text-sm font-black text-white transition hover:bg-[#005F9E]"
           >
             Go to Dashboard
           </Link>

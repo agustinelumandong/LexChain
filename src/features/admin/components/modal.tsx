@@ -74,7 +74,7 @@ export function Modal({ open, onClose, title, children }: ModalProps) {
       >
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-black text-[#0C2B49]">{title}</h2>
-          <button type="button" onClick={onClose} aria-label="Close modal" className="cursor-pointer rounded-lg p-1 text-[#64748b] transition hover:bg-[#EEF4FB]">
+          <button type="button" onClick={onClose} aria-label="Close modal" className="cursor-pointer rounded-lg p-1 text-[#5B6F8A] transition hover:bg-[#EEF4FB]">
             <CloseIcon fontSize="small" />
           </button>
         </div>

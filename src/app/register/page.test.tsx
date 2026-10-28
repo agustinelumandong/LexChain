@@ -51,6 +51,29 @@ afterEach(() => {
 });
 
 describe("RegisterPage", () => {
+  it("associates each validation message with its invalid field", async () => {
+    renderRegister();
+    fireEvent.click(screen.getByRole("button", { name: "Create account" }));
+    await screen.findAllByText("Enter a name.");
+
+    const fields = [
+      [/First Name/, "first-name-error"],
+      [/Last Name/, "last-name-error"],
+      [/Email/, "email-error"],
+      [/^Password/, "password-error"],
+      [/Confirm Password/, "confirm-password-error"],
+    ] as const;
+
+    for (const [label, errorId] of fields) {
+      const input = screen.getByLabelText(label) as HTMLInputElement;
+      expect(input.getAttribute("aria-invalid")).toBe("true");
+      expect(input.getAttribute("aria-describedby")?.split(" ")).toContain(errorId);
+      expect(document.getElementById(errorId)).toBeTruthy();
+    }
+    expect(screen.getByLabelText(/^Password/).getAttribute("aria-describedby")?.split(" ")).toContain("password-help");
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
   it("submits only supported fields and shows the backend confirmation message", async () => {
     const message = "Check your inbox to verify your account.";
     fetchMock.mockResolvedValue(Response.json({ requires_email_confirmation: true, message }));

@@ -84,7 +84,9 @@ describe("portal layout role hint", () => {
   it("renders participant navigation without lawyer-only Books", async () => {
     await renderPortal("document_participant");
 
-    expect(screen.getAllByRole("link", { name: "My E-copy Requests" }).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole("link", { name: "Shared Documents" }).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole("link", { name: "Invitations" }).length).toBeGreaterThan(0);
+    expect(screen.queryByRole("link", { name: "My E-copy Requests" })).toBeNull();
     expect(screen.queryByRole("link", { name: "Books" })).toBeNull();
     expect(fetchMock).not.toHaveBeenCalledWith(expect.stringContaining("%2Fusers%2F"), expect.anything());
   });

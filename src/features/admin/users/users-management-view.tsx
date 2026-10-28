@@ -75,10 +75,10 @@ function ActionsMenu({ user, onView, onEdit, onChangeStatus }: { user: Directory
 
   return (
     <div ref={ref} className="relative flex items-center justify-end gap-1">
-      <button type="button" onClick={onView} aria-label={`View ${user.displayName}`} className="rounded-lg p-1.5 text-[#7C8DA5] transition hover:bg-[#EEF4FB] hover:text-[#0985E7]">
+      <button type="button" onClick={onView} aria-label={`View ${user.displayName}`} className="rounded-lg p-1.5 text-[#5B6F8A] transition hover:bg-[#EEF4FB] hover:text-[#0067B3]">
         <VisibilityIcon fontSize="small" />
       </button>
-      <button type="button" onClick={onEdit} aria-label={`Edit ${user.displayName}`} className="rounded-lg p-1.5 text-[#7C8DA5] transition hover:bg-[#EEF4FB] hover:text-[#0985E7]">
+      <button type="button" onClick={onEdit} aria-label={`Edit ${user.displayName}`} className="rounded-lg p-1.5 text-[#5B6F8A] transition hover:bg-[#EEF4FB] hover:text-[#0067B3]">
         <EditIcon fontSize="small" />
       </button>
       <button
@@ -86,7 +86,7 @@ function ActionsMenu({ user, onView, onEdit, onChangeStatus }: { user: Directory
         aria-label={`More actions for ${user.displayName}`}
         aria-expanded={open}
         onClick={() => setOpen((value) => !value)}
-        className="rounded-lg p-1.5 text-[#7C8DA5] transition hover:bg-[#EEF4FB] hover:text-[#0985E7]"
+        className="rounded-lg p-1.5 text-[#5B6F8A] transition hover:bg-[#EEF4FB] hover:text-[#0067B3]"
       >
         <MoreVertIcon fontSize="small" />
       </button>
@@ -107,7 +107,7 @@ function ActionsMenu({ user, onView, onEdit, onChangeStatus }: { user: Directory
             onClick={() => { setOpen(false); onChangeStatus(); }}
             className={cn(
               "block w-full px-4 py-2.5 text-left text-sm font-bold transition",
-              user.statusLabel === "Active" ? "text-red-600 hover:bg-red-50" : "text-green-700 hover:bg-green-50",
+              user.statusLabel === "Active" ? "text-red-700 hover:bg-red-50" : "text-green-700 hover:bg-green-50",
             )}
           >
             {user.statusLabel === "Active" ? "Suspend user" : "Reactivate user"}
@@ -215,12 +215,12 @@ export function UsersManagementView({ users, total, loadError }: { users: AdminU
     <div className="flex w-full flex-col gap-5 xl:h-[calc(100dvh-113px)] xl:min-h-0">
       <header className="flex shrink-0 flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
         <div>
-          <p className="text-xs font-black uppercase tracking-[0.22em] text-[#0879D8]">LexChain Operations</p>
+          <p className="text-xs font-black uppercase tracking-[0.22em] text-[#0067B3]">LexChain Operations</p>
           <h1 className="mt-1 text-3xl font-black leading-tight text-[#071B33]">Users</h1>
           <p className="mt-1 text-sm font-semibold text-[#4B6382]">Manage registered accounts, roles, and access permissions.</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <Link href="/portal/issuer-invitations" className="inline-flex items-center gap-2 rounded-xl bg-[#0985E7] px-5 py-3 text-sm font-black text-white shadow-sm shadow-[#0985E7]/25 transition hover:bg-[#0770C4]">
+          <Link href="/portal/issuer-invitations" className="inline-flex items-center gap-2 rounded-xl bg-[#0067B3] px-5 py-3 text-sm font-black text-white shadow-sm shadow-[#0067B3]/25 transition hover:bg-[#005F9E]">
             <PersonAddIcon fontSize="small" />
             Invite User
           </Link>
@@ -282,7 +282,7 @@ export function UsersManagementView({ users, total, loadError }: { users: AdminU
                       slotProps={datePickerSlotProps}
                     />
                   </LocalizationProvider>
-                  <button type="button" onClick={() => { setCreatedFrom(""); setCreatedTo(""); setSortOrder("created-desc"); setTableSearch(""); setRoleFilter("all"); setStatusFilter("all"); setPage(0); }} className="rounded-xl border-t border-[#E4EEF9] bg-[#EEF4FB] py-2.5 text-[#0879D8] sm:col-span-2">Reset filters</button>
+                  <button type="button" onClick={() => { setCreatedFrom(""); setCreatedTo(""); setSortOrder("created-desc"); setTableSearch(""); setRoleFilter("all"); setStatusFilter("all"); setPage(0); }} className="rounded-xl border-t border-[#E4EEF9] bg-[#EEF4FB] py-2.5 text-[#0067B3] sm:col-span-2">Reset filters</button>
                 </div>
               </FilterDetails>
             </div>
@@ -304,7 +304,7 @@ export function UsersManagementView({ users, total, loadError }: { users: AdminU
                   <tr key={user.id} className="h-[68px] border-b border-[#F1F5F9] transition hover:bg-[#F8FBFF]">
                     <td className="px-5 py-3">
                       <div className="flex items-center gap-3">
-                        <div className={cn("flex size-10 items-center justify-center rounded-full text-xs font-black", index % 3 === 0 ? "bg-[#EAF3FF] text-[#0879D8]" : index % 3 === 1 ? "bg-[#F4ECFF] text-[#7C3AED]" : "bg-[#FFF4DF] text-[#D97706]")}>{user.initials}</div>
+                        <div className={cn("flex size-10 items-center justify-center rounded-full text-xs font-black", index % 3 === 0 ? "bg-[#EAF3FF] text-[#0067B3]" : index % 3 === 1 ? "bg-[#F4ECFF] text-[#7C3AED]" : "bg-[#FFF4DF] text-[#8A5B00]")}>{user.initials}</div>
                         <div className="min-w-0">
                           <p className="truncate font-black text-[#071B33]">{user.displayName}</p>
                           <p className="truncate text-xs font-semibold text-[#5B6F8A]">{user.email}</p>
@@ -312,7 +312,7 @@ export function UsersManagementView({ users, total, loadError }: { users: AdminU
                       </div>
                     </td>
                     <td className="px-5 py-3 font-semibold text-[#0C2B49]">{user.roleLabel}</td>
-                    <td className="px-5 py-3">{statusPendingUserId === user.id ? <span role="status" className="text-xs font-bold text-[#0879D8]">Updating…</span> : <StatusPill status={user.statusLabel} />}</td>
+                    <td className="px-5 py-3">{statusPendingUserId === user.id ? <span role="status" className="text-xs font-bold text-[#0067B3]">Updating…</span> : <StatusPill status={user.statusLabel} />}</td>
                     <td className="px-5 py-3 font-semibold text-[#0C2B49]">{new Date(user.created_at).toLocaleDateString()}</td>
                     <td className="px-5 py-3">
                       <ActionsMenu
@@ -346,7 +346,7 @@ export function UsersManagementView({ users, total, loadError }: { users: AdminU
                   key={index}
                   type="button"
                   onClick={() => setPage(index)}
-                  className={cn("size-9 rounded-lg border text-sm font-black transition", safePage === index ? "border-[#0985E7] bg-[#EAF3FF] text-[#0879D8]" : "border-[#E4EEF9] text-[#0C2B49] hover:bg-[#EEF4FB]")}
+                  className={cn("size-9 rounded-lg border text-sm font-black transition", safePage === index ? "border-[#0067B3] bg-[#EAF3FF] text-[#0067B3]" : "border-[#E4EEF9] text-[#0C2B49] hover:bg-[#EEF4FB]")}
                 >
                   {index + 1}
                 </button>

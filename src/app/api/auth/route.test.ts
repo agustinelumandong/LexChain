@@ -1,9 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const credentials = (email: string) => new Request("https://lexchain.test/api/auth", {
+const credentials = (email: string, rememberMe?: boolean) => new Request("https://lexchain.test/api/auth", {
   method: "POST",
   headers: { "content-type": "application/json" },
-  body: JSON.stringify({ email, password: "Password123" }),
+  body: JSON.stringify({ email, password: "Password123", ...(rememberMe === undefined ? {} : { rememberMe }) }),
 });
 
 beforeEach(() => {
@@ -17,6 +17,26 @@ afterEach(() => {
 });
 
 describe("unified auth session cookies", () => {
+  it("uses browser-session cookies when remember me is off", async () => {
+    const { POST } = await import("./route");
+
+    const response = await POST(credentials("issuer@example.com", false));
+
+    expect(response.cookies.get("portal_token")?.maxAge).toBeUndefined();
+    expect(response.cookies.get("issuer_token")?.maxAge).toBeUndefined();
+    expect(response.cookies.get("user_role")?.maxAge).toBeUndefined();
+  });
+
+  it("persists auth cookies for the mock token lifetime when remember me is on", async () => {
+    const { POST } = await import("./route");
+
+    const response = await POST(credentials("issuer@example.com", true));
+
+    expect(response.cookies.get("portal_token")?.maxAge).toBe(60 * 60 * 24);
+    expect(response.cookies.get("issuer_token")?.maxAge).toBe(60 * 60 * 24);
+    expect(response.cookies.get("user_role")?.maxAge).toBe(60 * 60 * 24);
+  });
+
   it("issues an HttpOnly issuer credential to the canonical document issuer", async () => {
     const { POST } = await import("./route");
 
@@ -75,6 +95,26 @@ describe("unified auth session cookies", () => {
       user: { email: "lawyer@lexchain.com", role: "lawyer" },
     });
     expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("uses the backend token lifetime without forwarding the remember-me preference", async () => {
+    vi.stubEnv("USE_MOCK_API", "false");
+    vi.stubEnv("API_URL", "https://api.lexchain.test");
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({
+      access_token: "issuer-token",
+      expires_in: 900,
+      user: { id: "lawyer-1", email: "lawyer@lexchain.com", role: "lawyer" },
+    }), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+    const { POST } = await import("./route");
+
+    const response = await POST(credentials("lawyer@lexchain.com", true));
+
+    expect(response.cookies.get("portal_token")?.maxAge).toBe(900);
+    expect(JSON.parse(fetchMock.mock.calls[0]?.[1]?.body as string)).toEqual({
+      email: "lawyer@lexchain.com",
+      password: "Password123",
+    });
   });
 
   it.each([

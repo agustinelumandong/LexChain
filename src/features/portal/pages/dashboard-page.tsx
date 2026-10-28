@@ -30,10 +30,10 @@ const cardClass = 'rounded-[18px] border border-[#E8F0F8] bg-white shadow-[0_4px
 
 function getStatusTone(status?: string | null) {
   const value = status?.trim().toUpperCase();
-  if (value === 'COMPLETED' || value === 'ANCHORED') return 'bg-[#EAF8F0] text-[#12A150]';
-  if (value === 'PROCESSING' || value === 'PENDING') return 'bg-[#FFF4DD] text-[#B77900]';
+  if (value === 'COMPLETED' || value === 'ANCHORED') return 'bg-[#EAF8F0] text-[#166534]';
+  if (value === 'PROCESSING' || value === 'PENDING') return 'bg-[#FFF4DD] text-[#8A5B00]';
   if (value === 'FAILED') return 'bg-[#FFF0F0] text-[#C24141]';
-  return 'bg-[#EAF4FF] text-[#1689F5]';
+  return 'bg-[#EAF4FF] text-[#0067B3]';
 }
 
 function formatDate(iso: string) {
@@ -55,13 +55,13 @@ function getMetricIcon(label: string) {
 }
 
 function getMetricColor(label: string) {
-  if (label === 'Total Users') return 'bg-[#EAF3FF] text-[#0879D8]';
-  if (label === 'Total Documents') return 'bg-[#EAF3FF] text-[#0879D8]';
-  if (label === 'Total Processed') return 'bg-[#FFF4DF] text-[#F59E0B]';
-  if (label === 'Total Failed') return 'bg-[#FEECEC] text-[#EF4444]';
-  if (label === 'Total On Chain') return 'bg-[#EAFBF1] text-[#16A34A]';
-  if (label === 'Pending Invitations') return 'bg-[#EAF3FF] text-[#0879D8]';
-  return 'bg-[#EAF3FF] text-[#0879D8]';
+  if (label === 'Total Users') return 'bg-[#EAF3FF] text-[#0067B3]';
+  if (label === 'Total Documents') return 'bg-[#EAF3FF] text-[#0067B3]';
+  if (label === 'Total Processed') return 'bg-[#FFF4DF] text-[#8A5B00]';
+  if (label === 'Total Failed') return 'bg-[#FEECEC] text-[#B42318]';
+  if (label === 'Total On Chain') return 'bg-[#EAFBF1] text-[#166534]';
+  if (label === 'Pending Invitations') return 'bg-[#EAF3FF] text-[#0067B3]';
+  return 'bg-[#EAF3FF] text-[#0067B3]';
 }
 
 function getMetricDetail(label: string) {
@@ -98,11 +98,11 @@ export default function DashboardPage() {
       <div className="flex h-full min-h-0 flex-col gap-5">
         <div>
           <h1 className="text-[28px] font-black leading-[34px] text-[#0C2B49]">Document Portal</h1>
-          <p className="mt-1 text-sm font-medium text-[#64748b]">Your shared documents at a glance.</p>
+          <p className="mt-1 text-sm font-medium text-[#5B6F8A]">Your shared documents at a glance.</p>
         </div>
         <div className={`${cardClass} p-6 text-center`}>
           <p className="text-sm font-bold text-[#0C2B49]">Welcome to the Document Portal</p>
-          <p className="mt-1 text-sm text-[#64748b]">Browse shared documents, manage invitations, and request e-copies from the navigation menu.</p>
+          <p className="mt-1 text-sm text-[#5B6F8A]">Browse shared documents and manage invitations from the navigation menu.</p>
         </div>
       </div>
     );
@@ -129,10 +129,10 @@ export default function DashboardPage() {
       <div className="shrink-0 flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-[28px] font-black leading-[34px] text-[#0C2B49]">Lawyer Portal</h1>
-          <p className="mt-1 text-sm font-medium text-[#64748b]">Your document workspace at a glance.</p>
+          <p className="mt-1 text-sm font-medium text-[#5B6F8A]">Your document workspace at a glance.</p>
         </div>
         <div className="flex items-center gap-2 sm:gap-3">
-          <Link href="/portal/upload" aria-label="Upload document" className="flex min-h-11 items-center gap-2 rounded-full bg-[#0985E7] px-4 py-2 text-xs font-black text-white transition hover:bg-[#0770c4] sm:px-5 sm:py-2.5 sm:text-sm">
+          <Link href="/portal/upload" aria-label="Upload document" className="flex min-h-11 items-center gap-2 rounded-full bg-[#0067B3] px-4 py-2 text-xs font-black text-white transition hover:bg-[#005F9E] sm:px-5 sm:py-2.5 sm:text-sm">
             <FileUploadIcon sx={{ fontSize: 16 }} />
             <span className="hidden sm:inline">Upload Document</span>
           </Link>
@@ -141,8 +141,8 @@ export default function DashboardPage() {
 
       {documentsQuery.isError && (
         <div role="alert" className={`${cardClass} flex flex-wrap items-center justify-between gap-3 p-5`}>
-          <div><p className="text-sm font-bold text-[#0C2B49]">{documentsQuery.error instanceof PortalApiError ? documentsQuery.error.message : 'We could not load your document repository.'}</p><p className="mt-1 text-xs text-[#64748b]">Retry loading it, or open Documents to continue your work.</p></div>
-          <div className="flex items-center gap-2"><button type="button" onClick={() => void documentsQuery.refetch()} className="rounded-full border border-[#D7E4F2] px-4 py-2 text-sm font-black text-[#0985E7]">Retry</button><Link href="/portal/documents" className="rounded-full bg-[#0985E7] px-4 py-2 text-sm font-black text-white">View Documents</Link></div>
+          <div><p className="text-sm font-bold text-[#0C2B49]">{documentsQuery.error instanceof PortalApiError ? documentsQuery.error.message : 'We could not load your document repository.'}</p><p className="mt-1 text-xs text-[#5B6F8A]">Retry loading it, or open Documents to continue your work.</p></div>
+          <div className="flex items-center gap-2"><button type="button" onClick={() => void documentsQuery.refetch()} className="rounded-full border border-[#D7E4F2] px-4 py-2 text-sm font-black text-[#0067B3]">Retry</button><Link href="/portal/documents" className="rounded-full bg-[#0067B3] px-4 py-2 text-sm font-black text-white">View Documents</Link></div>
         </div>
       )}
 
@@ -152,13 +152,13 @@ export default function DashboardPage() {
         <>
           {adminDashboardQuery.isError ? (
             <div role="alert" className={`${cardClass} flex flex-wrap items-center justify-between gap-3 p-5`}>
-              <div><p className="text-sm font-bold text-[#0C2B49]">We could not load administrator dashboard metrics.</p><p className="mt-1 text-xs text-[#64748b]">Retry to load the latest values.</p></div>
-              <button type="button" onClick={() => void adminDashboardQuery.refetch()} aria-label="Retry dashboard metrics" className="rounded-full border border-[#D7E4F2] px-4 py-2 text-sm font-black text-[#0985E7]">Retry</button>
+              <div><p className="text-sm font-bold text-[#0C2B49]">We could not load dashboard metrics.</p><p className="mt-1 text-xs text-[#5B6F8A]">Retry to load the latest values.</p></div>
+              <button type="button" onClick={() => void adminDashboardQuery.refetch()} aria-label="Retry dashboard metrics" className="rounded-full border border-[#D7E4F2] px-4 py-2 text-sm font-black text-[#0067B3]">Retry</button>
             </div>
           ) : adminMetrics == null ? (
             <div role="status" className={`${cardClass} flex flex-wrap items-center justify-between gap-3 p-5`}>
-              <div><p className="text-sm font-bold text-[#0C2B49]">Dashboard metrics are unavailable.</p><p className="mt-1 text-xs text-[#64748b]">The dashboard response did not include all expected values.</p></div>
-              <button type="button" onClick={() => void adminDashboardQuery.refetch()} aria-label="Retry dashboard metrics" className="rounded-full border border-[#D7E4F2] px-4 py-2 text-sm font-black text-[#0985E7]">Retry</button>
+              <div><p className="text-sm font-bold text-[#0C2B49]">Dashboard metrics are unavailable.</p><p className="mt-1 text-xs text-[#5B6F8A]">The dashboard response did not include all expected values.</p></div>
+              <button type="button" onClick={() => void adminDashboardQuery.refetch()} aria-label="Retry dashboard metrics" className="rounded-full border border-[#D7E4F2] px-4 py-2 text-sm font-black text-[#0067B3]">Retry</button>
             </div>
           ) : null}
           <div className="shrink-0 grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3">
@@ -172,19 +172,19 @@ export default function DashboardPage() {
 
       <div className="grid grid-cols-1 min-h-0 flex-1 gap-5 overflow-hidden lg:grid-cols-[minmax(0,1fr)_360px]">
         <section className={`${cardClass} flex min-h-0 flex-col p-5`}>
-          <div className="mb-4 flex shrink-0 items-center justify-between"><h2 className="text-base font-black text-[#0C2B49]">Recent documents</h2><Link href="/portal/documents" className="text-xs font-black text-[#0985E7]">View Documents</Link></div>
-          {documentsQuery.isLoading ? <p className="py-4 text-center text-sm text-[#64748b]">Loading recent documents…</p> : documentsQuery.isError ? <p className="py-4 text-center text-sm text-[#64748b]">Recent documents will be available once the repository loads.</p> : recentDocuments.length === 0 ? <div className="py-4 text-center"><p className="text-sm font-bold text-[#0C2B49]">No documents yet</p><p className="mt-1 text-xs text-[#64748b]">Upload a document to start your repository.</p><Link href="/portal/upload" className="mt-4 inline-flex rounded-full bg-[#0985E7] px-4 py-2 text-sm font-black text-white">Upload Document</Link></div> : <div className="admin-table-scroll min-h-0 flex-1 overflow-y-auto"><div className="flex flex-col divide-y divide-[#E8F0F8]">{recentDocuments.map((document) => <DocumentLink key={document.id} document={document} />)}</div></div>}
+          <div className="mb-4 flex shrink-0 items-center justify-between"><h2 className="text-base font-black text-[#0C2B49]">Recent documents</h2><Link href="/portal/documents" className="text-xs font-black text-[#0067B3]">View Documents</Link></div>
+          {documentsQuery.isLoading ? <p className="py-4 text-center text-sm text-[#5B6F8A]">Loading recent documents…</p> : documentsQuery.isError ? <p className="py-4 text-center text-sm text-[#5B6F8A]">Recent documents will be available once the repository loads.</p> : recentDocuments.length === 0 ? <div className="py-4 text-center"><p className="text-sm font-bold text-[#0C2B49]">No documents yet</p><p className="mt-1 text-xs text-[#5B6F8A]">Upload a document to start your repository.</p><Link href="/portal/upload" className="mt-4 inline-flex rounded-full bg-[#0067B3] px-4 py-2 text-sm font-black text-white">Upload Document</Link></div> : <div className="admin-table-scroll min-h-0 flex-1 overflow-y-auto"><div className="flex flex-col divide-y divide-[#E8F0F8]">{recentDocuments.map((document) => <DocumentLink key={document.id} document={document} />)}</div></div>}
         </section>
 
         <div className="flex min-h-0 flex-col gap-5">
           <section className={`${cardClass} flex min-h-0 flex-1 flex-col p-5`}>
             <h2 className="mb-3 shrink-0 text-base font-black text-[#0C2B49]">Documents needing attention</h2>
-            {documentsQuery.isLoading ? <p className="text-sm text-[#64748b]">Checking document statuses…</p> : documentsQuery.isError ? <p className="text-sm text-[#64748b]">Attention status is unavailable.</p> : attentionDocuments.length === 0 ? <p className="text-sm text-[#64748b]">No action required. All documents are progressing normally.</p> : <div className="table-scroll-thin min-h-0 flex-1 overflow-y-auto"><div className="flex flex-col divide-y divide-[#E8F0F8]">{attentionDocuments.slice(0, 3).map((document) => <DocumentLink document={document} key={document.id} />)}</div></div>}
+            {documentsQuery.isLoading ? <p className="text-sm text-[#5B6F8A]">Checking document statuses…</p> : documentsQuery.isError ? <p className="text-sm text-[#5B6F8A]">Attention status is unavailable.</p> : attentionDocuments.length === 0 ? <p className="text-sm text-[#5B6F8A]">No action required. All documents are progressing normally.</p> : <div className="table-scroll-thin min-h-0 flex-1 overflow-y-auto"><div className="flex flex-col divide-y divide-[#E8F0F8]">{attentionDocuments.slice(0, 3).map((document) => <DocumentLink document={document} key={document.id} />)}</div></div>}
           </section>
 
           <section className={`${cardClass} flex min-h-0 flex-1 flex-col p-5`}>
             <h2 className="mb-3 shrink-0 text-base font-black text-[#0C2B49]">Processing</h2>
-            {documentsQuery.isLoading ? <p className="text-sm text-[#64748b]">Checking processing documents…</p> : documentsQuery.isError ? <p className="text-sm text-[#64748b]">Processing status is unavailable.</p> : processingDocuments.length === 0 ? <p className="text-sm text-[#64748b]">No documents are processing right now.</p> : <div className="admin-table-scroll min-h-0 flex-1 overflow-y-auto"><div className="flex flex-col divide-y divide-[#E8F0F8]">{processingDocuments.slice(0, 3).map((document) => <DocumentLink document={document} key={document.id} />)}</div></div>}
+            {documentsQuery.isLoading ? <p className="text-sm text-[#5B6F8A]">Checking processing documents…</p> : documentsQuery.isError ? <p className="text-sm text-[#5B6F8A]">Processing status is unavailable.</p> : processingDocuments.length === 0 ? <p className="text-sm text-[#5B6F8A]">No documents are processing right now.</p> : <div className="admin-table-scroll min-h-0 flex-1 overflow-y-auto"><div className="flex flex-col divide-y divide-[#E8F0F8]">{processingDocuments.slice(0, 3).map((document) => <DocumentLink document={document} key={document.id} />)}</div></div>}
           </section>
         </div>
       </div>
@@ -194,8 +194,8 @@ export default function DashboardPage() {
 
 function DocumentLink({ document }: { document: Document }) {
   return <Link href={`/portal/documents/${document.id}`} className="flex items-center gap-4 py-4 first:pt-0 last:pb-0 transition hover:bg-[#F8FBFF]">
-    <div className="flex h-[44px] w-[44px] shrink-0 items-center justify-center rounded-xl bg-[#EEF6FF]"><DescriptionIcon sx={{ fontSize: 20, color: '#0985E7' }} /></div>
-    <div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><span className="truncate text-sm font-bold text-[#0C2B49]">{document.file_name}</span><span className="shrink-0 rounded-full bg-[#EAF4FF] px-2.5 py-0.5 text-[11px] font-bold text-[#1689F5]">{getDocumentLifecycleLabel(document.lifecycle)}</span>{document.lifecycle === 'FINALIZED' && <span className={`${getStatusTone(document.status)} shrink-0 rounded-full px-2.5 py-0.5 text-[11px] font-bold`}>{getDocumentProcessingStatusLabel(document.lifecycle, document.status)}</span>}</div><p className="mt-1 text-[11px] font-bold text-[#A0AAB8]">{formatDate(document.created_at)}</p></div>
-    <ChevronRightIcon sx={{ fontSize: 20, color: '#A0AAB8' }} />
+    <div className="flex h-[44px] w-[44px] shrink-0 items-center justify-center rounded-xl bg-[#EEF6FF]"><DescriptionIcon sx={{ fontSize: 20, color: '#0067B3' }} /></div>
+    <div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><span className="truncate text-sm font-bold text-[#0C2B49]">{document.file_name}</span><span className="shrink-0 rounded-full bg-[#EAF4FF] px-2.5 py-0.5 text-[11px] font-bold text-[#0067B3]">{getDocumentLifecycleLabel(document.lifecycle)}</span>{document.lifecycle === 'FINALIZED' && <span className={`${getStatusTone(document.status)} shrink-0 rounded-full px-2.5 py-0.5 text-[11px] font-bold`}>{getDocumentProcessingStatusLabel(document.lifecycle, document.status)}</span>}</div><p className="mt-1 text-[11px] font-bold text-[#5B6F8A]">{formatDate(document.created_at)}</p></div>
+    <ChevronRightIcon sx={{ fontSize: 20, color: '#5B6F8A' }} />
   </Link>;
 }

@@ -121,7 +121,7 @@ describe('DocumentVerifyPage', () => {
 
     const transactionLink = await screen.findByRole('link', { name: 'View transaction on Base Sepolia' });
     expect(transactionLink.getAttribute('href')).toBe(`https://sepolia.basescan.org/tx/0x${'a'.repeat(64)}`);
-    expect(within(screen.getByRole('region', { name: 'Verification result' })).getAllByRole('button', { name: 'Copy' })).not.toHaveLength(0);
+    expect(within(screen.getByRole('region', { name: 'Verification result' })).getByRole('button', { name: 'Copy Transaction hash' })).toBeTruthy();
   });
 
   it.each([null, 'not-a-transaction-hash'])(

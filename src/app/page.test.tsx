@@ -29,9 +29,8 @@ describe("Home", () => {
   it("makes download options and the workflow reachable", () => {
     render(<Home />);
 
-    for (const name of ["Explore App Store download options", "Explore Google Play download options"]) {
-      expect(screen.getByRole("link", { name }).getAttribute("href")).toBe("/download");
-    }
+    expect(screen.getByRole("link", { name: "iPhone and iPad installation instructions" }).getAttribute("href")).toBe("/download#ios");
+    expect(screen.getByRole("link", { name: "Android installation instructions" }).getAttribute("href")).toBe("/download#android");
     const workflowLink = screen.getByRole("link", { name: "See how it works" });
     expect(workflowLink.getAttribute("href")).toBe("#workflow");
     expect(document.getElementById("workflow")?.textContent).toContain("Upload");

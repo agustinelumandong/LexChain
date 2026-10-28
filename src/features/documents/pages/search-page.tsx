@@ -67,21 +67,21 @@ export default function SearchPage({
     <div className="flex max-w-3xl flex-col gap-5">
       <div>
         <h1 className="text-[28px] font-black text-[#0C2B49]">Search</h1>
-        <p className="mt-1 text-sm text-[#64748b]">Find a document by its text or exact notarial register reference.</p>
+        <p className="mt-1 text-sm text-[#5B6F8A]">Find a document by its text or exact notarial register reference.</p>
       </div>
 
       <nav aria-label="Search mode" className="flex w-fit gap-1 rounded-xl bg-[#F2F7FC] p-1">
         <Link
           href={textSearchHref}
           aria-current={mode === 'text' ? 'page' : undefined}
-          className={`rounded-lg px-3 py-2 text-sm font-bold transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0985E7] ${mode === 'text' ? 'bg-white text-[#0C2B49] shadow-sm' : 'text-[#64748b] hover:text-[#0C2B49]'}`}
+          className={`rounded-lg px-3 py-2 text-sm font-bold transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3] ${mode === 'text' ? 'bg-white text-[#0C2B49] shadow-sm' : 'text-[#5B6F8A] hover:text-[#0C2B49]'}`}
         >
           Document text
         </Link>
         <Link
           href="/portal/search?mode=register"
           aria-current={mode === 'register' ? 'page' : undefined}
-          className={`rounded-lg px-3 py-2 text-sm font-bold transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0985E7] ${mode === 'register' ? 'bg-white text-[#0C2B49] shadow-sm' : 'text-[#64748b] hover:text-[#0C2B49]'}`}
+          className={`rounded-lg px-3 py-2 text-sm font-bold transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3] ${mode === 'register' ? 'bg-white text-[#0C2B49] shadow-sm' : 'text-[#5B6F8A] hover:text-[#0C2B49]'}`}
         >
           Register reference
         </Link>
@@ -90,7 +90,7 @@ export default function SearchPage({
       {mode === 'text' ? (
         <>
           <form onSubmit={submitTextSearch} className="flex gap-2 rounded-[18px] border border-[#E8F0F8] bg-white p-2">
-            <SearchIcon sx={{ color: '#64748b', ml: 1, alignSelf: 'center' }} aria-hidden="true" />
+            <SearchIcon sx={{ color: '#5B6F8A', ml: 1, alignSelf: 'center' }} aria-hidden="true" />
             <input
               type="search"
               name="q"
@@ -99,9 +99,9 @@ export default function SearchPage({
               onChange={(event) => setInput(event.currentTarget.value)}
               placeholder="Search document text…"
               aria-label="Search document text"
-              className="min-w-0 flex-1 bg-transparent px-2 text-sm text-[#0C2B49] outline-none placeholder:text-[#A0AAB8]"
+              className="min-w-0 flex-1 bg-transparent px-2 text-sm text-[#0C2B49] outline-none placeholder:text-[#5B6F8A]"
             />
-            <button type="submit" className="rounded-[12px] bg-[#0985E7] px-4 py-2 text-xs font-black text-white hover:bg-[#0770c4] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0985E7]">
+            <button type="submit" className="rounded-[12px] bg-[#0067B3] px-4 py-2 text-xs font-black text-white hover:bg-[#005F9E] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]">
               Search
             </button>
           </form>
@@ -109,7 +109,7 @@ export default function SearchPage({
           {!query && (
             <div className="rounded-[18px] border border-[#E8F0F8] bg-white p-8 text-center">
               <p className="text-sm font-bold text-[#0C2B49]">Search your documents</p>
-              <p className="mt-1 text-xs text-[#64748b]">Enter keywords or a question to find matching document text.</p>
+              <p className="mt-1 text-xs text-[#5B6F8A]">Enter keywords or a question to find matching document text.</p>
             </div>
           )}
 
@@ -124,13 +124,13 @@ export default function SearchPage({
 
           {data && !isFetching && (
             <>
-              <p className="text-xs font-bold text-[#64748b]">
+              <p className="text-xs font-bold text-[#5B6F8A]">
                 {data.results.length} result{data.results.length !== 1 ? 's' : ''} for &ldquo;{data.query}&rdquo;
               </p>
               {data.results.length === 0 && (
                 <div className="rounded-[18px] border border-[#E8F0F8] bg-white p-8 text-center">
                   <p className="text-sm font-bold text-[#0C2B49]">No results found</p>
-                  <p className="mt-1 text-xs text-[#64748b]">Try different keywords.</p>
+                  <p className="mt-1 text-xs text-[#5B6F8A]">Try different keywords.</p>
                 </div>
               )}
               <div className="flex flex-col gap-3">
@@ -138,17 +138,17 @@ export default function SearchPage({
                   <Link
                     key={result.chunk_id}
                     href={`/portal/documents/${result.document_id}`}
-                    className="block rounded-[18px] border border-[#E8F0F8] bg-white p-4 transition hover:border-[#0985E7] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0985E7]"
+                    className="block rounded-[18px] border border-[#E8F0F8] bg-white p-4 transition hover:border-[#0067B3] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]"
                   >
                     <div className="flex min-w-0 items-start gap-2">
-                      <InsertDriveFileIcon sx={{ fontSize: 16, color: '#0985E7' }} aria-hidden="true" />
+                      <InsertDriveFileIcon sx={{ fontSize: 16, color: '#0067B3' }} aria-hidden="true" />
                       <h2 className="min-w-0 break-words text-sm font-black text-[#0C2B49]">{result.file_name}</h2>
                     </div>
-                    <p className="mt-1 text-xs font-semibold text-[#64748b]">
+                    <p className="mt-1 text-xs font-semibold text-[#5B6F8A]">
                       Document created: <time dateTime={result.created_at}>{recordDateFormat.format(new Date(result.created_at))}</time>
                     </p>
                     {result.register_reference && (
-                      <p className="mt-1 break-words text-xs font-semibold text-[#64748b]">
+                      <p className="mt-1 break-words text-xs font-semibold text-[#5B6F8A]">
                         Register reference: <span className="font-bold text-[#0C2B49]">{result.register_reference.label}</span>
                       </p>
                     )}
@@ -164,7 +164,7 @@ export default function SearchPage({
           <form onSubmit={submitRegisterSearch} className="rounded-[18px] border border-[#E8F0F8] bg-white p-5 sm:p-6">
             <fieldset disabled={registerLookup.isPending} className="flex flex-col gap-4">
               <legend className="text-base font-black text-[#0C2B49]">Notarial register reference</legend>
-              <p className="text-sm text-[#64748b]">Enter all four values from the register. Every field is required for an exact match.</p>
+              <p className="text-sm text-[#5B6F8A]">Enter all four values from the register. Every field is required for an exact match.</p>
               <div className="grid gap-4 sm:grid-cols-2">
                 {registerFields.map((field) => (
                   <label key={field.name} className="flex flex-col gap-1.5 text-sm font-bold text-[#0C2B49]">
@@ -183,7 +183,7 @@ export default function SearchPage({
                         const value = event.currentTarget.value;
                         setRegisterReference((current) => ({ ...current, [field.name]: value }));
                       }}
-                      className="rounded-xl border border-[#D7E4F2] px-3 py-2.5 text-sm font-medium outline-none focus:border-[#0985E7] focus:ring-2 focus:ring-[#0985E7]/20 disabled:bg-[#F8FBFF]"
+                      className="rounded-xl border border-[#D7E4F2] px-3 py-2.5 text-sm font-medium outline-none focus:border-[#0067B3] focus:ring-2 focus:ring-[#0067B3]/20 disabled:bg-[#F8FBFF]"
                     />
                   </label>
                 ))}
@@ -191,7 +191,7 @@ export default function SearchPage({
               <button
                 type="submit"
                 disabled={registerLookup.isPending}
-                className="inline-flex w-fit items-center gap-2 rounded-full bg-[#0985E7] px-5 py-2.5 text-sm font-black text-white transition hover:bg-[#0770c4] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0985E7] disabled:cursor-wait disabled:opacity-60"
+                className="inline-flex w-fit items-center gap-2 rounded-full bg-[#0067B3] px-5 py-2.5 text-sm font-black text-white transition hover:bg-[#005F9E] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3] disabled:cursor-wait disabled:opacity-60"
               >
                 {registerLookup.isPending ? (
                   <span aria-hidden="true" className="h-4 w-4 animate-spin rounded-full border-2 border-white/50 border-t-white motion-reduce:animate-none" />
@@ -203,18 +203,18 @@ export default function SearchPage({
             </fieldset>
           </form>
 
-          {registerLookup.isPending && <p role="status" className="text-sm font-semibold text-[#64748b]">Searching the register…</p>}
+          {registerLookup.isPending && <p role="status" className="text-sm font-semibold text-[#5B6F8A]">Searching the register…</p>}
           {registerLookup.isError && <p role="alert" className="text-sm font-bold text-red-700">{registerLookup.error.message}</p>}
 
           {registerLookup.data && (
             <section aria-live="polite" className="flex flex-col gap-3">
-              <p className="text-xs font-bold text-[#64748b]">
+              <p className="text-xs font-bold text-[#5B6F8A]">
                 {registerLookup.data.results.length} record{registerLookup.data.results.length !== 1 ? 's' : ''} found
               </p>
               {registerLookup.data.results.length === 0 ? (
                 <div className="rounded-[18px] border border-[#E8F0F8] bg-white p-8 text-center">
                   <p className="text-sm font-bold text-[#0C2B49]">No record found for this reference</p>
-                  <p className="mt-1 text-xs text-[#64748b]">Check all four numbers and search again.</p>
+                  <p className="mt-1 text-xs text-[#5B6F8A]">Check all four numbers and search again.</p>
                 </div>
               ) : (
                 <ul className="flex flex-col gap-3" aria-label="Register lookup results">
@@ -222,18 +222,18 @@ export default function SearchPage({
                     <li key={result.document_id} className="flex flex-col gap-4 rounded-[18px] border border-[#E8F0F8] bg-white p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
                       <div className="min-w-0">
                         <h2 className="break-words text-sm font-black text-[#0C2B49]">{result.file_name}</h2>
-                        <p className="mt-1 text-xs font-semibold text-[#64748b]">
+                        <p className="mt-1 text-xs font-semibold text-[#5B6F8A]">
                           Document created: <time dateTime={result.created_at}>{recordDateFormat.format(new Date(result.created_at))}</time>
                         </p>
-                        <p className="mt-1 break-words text-xs font-semibold text-[#64748b]">
+                        <p className="mt-1 break-words text-xs font-semibold text-[#5B6F8A]">
                           Register reference: <span className="font-bold text-[#0C2B49]">{result.register_reference.label}</span>
                         </p>
                       </div>
                       <Link
                         href={`/portal/documents/${result.document_id}`}
-                        className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full border border-[#D7E4F2] px-4 py-2 text-sm font-bold text-[#0C2B49] transition hover:border-[#0985E7] hover:bg-[#F2F8FE] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0985E7]"
+                        className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full border border-[#D7E4F2] px-4 py-2 text-sm font-bold text-[#0C2B49] transition hover:border-[#0067B3] hover:bg-[#F2F8FE] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]"
                       >
-                        <InsertDriveFileIcon sx={{ fontSize: 16, color: '#0985E7' }} aria-hidden="true" />
+                        <InsertDriveFileIcon sx={{ fontSize: 16, color: '#0067B3' }} aria-hidden="true" />
                         Open record
                       </Link>
                     </li>

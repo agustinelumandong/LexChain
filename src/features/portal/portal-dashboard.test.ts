@@ -38,7 +38,6 @@ describe("portal dashboard", () => {
     expect(getPortalNavigation("user").flatMap((group) => group.items).map((item) => item.label)).toEqual([
       "Shared Documents",
       "Invitations",
-      "My E-copy Requests",
     ]);
   });
 

@@ -5,6 +5,7 @@ import { PortalApiError } from '@/shared/api/portal-error';
 import type { components } from '@/shared/types';
 import type { DocumentParticipantPermission } from '@/features/access/participant-access';
 import { documentParticipantPermissions, validateParticipantInvitation } from '@/features/access/participant-access';
+import { Dropdown } from '@/shared/components/ui';
 
 type UserSearchResponse = components['schemas']['UserSearchResponse'];
 
@@ -110,26 +111,24 @@ export function InviteParticipantForm({ onFindAccount, onInvite }: InvitePartici
   return (
     <form onSubmit={submit} className="rounded-[18px] border border-[#E8F0F8] bg-white p-5 shadow-[0_4px_12px_rgba(19,59,115,0.05)]">
       <h2 className="text-lg font-extrabold text-[#0C2B49]">Invite a participant</h2>
-      <p className="mt-1 text-sm font-medium text-[#64748b]">Grant access to this document only.</p>
+      <p className="mt-1 text-sm font-medium text-[#5B6F8A]">Grant access to this document only.</p>
       <div className="mt-4 grid gap-3 sm:grid-cols-[minmax(0,1fr)_150px_auto_auto]">
         <label className="flex flex-col gap-1.5 text-xs font-bold text-[#0C2B49]">
           <span id={`${feedbackId}-email-label`}>Email</span>
-          <input aria-labelledby={`${feedbackId}-email-label`} aria-invalid={Boolean(error?.fields.email)} aria-describedby={error?.fields.email ? `${feedbackId}-email` : undefined} value={email} onChange={(event) => { setEmail(event.target.value); setLookup({ status: 'idle' }); setError(undefined); }} disabled={isSubmitting || lookup.status === 'loading'} type="email" autoComplete="email" placeholder="participant@example.com" className="rounded-xl border border-[#D6E3F1] px-3 py-2.5 text-sm font-medium outline-none focus:border-[#0985E7] disabled:opacity-60" />
+          <input aria-labelledby={`${feedbackId}-email-label`} aria-invalid={Boolean(error?.fields.email)} aria-describedby={error?.fields.email ? `${feedbackId}-email` : undefined} value={email} onChange={(event) => { setEmail(event.target.value); setLookup({ status: 'idle' }); setError(undefined); }} disabled={isSubmitting || lookup.status === 'loading'} type="email" autoComplete="email" placeholder="participant@example.com" className="rounded-xl border border-[#D6E3F1] px-3 py-2.5 text-sm font-medium outline-none focus:border-[#0067B3] disabled:opacity-60" />
           {error?.fields.email && <span id={`${feedbackId}-email`} className="text-[#C2410C]">{error.fields.email}</span>}
         </label>
         <label className="flex flex-col gap-1.5 text-xs font-bold text-[#0C2B49]">
           <span id={`${feedbackId}-role-label`}>Permission</span>
-          <select aria-labelledby={`${feedbackId}-role-label`} aria-invalid={Boolean(error?.fields.role)} aria-describedby={error?.fields.role ? `${feedbackId}-role` : undefined} value={role} onChange={(event) => { setRole(event.target.value as DocumentParticipantPermission); setError(undefined); }} className="rounded-xl border border-[#D6E3F1] bg-white px-3 py-2.5 text-sm font-medium outline-none focus:border-[#0985E7]">
-            {documentParticipantPermissions.map((permission) => <option key={permission} value={permission}>{permissionLabels[permission]}</option>)}
-          </select>
+          <Dropdown ariaLabel="Permission" ariaDescribedBy={error?.fields.role ? `${feedbackId}-role` : undefined} invalid={Boolean(error?.fields.role)} fullWidth options={documentParticipantPermissions.map((permission) => ({ label: permissionLabels[permission], value: permission }))} value={role} onChange={(value) => { setRole(value as DocumentParticipantPermission); setError(undefined); }} />
           {error?.fields.role && <span id={`${feedbackId}-role`} className="text-[#C2410C]">{error.fields.role}</span>}
         </label>
         <button type="button" onClick={findAccount} disabled={isSubmitting || lookup.status === 'loading'} className="self-end rounded-xl border border-[#D6E3F1] px-4 py-2.5 text-sm font-extrabold text-[#0C2B49] disabled:cursor-not-allowed disabled:opacity-60">{lookup.status === 'loading' ? 'Searching…' : 'Find account'}</button>
-        <button type="submit" disabled={isSubmitting || lookup.status !== 'found'} className="self-end rounded-xl bg-[#0985E7] px-4 py-2.5 text-sm font-extrabold text-white disabled:cursor-not-allowed disabled:opacity-60">{isSubmitting ? 'Inviting…' : 'Send invitation'}</button>
+        <button type="submit" disabled={isSubmitting || lookup.status !== 'found'} className="self-end rounded-xl bg-[#0067B3] px-4 py-2.5 text-sm font-extrabold text-white disabled:cursor-not-allowed disabled:opacity-60">{isSubmitting ? 'Inviting…' : 'Send invitation'}</button>
       </div>
       {error && <p role="alert" className="mt-3 text-sm font-semibold text-[#C2410C]">{error.summary}</p>}
       {lookup.status === 'found' && <p role="status" className="mt-3 text-sm font-semibold text-[#166534]">Account found: {lookup.account.f_name} {lookup.account.l_name} ({lookup.account.email}).</p>}
-      {lookup.status === 'not-found' && <p role="status" className="mt-3 text-sm font-semibold text-[#64748b]">No account found. Invitations can only be sent to existing accounts.</p>}
+      {lookup.status === 'not-found' && <p role="status" className="mt-3 text-sm font-semibold text-[#5B6F8A]">No account found. Invitations can only be sent to existing accounts.</p>}
       {lookup.status === 'error' && <p role="alert" className="mt-3 text-sm font-semibold text-[#C2410C]">{lookup.message}</p>}
     </form>
   );

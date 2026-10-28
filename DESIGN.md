@@ -38,6 +38,8 @@ Reuse the browser-safe UI in `src/shared/components/ui/` before adding page-spec
 
 Shared controls use the existing semantic color variables in `src/app/globals.css`, a 14px control radius, and a 48px default height. Small controls retain at least a 44px target; larger controls use 52px. Inputs and buttons share those heights and the same visible focus color. Cards use an 18px radius. Use `rounded-full` for pills.
 
+Active text and controls must meet WCAG AA contrast against their actual surface. Use the accessible brand blue for text links and primary actions, and do not use low-contrast gray for readable labels or placeholders.
+
 Search and filter state belongs to each feature. Compose `SearchInput`, the feature's filter controls, and `DataTable` where they are needed; do not add search or filter state to a universal table component.
 
 ## Scope

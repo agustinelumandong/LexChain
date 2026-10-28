@@ -1,6 +1,11 @@
 'use client';
 
 import { useState } from 'react';
+import Dialog from '@mui/material/Dialog';
+import DialogActions from '@mui/material/DialogActions';
+import DialogContent from '@mui/material/DialogContent';
+import DialogContentText from '@mui/material/DialogContentText';
+import DialogTitle from '@mui/material/DialogTitle';
 import { Button, Card, Table } from '@/shared/components/ui';
 import type { components } from '@/shared/types/index';
 
@@ -66,7 +71,7 @@ export function ParticipantAccessTable({ parties, canRevoke, onRevoke }: Partici
                 >
                   Resend unavailable
                 </Button>
-                <Button type="button" size="sm" variant="danger" onClick={() => setPartyToRevoke(party)}>
+                <Button type="button" size="sm" variant="danger" onClick={() => { setError(undefined); setPartyToRevoke(party); }}>
                   Revoke
                 </Button>
               </div>
@@ -77,20 +82,29 @@ export function ParticipantAccessTable({ parties, canRevoke, onRevoke }: Partici
         keyExtractor={(party) => party.id}
         emptyMessage="No participants have access yet."
       />
-      {error && <p role="alert" className="px-5 pb-4 text-sm font-semibold text-[var(--status-error)]">{error}</p>}
       {partyToRevoke && (
-        <div role="dialog" aria-modal="true" aria-label="Confirm participant revocation" className="border-t border-[var(--border-soft)] bg-[var(--status-error-bg)] px-5 py-4">
-          <p className="font-bold text-[var(--text-primary)]">Revoke access for {partyToRevoke.email}?</p>
-          <p className="mt-1 text-sm text-[var(--text-secondary)]">They will no longer be able to open this document. Historical activity remains recorded.</p>
-          <div className="mt-3 flex flex-wrap gap-2">
+        <Dialog
+          open
+          onClose={() => !isRevoking && setPartyToRevoke(undefined)}
+          aria-labelledby="participant-revocation-title"
+          aria-describedby="participant-revocation-description"
+        >
+          <DialogTitle id="participant-revocation-title">Revoke access for {partyToRevoke.email}?</DialogTitle>
+          <DialogContent>
+            <DialogContentText id="participant-revocation-description">
+              They will no longer be able to open this document. Historical activity remains recorded.
+            </DialogContentText>
+            {error && <p role="alert" className="mt-3 rounded-lg bg-[var(--status-error-bg)] p-3 text-sm font-semibold text-[var(--status-error)]">{error}</p>}
+          </DialogContent>
+          <DialogActions>
             <Button type="button" size="sm" variant="secondary" onClick={() => setPartyToRevoke(undefined)} disabled={isRevoking}>
               Cancel
             </Button>
             <Button type="button" size="sm" variant="danger" onClick={() => void confirmRevoke()} disabled={isRevoking}>
               {isRevoking ? 'Revoking…' : 'Revoke access'}
             </Button>
-          </div>
-        </div>
+          </DialogActions>
+        </Dialog>
       )}
     </Card>
   );

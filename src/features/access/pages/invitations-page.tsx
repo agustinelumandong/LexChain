@@ -57,25 +57,25 @@ export default function InvitationsPage() {
     }
   }
 
-  if (profileQuery.isPending) return <p className="text-sm font-semibold text-[#64748b]">Loading your invitation access…</p>;
-  if (!isParticipant) return <section className="rounded-[18px] border border-[#E8F0F8] bg-white p-6"><h1 className="text-xl font-black text-[#0C2B49]">Invitations unavailable</h1><p className="mt-2 text-sm text-[#64748b]">Users can manage shared document invitations.</p></section>;
+  if (profileQuery.isPending) return <p className="text-sm font-semibold text-[#5B6F8A]">Loading your invitation access…</p>;
+  if (!isParticipant) return <section className="rounded-[18px] border border-[#E8F0F8] bg-white p-6"><h1 className="text-xl font-black text-[#0C2B49]">Invitations unavailable</h1><p className="mt-2 text-sm text-[#5B6F8A]">Users can manage shared document invitations.</p></section>;
 
   return (
     <div className="flex max-w-3xl flex-col gap-5">
       <div>
-        <p className="text-xs font-black tracking-wider text-[#0985E7]">SHARED DOCUMENTS</p>
+        <p className="text-xs font-black tracking-wider text-[#0067B3]">SHARED DOCUMENTS</p>
         <h1 className="mt-1 text-[28px] font-black text-[#0C2B49]">Invitations</h1>
-        <p className="mt-1 text-sm font-semibold text-[#64748b]">Accept or decline document access invitations.</p>
+        <p className="mt-1 text-sm font-semibold text-[#5B6F8A]">Accept or decline document access invitations.</p>
       </div>
-      {isLoading ? <p className="text-sm font-semibold text-[#64748b]">Loading invitations…</p> : null}
+      {isLoading ? <p className="text-sm font-semibold text-[#5B6F8A]">Loading invitations…</p> : null}
       {error ? <p className="rounded-xl bg-red-50 p-4 text-sm font-semibold text-red-700" role="alert">{error.message}</p> : null}
       {actionError ? <p role="alert" className="rounded-xl bg-red-50 p-4 text-sm font-semibold text-red-700">{actionError}</p> : null}
       {!isLoading && !error && invitations.length === 0 ? <div className="rounded-[18px] border border-[#E8F0F8] bg-white p-8 text-center text-sm font-bold text-[#0C2B49]">No pending invitations</div> : null}
       {invitations.map((invitation) => {
         const isBusy = busyId === invitation.invitation_id;
         return <article key={invitation.invitation_id} className="rounded-[18px] border border-[#E8F0F8] bg-white p-5 shadow-[0_4px_12px_rgba(19,59,115,0.05)]">
-          <div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="text-base font-black text-[#0C2B49]">{invitation.file_name}</h2><p className="mt-1 text-sm font-semibold text-[#64748b]">Sent {formatDate(invitation.invited_at)}</p></div><span className="rounded-full bg-[#EEF4FB] px-2.5 py-1 text-xs font-black text-[#0985E7]">{invitation.role}</span></div>
-          <div className="mt-4 flex gap-3"><button type="button" disabled={isBusy} onClick={() => void handleInvitation(invitation, "decline")} className="rounded-full border border-red-200 px-4 py-2 text-sm font-black text-red-700 disabled:opacity-60">{isBusy ? "Working…" : "Decline"}</button><button type="button" disabled={isBusy} onClick={() => void handleInvitation(invitation, "accept")} className="rounded-full bg-[#0985E7] px-4 py-2 text-sm font-black text-white disabled:opacity-60">{isBusy ? "Working…" : "Accept"}</button></div>
+          <div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="text-base font-black text-[#0C2B49]">{invitation.file_name}</h2><p className="mt-1 text-sm font-semibold text-[#5B6F8A]">Sent {formatDate(invitation.invited_at)}</p></div><span className="rounded-full bg-[#EEF4FB] px-2.5 py-1 text-xs font-black text-[#0067B3]">{invitation.role}</span></div>
+          <div className="mt-4 flex gap-3"><button type="button" disabled={isBusy} onClick={() => void handleInvitation(invitation, "decline")} className="rounded-full border border-red-200 px-4 py-2 text-sm font-black text-red-700 disabled:opacity-60">{isBusy ? "Working…" : "Decline"}</button><button type="button" disabled={isBusy} onClick={() => void handleInvitation(invitation, "accept")} className="rounded-full bg-[#0067B3] px-4 py-2 text-sm font-black text-white disabled:opacity-60">{isBusy ? "Working…" : "Accept"}</button></div>
         </article>;
       })}
     </div>

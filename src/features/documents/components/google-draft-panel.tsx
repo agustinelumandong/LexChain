@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import type { ApiSchema } from '@/shared/types';
 import { createGoogleDraft, getGooglePickerToken, isGoogleDraftUrl } from '@/features/documents/document-draft-api';
 import { clearGoogleDraftReturnContext, readGoogleDraftReturnContext, saveGoogleDraftReturnContext } from '@/shared/utils/google-draft-return-context';
+import { Dropdown } from '@/shared/components/ui';
 
 type Source = ApiSchema<'CreateDraftRequest'>['source'];
 type PickedFile = { id: string; name: string };
@@ -73,7 +74,7 @@ function ExistingDraft({ document }: { document: ApiSchema<'DocumentResponse'> }
       ? 'This is the agreed text. Print it, complete signatures and any required notarization outside LexChain, then attach the signed PDF to this same record.'
       : 'This is the working draft for reference. The signed PDF is the filing and verification copy.';
 
-  return <div className="rounded-xl border border-[#D7E4F2] bg-white p-5 sm:p-6"><p className="text-lg font-bold leading-6 text-[#0C2B49]">{document.lifecycle === 'READY_FOR_SIGNATURE' ? 'Approved text in Google Docs' : 'Working draft in Google Docs'}</p><p className="mt-2 max-w-3xl text-base leading-7 text-[#344054]">{description}</p>{isGoogleDraftUrl(url) ? <a href={url} target="_blank" rel="noreferrer" className="mt-4 inline-flex min-h-12 items-center rounded-full border border-[#006BB6] px-5 py-3 text-base font-bold text-[#006BB6] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0985E7]">{document.lifecycle === 'READY_FOR_SIGNATURE' ? 'Open approved Google Doc' : 'Open Google draft'}</a> : <p role="alert" className="mt-4 text-base font-bold leading-7 text-[#B42318]">The backend returned an invalid Google draft link. Contact your administrator.</p>}</div>;
+  return <div className="rounded-xl border border-[#D7E4F2] bg-white p-5 sm:p-6"><p className="text-lg font-bold leading-6 text-[#0C2B49]">{document.lifecycle === 'READY_FOR_SIGNATURE' ? 'Approved text in Google Docs' : 'Working draft in Google Docs'}</p><p className="mt-2 max-w-3xl text-base leading-7 text-[#344054]">{description}</p>{isGoogleDraftUrl(url) ? <a href={url} target="_blank" rel="noreferrer" className="mt-4 inline-flex min-h-12 items-center rounded-full border border-[#006BB6] px-5 py-3 text-base font-bold text-[#006BB6] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]">{document.lifecycle === 'READY_FOR_SIGNATURE' ? 'Open approved Google Doc' : 'Open Google draft'}</a> : <p role="alert" className="mt-4 text-base font-bold leading-7 text-[#B42318]">The backend returned an invalid Google draft link. Contact your administrator.</p>}</div>;
 }
 
 function DraftCreationForm({ source, picked, error, needsGoogleConnection, pending, picking, onSourceChange, onPick, onCreate, onConnectGoogle }: {
@@ -94,13 +95,11 @@ function DraftCreationForm({ source, picked, error, needsGoogleConnection, pendi
   return <section aria-labelledby="google-draft-title" className="space-y-4 rounded-xl border border-[#D7E4F2] bg-white p-5 sm:p-6">
     <div><h3 id="google-draft-title" className="text-lg font-bold leading-6 text-[#0C2B49]">Start a working draft in Google Docs</h3><p className="mt-2 max-w-3xl text-base leading-7 text-[#344054]">Use a blank Doc, copy a template, or select a Google Doc you already started. After signing outside LexChain, upload the signed PDF to this same record.</p></div>
     <label className="grid max-w-sm gap-2 text-base font-bold text-[#0C2B49]">Choose a starting point
-      <select value={source} onChange={(event) => onSourceChange(event.target.value as Source)} className="rounded-xl border border-[#B8C9D9] bg-white px-3 py-3 text-base font-medium">
-        <option value="blank">Blank Google Doc</option><option value="template">Copy a template</option><option value="existing">Use an existing Google Doc</option>
-      </select>
+      <Dropdown ariaLabel="Choose a starting point" fullWidth value={source} onChange={(value) => onSourceChange(value as Source)} options={[{ label: 'Blank Google Doc', value: 'blank' }, { label: 'Copy a template', value: 'template' }, { label: 'Use an existing Google Doc', value: 'existing' }]} />
     </label>
     {source !== 'blank' && <div className="space-y-2"><button type="button" disabled={picking} onClick={onPick} className="min-h-11 rounded-full border border-[#006BB6] px-4 py-2 text-base font-bold text-[#006BB6] disabled:opacity-60">{picking ? 'Opening Picker…' : source === 'template' ? 'Choose template' : 'Choose existing Google Doc'}</button>{picked && <p className="break-words text-base leading-7 text-[#0C2B49]">Selected: {picked.name}</p>}</div>}
     {error && <div role="alert" className="space-y-2 text-base font-bold leading-7 text-[#B42318]"><p>{error}</p>{needsGoogleConnection && <Link href="/portal/profile/account?google_draft_return=1" onClick={onConnectGoogle} className="inline-flex min-h-11 items-center rounded-full border border-[#006BB6] px-4 py-2 text-base text-[#006BB6]">Connect Google in account settings</Link>}</div>}
-    <button type="button" disabled={pending || (source !== 'blank' && !picked)} onClick={onCreate} className="min-h-12 rounded-full bg-[#0673C4] px-5 py-3 text-base font-bold text-white hover:bg-[#005FA3] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0985E7] disabled:opacity-60">{pending ? pendingLabel : actionLabel}</button>
+    <button type="button" disabled={pending || (source !== 'blank' && !picked)} onClick={onCreate} className="min-h-12 rounded-full bg-[#0673C4] px-5 py-3 text-base font-bold text-white hover:bg-[#005FA3] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3] disabled:opacity-60">{pending ? pendingLabel : actionLabel}</button>
   </section>;
 }
 

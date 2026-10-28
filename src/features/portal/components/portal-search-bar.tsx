@@ -97,7 +97,7 @@ export function PortalSearchBar() {
 
   return (
     <div ref={containerRef} className="relative flex min-w-0 flex-1">
-      <div className="flex w-full items-center gap-2 rounded-xl border border-[var(--portal-border-soft)] bg-white px-3 py-2 text-sm transition focus-within:border-[#0985E7]">
+      <div className="flex w-full items-center gap-2 rounded-xl border border-[var(--portal-border-soft)] bg-white px-3 py-2 text-sm transition focus-within:border-[#0067B3]">
         <SearchIcon fontSize="small" sx={{ color: 'var(--portal-text-muted)' }} />
         <input
           type="text"
@@ -113,7 +113,7 @@ export function PortalSearchBar() {
           aria-activedescendant={selectedIndex >= 0 ? `search-result-${selectedIndex}` : undefined}
           className="min-w-0 flex-1 bg-transparent text-[var(--portal-navy)] outline-none placeholder:text-[var(--portal-text-muted)]"
         />
-        {loading && <span className="h-4 w-4 animate-spin rounded-full border-2 border-[var(--portal-border-soft)] border-t-[#0985E7]" />}
+        {loading && <span className="h-4 w-4 animate-spin rounded-full border-2 border-[var(--portal-border-soft)] border-t-[#0067B3]" />}
       </div>
 
       {open && (
@@ -140,7 +140,7 @@ export function PortalSearchBar() {
                 className={`cursor-pointer px-3 py-2.5 text-sm ${i === selectedIndex ? 'bg-[#EAF4FF]' : 'hover:bg-[#F5F8FA]'}`}
               >
                 <div className="flex min-w-0 items-start gap-2">
-                  <InsertDriveFileIcon sx={{ fontSize: 16, color: '#0985E7' }} />
+                  <InsertDriveFileIcon sx={{ fontSize: 16, color: '#0067B3' }} />
                   <p className="min-w-0 break-words font-semibold text-[var(--portal-navy)]">{hit.file_name}</p>
                 </div>
                 <p className="mt-0.5 text-xs text-[var(--portal-text-muted)]">

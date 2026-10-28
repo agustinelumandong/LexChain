@@ -84,25 +84,25 @@ export default function ProcessingPage({
 
   return (
     <div className="flex min-h-[60vh] flex-col items-center justify-center gap-6 text-center">
-      {data && <p className="text-sm text-[#64748b]">Lifecycle: {getDocumentLifecycleLabel(data.lifecycle)}</p>}
+      {data && <p className="text-sm text-[#5B6F8A]">Lifecycle: {getDocumentLifecycleLabel(data.lifecycle)}</p>}
       {reviewReady && !lookupError && !failed && (
         <>
-          <CheckCircleIcon sx={{ fontSize: 64, color: '#12A150' }} />
+          <CheckCircleIcon sx={{ fontSize: 64, color: '#166534' }} />
           <div>
             <p className="text-xl font-black text-[#0C2B49]">Extracted text ready for review</p>
-            <p className="mt-1 text-sm text-[#64748b]">Review and approve the extracted text before processing continues.</p>
+            <p className="mt-1 text-sm text-[#5B6F8A]">Review and approve the extracted text before processing continues.</p>
           </div>
-          <Link href={`/portal/documents/${id}/review`} className="rounded-full bg-[#0985E7] px-6 py-3 text-sm font-black text-white">Review extracted text</Link>
+          <Link href={`/portal/documents/${id}/review`} className="rounded-full bg-[#0067B3] px-6 py-3 text-sm font-black text-white">Review extracted text</Link>
         </>
       )}
       {done && !lookupError && !failed && (
         <>
-          <CheckCircleIcon sx={{ fontSize: 64, color: '#12A150' }} />
+          <CheckCircleIcon sx={{ fontSize: 64, color: '#166534' }} />
           <div>
             <p className="text-xl font-black text-[#0C2B49]">Document ready</p>
-            <p className="mt-1 text-sm text-[#64748b]">Processing is complete. Open the document to review the available details.</p>
+            <p className="mt-1 text-sm text-[#5B6F8A]">Processing is complete. Open the document to review the available details.</p>
           </div>
-          <Link href={`/portal/documents/${id}`} className="rounded-full bg-[#0985E7] px-6 py-3 text-sm font-black text-white">View document</Link>
+          <Link href={`/portal/documents/${id}`} className="rounded-full bg-[#0067B3] px-6 py-3 text-sm font-black text-white">View document</Link>
         </>
       )}
       {lookupError && (
@@ -110,9 +110,9 @@ export default function ProcessingPage({
           <ErrorIcon sx={{ fontSize: 64, color: '#ef4444' }} />
           <div>
             <p className="text-xl font-black text-[#0C2B49]">Unable to check document status</p>
-            <p className="mt-1 text-sm text-[#64748b]">{error instanceof Error ? error.message : 'The document status lookup failed. Your document may still be processing.'}</p>
+            <p className="mt-1 text-sm text-[#5B6F8A]">{error instanceof Error ? error.message : 'The document status lookup failed. Your document may still be processing.'}</p>
           </div>
-          <button type="button" onClick={() => void refetch()} className="rounded-full bg-[#0985E7] px-6 py-3 text-sm font-black text-white">Retry status check</button>
+          <button type="button" onClick={() => void refetch()} className="rounded-full bg-[#0067B3] px-6 py-3 text-sm font-black text-white">Retry status check</button>
         </>
       )}
       {failed && (
@@ -120,11 +120,11 @@ export default function ProcessingPage({
           <ErrorIcon sx={{ fontSize: 64, color: '#ef4444' }} />
           <div>
             <p className="text-xl font-black text-[#0C2B49]">Processing failed</p>
-            <p className="mt-1 text-sm text-[#64748b]">
+            <p className="mt-1 text-sm text-[#5B6F8A]">
               {id ? 'The document is finalized, but processing failed. Open the document to inspect its available details.' : 'Missing document id.'}
             </p>
           </div>
-          <Link href={id ? `/portal/documents/${id}` : '/portal/upload'} className="rounded-full bg-[#0985E7] px-6 py-3 text-sm font-black text-white">{id ? 'View document' : 'Try Again'}</Link>
+          <Link href={id ? `/portal/documents/${id}` : '/portal/upload'} className="rounded-full bg-[#0067B3] px-6 py-3 text-sm font-black text-white">{id ? 'View document' : 'Try Again'}</Link>
         </>
       )}
     </div>

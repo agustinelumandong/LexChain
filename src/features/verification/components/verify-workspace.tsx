@@ -46,12 +46,12 @@ function HashRow({ label, hash, transactionUrl }: { label: string; hash: string;
   return (
     <div className="flex items-center justify-between gap-3 rounded-xl border border-[#E8F0F8] bg-[#F8FBFF] px-3 py-2.5">
       <div className="min-w-0">
-        <p className="text-[11px] font-black uppercase tracking-wide text-[#64748b]">{label}</p>
+        <p className="text-[11px] font-black uppercase tracking-wide text-[#5B6F8A]">{label}</p>
         <p className="mt-0.5 truncate font-mono text-xs font-semibold text-[#0C2B49]" title={hash}>{shortened}</p>
       </div>
       <div className="flex shrink-0 items-center gap-2">
-        {transactionUrl && <a href={transactionUrl} target="_blank" rel="noreferrer" aria-label="View transaction on Base Sepolia" className="text-[11px] font-black text-[#0985E7]">Base Sepolia</a>}
-        <button type="button" aria-label={`Copy ${label}`} onClick={() => void copyHash()} className="rounded-full border border-[#D7E4F2] bg-white px-3 py-1 text-[11px] font-black text-[#0985E7] transition hover:bg-[#EAF4FF]">
+        {transactionUrl && <a href={transactionUrl} target="_blank" rel="noreferrer" aria-label="View transaction on Base Sepolia" className="text-[11px] font-black text-[#0067B3]">Base Sepolia</a>}
+        <button type="button" aria-label={`Copy ${label}`} onClick={() => void copyHash()} className="rounded-full border border-[#D7E4F2] bg-white px-3 py-1 text-[11px] font-black text-[#0067B3] transition hover:bg-[#EAF4FF]">
         Copy
         </button>
       </div>
@@ -70,7 +70,7 @@ function VerificationDetails({ result }: { result: VerificationResult }) {
     <section aria-label="Verification result" className="space-y-4 rounded-[18px] border border-[#E8F0F8] bg-white p-5">
       {result.file_name && <h3 className="font-bold text-[#0C2B49]">{result.file_name}</h3>}
       {simulated && <p role="note" className="text-sm font-semibold text-[#8A5B00]">Mock verification is simulated and does not represent a real backend or blockchain verification.</p>}
-      {result.status !== 'NOT_ANCHORED' && <a href={signedCopyFileUrl(result.document_id, { filename: result.file_name ?? undefined })} target="_blank" rel="noreferrer" className="inline-flex text-sm font-bold text-[#0985E7]">Open current PDF</a>}
+      {result.status !== 'NOT_ANCHORED' && <a href={signedCopyFileUrl(result.document_id, { filename: result.file_name ?? undefined })} target="_blank" rel="noreferrer" className="inline-flex text-sm font-bold text-[#0067B3]">Open current PDF</a>}
       {simulatedAnchorConfirmed && (
         <div role="status" aria-label="Simulated blockchain anchor status" className="rounded-xl border border-green-200 bg-green-50 p-3">
           <p className="text-sm font-extrabold text-green-800">Blockchain baseline confirmed <span className="font-semibold">(simulated)</span></p>
@@ -78,9 +78,9 @@ function VerificationDetails({ result }: { result: VerificationResult }) {
         </div>
       )}
       <dl className="grid gap-3 text-sm sm:grid-cols-2">
-        <div><dt className="font-bold text-[#64748b]">Trusted baseline</dt><dd className="mt-1 text-[#0C2B49]">{result.baseline_trusted ? 'Trusted' : 'Not trusted'}</dd></div>
-        {result.finalized_at && <div><dt className="font-bold text-[#64748b]">Finalized</dt><dd className="mt-1 text-[#0C2B49]">{result.finalized_at}</dd></div>}
-        <div><dt className="font-bold text-[#64748b]">Verified</dt><dd className="mt-1 text-[#0C2B49]">{result.verified_at}</dd></div>
+        <div><dt className="font-bold text-[#5B6F8A]">Trusted baseline</dt><dd className="mt-1 text-[#0C2B49]">{result.baseline_trusted ? 'Trusted' : 'Not trusted'}</dd></div>
+        {result.finalized_at && <div><dt className="font-bold text-[#5B6F8A]">Finalized</dt><dd className="mt-1 text-[#0C2B49]">{result.finalized_at}</dd></div>}
+        <div><dt className="font-bold text-[#5B6F8A]">Verified</dt><dd className="mt-1 text-[#0C2B49]">{result.verified_at}</dd></div>
       </dl>
       <div className="grid gap-3 sm:grid-cols-2">
         {result.onchain_hash && <HashRow label="On-chain hash" hash={result.onchain_hash} />}
@@ -129,10 +129,10 @@ export default function VerifyWorkspace({ result, onRetry }: { result: Verificat
   return <section className="flex flex-col gap-5 md:min-h-0 md:flex-1">
     <div className={`rounded-[18px] border p-5 ${authentic ? 'border-green-200 bg-green-50' : neutral ? 'border-amber-200 bg-amber-50' : 'border-red-200 bg-red-50'}`}>
       <div className="flex items-start gap-3">
-        {authentic ? <CheckCircleIcon className="text-[#12A150]" sx={{ fontSize: 38 }} /> : neutral ? <InfoOutlinedIcon className="text-[#B77900]" sx={{ fontSize: 38 }} /> : <ErrorIcon className="text-[#D94B66]" sx={{ fontSize: 38 }} />}
-        <div><h2 className={`text-xl font-extrabold ${authentic ? 'text-[#12A150]' : neutral ? 'text-[#B77900]' : 'text-[#D94B66]'}`}>{statusHeading(result)}</h2><p className="mt-1 text-sm text-[#475467]">{contradictoryVerdict ? 'The backend returned conflicting verification fields, so integrity could not be confirmed.' : result.message}</p></div>
+        {authentic ? <CheckCircleIcon className="text-[#166534]" sx={{ fontSize: 38 }} /> : neutral ? <InfoOutlinedIcon className="text-[#8A5B00]" sx={{ fontSize: 38 }} /> : <ErrorIcon className="text-[#B42318]" sx={{ fontSize: 38 }} />}
+        <div><h2 className={`text-xl font-extrabold ${authentic ? 'text-[#166534]' : neutral ? 'text-[#8A5B00]' : 'text-[#B42318]'}`}>{statusHeading(result)}</h2><p className="mt-1 text-sm text-[#475467]">{contradictoryVerdict ? 'The backend returned conflicting verification fields, so integrity could not be confirmed.' : result.message}</p></div>
       </div>
-      {(unavailable || notAnchored) && <button type="button" onClick={onRetry} className="mt-4 rounded-full border border-[#0985E7] bg-white px-4 py-2 text-sm font-black text-[#0985E7]">Try again</button>}
+      {(unavailable || notAnchored) && <button type="button" onClick={onRetry} className="mt-4 rounded-full border border-[#0067B3] bg-white px-4 py-2 text-sm font-black text-[#0067B3]">Try again</button>}
     </div>
 
     {showTamperComparison ? (
@@ -141,7 +141,7 @@ export default function VerifyWorkspace({ result, onRetry }: { result: Verificat
           <header className="mb-3 flex flex-wrap items-start justify-between gap-2">
             <div>
               <h3 className="font-extrabold text-[#0C2B49]">Current PDF</h3>
-              <p className="mt-1 text-xs text-[#64748b]">Review the current document beside its trusted baseline comparison.</p>
+              <p className="mt-1 text-xs text-[#5B6F8A]">Review the current document beside its trusted baseline comparison.</p>
             </div>
           </header>
           <div className="min-h-0 flex-1 overflow-hidden">
@@ -164,31 +164,31 @@ export default function VerifyWorkspace({ result, onRetry }: { result: Verificat
               <>
                 <div>
                   <h3 className="font-extrabold text-[#0C2B49]">Changed content</h3>
-                  <p className="mt-1 text-sm text-[#64748b]">{tamperReport?.total_changes ?? 0} {tamperReport?.total_changes === 1 ? 'change' : 'changes'} returned.</p>
+                  <p className="mt-1 text-sm text-[#5B6F8A]">{tamperReport?.total_changes ?? 0} {tamperReport?.total_changes === 1 ? 'change' : 'changes'} returned.</p>
                   {tamperReport?.truncated && <p role="note" className="mt-1 text-sm text-[#8A5B00]">Additional changes were found. Only the listed segments are shown here.</p>}
                 </div>
                 {tamperedSegments.map((segment, index) => (
                   <dl key={index} className="grid gap-3 text-sm">
                     <div>
                       <dt className="font-bold capitalize text-[#0C2B49]">{segment.type} · {segment.severity}</dt>
-                      <dd className="mt-1 text-sm text-[#64748b]">{segment.reason}</dd>
+                      <dd className="mt-1 text-sm text-[#5B6F8A]">{segment.reason}</dd>
                     </div>
                     <div className="rounded-xl border border-[#E8F0F8] bg-[#F8FBFF] p-3">
-                      <dt className="font-bold text-[#64748b]">Anchored version</dt>
+                      <dt className="font-bold text-[#5B6F8A]">Anchored version</dt>
                       <dd className="mt-1 font-semibold text-[#0C2B49]">{segment.original_text || (segment.type === 'insert' ? 'Not present in the anchored version' : 'Not provided')}</dd>
                     </div>
                     <div className="rounded-xl border border-red-200 bg-red-50 p-3">
-                      <dt className="font-bold text-[#D94B66]">Current PDF</dt>
+                      <dt className="font-bold text-[#B42318]">Current PDF</dt>
                       <dd className="mt-1 font-semibold text-[#0C2B49]">{segment.current_text || (segment.type === 'delete' ? 'Removed from the current PDF' : 'Not provided')}</dd>
                     </div>
-                    <div><dt className="font-bold text-[#64748b]">Location</dt><dd className="mt-1 text-[#0C2B49]">{segment.location === 'current' ? 'Current PDF' : 'Anchored version'}{segment.page_idx == null ? ' · text only' : ` · page ${segment.page_idx + 1}`}</dd></div>
+                    <div><dt className="font-bold text-[#5B6F8A]">Location</dt><dd className="mt-1 text-[#0C2B49]">{segment.location === 'current' ? 'Current PDF' : 'Anchored version'}{segment.page_idx == null ? ' · text only' : ` · page ${segment.page_idx + 1}`}</dd></div>
                   </dl>
                 ))}
               </>
             ) : (
               <div role="status" aria-label="Comparison details unavailable" className="rounded-xl border border-[#D7E4F2] bg-[#F8FBFF] p-4">
                 <h3 className="font-extrabold text-[#0C2B49]">Detailed comparison unavailable</h3>
-                <p className="mt-2 text-sm leading-6 text-[#64748b]">
+                <p className="mt-2 text-sm leading-6 text-[#5B6F8A]">
                   {result.tamper_report_status === 'UNAVAILABLE'
                     ? result.tamper_report_unavailable_reason || 'The tampered verdict still stands, but a trustworthy text comparison could not be produced.'
                     : result.tamper_report_status === 'NOT_APPLICABLE'

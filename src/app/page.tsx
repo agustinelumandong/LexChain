@@ -152,14 +152,14 @@ export default function Home() {
           <div className="landing-container landing-download">
             <div>
               <h2 id="landing-download-heading">Keep your document work connected.</h2>
-              <p>Explore LexChain download options for your device.</p>
+              <p>Install LexChain from your mobile browser.</p>
             </div>
-            <div className="landing-badges">
-              <Link className="landing-store-badge" href="/download" aria-label="Explore App Store download options">
-                <Image alt="App Store" height={40} width={120} src="/lexchain/app-store-badge.png" />
+            <div className="landing-install-links">
+              <Link className="landing-install-link" href="/download#ios" aria-label="iPhone and iPad installation instructions">
+                iPhone and iPad
               </Link>
-              <Link className="landing-store-badge landing-google-badge" href="/download" aria-label="Explore Google Play download options">
-                <Image alt="Google Play" height={1500} width={2000} src="/lexchain/google-play-badge.png" />
+              <Link className="landing-install-link" href="/download#android" aria-label="Android installation instructions">
+                Android
               </Link>
             </div>
           </div>

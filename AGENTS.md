@@ -1,6 +1,6 @@
 # LexChain — Agent Instructions
 
-This repository contains the **LexChain frontend only**: a Next.js App Router application for document workflows, verification and administration, with an installable PWA. The Python/FastAPI backend is a separate service maintained outside this repository. Next.js server components, Server Actions and API route handlers support frontend rendering and integration; they do not make this repository the authoritative backend.
+This repository contains the **LexChain frontend only**: a Next.js App Router application for lawyer/client document workflows, verification and office management, with an installable PWA. The product has lawyer and client roles; there is no separate admin role or admin page area. The Python/FastAPI backend is a separate service maintained outside this repository. Next.js server components, Server Actions and API route handlers support frontend rendering and integration; they do not make this repository the authoritative backend.
 
 Start with [README.md](README.md), [CODEBASE.md](CODEBASE.md), and [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), then verify their paths against the current checkout. Source lives under `src/`. The Expo application is preserved only on the backup branch.
 
@@ -95,7 +95,7 @@ Use `rg` for string literals, error messages, configuration and non-code files, 
 | `src/features/access/` | Invitations, requests, participants and portal role access |
 | `src/features/office/` | Books, categories, reports and office settings |
 | `src/features/account/`, `src/features/auth/` | Profile, authentication views and feature-owned schemas |
-| `src/features/admin/` | Admin views, schemas, server helpers and Server Actions |
+| `src/features/admin/` | Legacy-named management views, schemas and API helpers still used by lawyer portal flows; this folder name does not represent an admin role |
 | `src/features/portal/` | Dashboard and portal shell/navigation |
 | `src/shared/components/` | Browser-safe reusable UI |
 | `src/shared/api/client.ts` | Browser transport to same-origin Next routes |

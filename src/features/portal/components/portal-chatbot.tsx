@@ -93,7 +93,7 @@ export default function PortalChatbot({ documentId }: { documentId: string }) {
           onClick={() => setOpen(true)}
           aria-label="Open document assistant"
           title="Ask about this document"
-          className="fixed bottom-24 right-4 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-[#1689F5] text-white shadow-[0_8px_20px_rgba(22,137,245,0.2)] transition-opacity hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0985E7]"
+          className="fixed bottom-24 right-4 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-[#0067B3] text-white shadow-[0_8px_20px_rgba(22,137,245,0.2)] transition-opacity hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]"
         >
           <ChatIcon aria-hidden="true" />
         </button>
@@ -107,7 +107,7 @@ export default function PortalChatbot({ documentId }: { documentId: string }) {
           <div className="flex items-center justify-between border-b border-[var(--portal-border-soft)] px-4 py-3">
             <h2 className="font-bold text-[var(--portal-navy)]">Ask about this document</h2>
             <div className="flex items-center gap-2">
-              <Link href={`/portal/documents/${documentId}/ask`} className="inline-flex min-h-10 items-center gap-1 rounded-full px-2 text-xs font-bold text-[#0985E7] hover:bg-[#EAF4FF]" aria-label="Open full-page assistant">
+              <Link href={`/portal/documents/${documentId}/ask`} className="inline-flex min-h-10 items-center gap-1 rounded-full px-2 text-xs font-bold text-[#0067B3] hover:bg-[#EAF4FF]" aria-label="Open full-page assistant">
                 <OpenInFullIcon aria-hidden="true" sx={{ fontSize: 16 }} /> Full page
               </Link>
               <button type="button" onClick={() => setOpen(false)} aria-label="Close document assistant" className="flex h-10 w-10 items-center justify-center rounded-full text-[var(--portal-navy)] hover:bg-[#F2F7FC]">
@@ -119,7 +119,7 @@ export default function PortalChatbot({ documentId }: { documentId: string }) {
           <div role="log" aria-label="Document assistant conversation" aria-live="polite" aria-relevant="additions" className="flex-1 space-y-3 overflow-y-auto p-4">
             {messages.map((message, index) => (
               <div key={index} className={message.from === 'user' ? 'flex justify-end' : 'flex justify-start'}>
-                <p className={message.from === 'user' ? 'max-w-[85%] rounded-[14px] rounded-br-sm bg-[#1689F5] p-3 text-sm text-white' : 'max-w-[85%] rounded-[14px] rounded-bl-sm bg-[#EAF4FF] p-3 text-sm text-[#0C2B49]'}>
+                <p className={message.from === 'user' ? 'max-w-[85%] rounded-[14px] rounded-br-sm bg-[#0067B3] p-3 text-sm text-white' : 'max-w-[85%] rounded-[14px] rounded-bl-sm bg-[#EAF4FF] p-3 text-sm text-[#0C2B49]'}>
                   {message.text}
                 </p>
               </div>
@@ -136,7 +136,7 @@ export default function PortalChatbot({ documentId }: { documentId: string }) {
 
           <div className="space-y-2 border-t border-[var(--portal-border-soft)] px-4 py-3">
             <p className="text-xs leading-5 text-[#4B6382]">AI-generated help. Check the original PDF before relying on an answer.</p>
-            <div className="flex items-center gap-2 rounded-full border border-[var(--portal-border-soft)] bg-white p-1.5 focus-within:border-[#1689F5] focus-within:ring-2 focus-within:ring-[#1689F5] focus-within:ring-offset-1">
+            <div className="flex items-center gap-2 rounded-full border border-[var(--portal-border-soft)] bg-white p-1.5 focus-within:border-[#0067B3] focus-within:ring-2 focus-within:ring-[#0067B3] focus-within:ring-offset-1">
               <input
                 value={input}
                 name="question"
@@ -153,7 +153,7 @@ export default function PortalChatbot({ documentId }: { documentId: string }) {
                 placeholder="Ask a question…"
                 className="min-w-0 flex-1 bg-transparent px-3 text-sm text-[#0C2B49] outline-none placeholder:text-[#4B6382]"
               />
-              <button type="button" onClick={() => void send()} disabled={!input.trim() || loading} aria-label="Send question" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#1689F5] text-white disabled:opacity-40">
+              <button type="button" onClick={() => void send()} disabled={!input.trim() || loading} aria-label="Send question" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#0067B3] text-white disabled:opacity-40">
                 <SendIcon aria-hidden="true" sx={{ fontSize: 18 }} />
               </button>
             </div>

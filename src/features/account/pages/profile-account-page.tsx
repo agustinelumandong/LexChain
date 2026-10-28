@@ -115,10 +115,10 @@ function GoogleConnectionCard({ google, message, documentReturn }: { google?: st
   return (
     <section aria-labelledby="google-connection-heading" className="rounded-[18px] border border-[#E8F0F8] bg-white p-5 shadow-[0_4px_12px_rgba(19,59,115,0.05)]">
       <h2 id="google-connection-heading" className="text-lg font-black text-[#0C2B49]">Google Drive</h2>
-      <p className="mt-1 text-sm text-[#64748b]">Connect Google to create working document drafts in your Drive.</p>
-      <p className="mt-2 text-sm leading-6 text-[#64748b]">
+      <p className="mt-1 text-sm text-[#5B6F8A]">Connect Google to create working document drafts in your Drive.</p>
+      <p className="mt-2 text-sm leading-6 text-[#5B6F8A]">
         LexChain can access files it creates or you select in Google Picker, and share drafts with accepted document parties. We store your Google account email and encrypt connection tokens. Disconnecting revokes LexChain access; existing drafts stay in your Drive. See the{" "}
-        <Link className="font-bold text-[#0985E7]" href="/privacy">Privacy Policy</Link>.
+        <Link className="font-bold text-[#0067B3]" href="/privacy">Privacy Policy</Link>.
       </p>
 
       {callbackOutcome && <p role={callbackOutcome === 'failed' ? 'alert' : 'status'} className={`mt-4 rounded-xl p-3 text-sm font-bold ${callbackOutcome === 'connected' ? 'bg-green-50 text-green-800' : 'bg-amber-50 text-amber-900'}`}>
@@ -135,11 +135,11 @@ function GoogleConnectionCard({ google, message, documentReturn }: { google?: st
 
       <div className="mt-4 flex flex-wrap items-center gap-3">
         {connectionQuery.isPending ? (
-          <p role="status" className="text-sm font-semibold text-[#64748b]">Checking Google connection…</p>
+          <p role="status" className="text-sm font-semibold text-[#5B6F8A]">Checking Google connection…</p>
         ) : connectionQuery.isError ? (
           <>
             <p role="alert" className="text-sm font-semibold text-red-700">Unable to check Google connection.</p>
-            <button type="button" onClick={() => void connectionQuery.refetch()} disabled={connectionQuery.isFetching} className="rounded-full border border-[#0985E7] px-4 py-2 text-sm font-bold text-[#0985E7] disabled:opacity-50">
+            <button type="button" onClick={() => void connectionQuery.refetch()} disabled={connectionQuery.isFetching} className="rounded-full border border-[#0067B3] px-4 py-2 text-sm font-bold text-[#0067B3] disabled:opacity-50">
               {connectionQuery.isFetching ? 'Checking…' : 'Retry status check'}
             </button>
           </>
@@ -161,7 +161,7 @@ function GoogleConnectionCard({ google, message, documentReturn }: { google?: st
           </>
         ) : (
           <>
-            <span className="rounded-full bg-[#EEF4FB] px-3 py-1 text-sm font-bold text-[#64748b]">Not connected</span>
+            <span className="rounded-full bg-[#EEF4FB] px-3 py-1 text-sm font-bold text-[#5B6F8A]">Not connected</span>
             <button
               type="button"
               onClick={() => {
@@ -170,13 +170,13 @@ function GoogleConnectionCard({ google, message, documentReturn }: { google?: st
                 connectMutation.mutate();
               }}
               disabled={connectMutation.isPending}
-              className="rounded-full bg-[#0985E7] px-4 py-2 text-sm font-bold text-white disabled:opacity-50"
+              className="rounded-full bg-[#0067B3] px-4 py-2 text-sm font-bold text-white disabled:opacity-50"
             >
               {connectMutation.isPending ? 'Starting connection…' : 'Connect Google'}
             </button>
             {connectMutation.data && <>
               <p className="w-full text-sm font-semibold text-[#0C2B49]">On Google&apos;s screen, tick the Google Drive permission.</p>
-              <a href={connectMutation.data} rel="noreferrer" className="rounded-full border border-[#0985E7] px-4 py-2 text-sm font-bold text-[#0985E7]">Continue to Google</a>
+              <a href={connectMutation.data} rel="noreferrer" className="rounded-full border border-[#0067B3] px-4 py-2 text-sm font-bold text-[#0067B3]">Continue to Google</a>
             </>}
             {connectMutation.isError && <p role="alert" className="w-full text-sm font-semibold text-red-700">{connectMutation.error.message}</p>}
           </>
@@ -200,7 +200,7 @@ function GoogleConnectionCard({ google, message, documentReturn }: { google?: st
             type="button"
             disabled={disconnectMutation.isPending}
             onClick={() => setDisconnectConfirmationOpen(false)}
-            className="rounded-full px-4 py-2 text-sm font-bold text-[#64748b] disabled:opacity-40"
+            className="rounded-full px-4 py-2 text-sm font-bold text-[#5B6F8A] disabled:opacity-40"
           >
             Cancel
           </button>
@@ -232,22 +232,22 @@ export default function AccountPage({ google, message, documentReturn = false }:
 
   return (
     <div className="flex flex-col gap-5">
-      <Link href="/portal/profile" className="flex w-fit items-center gap-1.5 text-sm font-bold text-[#0985E7]">
+      <Link href="/portal/profile" className="flex w-fit items-center gap-1.5 text-sm font-bold text-[#0067B3]">
         <ArrowBackIcon sx={{ fontSize: 16 }} /> Back
       </Link>
       <div>
         <h1 className="text-[28px] font-black text-[#0C2B49]">Account Details</h1>
-        <p className="mt-1 text-sm text-[#64748b]">Profile editing is not available in the current backend contract.</p>
+        <p className="mt-1 text-sm text-[#5B6F8A]">Profile editing is not available in the current backend contract.</p>
       </div>
 
       <div className="divide-y divide-[#E8F0F8] rounded-[18px] border border-[#E8F0F8] bg-white shadow-[0_4px_12px_rgba(19,59,115,0.05)]">
         {isError ? (
           <div className="px-5 py-4">
-            <p className="text-sm font-bold text-red-500">Failed to load account details.</p>
+            <p className="text-sm font-bold text-red-700">Failed to load account details.</p>
           </div>
         ) : rows.map(([label, value]) => (
           <div key={label} className="px-5 py-4">
-            <span className="text-[11px] font-bold uppercase tracking-wide text-[#64748b]">{label}</span>
+            <span className="text-[11px] font-bold uppercase tracking-wide text-[#5B6F8A]">{label}</span>
             {isLoading ? (
               <div className="mt-2 h-4 w-40 animate-pulse rounded bg-[#F5FAFF]" />
             ) : (

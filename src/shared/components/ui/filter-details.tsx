@@ -11,7 +11,7 @@ export function FilterDetails({ summary, children }: { summary: ReactNode; child
         <summary
           aria-expanded={open}
           onClick={(event) => { event.preventDefault(); setOpen((value) => !value); }}
-          className="flex cursor-pointer list-none items-center gap-2 rounded-xl border border-[#E4EEF9] bg-white px-4 py-2.5 text-sm font-black text-[#0C2B49] outline-none hover:border-[#0985E7] focus-visible:ring-2 focus-visible:ring-[#0985E7]/30"
+          className="flex cursor-pointer list-none items-center gap-2 rounded-xl border border-[#E4EEF9] bg-white px-4 py-2.5 text-sm font-black text-[#0C2B49] outline-none hover:border-[#0067B3] focus-visible:ring-2 focus-visible:ring-[#0067B3]/30"
         >
           {summary}
         </summary>

@@ -68,10 +68,10 @@ export default function DocumentParticipantsPage({ params }: { params: Promise<{
 
   return (
     <div className="flex w-full min-w-0 flex-col gap-5 overflow-x-hidden">
-      <div><Link href={`/portal/documents/${id}`} className="flex w-fit items-center gap-1.5 text-sm font-bold text-[#0985E7]"><ArrowBackIcon sx={{ fontSize: 16 }} /> Back to document</Link><p className="mt-4 text-xs font-bold uppercase tracking-[0.5px] text-[#0985E7]">Document access</p><h1 className="mt-1 text-2xl font-extrabold text-[#0C2B49]">Participant management</h1><p className="mt-1 text-sm font-medium text-[#64748b]">Invite and revoke access for this document. This does not manage user roles, office access, or categories.</p></div>
+      <div><Link href={`/portal/documents/${id}`} className="flex w-fit items-center gap-1.5 text-sm font-bold text-[#0067B3]"><ArrowBackIcon sx={{ fontSize: 16 }} /> Back to document</Link><p className="mt-4 text-xs font-bold uppercase tracking-[0.5px] text-[#0067B3]">Document access</p><h1 className="mt-1 text-2xl font-extrabold text-[#0C2B49]">Participant management</h1><p className="mt-1 text-sm font-medium text-[#5B6F8A]">Invite and revoke access for this document. This does not manage user roles, office access, or categories.</p></div>
       {unavailableMessage ? <CapabilityUnavailable message={unavailableMessage} /> : <>
         {canShare && <InviteParticipantForm onFindAccount={searchUserByEmail} onInvite={(invitation) => inviteMutation.mutateAsync(invitation).then(() => undefined)} />}
-        {partiesQuery.isError ? <p role="alert" className="text-sm font-semibold text-[#B42318]">Unable to load document participants. Please try again.</p> : partiesQuery.isPending ? <p role="status" className="text-sm font-semibold text-[#64748b]">Loading document participants…</p> : <ParticipantAccessTable parties={partiesQuery.data?.parties ?? []} canRevoke={canRevoke} onRevoke={(party) => revokeMutation.mutateAsync(party).then(() => undefined)} />}
+        {partiesQuery.isError ? <p role="alert" className="text-sm font-semibold text-[#B42318]">Unable to load document participants. Please try again.</p> : partiesQuery.isPending ? <p role="status" className="text-sm font-semibold text-[#5B6F8A]">Loading document participants…</p> : <ParticipantAccessTable parties={partiesQuery.data?.parties ?? []} canRevoke={canRevoke} onRevoke={(party) => revokeMutation.mutateAsync(party).then(() => undefined)} />}
       </>}
     </div>
   );

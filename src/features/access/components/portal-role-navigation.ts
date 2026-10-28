@@ -5,7 +5,6 @@ import MenuBookIcon from "@mui/icons-material/MenuBook";
 import CategoryOutlinedIcon from "@mui/icons-material/CategoryOutlined";
 import PersonIcon from "@mui/icons-material/Person";
 import EmailOutlinedIcon from "@mui/icons-material/EmailOutlined";
-import RequestPageIcon from "@mui/icons-material/RequestPage";
 import FileUploadIcon from "@mui/icons-material/FileUpload";
 import NotificationsNoneOutlinedIcon from "@mui/icons-material/NotificationsNoneOutlined";
 import ScheduleIcon from "@mui/icons-material/Schedule";
@@ -21,10 +20,8 @@ const iconsByLabel: Record<string, PortalNavigationIcon> = {
   Categories: CategoryOutlinedIcon,
   Reports: AssessmentOutlinedIcon,
   Books: MenuBookIcon,
-  "Document Requests": RequestPageIcon,
   "Shared Documents": DescriptionIcon,
   Invitations: EmailOutlinedIcon,
-  "My E-copy Requests": RequestPageIcon,
   "Profile & Security": PersonIcon,
   "Upload Document": FileUploadIcon,
   Notifications: NotificationsNoneOutlinedIcon,

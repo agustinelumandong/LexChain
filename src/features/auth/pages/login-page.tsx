@@ -9,7 +9,7 @@ import { toast } from "sonner";
 import { getPortalLoginRedirect } from "@/features/access";
 import { queueNextNavigationToast } from "@/shared/utils/next-navigation-toast";
 
-async function signIn(data: { email: string; password: string }) {
+async function signIn(data: { email: string; password: string; rememberMe: boolean }) {
   const res = await fetch("/api/auth", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -67,7 +67,7 @@ export default function LoginPage() {
       return;
     }
     setValidationError(null);
-    mutation.mutate({ email: email.trim(), password });
+    mutation.mutate({ email: email.trim(), password, rememberMe });
   }
 
   return (
@@ -76,10 +76,10 @@ export default function LoginPage() {
         <div className="space-y-2">
           <div className="flex items-center gap-2 mb-1">
             <Image src="/lexchain/logo-lexchain.svg" alt="LexChain" width={36} height={36} className="rounded-[10px]" />
-            <span className="text-lg font-black text-[#0C2B49]">Lex<span className="text-[#0985E7]">Chain</span></span>
+            <span className="text-lg font-black text-[#0C2B49]">Lex<span className="text-[#0067B3]">Chain</span></span>
           </div>
           <h1 className="text-3xl font-black leading-9 text-[#0C2B49]">Sign in</h1>
-          <p className="text-sm font-semibold leading-5 text-[#64748b]">
+          <p className="text-sm font-semibold leading-5 text-[#5B6F8A]">
             For Document Issuers and invited participants. Sign in with your credentials.
           </p>
         </div>
@@ -88,7 +88,7 @@ export default function LoginPage() {
           <label className="block">
             <span className="text-[13px] font-black text-[#0C2B49]">Email</span>
             <input
-              className="mt-2 min-h-12 w-full rounded-[14px] border border-[#E4EEF9] bg-[#F5FAFF] px-3.5 text-sm font-semibold text-[#0C2B49] outline-none focus:border-[#0985E7]"
+              className="mt-2 min-h-12 w-full rounded-[14px] border border-[#E4EEF9] bg-[#F5FAFF] px-3.5 text-sm font-semibold text-[#0C2B49] outline-none focus:border-[#0067B3]"
               type="email"
               required
               autoComplete="email"
@@ -99,7 +99,7 @@ export default function LoginPage() {
           <label className="block">
             <span className="text-[13px] font-black text-[#0C2B49]">Password</span>
             <input
-              className="mt-2 min-h-12 w-full rounded-[14px] border border-[#E4EEF9] bg-[#F5FAFF] px-3.5 text-sm font-semibold text-[#0C2B49] outline-none focus:border-[#0985E7]"
+              className="mt-2 min-h-12 w-full rounded-[14px] border border-[#E4EEF9] bg-[#F5FAFF] px-3.5 text-sm font-semibold text-[#0C2B49] outline-none focus:border-[#0067B3]"
               type="password"
               required
               autoComplete="current-password"
@@ -111,25 +111,26 @@ export default function LoginPage() {
           <div className="flex items-center justify-between">
             <button
               type="button"
+              aria-pressed={rememberMe}
               onClick={() => setRememberMe((v) => !v)}
-              className={`flex items-center gap-2 rounded-full px-3.5 py-2 text-[11px] font-black uppercase tracking-wide transition ${rememberMe ? "bg-[#EAF4FF]/60 border border-[#D7EBFF] text-[#0C2B49]" : "text-[#64748b]"}`}
+              className={`flex items-center gap-2 rounded-full px-3.5 py-2 text-[11px] font-black uppercase tracking-wide transition ${rememberMe ? "bg-[#EAF4FF]/60 border border-[#D7EBFF] text-[#0C2B49]" : "text-[#5B6F8A]"}`}
             >
-              <span className={`inline-flex items-center justify-center w-4 h-4 rounded border-2 ${rememberMe ? "border-[#0985E7] bg-[#0985E7]" : "border-[#D7EBFF] bg-white"}`}>
+              <span className={`inline-flex items-center justify-center w-4 h-4 rounded border-2 ${rememberMe ? "border-[#0067B3] bg-[#0067B3]" : "border-[#D7EBFF] bg-white"}`}>
                 {rememberMe && <svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
               </span>
               Remember me
             </button>
-            <Link href="/forgot-password" className="text-[12px] font-black text-[#0985E7]">
+            <Link href="/forgot-password" className="text-[12px] font-black text-[#0067B3]">
               Forgot password?
             </Link>
           </div>
 
-          {validationError && <p role="alert" className="rounded-xl bg-red-50 px-4 py-2.5 text-sm font-semibold text-red-600">{validationError}</p>}
+          {validationError && <p role="alert" className="rounded-xl bg-red-50 px-4 py-2.5 text-sm font-semibold text-red-700">{validationError}</p>}
 
           <button
             type="submit"
             disabled={mutation.isPending}
-            className="mt-2 flex min-h-[52px] w-full items-center justify-center rounded-full bg-[#0985E7] px-5 py-3.5 text-[15px] font-black text-white transition hover:bg-[#0770c4] disabled:opacity-60"
+            className="mt-2 flex min-h-[52px] w-full items-center justify-center rounded-full bg-[#0067B3] px-5 py-3.5 text-[15px] font-black text-white transition hover:bg-[#005F9E] disabled:opacity-60"
           >
             {mutation.isPending ? "Signing in…" : "Sign in"}
           </button>
@@ -142,7 +143,7 @@ export default function LoginPage() {
           </Link>
         </form>
 
-        <Link className="mt-5 block text-center text-[13px] font-black text-[#0985E7]" href="/">
+        <Link className="mt-5 block text-center text-[13px] font-black text-[#0067B3]" href="/">
           Return to LexChain
         </Link>
       </section>

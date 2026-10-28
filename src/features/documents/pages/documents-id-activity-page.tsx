@@ -10,6 +10,7 @@ import { listDocumentAuditLogs, type PortalAuditLog, getPortalUiRole } from "@/f
 import { formatAuditEvent } from '@/features/documents/activity-log';
 import { canLoadDocumentActivity } from '@/features/documents/document-activity-access';
 import { portalRequest } from '@/shared/api/client';
+import { Dropdown } from '@/shared/components/ui';
 
 type DocumentResponse = ApiSchema<'DocumentResponse'>;
 type UserProfile = ApiSchema<'UserProfileResponse'>;
@@ -69,50 +70,47 @@ export default function DocumentActivityPage({ params }: { params: Promise<{ id:
 
   if (profileQuery.isPending) return <div className="h-40 animate-pulse rounded-[18px] border border-[#E8F0F8] bg-white" />;
   if (profileQuery.isError) return <p role="alert" className="text-sm font-semibold text-[#B42318]">{profileQuery.error.message}</p>;
-  if (role !== 'lawyer') return <p className="text-sm font-semibold text-[#64748b]">Document activity is available to Lawyers only.</p>;
+  if (role !== 'lawyer') return <p className="text-sm font-semibold text-[#5B6F8A]">Document activity is available to Lawyers only.</p>;
 
   return (
     <div className="flex w-full min-w-0 flex-col gap-5 overflow-x-hidden">
       <div>
-        <Link href={`/portal/documents/${id}`} className="flex w-fit items-center gap-1.5 text-sm font-bold text-[#0985E7]">
+        <Link href={`/portal/documents/${id}`} className="flex w-fit items-center gap-1.5 text-sm font-bold text-[#0067B3]">
           <ArrowBackIcon sx={{ fontSize: 16 }} /> Back to document
         </Link>
         <div className="mt-3 flex items-center gap-2">
-          <HistoryIcon sx={{ fontSize: 22, color: '#0985E7' }} />
+          <HistoryIcon sx={{ fontSize: 22, color: '#0067B3' }} />
           <h1 className="text-2xl font-extrabold text-[#0C2B49]">Document activity</h1>
         </div>
-        <p className="mt-1 text-sm font-medium text-[#64748b]">Read-only audit history for {documentQuery.data?.file_name ?? id}.</p>
+        <p className="mt-1 text-sm font-medium text-[#5B6F8A]">Read-only audit history for {documentQuery.data?.file_name ?? id}.</p>
       </div>
 
       <section className="rounded-[18px] border border-[#E8F0F8] bg-white p-5 shadow-[0_4px_12px_rgba(19,59,115,0.05)]">
         <div className="mb-5 flex flex-wrap gap-3">
-          {eventOptions.length > 0 && <label className="flex flex-col gap-1 text-xs font-bold text-[#64748b]">Event
-            <select value={eventFilter} onChange={(event) => setEventFilter(event.target.value)} className="rounded-lg border border-[#D6E3F1] bg-white px-3 py-2 text-sm font-medium text-[#0C2B49]">
-              <option value="">All events</option>
-              {eventOptions.map((event) => <option key={event} value={event}>{formatAuditEvent(event)}</option>)}
-            </select>
+          {eventOptions.length > 0 && <label className="flex flex-col gap-1 text-xs font-bold text-[#5B6F8A]">Event
+            <Dropdown ariaLabel="Event" value={eventFilter} onChange={setEventFilter} options={[{ label: 'All events', value: '' }, ...eventOptions.map((event) => ({ label: formatAuditEvent(event), value: event }))]} />
           </label>}
-          <label className="flex flex-col gap-1 text-xs font-bold text-[#64748b]">Date
+          <label className="flex flex-col gap-1 text-xs font-bold text-[#5B6F8A]">Date
             <input type="date" value={dateFilter} onChange={(event) => setDateFilter(event.target.value)} className="rounded-lg border border-[#D6E3F1] bg-white px-3 py-2 text-sm font-medium text-[#0C2B49]" />
           </label>
         </div>
 
-        {auditQuery.isLoading && <p className="text-sm font-medium text-[#64748b]">Loading activity…</p>}
+        {auditQuery.isLoading && <p className="text-sm font-medium text-[#5B6F8A]">Loading activity…</p>}
         {auditQuery.isError && <p role="alert" className="text-sm font-medium text-[#B42318]">{auditQuery.error.message}</p>}
-        {!auditQuery.isLoading && !auditQuery.isError && filteredLogs.length === 0 && <p className="text-sm font-medium text-[#64748b]">No audit events match the selected filters.</p>}
+        {!auditQuery.isLoading && !auditQuery.isError && filteredLogs.length === 0 && <p className="text-sm font-medium text-[#5B6F8A]">No audit events match the selected filters.</p>}
         {!auditQuery.isLoading && !auditQuery.isError && filteredLogs.length > 0 && (
           <div className="overflow-x-auto">
             <table className="w-full min-w-[720px] text-left text-sm">
-              <thead className="border-b border-[#E8F0F8] text-xs uppercase tracking-wide text-[#64748b]">
+              <thead className="border-b border-[#E8F0F8] text-xs uppercase tracking-wide text-[#5B6F8A]">
                 <tr><th className="px-3 py-3">Actor</th><th className="px-3 py-3">Event</th><th className="px-3 py-3">Time</th><th className="px-3 py-3">Document</th><th className="px-3 py-3">Result</th></tr>
               </thead>
               <tbody>
                 {filteredLogs.map((log) => <tr key={log.id} className="border-b border-[#F0F5FA] last:border-0">
                   <td className="px-3 py-3 font-medium text-[#0C2B49]">{log.user_id ?? 'System'}</td>
                   <td className="px-3 py-3 text-[#0C2B49]">{formatAuditEvent(log.action)}</td>
-                  <td className="px-3 py-3 text-[#64748b]">{formatTime(log.created_at)}</td>
-                  <td className="px-3 py-3 text-[#64748b]">{documentQuery.data?.file_name ?? log.document_id}</td>
-                  <td className="px-3 py-3 text-[#64748b]">{getResult(log.details)}</td>
+                  <td className="px-3 py-3 text-[#5B6F8A]">{formatTime(log.created_at)}</td>
+                  <td className="px-3 py-3 text-[#5B6F8A]">{documentQuery.data?.file_name ?? log.document_id}</td>
+                  <td className="px-3 py-3 text-[#5B6F8A]">{getResult(log.details)}</td>
                 </tr>)}
               </tbody>
             </table>

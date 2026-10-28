@@ -37,34 +37,34 @@ export default function TermsPage() {
   return (
     <main className="min-h-dvh bg-[#F5FAFF] px-5 py-12 text-[#0C2B49]">
       <section className="mx-auto max-w-3xl rounded-[24px] border border-[#E4EEF9] bg-white p-7 shadow-[0_10px_24px_rgba(12,43,73,0.08)] sm:p-9">
-        <Link className="text-sm font-black text-[#0985E7]" href="/">
+        <Link className="text-sm font-black text-[#0067B3]" href="/">
           ← Back to LexChain
         </Link>
-        <p className="mt-10 text-xs font-black uppercase tracking-[0.18em] text-[#0985E7]">
+        <p className="mt-10 text-xs font-black uppercase tracking-[0.18em] text-[#0067B3]">
           Terms
         </p>
         <h1 className="mt-4 text-4xl font-black leading-tight">Terms of Service</h1>
-        <p className="mt-3 text-sm font-semibold text-[#64748b]">
+        <p className="mt-3 text-sm font-semibold text-[#5B6F8A]">
           Last updated October 21, 2026
         </p>
-        <p className="mt-4 text-base font-semibold leading-7 text-[#64748b]">
+        <p className="mt-4 text-base font-semibold leading-7 text-[#5B6F8A]">
           These terms describe the basic rules for using LexChain. By using the service, you agree to follow them.
         </p>
 
         <ol className="mt-8 space-y-4">
           {terms.map((term, index) => (
             <li className="rounded-[18px] bg-[#F5FAFF] p-5" key={term.title}>
-              <p className="text-xs font-black text-[#0985E7]">0{index + 1}</p>
+              <p className="text-xs font-black text-[#0067B3]">0{index + 1}</p>
               <h2 className="mt-2 text-lg font-black">{term.title}</h2>
-              <p className="mt-2 text-sm font-semibold leading-6 text-[#64748b]">
+              <p className="mt-2 text-sm font-semibold leading-6 text-[#5B6F8A]">
                 {term.copy}
               </p>
             </li>
           ))}
         </ol>
 
-        <p className="mt-8 text-sm font-semibold text-[#64748b]">
-          See the <Link className="font-black text-[#0985E7]" href="/privacy">Privacy Policy</Link> for how LexChain handles your information.
+        <p className="mt-8 text-sm font-semibold text-[#5B6F8A]">
+          See the <Link className="font-black text-[#0067B3]" href="/privacy">Privacy Policy</Link> for how LexChain handles your information.
         </p>
       </section>
     </main>

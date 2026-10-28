@@ -67,11 +67,12 @@ describe("portal UI source audit", () => {
     expect(screen.getByRole('link', { name: /help and support/i }).getAttribute('href')).toBe('mailto:support@lexchain.app');
   });
 
-  it('uses Lawyer terminology in participant request guidance', () => {
+  it('does not advertise unsupported e-copy request routes from the profile page', () => {
     profile.role = 'document_participant';
     render(createElement(ProfilePage));
 
-    expect(screen.getByText('Track requests sent to your Lawyer')).toBeTruthy();
+    expect(screen.queryByRole('link', { name: 'My E-copy Requests' })).toBeNull();
+    expect(screen.queryByRole('link', { name: 'Document Requests' })).toBeNull();
   });
 
   it('opens the document-assistant pop-up with guidance and a full-page option', () => {

@@ -47,16 +47,16 @@ export function PortalTopBar({ fullName, initials, roleLabel, role, processingCo
           href="/portal/search?mode=register"
           aria-label="Search by register reference"
           title="Search by register reference"
-          className="inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center gap-1.5 rounded-xl border border-[var(--portal-border-soft)] bg-white px-2.5 py-2 text-xs font-bold text-[var(--portal-navy)] transition-colors hover:bg-[var(--portal-surface-soft)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0985E7] sm:w-auto sm:px-3"
+          className="inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center gap-1.5 rounded-xl border border-[var(--portal-border-soft)] bg-white px-2.5 py-2 text-xs font-bold text-[var(--portal-navy)] transition-colors hover:bg-[var(--portal-surface-soft)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3] sm:w-auto sm:px-3"
         >
-          <MenuBookOutlinedIcon sx={{ fontSize: 17, color: '#0985E7' }} aria-hidden="true" />
+          <MenuBookOutlinedIcon sx={{ fontSize: 17, color: '#0067B3' }} aria-hidden="true" />
           <span className="hidden sm:inline">Register reference</span>
         </Link>
         {role === 'lawyer' ? (
           <Link
             href="/portal/dashboard"
             aria-label="View processing documents"
-            className="hidden rounded-full bg-[#FFF4DD] px-3 py-1.5 text-xs font-bold text-[#9A6700] transition hover:bg-[#FFE9BD] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0985E7] lg:inline-flex"
+            className="hidden rounded-full bg-[#FFF4DD] px-3 py-1.5 text-xs font-bold text-[#8A5B00] transition hover:bg-[#FFE9BD] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3] lg:inline-flex"
           >
             {processingLabel}
           </Link>
@@ -69,14 +69,14 @@ export function PortalTopBar({ fullName, initials, roleLabel, role, processingCo
               aria-label="View notifications"
               aria-describedby={unreadCountError ? 'notification-count-error' : undefined}
               aria-expanded={notificationMenuOpen}
-              className="relative flex h-11 w-11 items-center justify-center rounded-full border border-[var(--portal-border-soft)] transition-colors hover:bg-[var(--portal-surface-soft)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0985E7]"
+              className="relative flex h-11 w-11 items-center justify-center rounded-full border border-[var(--portal-border-soft)] transition-colors hover:bg-[var(--portal-surface-soft)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]"
             >
               <NotificationsNoneOutlinedIcon sx={{ fontSize: 20, color: 'var(--portal-navy)' }} />
               {unreadCountError && <span id="notification-count-error" className="sr-only">Unread count unavailable</span>}
               {unreadCountError ? (
                 <span title="Unread count unavailable" className="absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-[#B42318] px-1 text-[10px] font-black leading-none text-white">!</span>
               ) : unreadCount !== undefined && unreadCount > 0 ? (
-                <span className="absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-[#0985E7] px-1 text-[10px] font-black leading-none text-white">
+                <span className="absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-[#0067B3] px-1 text-[10px] font-black leading-none text-white">
                   {unreadCount > 99 ? '99+' : unreadCount}
                 </span>
               ) : null}
@@ -89,7 +89,7 @@ export function PortalTopBar({ fullName, initials, roleLabel, role, processingCo
                   {unreadCountError ? (
                     <span role="alert" className="text-[11px] font-bold text-red-700">Unread count unavailable</span>
                   ) : unreadCount !== undefined && unreadCount > 0 ? (
-                    <span className="rounded-full bg-[#EAF4FF] px-2 py-0.5 text-[11px] font-black text-[#0985E7]">{unreadCount} unread</span>
+                    <span className="rounded-full bg-[#EAF4FF] px-2 py-0.5 text-[11px] font-black text-[#0067B3]">{unreadCount} unread</span>
                   ) : null}
                   {markNotificationPending && <span role="status" className="text-[11px] font-semibold text-[var(--portal-text-muted)]">Marking as read…</span>}
                 </div>
@@ -130,7 +130,7 @@ export function PortalTopBar({ fullName, initials, roleLabel, role, processingCo
                 <Link
                   href="/portal/notifications"
                   onClick={() => setNotificationMenuOpen(false)}
-                  className="block w-full border-t border-[var(--portal-border-soft)] bg-[var(--portal-surface-soft)] px-4 py-3 text-center text-sm font-black text-[#0985E7] transition hover:bg-[#EAF4FF]"
+                  className="block w-full border-t border-[var(--portal-border-soft)] bg-[var(--portal-surface-soft)] px-4 py-3 text-center text-sm font-black text-[#0067B3] transition hover:bg-[#EAF4FF]"
                 >
                   See more…
                 </Link>
@@ -140,7 +140,7 @@ export function PortalTopBar({ fullName, initials, roleLabel, role, processingCo
           <a
             href="mailto:support@lexchain.app"
             aria-label="Get help"
-            className="hidden h-10 w-10 items-center justify-center rounded-full border border-[var(--portal-border-soft)] transition-colors hover:bg-[var(--portal-surface-soft)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0985E7] sm:flex"
+            className="hidden h-10 w-10 items-center justify-center rounded-full border border-[var(--portal-border-soft)] transition-colors hover:bg-[var(--portal-surface-soft)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3] sm:flex"
           >
             <span aria-hidden="true" className="text-base font-black leading-none text-[var(--portal-navy)]">?</span>
           </a>
@@ -150,7 +150,7 @@ export function PortalTopBar({ fullName, initials, roleLabel, role, processingCo
               onClick={() => setAccountMenuOpen((open) => !open)}
               aria-label="Open account menu"
               aria-expanded={accountMenuOpen}
-              className="flex items-center gap-2 rounded-full p-1 transition hover:bg-[var(--portal-surface-soft)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0985E7]"
+              className="flex items-center gap-2 rounded-full p-1 transition hover:bg-[var(--portal-surface-soft)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]"
             >
               <span className="hidden min-w-0 text-right lg:block">
                 {fullName && <span className="block truncate text-sm font-black text-[var(--portal-navy)]">{fullName}</span>}
@@ -170,7 +170,7 @@ export function PortalTopBar({ fullName, initials, roleLabel, role, processingCo
                 <button
                   type="button"
                   onClick={onSignOut}
-                  className="flex w-full cursor-pointer items-center gap-3 px-4 py-3 text-left text-sm font-bold text-red-600 transition hover:bg-red-50"
+                  className="flex w-full cursor-pointer items-center gap-3 px-4 py-3 text-left text-sm font-bold text-red-700 transition hover:bg-red-50"
                 >
                   <LogoutIcon fontSize="small" />
                   Sign Out

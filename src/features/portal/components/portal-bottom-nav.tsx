@@ -39,7 +39,7 @@ export function PortalBottomNav({
                   <span className={active ? 'text-[var(--portal-primary)]' : 'text-[var(--portal-text-muted)]'}>
                     <Icon fontSize="small" />
                   </span>
-                  <span className={`max-w-[76px] text-center text-[9px] font-bold leading-[10px] ${active ? 'text-[var(--portal-primary)]' : 'text-[var(--portal-text-muted)]'}`}>{item.label}</span>
+                  <span className={`max-w-[76px] text-center text-xs font-bold leading-4 ${active ? 'text-[var(--portal-primary)]' : 'text-[var(--portal-text-muted)]'}`}>{item.label}</span>
                 </Link>
               );
             })}

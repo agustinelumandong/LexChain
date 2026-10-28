@@ -51,13 +51,13 @@ export function CreateInvitationModal({ label = "Create Invitation", className, 
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className={className ?? "flex cursor-pointer items-center gap-2 rounded-lg bg-[#0985E7] px-4 py-2.5 text-sm font-black text-white shadow-sm transition hover:bg-[#0770c4]"}
+        className={className ?? "flex cursor-pointer items-center gap-2 rounded-lg bg-[#0067B3] px-4 py-2.5 text-sm font-black text-white shadow-sm transition hover:bg-[#005F9E]"}
       >
         <AddIcon fontSize="small" />
         {label}
       </button>
       <Modal open={open} onClose={() => setOpen(false)} title="Create Invitation">
-        <p className="text-sm font-semibold text-[#64748b]">
+        <p className="text-sm font-semibold text-[#5B6F8A]">
           Send a magic-link invitation to a Lawyer to join the platform.
         </p>
         <form onSubmit={handleSubmit} className="mt-4 space-y-4">
@@ -67,7 +67,7 @@ export function CreateInvitationModal({ label = "Create Invitation", className, 
             </p>
           ) : null}
           <div>
-            <label className="block text-xs font-black uppercase tracking-[0.1em] text-[#64748b] mb-1.5">
+            <label className="block text-xs font-black uppercase tracking-[0.1em] text-[#5B6F8A] mb-1.5">
               Email
             </label>
             <input
@@ -76,13 +76,13 @@ export function CreateInvitationModal({ label = "Create Invitation", className, 
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="issuer@example.com"
-              className="w-full rounded-xl border border-[#E4EEF9] bg-[#F8FBFF] px-4 py-2.5 text-sm font-semibold text-[#0C2B49] outline-none placeholder:text-[#94a3b8] focus:border-[#0985E7]"
+              className="w-full rounded-xl border border-[#E4EEF9] bg-[#F8FBFF] px-4 py-2.5 text-sm font-semibold text-[#0C2B49] outline-none placeholder:text-[#5B6F8A] focus:border-[#0067B3]"
             />
           </div>
           <button
             type="submit"
             disabled={loading}
-            className="w-full cursor-pointer rounded-xl bg-[#0985E7] px-5 py-3 text-sm font-black text-white transition hover:bg-[#0770c4] disabled:opacity-60"
+            className="w-full cursor-pointer rounded-xl bg-[#0067B3] px-5 py-3 text-sm font-black text-white transition hover:bg-[#005F9E] disabled:opacity-60"
           >
             {loading ? "Sending..." : "Send Invitation"}
           </button>

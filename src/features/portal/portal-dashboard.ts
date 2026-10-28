@@ -76,7 +76,6 @@ export function getPortalNavigation(role: PortalUiRole): PortalNavigationGroup[]
       items: [
         { label: "Shared Documents", href: "/portal/documents" },
         { label: "Invitations", href: "/portal/invitations" },
-        { label: "My E-copy Requests", href: "/portal/requests/my" },
       ],
     },
   ];

@@ -6,7 +6,7 @@ import { useSearchParams } from "next/navigation";
 import { Suspense, useState, type ReactNode } from "react";
 import { demoResetToken, webResetPasswordSchema } from "@/features/auth/schemas/auth";
 
-const unavailableMessage = "Password recovery is not connected yet. The backend password-reset endpoint is required before a real account password can be updated.";
+const unavailableMessage = "Password recovery is not available yet. Contact your LexChain administrator for help resetting your account.";
 
 export default function ResetPasswordPage() {
   return (
@@ -29,7 +29,7 @@ function ResetPasswordForm() {
     return (
       <ResetPasswordShell description="A valid reset link is required before you can update your password.">
         <div className="mt-6 space-y-4">
-          <p role="alert" className="rounded-xl bg-red-50 px-4 py-3 text-sm font-semibold text-red-600">
+          <p role="alert" className="rounded-xl bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
             This password reset link is invalid or has expired.
           </p>
           <Link href="/login" className="flex min-h-[52px] w-full items-center justify-center rounded-full border-2 border-[#E4EEF9] px-5 py-3.5 text-[15px] font-black text-[#0C2B49] transition hover:bg-[#F5FAFF]">
@@ -42,9 +42,9 @@ function ResetPasswordForm() {
 
   if (!isDemoMode) {
     return (
-      <ResetPasswordShell description="Password recovery is not connected yet.">
+    <ResetPasswordShell description="Password recovery is not available yet.">
         <div className="mt-6 space-y-4">
-          <p role="alert" className="rounded-xl bg-red-50 px-4 py-3 text-sm font-semibold text-red-600">
+          <p role="status" className="rounded-xl border border-[#CFE7FC] bg-[#F1F8FF] px-4 py-3 text-sm font-semibold text-[#0C5B9C]">
             {unavailableMessage}
           </p>
           <Link href="/login" className="flex min-h-[52px] w-full items-center justify-center rounded-full border-2 border-[#E4EEF9] px-5 py-3.5 text-[15px] font-black text-[#0C2B49] transition hover:bg-[#F5FAFF]">
@@ -62,7 +62,7 @@ function ResetPasswordForm() {
           <p className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm font-black text-[#0C2B49]">
             Demo complete — no real password was changed.
           </p>
-          <Link href="/login" className="flex min-h-[52px] w-full items-center justify-center rounded-full bg-[#0985E7] px-5 py-3.5 text-[15px] font-black text-white transition hover:bg-[#0770c4]">
+          <Link href="/login" className="flex min-h-[52px] w-full items-center justify-center rounded-full bg-[#0067B3] px-5 py-3.5 text-[15px] font-black text-white transition hover:bg-[#005F9E]">
             Back to sign in
           </Link>
         </div>
@@ -89,7 +89,7 @@ function ResetPasswordForm() {
         <label className="block">
           <span className="text-[13px] font-black text-[#0C2B49]">New password</span>
           <input
-            className="mt-2 min-h-12 w-full rounded-[14px] border border-[#E4EEF9] bg-[#F5FAFF] px-3.5 text-sm font-semibold text-[#0C2B49] outline-none focus:border-[#0985E7]"
+            className="mt-2 min-h-12 w-full rounded-[14px] border border-[#E4EEF9] bg-[#F5FAFF] px-3.5 text-sm font-semibold text-[#0C2B49] outline-none focus:border-[#0067B3]"
             type="password"
             autoComplete="new-password"
             value={password}
@@ -99,7 +99,7 @@ function ResetPasswordForm() {
         <label className="block">
           <span className="text-[13px] font-black text-[#0C2B49]">Confirm new password</span>
           <input
-            className="mt-2 min-h-12 w-full rounded-[14px] border border-[#E4EEF9] bg-[#F5FAFF] px-3.5 text-sm font-semibold text-[#0C2B49] outline-none focus:border-[#0985E7]"
+            className="mt-2 min-h-12 w-full rounded-[14px] border border-[#E4EEF9] bg-[#F5FAFF] px-3.5 text-sm font-semibold text-[#0C2B49] outline-none focus:border-[#0067B3]"
             type="password"
             autoComplete="new-password"
             value={confirmPassword}
@@ -107,11 +107,11 @@ function ResetPasswordForm() {
           />
         </label>
         {errors.length > 0 && (
-          <ul role="alert" className="rounded-xl bg-red-50 px-4 py-2.5 text-sm font-semibold text-red-600">
+          <ul role="alert" className="rounded-xl bg-red-50 px-4 py-2.5 text-sm font-semibold text-red-700">
             {errors.map((error) => <li key={error}>{error}</li>)}
           </ul>
         )}
-        <button type="submit" className="mt-2 flex min-h-[52px] w-full items-center justify-center rounded-full bg-[#0985E7] px-5 py-3.5 text-[15px] font-black text-white transition hover:bg-[#0770c4]">
+        <button type="submit" className="mt-2 flex min-h-[52px] w-full items-center justify-center rounded-full bg-[#0067B3] px-5 py-3.5 text-[15px] font-black text-white transition hover:bg-[#005F9E]">
           Reset password
         </button>
       </form>
@@ -126,10 +126,10 @@ function ResetPasswordShell({ children, description }: { children: ReactNode; de
         <div className="space-y-2">
           <div className="mb-1 flex items-center gap-2">
             <Image src="/lexchain/logo-lexchain.svg" alt="LexChain" width={36} height={36} className="rounded-[10px]" />
-            <span className="text-lg font-black text-[#0C2B49]">Lex<span className="text-[#0985E7]">Chain</span></span>
+            <span className="text-lg font-black text-[#0C2B49]">Lex<span className="text-[#0067B3]">Chain</span></span>
           </div>
           <h1 className="text-3xl font-black leading-9 text-[#0C2B49]">Reset password</h1>
-          <p className="text-sm font-semibold leading-5 text-[#64748b]">{description}</p>
+          <p className="text-sm font-semibold leading-5 text-[#5B6F8A]">{description}</p>
         </div>
         {children}
       </section>

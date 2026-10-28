@@ -22,7 +22,7 @@ export default function SecurityPage() {
 
   return (
     <div className="flex flex-col gap-5">
-      <Link href="/portal/profile" className="flex items-center gap-1.5 text-sm font-bold text-[#0985E7] w-fit">
+      <Link href="/portal/profile" className="flex items-center gap-1.5 text-sm font-bold text-[#0067B3] w-fit">
         <ArrowBackIcon sx={{ fontSize: 16 }} /> Back
       </Link>
       <h1 className="text-[28px] font-black text-[#0C2B49]">Security</h1>
@@ -59,13 +59,13 @@ function SecurityItem({
   return (
     <div className="flex items-center gap-4 px-5 py-4">
       <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#EEF6FF]">
-        <Icon sx={{ fontSize: 18, color: '#0985E7' }} />
+        <Icon sx={{ fontSize: 18, color: '#0067B3' }} />
       </div>
       <div className="min-w-0 flex-1">
         <span className="block text-sm font-bold text-[#0C2B49]">{title}</span>
-        <span className="text-[11px] text-[#64748b]">{description}</span>
+        <span className="text-[11px] text-[#5B6F8A]">{description}</span>
       </div>
-      {status ? <span className="shrink-0 rounded-full bg-[#EEF4FB] px-3 py-1 text-[11px] font-bold text-[#0985E7]">{status}</span> : null}
+      {status ? <span className="shrink-0 rounded-full bg-[#EEF4FB] px-3 py-1 text-[11px] font-bold text-[#0067B3]">{status}</span> : null}
     </div>
   );
 }

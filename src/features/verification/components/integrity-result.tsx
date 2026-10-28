@@ -16,7 +16,7 @@ const toneClasses = {
 function Detail({ label, value }: { label: string; value: string | null | undefined }) {
   return (
     <div>
-      <dt className="font-bold text-[#64748b]">{label}</dt>
+      <dt className="font-bold text-[#5B6F8A]">{label}</dt>
       <dd className="mt-1 break-all text-[#0C2B49]">{value || '—'}</dd>
     </div>
   );

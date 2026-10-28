@@ -2,6 +2,8 @@ export { BrandLogo } from "./brand-logo";
 export { Button, IconButton, InlineButton, ToggleButton } from "./button";
 export type { ButtonSize, ButtonVariant } from "./button";
 export { Input, SearchInput } from "./input";
+export { Dropdown } from "./dropdown";
+export type { DropdownOption, DropdownProps } from "./dropdown";
 export { Checkbox } from "./checkbox";
 export { Switch } from "./switch";
 export { Card } from "./card";

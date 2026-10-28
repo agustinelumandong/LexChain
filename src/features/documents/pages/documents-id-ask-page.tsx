@@ -84,7 +84,7 @@ export default function AskPage({ params }: { params: Promise<{ id: string }> })
 
   return (
     <div className="flex h-[calc(100vh-120px)] w-full flex-col gap-4">
-      <Link href={`/portal/documents/${id}`} className="flex w-fit items-center gap-1 text-sm font-bold text-[#4B6382] hover:text-[#1689F5]">
+      <Link href={`/portal/documents/${id}`} className="flex w-fit items-center gap-1 text-sm font-bold text-[#4B6382] hover:text-[#0067B3]">
         <ArrowBackIcon sx={{ fontSize: 18 }} /> Back to Document
       </Link>
 
@@ -105,7 +105,7 @@ export default function AskPage({ params }: { params: Promise<{ id: string }> })
               <div
                 className={
                   msg.from === 'user'
-                    ? 'bg-[#1689F5] text-white rounded-[14px] rounded-br-sm p-3 text-sm max-w-[80%]'
+                    ? 'bg-[#0067B3] text-white rounded-[14px] rounded-br-sm p-3 text-sm max-w-[80%]'
                     : 'bg-[#EAF4FF] text-[#0C2B49] rounded-[14px] rounded-bl-sm p-3 text-sm max-w-[80%]'
                 }
               >
@@ -117,9 +117,9 @@ export default function AskPage({ params }: { params: Promise<{ id: string }> })
 
         {loading && (
           <div className="flex items-center gap-2 text-sm text-[#4B6382]">
-            <span className="h-2 w-2 animate-bounce rounded-full bg-[#1689F5]" />
-            <span className="h-2 w-2 animate-bounce rounded-full bg-[#1689F5]" style={{ animationDelay: '0.15s' }} />
-            <span className="h-2 w-2 animate-bounce rounded-full bg-[#1689F5]" style={{ animationDelay: '0.3s' }} />
+            <span className="h-2 w-2 animate-bounce rounded-full bg-[#0067B3]" />
+            <span className="h-2 w-2 animate-bounce rounded-full bg-[#0067B3]" style={{ animationDelay: '0.15s' }} />
+            <span className="h-2 w-2 animate-bounce rounded-full bg-[#0067B3]" style={{ animationDelay: '0.3s' }} />
             <span className="ml-1">Thinking…</span>
           </div>
         )}
@@ -136,7 +136,7 @@ export default function AskPage({ params }: { params: Promise<{ id: string }> })
         <div ref={bottomRef} />
       </div>
 
-      <div className="flex items-center gap-2 rounded-full border border-[#E8F0F8] bg-white p-2 focus-within:border-[#1689F5] focus-within:ring-2 focus-within:ring-[#1689F5] focus-within:ring-offset-2">
+      <div className="flex items-center gap-2 rounded-full border border-[#E8F0F8] bg-white p-2 focus-within:border-[#0067B3] focus-within:ring-2 focus-within:ring-[#0067B3] focus-within:ring-offset-2">
         <input
           value={input}
           name="question"
@@ -156,7 +156,7 @@ export default function AskPage({ params }: { params: Promise<{ id: string }> })
           onClick={send}
           disabled={!input.trim() || loading}
           aria-label="Send question"
-          className="flex h-11 w-11 items-center justify-center rounded-full bg-[#1689F5] text-white disabled:opacity-40"
+          className="flex h-11 w-11 items-center justify-center rounded-full bg-[#0067B3] text-white disabled:opacity-40"
           type="button"
         >
           <SendIcon sx={{ fontSize: 18 }} />

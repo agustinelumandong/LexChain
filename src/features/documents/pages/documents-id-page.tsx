@@ -209,7 +209,7 @@ export default function DocumentDetailPage({ params }: { params: Promise<{ id: s
     const status = readErrorStatus(docQ.error);
     if (status === 404) return <p className="text-sm text-[#4B6382]">Document not found.</p>;
     if (status === 401 || status === 403) return <p role="alert" className="text-sm font-bold text-[#B42318]">You do not have access to this document.</p>;
-    return <div role="alert" className="space-y-3"><p className="text-sm font-bold text-[#B42318]">{docQ.error instanceof PortalApiError ? docQ.error.message : 'Unable to load this document.'}</p><button type="button" onClick={() => void docQ.refetch()} className="rounded-full border border-[#0985E7] px-4 py-2 text-sm font-black text-[#0985E7]">Retry</button></div>;
+    return <div role="alert" className="space-y-3"><p className="text-sm font-bold text-[#B42318]">{docQ.error instanceof PortalApiError ? docQ.error.message : 'Unable to load this document.'}</p><button type="button" onClick={() => void docQ.refetch()} className="rounded-full border border-[#0067B3] px-4 py-2 text-sm font-black text-[#0067B3]">Retry</button></div>;
   }
   if (!docQ.data) return <p role="status" className="text-sm text-[#4B6382]">Loading document…</p>;
 
@@ -244,7 +244,7 @@ export default function DocumentDetailPage({ params }: { params: Promise<{ id: s
   return (
     <div className="flex min-h-0 w-full min-w-0 flex-1 flex-col gap-3 overflow-hidden">
       <header className={`mx-auto flex w-full flex-col gap-2 ${isDrafting ? 'max-w-4xl' : 'max-w-7xl'}`}>
-        <Link href="/portal/documents" className="flex w-fit shrink-0 items-center gap-1.5 text-sm font-semibold text-[#0C2B49] hover:text-[#0985E7]">
+        <Link href="/portal/documents" className="flex w-fit shrink-0 items-center gap-1.5 text-sm font-semibold text-[#0C2B49] hover:text-[#0067B3]">
           <ArrowBackIcon sx={{ fontSize: 16 }} /> Back to documents
         </Link>
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -257,7 +257,7 @@ export default function DocumentDetailPage({ params }: { params: Promise<{ id: s
           </div>
           <div className="flex flex-wrap items-center gap-2">
             {(actions.includes('Rename document') || document.permissions.can_cancel) && <div ref={documentActionsRef} className="relative">
-              <button type="button" aria-label="More document actions" aria-expanded={documentActionsOpen} aria-controls="document-actions-menu" onClick={() => setDocumentActionsOpen((open) => !open)} className="grid min-h-11 min-w-11 place-items-center rounded-full border border-[#D7E4F2] text-[#0C2B49] hover:bg-[#EAF4FF] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0985E7]">
+              <button type="button" aria-label="More document actions" aria-expanded={documentActionsOpen} aria-controls="document-actions-menu" onClick={() => setDocumentActionsOpen((open) => !open)} className="grid min-h-11 min-w-11 place-items-center rounded-full border border-[#D7E4F2] text-[#0C2B49] hover:bg-[#EAF4FF] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]">
                 <MoreVertIcon aria-hidden="true" sx={{ fontSize: 20 }} />
               </button>
               {documentActionsOpen && <div id="document-actions-menu" role="group" aria-label="Document actions" className="absolute right-0 top-full z-50 mt-1 w-48 overflow-hidden rounded-xl border border-[#D7E4F2] bg-white p-1 shadow-lg shadow-[#183B6B]/10">
@@ -265,10 +265,10 @@ export default function DocumentDetailPage({ params }: { params: Promise<{ id: s
                 {document.permissions.can_cancel && <button type="button" onClick={() => { setDocumentActionsOpen(false); openCancelConfirmation(); }} className="block min-h-11 w-full rounded-lg px-3 py-2 text-left text-sm font-bold text-[#B42318] hover:bg-red-50">Cancel document</button>}
               </div>}
             </div>}
-            {actions.includes('Review extracted text') && <Link href={`/portal/documents/${id}/review`} aria-label="Review extracted text" className="inline-flex min-h-11 items-center rounded-full bg-[#0985E7] px-3 py-2 text-sm font-extrabold text-white">Review text</Link>}
-            {actions.includes('Finalize') && !finalizationResult && !hasUnknownFinalization && <button type="button" onClick={openFinalizeConfirmation} className="min-h-11 rounded-full bg-[#0673C4] px-3 py-2 text-sm font-extrabold text-white hover:bg-[#005FA3] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0985E7]">Finalize</button>}
-            {actions.includes('Retry processing') && <button type="button" onClick={() => retryProcessingMutation.mutate()} disabled={retryProcessingMutation.isPending} className="min-h-11 rounded-full border border-[#0985E7] px-3 py-2 text-sm font-extrabold text-[#0985E7] disabled:opacity-50">{retryProcessingMutation.isPending ? 'Retrying…' : 'Retry processing'}</button>}
-            {actions.includes('Check document') && <Link href={`/portal/documents/${id}/verify`} className="group inline-flex min-h-11 items-center gap-1.5 rounded-full border border-[#0985E7] bg-[#EAF4FF] px-3 py-2 text-sm font-extrabold text-[#0C2B49] transition-colors hover:border-[#0985E7] hover:bg-[#0985E7] hover:text-white active:bg-[#0879D8] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0985E7]"><ShieldOutlinedIcon aria-hidden="true" className="text-[#0985E7] transition-colors group-hover:text-white group-focus-visible:text-white" sx={{ fontSize: 18 }} />Verify integrity</Link>}
+            {actions.includes('Review extracted text') && <Link href={`/portal/documents/${id}/review`} aria-label="Review extracted text" className="inline-flex min-h-11 items-center rounded-full bg-[#0067B3] px-3 py-2 text-sm font-extrabold text-white">Review text</Link>}
+            {actions.includes('Finalize') && !finalizationResult && !hasUnknownFinalization && <button type="button" onClick={openFinalizeConfirmation} className="min-h-11 rounded-full bg-[#0673C4] px-3 py-2 text-sm font-extrabold text-white hover:bg-[#005FA3] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]">Finalize</button>}
+            {actions.includes('Retry processing') && <button type="button" onClick={() => retryProcessingMutation.mutate()} disabled={retryProcessingMutation.isPending} className="min-h-11 rounded-full border border-[#0067B3] px-3 py-2 text-sm font-extrabold text-[#0067B3] disabled:opacity-50">{retryProcessingMutation.isPending ? 'Retrying…' : 'Retry processing'}</button>}
+            {actions.includes('Check document') && <Link href={`/portal/documents/${id}/verify`} className="group inline-flex min-h-11 items-center gap-1.5 rounded-full border border-[#0067B3] bg-[#EAF4FF] px-3 py-2 text-sm font-extrabold text-[#0C2B49] transition-colors hover:border-[#0067B3] hover:bg-[#0067B3] hover:text-white active:bg-[#0067B3] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]"><ShieldOutlinedIcon aria-hidden="true" className="text-[#0067B3] transition-colors group-hover:text-white group-focus-visible:text-white" sx={{ fontSize: 18 }} />Verify integrity</Link>}
           </div>
         </div>
         {retryProcessingMutation.error instanceof Error && <p role="alert" className="text-sm font-bold text-[#B42318]">{retryProcessingMutation.error.message || "Unable to retry document processing."}</p>}
@@ -278,12 +278,12 @@ export default function DocumentDetailPage({ params }: { params: Promise<{ id: s
         <form onSubmit={submitRename}>
           <label htmlFor="document-name" className="grid gap-1.5 text-sm font-bold text-[#0C2B49]">
             Document name
-            <input id="document-name" value={renameName} onChange={(event) => setRenameName(event.target.value)} className="w-full rounded-xl border border-[#D7E4F2] px-3 py-2.5 text-sm font-medium outline-none focus:border-[#0985E7]" />
+            <input id="document-name" value={renameName} onChange={(event) => setRenameName(event.target.value)} className="w-full rounded-xl border border-[#D7E4F2] px-3 py-2.5 text-sm font-medium outline-none focus:border-[#0067B3]" />
           </label>
-          {renameError && <p role="alert" className="mt-3 text-sm font-bold text-red-600">{renameError}</p>}
+          {renameError && <p role="alert" className="mt-3 text-sm font-bold text-red-700">{renameError}</p>}
           <div className="mt-5 flex justify-end gap-2">
             <button type="button" onClick={() => setRenameOpen(false)} disabled={renamePending} className="rounded-full border border-[#D7E4F2] px-5 py-2.5 text-sm font-bold text-[#0C2B49] disabled:opacity-50">Cancel</button>
-            <button type="submit" disabled={!renameName.trim() || renamePending} className="rounded-full bg-[#0985E7] px-5 py-2.5 text-sm font-black text-white disabled:opacity-40">{renamePending ? 'Saving…' : 'Save changes'}</button>
+            <button type="submit" disabled={!renameName.trim() || renamePending} className="rounded-full bg-[#0067B3] px-5 py-2.5 text-sm font-black text-white disabled:opacity-40">{renamePending ? 'Saving…' : 'Save changes'}</button>
           </div>
         </form>
       </Modal>
@@ -300,7 +300,7 @@ export default function DocumentDetailPage({ params }: { params: Promise<{ id: s
       {hasUnknownFinalization && <div role="status" className="space-y-3 rounded-xl border border-[#F1D29A] bg-[#FFF8E8] px-4 py-3 text-sm text-[#785000]">
         <p className="font-bold">Finalization outcome unknown. The request may have been accepted. Check status before taking further action.</p>
         {statusMessage && <p>{statusMessage}</p>}
-        <button type="button" onClick={() => checkFinalizationMutation.mutate()} disabled={checkFinalizationMutation.isPending} className="rounded-full border border-[#0985E7] px-4 py-2 font-bold text-[#0985E7] disabled:opacity-60">{checkFinalizationMutation.isPending ? 'Checking status…' : 'Check status'}</button>
+        <button type="button" onClick={() => checkFinalizationMutation.mutate()} disabled={checkFinalizationMutation.isPending} className="rounded-full border border-[#0067B3] px-4 py-2 font-bold text-[#0067B3] disabled:opacity-60">{checkFinalizationMutation.isPending ? 'Checking status…' : 'Check status'}</button>
       </div>}
       {docQ.isError && finalizationResult && <p role="alert" className="text-sm font-bold text-[#B42318]">{mockMode ? 'Demo finalization completed, but the document could not be refreshed.' : 'Finalization succeeded, but the document could not be refreshed.'}</p>}
       {finalizationResult && <>
@@ -325,7 +325,7 @@ export default function DocumentDetailPage({ params }: { params: Promise<{ id: s
             {finalizeMutation.error instanceof Error && <p role="alert" className="mt-3 rounded-xl bg-red-50 p-3 text-sm font-bold text-[#B42318]">{finalizeMutation.error.message}</p>}
             <div className="mt-5 flex flex-wrap justify-end gap-2">
               <button type="button" onClick={() => setConfirmingFinalize(false)} disabled={finalizeMutation.isPending} className="rounded-full border border-[#D6E3F1] px-4 py-2 text-sm font-bold text-[#0C2B49] disabled:opacity-60">Cancel</button>
-              <button type="button" onClick={() => finalizeMutation.mutate()} disabled={finalizeMutation.isPending} className="rounded-full bg-[#0673C4] px-4 py-2 text-sm font-bold text-white hover:bg-[#005FA3] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0985E7] disabled:opacity-60">{finalizeMutation.isPending ? 'Finalizing…' : 'Confirm finalization'}</button>
+              <button type="button" onClick={() => finalizeMutation.mutate()} disabled={finalizeMutation.isPending} className="rounded-full bg-[#0673C4] px-4 py-2 text-sm font-bold text-white hover:bg-[#005FA3] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3] disabled:opacity-60">{finalizeMutation.isPending ? 'Finalizing…' : 'Confirm finalization'}</button>
             </div>
           </div>
         </div>

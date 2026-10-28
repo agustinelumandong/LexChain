@@ -335,7 +335,7 @@ export default function PdfDocumentViewer({
           <button
             type="button"
             aria-label="Zoom out"
-            className="inline-flex min-h-9 min-w-9 items-center justify-center rounded-md text-[#0C2B49] hover:bg-white disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[#0985E7]"
+            className="inline-flex min-h-9 min-w-9 items-center justify-center rounded-md text-[#0C2B49] hover:bg-white disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[#0067B3]"
             disabled={zoom <= MIN_ZOOM}
             onClick={() => setZoom((value) => Math.max(MIN_ZOOM, value - ZOOM_STEP))}
           >
@@ -344,7 +344,7 @@ export default function PdfDocumentViewer({
           <button
             type="button"
             aria-label="Zoom in"
-            className="inline-flex min-h-9 min-w-9 items-center justify-center rounded-md text-[#0C2B49] hover:bg-white disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[#0985E7]"
+            className="inline-flex min-h-9 min-w-9 items-center justify-center rounded-md text-[#0C2B49] hover:bg-white disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[#0067B3]"
             disabled={zoom >= MAX_ZOOM}
             onClick={() => setZoom((value) => Math.min(MAX_ZOOM, value + ZOOM_STEP))}
           >
@@ -362,7 +362,7 @@ export default function PdfDocumentViewer({
               aria-label="Previous PDF page"
               disabled={currentPage <= 0}
               onClick={() => onPageChange(currentPage - 1)}
-              className="inline-flex min-h-9 items-center gap-0.5 rounded-md px-2 text-xs font-semibold text-[#0C2B49] hover:bg-white disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[#0985E7]"
+              className="inline-flex min-h-9 items-center gap-0.5 rounded-md px-2 text-xs font-semibold text-[#0C2B49] hover:bg-white disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[#0067B3]"
             >
               <ChevronLeftIcon aria-hidden="true" sx={{ fontSize: 17 }} />Previous
             </button>
@@ -377,7 +377,7 @@ export default function PdfDocumentViewer({
               aria-label="Next PDF page"
               disabled={currentPage >= displayedPageCount - 1}
               onClick={() => onPageChange(currentPage + 1)}
-              className="inline-flex min-h-9 items-center gap-0.5 rounded-md px-2 text-xs font-semibold text-[#0C2B49] hover:bg-white disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[#0985E7]"
+              className="inline-flex min-h-9 items-center gap-0.5 rounded-md px-2 text-xs font-semibold text-[#0C2B49] hover:bg-white disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[#0067B3]"
             >
               Next<ChevronRightIcon aria-hidden="true" sx={{ fontSize: 17 }} />
             </button>
@@ -449,7 +449,7 @@ export default function PdfDocumentViewer({
                 aria-label={`Select block ${block.index}`}
                 className={`absolute bg-transparent ${
                   tamperedBlockIndexes?.has(block.index)
-                    ? 'border-2 border-[#D94B66] bg-[#D94B66]/20'
+                    ? 'border-2 border-[#B42318] bg-[#B42318]/20'
                     : selectedBlockIndex === block.index
                     ? 'border-2 border-blue-700 bg-blue-100/20'
                     : hoveredBlockIndex === block.index
@@ -471,7 +471,7 @@ export default function PdfDocumentViewer({
                   ? block.index < 0 ? `Changed region ${Math.abs(block.index)}` : `Changed block ${block.index}`
                   : `Non-editable block ${block.index}`}`}
                 className={`absolute ${tamperedBlockIndexes?.has(block.index)
-                  ? 'border-2 border-[#D94B66] bg-[#D94B66]/20'
+                  ? 'border-2 border-[#B42318] bg-[#B42318]/20'
                   : hoveredBlockIndex === block.index
                     ? 'border-2 border-amber-600 bg-amber-100/30'
                     : 'border border-dashed border-amber-500'}`}

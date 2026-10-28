@@ -93,24 +93,24 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
     onError: refreshStaleReview,
   });
 
-  if (profileQuery.isPending) return <p className="text-sm font-semibold text-[#64748b]">Loading review access…</p>;
+  if (profileQuery.isPending) return <p className="text-sm font-semibold text-[#5B6F8A]">Loading review access…</p>;
   if (profileQuery.isError) return <p role="alert" className="text-sm font-semibold text-[#B42318]">{messageFor(profileQuery.error)}</p>;
   if (role !== 'lawyer') {
     return (
       <section className="max-w-xl rounded-[18px] border border-[#E8F0F8] bg-white p-6">
         <h1 className="text-xl font-black text-[#0C2B49]">Review unavailable</h1>
-        <p className="mt-2 text-sm text-[#64748b]">Users can view shared documents, but only Lawyers can review extracted text.</p>
+        <p className="mt-2 text-sm text-[#5B6F8A]">Users can view shared documents, but only Lawyers can review extracted text.</p>
       </section>
     );
   }
-  if (extractionQuery.isPending) return <p className="text-sm font-semibold text-[#64748b]">Loading extracted text…</p>;
+  if (extractionQuery.isPending) return <p className="text-sm font-semibold text-[#5B6F8A]">Loading extracted text…</p>;
   if (extractionQuery.isError || !extractionQuery.data) {
     if (statusFor(extractionQuery.error) === 404) {
       return (
         <section role="alert" className="max-w-xl rounded-[18px] border border-[#F5D7A1] bg-[#FFF9EC] p-6 text-sm text-[#0C2B49]">
           <p className="font-bold">This review is not ready or you no longer have access.</p>
           <p className="mt-2">Check the document or its processing status, then try again when review is available.</p>
-          <div className="mt-4 flex gap-4 font-bold text-[#0985E7]">
+          <div className="mt-4 flex gap-4 font-bold text-[#0067B3]">
             <Link href={`/portal/documents/${id}`}>Back to document</Link>
             <Link href={`/portal/upload/processing?id=${id}`}>View processing status</Link>
           </div>
@@ -124,9 +124,9 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
   return (
     <div className="flex w-full min-w-0 flex-col gap-5 overflow-x-hidden md:h-[calc(100dvh-7rem)] md:overflow-hidden">
       <header>
-        <Link href={`/portal/documents/${id}`} className="text-sm font-bold text-[#0985E7]">← Back to document</Link>
+        <Link href={`/portal/documents/${id}`} className="text-sm font-bold text-[#0067B3]">← Back to document</Link>
         <h1 className="mt-3 text-[28px] font-black text-[#0C2B49]">Review extracted text</h1>
-        <p className="mt-1 text-sm text-[#64748b]">Correct OCR text and resolve flags before approving it for processing.</p>
+        <p className="mt-1 text-sm text-[#5B6F8A]">Correct OCR text and resolve flags before approving it for processing.</p>
       </header>
       <ReviewWorkspace
         review={extractionQuery.data}

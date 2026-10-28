@@ -14,14 +14,14 @@ describe('PortalDropdown', () => {
   it('associates its trigger with described error text', () => {
     render(<PortalDropdown ariaLabel="Register book" options={options} value="document" onChange={vi.fn()} ariaDescribedBy="book-error" />);
 
-    expect(screen.getByRole('button', { name: 'Register book' }).getAttribute('aria-describedby')).toBe('book-error');
+    expect(screen.getByRole('combobox', { name: 'Register book' }).getAttribute('aria-describedby')).toBe('book-error');
   });
 
   it('selects an option, closes, and returns focus to its trigger', () => {
     const onChange = vi.fn();
     render(<PortalDropdown ariaLabel="Report scope" options={options} value="document" onChange={onChange} />);
 
-    const trigger = screen.getByRole('button', { name: 'Report scope' });
+    const trigger = screen.getByRole('combobox', { name: 'Report scope' });
     fireEvent.click(trigger);
     expect(screen.getByRole('listbox', { name: 'Report scope' })).toBeTruthy();
     expect(screen.getByRole('option', { name: 'Document reports' }).getAttribute('aria-selected')).toBe('true');
@@ -36,7 +36,7 @@ describe('PortalDropdown', () => {
     const onChange = vi.fn();
     render(<PortalDropdown ariaLabel="Report scope" options={options} value="document" onChange={onChange} />);
 
-    const trigger = screen.getByRole('button', { name: 'Report scope' });
+    const trigger = screen.getByRole('combobox', { name: 'Report scope' });
     fireEvent.keyDown(trigger, { key: 'ArrowDown' });
     fireEvent.keyDown(trigger, { key: 'Enter' });
 

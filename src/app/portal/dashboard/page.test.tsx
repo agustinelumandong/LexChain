@@ -110,7 +110,7 @@ describe('DashboardPage', () => {
 
     expect(screen.getByRole('heading', { name: 'Document Portal' })).toBeTruthy();
     expect(screen.getByText('Welcome to the Document Portal')).toBeTruthy();
-    expect(screen.getByText('Browse shared documents, manage invitations, and request e-copies from the navigation menu.')).toBeTruthy();
+    expect(screen.getByText('Browse shared documents and manage invitations from the navigation menu.')).toBeTruthy();
     expect(useQuery).not.toHaveBeenCalledWith(expect.objectContaining({ queryKey: ['portal-profile'] }));
   });
 
@@ -127,7 +127,7 @@ describe('DashboardPage', () => {
     expect(screen.getByText('No action required. All documents are progressing normally.')).toBeTruthy();
   });
 
-  it('hides the lawyer metric while rendering the other administrator dashboard values', () => {
+  it('hides the lawyer metric while rendering the other dashboard values', () => {
     queryState.adminDashboard = {
       total_users: 120,
       total_lawyers: 25,
@@ -166,7 +166,7 @@ describe('DashboardPage', () => {
     expect(screen.queryByText('Unavailable')).toBeNull();
   });
 
-  it('shows a loading state while administrator metrics are being fetched', () => {
+  it('shows a loading state while dashboard metrics are being fetched', () => {
     queryState.adminDashboardLoading = true;
 
     renderDashboard();
@@ -194,7 +194,7 @@ describe('DashboardPage', () => {
 
     renderDashboard();
 
-    expect(screen.getByText('We could not load administrator dashboard metrics.')).toBeTruthy();
+    expect(screen.getByText('We could not load dashboard metrics.')).toBeTruthy();
     expect(screen.getAllByText('Unavailable')).toHaveLength(6);
     fireEvent.click(screen.getByRole('button', { name: 'Retry dashboard metrics' }));
     expect(queryState.adminDashboardRefetch).toHaveBeenCalledOnce();

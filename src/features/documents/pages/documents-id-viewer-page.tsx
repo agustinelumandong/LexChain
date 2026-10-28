@@ -12,7 +12,7 @@ import { signedCopyFileUrl } from '@/features/documents/document-lifecycle-api';
 
 const PdfDocumentViewer = dynamic(() => import('@/features/documents/components/pdf-document-viewer'), {
   ssr: false,
-  loading: () => <p className="text-sm font-medium text-[#64748b]">Loading PDF viewer…</p>,
+  loading: () => <p className="text-sm font-medium text-[#5B6F8A]">Loading PDF viewer…</p>,
 });
 
 type DocumentResponse = ApiSchema<'DocumentResponse'>;

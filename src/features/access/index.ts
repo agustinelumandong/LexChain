@@ -1,4 +1,4 @@
-export { getPortalUiRole, getPortalProfileRequestShortcut, getPortalRoleLabel, getPortalLoginRedirect, isSupportedPortalUiRole } from "./portal-role";
+export { getPortalUiRole, getPortalRoleLabel, getPortalLoginRedirect, isSupportedPortalUiRole } from "./portal-role";
 export { validateParticipantInvitation, isParticipantAccessCapabilityError } from "./participant-access";
 export type { PortalUserProfile, PortalAuditLog, PortalSearchHit } from "./portal-compat-types";
 export type { PortalUiRole } from "./portal-role";

@@ -85,7 +85,7 @@ function formatDate(iso?: string | null) {
 function DocumentIconBadge() {
   return (
     <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-[#EAF3FF]">
-      <DescriptionIcon aria-hidden="true" sx={{ fontSize: 18, color: '#0985E7' }} />
+      <DescriptionIcon aria-hidden="true" sx={{ fontSize: 18, color: '#0067B3' }} />
     </span>
   );
 }
@@ -151,7 +151,7 @@ function NeedsAttention({ docs }: { docs: Document[] }) {
                 <div className="min-w-0 flex-1">
                   <div className="flex min-w-0 items-center gap-1.5">
                     <DocumentIconBadge />
-                    <Link href={`/portal/documents/${document.id}`} aria-label={document.file_name} className="flex h-11 w-full min-w-0 max-w-full items-center rounded-sm text-sm font-bold text-[#071B33] after:absolute after:inset-0 after:content-[''] focus-visible:after:ring-2 focus-visible:after:ring-inset focus-visible:after:ring-[#0985E7]">
+                    <Link href={`/portal/documents/${document.id}`} aria-label={document.file_name} className="flex h-11 w-full min-w-0 max-w-full items-center rounded-sm text-sm font-bold text-[#071B33] after:absolute after:inset-0 after:content-[''] focus-visible:after:ring-2 focus-visible:after:ring-inset focus-visible:after:ring-[#0067B3]">
                       <span className="block w-full min-w-0 truncate">{displayName}</span>
                     </Link>
                   </div>
@@ -173,7 +173,7 @@ function NeedsAttention({ docs }: { docs: Document[] }) {
 }
 
 function StatusDistribution({ docs }: { docs: Document[] }) {
-  const colors = ["#0879D8", "#59C878", "#9B6AF3", "#F6B52E", "#22C7D8", "#EF4444"];
+  const colors = ["#0067B3", "#59C878", "#9B6AF3", "#F6B52E", "#22C7D8", "#EF4444"];
   const lifecycleCounts = new Map<string, number>();
   for (const document of docs) {
     const label = getDocumentLifecycleLabel(document.lifecycle);
@@ -204,7 +204,7 @@ function StatusDistribution({ docs }: { docs: Document[] }) {
         <div className="relative mx-auto size-32 rounded-full" style={{ background: total ? `conic-gradient(${gradient})` : 'conic-gradient(#E4EEF9 0% 100%)' }}>
           <div className="absolute inset-5 flex flex-col items-center justify-center rounded-full bg-white text-center">
             <strong className="text-2xl font-black tabular-nums text-[#071B33]">{total}</strong>
-            <span className="text-xs font-semibold text-[#6B7E95]">Total documents</span>
+            <span className="text-xs font-semibold text-[#5B6F8A]">Total documents</span>
           </div>
         </div>
         <div className="space-y-3">
@@ -295,9 +295,9 @@ export default function DocumentsPage() {
       <div className="shrink-0 flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-[28px] font-black text-[#0C2B49]">Documents</h1>
-          <p className="mt-1 text-sm text-[#64748b]">Manage and review documents in the office repository</p>
+          <p className="mt-1 text-sm text-[#5B6F8A]">Manage and review documents in the office repository</p>
         </div>
-        {isIssuer && <div className="flex flex-wrap gap-2"><button type="button" onClick={() => setShowCreateRecord((open) => !open)} aria-expanded={showCreateRecord} className="rounded-full border border-[#0985E7] px-5 py-2.5 text-sm font-black text-[#0985E7]">Create document draft</button><Link href="/portal/upload" className="inline-flex items-center gap-2 rounded-full bg-[#0985E7] px-5 py-2.5 text-sm font-black text-white"><FileUploadIcon sx={{ fontSize: 16 }} />Upload Document</Link></div>}
+        {isIssuer && <div className="flex flex-wrap gap-2"><button type="button" onClick={() => setShowCreateRecord((open) => !open)} aria-expanded={showCreateRecord} className="rounded-full border border-[#0067B3] px-5 py-2.5 text-sm font-black text-[#0067B3]">Create document draft</button><Link href="/portal/upload" className="inline-flex items-center gap-2 rounded-full bg-[#0067B3] px-5 py-2.5 text-sm font-black text-white"><FileUploadIcon sx={{ fontSize: 16 }} />Upload Document</Link></div>}
       </div>
 
       {isIssuer && showCreateRecord && <CreateDocumentRecordForm onClose={() => setShowCreateRecord(false)} onCreated={(id) => router.push(`/portal/documents/${id}`)} />}
@@ -313,7 +313,7 @@ export default function DocumentsPage() {
               changeOwnership(next);
               document.getElementById(`ownership-${next}`)?.focus();
             }}
-            className={cn('rounded-full border px-4 py-2 text-sm font-black focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0985E7]', ownership === value ? 'border-[#0985E7] bg-[#EAF3FF] text-[#0879D8]' : 'border-[#E4EEF9] text-[#0C2B49]')}
+            className={cn('rounded-full border px-4 py-2 text-sm font-black focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]', ownership === value ? 'border-[#0067B3] bg-[#EAF3FF] text-[#0067B3]' : 'border-[#E4EEF9] text-[#0C2B49]')}
           >{value === 'owned' ? 'My documents' : 'Shared with me'} ({getDocumentsByOwnership(allDocuments, value).length})</button>
         ))}
       </div>}
@@ -321,12 +321,12 @@ export default function DocumentsPage() {
       {documentsQuery.isLoading ? (
         <div className="flex flex-col gap-3" aria-label="Loading documents">{[1, 2, 3].map((index) => <div key={index} className="h-[80px] animate-pulse rounded-[18px] border border-[#E8F0F8] bg-white" />)}</div>
       ) : documentsQuery.isError ? (
-        <div role="alert" className="rounded-[18px] border border-[#E8F0F8] bg-white p-8 text-center"><p className="text-sm font-bold text-[#0C2B49]">{documentsErrorMessage(documentsQuery.error)}</p><p className="mt-1 text-xs text-[#64748b]">Check your connection and try again.</p><button type="button" onClick={() => void documentsQuery.refetch()} className="mt-4 rounded-full border border-[#D7E4F2] px-4 py-2 text-sm font-black text-[#0985E7]">Retry</button></div>
+        <div role="alert" className="rounded-[18px] border border-[#E8F0F8] bg-white p-8 text-center"><p className="text-sm font-bold text-[#0C2B49]">{documentsErrorMessage(documentsQuery.error)}</p><p className="mt-1 text-xs text-[#5B6F8A]">Check your connection and try again.</p><button type="button" onClick={() => void documentsQuery.refetch()} className="mt-4 rounded-full border border-[#D7E4F2] px-4 py-2 text-sm font-black text-[#0067B3]">Retry</button></div>
       ) : allDocuments.length === 0 ? (
         <div className="rounded-[18px] border border-[#E8F0F8] bg-white p-8 text-center">
           <p className="text-sm font-bold text-[#0C2B49]">{search || lifecycle !== 'all' ? 'No documents match your search or filter' : 'No documents yet'}</p>
-          <p className="mt-1 text-xs text-[#64748b]">{isIssuer ? 'Upload your first document to get started.' : 'No documents are available yet.'}</p>
-          {isIssuer && <Link href="/portal/upload" className="mt-4 inline-flex rounded-full bg-[#0985E7] px-5 py-2.5 text-sm font-black text-white">Upload Document</Link>}
+          <p className="mt-1 text-xs text-[#5B6F8A]">{isIssuer ? 'Upload your first document to get started.' : 'No documents are available yet.'}</p>
+          {isIssuer && <Link href="/portal/upload" className="mt-4 inline-flex rounded-full bg-[#0067B3] px-5 py-2.5 text-sm font-black text-white">Upload Document</Link>}
         </div>
       ) : (
         <>
@@ -335,10 +335,10 @@ export default function DocumentsPage() {
               <div className="border-b border-[#E4EEF9] p-5">
                 <div className="flex flex-wrap items-center gap-3">
                   <h2 className="mr-auto shrink-0 text-lg font-black text-[#071B33]">Document Directory</h2>
-                  <label className="flex w-full items-center gap-2 rounded-xl border border-[#E4EEF9] bg-white px-4 py-2.5 focus-within:border-[#0985E7] sm:w-72">
+                  <label className="flex w-full items-center gap-2 rounded-xl border border-[#E4EEF9] bg-white px-4 py-2.5 focus-within:border-[#0067B3] sm:w-72">
                     <SearchIcon fontSize="small" className="text-[#4B6382]" />
                     <span className="sr-only">Search documents</span>
-                    <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search documents..." className="w-full bg-transparent text-sm font-semibold text-[#0C2B49] outline-none placeholder:text-[#9AAAC0]" />
+                    <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search documents..." className="w-full bg-transparent text-sm font-semibold text-[#0C2B49] outline-none placeholder:text-[#5B6F8A]" />
                   </label>
                   <div className="[&>div>button]:py-2.5">
                     <Dropdown description="Sort documents" value={sort} onChange={(value) => { setSort(value as DocumentListFilters['sort']); setPage(0); }} options={[{ label: "Newest first", value: "newest" }, { label: "Oldest first", value: "oldest" }, { label: "Name A–Z", value: "title" }]} />
@@ -359,12 +359,12 @@ export default function DocumentsPage() {
                           onChange={(value, context) => { if (context.validationError) return; setCreatedThrough(value?.format('YYYY-MM-DD') ?? ''); setPage(0); }}
                           slotProps={getDatePickerSlotProps('Created through')} />
                       </LocalizationProvider>
-                      <button type="button" onClick={() => { setLifecycle('all'); setCreatedFrom(''); setCreatedThrough(''); setSearch(''); setSort('newest'); setPage(0); }} className="rounded-xl bg-[#EEF4FB] py-2.5 text-[#0879D8] sm:col-span-2">Reset filters</button>
+                      <button type="button" onClick={() => { setLifecycle('all'); setCreatedFrom(''); setCreatedThrough(''); setSearch(''); setSort('newest'); setPage(0); }} className="rounded-xl bg-[#EEF4FB] py-2.5 text-[#0067B3] sm:col-span-2">Reset filters</button>
                     </div>
                   </FilterDetails>
                 </div>
               </div>
-              <div role="region" aria-label="Document directory results" tabIndex={0} className="admin-table-scroll hidden min-h-0 flex-1 overflow-auto focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[#0985E7] min-[1240px]:block">
+              <div role="region" aria-label="Document directory results" tabIndex={0} className="admin-table-scroll hidden min-h-0 flex-1 overflow-auto focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[#0067B3] min-[1240px]:block">
                 <table className="w-full min-w-[920px] text-sm">
                   <caption className="sr-only">Documents in the office repository</caption>
                   <thead>
@@ -382,7 +382,7 @@ export default function DocumentsPage() {
                           <div className="flex min-w-0 items-center gap-2">
                             <DocumentIconBadge />
                             <div className="min-w-0">
-                              <Link href={`/portal/documents/${doc.id}`} className="inline-flex min-h-7 min-w-0 max-w-full items-center truncate rounded-sm font-bold text-[#071B33] after:absolute after:inset-0 after:content-[''] focus-visible:after:ring-2 focus-visible:after:ring-inset focus-visible:after:ring-[#0985E7]">{doc.file_name}</Link>
+                              <Link href={`/portal/documents/${doc.id}`} className="inline-flex min-h-7 min-w-0 max-w-full items-center truncate rounded-sm font-bold text-[#071B33] after:absolute after:inset-0 after:content-[''] focus-visible:after:ring-2 focus-visible:after:ring-inset focus-visible:after:ring-[#0067B3]">{doc.file_name}</Link>
                               <p className="mt-0.5 text-xs font-semibold text-[#5B6F8A]">{doc.doc_no != null ? `Register ${doc.doc_no}${doc.page_no != null ? ` · page ${doc.page_no}` : ''}` : 'Register entry unavailable'}</p>
                             </div>
                           </div>
@@ -401,8 +401,8 @@ export default function DocumentsPage() {
                     <div className="flex gap-3">
                       <DocumentIconBadge />
                       <div className="min-w-0 flex-1">
-                        <Link href={`/portal/documents/${document.id}`} className="inline-flex min-h-11 max-w-full items-center truncate rounded-sm text-sm font-bold text-[#071B33] after:absolute after:inset-0 after:content-[''] focus-visible:after:ring-2 focus-visible:after:ring-inset focus-visible:after:ring-[#0985E7]">{document.file_name}</Link>
-                        <p className="mt-1 text-xs text-[#64748b]">{document.doc_no != null ? `Register ${document.doc_no}${document.page_no != null ? ` · page ${document.page_no}` : ''}` : 'Register entry unavailable'} · Created {formatDate(document.created_at)}</p>
+                        <Link href={`/portal/documents/${document.id}`} className="inline-flex min-h-11 max-w-full items-center truncate rounded-sm text-sm font-bold text-[#071B33] after:absolute after:inset-0 after:content-[''] focus-visible:after:ring-2 focus-visible:after:ring-inset focus-visible:after:ring-[#0067B3]">{document.file_name}</Link>
+                        <p className="mt-1 text-xs text-[#5B6F8A]">{document.doc_no != null ? `Register ${document.doc_no}${document.page_no != null ? ` · page ${document.page_no}` : ''}` : 'Register entry unavailable'} · Created {formatDate(document.created_at)}</p>
                         <div className="mt-1"><OnChainBadge onChain={document.on_chain} label={document.on_chain ? 'Recorded on-chain' : 'Not recorded on-chain'} /></div>
                         <div className="mt-2"><DocumentBadges document={document} /></div>
                       </div>
@@ -413,7 +413,7 @@ export default function DocumentsPage() {
               {pagedDocs.length === 0 && (
                 <div className="px-5 py-6 text-center text-sm font-semibold text-[#5B6F8A]">
                   <p>{documents.length === 0 ? `No documents in ${ownershipLabel} yet` : `No matching documents in ${ownershipLabel}`}</p>
-                  {search.trim() && <button type="button" onClick={() => { setSearch(''); setPage(0); }} className="mt-4 min-h-11 rounded-full border border-[#D7E4F2] px-4 text-sm font-black text-[#0985E7] hover:bg-[#EEF4FB] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0985E7]">Clear search</button>}
+                  {search.trim() && <button type="button" onClick={() => { setSearch(''); setPage(0); }} className="mt-4 min-h-11 rounded-full border border-[#D7E4F2] px-4 text-sm font-black text-[#0067B3] hover:bg-[#EEF4FB] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]">Clear search</button>}
                 </div>
               )}
               <div className="flex shrink-0 flex-col gap-3 border-t border-[#E4EEF9] px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
@@ -423,7 +423,7 @@ export default function DocumentsPage() {
                     <ChevronLeftIcon fontSize="small" />
                   </button>
                   {[...Array(Math.min(3, totalPages))].map((_, index) => (
-                    <button key={index} type="button" onClick={() => setPage(index)} className={cn("size-9 rounded-lg border text-sm font-black transition", safePage === index ? "border-[#0985E7] bg-[#EAF3FF] text-[#0879D8]" : "border-[#E4EEF9] text-[#0C2B49] hover:bg-[#EEF4FB]")}>{index + 1}</button>
+                    <button key={index} type="button" onClick={() => setPage(index)} className={cn("size-9 rounded-lg border text-sm font-black transition", safePage === index ? "border-[#0067B3] bg-[#EAF3FF] text-[#0067B3]" : "border-[#E4EEF9] text-[#0C2B49] hover:bg-[#EEF4FB]")}>{index + 1}</button>
                   ))}
                   {totalPages > 3 && <span className="px-2 text-sm font-black text-[#5B6F8A]">...</span>}
                   <button type="button" onClick={() => setPage((value) => Math.min(totalPages - 1, value + 1))} disabled={safePage >= totalPages - 1} aria-label="Next page" className="rounded-lg border border-[#E4EEF9] p-2 text-[#4B6382] transition hover:bg-[#EEF4FB] disabled:opacity-35">

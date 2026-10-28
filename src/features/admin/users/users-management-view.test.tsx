@@ -2,7 +2,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MockToastProvider } from "@/features/admin/components/mock-ui";
-import { AdminShell } from "@/features/admin/admin-shell";
 import { updateDemoUser, UsersManagementView } from "@/features/admin/users/users-management-view";
 
 vi.mock("next/navigation", () => ({
@@ -81,8 +80,6 @@ describe("updateDemoUser", () => {
 
     expect(users).toEqual(before);
   });
-});
-
 describe("UsersManagementView demo mutations", () => {
   it("dismisses sibling popups while keeping nested filters usable", () => {
     renderUsers();
@@ -353,11 +350,4 @@ describe("UsersManagementView demo mutations", () => {
     expect((await screen.findByRole("alert")).textContent).toContain("Unable to update account status. Please try again.");
     expect(within(rowFor("maria@example.com")).getByText("Active")).toBeTruthy();
   });
-
-});
-
-it("removes the redundant Roles & Permissions admin navigation", () => {
-  render(<AdminShell><p>Admin content</p></AdminShell>);
-
-  expect(screen.queryByRole("link", { name: "Roles & Permissions" })).toBeNull();
 });

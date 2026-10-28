@@ -23,7 +23,7 @@ export default function DocumentVerifyPage() {
   return (
     <div className="flex w-full min-w-0 flex-col gap-5 overflow-x-hidden md:h-[calc(100dvh-7rem)] md:overflow-hidden">
       <header>
-        <Link href={`/portal/documents/${id}`} className="text-sm font-bold text-[#0C2B49] hover:text-[#0985E7]">← Back to document</Link>
+        <Link href={`/portal/documents/${id}`} className="text-sm font-bold text-[#0C2B49] hover:text-[#0067B3]">← Back to document</Link>
         <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
           <h1 className="text-[28px] font-black text-[#0C2B49]">Check this document</h1>
           {canOfferRestore && (
@@ -31,11 +31,11 @@ export default function DocumentVerifyPage() {
               type="button"
               disabled
               aria-label="Restore from backup, coming soon"
-              className="inline-flex cursor-not-allowed items-center gap-2 rounded-full border border-[#D7E4F2] bg-white px-4 py-2.5 text-sm font-black text-[#64748b]"
+              className="inline-flex cursor-not-allowed items-center gap-2 rounded-full border border-[#D7E4F2] bg-white px-4 py-2.5 text-sm font-black text-[#5B6F8A]"
             >
               <RestoreIcon aria-hidden="true" sx={{ fontSize: 18 }} />
               Restore from backup
-              <span className="rounded-full bg-[#F1F5F9] px-2 py-1 text-[10px] font-black uppercase tracking-wide text-[#64748b]">Coming soon</span>
+              <span className="rounded-full bg-[#F1F5F9] px-2 py-1 text-[10px] font-black uppercase tracking-wide text-[#5B6F8A]">Coming soon</span>
             </button>
           )}
         </div>
@@ -50,7 +50,7 @@ export default function DocumentVerifyPage() {
           <p className="text-sm text-[#4B6382]">
             {isNotFoundOrUnanchored ? 'We could not find this document or its saved blockchain record.' : verifyQuery.error instanceof Error ? verifyQuery.error.message : 'Please try again.'}
           </p>
-          {!isNotFoundOrUnanchored && <button type="button" onClick={() => void verifyQuery.refetch()} className="rounded-full border border-[#0985E7] px-5 py-3 text-sm font-black text-[#0985E7]">
+          {!isNotFoundOrUnanchored && <button type="button" onClick={() => void verifyQuery.refetch()} className="rounded-full border border-[#0067B3] px-5 py-3 text-sm font-black text-[#0067B3]">
             Try again
           </button>}
         </div>
@@ -75,7 +75,7 @@ function VerifySkeleton() {
         className="absolute inset-0 z-10 flex items-center justify-center rounded-[18px] bg-[#F5FAFF]/60 backdrop-blur-[2px]"
       >
         <div className="flex items-center gap-3 rounded-full border border-[#D7E4F2] bg-white px-6 py-4 shadow-[0_10px_24px_rgba(12,43,73,0.1)]">
-          <span className="h-5 w-5 animate-spin rounded-full border-2 border-[#D7E4F2] border-t-[#0985E7]" />
+          <span className="h-5 w-5 animate-spin rounded-full border-2 border-[#D7E4F2] border-t-[#0067B3]" />
           <p className="text-sm font-black text-[#0C2B49]">
             Checking this document against its saved version…
           </p>

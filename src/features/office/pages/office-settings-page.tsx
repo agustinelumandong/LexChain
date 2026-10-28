@@ -47,7 +47,7 @@ export default function OfficeSettingsPage() {
   const profileQuery = useQuery<UserProfile | null>({ queryKey: ['portal-profile'], queryFn: fetchProfile });
 
   if (profileQuery.isLoading) {
-    return <p className="py-10 text-sm font-semibold text-[#64748b]">Loading office settings access…</p>;
+    return <p className="py-10 text-sm font-semibold text-[#5B6F8A]">Loading office settings access…</p>;
   }
 
   if (profileQuery.isError && !profileQuery.data) {
@@ -55,7 +55,7 @@ export default function OfficeSettingsPage() {
   }
 
   if (getPortalUiRole(profileQuery.data?.role) !== 'lawyer') {
-    return <p className="text-sm font-semibold text-[#64748b]">Office Settings are available to Lawyers only.</p>;
+    return <p className="text-sm font-semibold text-[#5B6F8A]">Office Settings are available to Lawyers only.</p>;
   }
 
   return <OfficeSettingsForm />;
@@ -95,12 +95,12 @@ function OfficeSettingsForm() {
   return (
     <div className="flex max-w-3xl flex-col gap-5">
       <header>
-        <p className="text-xs font-black uppercase tracking-[0.12em] text-[#0985E7]">Lawyer workspace</p>
+        <p className="text-xs font-black uppercase tracking-[0.12em] text-[#0067B3]">Lawyer workspace</p>
         <h1 className="mt-1 text-[28px] font-black text-[#0C2B49]">Office Settings</h1>
-        <p className="mt-1 text-sm text-[#64748b]">Set local defaults for invitations, uploads, and office sessions.</p>
+        <p className="mt-1 text-sm text-[#5B6F8A]">Set local defaults for invitations, uploads, and office sessions.</p>
       </header>
 
-      <p className="rounded-[18px] border border-[#E8F0F8] bg-[#F8FBFF] p-4 text-sm font-semibold text-[#64748b]">
+      <p className="rounded-[18px] border border-[#E8F0F8] bg-[#F8FBFF] p-4 text-sm font-semibold text-[#5B6F8A]">
         Demo data — changes reset when this page is refreshed.
       </p>
 
@@ -121,7 +121,7 @@ function OfficeSettingsForm() {
             return (
               <div key={key}>
                 <label htmlFor={inputId} className="block text-sm font-black text-[#0C2B49]">{label}</label>
-                <p className="mt-1 text-sm text-[#64748b]">{description}</p>
+                <p className="mt-1 text-sm text-[#5B6F8A]">{description}</p>
                 <div className="mt-3 flex max-w-xs items-center gap-3">
                   <input
                     id={inputId}
@@ -133,9 +133,9 @@ function OfficeSettingsForm() {
                     onChange={(event) => updateSetting(key, event.target.value)}
                     aria-invalid={Boolean(error)}
                     aria-describedby={error ? errorId : undefined}
-                    className="w-28 rounded-xl border border-[#D7E4F2] px-3 py-2 text-sm font-bold text-[#0C2B49] outline-none transition focus:border-[#0985E7] focus:ring-2 focus:ring-[#B9DDF9]"
+                    className="w-28 rounded-xl border border-[#D7E4F2] px-3 py-2 text-sm font-bold text-[#0C2B49] outline-none transition focus:border-[#0067B3] focus:ring-2 focus:ring-[#B9DDF9]"
                   />
-                  <span className="text-sm font-semibold text-[#64748b]">{range.unit}</span>
+                  <span className="text-sm font-semibold text-[#5B6F8A]">{range.unit}</span>
                 </div>
                 {error ? <p id={errorId} className="mt-2 text-sm font-semibold text-[#C53030]">{error}</p> : null}
               </div>
@@ -147,18 +147,18 @@ function OfficeSettingsForm() {
           <button
             type="submit"
             disabled={!isDirty || hasErrors}
-            className="rounded-full bg-[#0985E7] px-5 py-2.5 text-sm font-black text-white transition hover:bg-[#0770c4] disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-full bg-[#0067B3] px-5 py-2.5 text-sm font-black text-white transition hover:bg-[#005F9E] disabled:cursor-not-allowed disabled:opacity-50"
           >
             Save settings
           </button>
           <button
             type="button"
             onClick={handleCancel}
-            className="rounded-full border border-[#D7E4F2] bg-white px-5 py-2.5 text-sm font-black text-[#0C2B49] transition hover:border-[#0985E7] disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-full border border-[#D7E4F2] bg-white px-5 py-2.5 text-sm font-black text-[#0C2B49] transition hover:border-[#0067B3] disabled:cursor-not-allowed disabled:opacity-50"
           >
             Cancel
           </button>
-          {isDirty && !hasErrors ? <p role="status" className="text-sm font-semibold text-[#B77900]">Unsaved changes</p> : null}
+          {isDirty && !hasErrors ? <p role="status" className="text-sm font-semibold text-[#8A5B00]">Unsaved changes</p> : null}
         </div>
       </form>
     </div>

@@ -72,11 +72,11 @@ export default function PortalLayout({ children, demoMode }: { children: React.R
       <main className="flex min-h-screen items-center justify-center bg-[#F5FAFF] p-6 text-[#0C2B49]">
         <section className="w-full max-w-md rounded-2xl border border-[#E4EEF9] bg-white p-6 text-center shadow-sm">
           <h1 className="text-xl font-black">Portal access unavailable</h1>
-          <p className="mt-2 text-sm font-semibold text-[#64748b]">Your account does not have a supported portal role.</p>
+          <p className="mt-2 text-sm font-semibold text-[#5B6F8A]">Your account does not have a supported portal role.</p>
           <button
             type="button"
             onClick={handleLogout}
-            className="mt-5 rounded-full bg-[#0985E7] px-5 py-2.5 text-sm font-black text-white transition hover:bg-[#0770c4]"
+            className="mt-5 rounded-full bg-[#0067B3] px-5 py-2.5 text-sm font-black text-white transition hover:bg-[#005F9E]"
           >
             Sign out
           </button>
@@ -100,7 +100,7 @@ export default function PortalLayout({ children, demoMode }: { children: React.R
             type="button"
             onClick={() => setCollapsed(!collapsed)}
             aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-            className="absolute -right-3 top-7 z-10 flex h-6 w-6 cursor-pointer items-center justify-center rounded-full border border-[#E8F0F8] bg-white text-[#64748b] shadow-sm transition hover:bg-[#EEF4FB] hover:text-[#0C2B49]"
+            className="absolute -right-3 top-7 z-10 flex h-6 w-6 cursor-pointer items-center justify-center rounded-full border border-[#E8F0F8] bg-white text-[#5B6F8A] shadow-sm transition hover:bg-[#EEF4FB] hover:text-[#0C2B49]"
           >
             {collapsed ? <MenuIcon style={{ fontSize: 14 }} /> : <ChevronLeftIcon style={{ fontSize: 14 }} />}
           </button>
@@ -111,7 +111,7 @@ export default function PortalLayout({ children, demoMode }: { children: React.R
               <Image src="/lexchain/logo-lexchain.svg" alt="LexChain" width={44} height={44} className="rounded-[14px]" />
               {!collapsed && (
                 <div>
-                  <p className="text-[25px] font-black leading-8">Lex<span className="text-[#0985E7]">Chain</span></p>
+                  <p className="text-[25px] font-black leading-8">Lex<span className="text-[#0067B3]">Chain</span></p>
                 </div>
               )}
             </Link>
@@ -121,7 +121,7 @@ export default function PortalLayout({ children, demoMode }: { children: React.R
           <nav className="flex flex-1 flex-col gap-4 overflow-y-auto">
             {portalNavigationGroups.map((group) => (
               <section key={group.label} aria-label={group.label}>
-                {!collapsed && <p className="px-3 pb-1 text-[10px] font-black uppercase tracking-[0.12em] text-[#A0AAB8]">{group.label}</p>}
+                {!collapsed && <p className="px-3 pb-1 text-[10px] font-black uppercase tracking-[0.12em] text-[#5B6F8A]">{group.label}</p>}
                 <div className="flex flex-col gap-0.5">
                   {group.items.map((link) => {
                     const isActive = isPortalRouteActive(pathname, link);
@@ -132,7 +132,7 @@ export default function PortalLayout({ children, demoMode }: { children: React.R
                           "flex min-h-11 items-center gap-3.5 rounded-xl py-2 text-[13px] font-black leading-4",
                           collapsed ? "justify-center px-2" : "pl-[22px] pr-3",
                           isActive
-                            ? "bg-[#0985E7]/15 text-[#0C2B49]"
+                            ? "bg-[#0067B3]/15 text-[#0C2B49]"
                             : "text-[#111827] transition hover:bg-[#F5FAFF]",
                         ].join(" ")}
                         href={link.href}
@@ -141,12 +141,12 @@ export default function PortalLayout({ children, demoMode }: { children: React.R
                         aria-label={link.label}
                         title={collapsed ? link.label : undefined}
                       >
-                        <span className={isActive ? "text-[#0985E7]" : "text-[#64748b]"}>
+                        <span className={isActive ? "text-[#0067B3]" : "text-[#5B6F8A]"}>
                           <Icon fontSize="small" />
                         </span>
                         {!collapsed && <span className="flex-1">{link.label}</span>}
                         {!collapsed && (
-                          <span className={["h-6 w-[5px] rounded-full", isActive ? "bg-[#0985E7]" : "bg-transparent"].join(" ")} />
+                          <span className={["h-6 w-[5px] rounded-full", isActive ? "bg-[#0067B3]" : "bg-transparent"].join(" ")} />
                         )}
                       </Link>
                     );

@@ -62,7 +62,7 @@ export default function BooksPage() {
     return (
       <section className={`${cardClass} max-w-xl p-6`}>
         <h1 className="text-xl font-black text-[#0C2B49]">Books unavailable</h1>
-        <p className="mt-2 text-sm text-[#64748b]">Register books are available to Lawyers only.</p>
+        <p className="mt-2 text-sm text-[#5B6F8A]">Register books are available to Lawyers only.</p>
       </section>
     );
   }
@@ -74,11 +74,11 @@ export default function BooksPage() {
     <div className="flex w-full flex-col gap-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="text-xs font-black tracking-[0.16em] text-[#0985E7]">OFFICE REGISTERS</p>
+          <p className="text-xs font-black tracking-[0.16em] text-[#0067B3]">OFFICE REGISTERS</p>
           <h1 className="mt-1 text-[28px] font-black text-[#0C2B49]">Register books</h1>
-          <p className="mt-1 text-sm font-medium text-[#64748b]">Browse physical volumes and the documents recorded in each one.</p>
+          <p className="mt-1 text-sm font-medium text-[#5B6F8A]">Browse physical volumes and the documents recorded in each one.</p>
         </div>
-        <button type="button" onClick={() => setIsRegistering(true)} className="flex min-h-11 items-center gap-2 rounded-full bg-[#0985E7] px-5 py-2.5 text-sm font-black text-white transition hover:bg-[#0770c4] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0985E7]">
+        <button type="button" onClick={() => setIsRegistering(true)} className="flex min-h-11 items-center gap-2 rounded-full bg-[#0067B3] px-5 py-2.5 text-sm font-black text-white transition hover:bg-[#005F9E] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]">
           <AddIcon sx={{ fontSize: 18 }} />
           Register book
         </button>
@@ -86,13 +86,13 @@ export default function BooksPage() {
 
       <Modal open={isRegistering} onClose={() => setIsRegistering(false)} title="Register a book">
         <form onSubmit={handleRegister}>
-          <p className="text-sm text-[#64748b]">Add a physical register volume before uploading documents.</p>
+          <p className="text-sm text-[#5B6F8A]">Add a physical register volume before uploading documents.</p>
           <div className="mt-5 grid gap-4 sm:grid-cols-2">
             <label className="flex flex-col gap-1.5 text-sm font-bold text-[#0C2B49]">Book number
-              <input required min="1" max="1000" inputMode="numeric" type="number" value={bookNumber} onChange={(event) => setBookNumber(event.target.value)} className="rounded-xl border border-[#D7E4F2] px-3 py-2.5 text-sm font-medium outline-none focus:border-[#0985E7]" placeholder="1" />
+              <input required min="1" max="1000" inputMode="numeric" type="number" value={bookNumber} onChange={(event) => setBookNumber(event.target.value)} className="rounded-xl border border-[#D7E4F2] px-3 py-2.5 text-sm font-medium outline-none focus:border-[#0067B3]" placeholder="1" />
             </label>
             <label className="flex flex-col gap-1.5 text-sm font-bold text-[#0C2B49]">Series year
-              <input required min="2000" inputMode="numeric" type="number" value={seriesYear} onChange={(event) => setSeriesYear(event.target.value)} className="rounded-xl border border-[#D7E4F2] px-3 py-2.5 text-sm font-medium outline-none focus:border-[#0985E7]" />
+              <input required min="2000" inputMode="numeric" type="number" value={seriesYear} onChange={(event) => setSeriesYear(event.target.value)} className="rounded-xl border border-[#D7E4F2] px-3 py-2.5 text-sm font-medium outline-none focus:border-[#0067B3]" />
             </label>
             <div className="flex flex-col gap-1.5 text-sm font-bold text-[#0C2B49] sm:col-span-2">
               <span>Book status</span>
@@ -104,11 +104,11 @@ export default function BooksPage() {
               />
             </div>
           </div>
-          {bookStatus === 'CLOSED' && <p className="mt-3 text-sm text-[#64748b]">When filing into a migrated book, use the document and page numbers from its paper register.</p>}
-          {error && <p role="alert" className="mt-3 text-sm font-bold text-red-600">{error}</p>}
+          {bookStatus === 'CLOSED' && <p className="mt-3 text-sm text-[#5B6F8A]">When filing into a migrated book, use the document and page numbers from its paper register.</p>}
+          {error && <p role="alert" className="mt-3 text-sm font-bold text-red-700">{error}</p>}
           <div className="mt-5 flex justify-end gap-2">
             <button type="button" onClick={() => setIsRegistering(false)} className="min-h-11 rounded-full border border-[#D7E4F2] px-5 py-2.5 text-sm font-bold text-[#0C2B49]">Cancel</button>
-            <button disabled={!canSubmit || createBookMutation.isPending} className="min-h-11 rounded-full bg-[#0985E7] px-5 py-2.5 text-sm font-black text-white transition hover:bg-[#0770c4] disabled:opacity-40">
+            <button disabled={!canSubmit || createBookMutation.isPending} className="min-h-11 rounded-full bg-[#0067B3] px-5 py-2.5 text-sm font-black text-white transition hover:bg-[#005F9E] disabled:opacity-40">
               {createBookMutation.isPending ? 'Registering…' : 'Register book'}
             </button>
           </div>
@@ -116,25 +116,25 @@ export default function BooksPage() {
       </Modal>
 
       {booksQuery.isLoading ? (
-        <div role="status" className={`${cardClass} p-8 text-center text-sm font-semibold text-[#64748b]`}>Loading books…</div>
+        <div role="status" className={`${cardClass} p-8 text-center text-sm font-semibold text-[#5B6F8A]`}>Loading books…</div>
       ) : booksQuery.isError ? (
         <div className={`${cardClass} p-8 text-center`}>
           <p className="text-sm font-bold text-[#0C2B49]">Unable to load books</p>
-          <p className="mt-1 text-sm text-[#64748b]">Please try again.</p>
-          <button type="button" onClick={() => void booksQuery.refetch()} className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-full border border-[#D7E4F2] px-4 py-2 text-sm font-black text-[#0985E7] hover:bg-[#EEF6FF] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0985E7]"><RefreshIcon sx={{ fontSize: 17 }} />Retry</button>
+          <p className="mt-1 text-sm text-[#5B6F8A]">Please try again.</p>
+          <button type="button" onClick={() => void booksQuery.refetch()} className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-full border border-[#D7E4F2] px-4 py-2 text-sm font-black text-[#0067B3] hover:bg-[#EEF6FF] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]"><RefreshIcon sx={{ fontSize: 17 }} />Retry</button>
         </div>
       ) : books.length === 0 ? (
         <div className={`${cardClass} p-10 text-center`}>
-          <MenuBookIcon sx={{ fontSize: 42, color: '#0985E7' }} />
+          <MenuBookIcon sx={{ fontSize: 42, color: '#0067B3' }} />
           <h2 className="mt-3 text-lg font-black text-[#0C2B49]">No register books yet</h2>
-          <p className="mx-auto mt-2 max-w-md text-sm text-[#64748b]">Register a book before uploading a document, so it can be recorded in the correct physical volume.</p>
-          <button type="button" onClick={() => setIsRegistering(true)} className="mt-5 min-h-11 rounded-full bg-[#0985E7] px-5 py-2.5 text-sm font-black text-white transition hover:bg-[#0770c4]">Register book</button>
+          <p className="mx-auto mt-2 max-w-md text-sm text-[#5B6F8A]">Register a book before uploading a document, so it can be recorded in the correct physical volume.</p>
+          <button type="button" onClick={() => setIsRegistering(true)} className="mt-5 min-h-11 rounded-full bg-[#0067B3] px-5 py-2.5 text-sm font-black text-white transition hover:bg-[#005F9E]">Register book</button>
         </div>
       ) : (
         <section aria-label="Register book shelf">
           <div className="mb-3 flex items-center justify-between gap-3">
             <h2 className="text-sm font-black uppercase tracking-[0.12em] text-[#4B6382]">Volumes</h2>
-            <p className="text-xs font-semibold text-[#64748b]">{books.length} {books.length === 1 ? 'book' : 'books'}</p>
+            <p className="text-xs font-semibold text-[#5B6F8A]">{books.length} {books.length === 1 ? 'book' : 'books'}</p>
           </div>
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
             {books.map((book) => {
@@ -143,17 +143,17 @@ export default function BooksPage() {
                 <Link
                   key={book.id}
                   href={`/portal/books/${book.id}`}
-                  className="group block h-full rounded-[18px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#0985E7]"
+                  className="group block h-full rounded-[18px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#0067B3]"
                 >
                   <article className="relative flex h-full min-h-[272px] flex-col overflow-hidden rounded-xl border border-[#D7E4F2] border-l-4 border-l-[#0673C4] bg-[#F4F8FC] p-5 transition-colors duration-150 group-hover:border-[#A9CCE9] group-hover:border-l-[#0673C4] group-hover:bg-[#EEF6FF] sm:p-6">
                     <div className="flex h-full flex-col">
                       <div className="flex items-start justify-between gap-3">
                         <p className="text-xs font-black uppercase tracking-[0.14em] text-[#4B6382]">Office register</p>
-                        <span className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-black ${book.status === 'CLOSED' ? 'bg-[#EEF4FB] text-[#4B6382]' : book.status === 'OPEN' ? 'bg-[#EAF8F0] text-[#12A150]' : 'bg-[#F1F5F9] text-[#64748b]'}`}>{statusLabel}</span>
+                        <span className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-black ${book.status === 'CLOSED' ? 'bg-[#EEF4FB] text-[#4B6382]' : book.status === 'OPEN' ? 'bg-[#EAF8F0] text-[#166534]' : 'bg-[#F1F5F9] text-[#5B6F8A]'}`}>{statusLabel}</span>
                       </div>
                       <div className="mt-2">
                         <h3 className="text-xl font-black leading-tight text-[#0C2B49]">Book {book.book_number}</h3>
-                        <p className="mt-1 text-sm font-medium text-[#64748b]">Series {book.series_year}</p>
+                        <p className="mt-1 text-sm font-medium text-[#5B6F8A]">Series {book.series_year}</p>
                       </div>
                       <div className="mt-5 border-t border-[#D7E4F2] pt-4">
                         <p className="text-xs font-black uppercase tracking-[0.12em] text-[#4B6382]">Volume details</p>
@@ -161,7 +161,7 @@ export default function BooksPage() {
                         <p className="mt-1 text-sm text-[#4B6382]"><span className="font-semibold">Last filing:</span> Doc. {book.last_doc_no ?? '—'} · Page {book.last_page_no ?? '—'}</p>
                       </div>
                       <div className="mt-auto pt-5">
-                        <span className="inline-flex min-h-11 items-center gap-2 rounded-full bg-[#0985E7] px-5 py-2.5 text-sm font-black text-white transition-colors group-hover:bg-[#0770c4]">
+                        <span className="inline-flex min-h-11 items-center gap-2 rounded-full bg-[#0067B3] px-5 py-2.5 text-sm font-black text-white transition-colors group-hover:bg-[#005F9E]">
                           Open book
                           <ArrowForwardIcon sx={{ fontSize: 18 }} />
                         </span>

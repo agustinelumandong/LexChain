@@ -37,8 +37,8 @@ export default async function InvitePage({ params, searchParams }: InvitePagePro
             width={44}
           />
           <div>
-            <p className="text-sm font-black uppercase text-[#0985E7]">LexChain</p>
-            <p className="text-xs font-black uppercase tracking-[0.14em] text-[#94A3B8]">
+            <p className="text-sm font-black uppercase text-[#0067B3]">LexChain</p>
+            <p className="text-xs font-black uppercase tracking-[0.14em] text-[#5B6F8A]">
               Invitation fallback
             </p>
           </div>
@@ -47,7 +47,7 @@ export default async function InvitePage({ params, searchParams }: InvitePagePro
         <h1 className="mt-7 text-3xl font-black leading-9 text-[#0C2B49]">
           You are invited to LexChain as a Lawyer
         </h1>
-        <p className="mt-3 text-sm font-semibold leading-6 text-[#64748b]">
+        <p className="mt-3 text-sm font-semibold leading-6 text-[#5B6F8A]">
           To continue with this invitation, open the LexChain mobile app. The website option creates a standard account. {inviteEmail
             ? "Your invitation email is prefilled for signup."
             : "Use the email address from your invitation."} Website signup does not accept the invitation or grant access to invited documents.
@@ -55,7 +55,7 @@ export default async function InvitePage({ params, searchParams }: InvitePagePro
 
         <div className="mt-8 grid gap-3 sm:grid-cols-3">
           <a
-            className="rounded-full bg-[#0985E7] px-5 py-3 text-center text-sm font-black text-white shadow-[0_10px_24px_rgba(9,133,231,0.22)] transition hover:bg-[#0770c4]"
+            className="rounded-full bg-[#0067B3] px-5 py-3 text-center text-sm font-black text-white shadow-[0_10px_24px_rgba(9,133,231,0.22)] transition hover:bg-[#005F9E]"
             href={appLink}
           >
             Open in app

@@ -43,7 +43,7 @@ export function InvitationsTable({ invitations }: { invitations: Invitation[] })
             className="w-48"
           />
           <Dropdown
-            icon={<FilterListIcon fontSize="small" className="text-[#64748b]" />}
+            icon={<FilterListIcon fontSize="small" className="text-[#5B6F8A]" />}
             value={statusFilter}
             onChange={setStatusFilter}
             options={[
@@ -69,8 +69,8 @@ export function InvitationsTable({ invitations }: { invitations: Invitation[] })
           { key: "email", label: "Email", render: (inv) => <span className="font-semibold text-[#0C2B49]">{inv.email}</span> },
           { key: "role", label: "Role", render: (inv) => <Badge>{inv.role}</Badge> },
           { key: "status", label: "Status", render: (inv) => <Badge variant={inv.status === "accepted" ? "success" : inv.status === "pending" ? "warning" : "danger"}>{inv.status}</Badge> },
-          { key: "created", label: "Created", render: (inv) => <span className="text-[#64748b]">{new Date(inv.created_at).toLocaleDateString()}</span> },
-          { key: "expires", label: "Expires", render: (inv) => <span className="text-[#64748b]">{new Date(inv.expires_at).toLocaleDateString()}</span> },
+          { key: "created", label: "Created", render: (inv) => <span className="text-[#5B6F8A]">{new Date(inv.created_at).toLocaleDateString()}</span> },
+          { key: "expires", label: "Expires", render: (inv) => <span className="text-[#5B6F8A]">{new Date(inv.expires_at).toLocaleDateString()}</span> },
         ]}
         data={filtered}
         keyExtractor={(inv) => inv.id}

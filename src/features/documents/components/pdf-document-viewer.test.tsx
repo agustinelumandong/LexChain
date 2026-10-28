@@ -172,14 +172,14 @@ describe('PdfDocumentViewer', () => {
     renderViewer({ tamperedBlockIndexes: new Set([4]) });
 
     expect((await screen.findByRole('button', { name: 'Select block 4' })).className)
-      .toContain('border-2 border-[#D94B66]');
+      .toContain('border-2 border-[#B42318]');
   });
 
   it('marks read-only tampered blocks with a red, non-interactive region', async () => {
     renderViewer({ blocks: [{ ...blocks[0], editable: false }], tamperedBlockIndexes: new Set([4]) });
 
     const overlay = await screen.findByRole('region', { name: 'Changed block 4' });
-    expect(overlay.className).toContain('border-2 border-[#D94B66]');
+    expect(overlay.className).toContain('border-2 border-[#B42318]');
     expect(screen.queryByRole('button', { name: 'Select block 4' })).toBeNull();
   });
 
