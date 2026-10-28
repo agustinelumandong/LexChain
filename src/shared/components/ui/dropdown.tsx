@@ -172,8 +172,12 @@ export function Dropdown({
                 id={`${listboxId}-option-${index}`}
                 role="option"
                 aria-selected={index === selectedIndex}
+                onMouseDown={(event) => event.preventDefault()}
                 onMouseEnter={() => setActiveIndex(index)}
-                onClick={() => select(index)}
+                onClick={(event) => {
+                  event.preventDefault();
+                  select(index);
+                }}
                 className={`flex min-h-[var(--control-height-sm)] cursor-pointer items-center justify-between gap-3 rounded-lg px-3 py-2 text-left text-sm font-semibold transition ${
                   index === activeOptionIndex ? 'bg-[var(--surface-soft)] text-[var(--brand-blue)]' : 'text-[var(--text-primary)] hover:bg-[var(--surface-soft)]'
                 }`}
