@@ -111,7 +111,7 @@ export function PortalSearchBar() {
           aria-expanded={open}
           aria-controls="search-results"
           aria-activedescendant={selectedIndex >= 0 ? `search-result-${selectedIndex}` : undefined}
-          className="flex-1 bg-transparent text-[var(--portal-navy)] outline-none placeholder:text-[var(--portal-text-muted)]"
+          className="min-w-0 flex-1 bg-transparent text-[var(--portal-navy)] outline-none placeholder:text-[var(--portal-text-muted)]"
         />
         {loading && <span className="h-4 w-4 animate-spin rounded-full border-2 border-[var(--portal-border-soft)] border-t-[#0985E7]" />}
       </div>

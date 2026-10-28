@@ -47,10 +47,9 @@ export function PortalTopBar({ fullName, initials, roleLabel, role, processingCo
           href="/portal/search?mode=register"
           aria-label="Search by register reference"
           title="Search by register reference"
-          className="inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-[var(--portal-border-soft)] bg-white px-2.5 py-2 text-xs font-bold text-[var(--portal-navy)] transition-colors hover:bg-[var(--portal-surface-soft)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0985E7] sm:px-3"
+          className="inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center gap-1.5 rounded-xl border border-[var(--portal-border-soft)] bg-white px-2.5 py-2 text-xs font-bold text-[var(--portal-navy)] transition-colors hover:bg-[var(--portal-surface-soft)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0985E7] sm:w-auto sm:px-3"
         >
           <MenuBookOutlinedIcon sx={{ fontSize: 17, color: '#0985E7' }} aria-hidden="true" />
-          <span className="sm:hidden">Register</span>
           <span className="hidden sm:inline">Register reference</span>
         </Link>
         {role === 'lawyer' ? (
@@ -70,7 +69,7 @@ export function PortalTopBar({ fullName, initials, roleLabel, role, processingCo
               aria-label="View notifications"
               aria-describedby={unreadCountError ? 'notification-count-error' : undefined}
               aria-expanded={notificationMenuOpen}
-              className="relative flex h-10 w-10 items-center justify-center rounded-full border border-[var(--portal-border-soft)] transition-colors hover:bg-[var(--portal-surface-soft)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0985E7]"
+              className="relative flex h-11 w-11 items-center justify-center rounded-full border border-[var(--portal-border-soft)] transition-colors hover:bg-[var(--portal-surface-soft)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0985E7]"
             >
               <NotificationsNoneOutlinedIcon sx={{ fontSize: 20, color: 'var(--portal-navy)' }} />
               {unreadCountError && <span id="notification-count-error" className="sr-only">Unread count unavailable</span>}

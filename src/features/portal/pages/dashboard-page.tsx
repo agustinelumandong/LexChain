@@ -132,7 +132,7 @@ export default function DashboardPage() {
           <p className="mt-1 text-sm font-medium text-[#64748b]">Your document workspace at a glance.</p>
         </div>
         <div className="flex items-center gap-2 sm:gap-3">
-          <Link href="/portal/upload" className="flex items-center gap-2 rounded-full bg-[#0985E7] px-4 py-2 text-xs font-black text-white transition hover:bg-[#0770c4] sm:px-5 sm:py-2.5 sm:text-sm">
+          <Link href="/portal/upload" aria-label="Upload document" className="flex min-h-11 items-center gap-2 rounded-full bg-[#0985E7] px-4 py-2 text-xs font-black text-white transition hover:bg-[#0770c4] sm:px-5 sm:py-2.5 sm:text-sm">
             <FileUploadIcon sx={{ fontSize: 16 }} />
             <span className="hidden sm:inline">Upload Document</span>
           </Link>
@@ -170,7 +170,7 @@ export default function DashboardPage() {
         </>
       )}
 
-      <div className="grid min-h-0 flex-1 gap-5 overflow-hidden md:grid-cols-[minmax(0,1fr)_360px]">
+      <div className="grid grid-cols-1 min-h-0 flex-1 gap-5 overflow-hidden lg:grid-cols-[minmax(0,1fr)_360px]">
         <section className={`${cardClass} flex min-h-0 flex-col p-5`}>
           <div className="mb-4 flex shrink-0 items-center justify-between"><h2 className="text-base font-black text-[#0C2B49]">Recent documents</h2><Link href="/portal/documents" className="text-xs font-black text-[#0985E7]">View Documents</Link></div>
           {documentsQuery.isLoading ? <p className="py-4 text-center text-sm text-[#64748b]">Loading recent documents…</p> : documentsQuery.isError ? <p className="py-4 text-center text-sm text-[#64748b]">Recent documents will be available once the repository loads.</p> : recentDocuments.length === 0 ? <div className="py-4 text-center"><p className="text-sm font-bold text-[#0C2B49]">No documents yet</p><p className="mt-1 text-xs text-[#64748b]">Upload a document to start your repository.</p><Link href="/portal/upload" className="mt-4 inline-flex rounded-full bg-[#0985E7] px-4 py-2 text-sm font-black text-white">Upload Document</Link></div> : <div className="admin-table-scroll min-h-0 flex-1 overflow-y-auto"><div className="flex flex-col divide-y divide-[#E8F0F8]">{recentDocuments.map((document) => <DocumentLink key={document.id} document={document} />)}</div></div>}
