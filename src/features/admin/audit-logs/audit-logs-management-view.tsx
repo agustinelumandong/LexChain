@@ -2,7 +2,6 @@
 
 import { useMemo, useState } from "react";
 import { usePopup } from "@/shared/components/ui/use-popup";
-import SearchIcon from "@mui/icons-material/Search";
 import FilterListIcon from "@mui/icons-material/FilterList";
 import DownloadIcon from "@mui/icons-material/Download";
 import ArticleIcon from "@mui/icons-material/Article";
@@ -17,6 +16,7 @@ import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import { toast } from "sonner";
 import { Dropdown } from "@/features/admin/components/dropdown";
 import { MockModal, exportMockRows } from "@/features/admin/components/mock-ui";
+import { SearchInput } from "@/shared/components/ui";
 
 type AuditLog = {
   id: string;
@@ -324,16 +324,13 @@ export function AuditLogsManagementView({
           <div className="shrink-0 border-b border-[#E4EEF9] p-5">
             <div className="flex flex-wrap items-center gap-3 [&>div>button]:py-2.5">
               <h2 className="mr-auto shrink-0 text-lg font-black text-[#071B33]">Audit Trail</h2>
-              <label className="flex w-full items-center gap-2 rounded-xl border border-[#E4EEF9] bg-white px-4 py-2.5 focus-within:border-[#0985E7] sm:w-72">
-                <SearchIcon fontSize="small" className="text-[#4B6382]" />
-                <input
-                  aria-label="Search audit trail"
-                  value={tableSearch}
-                  onChange={(event) => { setTableSearch(event.target.value); setPage(0); }}
-                  placeholder="Search audit trail..."
-                  className="w-full bg-transparent text-sm font-semibold text-[#0C2B49] outline-none placeholder:text-[#9AAAC0]"
-                />
-              </label>
+              <SearchInput
+                aria-label="Search audit trail"
+                value={tableSearch}
+                onChange={(event) => { setTableSearch(event.target.value); setPage(0); }}
+                placeholder="Search audit trail..."
+                className="w-full sm:w-72"
+              />
               <Dropdown
                 value={targetFilter}
                 onChange={(value) => { setTargetFilter(value); setPage(0); }}

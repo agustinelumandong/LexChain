@@ -29,6 +29,13 @@
   --border-medium: #D7E4F2;
   --border-focus: #0985E7;
 
+  /* Shared component geometry */
+  --radius-control: 14px;
+  --radius-card: 18px;
+  --control-height-sm: 44px;
+  --control-height-md: 48px;
+  --control-height-lg: 52px;
+
   /* Status */
   --status-success: #12A150;
   --status-success-bg: #EAF8F0;

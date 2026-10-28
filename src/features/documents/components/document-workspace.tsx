@@ -28,6 +28,7 @@ import { GoogleDraftPanel } from '@/features/documents/components/google-draft-p
 import { listDocumentParties, type PortalUiRole } from '@/features/access';
 import { listRegisterBooks } from '@/features/office/books-api';
 import { PortalDropdown } from '@/features/portal/components';
+import { Checkbox } from '@/shared/components/ui';
 import { getRegisterEntryError, getUploadFileError } from '@/features/documents/portal-upload';
 import { createWatermarkedSignedPdf } from '@/features/documents/watermark-signed-pdf';
 
@@ -737,7 +738,7 @@ export function DocumentWorkspace({
         />
       </label>
       {registerBooksQuery.isError && <div className="flex flex-wrap items-center gap-2"><p role="alert" className="text-sm font-bold text-[#B42318]">Unable to load register books. Retry to attach the signed PDF.</p><button type="button" onClick={() => void registerBooksQuery.refetch()} className="min-h-11 rounded-full border border-[#D7E4F2] px-3 py-1.5 text-sm font-bold text-[#0C2B49] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0985E7]">Retry register books</button></div>}
-      {selectedSignedCopyBook?.status === 'OPEN' && <label className="flex items-center gap-2 text-sm font-semibold text-[#0C2B49]"><input type="checkbox" checked={enterPaperNumbers} disabled={signedCopyMutation.isPending} onChange={(event) => { setEnterPaperNumbers(event.target.checked); setSignedCopyError(null); }} />Enter paper register numbers</label>}
+      {selectedSignedCopyBook?.status === 'OPEN' && <label className="flex min-h-11 items-center gap-2 text-sm font-semibold text-[#0C2B49]"><Checkbox checked={enterPaperNumbers} disabled={signedCopyMutation.isPending} onChange={(event) => { setEnterPaperNumbers(event.target.checked); setSignedCopyError(null); }} />Enter paper register numbers</label>}
       {selectedSignedCopyBook?.status === 'CLOSED' && <p className="text-sm text-[#4B6382]">Closed books require the Doc. No. and Page No. shown in the paper register.</p>}
       {signedCopyUsesManualNumbers && selectedSignedCopyBook && <div className="grid gap-3 sm:grid-cols-2">
         <label className="flex flex-col gap-1.5 text-sm font-bold text-[#0C2B49]">Paper document number<input aria-label="Paper document number" min="1" step="1" inputMode="numeric" type="number" value={entryDocNo} disabled={signedCopyMutation.isPending} onChange={(event) => setEntryDocNo(event.target.value)} className="rounded-xl border border-[#D7E4F2] px-3 py-2.5 text-sm font-medium outline-none focus:border-[#0985E7] disabled:bg-[#F8FBFF]" /></label>
@@ -787,8 +788,8 @@ export function DocumentWorkspace({
       {typeof unresolvedCommentCount === 'number' && unresolvedCommentCount > 0 && <p role="status" className="mt-2 text-base leading-7 text-[#B42318]">Resolve {unresolvedCommentCount} unresolved {unresolvedCommentCount === 1 ? 'comment' : 'comments'} in Google Docs, then refresh comments before marking the draft ready.</p>}
       {unresolvedCommentCount === 0 && !commentsQuery.isLoading && !commentsQuery.isError && !syncComments.isPending && !syncComments.isError && <>
         <p role="status" className="mt-2 text-base leading-7 text-[#344054]">All comments are resolved.</p>
-        <label className="mt-3 flex items-start gap-2.5 text-sm font-semibold leading-6 text-[#344054]">
-          <input type="checkbox" checked={suggestionsReviewed} onChange={(event) => setReviewedSuggestionsFor(event.target.checked ? document.document_id : null)} className="mt-1 h-4 w-4 shrink-0 accent-[#0673C4] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0985E7]" />
+        <label className="mt-3 flex min-h-11 items-start gap-2.5 text-sm font-semibold leading-6 text-[#344054]">
+          <Checkbox checked={suggestionsReviewed} onChange={(event) => setReviewedSuggestionsFor(event.target.checked ? document.document_id : null)} className="mt-1" />
           <span>I checked Google Docs and resolved any pending suggestions.</span>
         </label>
       </>}

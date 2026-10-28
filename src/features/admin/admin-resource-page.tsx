@@ -1,13 +1,12 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import SearchIcon from "@mui/icons-material/Search";
 import FilterListIcon from "@mui/icons-material/FilterList";
 import { AdminShell } from "@/features/admin/admin-shell";
 import { Dropdown } from "@/features/admin/components/dropdown";
 import { PageHeader } from "@/features/admin/components/page-header";
 import { StatCard, StatColor } from "@/features/admin/components/stat-card";
-import { Table } from "@/features/admin/components/table";
+import { Badge, Card, DataTable, SearchInput } from "@/shared/components/ui";
 import AssessmentIcon from "@mui/icons-material/Assessment";
 
 type Card = {
@@ -66,11 +65,7 @@ export function formatAdminDate(value?: string | null) {
 }
 
 export function AdminBadge({ children }: { children: React.ReactNode }) {
-  return (
-    <span className="rounded-full bg-[#EEF4FB] px-2.5 py-1 text-xs font-black text-[#0985E7]">
-      {children}
-    </span>
-  );
+  return <Badge>{children}</Badge>;
 }
 
 function stringifyValue(value: unknown) {
@@ -177,20 +172,17 @@ export function AdminResourcePage<Row>({
           ))}
         </section>
 
-        <article className="flex flex-1 flex-col overflow-hidden rounded-2xl border border-[#E4EEF9] bg-white">
+        <Card padded={false} className="flex flex-1 flex-col overflow-hidden">
           <div className="flex flex-wrap items-center gap-3 border-b border-[#E4EEF9] px-6 py-4">
             <h2 className="text-lg font-black text-[#0C2B49]">{title} Records</h2>
             <div className="ml-auto flex flex-wrap items-center gap-3">
-              <div className="flex items-center gap-2 rounded-xl border border-[#E4EEF9] bg-[#F8FBFF] px-3 py-2">
-                <SearchIcon fontSize="small" className="text-[#64748b]" />
-                <input
-                  type="text"
-                  placeholder={`Search ${title.toLowerCase()}...`}
-                  value={search}
-                  onChange={(event) => setSearch(event.target.value)}
-                  className="w-56 bg-transparent text-sm font-semibold text-[#0C2B49] outline-none placeholder:text-[#94a3b8]"
-                />
-              </div>
+              <SearchInput
+                aria-label={`Search ${title.toLowerCase()} records`}
+                placeholder={`Search ${title.toLowerCase()}...`}
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                className="w-56"
+              />
               {filterKey ? (
                 <Dropdown
                   icon={<FilterListIcon fontSize="small" className="text-[#64748b]" />}
@@ -217,13 +209,14 @@ export function AdminResourcePage<Row>({
               ) : null}
             </div>
           </div>
-          <Table
+          <DataTable
+            ariaLabel={`${title} records`}
             columns={columns}
             data={tableRows}
             keyExtractor={keyExtractor}
             emptyMessage={`No ${title.toLowerCase()} records found.`}
           />
-        </article>
+        </Card>
       </div>
     </AdminShell>
   );

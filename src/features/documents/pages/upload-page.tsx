@@ -20,6 +20,7 @@ import { attachSignedCopy } from '@/features/documents/document-lifecycle-api';
 import { canAccessPortalFeature, getPortalUiRole } from "@/features/access";
 import { PortalDropdown } from "@/features/portal/components";
 import { DocumentProcessingStatus } from '@/features/documents/components/document-processing-status';
+import { Checkbox } from '@/shared/components/ui';
 import type { ApiSchema } from '@/shared/types/index';
 import { listRegisterBooks } from '@/features/office/books-api';
 import { getDocumentLifecycleLabel, getDocumentProcessingStatusLabel } from '@/features/documents/document-ui';
@@ -217,7 +218,7 @@ export default function UploadPage() {
             </label>
             {booksQuery.isError && <p role="alert" className="text-sm font-bold text-red-600">Unable to load books. Please try again.</p>}
             {!booksQuery.isLoading && availableBooks.length === 0 && <p className="text-sm text-[#64748b]">Register a book before uploading a document.</p>}
-            {selectedBook?.status === 'OPEN' && <label className="mt-4 flex items-center gap-2 text-sm font-semibold text-[#0C2B49]"><input type="checkbox" checked={enterPaperNumbers} disabled={isSubmissionPending || requiresConfirmation} onChange={(event) => { setEnterPaperNumbers(event.target.checked); setValidationError(null); }} />Enter paper register numbers</label>}
+            {selectedBook?.status === 'OPEN' && <label className="mt-4 flex min-h-11 items-center gap-2 text-sm font-semibold text-[#0C2B49]"><Checkbox checked={enterPaperNumbers} disabled={isSubmissionPending || requiresConfirmation} onChange={(event) => { setEnterPaperNumbers(event.target.checked); setValidationError(null); }} />Enter paper register numbers</label>}
             {isClosedBook && <p className="mt-4 text-sm text-[#64748b]">Closed books remain available for filing. Enter the numbers shown in the paper register.</p>}
             {manualNumbers && <>
               <div className="grid gap-4 sm:grid-cols-2">

@@ -6,7 +6,6 @@ import dayjs from "dayjs";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
-import SearchIcon from "@mui/icons-material/Search";
 import FilterListIcon from "@mui/icons-material/FilterList";
 import PersonAddIcon from "@mui/icons-material/PersonAdd";
 import VisibilityIcon from "@mui/icons-material/Visibility";
@@ -17,6 +16,7 @@ import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import { toast } from "sonner";
 import { Dropdown } from "@/features/admin/components/dropdown";
 import { FilterDetails } from "@/shared/components/ui/filter-details";
+import { SearchInput } from "@/shared/components/ui";
 import { usePopup } from "@/shared/components/ui/use-popup";
 import { getPortalRoleLabel } from "@/features/access";
 import { UsersMetrics, RoleDistribution, RecentlyCreatedAccounts, StatusPill } from "./users-summary";
@@ -234,15 +234,13 @@ export function UsersManagementView({ users, total, loadError }: { users: AdminU
           <div className="shrink-0 border-b border-[#E4EEF9] p-5">
             <div className="flex flex-wrap items-center gap-3">
               <h2 className="mr-auto shrink-0 text-lg font-black text-[#071B33]">User Directory</h2>
-              <label className="flex w-full items-center gap-2 rounded-xl border border-[#E4EEF9] bg-white px-4 py-2.5 focus-within:border-[#0985E7] sm:w-72">
-                <SearchIcon fontSize="small" className="text-[#4B6382]" />
-                <input
-                  value={tableSearch}
-                  onChange={(event) => setTableSearch(event.target.value)}
-                  placeholder="Search users..."
-                  className="w-full bg-transparent text-sm font-semibold text-[#0C2B49] outline-none placeholder:text-[#9AAAC0]"
-                />
-              </label>
+              <SearchInput
+                aria-label="Search users"
+                value={tableSearch}
+                onChange={(event) => setTableSearch(event.target.value)}
+                placeholder="Search users..."
+                className="w-full sm:w-72"
+              />
               <div className="flex items-center gap-2 text-sm font-semibold text-[#4B6382] [&>div>button]:py-2.5">
                 <Dropdown value={sortOrder} onChange={(value) => { setSortOrder(value); setPage(0); }} options={[
                   { label: "Newest first", value: "created-desc" },

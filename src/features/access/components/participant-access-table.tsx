@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { Button, Card, Table } from '@/shared/components/ui';
 import type { components } from '@/shared/types/index';
 
 type DocumentParty = components['schemas']['DocumentPartyResponse'];
@@ -31,21 +32,66 @@ export function ParticipantAccessTable({ parties, canRevoke, onRevoke }: Partici
   }
 
   return (
-    <section className="rounded-[18px] border border-[#E8F0F8] bg-white shadow-[0_4px_12px_rgba(19,59,115,0.05)]">
-      <div className="border-b border-[#E8F0F8] px-5 py-4">
-        <h2 className="text-lg font-extrabold text-[#0C2B49]">Document participants</h2>
-        <p className="mt-1 text-sm font-medium text-[#64748b]">Access is limited to this document.</p>
+    <Card padded={false}>
+      <div className="border-b border-[var(--border-soft)] px-5 py-4">
+        <h2 className="text-lg font-extrabold text-[var(--text-primary)]">Document participants</h2>
+        <p className="mt-1 text-sm font-medium text-[var(--text-secondary)]">Access is limited to this document.</p>
       </div>
-      {parties.length === 0 ? <p className="px-5 py-6 text-sm font-medium text-[#64748b]">No participants have access yet.</p> : (
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[620px] text-left text-sm">
-            <thead className="bg-[#F8FBFF] text-xs uppercase tracking-wide text-[#64748b]"><tr><th className="px-5 py-3">Participant</th><th className="px-5 py-3">Permission</th><th className="px-5 py-3">Status</th>{canRevoke && <th className="px-5 py-3 text-right">Actions</th>}</tr></thead>
-            <tbody>{parties.map((party) => <tr key={party.id} className="border-t border-[#EEF3F8]"><td className="px-5 py-4"><p className="font-bold text-[#0C2B49]">{party.f_name} {party.l_name}</p><p className="text-xs text-[#64748b]">{party.email}</p></td><td className="px-5 py-4 capitalize text-[#0C2B49]">{party.role}</td><td className="px-5 py-4 capitalize text-[#0C2B49]">{party.status}</td>{canRevoke && <td className="px-5 py-4 text-right"><button type="button" disabled title="Resending document invitations is not supported by the current API." className="mr-2 rounded-lg border border-[#D6E3F1] px-3 py-1.5 text-xs font-bold text-[#64748b] disabled:cursor-not-allowed disabled:opacity-60">Resend unavailable</button><button type="button" onClick={() => setPartyToRevoke(party)} className="rounded-lg border border-[#F4C7C3] px-3 py-1.5 text-xs font-bold text-[#B42318]">Revoke</button></td>}</tr>)}</tbody>
-          </table>
+      <Table
+        ariaLabel="Document participants"
+        columns={[
+          {
+            key: 'participant',
+            label: 'Participant',
+            render: (party) => (
+              <>
+                <p className="font-bold text-[var(--text-primary)]">{party.f_name} {party.l_name}</p>
+                <p className="text-xs text-[var(--text-secondary)]">{party.email}</p>
+              </>
+            ),
+          },
+          { key: 'permission', label: 'Permission', render: (party) => <span className="capitalize text-[var(--text-primary)]">{party.role}</span> },
+          { key: 'status', label: 'Status', render: (party) => <span className="capitalize text-[var(--text-primary)]">{party.status}</span> },
+          ...(canRevoke ? [{
+            key: 'actions',
+            label: 'Actions',
+            render: (party: DocumentParty) => (
+              <div className="flex flex-wrap justify-end gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="secondary"
+                  disabled
+                  title="Resending document invitations is not supported by the current API."
+                >
+                  Resend unavailable
+                </Button>
+                <Button type="button" size="sm" variant="danger" onClick={() => setPartyToRevoke(party)}>
+                  Revoke
+                </Button>
+              </div>
+            ),
+          }] : []),
+        ]}
+        data={parties}
+        keyExtractor={(party) => party.id}
+        emptyMessage="No participants have access yet."
+      />
+      {error && <p role="alert" className="px-5 pb-4 text-sm font-semibold text-[var(--status-error)]">{error}</p>}
+      {partyToRevoke && (
+        <div role="dialog" aria-modal="true" aria-label="Confirm participant revocation" className="border-t border-[var(--border-soft)] bg-[var(--status-error-bg)] px-5 py-4">
+          <p className="font-bold text-[var(--text-primary)]">Revoke access for {partyToRevoke.email}?</p>
+          <p className="mt-1 text-sm text-[var(--text-secondary)]">They will no longer be able to open this document. Historical activity remains recorded.</p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Button type="button" size="sm" variant="secondary" onClick={() => setPartyToRevoke(undefined)} disabled={isRevoking}>
+              Cancel
+            </Button>
+            <Button type="button" size="sm" variant="danger" onClick={() => void confirmRevoke()} disabled={isRevoking}>
+              {isRevoking ? 'Revoking…' : 'Revoke access'}
+            </Button>
+          </div>
         </div>
       )}
-      {error && <p role="alert" className="px-5 pb-4 text-sm font-semibold text-[#C2410C]">{error}</p>}
-      {partyToRevoke && <div role="dialog" aria-modal="true" aria-label="Confirm participant revocation" className="border-t border-[#E8F0F8] bg-[#FFF9F8] px-5 py-4"><p className="font-bold text-[#0C2B49]">Revoke access for {partyToRevoke.email}?</p><p className="mt-1 text-sm text-[#64748b]">They will no longer be able to open this document. Historical activity remains recorded.</p><div className="mt-3 flex gap-2"><button type="button" onClick={() => setPartyToRevoke(undefined)} disabled={isRevoking} className="rounded-lg border border-[#D6E3F1] px-3 py-2 text-sm font-bold text-[#0C2B49]">Cancel</button><button type="button" onClick={() => void confirmRevoke()} disabled={isRevoking} className="rounded-lg bg-[#B42318] px-3 py-2 text-sm font-bold text-white disabled:opacity-60">{isRevoking ? 'Revoking…' : 'Revoke access'}</button></div></div>}
-    </section>
+    </Card>
   );
 }

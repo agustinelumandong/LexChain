@@ -1,69 +1,87 @@
 import { type ButtonHTMLAttributes, forwardRef } from "react";
 
-type ButtonVariant = "primary" | "secondary" | "ghost" | "danger";
+export type ButtonVariant = "primary" | "secondary" | "ghost" | "danger";
+export type ButtonSize = "sm" | "md" | "lg";
 
 type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: ButtonVariant;
+  size?: ButtonSize;
+  fullWidth?: boolean;
   loading?: boolean;
 };
 
 const variantStyles: Record<ButtonVariant, string> = {
-  primary:
-    "bg-[var(--brand-blue)] text-white hover:bg-[var(--brand-blue-hover)] shadow-[0_4px_12px_rgba(9,133,231,0.22)]",
-  secondary:
-    "border-2 border-[var(--border-default)] bg-white text-[var(--brand-navy)] hover:bg-[var(--surface-page)]",
-  ghost:
-    "border border-[var(--border-soft)] bg-white text-[var(--brand-navy)] hover:bg-[var(--surface-soft)]",
-  danger:
-    "bg-red-600 text-white hover:bg-red-700",
+  primary: "bg-[var(--brand-blue)] text-white hover:bg-[var(--brand-blue-hover)]",
+  secondary: "border border-[var(--border-medium)] bg-[var(--surface-card)] text-[var(--text-primary)] hover:bg-[var(--surface-page)]",
+  ghost: "text-[var(--text-primary)] hover:bg-[var(--surface-soft)]",
+  danger: "bg-[var(--status-error)] text-white hover:opacity-90",
 };
 
+const sizeStyles: Record<ButtonSize, string> = {
+  sm: "min-h-[var(--control-height-sm)] px-3 text-sm",
+  md: "min-h-[var(--control-height-md)] px-4 text-sm",
+  lg: "min-h-[var(--control-height-lg)] px-5 text-base",
+};
+
+const iconSizeStyles: Record<ButtonSize, string> = {
+  sm: "size-[var(--control-height-sm)]",
+  md: "size-[var(--control-height-md)]",
+  lg: "size-[var(--control-height-lg)]",
+};
+
+const baseStyles = "inline-flex shrink-0 items-center justify-center gap-2 rounded-[var(--radius-control)] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--border-focus)] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60";
+
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ variant = "primary", loading, disabled, className = "", children, ...props }, ref) => {
-    return (
-      <button
-        ref={ref}
-        disabled={disabled || loading}
-        className={`flex min-h-[52px] w-full items-center justify-center rounded-full px-5 py-3.5 text-[15px] font-black transition disabled:opacity-60 ${variantStyles[variant]} ${className}`}
-        {...props}
-      >
-        {loading ? "Loading…" : children}
-      </button>
-    );
-  },
+  ({ variant = "primary", size = "md", fullWidth = false, loading, disabled, type = "button", className = "", children, "aria-busy": ariaBusy, ...props }, ref) => (
+    <button
+      ref={ref}
+      type={type}
+      disabled={disabled || loading}
+      className={`${baseStyles} ${sizeStyles[size]} ${fullWidth ? "w-full" : ""} ${variantStyles[variant]} ${className}`}
+      {...props}
+      aria-busy={loading || ariaBusy || undefined}
+    >
+      {loading ? "Loading…" : children}
+    </button>
+  ),
 );
 
 Button.displayName = "Button";
 
-type InlineButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
-  variant?: ButtonVariant;
-  loading?: boolean;
+type IconButtonProps = Omit<ButtonProps, "children" | "fullWidth"> & {
+  "aria-label": string;
+  children: React.ReactNode;
 };
 
-const inlineVariantStyles: Record<ButtonVariant, string> = {
-  primary:
-    "bg-[var(--brand-blue)] text-white hover:bg-[var(--brand-blue-hover)]",
-  secondary:
-    "border border-[var(--border-default)] bg-white text-[var(--brand-navy)] hover:bg-[var(--surface-page)]",
-  ghost:
-    "text-[var(--brand-blue)] hover:underline",
-  danger:
-    "border border-red-200 text-red-700 hover:bg-red-50",
-};
+export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(
+  ({ variant = "ghost", size = "md", loading, disabled, type = "button", className = "", children, "aria-busy": ariaBusy, ...props }, ref) => (
+    <button
+      ref={ref}
+      type={type}
+      disabled={disabled || loading}
+      className={`${baseStyles} ${iconSizeStyles[size]} ${variantStyles[variant]} ${className}`}
+      {...props}
+      aria-busy={loading || ariaBusy || undefined}
+    >
+      {children}
+    </button>
+  ),
+);
 
-export const InlineButton = forwardRef<HTMLButtonElement, InlineButtonProps>(
-  ({ variant = "ghost", loading, disabled, className = "", children, ...props }, ref) => {
-    return (
-      <button
-        ref={ref}
-        disabled={disabled || loading}
-        className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-black transition disabled:opacity-60 ${inlineVariantStyles[variant]} ${className}`}
-        {...props}
-      >
-        {loading ? "Working…" : children}
-      </button>
-    );
-  },
+IconButton.displayName = "IconButton";
+
+export const ToggleButton = forwardRef<HTMLButtonElement, Omit<ButtonProps, "variant" | "aria-pressed"> & { pressed: boolean }>(
+  ({ pressed, ...props }, ref) => (
+    <Button ref={ref} aria-pressed={pressed} variant={pressed ? "primary" : "secondary"} {...props} />
+  ),
+);
+
+ToggleButton.displayName = "ToggleButton";
+
+export const InlineButton = forwardRef<HTMLButtonElement, ButtonProps>(
+  ({ variant = "ghost", size = "sm", ...props }, ref) => (
+    <Button ref={ref} variant={variant} size={size} {...props} />
+  ),
 );
 
 InlineButton.displayName = "InlineButton";

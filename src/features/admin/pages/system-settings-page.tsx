@@ -4,6 +4,7 @@ import { useState } from "react";
 import { AdminShell } from "@/features/admin/admin-shell";
 import { Dropdown } from "@/features/admin/components/dropdown";
 import { PageHeader } from "@/features/admin/components/page-header";
+import { Button, Card, Input, Switch } from "@/shared/components/ui";
 import PersonIcon from "@mui/icons-material/Person";
 import LockIcon from "@mui/icons-material/Lock";
 import TuneIcon from "@mui/icons-material/Tune";
@@ -30,18 +31,14 @@ export default function AdminSystemSettingsPage() {
           title="Settings"
           description="Manage your admin profile, account security, notifications, and platform defaults."
           action={
-            <button
-              type="button"
-              onClick={handleSave}
-              className="inline-flex items-center justify-center rounded-xl bg-[#0985E7] px-5 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-[#0770c4] focus:outline-none focus:ring-2 focus:ring-[#0985E7] focus:ring-offset-2"
-            >
+            <Button type="button" onClick={handleSave}>
               Save Changes
-            </button>
+            </Button>
           }
         />
 
         <section className="grid gap-5 xl:grid-cols-[1fr_0.9fr]">
-          <article className="rounded-2xl border border-[#E4EEF9] bg-white p-6 shadow-sm">
+          <Card padded={false} className="p-6">
             <div className="flex items-center gap-3">
               <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#EEF4FB] text-[#0985E7]">
                 <PersonIcon fontSize="small" />
@@ -57,31 +54,9 @@ export default function AdminSystemSettingsPage() {
                 LA
               </div>
               <div className="grid flex-1 gap-4 sm:grid-cols-2">
-                <label className="block">
-                  <span className="text-xs font-black uppercase tracking-[0.1em] text-[#64748b]">Display name</span>
-                  <input
-                    className="mt-2 min-h-12 w-full rounded-xl border border-[#E4EEF9] bg-[#F8FBFF] px-4 text-sm font-semibold text-[#0C2B49] outline-none focus:border-[#0985E7]"
-                    value={displayName}
-                    onChange={(event) => setDisplayName(event.target.value)}
-                  />
-                </label>
-                <label className="block">
-                  <span className="text-xs font-black uppercase tracking-[0.1em] text-[#64748b]">Email</span>
-                  <input
-                    className="mt-2 min-h-12 w-full rounded-xl border border-[#E4EEF9] bg-[#F8FBFF] px-4 text-sm font-semibold text-[#0C2B49] outline-none focus:border-[#0985E7]"
-                    type="email"
-                    value={email}
-                    onChange={(event) => setEmail(event.target.value)}
-                  />
-                </label>
-                <label className="block">
-                  <span className="text-xs font-black uppercase tracking-[0.1em] text-[#64748b]">Role</span>
-                  <input
-                    className="mt-2 min-h-12 w-full rounded-xl border border-[#E4EEF9] bg-[#F8FBFF] px-4 text-sm font-semibold text-[#64748b] outline-none"
-                    value="Operations Administrator"
-                    disabled
-                  />
-                </label>
+                <Input label="Display name" value={displayName} onChange={(event) => setDisplayName(event.target.value)} />
+                <Input label="Email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} />
+                <Input label="Role" value="Operations Administrator" disabled />
                 <label className="block">
                   <span className="text-xs font-black uppercase tracking-[0.1em] text-[#64748b]">Timezone</span>
                   <div className="mt-2">
@@ -98,9 +73,9 @@ export default function AdminSystemSettingsPage() {
                 </label>
               </div>
             </div>
-          </article>
+          </Card>
 
-          <article className="rounded-2xl border border-[#E4EEF9] bg-white p-6 shadow-sm">
+          <Card padded={false} className="p-6">
             <div className="flex items-center gap-3">
               <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#f5f3ff] text-[#7c3aed]">
                 <LockIcon fontSize="small" />
@@ -112,40 +87,21 @@ export default function AdminSystemSettingsPage() {
             </div>
 
             <div className="mt-6 space-y-4">
-              <label className="block">
-                <span className="text-xs font-black uppercase tracking-[0.1em] text-[#64748b]">Current password</span>
-                <input
-                  className="mt-2 min-h-12 w-full rounded-xl border border-[#E4EEF9] bg-[#F8FBFF] px-4 text-sm font-semibold text-[#0C2B49] outline-none focus:border-[#0985E7]"
-                  type="password"
-                  placeholder="Enter current password"
-                />
-              </label>
-              <label className="block">
-                <span className="text-xs font-black uppercase tracking-[0.1em] text-[#64748b]">New password</span>
-                <input
-                  className="mt-2 min-h-12 w-full rounded-xl border border-[#E4EEF9] bg-[#F8FBFF] px-4 text-sm font-semibold text-[#0C2B49] outline-none focus:border-[#0985E7]"
-                  type="password"
-                  placeholder="Enter new password"
-                />
-              </label>
-              <label className="flex items-center justify-between gap-4 rounded-2xl bg-[#F8FBFF] p-4">
-                <span>
-                  <span className="block text-sm font-black text-[#0C2B49]">Two-factor authentication</span>
-                  <span className="block text-xs font-semibold text-[#64748b]">Require extra verification for admin login.</span>
-                </span>
-                <input
-                  checked={twoFactorEnabled}
-                  onChange={(event) => setTwoFactorEnabled(event.target.checked)}
-                  type="checkbox"
-                  className="h-5 w-5 accent-[#0985E7]"
-                />
-              </label>
+              <Input label="Current password" type="password" placeholder="Enter current password" />
+              <Input label="New password" type="password" placeholder="Enter new password" />
+              <Switch
+                label="Two-factor authentication"
+                description="Require extra verification for admin login."
+                checked={twoFactorEnabled}
+                onChange={(event) => setTwoFactorEnabled(event.target.checked)}
+                className="rounded-2xl bg-[var(--surface-soft)] p-4"
+              />
             </div>
-          </article>
+          </Card>
         </section>
 
         <section className="grid gap-5 xl:grid-cols-2">
-          <article className="rounded-2xl border border-[#E4EEF9] bg-white p-6 shadow-sm">
+          <Card padded={false} className="p-6">
             <div className="flex items-center gap-3">
               <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#f0fdf4] text-[#16a34a]">
                 <NotificationsIcon fontSize="small" />
@@ -170,9 +126,9 @@ export default function AdminSystemSettingsPage() {
                 />
               </div>
             </div>
-          </article>
+          </Card>
 
-          <article className="rounded-2xl border border-[#E4EEF9] bg-white p-6 shadow-sm">
+          <Card padded={false} className="p-6">
             <div className="flex items-center gap-3">
               <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#fefce8] text-[#ca8a04]">
                 <TuneIcon fontSize="small" />
@@ -211,20 +167,15 @@ export default function AdminSystemSettingsPage() {
                   />
                 </div>
               </div>
-              <label className="flex items-center justify-between gap-4 rounded-2xl bg-[#F8FBFF] p-4 sm:col-span-2">
-                <span>
-                  <span className="block text-sm font-black text-[#0C2B49]">Maintenance mode</span>
-                  <span className="block text-xs font-semibold text-[#64748b]">Pause public verification and admin mutations.</span>
-                </span>
-                <input
-                  checked={maintenanceMode}
-                  onChange={(event) => setMaintenanceMode(event.target.checked)}
-                  type="checkbox"
-                  className="h-5 w-5 accent-[#0985E7]"
-                />
-              </label>
+              <Switch
+                label="Maintenance mode"
+                description="Pause public verification and admin mutations."
+                checked={maintenanceMode}
+                onChange={(event) => setMaintenanceMode(event.target.checked)}
+                className="rounded-2xl bg-[var(--surface-soft)] p-4 sm:col-span-2"
+              />
             </div>
-          </article>
+          </Card>
         </section>
       </div>
     </AdminShell>

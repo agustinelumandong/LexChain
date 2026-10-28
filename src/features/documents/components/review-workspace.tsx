@@ -12,6 +12,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { getDocumentStatusLabel } from '@/features/documents/document-ui';
 import type { ExtractionReview } from '@/features/documents/extraction-api';
 import { signedCopyFileUrl } from '@/features/documents/document-lifecycle-api';
+import { ToggleButton } from '@/shared/components/ui';
 
 const PdfDocumentViewer = dynamic(() => import('@/features/documents/components/pdf-document-viewer'), {
   ssr: false,
@@ -251,16 +252,17 @@ export default function ReviewWorkspace({
           <div className="md:flex md:min-h-0 md:flex-1 md:flex-col">
             <div aria-label="Mobile review pane" className="mb-3 grid grid-cols-2 gap-2 md:hidden">
               {(['source', 'review'] as const).map((pane) => (
-                <button
+                <ToggleButton
                   key={pane}
                   type="button"
+                  pressed={mobilePane === pane}
+                  size="sm"
+                  fullWidth
                   aria-label={`${pane === 'source' ? 'Source' : 'Review'} pane`}
-                  aria-pressed={mobilePane === pane}
                   onClick={() => changeMobilePane(pane)}
-                  className={`rounded-full px-4 py-2 text-sm font-black ${mobilePane === pane ? 'bg-[#0985E7] text-white' : 'border border-[#D7E4F2] text-[#64748b]'}`}
                 >
                   {pane === 'source' ? 'Source' : 'Review'}
-                </button>
+                </ToggleButton>
               ))}
             </div>
 

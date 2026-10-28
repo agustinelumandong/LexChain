@@ -2,7 +2,6 @@
 
 import { useMemo, useRef, useState, useEffect } from "react";
 import Link from "next/link";
-import SearchIcon from "@mui/icons-material/Search";
 import FilterListIcon from "@mui/icons-material/FilterList";
 import DownloadIcon from "@mui/icons-material/Download";
 import AddIcon from "@mui/icons-material/Add";
@@ -20,6 +19,7 @@ import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import { toast } from "sonner";
 import { Dropdown } from "@/features/admin/components/dropdown";
 import { Field, MockModal, exportMockRows, inputClassName } from "@/features/admin/components/mock-ui";
+import { SearchInput } from "@/shared/components/ui";
 
 type RoleRow = {
   id: string;
@@ -338,10 +338,13 @@ export function RolesPermissionsView() {
           <p className="mt-1 text-sm font-semibold text-[#4B6382]">Manage role assignments, access scopes, and permission policies across the platform.</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <label className="flex min-w-[330px] items-center gap-2 rounded-xl border border-[#E4EEF9] bg-white px-4 py-3 shadow-sm shadow-[#DDEAF7]/35 focus-within:border-[#0985E7]">
-            <SearchIcon fontSize="small" className="text-[#4B6382]" />
-            <input value={headerSearch} onChange={(event) => setHeaderSearch(event.target.value)} placeholder="Search roles, users, or permissions..." className="w-full bg-transparent text-sm font-semibold text-[#0C2B49] outline-none placeholder:text-[#9AAAC0]" />
-          </label>
+          <SearchInput
+            aria-label="Search roles, users, or permissions"
+            value={headerSearch}
+            onChange={(event) => setHeaderSearch(event.target.value)}
+            placeholder="Search roles, users, or permissions..."
+            className="min-w-[330px]"
+          />
           <button type="button" onClick={() => setMoreFiltersOpen((value) => !value)} className="inline-flex items-center gap-2 rounded-xl border border-[#E4EEF9] bg-white px-4 py-3 text-sm font-black text-[#0C2B49] shadow-sm shadow-[#DDEAF7]/35 transition hover:border-[#0985E7]">
             <FilterListIcon fontSize="small" />
             Filter
@@ -387,10 +390,13 @@ export function RolesPermissionsView() {
               </div>
             </div>
             <div className="mt-4 flex flex-wrap items-center gap-3">
-              <label className="flex min-w-[260px] flex-1 items-center gap-2 rounded-xl border border-[#E4EEF9] bg-white px-4 py-2.5 focus-within:border-[#0985E7]">
-                <SearchIcon fontSize="small" className="text-[#4B6382]" />
-                <input value={tableSearch} onChange={(event) => setTableSearch(event.target.value)} placeholder={activeView === "roles" ? "Search role definitions..." : "Search permission rules..."} className="w-full bg-transparent text-sm font-semibold text-[#0C2B49] outline-none placeholder:text-[#9AAAC0]" />
-              </label>
+              <SearchInput
+                aria-label={activeView === "roles" ? "Search role definitions" : "Search permission rules"}
+                value={tableSearch}
+                onChange={(event) => setTableSearch(event.target.value)}
+                placeholder={activeView === "roles" ? "Search role definitions..." : "Search permission rules..."}
+                className="min-w-[260px] flex-1"
+              />
               <Dropdown
                 value={accessFilter}
                 onChange={setAccessFilter}
