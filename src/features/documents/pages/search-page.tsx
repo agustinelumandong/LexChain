@@ -6,6 +6,9 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import SearchIcon from '@mui/icons-material/Search';
 import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile';
+import { Button } from '@/shared/components/ui/button';
+import { Card } from '@/shared/components/ui/card';
+import { Input } from '@/shared/components/ui/input';
 import {
   searchDocumentsByRegisterReference,
   searchPortalDocuments,
@@ -64,10 +67,16 @@ export default function SearchPage({
     : '/portal/search';
 
   return (
-    <div className="flex max-w-3xl flex-col gap-5">
+    <div className={`flex flex-col gap-5 ${mode === 'register' ? 'max-w-5xl' : 'max-w-3xl'}`}>
       <div>
-        <h1 className="text-[28px] font-black text-[#0C2B49]">Search</h1>
-        <p className="mt-1 text-sm text-[#5B6F8A]">Find a document by its text or exact notarial register reference.</p>
+        <h1 className="text-2xl font-black text-[#0C2B49]">
+          {mode === 'register' ? 'Find a document by register reference' : 'Search'}
+        </h1>
+        <p className="mt-1 text-sm text-[#5B6F8A]">
+          {mode === 'register'
+            ? 'Use the exact details from a notarial register entry.'
+            : 'Find a document by its text or exact notarial register reference.'}
+        </p>
       </div>
 
       <nav aria-label="Search mode" className="flex w-fit gap-1 rounded-xl bg-[#F2F7FC] p-1">
@@ -161,60 +170,108 @@ export default function SearchPage({
         </>
       ) : (
         <>
-          <form onSubmit={submitRegisterSearch} className="rounded-[18px] border border-[#E8F0F8] bg-white p-5 sm:p-6">
-            <fieldset disabled={registerLookup.isPending} className="flex flex-col gap-4">
-              <legend className="text-base font-black text-[#0C2B49]">Notarial register reference</legend>
-              <p className="text-sm text-[#5B6F8A]">Enter all four values from the register. Every field is required for an exact match.</p>
-              <div className="grid gap-4 sm:grid-cols-2">
-                {registerFields.map((field) => (
-                  <label key={field.name} className="flex flex-col gap-1.5 text-sm font-bold text-[#0C2B49]">
-                    <span>{field.label} <span aria-hidden="true" className="text-[#B42318]">*</span></span>
-                    <input
-                      type="number"
-                      name={field.name}
-                      autoComplete="off"
-                      required
-                      min={field.min}
-                      max={'max' in field ? field.max : undefined}
-                      step="1"
-                      inputMode="numeric"
-                      value={registerReference[field.name]}
-                      onChange={(event) => {
-                        const value = event.currentTarget.value;
-                        setRegisterReference((current) => ({ ...current, [field.name]: value }));
-                      }}
-                      className="rounded-xl border border-[#D7E4F2] px-3 py-2.5 text-sm font-medium outline-none focus:border-[#0067B3] focus:ring-2 focus:ring-[#0067B3]/20 disabled:bg-[#F8FBFF]"
-                    />
-                  </label>
-                ))}
-              </div>
-              <button
-                type="submit"
-                disabled={registerLookup.isPending}
-                className="inline-flex w-fit items-center gap-2 rounded-full bg-[#0067B3] px-5 py-2.5 text-sm font-black text-white transition hover:bg-[#005F9E] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3] disabled:cursor-wait disabled:opacity-60"
-              >
-                {registerLookup.isPending ? (
-                  <span aria-hidden="true" className="h-4 w-4 animate-spin rounded-full border-2 border-white/50 border-t-white motion-reduce:animate-none" />
-                ) : (
-                  <SearchIcon fontSize="small" aria-hidden="true" />
-                )}
-                {registerLookup.isPending ? 'Searching…' : 'Search register'}
-              </button>
-            </fieldset>
-          </form>
+          <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1.4fr)_minmax(16rem,0.9fr)]">
+            <form onSubmit={submitRegisterSearch} className="rounded-[var(--radius-card)] border border-[var(--border-soft)] bg-[var(--surface-card)] p-5 sm:p-6">
+              <fieldset disabled={registerLookup.isPending} className="flex flex-col gap-4">
+                <legend className="text-lg font-bold text-[var(--text-primary)]">Enter the register reference</legend>
+                <p id="register-reference-help" className="text-sm text-[var(--text-muted)]">
+                  Copy all 4 values from the same register entry. Every field is required, and all 4 must match exactly.
+                </p>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {registerFields.map((field) => (
+                    <div key={field.name}>
+                      <label htmlFor={field.name} className="text-sm font-semibold text-[var(--text-primary)]">
+                        {field.label} <span aria-hidden="true" className="text-[#B42318]">*</span>
+                      </label>
+                      <Input
+                        id={field.name}
+                        type="number"
+                        name={field.name}
+                        autoComplete="off"
+                        required
+                        min={field.min}
+                        max={'max' in field ? field.max : undefined}
+                        step="1"
+                        inputMode="numeric"
+                        aria-describedby="register-reference-help"
+                        value={registerReference[field.name]}
+                        onChange={(event) => {
+                          const value = event.currentTarget.value;
+                          setRegisterReference((current) => ({ ...current, [field.name]: value }));
+                        }}
+                        className="[font-variant-numeric:tabular-nums]"
+                      />
+                    </div>
+                  ))}
+                </div>
+                <Button
+                  type="submit"
+                  disabled={registerLookup.isPending}
+                  aria-busy={registerLookup.isPending}
+                  className="w-fit"
+                >
+                  {registerLookup.isPending ? (
+                    <span aria-hidden="true" className="h-4 w-4 animate-spin rounded-full border-2 border-white/50 border-t-white motion-reduce:animate-none" />
+                  ) : (
+                    <SearchIcon fontSize="small" aria-hidden="true" />
+                  )}
+                  {registerLookup.isPending ? 'Searching…' : 'Search register'}
+                </Button>
+              </fieldset>
+            </form>
+
+            <aside aria-labelledby="register-reference-guide">
+              <Card className="h-full">
+                <h2 id="register-reference-guide" className="text-lg font-bold text-[var(--text-primary)]">How to read the reference</h2>
+                <p className="mt-1 text-sm text-[var(--text-muted)]">Match each number to the same entry in the register.</p>
+                <p className="mt-4 text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]">Example entry</p>
+                <dl className="mt-3 grid grid-cols-2 gap-x-5 gap-y-3">
+                  <div>
+                    <dt className="text-xs text-[var(--text-muted)]">Doc. No.</dt>
+                    <dd className="mt-0.5 text-base font-semibold tabular-nums text-[var(--text-primary)]">25</dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs text-[var(--text-muted)]">Page No.</dt>
+                    <dd className="mt-0.5 text-base font-semibold tabular-nums text-[var(--text-primary)]">10</dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs text-[var(--text-muted)]">Book No.</dt>
+                    <dd className="mt-0.5 text-base font-semibold tabular-nums text-[var(--text-primary)]">3</dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs text-[var(--text-muted)]">Series year</dt>
+                    <dd className="mt-0.5 text-base font-semibold tabular-nums text-[var(--text-primary)]">2026</dd>
+                  </div>
+                </dl>
+                <p className="mt-4 border-t border-[var(--border-soft)] pt-4 text-sm text-[var(--text-muted)]">
+                  Book numbers are specific to each lawyer, so one reference may match more than one document.
+                </p>
+              </Card>
+            </aside>
+          </div>
 
           {registerLookup.isPending && <p role="status" className="text-sm font-semibold text-[#5B6F8A]">Searching the register…</p>}
           {registerLookup.isError && <p role="alert" className="text-sm font-bold text-red-700">{registerLookup.error.message}</p>}
 
-          {registerLookup.data && (
-            <section aria-live="polite" className="flex flex-col gap-3">
-              <p className="text-xs font-bold text-[#5B6F8A]">
-                {registerLookup.data.results.length} record{registerLookup.data.results.length !== 1 ? 's' : ''} found
-              </p>
+          {registerLookup.data && registerLookup.variables && (
+            <section aria-labelledby="register-results-heading" aria-live="polite" className="flex flex-col gap-3">
+              <div>
+                <h2 id="register-results-heading" className="text-lg font-bold text-[var(--text-primary)]">Search results</h2>
+                <p className="mt-1 text-sm font-semibold text-[var(--text-muted)]">
+                  {registerLookup.data.results.length} matching record{registerLookup.data.results.length === 1 ? '' : 's'}
+                </p>
+                <p className="mt-1 break-words text-sm text-[var(--text-muted)]">
+                  Searched reference: <span className="font-semibold text-[var(--text-primary)]">
+                    Doc. No. {registerLookup.variables.doc_no} · Page No. {registerLookup.variables.page_no} · Book No. {registerLookup.variables.book_number} · Series of {registerLookup.variables.series_year}
+                  </span>
+                </p>
+              </div>
               {registerLookup.data.results.length === 0 ? (
                 <div className="rounded-[18px] border border-[#E8F0F8] bg-white p-8 text-center">
                   <p className="text-sm font-bold text-[#0C2B49]">No record found for this reference</p>
-                  <p className="mt-1 text-xs text-[#5B6F8A]">Check all four numbers and search again.</p>
+                  <p className="mt-1 text-sm text-[#5B6F8A]">
+                    Check Doc. No., Page No., Book No., and Series year against the register. All 4 values must match exactly.
+                  </p>
                 </div>
               ) : (
                 <ul className="flex flex-col gap-3" aria-label="Register lookup results">

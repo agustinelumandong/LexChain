@@ -335,14 +335,15 @@ export default function DocumentsPage() {
               <div className="border-b border-[#E4EEF9] p-5">
                 <div className="flex flex-wrap items-center gap-3">
                   <h2 className="mr-auto shrink-0 text-lg font-black text-[#071B33]">Document Directory</h2>
-                  <label className="flex w-full items-center gap-2 rounded-xl border border-[#E4EEF9] bg-white px-4 py-2.5 focus-within:border-[#0067B3] sm:w-72">
+                  <label className="flex w-full items-center gap-2 rounded-xl border border-[#B8C9D9] bg-white px-4 py-2.5 focus-within:border-[#0067B3] sm:w-72">
                     <SearchIcon fontSize="small" className="text-[#4B6382]" />
-                    <span className="sr-only">Search documents</span>
-                    <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search documents..." className="w-full bg-transparent text-sm font-semibold text-[#0C2B49] outline-none placeholder:text-[#5B6F8A]" />
+                    <span className="sr-only">Filter by filename or reference</span>
+                    <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Filter by filename or reference…" className="w-full bg-transparent text-sm font-semibold text-[#0C2B49] outline-none placeholder:text-[#5B6F8A]" />
                   </label>
-                  <div className="[&>div>button]:py-2.5">
+                  <div className="[&>div>button]:border-[#B8C9D9] [&>div>button]:py-2.5">
                     <Dropdown description="Sort documents" value={sort} onChange={(value) => { setSort(value as DocumentListFilters['sort']); setPage(0); }} options={[{ label: "Newest first", value: "newest" }, { label: "Oldest first", value: "oldest" }, { label: "Name A–Z", value: "title" }]} />
                   </div>
+                  <div className="[&_summary]:border-[#B8C9D9] [&_summary:hover]:border-[#0067B3]">
                   <FilterDetails summary={<>
                       <FilterListIcon fontSize="small" />
                       More Filters{lifecycle !== 'all' || createdFrom || createdThrough ? ' •' : ''}
@@ -362,6 +363,7 @@ export default function DocumentsPage() {
                       <button type="button" onClick={() => { setLifecycle('all'); setCreatedFrom(''); setCreatedThrough(''); setSearch(''); setSort('newest'); setPage(0); }} className="rounded-xl bg-[#EEF4FB] py-2.5 text-[#0067B3] sm:col-span-2">Reset filters</button>
                     </div>
                   </FilterDetails>
+                  </div>
                 </div>
               </div>
               <div role="region" aria-label="Document directory results" tabIndex={0} className="admin-table-scroll hidden min-h-0 flex-1 overflow-auto focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[#0067B3] min-[1240px]:block">

@@ -138,7 +138,7 @@ describe('document ownership directory', () => {
     expect(screen.queryByRole('button', { name: 'Preparing' })).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Signed' }));
     expect(within(screen.getByRole('table')).queryByText('Owned Z.pdf')).toBeNull();
-    fireEvent.change(screen.getByRole('textbox', { name: 'Search documents' }), { target: { value: 'Shared' } });
+    fireEvent.change(screen.getByRole('textbox', { name: 'Filter by filename or reference' }), { target: { value: 'Shared' } });
     expect(screen.getByText('No matching documents in My documents')).toBeTruthy();
     expect(within(distribution).getByLabelText('Total documents: 2')).toBeTruthy();
     expect(ownedTab.textContent).toBe('My documents (2)');
@@ -175,7 +175,7 @@ describe('document ownership directory', () => {
     setupFetch(undefined, Response.json(rows), 'document_participant');
     renderPage();
     fireEvent.click(await screen.findByRole('tab', { name: 'My documents (7)' }));
-    fireEvent.change(screen.getByRole('textbox', { name: 'Search documents' }), { target: { value: 'match' } });
+    fireEvent.change(screen.getByRole('textbox', { name: 'Filter by filename or reference' }), { target: { value: 'match' } });
     fireEvent.click(screen.getByText('More Filters'));
     fireEvent.click(screen.getByRole('button', { name: 'All Lifecycles' }));
     fireEvent.click(screen.getByRole('button', { name: 'Finalized' }));
@@ -186,7 +186,7 @@ describe('document ownership directory', () => {
     expect(within(screen.getByRole('table')).queryByText('Owned match 0.pdf')).toBeNull();
     fireEvent.click(screen.getByRole('tab', { name: 'Shared with me (7)' }));
     expect(screen.getByText('Showing 1–5 of 7 documents')).toBeTruthy();
-    expect((screen.getByRole('textbox', { name: 'Search documents' }) as HTMLInputElement).value).toBe('match');
+    expect((screen.getByRole('textbox', { name: 'Filter by filename or reference' }) as HTMLInputElement).value).toBe('match');
     fireEvent.click(screen.getByText(/More Filters/));
     expect(screen.getByRole('button', { name: 'Finalized' })).toBeTruthy();
     expect(screen.queryByText('Shared match 6.pdf')).toBeNull();
