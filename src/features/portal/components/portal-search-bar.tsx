@@ -97,7 +97,7 @@ export function PortalSearchBar() {
 
   return (
     <div ref={containerRef} className="relative flex min-w-0 flex-1">
-      <div className="flex w-full items-center gap-2 rounded-xl border border-[var(--portal-border-soft)] bg-white px-3 py-2 text-sm transition focus-within:border-[#0067B3]">
+      <div className="flex min-h-11 w-full items-center gap-2 rounded-xl border border-[#B8C9D9] bg-white px-3 py-2 text-sm transition focus-within:border-[#0067B3] focus-within:ring-2 focus-within:ring-[#0067B3]">
         <SearchIcon fontSize="small" sx={{ color: 'var(--portal-text-muted)' }} />
         <input
           type="text"
@@ -105,8 +105,8 @@ export function PortalSearchBar() {
           onChange={(e) => onChange(e.target.value)}
           onKeyDown={onKeyDown}
           onFocus={() => { if (results.length > 0) setOpen(true); }}
-          placeholder="Quick text search…"
-          aria-label="Quick text search"
+          placeholder="Search document contents…"
+          aria-label="Search document contents"
           role="combobox"
           aria-expanded={open}
           aria-controls="search-results"
@@ -114,13 +114,20 @@ export function PortalSearchBar() {
           className="min-w-0 flex-1 bg-transparent text-[var(--portal-navy)] outline-none placeholder:text-[var(--portal-text-muted)]"
         />
         {loading && <span className="h-4 w-4 animate-spin rounded-full border-2 border-[var(--portal-border-soft)] border-t-[#0067B3]" />}
+        <button
+          type="button"
+          onClick={() => { if (input.trim()) navigateToSearch(input.trim()); }}
+          className="shrink-0 rounded-xl bg-[#0067B3] px-4 py-2 text-xs font-bold text-white hover:bg-[#005F9E] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]"
+        >
+          Search
+        </button>
       </div>
 
       {open && (
         <ul
           id="search-results"
           role="listbox"
-          className="absolute left-0 top-full mt-1 w-[min(28rem,calc(100vw-2rem))] max-h-64 overflow-y-auto rounded-xl border border-[var(--portal-border-soft)] bg-white shadow-lg z-50"
+          className="absolute left-0 top-full z-50 mt-1 max-h-64 w-full overflow-y-auto rounded-xl border border-[var(--portal-border-soft)] bg-white shadow-lg"
         >
           {loading ? (
             <li role="status" className="px-3 py-4 text-center text-sm text-[var(--portal-text-muted)]">Searching…</li>

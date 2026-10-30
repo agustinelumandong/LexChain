@@ -16,6 +16,8 @@ type PortalTopBarProps = {
   roleLabel: string;
   role: PortalUiRole;
   processingCount: number;
+  registerSearchOpen: boolean;
+  onOpenRegisterSearch: () => void;
   unreadCount?: number;
   unreadCountLoading?: boolean;
   unreadCountError?: boolean;
@@ -33,7 +35,7 @@ function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 }
 
-export function PortalTopBar({ fullName, initials, roleLabel, role, processingCount, unreadCount = 0, unreadCountLoading, unreadCountError, notifications = [], notificationsLoading, notificationsError, markNotificationError, markNotificationPending, onRetryNotifications, onMarkNotificationRead, onSignOut }: PortalTopBarProps) {
+export function PortalTopBar({ fullName, initials, roleLabel, role, processingCount, registerSearchOpen, onOpenRegisterSearch, unreadCount = 0, unreadCountLoading, unreadCountError, notifications = [], notificationsLoading, notificationsError, markNotificationError, markNotificationPending, onRetryNotifications, onMarkNotificationRead, onSignOut }: PortalTopBarProps) {
   const processingLabel = processingCount === 1 ? '1 document processing' : `${processingCount} documents processing`;
   const { open: accountMenuOpen, setOpen: setAccountMenuOpen, ref: accountMenuRef } = usePopup();
   const { open: notificationMenuOpen, setOpen: setNotificationMenuOpen, ref: notificationMenuRef } = usePopup();
@@ -43,15 +45,19 @@ export function PortalTopBar({ fullName, initials, roleLabel, role, processingCo
     <header className="sticky top-0 z-40 -mx-6 mb-6 border-b border-[var(--portal-border-soft)] bg-[var(--portal-surface)] px-4 md:px-6">
       <div className="flex min-h-16 items-center gap-3">
         <PortalSearchBar />
-        <Link
-          href="/portal/search?mode=register"
+        <button
+          type="button"
+          onClick={onOpenRegisterSearch}
+          aria-haspopup="dialog"
+          aria-expanded={registerSearchOpen}
+          aria-controls="register-reference-search-dialog"
           aria-label="Search by register reference"
           title="Search by register reference"
           className="inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center gap-1.5 rounded-xl border border-[var(--portal-border-soft)] bg-white px-2.5 py-2 text-xs font-bold text-[var(--portal-navy)] transition-colors hover:bg-[var(--portal-surface-soft)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3] sm:w-auto sm:px-3"
         >
           <MenuBookOutlinedIcon sx={{ fontSize: 17, color: '#0067B3' }} aria-hidden="true" />
-          <span className="hidden sm:inline">Register reference</span>
-        </Link>
+          <span className="hidden sm:inline">Search by register reference</span>
+        </button>
         {role === 'lawyer' ? (
           <Link
             href="/portal/dashboard"

@@ -13,6 +13,7 @@ import { getFinalizedProcessingDocuments, getPortalNavigation } from "@/features
 import { getPortalNavigationIcon, isPortalRouteActive, usePortalRole } from "@/features/access/components";
 import { PortalBottomNav } from "@/features/portal/components/portal-bottom-nav";
 import { PortalTopBar } from "@/features/portal/components/portal-topbar";
+import { RegisterReferenceSearchDialog } from "@/features/documents/components/register-reference-search-dialog";
 import { fetchNotifications, fetchUnreadNotificationCount, invalidateNotificationQueries, markNotificationRead, notificationQueryKeys } from "@/features/portal/notifications-api";
 import { portalRequest } from '@/shared/api/client';
 
@@ -23,6 +24,7 @@ export default function PortalLayout({ children, demoMode }: { children: React.R
   const isDocumentWorkspace = pathname === '/portal/documents' || /^\/portal\/documents\/[^/]+$/.test(pathname);
   const queryClient = useQueryClient();
   const [collapsed, setCollapsed] = useState(false);
+  const [registerSearchOpen, setRegisterSearchOpen] = useState(false);
   const uiRole = usePortalRole();
   const { data: documents = [] } = useQuery<PortalDocument[]>({
     queryKey: ['portal-documents'],
@@ -164,6 +166,8 @@ export default function PortalLayout({ children, demoMode }: { children: React.R
             roleLabel={roleLabel}
             role={uiRole}
             processingCount={processingCount}
+            registerSearchOpen={registerSearchOpen}
+            onOpenRegisterSearch={() => setRegisterSearchOpen(true)}
             unreadCount={unreadCountQuery.data}
             unreadCountLoading={unreadCountQuery.isLoading}
             unreadCountError={unreadCountQuery.isError}
@@ -176,6 +180,7 @@ export default function PortalLayout({ children, demoMode }: { children: React.R
             onMarkNotificationRead={(id) => markNotificationMutation.mutate(id)}
             onSignOut={handleLogout}
           />
+          <RegisterReferenceSearchDialog open={registerSearchOpen} onClose={() => setRegisterSearchOpen(false)} />
           {demoMode && (
             <p role="status" className="mb-4 flex flex-wrap items-center gap-2 rounded-xl border border-[#D9E7F5] bg-white px-4 py-2.5 text-xs font-medium text-[#526579]">
               <span className="rounded-full bg-[#EAF4FF] px-2 py-1 text-[10px] font-black uppercase tracking-wide text-[#0A67B1]">Prototype</span>

@@ -20,6 +20,13 @@ afterEach(() => {
 });
 
 describe('PortalSearchBar', () => {
+  it('opens the text search page when Search is clicked', () => {
+    render(<PortalSearchBar />);
+    fireEvent.change(screen.getByRole('combobox', { name: 'Search document contents' }), { target: { value: ' maria ' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Search' }));
+    expect(pushMock).toHaveBeenCalledWith('/portal/search?q=maria');
+  });
+
   it('shows human-readable record details alongside match data and opens the document', async () => {
     fetchMock.mockResolvedValue(Response.json({ query: 'lease', results: [
       {
@@ -40,7 +47,7 @@ describe('PortalSearchBar', () => {
     ] }));
     render(<PortalSearchBar />);
 
-    fireEvent.change(screen.getByRole('combobox', { name: 'Quick text search' }), { target: { value: 'lease' } });
+    fireEvent.change(screen.getByRole('combobox', { name: 'Search document contents' }), { target: { value: 'lease' } });
     const result = await screen.findByRole('option', { name: /Lease Agreement\.pdf/ });
     expect(result.textContent).toContain('Document created: Oct 20, 2026');
     expect(result.textContent).toContain('Doc. No. 12, Page No. 7, Book No. 3, Series of 2026');
@@ -62,7 +69,7 @@ describe('PortalSearchBar', () => {
     }] }));
     render(<PortalSearchBar />);
 
-    fireEvent.change(screen.getByRole('combobox', { name: 'Quick text search' }), { target: { value: 'draft' } });
+    fireEvent.change(screen.getByRole('combobox', { name: 'Search document contents' }), { target: { value: 'draft' } });
     const result = await screen.findByRole('option', { name: /Unfiled draft\.pdf/ });
 
     expect(result.textContent).toContain('Document created: Oct 21, 2026');
@@ -73,7 +80,7 @@ describe('PortalSearchBar', () => {
     fetchMock.mockResolvedValueOnce(Response.json({ query: 'missing', results: [] }))
       .mockResolvedValueOnce(Response.json({ message: 'offline' }, { status: 503 }));
     render(<PortalSearchBar />);
-    const input = screen.getByRole('combobox', { name: 'Quick text search' });
+    const input = screen.getByRole('combobox', { name: 'Search document contents' });
 
     fireEvent.change(input, { target: { value: 'missing' } });
     expect(await screen.findByText('No results found')).toBeTruthy();

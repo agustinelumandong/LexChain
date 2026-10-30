@@ -14,6 +14,8 @@ const sharedProps = {
   initials: "AL",
   roleLabel: "User",
   processingCount: 2,
+  registerSearchOpen: false,
+  onOpenRegisterSearch: vi.fn(),
   onSignOut: vi.fn(),
 };
 
@@ -28,11 +30,12 @@ const actionableNotification = {
 };
 
 describe("PortalTopBar", () => {
-  it("links to exact register reference search from the top bar", () => {
+  it("opens register reference search from the top bar", () => {
     render(<PortalTopBar {...sharedProps} role="user" />);
 
-    expect(screen.getByRole("link", { name: "Search by register reference" }).getAttribute("href"))
-      .toBe("/portal/search?mode=register");
+    fireEvent.click(screen.getByRole("button", { name: "Search by register reference" }));
+
+    expect(sharedProps.onOpenRegisterSearch).toHaveBeenCalledOnce();
   });
 
   it("switches menus and dismisses them on Escape, outside taps, and focus leaving", () => {
@@ -50,7 +53,7 @@ describe("PortalTopBar", () => {
     fireEvent.pointerDown(document.body);
     expect(screen.queryByRole("link", { name: "Profile" })).toBeNull();
     fireEvent.click(account);
-    fireEvent.focusIn(screen.getByRole("combobox", { name: "Quick text search" }));
+    fireEvent.focusIn(screen.getByRole("combobox", { name: "Search document contents" }));
     expect(screen.queryByRole("link", { name: "Profile" })).toBeNull();
   });
 
