@@ -2,12 +2,16 @@
 import { QueryClient, QueryClientProvider, useQuery, useQueryClient } from '@tanstack/react-query';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { Toaster } from 'sonner';
 import { DocumentWorkspace } from '@/features/documents/components/document-workspace';
 import { LifecycleRequestError } from '@/features/documents/document-lifecycle-api';
 import type { ApiSchema } from '@/shared/types';
 import { readGoogleDraftReturnContext, saveGoogleDraftReturnContext } from '@/shared/utils/google-draft-return-context';
 
 vi.mock('@/features/documents/components/pdf-document-viewer', () => ({ default: () => null }));
+
+const createWatermarkedSignedPdfMock = vi.hoisted(() => vi.fn());
+vi.mock('@/features/documents/watermark-signed-pdf', () => ({ createWatermarkedSignedPdf: createWatermarkedSignedPdfMock }));
 
 const { attachSignedCopyMock, correctDocumentEntryMock, listDocumentHistoryMock, listDocumentPartiesMock, listRegisterBooksMock, listSignedCopiesMock, listDraftCommentsMock, replaceSignedCopyMock, syncDraftCommentsMock, LifecycleRequestErrorMock } = vi.hoisted(() => ({
   attachSignedCopyMock: vi.fn(),
@@ -131,7 +135,7 @@ function renderWorkspace(props: Partial<React.ComponentProps<typeof DocumentWork
   }
   const result = render(
     <QueryClientProvider client={queryClient}>
-      <WorkspaceFromQuery {...props} />
+      <WorkspaceFromQuery {...props} /><Toaster />
     </QueryClientProvider>,
   );
   return { ...result, invalidateQueries, queryClient };
@@ -154,8 +158,7 @@ describe('DocumentWorkspace', () => {
   it('does not duplicate finalized processing status in the overview', () => {
     renderWorkspace({ document: { ...document, lifecycle: 'FINALIZED', status: 'FAILED' } });
     const overview = screen.getByRole('tabpanel');
-    expect(within(overview).getByText('Processing')).toBeTruthy();
-    expect(within(overview).getByText('Processing failed')).toBeTruthy();
+    expect(within(overview).queryByText('Processing')).toBeNull();
     expect(within(overview).getByText('Finalized', { selector: 'dt' })).toBeTruthy();
   });
 
@@ -212,9 +215,9 @@ describe('DocumentWorkspace', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Correct register entry' }));
     await waitFor(() => expect(listRegisterBooksMock).toHaveBeenCalled());
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Register book' }).hasAttribute('disabled')).toBe(false);
+      expect(screen.getByRole('combobox', { name: 'Register book' }).hasAttribute('disabled')).toBe(false);
     });
-    fireEvent.click(screen.getByRole('button', { name: 'Register book' }));
+    fireEvent.click(screen.getByRole('combobox', { name: 'Register book' }));
     fireEvent.click(await screen.findByRole('option', { name: 'Register book 102 — Series 2026 · Closed' }));
     fireEvent.change(screen.getByLabelText('Document number'), { target: { value: '14' } });
     fireEvent.change(screen.getByLabelText('Page number'), { target: { value: '9' } });
@@ -279,7 +282,7 @@ describe('DocumentWorkspace', () => {
     renderWorkspace({ role: 'lawyer', document: { ...document, lifecycle: 'READY_FOR_SIGNATURE', signed_copy: null, permissions: { ...document.permissions, can_attach_signed_copy: true } } });
 
     fireEvent.click(screen.getByRole('button', { name: 'Attach signed PDF' }));
-    await waitFor(() => expect((screen.getByRole('button', { name: 'Register book' }) as HTMLButtonElement).disabled).toBe(false));
+    await waitFor(() => expect((screen.getByRole('combobox', { name: 'Register book' }) as HTMLButtonElement).disabled).toBe(false));
     const file = new File(['signed pdf'], 'attached.pdf', { type: 'application/pdf' });
     const uploadArea = screen.getByText('Drop your signed PDF here').closest('label');
     expect(uploadArea).not.toBeNull();
@@ -290,7 +293,12 @@ describe('DocumentWorkspace', () => {
     await waitFor(() => expect(attachSignedCopyMock).toHaveBeenCalledWith('doc-101', file, { bookId: 'book-101', docNo: null, pageNo: null }));
     expect(await screen.findByText('Signed PDF attached.')).toBeTruthy();
     expect(screen.getByRole('tablist')).toBeTruthy();
-    expect((await screen.findByRole('link', { name: 'Download PDF' })).getAttribute('href')).toContain('copy_id=copy-attached&download=1');
+    fireEvent.click(screen.getByRole('tab', { name: 'Files' }));
+    expect(within(screen.getByRole('heading', { name: 'Signed PDF' }).closest('section')!).getAllByText('attached.pdf').length).toBeTruthy();
+    createWatermarkedSignedPdfMock.mockReturnValue(new Promise(() => {}));
+    fireEvent.click(screen.getByRole('button', { name: 'Download PDF Copy' }));
+    expect(createWatermarkedSignedPdfMock).toHaveBeenCalledWith('/api/portal/documents/doc-101/file?copy_id=copy-attached');
+    expect(screen.getByRole('button', { name: /Preparing copy/ }).hasAttribute('disabled')).toBe(true);
   });
 
   it('attaches a prepared document without a book using automatic open-book numbering', async () => {
@@ -306,12 +314,12 @@ describe('DocumentWorkspace', () => {
     } });
 
     fireEvent.click(screen.getByRole('button', { name: 'Attach signed PDF' }));
-    await screen.findByRole('button', { name: 'Register book' });
-    await waitFor(() => expect((screen.getByRole('button', { name: 'Register book' }) as HTMLButtonElement).disabled).toBe(false));
-    fireEvent.click(screen.getByRole('button', { name: 'Register book' }));
+    await screen.findByRole('combobox', { name: 'Register book' });
+    await waitFor(() => expect((screen.getByRole('combobox', { name: 'Register book' }) as HTMLButtonElement).disabled).toBe(false));
+    fireEvent.click(screen.getByRole('combobox', { name: 'Register book' }));
     fireEvent.click(await screen.findByRole('option', { name: /Register book 101/ }));
     const file = new File(['signed pdf'], 'attached.pdf', { type: 'application/pdf' });
-    fireEvent.change(screen.getByLabelText('Signed PDF'), { target: { files: [file] } });
+    fireEvent.change(screen.getByLabelText('Signed PDF', { selector: 'input' }), { target: { files: [file] } });
     fireEvent.submit(screen.getByRole('button', { name: 'Confirm attachment' }).closest('form')!);
 
     await waitFor(() => expect(attachSignedCopyMock).toHaveBeenCalledWith('doc-101', file, { bookId: 'book-101', docNo: null, pageNo: null }));
@@ -329,14 +337,14 @@ describe('DocumentWorkspace', () => {
       permissions: { ...document.permissions, can_attach_signed_copy: true },
     } });
     fireEvent.click(screen.getByRole('button', { name: 'Attach signed PDF' }));
-    await waitFor(() => expect((screen.getByRole('button', { name: 'Register book' }) as HTMLButtonElement).disabled).toBe(false));
-    fireEvent.click(screen.getByRole('button', { name: 'Register book' }));
+    await waitFor(() => expect((screen.getByRole('combobox', { name: 'Register book' }) as HTMLButtonElement).disabled).toBe(false));
+    fireEvent.click(screen.getByRole('combobox', { name: 'Register book' }));
     fireEvent.click(await screen.findByRole('option', { name: /Register book 101/ }));
     fireEvent.click(screen.getByLabelText('Enter paper register numbers'));
     fireEvent.change(screen.getByLabelText('Paper document number'), { target: { value: '8' } });
     fireEvent.change(screen.getByLabelText('Paper page number'), { target: { value: '4' } });
     const file = new File(['signed pdf'], 'attached.pdf', { type: 'application/pdf' });
-    fireEvent.change(screen.getByLabelText('Signed PDF'), { target: { files: [file] } });
+    fireEvent.change(screen.getByLabelText('Signed PDF', { selector: 'input' }), { target: { files: [file] } });
     fireEvent.submit(screen.getByRole('button', { name: 'Confirm attachment' }).closest('form')!);
 
     await waitFor(() => expect(attachSignedCopyMock).toHaveBeenCalledWith('doc-101', file, { bookId: 'book-101', docNo: 8, pageNo: 4 }));
@@ -354,12 +362,12 @@ describe('DocumentWorkspace', () => {
       permissions: { ...document.permissions, can_attach_signed_copy: true },
     } });
     fireEvent.click(screen.getByRole('button', { name: 'Attach signed PDF' }));
-    await screen.findByRole('button', { name: 'Register book' });
-    await waitFor(() => expect((screen.getByRole('button', { name: 'Register book' }) as HTMLButtonElement).disabled).toBe(false));
-    fireEvent.click(screen.getByRole('button', { name: 'Register book' }));
+    await screen.findByRole('combobox', { name: 'Register book' });
+    await waitFor(() => expect((screen.getByRole('combobox', { name: 'Register book' }) as HTMLButtonElement).disabled).toBe(false));
+    fireEvent.click(screen.getByRole('combobox', { name: 'Register book' }));
     fireEvent.click(await screen.findByRole('option', { name: /Register book 101/ }));
     const file = new File(['signed pdf'], 'attached.pdf', { type: 'application/pdf' });
-    const input = screen.getByLabelText('Signed PDF') as HTMLInputElement;
+    const input = screen.getByLabelText('Signed PDF', { selector: 'input' }) as HTMLInputElement;
     fireEvent.change(input, { target: { files: [file] } });
     fireEvent.submit(screen.getByRole('button', { name: 'Confirm attachment' }).closest('form')!);
 
@@ -377,7 +385,7 @@ describe('DocumentWorkspace', () => {
     fireEvent.click(screen.getByRole('tab', { name: 'Files' }));
     fireEvent.click(screen.getByRole('button', { name: 'Replace signed PDF' }));
     const file = new File(['corrected pdf'], 'corrected.pdf', { type: 'application/pdf' });
-    fireEvent.change(screen.getByLabelText('Signed PDF'), { target: { files: [file] } });
+    fireEvent.change(screen.getByLabelText('Signed PDF', { selector: 'input' }), { target: { files: [file] } });
     fireEvent.change(screen.getByLabelText('Replacement reason'), { target: { value: 'Corrected scan' } });
     const submit = screen.getByRole('button', { name: 'Confirm replacement' });
     fireEvent.submit(submit.closest('form')!);
@@ -394,7 +402,7 @@ describe('DocumentWorkspace', () => {
     fireEvent.click(screen.getByRole('tab', { name: 'Files' }));
     fireEvent.click(screen.getByRole('button', { name: 'Replace signed PDF' }));
     const file = new File(['corrected pdf'], 'corrected.pdf', { type: 'application/pdf' });
-    const input = screen.getByLabelText('Signed PDF') as HTMLInputElement;
+    const input = screen.getByLabelText('Signed PDF', { selector: 'input' }) as HTMLInputElement;
     fireEvent.change(input, { target: { files: [file] } });
     const reason = screen.getByLabelText('Replacement reason') as HTMLTextAreaElement;
     fireEvent.change(reason, { target: { value: 'Corrected scan' } });
@@ -417,7 +425,7 @@ describe('DocumentWorkspace', () => {
 
     const overview = screen.getByRole('tabpanel');
     expect(screen.getByRole('tab', { name: 'Overview' })).toBeTruthy();
-    expect(within(overview).getByText('service-agreement.pdf')).toBeTruthy();
+    expect(within(overview).getByRole('heading', { name: 'Document summary' })).toBeTruthy();
     await waitFor(() => expect(within(overview).getByText('Register entry').nextElementSibling?.textContent).toContain('Book 101'));
     expect(within(overview).queryByText('Processing status')).toBeNull();
   });
@@ -448,7 +456,7 @@ describe('DocumentWorkspace', () => {
     renderWorkspace({ document: { ...document, lifecycle: 'SIGNED' } });
     expect(screen.getByRole('tab', { name: 'Overview' })).toBeTruthy();
     fireEvent.click(screen.getByRole('tab', { name: 'Files' }));
-    expect(screen.getByRole('link', { name: 'Download current signed PDF' }).getAttribute('href')).toContain('copy_id=copy-101&download=1');
+    expect(screen.getByRole('button', { name: 'Download PDF Copy' })).toBeTruthy();
     fireEvent.click(screen.getByRole('tab', { name: 'Blockchain' }));
     expect(screen.getByText('No blockchain record yet')).toBeTruthy();
   });
@@ -493,7 +501,7 @@ describe('DocumentWorkspace', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Attach signed PDF' }));
 
     expect(screen.queryByRole('tablist')).toBeNull();
-    await waitFor(() => expect(window.document.activeElement).toBe(screen.getByLabelText('Signed PDF')));
+    await waitFor(() => expect(window.document.activeElement).toBe(screen.getByLabelText('Signed PDF', { selector: 'input' })));
     expect(screen.getByRole('button', { name: 'Confirm attachment' })).toBeTruthy();
   });
 
@@ -506,7 +514,7 @@ describe('DocumentWorkspace', () => {
     } });
 
     fireEvent.click(screen.getByRole('button', { name: 'Attach signed PDF' }));
-    const input = screen.getByLabelText('Signed PDF') as HTMLInputElement;
+    const input = screen.getByLabelText('Signed PDF', { selector: 'input' }) as HTMLInputElement;
     const uploadArea = input.closest('label');
 
     expect(uploadArea?.className).toContain('relative');
@@ -529,7 +537,7 @@ describe('DocumentWorkspace', () => {
 
     fireEvent.click(await screen.findByRole('button', { name: 'Retry register books' }));
     await waitFor(() => expect(listRegisterBooksMock).toHaveBeenCalledTimes(2));
-    expect((screen.getByRole('button', { name: 'Register book' }) as HTMLButtonElement).disabled).toBe(false);
+    expect((screen.getByRole('combobox', { name: 'Register book' }) as HTMLButtonElement).disabled).toBe(false);
   });
 
   it('shows the owner-controlled next step when this lawyer cannot attach or finalize', () => {
@@ -582,7 +590,7 @@ describe('DocumentWorkspace', () => {
     renderWorkspace({ document: { ...document, draft_url: null, permissions: { ...document.permissions, can_create_draft: true } } });
 
     await waitFor(() => expect(readGoogleDraftReturnContext()).toBeNull());
-    await waitFor(() => expect((screen.getByRole('combobox', { name: 'Choose a starting point' }) as HTMLSelectElement).value).toBe('template'));
+    await waitFor(() => expect(screen.getByRole('combobox', { name: 'Choose a starting point' }).textContent).toContain('Copy a template'));
     expect(screen.getByText('Selected: Restored template')).toBeTruthy();
     expect(readGoogleDraftReturnContext()).toBeNull();
   });
@@ -592,7 +600,7 @@ describe('DocumentWorkspace', () => {
     renderWorkspace({ document: { ...document, draft_url: null, permissions: { ...document.permissions, can_create_draft: true } } });
 
     await waitFor(() => expect(readGoogleDraftReturnContext()).toBeNull());
-    expect((screen.getByRole('combobox', { name: 'Choose a starting point' }) as HTMLSelectElement).value).toBe('blank');
+    expect(screen.getByRole('combobox', { name: 'Choose a starting point' }).textContent).toContain('Blank Google Doc');
     expect(screen.queryByText('Selected: Other doc')).toBeNull();
     expect((screen.getByRole('button', { name: 'Create blank Google draft' }) as HTMLButtonElement).disabled).toBe(false);
   });
@@ -621,7 +629,8 @@ describe('DocumentWorkspace', () => {
     vi.stubGlobal('fetch', vi.fn(async () => Response.json({ access_token: 'picker-token', expires_at: '2099-01-01T00:00:00Z' })));
     renderWorkspace({ document: { ...document, draft_url: null, permissions: { ...document.permissions, can_create_draft: true } } });
 
-    fireEvent.change(screen.getByRole('combobox', { name: 'Choose a starting point' }), { target: { value: 'template' } });
+    fireEvent.click(screen.getByRole('combobox', { name: 'Choose a starting point' }));
+    fireEvent.click(screen.getByRole('option', { name: 'Copy a template' }));
     fireEvent.click(screen.getByRole('button', { name: 'Choose template' }));
     expect(await screen.findByText('Selected: First choice')).toBeTruthy();
     action = 'cancel';
@@ -661,14 +670,15 @@ describe('DocumentWorkspace', () => {
     }));
     renderWorkspace({ document: { ...document, draft_url: null, permissions: { ...document.permissions, can_create_draft: true } } });
 
-    fireEvent.change(screen.getByRole('combobox', { name: 'Choose a starting point' }), { target: { value: 'existing' } });
+    fireEvent.click(screen.getByRole('combobox', { name: 'Choose a starting point' }));
+    fireEvent.click(screen.getByRole('option', { name: 'Use an existing Google Doc' }));
     fireEvent.click(screen.getByRole('button', { name: 'Choose existing Google Doc' }));
     expect(await screen.findByText('Selected: Expired selection')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Use selected Google Doc' }));
     await waitFor(() => expect(created).toBe(true));
 
     expect(screen.queryByText('Selected: Expired selection')).toBeNull();
-    expect((screen.getByRole('combobox', { name: 'Choose a starting point' }) as HTMLSelectElement).value).toBe('existing');
+    expect(screen.getByRole('combobox', { name: 'Choose a starting point' }).textContent).toContain('Use an existing Google Doc');
     expect((screen.getByRole('button', { name: 'Use selected Google Doc' }) as HTMLButtonElement).disabled).toBe(true);
     selection = { id: 'new-file', name: 'New selection' };
     fireEvent.click(screen.getByRole('button', { name: 'Choose existing Google Doc' }));
@@ -682,7 +692,7 @@ describe('DocumentWorkspace', () => {
     expect(screen.queryByRole('link', { name: 'Open Google draft' })).toBeNull();
     expect(screen.getByRole('alert').textContent).toContain('invalid Google draft link');
     fireEvent.click(screen.getByRole('tab', { name: 'Files' }));
-    expect(screen.getByRole('link', { name: 'Download current signed PDF' }).getAttribute('href')).toContain('copy_id=copy-101&download=1');
+    expect(screen.getByRole('button', { name: 'Download PDF Copy' })).toBeTruthy();
   });
 
   it.each(['GOOGLE_NOT_CONNECTED', 'GOOGLE_RECONNECT_REQUIRED'])(
@@ -725,14 +735,15 @@ describe('DocumentWorkspace', () => {
     vi.stubGlobal('fetch', fetchMock);
     renderWorkspace({ document: { ...document, draft_url: null, permissions: { ...document.permissions, can_create_draft: true } } });
 
-    fireEvent.change(await screen.findByRole('combobox', { name: 'Choose a starting point' }), { target: { value: 'template' } });
+    fireEvent.click(await screen.findByRole('combobox', { name: 'Choose a starting point' }));
+    fireEvent.click(screen.getByRole('option', { name: 'Copy a template' }));
     fireEvent.click(screen.getByRole('button', { name: 'Choose template' }));
     expect(await screen.findByText(/Client template/)).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Copy selected template' }));
 
     expect(await screen.findByRole('link', { name: 'Connect Google in account settings' })).toBeTruthy();
     expect(screen.getByText(/Client template/)).toBeTruthy();
-    expect((screen.getByRole('combobox', { name: 'Choose a starting point' }) as HTMLSelectElement).value).toBe('template');
+    expect(screen.getByRole('combobox', { name: 'Choose a starting point' }).textContent).toContain('Copy a template');
     fireEvent.click(screen.getByRole('button', { name: 'Copy selected template' }));
     expect(await screen.findByRole('link', { name: 'Open Google draft' })).toBeTruthy();
 
@@ -754,12 +765,14 @@ describe('DocumentWorkspace', () => {
     }));
     renderWorkspace({ document: { ...document, draft_url: null, permissions: { ...document.permissions, can_create_draft: true } } });
 
-    fireEvent.change(screen.getByRole('combobox', { name: 'Choose a starting point' }), { target: { value: 'template' } });
+    fireEvent.click(screen.getByRole('combobox', { name: 'Choose a starting point' }));
+    fireEvent.click(screen.getByRole('option', { name: 'Copy a template' }));
     fireEvent.click(screen.getByRole('button', { name: 'Choose template' }));
 
     expect(await screen.findByRole('link', { name: 'Connect Google in account settings' })).toBeTruthy();
-    expect((screen.getByRole('combobox', { name: 'Choose a starting point' }) as HTMLSelectElement).value).toBe('template');
-    fireEvent.change(screen.getByRole('combobox', { name: 'Choose a starting point' }), { target: { value: 'blank' } });
+    expect(screen.getByRole('combobox', { name: 'Choose a starting point' }).textContent).toContain('Copy a template');
+    fireEvent.click(screen.getByRole('combobox', { name: 'Choose a starting point' }));
+    fireEvent.click(screen.getByRole('option', { name: 'Blank Google Doc' }));
     expect(screen.queryByRole('link', { name: 'Connect Google in account settings' })).toBeNull();
     expect(screen.queryByRole('alert')).toBeNull();
   });
@@ -884,6 +897,7 @@ describe('DocumentWorkspace', () => {
 
     expect(await screen.findByText('Resolved externally.')).toBeTruthy();
     expect(screen.getByText('0 unresolved · Last checked Not available')).toBeTruthy();
+    fireEvent.click(screen.getByRole('checkbox', { name: /I checked Google Docs/ }));
     await waitFor(() => expect((screen.getByRole('button', { name: 'Mark ready for signature' }) as HTMLButtonElement).disabled).toBe(false));
   });
 

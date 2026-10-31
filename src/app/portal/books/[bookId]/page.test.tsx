@@ -190,8 +190,8 @@ describe('BookRoutePage', () => {
     expect(await screen.findByRole('link', { name: /^Open Document 5\.pdf/ })).toBeTruthy();
     expect(screen.getAllByRole('link', { name: /^Open Document/ })).toHaveLength(5);
 
-    fireEvent.click(screen.getByRole('button', { name: '5 / page' }));
-    fireEvent.click(screen.getByRole('button', { name: '10 / page' }));
+    fireEvent.click(screen.getByRole('combobox', { description: 'Book entries per page' }));
+    fireEvent.click(screen.getByRole('option', { name: '10 / page' }));
 
     expect(await screen.findByRole('link', { name: /^Open Document 6\.pdf/ })).toBeTruthy();
     expect(screen.getAllByRole('link', { name: /^Open Document/ })).toHaveLength(6);

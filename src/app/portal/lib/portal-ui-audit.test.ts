@@ -21,7 +21,6 @@ afterEach(() => {
   cleanup();
 });
 
-const appDirectory = path.resolve(process.cwd(), "src", "app");
 const featuresDirectory = path.resolve(process.cwd(), "src", "features");
 
 async function sourceFiles(directory: string): Promise<string[]> {
@@ -37,7 +36,7 @@ async function sourceFiles(directory: string): Promise<string[]> {
 
 describe("portal UI source audit", () => {
   it("keeps rendered admin product copy neutral", async () => {
-    const adminSources = await Promise.all((await sourceFiles(path.join(appDirectory, "admin"))).map((file) => readFile(file, "utf8")));
+    const adminSources = await Promise.all((await sourceFiles(path.join(featuresDirectory, "admin"))).filter((file) => !file.includes(".test.")).map((file) => readFile(file, "utf8")));
 
     expect(adminSources.join("\n")).not.toMatch(/super admin|developer dashboard|platform administration/i);
   });

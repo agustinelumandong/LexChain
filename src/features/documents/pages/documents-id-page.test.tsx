@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { createElement, Suspense, useReducer } from 'react';
+import { Toaster } from 'sonner';
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ApiSchema } from '@/shared/types';
@@ -134,6 +135,7 @@ function renderPage() {
     Suspense,
     { fallback: createElement('p', null, 'Loading route') },
     createElement(DocumentDetailPage, { params: Promise.resolve({ id: 'doc-1' }) }),
+    createElement(Toaster),
   ));
 }
 
@@ -226,8 +228,7 @@ describe('document detail screen', () => {
     expect(screen.getByRole('link', { name: 'Open Google draft' }).getAttribute('href'))
       .toBe('https://docs.google.com/document/d/draft-1');
     fireEvent.click(screen.getByRole('tab', { name: 'Files' }));
-    expect(screen.getByRole('link', { name: 'Download current signed PDF' }).getAttribute('href'))
-      .toContain('copy_id=copy-1&download=1');
+    expect(screen.getByRole('button', { name: 'Download PDF Copy' })).toBeTruthy();
     fireEvent.click(screen.getByRole('tab', { name: 'Blockchain' }));
     expect(screen.getByText('record-hash')).toBeTruthy();
   });
@@ -290,6 +291,7 @@ describe('document detail screen', () => {
     state.documentQuery = { data: preparing, isLoading: false, isError: false, refetch: vi.fn() };
     state.markDocumentReady.mockResolvedValue(ready);
     await showPage();
+    fireEvent.click(screen.getByRole('checkbox', { name: /I checked Google Docs/ }));
     fireEvent.click(screen.getByRole('button', { name: 'Mark ready for signature' }));
 
     await waitFor(() => expect(state.queryClient.setQueryData).toHaveBeenCalledWith(['portal-doc', 'doc-1'], ready));
@@ -319,6 +321,7 @@ describe('document detail screen', () => {
     state.documentQuery = { data: preparing, isLoading: false, isError: false, refetch: vi.fn() };
     state.markDocumentReady.mockRejectedValue(Object.assign(new Error('Resolve two comments before marking ready.'), { status: 409 }));
     await showPage();
+    fireEvent.click(screen.getByRole('checkbox', { name: /I checked Google Docs/ }));
     fireEvent.click(screen.getByRole('button', { name: 'Mark ready for signature' }));
 
     expect(await screen.findByText('Resolve two comments before marking ready.')).toBeTruthy();

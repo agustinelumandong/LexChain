@@ -3,6 +3,7 @@ import React from "react";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import AuthVerifiedPage from "./page";
+import { Toaster } from "sonner";
 
 vi.mock("next/image", () => ({
   default: (props: React.ComponentProps<"img">) => React.createElement("img", props),
@@ -37,12 +38,12 @@ describe("AuthVerifiedPage", () => {
   it("shows the backend's neutral resend message without claiming delivery", async () => {
     const message = "If the account is eligible, verification instructions will be sent.";
     fetchMock.mockResolvedValue(Response.json({ message }));
-    render(<AuthVerifiedPage />);
+    render(<><AuthVerifiedPage /><Toaster /></>);
 
     fireEvent.change(screen.getByLabelText("Email"), { target: { value: "ada@example.com" } });
     fireEvent.click(screen.getByRole("button", { name: "Resend verification email" }));
 
-    expect((await screen.findByRole("status")).textContent).toBe(message);
+    expect(await screen.findByText(message)).toBeTruthy();
     expect(fetchMock).toHaveBeenCalledWith("/api/portal/resend-verification", expect.objectContaining({
       method: "POST",
       body: JSON.stringify({ email: "ada@example.com" }),

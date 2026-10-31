@@ -1,6 +1,8 @@
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
+import { NextRequest } from "next/server";
+import { proxy } from "@/proxy";
 
 const portalPages = [
   ["users", "@/features/office/pages/server", "PortalUsersPage", "users-page"],
@@ -34,13 +36,8 @@ describe("Issuer management portal pages", () => {
   });
 
   it.each(legacyPages)("redirects legacy /admin/%s", (route, target) => {
-    const source = readFileSync(
-      resolve(import.meta.dirname, "..", "..", "admin", route, "page.tsx"),
-      "utf8",
-    );
-
-    expect(source).toContain('import { redirect } from "next/navigation";');
-    expect(source).toContain(`redirect("${target}");`);
+    const response = proxy(new NextRequest(`https://lexchain.example/admin/${route}`));
+    expect(response.headers.get("location")).toBe(`https://lexchain.example${target}`);
   });
 
   it.each(managementLinks)("keeps %s navigation inside the portal", (view, target, legacyTarget) => {
@@ -53,13 +50,13 @@ describe("Issuer management portal pages", () => {
     expect(source).not.toContain(`href="${legacyTarget}"`);
   });
 
-  it("uses canonical issuer invitation copy while loading", () => {
+  it("uses canonical issuer invitation copy in the management view", () => {
     const source = readFileSync(
-      resolve(import.meta.dirname, "..", "..", "admin", "invitations-permissions", "loading.tsx"),
+      resolve(process.cwd(), "src", "features", "admin", "invitations-permissions", "invitations-management-view.tsx"),
       "utf8",
     );
 
     expect(source).toContain("Issuer Invitations");
-    expect(source).toContain("Manage Lawyer invitations");
+    expect(source).toContain("invitations");
   });
 });

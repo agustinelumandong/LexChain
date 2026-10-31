@@ -122,7 +122,7 @@ export function Dropdown({
     }
   }
 
-  const accessibleLabel = ariaLabel ?? (label ? `${label}: ${selected?.label ?? placeholder}` : undefined);
+  const accessibleLabel = ariaLabel ?? (label ? `${label}: ${selected?.label ?? placeholder}` : selected?.label ?? placeholder);
   const listboxLabel = label ?? ariaLabel ?? 'Options';
 
   return (

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { getPortalUiRole } from "@/features/access/portal-role";
 import { Field, MockModal, inputClassName } from "@/features/admin/components/mock-ui";
 import { Dropdown } from "@/shared/components/ui";
 import type { AdminUser, DemoAdminUserChanges, DirectoryUser } from "./users-types";
@@ -70,7 +71,7 @@ export function UserDialogs({
             <Field label="First name"><input className={inputClassName} value={userDraft.f_name ?? ""} onChange={(event) => setUserDraft((draft) => ({ ...draft, f_name: event.target.value }))} /></Field>
             <Field label="Last name"><input className={inputClassName} value={userDraft.l_name ?? ""} onChange={(event) => setUserDraft((draft) => ({ ...draft, l_name: event.target.value }))} /></Field>
             <Field label="Email"><input className={inputClassName} value={userDraft.email} onChange={(event) => setUserDraft((draft) => ({ ...draft, email: event.target.value }))} /></Field>
-            <Field label="Role"><Dropdown ariaLabel="Role" fullWidth value={userDraft.role} onChange={(value) => setUserDraft((draft) => ({ ...draft, role: value }))} options={[{ label: "Lawyer", value: "lawyer" }, { label: "User", value: "user" }]} /></Field>
+            <Field label="Role"><Dropdown ariaLabel="Role" fullWidth value={getPortalUiRole(userDraft.role)} onChange={(value) => setUserDraft((draft) => ({ ...draft, role: value }))} options={[{ label: "Lawyer", value: "lawyer" }, { label: "User", value: "user" }]} /></Field>
             <p className="text-xs font-semibold text-[#5B6F8A]">Demo mode — changes reset when this page is refreshed.</p>
           </div>
       </MockModal>

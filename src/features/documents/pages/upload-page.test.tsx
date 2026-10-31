@@ -62,9 +62,9 @@ function renderPage() {
 }
 
 async function fillClosedBookUpload() {
-  await screen.findByRole('button', { name: 'Register book' });
-  await waitFor(() => expect((screen.getByRole('button', { name: 'Register book' }) as HTMLButtonElement).disabled).toBe(false));
-  fireEvent.click(screen.getByRole('button', { name: 'Register book' }));
+  await screen.findByRole('combobox', { name: 'Register book' });
+  await waitFor(() => expect((screen.getByRole('combobox', { name: 'Register book' }) as HTMLButtonElement).disabled).toBe(false));
+  fireEvent.click(screen.getByRole('combobox', { name: 'Register book' }));
   fireEvent.click(await screen.findByRole('option', { name: /Register book 4/ }));
   fireEvent.change(screen.getByLabelText('Document title'), { target: { value: 'Signed deed' } });
   fireEvent.change(screen.getByLabelText('Paper document number'), { target: { value: '12' } });
@@ -105,9 +105,9 @@ describe('signed document upload screen', () => {
   it('omits numbers for open-book automatic filing and sends both when manually entered', async () => {
     const fetchMock = setupFetch([Response.json(signedDocument, { status: 201 })], [{ id: 'open-book', book_number: 5, series_year: 2026, status: 'OPEN' }]);
     renderPage();
-    await screen.findByRole('button', { name: 'Register book' });
-    await waitFor(() => expect((screen.getByRole('button', { name: 'Register book' }) as HTMLButtonElement).disabled).toBe(false));
-    fireEvent.click(screen.getByRole('button', { name: 'Register book' }));
+    await screen.findByRole('combobox', { name: 'Register book' });
+    await waitFor(() => expect((screen.getByRole('combobox', { name: 'Register book' }) as HTMLButtonElement).disabled).toBe(false));
+    fireEvent.click(screen.getByRole('combobox', { name: 'Register book' }));
     fireEvent.click(await screen.findByRole('option', { name: /Register book 5/ }));
     fireEvent.change(screen.getByLabelText('Document title'), { target: { value: 'Signed deed' } });
     fireEvent.change(document.querySelector('input[type="file"]')!, { target: { files: [new File(['signed pdf'], 'Signed deed.pdf', { type: 'application/pdf' })] } });
@@ -123,9 +123,9 @@ describe('signed document upload screen', () => {
     vi.clearAllMocks();
     const manualFetchMock = setupFetch([Response.json(signedDocument, { status: 201 })], [{ id: 'open-book', book_number: 5, series_year: 2026, status: 'OPEN' }]);
     renderPage();
-    await screen.findByRole('button', { name: 'Register book' });
-    await waitFor(() => expect((screen.getByRole('button', { name: 'Register book' }) as HTMLButtonElement).disabled).toBe(false));
-    fireEvent.click(screen.getByRole('button', { name: 'Register book' }));
+    await screen.findByRole('combobox', { name: 'Register book' });
+    await waitFor(() => expect((screen.getByRole('combobox', { name: 'Register book' }) as HTMLButtonElement).disabled).toBe(false));
+    fireEvent.click(screen.getByRole('combobox', { name: 'Register book' }));
     fireEvent.click(await screen.findByRole('option', { name: /Register book 5/ }));
     fireEvent.click(screen.getByLabelText('Enter paper register numbers'));
     fireEvent.change(screen.getByLabelText('Document title'), { target: { value: 'Signed deed' } });
@@ -146,9 +146,9 @@ describe('signed document upload screen', () => {
       details: { errors: [{ field: 'doc_no', message: 'Document number is unavailable.' }] },
     }, { status: 422 })], [{ id: 'open-book', book_number: 5, series_year: 2026, status: 'OPEN' }]);
     renderPage();
-    await screen.findByRole('button', { name: 'Register book' });
-    await waitFor(() => expect((screen.getByRole('button', { name: 'Register book' }) as HTMLButtonElement).disabled).toBe(false));
-    fireEvent.click(screen.getByRole('button', { name: 'Register book' }));
+    await screen.findByRole('combobox', { name: 'Register book' });
+    await waitFor(() => expect((screen.getByRole('combobox', { name: 'Register book' }) as HTMLButtonElement).disabled).toBe(false));
+    fireEvent.click(screen.getByRole('combobox', { name: 'Register book' }));
     fireEvent.click(await screen.findByRole('option', { name: /Register book 5/ }));
     fireEvent.change(screen.getByLabelText('Document title'), { target: { value: 'Signed deed' } });
     fireEvent.change(document.querySelector('input[type="file"]')!, {

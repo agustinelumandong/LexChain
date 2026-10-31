@@ -35,7 +35,7 @@ it("maps canonical and backend invitation roles while marking unknown values uns
   expect(rowFor("issuer@example.com").getByText("Lawyer")).toBeTruthy();
   expect(rowFor("participant@example.com").getByText("User")).toBeTruthy();
   expect(rowFor("legacy-user@example.com").getByText("User")).toBeTruthy();
-  expect(rowFor("legacy-admin@example.com").getByText("Lawyer")).toBeTruthy();
+  expect(rowFor("legacy-admin@example.com").getByText("Unsupported role")).toBeTruthy();
   expect(rowFor("unknown@example.com").getByText("Unsupported role")).toBeTruthy();
 });
 

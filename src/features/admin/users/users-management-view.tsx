@@ -242,7 +242,7 @@ export function UsersManagementView({ users, total, loadError }: { users: AdminU
                 className="w-full sm:w-72"
               />
               <div className="flex items-center gap-2 text-sm font-semibold text-[#4B6382] [&>div>button]:py-2.5">
-                <Dropdown value={sortOrder} onChange={(value) => { setSortOrder(value); setPage(0); }} options={[
+                <Dropdown ariaLabel="Sort users" value={sortOrder} onChange={(value) => { setSortOrder(value); setPage(0); }} options={[
                   { label: "Newest first", value: "created-desc" },
                   { label: "Oldest first", value: "created-asc" },
                   { label: "Name A–Z", value: "name-asc" },
@@ -257,10 +257,10 @@ export function UsersManagementView({ users, total, loadError }: { users: AdminU
                 </>}>
                 <div className="absolute right-0 top-full z-50 mt-2 grid w-[min(440px,calc(100vw-3rem))] grid-cols-1 gap-x-3 gap-y-4 rounded-xl sm:grid-cols-2 border border-[#E4EEF9] bg-white p-4 text-sm font-semibold text-[#0C2B49] shadow-lg">
                   <div className="grid gap-1.5 [&>div>button]:w-full [&>div>button]:justify-between"><span>Role</span>
-                    <Dropdown value={roleFilter} onChange={(value) => { setRoleFilter(value); setPage(0); }} options={[{ label: "All Roles", value: "all" }, ...roleOptions.map((role) => ({ label: role, value: role }))]} />
+                    <Dropdown ariaLabel="Role filter" value={roleFilter} onChange={(value) => { setRoleFilter(value); setPage(0); }} options={[{ label: "All Roles", value: "all" }, ...roleOptions.map((role) => ({ label: role, value: role }))]} />
                   </div>
                   <div className="grid gap-1.5 [&>div>button]:w-full [&>div>button]:justify-between"><span>Status</span>
-                    <Dropdown value={statusFilter} onChange={(value) => { setStatusFilter(value); setPage(0); }} options={[{ label: "All Statuses", value: "all" }, { label: "Active", value: "Active" }, { label: "Suspended", value: "Suspended" }]} />
+                    <Dropdown ariaLabel="Status filter" value={statusFilter} onChange={(value) => { setStatusFilter(value); setPage(0); }} options={[{ label: "All Statuses", value: "all" }, { label: "Active", value: "Active" }, { label: "Suspended", value: "Suspended" }]} />
                   </div>
                   <LocalizationProvider dateAdapter={AdapterDayjs}>
                     <DatePicker

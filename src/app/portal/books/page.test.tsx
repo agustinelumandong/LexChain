@@ -47,7 +47,7 @@ function renderPage(roleHint?: string) {
 }
 
 function selectBookStatus(status: 'OPEN' | 'CLOSED') {
-  fireEvent.click(screen.getByRole('button', { name: 'Book status' }));
+  fireEvent.click(screen.getByRole('combobox', { name: 'Book status' }));
   fireEvent.click(screen.getByRole('option', { name: status === 'CLOSED' ? /Closed/ : /Open/ }));
 }
 
@@ -129,7 +129,7 @@ describe('BooksPage', () => {
     renderPage('lawyer');
     fireEvent.click(screen.getByRole('button', { name: 'Register book' }));
     expect(screen.getByRole('dialog', { name: 'Register a book' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Book status' }).textContent).toContain('Open');
+    expect(screen.getByRole('combobox', { name: 'Book status' }).textContent).toContain('Open');
     fireEvent.change(screen.getByLabelText('Book number'), { target: { value: '7' } });
     fireEvent.change(screen.getByLabelText('Series year'), { target: { value: '2026' } });
     fireEvent.click(screen.getAllByRole('button', { name: 'Register book' })[1]);
@@ -182,7 +182,7 @@ describe('BooksPage', () => {
     expect((await screen.findByRole('alert')).textContent).toContain('Series year must be 2000 or later');
     expect(screen.getByLabelText('Book number')).toHaveProperty('value', '7');
     expect(screen.getByLabelText('Series year')).toHaveProperty('value', '2026');
-    expect(screen.getByRole('button', { name: 'Book status' }).textContent).toContain('Closed');
+    expect(screen.getByRole('combobox', { name: 'Book status' }).textContent).toContain('Closed');
   });
 
   it('blocks book numbers and years outside the API constraints', async () => {

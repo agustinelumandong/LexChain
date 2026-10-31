@@ -48,7 +48,7 @@ describe('PortalDropdown', () => {
     const onChange = vi.fn();
     render(<PortalDropdown ariaLabel="Report scope" options={options} value="document" onChange={onChange} />);
 
-    const trigger = screen.getByRole('button', { name: 'Report scope' });
+    const trigger = screen.getByRole('combobox', { name: 'Report scope' });
     fireEvent.click(trigger);
     fireEvent.keyDown(trigger, { key: 'Escape' });
     expect(screen.queryByRole('listbox')).toBeNull();
