@@ -1,4 +1,28 @@
+import { portalRequest } from '@/shared/api/client';
+import { PortalApiError } from '@/shared/api/portal-error';
 import type { ApiSchema } from '@/shared/types/index';
+import { UploadRequestError } from '@/features/documents/portal-upload';
+import { isGoogleDraftUrl } from '@/features/documents/document-draft-api';
+
+export class LifecycleRequestError extends PortalApiError {
+  readonly reason?: string;
+  readonly unresolved?: number;
+  readonly draftUrl?: string;
+
+  constructor(message: string, status: number, details: unknown, body?: unknown) {
+    super(message, status, details, body);
+    this.name = 'LifecycleRequestError';
+
+    if (typeof details !== 'object' || details === null) return;
+    const metadata = details as Record<string, unknown>;
+    if (typeof metadata.reason === 'string') this.reason = metadata.reason;
+    if (metadata.reason !== 'UNRESOLVED_COMMENTS') return;
+    if (Number.isInteger(metadata.unresolved) && typeof metadata.unresolved === 'number' && metadata.unresolved >= 0) {
+      this.unresolved = metadata.unresolved;
+    }
+    if (typeof metadata.draft_url === 'string' && isGoogleDraftUrl(metadata.draft_url)) this.draftUrl = metadata.draft_url;
+  }
+}
 
 function required(value: string, message: string): string {
   const normalized = value.trim();
@@ -8,23 +32,30 @@ function required(value: string, message: string): string {
 
 async function lifecycleFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const proxy = init?.method ? '/api/portal/proxy-post' : '/api/portal/proxy';
-  const response = await fetch(`${proxy}?path=${encodeURIComponent(path)}`, {
-    credentials: 'same-origin',
-    cache: 'no-store',
-    ...init,
-  });
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({})) as { detail?: string; message?: string };
-    throw new Error(error.detail ?? error.message ?? `API error: ${response.status}`);
+  let response: Response;
+  try {
+    response = await portalRequest(`${proxy}?path=${encodeURIComponent(path)}`, {
+      credentials: 'same-origin',
+      cache: 'no-store',
+      ...init,
+    });
+  } catch (error) {
+    if (error instanceof PortalApiError) {
+      if (init?.method === 'POST' && path.includes('/signed-copy')) throw new UploadRequestError(error.body, error.status);
+      throw new LifecycleRequestError(error.message, error.status, error.details, error.body);
+    }
+    throw error;
   }
-
   return response.json() as Promise<T>;
 }
 
 export async function finalizeDocument(documentId: string): Promise<ApiSchema<'RecordResponse'>> {
   const id = required(documentId, 'Document ID is required');
   return lifecycleFetch(`/documents/${id}/finalize`, { method: 'POST' });
+}
+
+export function retryDocumentProcessing(documentId: string): Promise<ApiSchema<'RetryProcessingResponse'>> {
+  return lifecycleFetch(`/documents/${required(documentId, 'Document ID is required')}/retry-processing`, { method: 'POST' });
 }
 
 export function listDraftComments(documentId: string): Promise<ApiSchema<'DraftCommentListResponse'>> {
@@ -73,6 +104,15 @@ export function correctDocumentEntry(documentId: string, entry: ApiSchema<'Corre
 
 export async function listSignedCopies(documentId: string): Promise<ApiSchema<'SignedCopyListResponse'>> {
   return lifecycleFetch(`/documents/${required(documentId, 'Document ID is required')}/signed-copies`);
+}
+
+export function signedCopyFileUrl(documentId: string, options: { copyId?: string; download?: boolean; filename?: string } = {}): string {
+  const query = new URLSearchParams();
+  if (options.copyId) query.set('copy_id', options.copyId);
+  if (options.download) query.set('download', '1');
+  if (options.filename) query.set('filename', options.filename);
+  const suffix = query.size ? `?${query}` : '';
+  return `/api/portal/documents/${encodeURIComponent(required(documentId, 'Document ID is required'))}/file${suffix}`;
 }
 
 export async function attachSignedCopy(documentId: string, file: File, filing: { bookId: string; docNo?: number | null; pageNo?: number | null }): Promise<ApiSchema<'DocumentResponse'>> {

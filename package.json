@@ -10,7 +10,7 @@
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "generate:api-types": "openapi-typescript openapi-updated.json -o src/shared/types/generated/schema.ts",
-    "refresh:api-contract": "node scripts/fetch-openapi.mjs",
+    "refresh:api-contract": "node --env-file-if-exists=.env.local scripts/fetch-openapi.mjs",
     "test:scripts": "node --test scripts/*.test.mjs"
   },
   "dependencies": {
@@ -25,6 +25,7 @@
     "dayjs": "^1.11.23",
     "dompurify": "^3.4.12",
     "next": "16.2.6",
+    "pdf-lib": "^1.17.1",
     "pdfjs-dist": "5.6.205",
     "react": "19.2.4",
     "react-dom": "19.2.4",

@@ -77,7 +77,7 @@ export default function OfficeReportsPage() {
   if (profileQuery.isLoading) return <div className="h-36 animate-pulse rounded-[18px] border border-[#E8F0F8] bg-white" />;
 
   if (!isIssuer) {
-    return <p className="text-sm font-semibold text-[#64748b]">Reports are available to Lawyers only.</p>;
+    return <p className="text-sm font-semibold text-[#5B6F8A]">Reports are available to Lawyers only.</p>;
   }
 
   if (scope === 'document' && documentsQuery.isLoading) {
@@ -121,7 +121,7 @@ export default function OfficeReportsPage() {
   const scopeCard = (
     <div className="rounded-2xl border border-[#E4EEF9] bg-[#F8FBFF] p-4">
       <div className="flex items-start gap-3">
-        <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-[#0985E7] text-xs font-black text-white">1</span>
+        <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-[#0067B3] text-xs font-black text-white">1</span>
         <div>
           <h3 className="text-sm font-black text-[#071B33]">Choose a scope</h3>
           <p className="mt-1 text-sm font-semibold leading-5 text-[#5B6F8A]">Start with office activity or platform records.</p>
@@ -134,7 +134,7 @@ export default function OfficeReportsPage() {
   const builderHeader = (
     <div className="flex flex-wrap items-start justify-between gap-4 border-b border-[#E4EEF9] bg-[#FBFDFF] px-5 py-5 sm:px-6">
       <div className="flex items-start gap-3">
-        <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-[#EAF4FF] text-[#0879D8]">
+        <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-[#EAF4FF] text-[#0067B3]">
           <AssessmentOutlinedIcon fontSize="small" />
         </span>
         <div>
@@ -150,7 +150,7 @@ export default function OfficeReportsPage() {
     <div className="flex w-full flex-col gap-6 xl:min-h-[calc(100dvh-113px)]">
       <header className="flex shrink-0 flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="text-xs font-black uppercase tracking-[0.22em] text-[#0879D8]">LexChain Operations</p>
+          <p className="text-xs font-black uppercase tracking-[0.22em] text-[#0067B3]">LexChain Operations</p>
           <h1 className="mt-1 text-3xl font-black leading-tight tracking-[-0.02em] text-[#071B33]">Reports</h1>
           <p className="mt-1 max-w-2xl text-sm font-semibold leading-6 text-[#4B6382]">Choose a report, set a date range, and create a local CSV preview for your office.</p>
         </div>
@@ -167,7 +167,7 @@ export default function OfficeReportsPage() {
 
                 <div className="rounded-2xl border border-[#E4EEF9] bg-[#F8FBFF] p-4">
                   <div className="flex items-start gap-3">
-                    <span className="flex size-7 shrink-0 items-center justify-center rounded-full border border-[#B9DDF9] bg-white text-xs font-black text-[#0879D8]">2</span>
+                    <span className="flex size-7 shrink-0 items-center justify-center rounded-full border border-[#B9DDF9] bg-white text-xs font-black text-[#0067B3]">2</span>
                     <div>
                       <h3 className="text-sm font-black text-[#071B33]">Choose a report</h3>
                       <p className="mt-1 text-sm font-semibold leading-5 text-[#5B6F8A]">{selectedReport.description}</p>
@@ -187,7 +187,7 @@ export default function OfficeReportsPage() {
           {scope === 'document' ? (
             <div aria-label="Report dates" className="rounded-2xl border border-[#E4EEF9] bg-[#F8FBFF] p-4 sm:p-5">
               <div className="flex items-start gap-3">
-                <span className="flex size-7 shrink-0 items-center justify-center rounded-full border border-[#B9DDF9] bg-white text-xs font-black text-[#0879D8]">3</span>
+                <span className="flex size-7 shrink-0 items-center justify-center rounded-full border border-[#B9DDF9] bg-white text-xs font-black text-[#0067B3]">3</span>
                 <div>
                   <h3 className="text-sm font-black text-[#071B33]">Choose a date range</h3>
                   <p className="mt-1 text-sm font-semibold leading-5 text-[#5B6F8A]">Preview activity that falls between these dates.</p>
@@ -212,7 +212,7 @@ export default function OfficeReportsPage() {
                     slotProps={reportDatePickerSlotProps}
                   />
                 </LocalizationProvider>
-                <button type="button" onClick={generateReport} className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#0985E7] px-5 py-3 text-sm font-black text-white transition hover:bg-[#0770C4] active:translate-y-px">
+                <button type="button" onClick={generateReport} className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#0067B3] px-5 py-3 text-sm font-black text-white transition hover:bg-[#005F9E] active:translate-y-px">
                   <AssessmentOutlinedIcon fontSize="small" />
                   Generate
                 </button>
@@ -234,23 +234,23 @@ export default function OfficeReportsPage() {
         <section aria-label={`${reportLabel} report`} className="overflow-hidden rounded-2xl border border-[#E4EEF9] bg-white shadow-sm shadow-[#DDEAF7]/35">
           <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[#E4EEF9] bg-[#FBFDFF] p-5 sm:p-6">
             <div className="flex items-start gap-3">
-              <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-[#EAF8F0] text-[#12A150]"><AssessmentOutlinedIcon fontSize="small" /></span>
+              <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-[#EAF8F0] text-[#166534]"><AssessmentOutlinedIcon fontSize="small" /></span>
               <div>
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-xs font-black uppercase tracking-[0.14em] text-[#0879D8]">CSV preview</span>
-                  <span className="rounded-full bg-[#EAF8F0] px-2.5 py-1 text-xs font-black text-[#16834B]">Ready</span>
+                  <span className="text-xs font-black uppercase tracking-[0.14em] text-[#0067B3]">CSV preview</span>
+                  <span className="rounded-full bg-[#EAF8F0] px-2.5 py-1 text-xs font-black text-[#166534]">Ready</span>
                 </div>
                 <h2 className="mt-1 text-xl font-black text-[#071B33]">{reportLabel}</h2>
                 <p className="mt-1 text-sm font-semibold text-[#5B6F8A]">{report.rows.length} {report.rows.length === 1 ? 'row' : 'rows'} in this preview <span aria-hidden="true">·</span> {report.from} to {report.to}</p>
               </div>
             </div>
-            <button type="button" onClick={() => downloadDemoReport(report)} className="inline-flex items-center gap-2 rounded-xl border border-[#B9D6ED] bg-white px-4 py-2.5 text-sm font-black text-[#0879D8] transition hover:border-[#0985E7] hover:bg-[#F0F7FF] active:translate-y-px">
+            <button type="button" onClick={() => downloadDemoReport(report)} className="inline-flex items-center gap-2 rounded-xl border border-[#B9D6ED] bg-white px-4 py-2.5 text-sm font-black text-[#0067B3] transition hover:border-[#0067B3] hover:bg-[#F0F7FF] active:translate-y-px">
               <DownloadOutlinedIcon fontSize="small" />
               Download CSV
             </button>
           </div>
 
-          <p className="mx-5 mt-5 rounded-xl border border-[#E4EEF9] bg-[#F8FBFF] px-3 py-2.5 text-sm font-bold text-[#64748b] sm:mx-6">Demo report — generated locally from seeded data and not stored.</p>
+          <p className="mx-5 mt-5 rounded-xl border border-[#E4EEF9] bg-[#F8FBFF] px-3 py-2.5 text-sm font-bold text-[#5B6F8A] sm:mx-6">Demo report — generated locally from seeded data and not stored.</p>
 
           {report.rows.length ? (
             <div className="mt-5 overflow-x-auto px-5 pb-5 sm:px-6">
@@ -263,17 +263,17 @@ export default function OfficeReportsPage() {
                 <tbody>
                   {report.rows.slice(0, 5).map((row, index) => (
                     <tr key={index} className="transition hover:bg-[#FBFDFF]">
-                      {report.columns.map((column) => <td key={column} className="border-b border-[#EEF4F8] p-3 font-semibold text-[#64748b]">{String(row[column] ?? '')}</td>)}
+                      {report.columns.map((column) => <td key={column} className="border-b border-[#EEF4F8] p-3 font-semibold text-[#5B6F8A]">{String(row[column] ?? '')}</td>)}
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
-          ) : <p className="px-5 py-5 text-sm font-semibold text-[#64748b] sm:px-6">No seeded rows fall within this date range.</p>}
+          ) : <p className="px-5 py-5 text-sm font-semibold text-[#5B6F8A] sm:px-6">No seeded rows fall within this date range.</p>}
         </section>
       ) : scope === 'document' && !error ? (
         <section role="status" className="flex flex-col items-center justify-center gap-4 rounded-2xl border border-dashed border-[#CFE1F2] bg-white px-6 py-10 text-center shadow-sm shadow-[#DDEAF7]/25">
-          <span className="flex size-14 items-center justify-center rounded-2xl bg-[#EAF4FF] text-[#0879D8]"><AssessmentOutlinedIcon /></span>
+          <span className="flex size-14 items-center justify-center rounded-2xl bg-[#EAF4FF] text-[#0067B3]"><AssessmentOutlinedIcon /></span>
           <div>
             <h2 className="text-lg font-black text-[#071B33]">Your preview will appear here</h2>
             <p className="mt-2 text-sm font-semibold leading-6 text-[#5B6F8A]">Choose a date range to create a local CSV preview.</p>

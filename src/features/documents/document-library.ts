@@ -21,6 +21,10 @@ function documentDate(document: DocumentListItem) {
   return new Date(document.created_at).getTime();
 }
 
+export function getDocumentsByOwnership<T extends DocumentListItem>(documents: T[], ownership: 'owned' | 'shared'): T[] {
+  return documents.filter((document) => document.is_owner === (ownership === 'owned'));
+}
+
 export function getVisibleDocuments<T extends DocumentListItem>(documents: T[], filters: DocumentListFilters): T[] {
   const query = filters.query.trim().toLowerCase();
 

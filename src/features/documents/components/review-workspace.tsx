@@ -8,9 +8,11 @@ import DialogContentText from '@mui/material/DialogContentText';
 import DialogTitle from '@mui/material/DialogTitle';
 import Drawer from '@mui/material/Drawer';
 import dynamic from 'next/dynamic';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import { getDocumentStatusLabel } from '@/features/documents/document-ui';
 import type { ExtractionReview } from '@/features/documents/extraction-api';
+import { signedCopyFileUrl } from '@/features/documents/document-lifecycle-api';
+import { ToggleButton } from '@/shared/components/ui';
 
 const PdfDocumentViewer = dynamic(() => import('@/features/documents/components/pdf-document-viewer'), {
   ssr: false,
@@ -151,6 +153,21 @@ export default function ReviewWorkspace({
     setActiveTab(tab);
   }
 
+  function handleTabKeyDown(event: KeyboardEvent<HTMLButtonElement>, tab: 'compare' | 'raw') {
+    const nextTab = event.key === 'Home'
+      ? 'compare'
+      : event.key === 'End'
+        ? 'raw'
+        : event.key === 'ArrowLeft' || event.key === 'ArrowRight'
+          ? tab === 'compare' ? 'raw' : 'compare'
+          : null;
+    if (!nextTab) return;
+
+    event.preventDefault();
+    changeActiveTab(nextTab);
+    document.getElementById(`review-workspace-tab-${nextTab}`)?.focus();
+  }
+
   function changeMobilePane(pane: 'source' | 'review') {
     if (pane === mobilePane) return;
     setHoveredBlockIndex(null);
@@ -214,11 +231,14 @@ export default function ReviewWorkspace({
             <button
               key={tab}
               type="button"
+              id={`review-workspace-tab-${tab}`}
               role="tab"
               aria-selected={activeTab === tab}
+              tabIndex={activeTab === tab ? 0 : -1}
               aria-controls="review-workspace-panel"
+              onKeyDown={(event) => handleTabKeyDown(event, tab)}
               onClick={() => changeActiveTab(tab)}
-              className={`border-b-2 px-5 py-3 text-sm font-black ${activeTab === tab ? 'border-[#0985E7] text-[#0985E7]' : 'border-transparent text-[#64748b]'}`}
+              className={`border-b-2 px-5 py-3 text-sm font-black ${activeTab === tab ? 'border-[#0067B3] text-[#0067B3]' : 'border-transparent text-[#5B6F8A]'}`}
             >
               {tab === 'compare' ? 'Compare' : 'Raw'}
             </button>
@@ -245,28 +265,29 @@ export default function ReviewWorkspace({
         </div>
       </div>
 
-      <div id="review-workspace-panel" role="tabpanel" className="pt-5 md:flex md:min-h-0 md:flex-1 md:flex-col">
+      <div id="review-workspace-panel" role="tabpanel" aria-labelledby={`review-workspace-tab-${activeTab}`} className="pt-5 md:flex md:min-h-0 md:flex-1 md:flex-col">
         {activeTab === 'compare' ? (
           <div className="md:flex md:min-h-0 md:flex-1 md:flex-col">
             <div aria-label="Mobile review pane" className="mb-3 grid grid-cols-2 gap-2 md:hidden">
               {(['source', 'review'] as const).map((pane) => (
-                <button
+                <ToggleButton
                   key={pane}
                   type="button"
+                  pressed={mobilePane === pane}
+                  size="sm"
+                  fullWidth
                   aria-label={`${pane === 'source' ? 'Source' : 'Review'} pane`}
-                  aria-pressed={mobilePane === pane}
                   onClick={() => changeMobilePane(pane)}
-                  className={`rounded-full px-4 py-2 text-sm font-black ${mobilePane === pane ? 'bg-[#0985E7] text-white' : 'border border-[#D7E4F2] text-[#64748b]'}`}
                 >
                   {pane === 'source' ? 'Source' : 'Review'}
-                </button>
+                </ToggleButton>
               ))}
             </div>
 
             <div className="grid min-w-0 gap-5 md:min-h-0 md:flex-1 md:grid-cols-2">
               <section aria-label="Source document" className={`relative ${mobilePane === 'source' ? 'min-w-0 rounded-[18px] border border-[#E8F0F8] bg-white p-4 md:flex md:min-h-0 md:flex-col' : 'hidden min-w-0 rounded-[18px] border border-[#E8F0F8] bg-white p-4 md:flex md:min-h-0 md:flex-col'}`}>
                 <PdfDocumentViewer
-                  sourceUrl={review.storage_url}
+                  sourceUrl={signedCopyFileUrl(review.document_id, { copyId: review.signed_copy_id })}
                   pageCount={review.page_count}
                   currentPage={currentPage}
                   blocks={review.blocks}
@@ -280,8 +301,8 @@ export default function ReviewWorkspace({
                 {pdfLoading && (
                   <div className="absolute inset-0 z-10 flex items-center justify-center rounded-[18px] bg-white">
                     <div className="flex items-center gap-2">
-                      <span className="h-4 w-4 animate-spin rounded-full border-2 border-[#D7E4F2] border-t-[#0985E7]" />
-                      <p className="text-xs font-semibold text-[#94A3B8]">Loading document…</p>
+                      <span className="h-4 w-4 animate-spin rounded-full border-2 border-[#D7E4F2] border-t-[#0067B3]" />
+                      <p className="text-xs font-semibold text-[#5B6F8A]">Loading document…</p>
                     </div>
                   </div>
                 )}
@@ -312,14 +333,14 @@ export default function ReviewWorkspace({
                       data-block-index={block.index}
                       onMouseEnter={() => hoverBlock(block.index)}
                       onMouseLeave={() => hoverBlock(null)}
-                      className={`group rounded-lg border px-2 py-1.5 transition-colors ${selected ? 'border-[#0985E7] bg-[#F5FAFF]' : hovered ? 'border-[#98C9F3] bg-[#F8FBFF]' : 'border-[#E8F0F8]'}`}
+                      className={`group rounded-lg border px-2 py-1.5 transition-colors ${selected ? 'border-[#0067B3] bg-[#F5FAFF]' : hovered ? 'border-[#98C9F3] bg-[#F8FBFF]' : 'border-[#E8F0F8]'}`}
                     >
-                      <span className="mb-1 block text-[10px] font-black uppercase tracking-wide text-[#64748b]">
+                      <span className="mb-1 block text-[10px] font-black uppercase tracking-wide text-[#5B6F8A]">
                         {block.type.replace(/[_-]/g, ' ')}
                       </span>
                       {block.is_html ? (
                         <>
-                          {sanitizedTable === undefined && <p className="text-sm text-[#64748b]">Loading table…</p>}
+                          {sanitizedTable === undefined && <p className="text-sm text-[#5B6F8A]">Loading table…</p>}
                           {sanitizedTable === null && <p className="text-sm text-[#B42318]">Table preview unavailable. Edit it in Raw view.</p>}
                           {typeof sanitizedTable === 'string' && (
                             <div
@@ -334,7 +355,7 @@ export default function ReviewWorkspace({
                               changeActiveTab('raw');
                               selectBlock(block.index);
                             }}
-                            className="mt-2 text-xs font-black text-[#0985E7] disabled:opacity-40"
+                            className="mt-2 text-xs font-black text-[#0067B3] disabled:opacity-40"
                           >
                             Edit table in Raw view
                           </button>
@@ -360,14 +381,14 @@ export default function ReviewWorkspace({
                           className={`field-sizing-content w-full resize-none overflow-hidden rounded-lg border-0 bg-transparent px-2 py-1.5 leading-7 text-[#0C2B49] outline-none ${block.text_level === 1 ? 'text-xl font-black' : 'text-sm'}`}
                         />
                       ) : (
-                        <p className="rounded-lg border border-dashed border-[#F5D7A1] bg-[#FFF9EC] px-3 py-2 text-sm text-[#64748b]">
+                        <p className="rounded-lg border border-dashed border-[#F5D7A1] bg-[#FFF9EC] px-3 py-2 text-sm text-[#5B6F8A]">
                           {block.type} region — shown on the source PDF and not editable.
                         </p>
                       )}
                     </section>
                   );
                 })}
-                {compareBlocks.length === 0 && <p className="text-sm text-[#64748b]">No extracted text is available for this page.</p>}
+                {compareBlocks.length === 0 && <p className="text-sm text-[#5B6F8A]">No extracted text is available for this page.</p>}
               </section>
             </div>
           </div>
@@ -380,18 +401,18 @@ export default function ReviewWorkspace({
                   key={block.index}
                   id={`review-block-${block.index}`}
                   data-block-index={block.index}
-                  className={`rounded-[18px] border bg-white p-5 ${selectedBlockIndex === block.index ? 'border-[#0985E7]' : 'border-[#E8F0F8]'}`}
+                  className={`rounded-[18px] border bg-white p-5 ${selectedBlockIndex === block.index ? 'border-[#0067B3]' : 'border-[#E8F0F8]'}`}
                 >
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <h2 className="font-black text-[#0C2B49]">Block {block.index}</h2>
-                    <p className="text-xs font-bold text-[#64748b]">
+                    <p className="text-xs font-bold text-[#5B6F8A]">
                       {block.page_idx === null || block.page_idx === undefined ? 'Page not reported' : `Page ${block.page_idx + 1}`}
                       {' · '}
                       {block.score === null || block.score === undefined ? 'Confidence not reported' : `${Math.round(block.score * 100)}% confidence`}
                     </p>
                   </div>
                   <div className="mt-4 rounded-xl bg-[#F8FBFF] p-3">
-                    <p className="text-xs font-black uppercase tracking-wide text-[#64748b]">Original OCR text</p>
+                    <p className="text-xs font-black uppercase tracking-wide text-[#5B6F8A]">Original OCR text</p>
                     <p className="mt-1 whitespace-pre-wrap break-words text-sm text-[#475569]">{block.original_text}</p>
                   </div>
                   {block.editable !== false ? (
@@ -405,10 +426,10 @@ export default function ReviewWorkspace({
                         disabled={review.is_reviewed || isApproving}
                         onFocus={() => selectBlock(block.index, false)}
                         onChange={(event) => setDrafts((current) => ({ ...current, [block.index]: event.target.value }))}
-                        className="mt-1.5 w-full resize-y rounded-xl border border-[#D7E4F2] px-3 py-2.5 font-mono text-sm leading-6 text-[#0C2B49] outline-none focus:border-[#0985E7] disabled:bg-[#F8FBFF]"
+                        className="mt-1.5 w-full resize-y rounded-xl border border-[#D7E4F2] px-3 py-2.5 font-mono text-sm leading-6 text-[#0C2B49] outline-none focus:border-[#0067B3] disabled:bg-[#F8FBFF]"
                       />
                     </>
-                  ) : <p className="mt-4 text-sm font-bold text-[#B77900]">This {block.type} region is not editable.</p>}
+                  ) : <p className="mt-4 text-sm font-bold text-[#8A5B00]">This {block.type} region is not editable.</p>}
                 </section>
               );
             })}
@@ -422,16 +443,16 @@ export default function ReviewWorkspace({
           type="button"
           disabled={edits.length === 0 || mutationPending || review.is_reviewed}
           onClick={() => void saveChanges()}
-          className="rounded-full bg-[#0985E7] px-4 py-2.5 text-sm font-black text-white disabled:opacity-40"
+          className="rounded-full bg-[#0067B3] px-4 py-2.5 text-sm font-black text-white disabled:opacity-40"
         >
           {isSaving ? 'Saving changes…' : 'Save changes'}
         </button>
-        {edits.length > 0 && <span className="text-xs font-bold text-[#B77900]">{edits.length} {edits.length === 1 ? 'block' : 'blocks'} changed</span>}
+        {edits.length > 0 && <span className="text-xs font-bold text-[#8A5B00]">{edits.length} {edits.length === 1 ? 'block' : 'blocks'} changed</span>}
         <button
           type="button"
           disabled={edits.length > 0 || mutationPending || review.is_reviewed}
           onClick={() => void onAnalyze().catch(() => undefined)}
-          className="rounded-full border border-[#0985E7] px-4 py-2.5 text-sm font-black text-[#0985E7] disabled:opacity-40"
+          className="rounded-full border border-[#0067B3] px-4 py-2.5 text-sm font-black text-[#0067B3] disabled:opacity-40"
         >
           {isAnalyzing ? 'Analyzing semantic issues…' : 'Analyze semantic issues'}
         </button>
@@ -444,8 +465,8 @@ export default function ReviewWorkspace({
           {isApproving ? 'Approving reviewed text…' : 'Approve reviewed text'}
         </button>
       </div>
-      {edits.length > 0 && <p className="mt-3 text-xs font-semibold text-[#B77900]">Save changes before analysis or approval.</p>}
-      {review.is_reviewed && <p className="mt-3 text-xs font-semibold text-[#12A150]">Reviewed text is approved and frozen.</p>}
+      {edits.length > 0 && <p className="mt-3 text-xs font-semibold text-[#8A5B00]">Save changes before analysis or approval.</p>}
+      {review.is_reviewed && <p className="mt-3 text-xs font-semibold text-[#166534]">Reviewed text is approved and frozen.</p>}
 
       <Dialog open={approvalOpen} onClose={() => !isApproving && setApprovalOpen(false)} aria-labelledby="approval-dialog-title">
         <DialogTitle id="approval-dialog-title">Approve reviewed text?</DialogTitle>
@@ -460,7 +481,7 @@ export default function ReviewWorkspace({
           )}
         </DialogContent>
         <DialogActions>
-          <button type="button" disabled={isApproving} onClick={() => setApprovalOpen(false)} className="rounded-full px-4 py-2 text-sm font-black text-[#64748b] disabled:opacity-40">Cancel</button>
+          <button type="button" disabled={isApproving} onClick={() => setApprovalOpen(false)} className="rounded-full px-4 py-2 text-sm font-black text-[#5B6F8A] disabled:opacity-40">Cancel</button>
           <button
             type="button"
             disabled={isApproving}
@@ -485,9 +506,9 @@ export default function ReviewWorkspace({
           <div className="flex items-center justify-between gap-3">
             <div>
               <h2 className="text-lg font-black text-[#0C2B49]">Issues</h2>
-              <p className="text-sm font-bold text-[#64748b]">{review.flag_count} {review.flag_count === 1 ? 'issue' : 'issues'}</p>
+              <p className="text-sm font-bold text-[#5B6F8A]">{review.flag_count} {review.flag_count === 1 ? 'issue' : 'issues'}</p>
             </div>
-            <button type="button" aria-label="Close issues" onClick={() => closeIssues()} className="px-2 py-1 text-xl text-[#64748b]">×</button>
+            <button type="button" aria-label="Close issues" onClick={() => closeIssues()} className="px-2 py-1 text-xl text-[#5B6F8A]">×</button>
           </div>
           <div className="mt-5 flex flex-col gap-3">
             {orderedFlags.map((flag, position) => {
@@ -508,13 +529,13 @@ export default function ReviewWorkspace({
                   }}
                   className={`rounded-xl border p-3 text-left ${severity === 'high' ? 'border-red-200 bg-red-50' : severity === 'medium' ? 'border-amber-200 bg-amber-50' : 'border-[#D7E4F2] bg-white'}`}
                 >
-                  <span className="block text-xs font-black uppercase tracking-wide text-[#64748b]">{priority} · {target}</span>
+                  <span className="block text-xs font-black uppercase tracking-wide text-[#5B6F8A]">{priority} · {target}</span>
                   <span className="mt-1 block text-sm font-bold text-[#0C2B49]">{flag.message}</span>
-                  {flag.excerpt && <span className="mt-1 block text-xs text-[#64748b]">{flag.excerpt}</span>}
+                  {flag.excerpt && <span className="mt-1 block text-xs text-[#5B6F8A]">{flag.excerpt}</span>}
                 </button>
               );
             })}
-            {orderedFlags.length === 0 && <p className="text-sm text-[#64748b]">No issues reported.</p>}
+            {orderedFlags.length === 0 && <p className="text-sm text-[#5B6F8A]">No issues reported.</p>}
           </div>
         </aside>
       </Drawer>
@@ -527,14 +548,14 @@ export default function ReviewWorkspace({
         <aside aria-label="Extraction info" className="w-[min(24rem,100vw)] p-5">
           <div className="flex items-center justify-between gap-3">
             <h2 className="text-lg font-black text-[#0C2B49]">Extraction info</h2>
-            <button type="button" aria-label="Close extraction info" onClick={() => setOpenDrawer(null)} className="px-2 py-1 text-xl text-[#64748b]">×</button>
+            <button type="button" aria-label="Close extraction info" onClick={() => setOpenDrawer(null)} className="px-2 py-1 text-xl text-[#5B6F8A]">×</button>
           </div>
           <dl className="mt-5 grid gap-4 text-sm">
-            <div><dt className="font-bold text-[#64748b]">Engine</dt><dd className="text-[#0C2B49]">{review.engine}</dd></div>
-            <div><dt className="font-bold text-[#64748b]">Pages</dt><dd className="text-[#0C2B49]">{review.page_count} {review.page_count === 1 ? 'page' : 'pages'}</dd></div>
-            <div><dt className="font-bold text-[#64748b]">Average confidence</dt><dd className="text-[#0C2B49]">{review.confidence_avg === null || review.confidence_avg === undefined ? 'Not reported' : `${Math.round(review.confidence_avg * 100)}%`}</dd></div>
-            <div><dt className="font-bold text-[#64748b]">Edited blocks</dt><dd className="text-[#0C2B49]">{review.edited_block_count} edited {review.edited_block_count === 1 ? 'block' : 'blocks'}</dd></div>
-            <div><dt className="font-bold text-[#64748b]">Review status</dt><dd className="text-[#0C2B49]">{getDocumentStatusLabel(review.status)}</dd></div>
+            <div><dt className="font-bold text-[#5B6F8A]">Engine</dt><dd className="text-[#0C2B49]">{review.engine}</dd></div>
+            <div><dt className="font-bold text-[#5B6F8A]">Pages</dt><dd className="text-[#0C2B49]">{review.page_count} {review.page_count === 1 ? 'page' : 'pages'}</dd></div>
+            <div><dt className="font-bold text-[#5B6F8A]">Average confidence</dt><dd className="text-[#0C2B49]">{review.confidence_avg === null || review.confidence_avg === undefined ? 'Not reported' : `${Math.round(review.confidence_avg * 100)}%`}</dd></div>
+            <div><dt className="font-bold text-[#5B6F8A]">Edited blocks</dt><dd className="text-[#0C2B49]">{review.edited_block_count} edited {review.edited_block_count === 1 ? 'block' : 'blocks'}</dd></div>
+            <div><dt className="font-bold text-[#5B6F8A]">Review status</dt><dd className="text-[#0C2B49]">{getDocumentStatusLabel(review.status)}</dd></div>
           </dl>
         </aside>
       </Drawer>

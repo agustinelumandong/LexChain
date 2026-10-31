@@ -1,10 +1,13 @@
 // @vitest-environment jsdom
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import type React from 'react';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import NotificationsPage from '@/features/portal/pages/notifications-page';
 
-const unreadNotification = { id: 'anchored', title: 'Document anchored', body: 'Your record is ready.', is_read: false, created_at: '2026-07-20T10:00:00Z' };
+vi.mock('next/link', () => ({ default: ({ href, onClick, ...props }: React.AnchorHTMLAttributes<HTMLAnchorElement> & { href: string }) => <a href={href} onClick={(event) => { event.preventDefault(); onClick?.(event); }} {...props} /> }));
+
+const unreadNotification = { id: 'anchored', title: 'Document anchored', body: 'Your record is ready.', type: 'document_recorded', event_metadata: { document_id: 'doc-anchored' }, is_read: false, created_at: '2026-07-20T10:00:00Z' };
 const readNotification = { ...unreadNotification, is_read: true };
 const listResponse = (notification = unreadNotification) => Response.json({ notifications: [notification], total: 1 });
 const fetchMock = vi.fn();
@@ -39,7 +42,7 @@ describe('NotificationsPage', () => {
       .mockResolvedValueOnce(Response.json({ notifications: [], total: 0 }));
     renderNotifications();
 
-    expect((await screen.findByRole('alert')).textContent).toContain('Unable to load notifications');
+    expect((await screen.findByRole('alert')).textContent).toContain('Service unavailable');
     fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
 
     expect(await screen.findByText('No notifications yet')).toBeTruthy();
@@ -57,9 +60,8 @@ describe('NotificationsPage', () => {
     });
     renderNotifications();
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Mark Document anchored as read' }));
+    fireEvent.click(await screen.findByRole('link', { name: /Document anchored/ }));
     expect(await screen.findByText('Marking notification as read…')).toBeTruthy();
-    expect((screen.getByRole('button', { name: 'Mark Document anchored as read' }) as HTMLButtonElement).disabled).toBe(true);
     finishRead?.(new Response(null, { status: 204 }));
 
     expect(await screen.findByText('Marked as read')).toBeTruthy();
@@ -70,19 +72,23 @@ describe('NotificationsPage', () => {
   it('shows mark-one and mark-all failures without changing the unread list', async () => {
     fetchMock.mockImplementation((input: RequestInfo | URL) => {
       const url = String(input);
-      if (url.includes(encodeURIComponent('/notifications/anchored/read'))) return Promise.resolve(Response.json({}, { status: 503 }));
-      if (url.includes(encodeURIComponent('/notifications/read-all'))) return Promise.resolve(Response.json({}, { status: 503 }));
+      if (url.includes(encodeURIComponent('/notifications/anchored/read'))) return Promise.resolve(Response.json({ message: 'This notification could not be updated.' }, { status: 503 }));
+      if (url.includes(encodeURIComponent('/notifications/read-all'))) return Promise.resolve(Response.json({ message: 'Bulk updates are temporarily unavailable.' }, { status: 503 }));
       return Promise.resolve(listResponse());
     });
     renderNotifications();
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Mark Document anchored as read' }));
-    expect((await screen.findByRole('alert')).textContent).toContain('Unable to mark this notification as read');
-    expect(screen.getByRole('button', { name: 'Mark Document anchored as read' })).toBeTruthy();
+    fireEvent.click(await screen.findByRole('link', { name: /Document anchored/ }));
+    expect((await screen.findByRole('alert')).textContent).toContain('This notification could not be updated.');
+    expect(screen.getByRole('link', { name: /Document anchored/ })).toBeTruthy();
+    fireEvent.click(screen.getByRole('link', { name: /Document anchored/ }));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(3));
+    expect(screen.getByRole('link', { name: /Document anchored/ })).toBeTruthy();
 
     fireEvent.click(screen.getByRole('button', { name: 'Mark all as read' }));
-    await waitFor(() => expect(screen.getAllByRole('alert').length).toBe(2));
-    expect(screen.getByRole('button', { name: 'Mark Document anchored as read' })).toBeTruthy();
+    await screen.findByText('Bulk updates are temporarily unavailable.');
+    expect(screen.getAllByRole('alert').length).toBe(2);
+    expect(screen.getByRole('link', { name: /Document anchored/ })).toBeTruthy();
   });
 
   it('shows pending state while marking all notifications as read', async () => {
@@ -100,5 +106,32 @@ describe('NotificationsPage', () => {
     expect(await screen.findByRole('button', { name: 'Marking as read…' })).toBeTruthy();
     finishMutation?.(Response.json({ message: 'All marked read' }));
     await waitFor(() => expect(screen.queryByRole('button', { name: 'Mark all as read' })).toBeNull());
+  });
+
+  it('keeps read destinations actionable and marks unread destinations individually', async () => {
+    fetchMock.mockResolvedValue(Response.json({ notifications: [{ ...readNotification, id: 'anchored-read' }, unreadNotification], total: 2 }));
+    renderNotifications();
+
+    const readLink = (await screen.findAllByRole('link', { name: /Document anchored/ }))[0];
+    expect(readLink.getAttribute('href')).toBe('/portal/documents/doc-anchored');
+    const unreadLink = screen.getAllByRole('link', { name: /Document anchored/ })[1];
+    fireEvent.click(unreadLink);
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(expect.stringContaining(encodeURIComponent('/notifications/anchored/read')), expect.objectContaining({ method: 'PATCH' })));
+    expect(fetchMock).not.toHaveBeenCalledWith(expect.stringContaining(encodeURIComponent('/notifications/read-all')), expect.anything());
+  });
+
+  it('keeps an unread item individually markable when it has no safe destination', async () => {
+    fetchMock.mockResolvedValue(Response.json({ notifications: [{ ...unreadNotification, event_metadata: { document_id: '../unsafe' } }], total: 1 }));
+    renderNotifications();
+
+    expect(await screen.findByRole('button', { name: 'Mark Document anchored as read' })).toBeTruthy();
+    expect(screen.queryByRole('link', { name: /Document anchored/ })).toBeNull();
+  });
+
+  it('polls the inbox every 15 seconds while mounted', async () => {
+    fetchMock.mockResolvedValue(Response.json({ notifications: [], total: 0 }));
+    const { queryClient } = renderNotifications();
+
+    expect(queryClient.getQueryCache().find({ queryKey: ['portal-notifications'] })?.observers[0]?.options.refetchInterval).toBe(15_000);
   });
 });

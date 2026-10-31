@@ -1,3 +1,12 @@
+import { readFile } from 'node:fs/promises';
+import { join } from 'node:path';
+import { isMockMode } from '@/lib/mocks/mode';
+import {
+  isMockPortalToken,
+  MOCK_SCANNED_DEED_FILE_NAME,
+  MOCK_TAMPERED_DEED_FILE_NAME,
+} from '@/lib/mocks/portal';
+
 const MOCK_PDF = `%PDF-1.4
 1 0 obj
 << /Type /Catalog /Pages 2 0 R >>
@@ -35,6 +44,13 @@ startxref
 414
 %%EOF
 `;
+const scannedDeedPdfs = new Map([
+  MOCK_SCANNED_DEED_FILE_NAME,
+  MOCK_TAMPERED_DEED_FILE_NAME,
+].map((fileName) => [
+  fileName,
+  readFile(join(process.cwd(), 'docs', 'scanned-docx-for-testing', fileName)).catch(() => null),
+]));
 
 function isSafePdfName(fileName: string) {
   return fileName.length <= 255
@@ -44,12 +60,41 @@ function isSafePdfName(fileName: string) {
 }
 
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ fileName: string }> },
 ) {
   const { fileName } = await params;
   if (!isSafePdfName(fileName)) {
     return Response.json({ message: 'Mock PDF not found.' }, { status: 404 });
+  }
+
+  const scannedDeedPdf = scannedDeedPdfs.get(fileName);
+  if (scannedDeedPdf) {
+    const tokenCookie = request.headers.get('cookie')?.split(';')
+      .map((cookie) => cookie.trim())
+      .find((cookie) => cookie.startsWith('portal_token='));
+    const token = tokenCookie?.slice('portal_token='.length);
+    let hasMockSession = false;
+    try {
+      hasMockSession = isMockPortalToken(decodeURIComponent(token ?? ''));
+    } catch {
+      hasMockSession = false;
+    }
+    if (!isMockMode() || !hasMockSession) {
+      return Response.json({ message: 'Mock PDF not found.' }, { status: 404 });
+    }
+
+    const source = await scannedDeedPdf;
+    if (!source) {
+      return Response.json({ message: 'Mock PDF not found.' }, { status: 404 });
+    }
+    return new Response(new Uint8Array(source), {
+      headers: {
+        'Cache-Control': 'no-store',
+        'Content-Disposition': `inline; filename="${fileName}"`,
+        'Content-Type': 'application/pdf',
+      },
+    });
   }
 
   return new Response(MOCK_PDF, {

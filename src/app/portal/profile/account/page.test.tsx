@@ -2,7 +2,14 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { readGoogleDraftReturnContext, saveGoogleDraftReturnContext } from '@/shared/utils/google-draft-return-context';
 import AccountPageRoute from '@/app/portal/profile/account/page';
+
+const { mockReplace, mockRouter } = vi.hoisted(() => {
+  const replace = vi.fn();
+  return { mockReplace: replace, mockRouter: { replace } };
+});
+vi.mock('next/navigation', () => ({ useRouter: () => mockRouter }));
 
 const profile = {
   email: 'lawyer@example.test',
@@ -41,6 +48,7 @@ afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
   vi.clearAllMocks();
+  sessionStorage.clear();
 });
 
 describe('Google connection settings screen', () => {
@@ -52,6 +60,8 @@ describe('Google connection settings screen', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Connect Google' }));
 
     const link = await screen.findByRole('link', { name: 'Continue to Google' });
+    expect(screen.getByText("On Google's screen, tick the Google Drive permission.")).toBeTruthy();
+    expect(screen.getByText("On Google's screen, tick the Google Drive permission.").compareDocumentPosition(link) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(link.getAttribute('href')).toBe('https://accounts.google.com/o/oauth2/v2/auth?state=test-state');
     expect(fetchMock).toHaveBeenCalledWith(
       '/api/portal/proxy-post?path=%2Fgoogle%2Fconnect',
@@ -128,5 +138,59 @@ describe('Google connection settings screen', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Retry status check' }));
     expect(await screen.findByText('Not connected')).toBeTruthy();
     expect(statusCalls).toBe(2);
+  });
+
+  it('returns a document-origin callback only after connection status is confirmed', async () => {
+    saveGoogleDraftReturnContext({ documentId: 'doc-101', source: 'template', picked: { id: 'file-8', name: 'Template' } });
+    setupFetch({ connection: { connected: true } });
+    await renderPage({ google: 'connected' });
+
+    await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/portal/documents/doc-101'));
+    expect(readGoogleDraftReturnContext()?.source).toBe('template');
+  });
+
+  it('keeps an unconfirmed connected callback on the account page', async () => {
+    saveGoogleDraftReturnContext({ documentId: 'doc-101', source: 'blank', picked: null });
+    setupFetch();
+    await renderPage({ google: 'connected' });
+
+    expect(await screen.findByText('Google returned to LexChain, but the connection could not be confirmed. Please retry.')).toBeTruthy();
+    expect(mockReplace).not.toHaveBeenCalled();
+    expect(readGoogleDraftReturnContext()).toBeNull();
+  });
+
+  it('keeps callback error feedback on the account page and clears document return context', async () => {
+    saveGoogleDraftReturnContext({ documentId: 'doc-101', source: 'existing', picked: { id: 'file-8', name: 'Existing Doc' } });
+    setupFetch();
+    await renderPage({ google: 'error', message: 'access_denied' });
+
+    expect(await screen.findByText('Google connection was cancelled. You can try again.')).toBeTruthy();
+    expect(readGoogleDraftReturnContext()).toBeNull();
+    expect(mockReplace).not.toHaveBeenCalled();
+  });
+
+  it('clears obsolete document context for account-originated connection', async () => {
+    saveGoogleDraftReturnContext({ documentId: 'doc-101', source: 'blank', picked: null });
+    setupFetch();
+    await renderPage();
+
+    expect(await screen.findByText('Not connected')).toBeTruthy();
+    await waitFor(() => expect(readGoogleDraftReturnContext()).toBeNull());
+    fireEvent.click(screen.getByRole('button', { name: 'Connect Google' }));
+    expect(await screen.findByRole('link', { name: 'Continue to Google' })).toBeTruthy();
+    expect(mockReplace).not.toHaveBeenCalled();
+  });
+
+  it('keeps document context when the document flow opens account settings', async () => {
+    const context = { documentId: 'doc-101', source: 'template' as const, picked: { id: 'file-8', name: 'Template' } };
+    saveGoogleDraftReturnContext(context);
+    setupFetch();
+    await renderPage({ google_draft_return: '1' });
+
+    expect(await screen.findByText('Not connected')).toBeTruthy();
+    expect(readGoogleDraftReturnContext()).toEqual(context);
+    fireEvent.click(screen.getByRole('button', { name: 'Connect Google' }));
+    expect(await screen.findByRole('link', { name: 'Continue to Google' })).toBeTruthy();
+    expect(readGoogleDraftReturnContext()).toEqual(context);
   });
 });

@@ -3,6 +3,8 @@ export { isMockMode } from "./mode";
 
 const mockIssuerId = 'mock-document-issuer';
 const mockParticipantId = 'mock-document-participant';
+export const MOCK_SCANNED_DEED_FILE_NAME = 'sample_scanned_deed_of_sale_app_test.pdf';
+export const MOCK_TAMPERED_DEED_FILE_NAME = 'sample_scanned_deed_of_sale_app_test_tampered.pdf';
 
 export type DemoIntegrityState = 'match' | 'mismatch' | 'not-recorded' | 'unavailable';
 
@@ -16,7 +18,7 @@ export type DemoDocumentSnapshot = {
 };
 
 export type DemoDocumentLifecycle = {
-  lifecycle: 'draft' | 'finalized' | 'restored';
+  lifecycle: 'draft' | 'signed' | 'finalized' | 'restored';
   document_hash: string | null;
   finalized_at: string | null;
   finalized_by: string | null;
@@ -28,10 +30,14 @@ type MockDocument = {
   id: string;
   document_id: string;
   document_number: number;
+  book_id?: string | null;
+  doc_no?: number | null;
+  page_no?: number | null;
   file_name: string;
   storage_url: string;
   content_type: string;
-  status: string;
+  status: string | null;
+  signed_copy?: ApiSchema<'SignedCopyResponse'> | null;
   on_chain: boolean;
   is_latest: boolean;
   summary: string;
@@ -71,6 +77,7 @@ type MockBook = {
 };
 
 type ExtractionBlock = ApiSchema<'ExtractionBlock'>;
+type TamperSegment = ApiSchema<'TamperSegment'>;
 type ExtractionFlag = ApiSchema<'ExtractionFlag'>;
 type ExtractionReview = ApiSchema<'ExtractionReviewResponse'>;
 type UpdateExtractionRequest = ApiSchema<'UpdateExtractionRequest'>;
@@ -81,9 +88,13 @@ type MockDocumentParty = ApiSchema<'DocumentPartyResponse'> & { document_id: str
 type MockExtraction = Omit<Pick<ExtractionReview,
   'extraction_id' | 'engine' | 'page_count' | 'confidence_avg' | 'blocks' | 'is_reviewed' | 'reviewed_by' | 'reviewed_at'
 >, 'blocks'> & { blocks: ExtractionBlock[] };
+type ScannedDeedDemoRecord = { document: MockDocument; extraction: MockExtraction; flags: ExtractionFlag[] };
+type MockPortalGlobal = typeof globalThis & { __lexchainScannedDeedDemoRecords?: Map<string, ScannedDeedDemoRecord> };
+const scannedDeedDemoRecords: Map<string, ScannedDeedDemoRecord> =
+  ((globalThis as MockPortalGlobal).__lexchainScannedDeedDemoRecords ??= new Map<string, ScannedDeedDemoRecord>());
 
-function canFinalizeMockDocument(document: MockDocument, extraction: MockExtraction | undefined) {
-  return document.lifecycle === 'draft' && document.status.toUpperCase() === 'COMPLETED' && extraction?.is_reviewed;
+function canFinalizeMockDocument(document: MockDocument) {
+  return document.lifecycle === 'signed' && document.signed_copy?.is_current === true;
 }
 
 function canRestoreMockDocument(document: MockDocument) {
@@ -124,6 +135,9 @@ let documents: MockDocument[] = [
     id: 'mock-document-1',
     document_id: 'mock-document-1',
     document_number: 1001,
+    book_id: 'mock-book-1',
+    doc_no: 1,
+    page_no: 1,
     file_name: 'Lease Agreement.pdf',
     storage_url: '/mock-documents/lease-agreement.pdf',
     content_type: 'application/pdf',
@@ -154,10 +168,13 @@ let documents: MockDocument[] = [
     id: 'mock-document-2',
     document_id: 'mock-document-2',
     document_number: 1002,
+    book_id: 'mock-book-1',
+    doc_no: 2,
+    page_no: 2,
     file_name: 'Certificate of Employment.pdf',
     storage_url: '/mock-documents/certificate-of-employment.pdf',
     content_type: 'application/pdf',
-    status: 'ready_for_review',
+    status: null,
     on_chain: false,
     is_latest: true,
     summary: 'A sample certificate of employment issued to Jane Doe.',
@@ -167,7 +184,18 @@ let documents: MockDocument[] = [
     created_at: '2026-07-13T13:30:00.000Z',
     updated_at: '2026-07-13T13:30:00.000Z',
     audit_log: [mockCreationAudit('mock-document-2', '2026-07-13T13:30:00.000Z')],
-    lifecycle: 'draft',
+    lifecycle: 'signed',
+    signed_copy: {
+      id: 'mock-signed-copy-2',
+      sha256: `mock-signed-pdf:${deterministicHash('mock-document-2')}`,
+      content_type: 'application/pdf',
+      size_bytes: 2048,
+      original_filename: 'Certificate of Employment.pdf',
+      uploaded_by: mockIssuerId,
+      replaced_reason: null,
+      is_current: true,
+      created_at: '2026-07-13T13:30:00.000Z',
+    },
     document_hash: null,
     finalized_at: null,
     finalized_by: null,
@@ -230,22 +258,84 @@ let documents: MockDocument[] = [
     snapshots: [],
     integrity_state: 'not-recorded',
   },
+  {
+    id: 'mock-document-5',
+    document_id: 'mock-document-5',
+    document_number: 1005,
+    file_name: 'Tampered Deed of Sale.pdf',
+    storage_url: `/mock-documents/${MOCK_TAMPERED_DEED_FILE_NAME}`,
+    content_type: 'application/pdf',
+    status: 'anchored',
+    on_chain: true,
+    is_latest: true,
+    summary: 'A fictional deed with one altered price field for integrity verification.',
+    labels: ['integrity', 'tampered'],
+    entities: [{ party: 'Fictional test fixture' }],
+    risk_flags: [{ note: 'Fictional test fixture; no legal or ownership claims.' }],
+    created_at: '2026-07-20T11:55:00.000Z',
+    updated_at: '2026-07-20T12:00:00.000Z',
+    audit_log: [mockCreationAudit('mock-document-5', '2026-07-20T11:55:00.000Z')],
+    lifecycle: 'finalized',
+    document_hash: 'c'.repeat(64),
+    finalized_at: '2026-07-20T12:00:00.000Z',
+    finalized_by: mockIssuerId,
+    anchor_status: 'confirmed',
+    snapshots: [{
+      id: 'mock-snapshot-5',
+      document_id: 'mock-document-5',
+      text_hash: 'c'.repeat(64),
+      created_at: '2026-07-20T12:00:00.000Z',
+    }],
+    integrity_state: 'mismatch',
+  },
 ];
+
+documents.push({
+  ...documents[0],
+  id: 'mock-document-retry',
+  document_id: 'mock-document-retry',
+  document_number: 1006,
+  book_id: null,
+  doc_no: null,
+  page_no: null,
+  file_name: 'Failed processing example.pdf',
+  status: 'FAILED',
+  on_chain: true,
+  summary: 'A fictional finalized document whose processing failed and can be retried.',
+  labels: ['processing', 'retry'],
+  created_at: '2026-07-21T10:00:00.000Z',
+  updated_at: '2026-07-21T10:05:00.000Z',
+  audit_log: [mockCreationAudit('mock-document-retry', '2026-07-21T10:00:00.000Z')],
+  document_hash: 'd'.repeat(64),
+  finalized_at: '2026-07-21T10:05:00.000Z',
+  finalized_by: mockIssuerId,
+  snapshots: [{
+    id: 'mock-snapshot-retry',
+    document_id: 'mock-document-retry',
+    text_hash: 'd'.repeat(64),
+    created_at: '2026-07-21T10:05:00.000Z',
+  }],
+  integrity_state: 'match',
+});
 
 let notifications = [
   {
     id: 'mock-notification-1',
+    type: 'document_recorded',
     title: 'Document anchored',
     body: 'Lease Agreement.pdf is now recorded on-chain.',
     is_read: false,
     created_at: '2026-07-10T09:05:00.000Z',
+    event_metadata: { document_id: 'mock-document-1' },
   },
   {
     id: 'mock-notification-2',
+    type: 'document_processed',
     title: 'Document processing',
     body: 'Certificate of Employment.pdf is being processed.',
     is_read: false,
     created_at: '2026-07-13T13:30:00.000Z',
+    event_metadata: { document_id: 'mock-document-2' },
   },
 ];
 
@@ -364,18 +454,42 @@ function error(message: string, status: number) {
 }
 
 function documentFor(id: string) {
-  return documents.find((document) => document.id === id);
+  return documents.find((document) => document.id === id) ?? scannedDeedDemoRecords.get(id)?.document;
+}
+
+function extractionFor(documentId: string) {
+  return extractions[documentId] ?? scannedDeedDemoRecords.get(documentId)?.extraction;
+}
+
+function updateExtraction(documentId: string, extraction: MockExtraction) {
+  const scannedDeed = scannedDeedDemoRecords.get(documentId);
+  if (scannedDeed) scannedDeed.extraction = extraction;
+  extractions = { ...extractions, [documentId]: extraction };
+}
+
+function updateExtractionFlags(documentId: string, flags: ExtractionFlag[]) {
+  const scannedDeed = scannedDeedDemoRecords.get(documentId);
+  if (scannedDeed) scannedDeed.flags = flags;
+  extractionFlags = { ...extractionFlags, [documentId]: flags };
+}
+
+function updateDocument(document: MockDocument) {
+  const scannedDeed = scannedDeedDemoRecords.get(document.id);
+  if (scannedDeed) scannedDeed.document = document;
+  documents = documents.some((candidate) => candidate.id === document.id)
+    ? documents.map((candidate) => candidate.id === document.id ? document : candidate)
+    : [document, ...documents];
 }
 
 function extractionReview(documentId: string): ExtractionReview | null {
-  const extraction = extractions[documentId];
+  const extraction = extractionFor(documentId);
   const document = documentFor(documentId);
   if (!extraction || !document) return null;
-  const flags = extractionFlags[documentId] ?? [];
+  const flags = extractionFlags[documentId] ?? scannedDeedDemoRecords.get(documentId)?.flags ?? [];
   return {
     document_id: documentId,
     file_name: document.file_name,
-    storage_url: document.storage_url,
+    signed_copy_id: document.signed_copy?.id ?? document.id,
     ...extraction,
     status: extraction.is_reviewed ? 'COMPLETED' : 'AWAITING_REVIEW',
     flags,
@@ -409,7 +523,8 @@ function documentPermissions(document: MockDocument, token?: string) {
     can_replace_signed_copy: false,
     can_correct_entry: false,
     can_cancel: false,
-    can_finalize: issuer && canFinalizeMockDocument(document, extractions[document.id]),
+    can_finalize: issuer && canFinalizeMockDocument(document),
+    can_retry_processing: Boolean(issuer && canMutateDocumentLifecycle(document) && document.status?.trim().toUpperCase() === 'FAILED'),
     can_share: false,
     can_revoke: false,
   };
@@ -483,11 +598,37 @@ export function mockPortalGet(path: string, token?: string): Response {
       : error('User not found', 404);
   }
   if (requestPathname === '/documents' || requestPathname === '/documents/') {
-    return json(isMockParticipant(token) ? documents.filter((document) => sharedDocumentIds.has(document.id)) : documents);
+    const allDocuments = [...documents, ...Array.from(scannedDeedDemoRecords.values(), ({ document }) => document)
+      .filter((document) => !documents.some((candidate) => candidate.id === document.id))];
+    return json(isMockParticipant(token) ? allDocuments.filter((document) => sharedDocumentIds.has(document.id)) : allDocuments);
   }
   if (requestPathname === '/books' || requestPathname === '/books/') {
     if (!hasMockIssuerAccess(token)) return error('Lawyer access required', 403);
     return json(books);
+  }
+  const bookEntriesMatch = requestPathname.match(/^\/books\/([^/]+)\/entries\/?$/);
+  if (bookEntriesMatch) {
+    if (!hasMockIssuerAccess(token)) return error('Lawyer access required', 403);
+    const book = books.find((candidate) => candidate.id === bookEntriesMatch[1]);
+    if (!book) return error('Book not found', 404);
+    const params = new URL(path, 'https://mock.lexchain.local').searchParams;
+    const limit = Number(params.get('limit') ?? 50);
+    const offset = Number(params.get('offset') ?? 0);
+    if (!Number.isInteger(limit) || limit < 1 || limit > 100 || !Number.isInteger(offset) || offset < 0) {
+      return error('Invalid pagination parameters', 422);
+    }
+    const entries = documents.flatMap((document) => {
+      if (document.book_id !== book.id || document.doc_no == null || document.page_no == null) return [];
+      return [{
+        id: document.id,
+        file_name: document.file_name,
+        doc_no: document.doc_no,
+        page_no: document.page_no,
+        lifecycle: document.lifecycle === 'draft' ? 'PREPARING' : 'FINALIZED',
+        status: document.status?.toUpperCase() ?? null,
+      }];
+    }).sort((left, right) => left.doc_no - right.doc_no || left.page_no - right.page_no || left.id.localeCompare(right.id));
+    return json({ book, entries: entries.slice(offset, offset + limit) });
   }
   const bookMatch = requestPathname.match(/^\/books\/([^/]+)\/?$/);
   if (bookMatch) {
@@ -519,6 +660,17 @@ export function mockPortalGet(path: string, token?: string): Response {
   if (requestPathname === '/documents/invitations') {
     if (!isMockParticipant(token)) return error('User access required', 403);
     return json(invitations.filter((invitation) => invitation.status === 'pending'));
+  }
+
+  const signedCopyFileMatch = requestPathname.match(/^\/documents\/([^/]+)\/file\/?$/);
+  if (signedCopyFileMatch) {
+    const document = documentFor(signedCopyFileMatch[1]);
+    if (!document) return error('Document not found', 404);
+    if (!canAccessDocument(token, document)) return error('Document access required', 403);
+    const currentCopyId = document.signed_copy?.id ?? document.id;
+    const copyId = new URL(path, 'https://mock.lexchain.local').searchParams.get('copy_id');
+    if (copyId && copyId !== currentCopyId) return error('Signed copy not found', 404);
+    return json({ document_id: document.id, copy_id: currentCopyId, url: document.storage_url, expires_in: 300 });
   }
 
   const extractionMatch = requestPathname.match(/^\/documents\/([^/]+)\/extraction\/?$/);
@@ -575,12 +727,32 @@ export function mockPortalGet(path: string, token?: string): Response {
         status: 'NOT_ANCHORED',
         is_authentic: false,
         baseline_trusted: false,
+        tamper_report_status: 'NOT_APPLICABLE',
         verified_at: new Date().toISOString(),
         message: 'This document has not been finalized and anchored yet.',
       });
       const isAuthentic = document.integrity_state !== 'mismatch';
+      const hasTextComparison = document.id === 'mock-document-5';
+      const changedPrice: TamperSegment = {
+        type: 'replace',
+        severity: 'critical',
+        reason: 'The sale price increased substantially.',
+        original_text: 'Price: PHP 2,750,000.00',
+        current_text: 'Price: PHP 10,000,000.00',
+        original_line_start: 4,
+        original_line_end: 4,
+        current_line_start: 4,
+        current_line_end: 4,
+        block_index: 3,
+        original_block_index: 3,
+        location: 'current',
+        bbox: [100, 520, 700, 565],
+        page_idx: 0,
+        word_diff: [],
+      };
       return json({
         document_id: document.id,
+        file_name: document.file_name,
         status: isAuthentic ? 'AUTHENTIC' : 'TAMPERED',
         is_authentic: isAuthentic,
         baseline_trusted: true,
@@ -592,7 +764,21 @@ export function mockPortalGet(path: string, token?: string): Response {
         issued_by: '0xMockIssuer',
         finalized_at: document.updated_at,
         verified_at: new Date().toISOString(),
-        tamper_report: isAuthentic ? null : { total_changes: 1, critical_changes: 0, segments: [] },
+        tamper_report_status: isAuthentic ? 'NOT_APPLICABLE' : hasTextComparison ? 'AVAILABLE' : 'UNAVAILABLE',
+        tamper_report_unavailable_reason: !isAuthentic && !hasTextComparison
+          ? 'Text comparison is not available for this mock document.'
+          : null,
+        tamper_report: !isAuthentic && hasTextComparison ? {
+          localized: true,
+          total_changes: 1,
+          critical_changes: 1,
+          replaced: 1,
+          inserted: 0,
+          deleted: 0,
+          similarity: 0.72,
+          truncated: false,
+          segments: [changedPrice],
+        } : null,
         message: isAuthentic ? 'Document matches the anchored hash.' : 'Document content differs from the anchored hash.',
       });
     }
@@ -606,7 +792,7 @@ async function jsonBody(request: Request) {
   return request.json().catch(() => null) as Promise<Record<string, unknown> | null>;
 }
 
-async function uploadDocument(request: Request, path: string) {
+async function uploadDocument(request: Request, path: string, token?: string) {
   const form = await request.formData().catch(() => null);
   const file = form?.get('file');
   if (!(file instanceof File) || !file.name.toLowerCase().endsWith('.pdf')) {
@@ -627,18 +813,22 @@ async function uploadDocument(request: Request, path: string) {
   if (book.status === 'CLOSED' && (!docNo || !pageNo || !Number.isSafeInteger(paperDocNo) || paperDocNo < 1 || !Number.isSafeInteger(paperPageNo) || paperPageNo < 1)) {
     return error('Closed books require valid paper document and page numbers', 400);
   }
+  const isScannedDeedFixture = file.name === MOCK_SCANNED_DEED_FILE_NAME;
   const id = `mock-document-${Date.now()}`;
   const document: MockDocument = {
     id,
     document_id: id,
     document_number: 1000 + documents.length + 1,
+    book_id: book.id,
+    doc_no: book.status === 'CLOSED' ? paperDocNo : null,
+    page_no: book.status === 'CLOSED' ? paperPageNo : null,
     file_name: fileName,
-    storage_url: mockStorageUrl(fileName),
+    storage_url: isScannedDeedFixture ? `/mock-documents/${MOCK_SCANNED_DEED_FILE_NAME}` : mockStorageUrl(fileName),
     content_type: file.type || 'application/pdf',
     status: 'ready_for_review',
     on_chain: false,
     is_latest: true,
-    summary: 'A locally uploaded mock document.',
+    summary: 'Document uploaded and ready for review.',
     labels: ['uploaded'],
     entities: [],
     risk_flags: [],
@@ -659,9 +849,17 @@ async function uploadDocument(request: Request, path: string) {
     [id]: {
       extraction_id: `mock-extraction-${id}`,
       engine: 'mock-ocr',
-      page_count: 1,
-      confidence_avg: 1,
-      blocks: [{
+      page_count: isScannedDeedFixture ? 3 : 1,
+      confidence_avg: isScannedDeedFixture ? 0.91 : 1,
+      blocks: isScannedDeedFixture ? [
+        { index: 0, editable: true, type: 'text', text: 'DEED OF ABSOLUTE SALE', original_text: 'DEED OF ABSOLUTE SALE', bbox: [250, 75, 750, 125], page_idx: 0, text_level: null, score: 0.99, is_html: false, edited: false },
+        { index: 1, editable: true, type: 'text', text: 'Seller: Maria Luz Testado', original_text: 'Seller: Maria Luz Testado', bbox: [100, 205, 680, 245], page_idx: 0, text_level: null, score: 0.72, is_html: false, edited: false },
+        { index: 2, editable: true, type: 'text', text: 'Buyer: Daniel Reyes Demo', original_text: 'Buyer: Daniel Reyes Demo', bbox: [100, 270, 700, 310], page_idx: 0, text_level: null, score: 0.96, is_html: false, edited: false },
+        { index: 3, editable: true, type: 'text', text: 'Price: PHP 2,750,000.00', original_text: 'Price: PHP 2,750,000.00', bbox: [100, 520, 700, 565], page_idx: 0, text_level: null, score: 0.94, is_html: false, edited: false },
+        { index: 4, editable: true, type: 'text', text: 'Entirely fictional; not evidence of a sale or ownership.', original_text: 'Entirely fictional; not evidence of a sale or ownership.', bbox: [100, 635, 900, 685], page_idx: 1, text_level: null, score: 0.98, is_html: false, edited: false },
+        { index: 5, editable: true, type: 'text', text: 'TEST SIGNATURE - VOID', original_text: 'TEST SIGNATURE - VOID', bbox: [120, 145, 500, 190], page_idx: 2, text_level: null, score: 0.98, is_html: false, edited: false },
+        { index: 6, editable: true, type: 'text', text: 'NOT VALID / NOT NOTARIZED', original_text: 'NOT VALID / NOT NOTARIZED', bbox: [590, 900, 940, 950], page_idx: 2, text_level: null, score: 0.95, is_html: false, edited: false },
+      ] : [{
         index: 0,
         editable: true,
         type: 'text',
@@ -679,6 +877,23 @@ async function uploadDocument(request: Request, path: string) {
       reviewed_at: null,
     },
   };
+  if (isScannedDeedFixture) {
+    extractionFlags = {
+      ...extractionFlags,
+      [id]: [{
+        block_index: 1,
+        kind: 'low_confidence',
+        severity: 'medium',
+        message: 'Confirm the seller name against the scanned page.',
+        excerpt: 'Seller: Maria Luz Testado',
+      }],
+    };
+    scannedDeedDemoRecords.set(id, {
+      document,
+      extraction: extractions[id],
+      flags: extractionFlags[id] ?? [],
+    });
+  }
   books = books.map((candidate) => candidate.id === book.id ? {
     ...candidate,
     entry_count: candidate.entry_count + 1,
@@ -690,12 +905,37 @@ async function uploadDocument(request: Request, path: string) {
   } : candidate);
   notifications = [{
     id: `mock-notification-${Date.now()}`,
+    type: 'document_processed',
     title: 'Document uploaded',
     body: `${fileName} is ready to review.`,
     is_read: false,
     created_at: now,
+    event_metadata: { document_id: id },
   }, ...notifications];
-  return json({ document_id: id, status: document.status }, 201);
+  const uploadedDocument: ApiSchema<'DocumentResponse'> = {
+    document_id: document.id,
+    file_name: document.file_name,
+    lifecycle: 'SIGNED',
+    status: 'READY_FOR_REVIEW',
+    on_chain: document.on_chain,
+    draft_url: null,
+    signed_copy: null,
+    document_hash: null,
+    book_id: book.id,
+    doc_no: book.status === 'CLOSED' ? paperDocNo : null,
+    page_no: book.status === 'CLOSED' ? paperPageNo : null,
+    finalized_at: null,
+    finalized_by: null,
+    cancelled_at: null,
+    permissions: documentPermissions(document, token),
+    summary: document.summary,
+    labels: document.labels,
+    entities: document.entities,
+    risk_flags: document.risk_flags,
+    created_at: document.created_at,
+    updated_at: document.updated_at,
+  };
+  return json(uploadedDocument, 201);
 }
 
 async function createBook(request: Request) {
@@ -743,13 +983,30 @@ async function searchDocuments(request: Request, token?: string) {
   const normalized = query.toLowerCase();
   const results = documents
     .filter((document) => canAccessDocument(token, document))
-    .filter((document) => `${document.file_name} ${document.summary} ${document.labels.join(' ')}`.toLowerCase().includes(normalized))
-    .map((document) => ({
-      chunk_id: `mock-search-${document.id}`,
-      document_id: document.id,
-      text: document.summary,
-      score: 0.95,
-    }));
+    .filter((document) => `${document.file_name} ${document.summary} ${document.labels.join(' ')} ${reviewedExtractionText(document.id)}`.toLowerCase().includes(normalized))
+    .map((document) => {
+      const book = books.find((candidate) => candidate.id === document.book_id);
+      const registerReference = book && document.doc_no != null && document.page_no != null
+        ? {
+          doc_no: document.doc_no,
+          page_no: document.page_no,
+          book_number: book.book_number,
+          series_year: book.series_year,
+          label: `Doc. No. ${document.doc_no}, Page No. ${document.page_no}, Book No. ${book.book_number}, Series of ${book.series_year}`,
+        }
+        : null;
+
+      return {
+        chunk_id: `mock-search-${document.id}`,
+        document_id: document.id,
+        chunk_index: 0,
+        text: reviewedExtractionText(document.id).toLowerCase().includes(normalized) ? reviewedExtractionText(document.id) : document.summary,
+        score: 0.95,
+        file_name: document.file_name,
+        created_at: document.created_at,
+        register_reference: registerReference,
+      };
+    });
   return json({ query, results });
 }
 
@@ -760,11 +1017,12 @@ async function searchDocument(id: string, request: Request, token?: string) {
   const query = typeof body?.query === 'string' ? body.query.trim() : '';
   if (!query) return error('Search query is required', 400);
   const normalized = query.toLowerCase();
-  const matches = `${document.file_name} ${document.summary} ${document.labels.join(' ')}`.toLowerCase().includes(normalized);
+  const reviewedText = reviewedExtractionText(document.id);
+  const matches = `${document.file_name} ${document.summary} ${document.labels.join(' ')} ${reviewedText}`.toLowerCase().includes(normalized);
   return json({
     query,
     document_id: document.id,
-    results: matches ? [{ chunk_id: `mock-search-${document.id}`, chunk_index: 0, score: 0.95, text: document.summary }] : [],
+    results: matches ? [{ chunk_id: `mock-search-${document.id}`, chunk_index: 0, score: 0.95, text: reviewedText.toLowerCase().includes(normalized) ? reviewedText : document.summary }] : [],
   });
 }
 
@@ -774,14 +1032,23 @@ async function askDocument(id: string, request: Request, token?: string) {
   const body = await jsonBody(request);
   const question = typeof body?.question === 'string' ? body.question.trim() : '';
   if (!question) return error('A question is required', 400);
-  return json({ answer: `Mock answer for ${document.file_name}: ${document.summary}` });
+  const reviewedText = reviewedExtractionText(document.id);
+  return json({ answer: `Mock answer for ${document.file_name}: ${reviewedText || document.summary}` });
+}
+
+function reviewedExtractionText(documentId: string) {
+  const extraction = extractions[documentId];
+  const document = documentFor(documentId);
+  return extraction?.is_reviewed && document?.lifecycle === 'finalized'
+    ? extraction.blocks.map((block) => block.text.trim()).filter(Boolean).join('\n')
+    : '';
 }
 
 async function saveExtractionEdits(documentId: string, request: Request) {
   const body = await jsonBody(request) as Partial<UpdateExtractionRequest> | null;
   const edits = body?.edits;
   if (!Array.isArray(edits) || edits.length === 0) return error('At least one edit is required', 400);
-  const extraction = extractions[documentId];
+  const extraction = extractionFor(documentId);
   if (!extraction) return error('Extraction not found', 404);
   if (extraction.is_reviewed) return error('Extraction has already been approved', 409);
   if (!edits.every((edit) => (
@@ -795,58 +1062,49 @@ async function saveExtractionEdits(documentId: string, request: Request) {
 
   const validEdits = edits as BlockEdit[];
   const editedIndexes = new Set(validEdits.map((edit) => edit.index));
-  extractions = {
-    ...extractions,
-    [documentId]: {
-      ...extraction,
-      blocks: extraction.blocks.map((block) => {
-        const edit = validEdits.find((item) => item.index === block.index);
-        return edit ? { ...block, text: edit.text, edited: true } : block;
-      }),
-    },
-  };
-  extractionFlags = {
-    ...extractionFlags,
-    [documentId]: (extractionFlags[documentId] ?? []).filter((flag) => !editedIndexes.has(flag.block_index ?? -1)),
-  };
+  updateExtraction(documentId, {
+    ...extraction,
+    blocks: extraction.blocks.map((block) => {
+      const edit = validEdits.find((item) => item.index === block.index);
+      return edit ? { ...block, text: edit.text, edited: true } : block;
+    }),
+  });
+  updateExtractionFlags(documentId, (extractionFlags[documentId] ?? scannedDeedDemoRecords.get(documentId)?.flags ?? [])
+    .filter((flag) => !editedIndexes.has(flag.block_index ?? -1)));
   return json(extractionReview(documentId));
 }
 
 function analyzeExtraction(documentId: string) {
-  const extraction = extractions[documentId];
+  const extraction = extractionFor(documentId);
   if (!extraction) return error('Extraction not found', 404);
   if (extraction.is_reviewed) return error('Extraction has already been approved', 409);
-  extractionFlags = {
-    ...extractionFlags,
-    [documentId]: [
-      ...(extractionFlags[documentId] ?? []).filter((flag) => !flag.kind.startsWith('llm_')),
-      {
-        block_index: 0,
-        kind: 'llm_missing_space',
-        severity: 'low',
-        message: 'The review pass found a possible missing space.',
-        excerpt: extraction.blocks[0]?.text ?? '',
-      },
-    ],
-  };
+  updateExtractionFlags(documentId, [
+    ...(extractionFlags[documentId] ?? scannedDeedDemoRecords.get(documentId)?.flags ?? [])
+      .filter((flag) => !flag.kind.startsWith('llm_')),
+    {
+      block_index: 0,
+      kind: 'llm_missing_space',
+      severity: 'low',
+      message: 'The review pass found a possible missing space.',
+      excerpt: extraction.blocks[0]?.text ?? '',
+    },
+  ]);
   return json(extractionReview(documentId));
 }
 
 function approveExtraction(documentId: string) {
-  const extraction = extractions[documentId];
+  const extraction = extractionFor(documentId);
   if (!extraction) return error('Extraction not found', 404);
   if (extraction.is_reviewed) return error('Extraction has already been approved', 409);
   if (!extraction.blocks.some((block) => block.text.trim())) return error('Reviewed text is required', 400);
   const now = new Date().toISOString();
-  extractions = {
-    ...extractions,
-    [documentId]: { ...extraction, is_reviewed: true, reviewed_by: mockIssuerId, reviewed_at: now },
-  };
-  documents = documents.map((document) => document.id === documentId ? {
+  updateExtraction(documentId, { ...extraction, is_reviewed: true, reviewed_by: mockIssuerId, reviewed_at: now });
+  const document = documentFor(documentId);
+  if (document?.lifecycle === 'finalized') updateDocument({
     ...document,
     status: 'completed',
     updated_at: now,
-  } : document);
+  });
   const reviewed = extractionReview(documentId)!;
   const response: ApproveExtractionResponse = {
     document_id: documentId,
@@ -927,7 +1185,7 @@ export async function mockPortalMutate(method: 'POST' | 'PUT' | 'PATCH' | 'DELET
   }
   if (method === 'POST' && (requestPathname === '/documents/upload' || requestPathname === '/documents/upload/')) {
     if (!hasMockIssuerAccess(token)) return error('Lawyer access required', 403);
-    return uploadDocument(request, path);
+    return uploadDocument(request, path, token);
   }
   if (method === 'POST' && (requestPathname === '/books' || requestPathname === '/books/')) {
     if (!hasMockIssuerAccess(token)) return error('Lawyer access required', 403);
@@ -1007,6 +1265,28 @@ export async function mockPortalMutate(method: 'POST' | 'PUT' | 'PATCH' | 'DELET
     return json({ document_id: next.id, status: next.status }, 202);
   }
 
+  const retryProcessingMatch = requestPathname.match(/^\/documents\/([^/]+)\/retry-processing\/?$/);
+  if (method === 'POST' && retryProcessingMatch) {
+    if (!isMockDocumentIssuerToken(token)) return error('Lawyer access required', 403);
+    const document = documentFor(retryProcessingMatch[1]);
+    if (!document) return error('Document not found', 404);
+    if (!canMutateDocumentLifecycle(document)) return error('Only the document owner may retry processing', 403);
+    if (document.status?.trim().toUpperCase() !== 'FAILED') return error('Only failed documents may be retried', 409);
+
+    const job = extractions[document.id]?.is_reviewed ? 'enrich' : 'extract';
+    const status = job === 'extract' ? 'queued' : 'enriching';
+    const updated = { ...document, status, updated_at: new Date().toISOString() };
+    documents = documents.map((candidate) => candidate.id === updated.id ? updated : candidate);
+    return json({
+      document_id: document.id,
+      status: status.toUpperCase(),
+      job,
+      message: job === 'extract'
+        ? 'Text extraction has been queued again.'
+        : 'Chunking, embedding and analysis have been queued again.',
+    }, 202);
+  }
+
   const extractionMatch = requestPathname.match(/^\/documents\/([^/]+)\/extraction\/?$/);
   if (method === 'PATCH' && extractionMatch) {
     if (!hasMockIssuerAccess(token)) return error('Lawyer access required', 403);
@@ -1036,16 +1316,15 @@ export async function mockPortalMutate(method: 'POST' | 'PUT' | 'PATCH' | 'DELET
       data_hash: dataHash,
     });
     if (document.lifecycle === 'finalized') return json(recordResponse(document.document_hash ?? deterministicHash(document.id)));
-    const extraction = extractions[document.id];
-    if (!extraction?.is_reviewed) return error('Extraction review must be approved before finalization', 400);
-    if (!canFinalizeMockDocument(document, extraction)) {
+    if (!canFinalizeMockDocument(document) || !document.signed_copy) {
       return error('Document cannot be finalized', 400);
     }
     const now = new Date().toISOString();
-    const documentHash = deterministicHash(extraction.blocks.map((block) => block.text).join('\n'));
+    const documentHash = document.signed_copy.sha256;
     const finalizedDocument: MockDocument = {
       ...document,
       lifecycle: 'finalized',
+      status: 'ready_for_review',
       on_chain: true,
       document_hash: documentHash,
       finalized_at: now,
@@ -1068,7 +1347,7 @@ export async function mockPortalMutate(method: 'POST' | 'PUT' | 'PATCH' | 'DELET
         created_at: now,
       }],
     };
-    documents = documents.map((item) => item.id === document.id ? finalizedDocument : item);
+    updateDocument(finalizedDocument);
     return json(recordResponse(documentHash));
   }
 

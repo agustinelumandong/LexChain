@@ -2,8 +2,10 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MockToastProvider } from "@/features/admin/components/mock-ui";
-import { AdminShell } from "@/features/admin/admin-shell";
 import { updateDemoUser, UsersManagementView } from "@/features/admin/users/users-management-view";
+
+const successToast = vi.hoisted(() => vi.fn());
+vi.mock("sonner", () => ({ toast: { success: successToast } }));
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn() }),
@@ -82,22 +84,21 @@ describe("updateDemoUser", () => {
     expect(users).toEqual(before);
   });
 });
-
 describe("UsersManagementView demo mutations", () => {
   it("dismisses sibling popups while keeping nested filters usable", () => {
     renderUsers();
     const more = screen.getByText("More Filters");
     fireEvent.click(more);
-    fireEvent.click(screen.getByRole("button", { name: "All Roles" }));
-    fireEvent.click(screen.getByRole("button", { name: "All Statuses" }));
-    expect(screen.queryByRole("button", { name: "Document Issuer" })).toBeNull();
-    expect(screen.getByRole("button", { name: "Suspended" })).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "Active" }));
+    fireEvent.click(screen.getByRole("combobox", { name: "Role filter" }));
+    fireEvent.click(screen.getByRole("combobox", { name: "Status filter" }));
+    expect(screen.queryByRole("option", { name: "Lawyer" })).toBeNull();
+    expect(screen.getByRole("option", { name: "Suspended" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("option", { name: "Active" }));
     expect(more.closest("details")?.open).toBe(true);
-    fireEvent.click(screen.getByRole("button", { name: "Newest first" }));
+    fireEvent.click(screen.getByRole("combobox", { name: "Sort users" }));
     expect(more.closest("details")?.open).toBe(false);
     fireEvent.click(more);
-    expect(screen.queryByRole("button", { name: "Oldest first" })).toBeNull();
+    expect(screen.queryByRole("option", { name: "Oldest first" })).toBeNull();
     fireEvent.pointerDown(document.body, { pointerType: "touch" });
     expect(more.closest("details")?.open).toBe(false);
     fireEvent.click(more);
@@ -111,7 +112,7 @@ describe("UsersManagementView demo mutations", () => {
     vi.setSystemTime(new Date("2026-01-15T12:00:00"));
     renderUsers();
     expect(screen.queryByText("Sort by")).toBeNull();
-    expect(screen.getByRole("button", { name: "Newest first" })).toBeTruthy();
+    expect(screen.getByRole("combobox", { name: "Sort users" }).textContent).toContain("Newest first");
     expect(screen.getAllByRole("row")[1].textContent).toContain("juan@example.com");
     fireEvent.click(screen.getByText("More Filters"));
     fireEvent.click(screen.getAllByRole("button", { name: "Choose date" })[0]);
@@ -123,13 +124,13 @@ describe("UsersManagementView demo mutations", () => {
     expect(screen.queryByRole("row", { name: /admin@lexchain.local/ })).toBeNull();
     expect(rowFor("maria@example.com")).toBeTruthy();
     expect(screen.getAllByRole("row")[1].textContent).toContain("juan@example.com");
-    fireEvent.click(screen.getByRole("button", { name: "Newest first" }));
-    fireEvent.click(screen.getByRole("button", { name: "Name Z–A" }));
+    fireEvent.click(screen.getByRole("combobox", { name: "Sort users" }));
+    fireEvent.click(screen.getByRole("option", { name: "Name Z–A" }));
     expect(screen.getAllByRole("row")[1].textContent).toContain("maria@example.com");
     fireEvent.click(screen.getByText(/More Filters/));
     fireEvent.click(screen.getByRole("button", { name: "Reset filters" }));
     expect(screen.getAllByRole("row")).toHaveLength(users.length + 1);
-    expect(screen.getByRole("button", { name: "Newest first" })).toBeTruthy();
+    expect(screen.getByRole("combobox", { name: "Sort users" }).textContent).toContain("Newest first");
     expect(screen.getAllByRole("row")[1].textContent).toContain("juan@example.com");
   });
 
@@ -228,7 +229,7 @@ describe("UsersManagementView demo mutations", () => {
     expect(within(rowFor("maria@example.com")).getByText("Lawyer")).toBeTruthy();
     expect(within(rowFor("juan@example.com")).getByText("User")).toBeTruthy();
     expect(within(rowFor("legacy-user@example.com")).getByText("User")).toBeTruthy();
-    expect(within(rowFor("legacy-admin@example.com")).getByText("Lawyer")).toBeTruthy();
+    expect(within(rowFor("legacy-admin@example.com")).getByText("Unsupported role")).toBeTruthy();
     expect(within(rowFor("unknown@example.com")).getByText("Unsupported role")).toBeTruthy();
   });
 
@@ -246,12 +247,9 @@ describe("UsersManagementView demo mutations", () => {
     expect((screen.getByLabelText("First name") as HTMLInputElement).value).toBe("Maria");
     expect((screen.getByLabelText("Last name") as HTMLInputElement).value).toBe("Santos");
     expect((screen.getByLabelText("Email") as HTMLInputElement).value).toBe("maria@example.com");
-    const role = screen.getByLabelText("Role") as HTMLSelectElement;
-    expect(role.value).toBe("lawyer");
-    expect([...role.options].map((option) => [option.value, option.text])).toEqual([
-      ["lawyer", "Lawyer"],
-      ["user", "User"],
-    ]);
+    fireEvent.click(screen.getByRole("combobox", { name: "Role" }));
+    expect(screen.getByRole("option", { name: "Lawyer" }).getAttribute("aria-selected")).toBe("true");
+    expect(screen.getByRole("option", { name: "User" })).toBeTruthy();
     expect(screen.getByText("Demo mode — changes reset when this page is refreshed.")).toBeTruthy();
   });
 
@@ -260,13 +258,14 @@ describe("UsersManagementView demo mutations", () => {
     fireEvent.click(within(rowFor("maria@example.com")).getByRole("button", { name: "Edit Maria Santos" }));
 
     fireEvent.change(screen.getByLabelText("First name"), { target: { value: "Mariel" } });
-    fireEvent.change(screen.getByLabelText("Role"), { target: { value: "user" } });
+    fireEvent.click(screen.getByRole("combobox", { name: "Role" }));
+    fireEvent.click(screen.getByRole("option", { name: "User" }));
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
 
     const updatedRow = rowFor("maria@example.com");
     expect(within(updatedRow).getByText("Mariel Santos")).toBeTruthy();
     expect(within(updatedRow).getByText("User")).toBeTruthy();
-    expect(screen.getByText("Demo account updated")).toBeTruthy();
+    expect(successToast).toHaveBeenCalledWith("Demo account updated", expect.anything());
     expect(screen.queryByText(["Backend endpoint", "needed"].join(" "))).toBeNull();
   });
 
@@ -313,7 +312,7 @@ describe("UsersManagementView demo mutations", () => {
 
     resolveRequest(new Response(JSON.stringify({ ...users[1], is_active: false }), { status: 200 }));
     await waitFor(() => expect(within(rowFor("maria@example.com")).getByText("Suspended")).toBeTruthy());
-    expect(screen.getByText("Account suspended")).toBeTruthy();
+    expect(successToast).toHaveBeenCalledWith("Account suspended");
   });
 
   it("reactivates a suspended account using the returned backend state", async () => {
@@ -324,7 +323,7 @@ describe("UsersManagementView demo mutations", () => {
     fireEvent.click(screen.getByRole("button", { name: "Reactivate" }));
 
     await waitFor(() => expect(within(rowFor("juan@example.com")).getByText("Active")).toBeTruthy());
-    expect(screen.getByText("Account reactivated")).toBeTruthy();
+    expect(successToast).toHaveBeenCalledWith("Account reactivated");
   });
 
   it.each([
@@ -353,11 +352,4 @@ describe("UsersManagementView demo mutations", () => {
     expect((await screen.findByRole("alert")).textContent).toContain("Unable to update account status. Please try again.");
     expect(within(rowFor("maria@example.com")).getByText("Active")).toBeTruthy();
   });
-
-});
-
-it("removes the redundant Roles & Permissions admin navigation", () => {
-  render(<AdminShell><p>Admin content</p></AdminShell>);
-
-  expect(screen.queryByRole("link", { name: "Roles & Permissions" })).toBeNull();
 });

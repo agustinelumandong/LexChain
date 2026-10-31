@@ -50,7 +50,7 @@ describe('UploadPage', () => {
     booksMock.value = [{ id: 'book-1', book_number: 42, series_year: 2026, status: 'OPEN' }];
   });
 
-  it('renders the accepted document ID and status returned by the upload service', async () => {
+  it('renders the accepted document ID and signed lifecycle without processing status', async () => {
     uploadDocumentMock.mockResolvedValue({ document_id: 'document-202', lifecycle: 'SIGNED', status: 'QUEUED' });
     const { container } = renderUploadPage();
 
@@ -59,7 +59,9 @@ describe('UploadPage', () => {
     expect(await screen.findByRole('button', { name: 'View document' })).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'View document' }));
     expect(routerPushMock).toHaveBeenCalledWith('/portal/documents/document-202');
-    expect(screen.getByText('Queued')).toBeTruthy();
+    expect(screen.getByText('Signed')).toBeTruthy();
+    expect(screen.queryByText('Queued')).toBeNull();
+    expect(screen.queryByText('Processing status')).toBeNull();
     expect(screen.getByRole('status').textContent).toContain('Signed document filed');
     expect(toast.success).toHaveBeenCalledWith('Signed document filed.');
     expect(uploadDocumentMock).toHaveBeenCalledWith(expect.objectContaining({ title: 'deed', bookId: 'book-1' }));
@@ -108,8 +110,8 @@ describe('UploadPage', () => {
 
     fireEvent.change(fileInput, { target: { files: [new File([new Uint8Array(4_508_877)], 'Lease Agreement.pdf', { type: 'application/pdf' })] } });
 
-    expect(screen.getByText('Lease Agreement.pdf · 4.3 MB')).toBeTruthy();
-    expect(screen.getByText('PDF only · maximum 25 MB')).toBeTruthy();
+    expect(screen.getByText('Lease Agreement.pdf · 4.3 MiB')).toBeTruthy();
+    expect(screen.getByText('PDF only · maximum 60 MiB')).toBeTruthy();
     expect(screen.getByLabelText('Register book')).toBeTruthy();
   });
 
@@ -122,10 +124,12 @@ describe('UploadPage', () => {
     fireEvent.change(screen.getByLabelText('Document title'), { target: { value: 'Assignment deed' } });
     completeUploadForm(container);
 
-    const submit = await screen.findByRole('button', { name: 'Uploading…' }) as HTMLButtonElement;
-    expect(submit.disabled).toBe(true);
-    expect(screen.getByRole('status').textContent).toContain('Uploading…');
-    fireEvent.click(submit);
+    expect(await screen.findByRole('heading', { name: 'Uploading your document…' })).toBeTruthy();
+    expect(screen.getByRole('progressbar', { name: 'Uploading your document…' })).toBeTruthy();
+    expect(screen.getByRole('status').textContent).toContain('Current status: Uploading PDF');
+    expect(screen.getByRole('status').textContent).toContain('Please keep this page open');
+    expect(screen.queryByLabelText('Document title')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Confirm and file' })).toBeNull();
     expect(uploadDocumentMock).toHaveBeenCalledTimes(1);
 
     pending.reject(new Error('Unable to connect to the upload service.'));
@@ -133,7 +137,7 @@ describe('UploadPage', () => {
     expect(alert.textContent).toContain('Unable to connect to the upload service.');
     expect(alert.textContent).toContain('retry');
     expect((screen.getByLabelText('Document title') as HTMLInputElement).value).toBe('Assignment deed');
-    expect(screen.getByText('deed.pdf · 0.0 MB')).toBeTruthy();
+    expect(screen.getByText('deed.pdf · 0.0 MiB')).toBeTruthy();
     expect(screen.getByLabelText('Register book').textContent).toContain('Register book 42');
     expect((screen.getByRole('button', { name: 'Confirm and file' }) as HTMLButtonElement).disabled).toBe(false);
 

@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import DashboardPage from '@/features/portal/pages/dashboard-page';
 import { PortalRoleProvider } from '@/features/access/components';
@@ -60,6 +60,45 @@ beforeEach(() => {
 });
 
 describe('DashboardPage', () => {
+  it('refreshes aggregate dashboard metrics while the page stays open', () => {
+    renderDashboard();
+
+    expect(useQuery).toHaveBeenCalledWith(expect.objectContaining({
+      queryKey: ['admin-dashboard'],
+      refetchInterval: 10_000,
+    }));
+  });
+
+  it('shows lifecycle and only owned finalized records in lawyer document cards', () => {
+    queryState.documents = [
+      { id: 'draft', file_name: 'Draft.pdf', is_owner: true, lifecycle: 'PREPARING', status: 'FAILED', created_at: '2026-10-16T00:00:00Z' },
+      { id: 'signed', file_name: 'Signed.pdf', is_owner: true, lifecycle: 'SIGNED', status: 'PROCESSING', created_at: '2026-10-15T00:00:00Z' },
+      { id: 'failed', file_name: 'Failure.pdf', is_owner: true, lifecycle: 'FINALIZED', status: 'FAILED', created_at: '2026-10-14T00:00:00Z' },
+      { id: 'processing', file_name: 'Processing.pdf', is_owner: true, lifecycle: 'FINALIZED', status: 'PROCESSING', created_at: '2026-10-13T00:00:00Z' },
+      { id: 'review', file_name: 'Review.pdf', is_owner: true, lifecycle: 'FINALIZED', status: 'AWAITING_REVIEW', created_at: '2026-10-12T00:00:00Z' },
+      { id: 'shared-failed', file_name: 'Shared failure.pdf', is_owner: false, lifecycle: 'FINALIZED', status: 'FAILED', created_at: '2026-10-17T00:00:00Z' },
+      { id: 'shared-processing', file_name: 'Shared processing.pdf', is_owner: false, lifecycle: 'FINALIZED', status: 'PROCESSING', created_at: '2026-10-17T00:00:00Z' },
+    ];
+    renderDashboard();
+    expect(screen.queryByText('Shared failure.pdf')).toBeNull();
+    expect(screen.queryByText('Shared processing.pdf')).toBeNull();
+    const recent = screen.getByRole('heading', { name: 'Recent documents' }).closest('section')!;
+    const draft = within(recent).getByRole('link', { name: /Draft.pdf/ });
+    expect(within(draft).getByText('Preparing')).toBeTruthy();
+    expect(within(draft).queryByText('Failed')).toBeNull();
+    const signed = within(recent).getByRole('link', { name: /Signed.pdf/ });
+    expect(within(signed).getByText('Signed')).toBeTruthy();
+    expect(within(signed).queryByText('Processing')).toBeNull();
+    expect(within(recent).getByText('Ready for review')).toBeTruthy();
+    const attention = screen.getByRole('heading', { name: 'Documents needing attention' }).closest('section')!;
+    expect(within(attention).getByText('Failure.pdf')).toBeTruthy();
+    expect(within(attention).getByText('Processing failed')).toBeTruthy();
+    expect(within(attention).queryByText('Draft.pdf')).toBeNull();
+    const processing = screen.getByRole('heading', { name: 'Processing' }).closest('section')!;
+    expect(within(processing).getByText('Processing.pdf')).toBeTruthy();
+    expect(within(processing).queryByText('Signed.pdf')).toBeNull();
+  });
+
   it('denies participants before requesting or rendering issuer dashboard data', () => {
     queryState.role = 'document_participant';
     useQuery.mockImplementation((options: { queryKey: string[]; enabled?: boolean }) => {
@@ -71,7 +110,7 @@ describe('DashboardPage', () => {
 
     expect(screen.getByRole('heading', { name: 'Document Portal' })).toBeTruthy();
     expect(screen.getByText('Welcome to the Document Portal')).toBeTruthy();
-    expect(screen.getByText('Browse shared documents, manage invitations, and request e-copies from the navigation menu.')).toBeTruthy();
+    expect(screen.getByText('Browse shared documents and manage invitations from the navigation menu.')).toBeTruthy();
     expect(useQuery).not.toHaveBeenCalledWith(expect.objectContaining({ queryKey: ['portal-profile'] }));
   });
 
@@ -88,7 +127,7 @@ describe('DashboardPage', () => {
     expect(screen.getByText('No action required. All documents are progressing normally.')).toBeTruthy();
   });
 
-  it('hides the lawyer metric while rendering the other administrator dashboard values', () => {
+  it('hides the lawyer metric while rendering the other dashboard values', () => {
     queryState.adminDashboard = {
       total_users: 120,
       total_lawyers: 25,
@@ -127,7 +166,7 @@ describe('DashboardPage', () => {
     expect(screen.queryByText('Unavailable')).toBeNull();
   });
 
-  it('shows a loading state while administrator metrics are being fetched', () => {
+  it('shows a loading state while dashboard metrics are being fetched', () => {
     queryState.adminDashboardLoading = true;
 
     renderDashboard();
@@ -138,7 +177,7 @@ describe('DashboardPage', () => {
 
   it('shows unavailable dashboard metrics without substituting document counts', () => {
     queryState.documents = [
-      { id: 'failed', file_name: 'Failed.pdf', status: 'FAILED', created_at: '2026-07-24T00:00:00.000Z', on_chain: false },
+      { id: 'failed', file_name: 'Failed.pdf', is_owner: true, lifecycle: 'FINALIZED', status: 'FAILED', created_at: '2026-07-24T00:00:00.000Z', on_chain: false },
     ];
 
     renderDashboard();
@@ -155,7 +194,7 @@ describe('DashboardPage', () => {
 
     renderDashboard();
 
-    expect(screen.getByText('We could not load administrator dashboard metrics.')).toBeTruthy();
+    expect(screen.getByText('We could not load dashboard metrics.')).toBeTruthy();
     expect(screen.getAllByText('Unavailable')).toHaveLength(6);
     fireEvent.click(screen.getByRole('button', { name: 'Retry dashboard metrics' }));
     expect(queryState.adminDashboardRefetch).toHaveBeenCalledOnce();

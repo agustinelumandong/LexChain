@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { getDocumentActions, getDocumentLifecycleLabel, getDocumentStatusLabel } from '@/features/documents/document-ui';
+import { getDocumentActions, getDocumentLifecycleLabel, getDocumentProcessingStatusLabel, getDocumentStatusLabel } from '@/features/documents/document-ui';
 import type { ApiSchema } from '@/shared/types';
 
 const document: ApiSchema<'DocumentResponse'> = {
@@ -19,6 +19,7 @@ const document: ApiSchema<'DocumentResponse'> = {
     can_correct_entry: false,
     can_cancel: false,
     can_finalize: false,
+    can_retry_processing: false,
     can_share: false,
     can_revoke: false,
   },
@@ -26,6 +27,13 @@ const document: ApiSchema<'DocumentResponse'> = {
 };
 
 describe('getDocumentStatusLabel', () => {
+  it('labels finalized processing failure without changing extraction labels', () => {
+    expect(getDocumentProcessingStatusLabel('FINALIZED', ' failed ')).toBe('Processing failed');
+    expect(getDocumentProcessingStatusLabel('SIGNED', 'FAILED')).toBe('Failed');
+    expect(getDocumentProcessingStatusLabel('FINALIZED', 'AWAITING_REVIEW')).toBe('Ready for review');
+    expect(getDocumentStatusLabel('FAILED')).toBe('Failed');
+  });
+
   it('names an OCR review-ready document instead of treating it as unknown', () => {
     expect(getDocumentStatusLabel('AWAITING_REVIEW')).toBe('Ready for review');
   });
@@ -46,8 +54,31 @@ describe('getDocumentStatusLabel', () => {
       permissions: { ...document.permissions, can_rename: true, can_finalize: true },
     };
 
-    expect(getDocumentActions('lawyer', permitted)).toEqual(['Rename document', 'Finalize', 'Verify integrity']);
+    expect(getDocumentActions('lawyer', permitted)).toEqual(['Rename document', 'Finalize', 'Check document']);
     expect(getDocumentActions('lawyer', document)).toEqual([]);
-    expect(getDocumentActions('user', permitted)).toEqual(['Verify integrity']);
+    expect(getDocumentActions('user', permitted)).toEqual(['Check document']);
+  });
+
+  it('offers verification for finalized viewable documents without an on-chain record', () => {
+    expect(getDocumentActions('user', { ...document, lifecycle: 'FINALIZED' })).toEqual(['Check document']);
+  });
+
+  it('shows the retry action only to a lawyer granted retry permission', () => {
+    const failed = {
+      ...document,
+      status: 'FAILED',
+      permissions: { ...document.permissions, can_retry_processing: true },
+    };
+
+    expect(getDocumentActions('lawyer', failed)).toEqual(['Retry processing']);
+    expect(getDocumentActions('user', failed)).toEqual([]);
+  });
+
+  it('does not offer verification for finalized documents without view permission', () => {
+    expect(getDocumentActions('user', {
+      ...document,
+      lifecycle: 'FINALIZED',
+      permissions: { ...document.permissions, can_view: false },
+    })).toEqual([]);
   });
 });

@@ -23,12 +23,12 @@ function UserMetricCard({
   tone: "blue" | "green" | "purple" | "orange" | "red" | "cyan";
 }) {
   const tones = {
-    blue: "bg-[#EAF3FF] text-[#0879D8]",
-    green: "bg-[#EAFBF1] text-[#16A34A]",
+    blue: "bg-[#EAF3FF] text-[#0067B3]",
+    green: "bg-[#EAFBF1] text-[#166534]",
     purple: "bg-[#F4ECFF] text-[#7C3AED]",
-    orange: "bg-[#FFF4DF] text-[#F59E0B]",
-    red: "bg-[#FEECEC] text-[#EF4444]",
-    cyan: "bg-[#E6FAFF] text-[#06B6D4]",
+    orange: "bg-[#FFF4DF] text-[#8A5B00]",
+    red: "bg-[#FEECEC] text-[#B42318]",
+    cyan: "bg-[#E6FAFF] text-[#0C5B9C]",
   };
 
   return (
@@ -48,8 +48,8 @@ export function StatusPill({ status }: { status: DirectoryUser["statusLabel"] })
     <span
       className={cn(
         "inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-black",
-        status === "Active" && "bg-[#EAFBF1] text-[#16A34A]",
-        status === "Suspended" && "bg-[#FEECEC] text-[#DC2626]",
+        status === "Active" && "bg-[#EAFBF1] text-[#166534]",
+        status === "Suspended" && "bg-[#FEECEC] text-[#B42318]",
       )}
     >
       <span className="size-1.5 rounded-full bg-current" />
@@ -59,7 +59,7 @@ export function StatusPill({ status }: { status: DirectoryUser["statusLabel"] })
 }
 
 export function RoleDistribution({ users }: { users: DirectoryUser[] }) {
-  const colors = ["#0879D8", "#59C878", "#9B6AF3", "#F6B52E", "#22C7D8"];
+  const colors = ["#0067B3", "#59C878", "#9B6AF3", "#F6B52E", "#22C7D8"];
   const groups = [...new Set(users.map((user) => user.roleLabel))].map((label, index) => ({
     label,
     color: colors[index % colors.length],
@@ -82,7 +82,7 @@ export function RoleDistribution({ users }: { users: DirectoryUser[] }) {
         <div className="relative mx-auto size-36 rounded-full" style={{ background: `conic-gradient(${gradient})` }}>
           <div className="absolute inset-6 flex flex-col items-center justify-center rounded-full bg-white text-center">
             <strong className="text-2xl font-black text-[#071B33]">{total}</strong>
-            <span className="text-xs font-semibold text-[#6B7E95]">Total Users</span>
+            <span className="text-xs font-semibold text-[#5B6F8A]">Total Users</span>
           </div>
         </div>
         <div className="space-y-3">
@@ -116,14 +116,14 @@ export function RecentlyCreatedAccounts({ users }: { users: DirectoryUser[] }) {
       <div className="admin-table-scroll scrollbar-hide min-h-0 max-h-64 space-y-3 overflow-y-auto pr-1 xl:max-h-none xl:flex-1">
         {recentUsers.map((user, index) => (
           <div key={user.id} className="grid grid-cols-[40px_1fr_auto] items-center gap-3 rounded-xl p-1.5 transition hover:bg-[#F8FBFF]">
-            <div className={cn("flex size-10 items-center justify-center rounded-xl text-xs font-black", index % 3 === 0 ? "bg-[#EAF3FF] text-[#0879D8]" : index % 3 === 1 ? "bg-[#F4ECFF] text-[#7C3AED]" : "bg-[#FFF4DF] text-[#D97706]")}>
+            <div className={cn("flex size-10 items-center justify-center rounded-xl text-xs font-black", index % 3 === 0 ? "bg-[#EAF3FF] text-[#0067B3]" : index % 3 === 1 ? "bg-[#F4ECFF] text-[#7C3AED]" : "bg-[#FFF4DF] text-[#8A5B00]")}>
               {user.initials}
             </div>
             <div className="min-w-0">
               <p className="truncate text-sm font-black text-[#071B33]">{user.displayName}</p>
               <p className="truncate text-xs font-semibold text-[#5B6F8A]">{user.email}</p>
               <div className="mt-1 flex flex-wrap items-center gap-2">
-                <span className="rounded-md bg-[#EEF4FB] px-2 py-0.5 text-[10px] font-black text-[#0879D8]">{user.roleLabel}</span>
+                <span className="rounded-md bg-[#EEF4FB] px-2 py-0.5 text-[10px] font-black text-[#0067B3]">{user.roleLabel}</span>
                 <StatusPill status={user.statusLabel} />
               </div>
             </div>

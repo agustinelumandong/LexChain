@@ -7,7 +7,7 @@ type AlertProps = {
 };
 
 const variantStyles: Record<AlertVariant, string> = {
-  error: "bg-red-50 text-red-600 border border-red-200",
+  error: "bg-red-50 text-red-700 border border-red-200",
   success: "border border-green-200 bg-green-50",
   info: "border border-[var(--status-info-border)] bg-[var(--status-info-bg)] text-[var(--status-info-text)]",
   warning: "border border-[var(--status-warning)] bg-[var(--status-warning-bg)]",

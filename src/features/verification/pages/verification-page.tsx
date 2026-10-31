@@ -49,9 +49,9 @@ export default function VerificationPage() {
   return (
     <div className="flex max-w-3xl flex-col gap-5">
       <header>
-        <p className="text-xs font-bold uppercase tracking-[0.5px] text-[#0985E7]">Repository check</p>
+        <p className="text-xs font-bold uppercase tracking-[0.5px] text-[#0067B3]">Repository check</p>
         <h1 className="mt-1 text-[28px] font-black text-[#0C2B49]">Verification Center</h1>
-        <p className="mt-2 text-sm leading-6 text-[#64748b]">Check an existing repository document against its returned integrity record. This page does not accept or retain public files.</p>
+        <p className="mt-2 text-sm leading-6 text-[#5B6F8A]">Check an existing repository document against its returned integrity record. This page does not accept or retain public files.</p>
       </header>
 
       <section className="rounded-[18px] border border-[#E8F0F8] bg-white p-5">
@@ -61,11 +61,11 @@ export default function VerificationPage() {
             value={documentId}
             onChange={(event) => setDocumentId(event.target.value)}
             placeholder="Enter a repository document ID"
-            className="rounded-xl border border-[#D7E4F2] px-3 py-2.5 text-sm font-medium outline-none focus:border-[#0985E7]"
+            className="rounded-xl border border-[#D7E4F2] px-3 py-2.5 text-sm font-medium outline-none focus:border-[#0067B3]"
           />
         </label>
         {error && <p role="alert" className="mt-3 text-sm font-bold text-red-700">{error}</p>}
-        <button type="button" onClick={checkIntegrity} disabled={isChecking} className="mt-4 inline-flex items-center gap-2 rounded-full bg-[#0985E7] px-6 py-3 text-sm font-black text-white disabled:opacity-40">
+        <button type="button" onClick={checkIntegrity} disabled={isChecking} className="mt-4 inline-flex items-center gap-2 rounded-full bg-[#0067B3] px-6 py-3 text-sm font-black text-white disabled:opacity-40">
           {isChecking ? (
             <>
               <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />

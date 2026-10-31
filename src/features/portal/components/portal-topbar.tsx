@@ -3,11 +3,12 @@
 import { usePopup } from '@/shared/components/ui/use-popup';
 import Link from 'next/link';
 import LogoutIcon from '@mui/icons-material/Logout';
+import MenuBookOutlinedIcon from '@mui/icons-material/MenuBookOutlined';
 import NotificationsNoneOutlinedIcon from '@mui/icons-material/NotificationsNoneOutlined';
 import type { PortalUiRole } from "@/features/access";
 import { PortalSearchBar } from '@/features/portal/components/portal-search-bar';
-
-type PortalNotification = { id: string; title: string; body: string; is_read: boolean; created_at: string };
+import { getNotificationDestination } from '@/features/portal/notification-destination';
+import type { PortalNotification } from '@/features/portal/notifications-api';
 
 type PortalTopBarProps = {
   fullName?: string;
@@ -15,16 +16,18 @@ type PortalTopBarProps = {
   roleLabel: string;
   role: PortalUiRole;
   processingCount: number;
+  registerSearchOpen: boolean;
+  onOpenRegisterSearch: () => void;
   unreadCount?: number;
   unreadCountLoading?: boolean;
   unreadCountError?: boolean;
   notifications?: PortalNotification[];
   notificationsLoading?: boolean;
   notificationsError?: string;
-  markAllError?: string;
-  markAllPending?: boolean;
+  markNotificationError?: string;
+  markNotificationPending?: boolean;
   onRetryNotifications?: () => void;
-  onMarkAllRead?: () => void;
+  onMarkNotificationRead?: (id: string) => void;
   onSignOut: () => void;
 };
 
@@ -32,7 +35,7 @@ function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 }
 
-export function PortalTopBar({ fullName, initials, roleLabel, role, processingCount, unreadCount = 0, unreadCountLoading, unreadCountError, notifications = [], notificationsLoading, notificationsError, markAllError, markAllPending, onRetryNotifications, onMarkAllRead, onSignOut }: PortalTopBarProps) {
+export function PortalTopBar({ fullName, initials, roleLabel, role, processingCount, registerSearchOpen, onOpenRegisterSearch, unreadCount = 0, unreadCountLoading, unreadCountError, notifications = [], notificationsLoading, notificationsError, markNotificationError, markNotificationPending, onRetryNotifications, onMarkNotificationRead, onSignOut }: PortalTopBarProps) {
   const processingLabel = processingCount === 1 ? '1 document processing' : `${processingCount} documents processing`;
   const { open: accountMenuOpen, setOpen: setAccountMenuOpen, ref: accountMenuRef } = usePopup();
   const { open: notificationMenuOpen, setOpen: setNotificationMenuOpen, ref: notificationMenuRef } = usePopup();
@@ -42,11 +45,24 @@ export function PortalTopBar({ fullName, initials, roleLabel, role, processingCo
     <header className="sticky top-0 z-40 -mx-6 mb-6 border-b border-[var(--portal-border-soft)] bg-[var(--portal-surface)] px-4 md:px-6">
       <div className="flex min-h-16 items-center gap-3">
         <PortalSearchBar />
+        <button
+          type="button"
+          onClick={onOpenRegisterSearch}
+          aria-haspopup="dialog"
+          aria-expanded={registerSearchOpen}
+          aria-controls="register-reference-search-dialog"
+          aria-label="Search by register reference"
+          title="Search by register reference"
+          className="inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center gap-1.5 rounded-xl border border-[var(--portal-border-soft)] bg-white px-2.5 py-2 text-xs font-bold text-[var(--portal-navy)] transition-colors hover:bg-[var(--portal-surface-soft)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3] sm:w-auto sm:px-3"
+        >
+          <MenuBookOutlinedIcon sx={{ fontSize: 17, color: '#0067B3' }} aria-hidden="true" />
+          <span className="hidden sm:inline">Search by register reference</span>
+        </button>
         {role === 'lawyer' ? (
           <Link
             href="/portal/dashboard"
             aria-label="View processing documents"
-            className="hidden rounded-full bg-[#FFF4DD] px-3 py-1.5 text-xs font-bold text-[#9A6700] transition hover:bg-[#FFE9BD] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0985E7] lg:inline-flex"
+            className="hidden rounded-full bg-[#FFF4DD] px-3 py-1.5 text-xs font-bold text-[#8A5B00] transition hover:bg-[#FFE9BD] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3] lg:inline-flex"
           >
             {processingLabel}
           </Link>
@@ -59,14 +75,14 @@ export function PortalTopBar({ fullName, initials, roleLabel, role, processingCo
               aria-label="View notifications"
               aria-describedby={unreadCountError ? 'notification-count-error' : undefined}
               aria-expanded={notificationMenuOpen}
-              className="relative flex h-10 w-10 items-center justify-center rounded-full border border-[var(--portal-border-soft)] transition-colors hover:bg-[var(--portal-surface-soft)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0985E7]"
+              className="relative flex h-11 w-11 items-center justify-center rounded-full border border-[var(--portal-border-soft)] transition-colors hover:bg-[var(--portal-surface-soft)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]"
             >
               <NotificationsNoneOutlinedIcon sx={{ fontSize: 20, color: 'var(--portal-navy)' }} />
               {unreadCountError && <span id="notification-count-error" className="sr-only">Unread count unavailable</span>}
               {unreadCountError ? (
                 <span title="Unread count unavailable" className="absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-[#B42318] px-1 text-[10px] font-black leading-none text-white">!</span>
               ) : unreadCount !== undefined && unreadCount > 0 ? (
-                <span className="absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-[#0985E7] px-1 text-[10px] font-black leading-none text-white">
+                <span className="absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-[#0067B3] px-1 text-[10px] font-black leading-none text-white">
                   {unreadCount > 99 ? '99+' : unreadCount}
                 </span>
               ) : null}
@@ -79,17 +95,15 @@ export function PortalTopBar({ fullName, initials, roleLabel, role, processingCo
                   {unreadCountError ? (
                     <span role="alert" className="text-[11px] font-bold text-red-700">Unread count unavailable</span>
                   ) : unreadCount !== undefined && unreadCount > 0 ? (
-                    <span className="rounded-full bg-[#EAF4FF] px-2 py-0.5 text-[11px] font-black text-[#0985E7]">{unreadCount} unread</span>
+                    <span className="rounded-full bg-[#EAF4FF] px-2 py-0.5 text-[11px] font-black text-[#0067B3]">{unreadCount} unread</span>
                   ) : null}
-                  {markAllPending && <span role="status" className="text-[11px] font-semibold text-[var(--portal-text-muted)]">Updating…</span>}
+                  {markNotificationPending && <span role="status" className="text-[11px] font-semibold text-[var(--portal-text-muted)]">Marking as read…</span>}
                 </div>
                 <ul className="max-h-96 overflow-y-auto">
                   {notificationsLoading || (unreadCountLoading && unreadCount === undefined) ? (
                     <li role="status" className="px-4 py-6 text-center text-sm font-semibold text-[var(--portal-text-muted)]">Loading notifications…</li>
                   ) : notificationsError ? (
                     <li role="alert" className="px-4 py-6 text-center text-sm font-semibold text-red-700">{notificationsError}<button type="button" onClick={onRetryNotifications} className="ml-2 underline">Retry</button></li>
-                  ) : markAllError ? (
-                    <li role="alert" className="px-4 py-6 text-center text-sm font-semibold text-red-700">{markAllError}</li>
                   ) : unreadCountError ? (
                     <li className="px-4 py-6 text-center text-sm font-semibold text-[var(--portal-text-muted)]">Notification status is unavailable.<button type="button" onClick={onRetryNotifications} className="ml-2 underline">Retry</button></li>
                   ) : unreadCount === 0 ? (
@@ -97,26 +111,32 @@ export function PortalTopBar({ fullName, initials, roleLabel, role, processingCo
                   ) : unreadNotifications.length === 0 ? (
                     <li className="px-4 py-6 text-center text-sm font-semibold text-[var(--portal-text-muted)]">Unread notifications could not be listed.</li>
                   ) : (
-                    unreadNotifications.map((n) => (
-                      <li key={n.id} className="border-b border-[var(--portal-border-soft)] last:border-b-0">
-                        <button
-                          type="button"
-                          onClick={onMarkAllRead}
-                          disabled={markAllPending}
-                          className="block w-full px-4 py-3 text-left transition hover:bg-[var(--portal-surface-soft)]"
-                        >
-                          <p className="truncate text-sm font-black text-[var(--portal-navy)]">{n.title}</p>
-                          <p className="mt-0.5 line-clamp-2 text-xs font-medium text-[var(--portal-text-muted)]">{n.body}</p>
-                          <p className="mt-1 text-[11px] font-semibold text-[var(--portal-text-muted)]">{formatDate(n.created_at)}</p>
-                        </button>
-                      </li>
-                    ))
+                    unreadNotifications.map((n) => {
+                      const destination = getNotificationDestination(n);
+                      const href = destination?.href ?? '/portal/notifications';
+                      const linkProps = destination?.external ? { target: '_blank', rel: 'noreferrer' } : {};
+                      return (
+                        <li key={n.id} className="border-b border-[var(--portal-border-soft)] last:border-b-0">
+                          <Link
+                            href={href}
+                            {...linkProps}
+                            onClick={() => onMarkNotificationRead?.(n.id)}
+                            className="block w-full px-4 py-3 text-left transition hover:bg-[var(--portal-surface-soft)]"
+                          >
+                            <p className="truncate text-sm font-black text-[var(--portal-navy)]">{n.title}</p>
+                            <p className="mt-0.5 line-clamp-2 text-xs font-medium text-[var(--portal-text-muted)]">{n.body}</p>
+                            <p className="mt-1 text-[11px] font-semibold text-[var(--portal-text-muted)]">{formatDate(n.created_at)}</p>
+                          </Link>
+                        </li>
+                      );
+                    })
                   )}
                 </ul>
+                {markNotificationError && <p role="alert" className="border-t border-[var(--portal-border-soft)] px-4 py-2 text-xs font-semibold text-red-700">{markNotificationError}</p>}
                 <Link
                   href="/portal/notifications"
                   onClick={() => setNotificationMenuOpen(false)}
-                  className="block w-full border-t border-[var(--portal-border-soft)] bg-[var(--portal-surface-soft)] px-4 py-3 text-center text-sm font-black text-[#0985E7] transition hover:bg-[#EAF4FF]"
+                  className="block w-full border-t border-[var(--portal-border-soft)] bg-[var(--portal-surface-soft)] px-4 py-3 text-center text-sm font-black text-[#0067B3] transition hover:bg-[#EAF4FF]"
                 >
                   See more…
                 </Link>
@@ -126,7 +146,7 @@ export function PortalTopBar({ fullName, initials, roleLabel, role, processingCo
           <a
             href="mailto:support@lexchain.app"
             aria-label="Get help"
-            className="hidden h-10 w-10 items-center justify-center rounded-full border border-[var(--portal-border-soft)] transition-colors hover:bg-[var(--portal-surface-soft)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0985E7] sm:flex"
+            className="hidden h-10 w-10 items-center justify-center rounded-full border border-[var(--portal-border-soft)] transition-colors hover:bg-[var(--portal-surface-soft)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3] sm:flex"
           >
             <span aria-hidden="true" className="text-base font-black leading-none text-[var(--portal-navy)]">?</span>
           </a>
@@ -136,7 +156,7 @@ export function PortalTopBar({ fullName, initials, roleLabel, role, processingCo
               onClick={() => setAccountMenuOpen((open) => !open)}
               aria-label="Open account menu"
               aria-expanded={accountMenuOpen}
-              className="flex items-center gap-2 rounded-full p-1 transition hover:bg-[var(--portal-surface-soft)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0985E7]"
+              className="flex items-center gap-2 rounded-full p-1 transition hover:bg-[var(--portal-surface-soft)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]"
             >
               <span className="hidden min-w-0 text-right lg:block">
                 {fullName && <span className="block truncate text-sm font-black text-[var(--portal-navy)]">{fullName}</span>}
@@ -156,7 +176,7 @@ export function PortalTopBar({ fullName, initials, roleLabel, role, processingCo
                 <button
                   type="button"
                   onClick={onSignOut}
-                  className="flex w-full cursor-pointer items-center gap-3 px-4 py-3 text-left text-sm font-bold text-red-600 transition hover:bg-red-50"
+                  className="flex w-full cursor-pointer items-center gap-3 px-4 py-3 text-left text-sm font-bold text-red-700 transition hover:bg-red-50"
                 >
                   <LogoutIcon fontSize="small" />
                   Sign Out

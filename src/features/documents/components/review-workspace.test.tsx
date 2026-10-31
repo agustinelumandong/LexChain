@@ -58,7 +58,7 @@ const review: ExtractionReview = {
   extraction_id: 'extraction-1',
   status: 'AWAITING_REVIEW',
   file_name: 'Deed.pdf',
-  storage_url: '/deed.pdf',
+  signed_copy_id: 'copy-1',
   engine: 'LexChain OCR',
   page_count: 2,
   confidence_avg: 0.88,
@@ -211,6 +211,32 @@ describe('ReviewWorkspace', () => {
     expect(screen.getAllByText('Original OCR text')).toHaveLength(3);
   });
 
+  it('supports roving keyboard tabs and labels the active panel', () => {
+    renderWorkspace();
+
+    const compareTab = screen.getByRole('tab', { name: 'Compare' }) as HTMLButtonElement;
+    const rawTab = screen.getByRole('tab', { name: 'Raw' }) as HTMLButtonElement;
+    const panel = screen.getByRole('tabpanel');
+    expect(compareTab.tabIndex).toBe(0);
+    expect(rawTab.tabIndex).toBe(-1);
+    expect(panel.getAttribute('aria-labelledby')).toBe(compareTab.id);
+
+    fireEvent.keyDown(compareTab, { key: 'ArrowRight' });
+    expect(rawTab.getAttribute('aria-selected')).toBe('true');
+    expect(rawTab.tabIndex).toBe(0);
+    expect(document.activeElement).toBe(rawTab);
+    expect(panel.getAttribute('aria-labelledby')).toBe(rawTab.id);
+
+    fireEvent.keyDown(rawTab, { key: 'ArrowRight' });
+    expect(compareTab.getAttribute('aria-selected')).toBe('true');
+    expect(document.activeElement).toBe(compareTab);
+
+    fireEvent.keyDown(compareTab, { key: 'End' });
+    expect(rawTab.getAttribute('aria-selected')).toBe('true');
+    fireEvent.keyDown(rawTab, { key: 'Home' });
+    expect(compareTab.getAttribute('aria-selected')).toBe('true');
+  });
+
   it('exposes labeled desktop panes and pressed mobile pane controls', () => {
     renderWorkspace();
 
@@ -219,7 +245,7 @@ describe('ReviewWorkspace', () => {
     expect(screen.getByRole('region', { name: 'Source document' }).className).not.toContain('md:overflow-y-auto');
     expect(screen.getByRole('region', { name: 'Reviewed document' }).className).toContain('md:overflow-y-auto');
     expect(dynamicMocks.viewerProps).toMatchObject({
-      sourceUrl: '/deed.pdf',
+      sourceUrl: '/api/portal/documents/doc-1/file?copy_id=copy-1',
       pageCount: 2,
       currentPage: 0,
       selectedBlockIndex: null,

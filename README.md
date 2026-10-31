@@ -55,10 +55,10 @@ The checked-in contract is `openapi-updated.json`. Local type generation does no
 pnpm generate:api-types
 ```
 
-To update the contract intentionally, provide its full endpoint URL, review the diff, then regenerate:
+To update the contract intentionally, set `OPENAPI_URL` in the ignored `.env.local` file to the full endpoint URL, review the diff, then regenerate:
 
 ```bash
-OPENAPI_URL='http://localhost:8000/openapi.json' pnpm refresh:api-contract
+pnpm refresh:api-contract
 git diff -- openapi-updated.json
 pnpm generate:api-types
 git diff -- src/shared/types/generated/schema.ts
@@ -67,6 +67,8 @@ git diff -- src/shared/types/generated/schema.ts
 Refresh requires `OPENAPI_URL` and replaces the contract only after a successful response and validation. It does not generate types automatically. Do not edit the generated schema by hand.
 
 ## PWA and browser checks
+
+For ordered user journeys, expected outcomes, known blockers, and an operation checklist, use the [manual testing guide](docs/MANUAL-TESTING-GUIDE.md).
 
 The manifest installs LexChain with the existing routes. The service worker registers in production and caches only `/offline.html`. On a failed eligible navigation, the fallback asks the user to reconnect. Documents, API responses, uploads and credentials are not cached; there is no offline upload queue or background synchronization. Updates wait for old tabs to close instead of forcing a reload during editing.
 

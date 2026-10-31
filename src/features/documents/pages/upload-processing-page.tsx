@@ -1,12 +1,14 @@
 'use client';
 
-import { use } from 'react';
+import { use, useEffect } from 'react';
 import Link from 'next/link';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ErrorIcon from '@mui/icons-material/Error';
 import type { ApiSchema } from '@/shared/types/index';
-import { getDocumentStatusLabel } from '@/features/documents/document-ui';
+import { getDocumentLifecycleLabel, getDocumentProcessingStatusLabel } from '@/features/documents/document-ui';
+import { DocumentProcessingStatus } from '@/features/documents/components/document-processing-status';
+import { portalRequest } from '@/shared/api/client';
 
 type DocumentResponse = ApiSchema<'DocumentResponse'>;
 
@@ -15,10 +17,7 @@ const FAILED = new Set(['failed', 'error']);
 const REVIEW_READY = new Set(['awaiting_review', 'ready_for_review']);
 
 async function fetchDocument(id: string): Promise<DocumentResponse> {
-  const res = await fetch(`/api/portal/proxy?path=${encodeURIComponent(`/documents/${id}`)}`, {
-    credentials: 'same-origin',
-  });
-  if (!res.ok) throw new Error('Failed to load document status');
+  const res = await portalRequest(`/api/portal/proxy?path=${encodeURIComponent(`/documents/${id}`)}`);
   return res.json();
 }
 
@@ -28,54 +27,82 @@ export default function ProcessingPage({
   searchParams: Promise<{ id?: string }>;
 }) {
   const id = use(searchParams).id ?? '';
+  const queryClient = useQueryClient();
 
-  const { data, isError, refetch } = useQuery({
+  const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ['portal-doc-status', id],
     queryFn: () => fetchDocument(id),
     enabled: !!id,
     refetchInterval: (query) => {
-      const currentStatus = query.state.data?.status?.toLowerCase() ?? '';
+      if (query.state.data?.lifecycle?.trim().toUpperCase() !== 'FINALIZED') return 2000;
+      const currentStatus = query.state.data?.status?.trim().toLowerCase() ?? '';
       return DONE.has(currentStatus) || FAILED.has(currentStatus) || REVIEW_READY.has(currentStatus) ? false : 2000;
     },
   });
 
-  const status = data?.status?.toLowerCase() ?? 'processing';
-  const done = DONE.has(status);
-  const reviewReady = REVIEW_READY.has(status);
+  const isFinalized = data?.lifecycle?.trim().toUpperCase() === 'FINALIZED';
+  const status = data?.status?.trim().toLowerCase() ?? 'processing';
+  const done = isFinalized && DONE.has(status);
+  const reviewReady = isFinalized && REVIEW_READY.has(status);
   const lookupError = isError && !!id;
-  const failed = FAILED.has(status) || !id;
-  const normalizedStatus = getDocumentStatusLabel(data?.status ?? (failed ? 'FAILED' : 'PROCESSING'));
+  const failed = (isFinalized && FAILED.has(status)) || !id;
+  const normalizedStatus = getDocumentProcessingStatusLabel(data?.lifecycle ?? '', data?.status ?? (failed ? 'FAILED' : 'PROCESSING'));
+  const processingTerminal = isFinalized && (done || reviewReady || FAILED.has(status));
+
+  useEffect(() => {
+    if (!id || !processingTerminal) return;
+    void Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['portal-doc', id] }),
+      queryClient.invalidateQueries({ queryKey: ['portal-documents'] }),
+      queryClient.invalidateQueries({ queryKey: ['portal-search'] }),
+    ]);
+  }, [id, processingTerminal, queryClient]);
+
+  if (isLoading && id) {
+    return <DocumentProcessingStatus heading="Checking document status…" currentStatus="Loading backend status" description="Fetching the latest status from the document service." />;
+  }
+
+  if (data && !isFinalized && !lookupError) {
+    return (
+      <DocumentProcessingStatus
+        heading="Waiting for finalization"
+        currentStatus={getDocumentLifecycleLabel(data.lifecycle)}
+        description="OCR processing starts after the document is finalized. This page will update when the document reaches its next backend state."
+      />
+    );
+  }
+
+  if (isFinalized && !done && !reviewReady && !lookupError && !failed) {
+    return (
+      <DocumentProcessingStatus
+        heading="Processing your document…"
+        currentStatus={normalizedStatus}
+        description="This page will update when the document reaches its next backend state."
+      />
+    );
+  }
 
   return (
     <div className="flex min-h-[60vh] flex-col items-center justify-center gap-6 text-center">
-      {!done && !reviewReady && !lookupError && !failed && (
-        <>
-          <div className="h-16 w-16 animate-spin rounded-full border-4 border-[#0985E7] border-t-transparent" />
-          <div>
-            <p className="text-xl font-black text-[#0C2B49]">Processing your document...</p>
-            <p className="mt-1 text-sm text-[#64748b]">Current status: {normalizedStatus}</p>
-            <p className="mt-3 text-sm text-[#64748b]">This page will update when the document reaches its next backend state.</p>
-          </div>
-        </>
-      )}
+      {data && <p className="text-sm text-[#5B6F8A]">Lifecycle: {getDocumentLifecycleLabel(data.lifecycle)}</p>}
       {reviewReady && !lookupError && !failed && (
         <>
-          <CheckCircleIcon sx={{ fontSize: 64, color: '#12A150' }} />
+          <CheckCircleIcon sx={{ fontSize: 64, color: '#166534' }} />
           <div>
             <p className="text-xl font-black text-[#0C2B49]">Extracted text ready for review</p>
-            <p className="mt-1 text-sm text-[#64748b]">Review and approve the extracted text before processing continues.</p>
+            <p className="mt-1 text-sm text-[#5B6F8A]">Review and approve the extracted text before processing continues.</p>
           </div>
-          <Link href={`/portal/documents/${id}/review`} className="rounded-full bg-[#0985E7] px-6 py-3 text-sm font-black text-white">Review extracted text</Link>
+          <Link href={`/portal/documents/${id}/review`} className="rounded-full bg-[#0067B3] px-6 py-3 text-sm font-black text-white">Review extracted text</Link>
         </>
       )}
       {done && !lookupError && !failed && (
         <>
-          <CheckCircleIcon sx={{ fontSize: 64, color: '#12A150' }} />
+          <CheckCircleIcon sx={{ fontSize: 64, color: '#166534' }} />
           <div>
             <p className="text-xl font-black text-[#0C2B49]">Document ready</p>
-            <p className="mt-1 text-sm text-[#64748b]">Processing is complete. Open the document to review the available details.</p>
+            <p className="mt-1 text-sm text-[#5B6F8A]">Processing is complete. Open the document to review the available details.</p>
           </div>
-          <Link href={`/portal/documents/${id}`} className="rounded-full bg-[#0985E7] px-6 py-3 text-sm font-black text-white">View document</Link>
+          <Link href={`/portal/documents/${id}`} className="rounded-full bg-[#0067B3] px-6 py-3 text-sm font-black text-white">View document</Link>
         </>
       )}
       {lookupError && (
@@ -83,9 +110,9 @@ export default function ProcessingPage({
           <ErrorIcon sx={{ fontSize: 64, color: '#ef4444' }} />
           <div>
             <p className="text-xl font-black text-[#0C2B49]">Unable to check document status</p>
-            <p className="mt-1 text-sm text-[#64748b]">The status lookup failed. Your document may still be processing.</p>
+            <p className="mt-1 text-sm text-[#5B6F8A]">{error instanceof Error ? error.message : 'The document status lookup failed. Your document may still be processing.'}</p>
           </div>
-          <button type="button" onClick={() => void refetch()} className="rounded-full bg-[#0985E7] px-6 py-3 text-sm font-black text-white">Retry status check</button>
+          <button type="button" onClick={() => void refetch()} className="rounded-full bg-[#0067B3] px-6 py-3 text-sm font-black text-white">Retry status check</button>
         </>
       )}
       {failed && (
@@ -93,11 +120,11 @@ export default function ProcessingPage({
           <ErrorIcon sx={{ fontSize: 64, color: '#ef4444' }} />
           <div>
             <p className="text-xl font-black text-[#0C2B49]">Processing failed</p>
-            <p className="mt-1 text-sm text-[#64748b]">
-              {id ? 'Please try uploading again.' : 'Missing document id.'}
+            <p className="mt-1 text-sm text-[#5B6F8A]">
+              {id ? 'The document is finalized, but processing failed. Open the document to inspect its available details.' : 'Missing document id.'}
             </p>
           </div>
-          <Link href="/portal/upload" className="rounded-full bg-[#0985E7] px-6 py-3 text-sm font-black text-white">Try Again</Link>
+          <Link href={id ? `/portal/documents/${id}` : '/portal/upload'} className="rounded-full bg-[#0067B3] px-6 py-3 text-sm font-black text-white">{id ? 'View document' : 'Try Again'}</Link>
         </>
       )}
     </div>

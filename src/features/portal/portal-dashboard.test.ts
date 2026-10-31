@@ -1,7 +1,21 @@
 import { describe, expect, it } from "vitest";
-import { getDashboardMetrics, getPortalNavigation, getRecentActivityStatus, getStatusOverviewLabel } from "@/features/portal/portal-dashboard";
+import { getDashboardMetrics, getFinalizedProcessingDocuments, getPortalNavigation, getRecentActivityStatus, getStatusOverviewLabel } from "@/features/portal/portal-dashboard";
 
 describe("portal dashboard", () => {
+  it('returns only finalized processing and pending documents', () => {
+    const documents = [
+      { id: 'processing', lifecycle: 'FINALIZED', status: ' processing ' },
+      { id: 'draft', lifecycle: 'PREPARING', status: 'PROCESSING' },
+      { id: 'pending', lifecycle: 'FINALIZED', status: ' Pending ' },
+      { id: 'ready', lifecycle: 'READY_FOR_SIGNATURE', status: 'PENDING' },
+      { id: 'signed', lifecycle: 'SIGNED', status: 'PROCESSING' },
+      { id: 'failed', lifecycle: 'FINALIZED', status: 'FAILED' },
+      { id: 'unknown', lifecycle: 'FINALIZED', status: 'queued_for_embeddings' },
+      { id: 'empty', lifecycle: 'FINALIZED', status: null },
+    ];
+    expect(getFinalizedProcessingDocuments(documents).map(({ id }) => id)).toEqual(['processing', 'pending']);
+  });
+
   it("gives issuers the enabled office workspace navigation", () => {
     const navigation = getPortalNavigation("lawyer");
 
@@ -24,7 +38,6 @@ describe("portal dashboard", () => {
     expect(getPortalNavigation("user").flatMap((group) => group.items).map((item) => item.label)).toEqual([
       "Shared Documents",
       "Invitations",
-      "My E-copy Requests",
     ]);
   });
 

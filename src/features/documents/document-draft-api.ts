@@ -1,3 +1,5 @@
+import { portalRequest } from '@/shared/api/client';
+import { PortalApiError } from '@/shared/api/portal-error';
 import type { ApiSchema } from '@/shared/types';
 
 export function isGoogleDraftUrl(value: string): boolean {
@@ -11,16 +13,23 @@ export function isGoogleDraftUrl(value: string): boolean {
 
 async function request<T>(path: string, method: 'GET' | 'POST', body?: unknown): Promise<T> {
   const proxy = method === 'GET' ? '/api/portal/proxy' : '/api/portal/proxy-post';
-  const response = await fetch(`${proxy}?path=${encodeURIComponent(path)}`, {
-    method,
-    credentials: 'same-origin',
-    cache: 'no-store',
-    ...(body === undefined ? {} : { headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) }),
-  });
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({})) as { detail?: unknown; message?: string };
-    const detail = typeof error.detail === 'string' ? error.detail : error.message;
-    throw Object.assign(new Error(detail ?? `Request failed (${response.status})`), { status: response.status, code: detail });
+  let response: Response;
+  try {
+    response = await portalRequest(`${proxy}?path=${encodeURIComponent(path)}`, {
+      method,
+      credentials: 'same-origin',
+      cache: 'no-store',
+      ...(body === undefined ? {} : { headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) }),
+    });
+  } catch (error) {
+    if (error instanceof PortalApiError) {
+      const details = error.details;
+      const reason = typeof details === 'object' && details !== null && 'reason' in details && typeof details.reason === 'string' ? details.reason : undefined;
+      const envelope = error.body;
+      const detail = typeof envelope === 'object' && envelope !== null && 'detail' in envelope && typeof envelope.detail === 'string' ? envelope.detail : undefined;
+      throw Object.assign(error, { code: reason ?? detail ?? error.message });
+    }
+    throw error;
   }
   return response.json() as Promise<T>;
 }

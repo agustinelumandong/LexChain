@@ -26,6 +26,13 @@ export function getStatusOverviewLabel(status?: string | null) {
   return getDocumentStatusLabel(status);
 }
 
+export function getFinalizedProcessingDocuments<T extends { lifecycle: string; status?: string | null }>(documents: T[]): T[] {
+  return documents.filter((document) => {
+    const status = document.status?.trim().toUpperCase();
+    return document.lifecycle === 'FINALIZED' && (status === 'PROCESSING' || status === 'PENDING');
+  });
+}
+
 export function getPortalNavigation(role: PortalUiRole): PortalNavigationGroup[] {
   if (role === "lawyer") {
     const navigation: PortalNavigationGroup[] = [
@@ -69,7 +76,6 @@ export function getPortalNavigation(role: PortalUiRole): PortalNavigationGroup[]
       items: [
         { label: "Shared Documents", href: "/portal/documents" },
         { label: "Invitations", href: "/portal/invitations" },
-        { label: "My E-copy Requests", href: "/portal/requests/my" },
       ],
     },
   ];

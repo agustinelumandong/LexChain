@@ -91,3 +91,12 @@ describe('extraction review client', () => {
     await expect(getExtractionReview('doc-1')).rejects.toThrow('API error: 502');
   });
 });
+
+it('retains the shared backend message, HTTP status and structured details', async () => {
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json({
+    message: 'Backend action denied', detail: 'Legacy fallback', details: { reason: 'DENIED', retryable: false },
+  }, { status: 403 })));
+  await expect(getExtractionReview('doc-1')).rejects.toMatchObject({
+    message: 'Backend action denied', status: 403, details: { reason: 'DENIED', retryable: false },
+  });
+});

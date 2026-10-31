@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getPortalLoginRedirect, getPortalProfileRequestShortcut, getPortalRoleLabel, getPortalSessionUiRole, getPortalUiRole, isSupportedPortalUiRole } from "@/features/access/portal-role";
+import { getPortalLoginRedirect, getPortalRoleLabel, getPortalSessionUiRole, getPortalUiRole, isSupportedPortalUiRole } from "@/features/access/portal-role";
 
 describe("portal UI roles", () => {
   it("maps the canonical Document Issuer role", () => {
@@ -13,10 +13,8 @@ describe("portal UI roles", () => {
   });
 
   it("maps backend account roles to the corresponding portal roles", () => {
-    for (const issuerRole of ["lawyer", "admin", "super_admin"]) {
-      expect(getPortalUiRole(issuerRole)).toBe("lawyer");
-      expect(getPortalRoleLabel(issuerRole)).toBe("Lawyer");
-    }
+    expect(getPortalUiRole("lawyer")).toBe("lawyer");
+    expect(getPortalRoleLabel("lawyer")).toBe("Lawyer");
     expect(getPortalUiRole("user")).toBe("user");
     expect(getPortalRoleLabel("user")).toBe("User");
   });
@@ -37,21 +35,12 @@ describe("portal UI roles", () => {
   });
 
   it("keeps unrecognized roles out of restricted UI", () => {
-    const uiRole = getPortalUiRole("staff");
-
-    expect(uiRole).toBe("unsupported");
-    expect(isSupportedPortalUiRole(uiRole)).toBe(false);
-    expect(getPortalProfileRequestShortcut(uiRole)).toBeUndefined();
-  });
-
-  it("maps profile shortcuts only for supported portal roles", () => {
-    expect(getPortalProfileRequestShortcut("lawyer")).toEqual({
-      label: "Document Requests",
-      href: "/portal/requests",
-    });
-    expect(getPortalProfileRequestShortcut("user")).toEqual({
-      label: "My E-copy Requests",
-      href: "/portal/requests/my",
-    });
+    for (const role of ["staff", "admin", "super_admin"]) {
+      const uiRole = getPortalUiRole(role);
+      expect(uiRole).toBe("unsupported");
+      expect(getPortalRoleLabel(role)).toBe("Unsupported role");
+      expect(getPortalLoginRedirect(role)).toBeUndefined();
+      expect(isSupportedPortalUiRole(uiRole)).toBe(false);
+    }
   });
 });

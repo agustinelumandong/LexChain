@@ -24,6 +24,8 @@ export async function GET(request: NextRequest, context: RouteContext) {
         },
         cache: 'no-store',
       });
+  if (profile.status === 401) return profile;
+
   const profileData = await profile.json().catch(() => null);
   if (getPortalUiRole(profileData?.role) !== 'lawyer') {
     return NextResponse.json(

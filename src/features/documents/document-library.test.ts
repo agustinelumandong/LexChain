@@ -2,7 +2,7 @@
 import { createElement } from 'react';
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { getVisibleDocuments, type DocumentListItem } from '@/features/documents/document-library';
+import { getDocumentsByOwnership, getVisibleDocuments, type DocumentListItem } from '@/features/documents/document-library';
 import DocumentsPage from '@/features/documents/pages/documents-page';
 
 vi.mock('@tanstack/react-query', () => ({
@@ -50,6 +50,15 @@ afterEach(() => {
 });
 
 describe('document library list', () => {
+  it('getDocumentsByOwnership separates explicit owner and shared records', () => {
+    const missingOwnership = { ...documents[0] };
+    Reflect.deleteProperty(missingOwnership, 'is_owner');
+    const shared = { ...documents[0], id: 'shared', is_owner: false };
+    const rows = [documents[0], shared, missingOwnership, documents[1]];
+    expect(getDocumentsByOwnership(rows, 'owned')).toEqual([documents[0], documents[1]]);
+    expect(getDocumentsByOwnership(rows, 'shared')).toEqual([shared]);
+  });
+
   it('finds documents by title or reference and sorts the matching payload locally', () => {
     expect(getVisibleDocuments(documents, { query: '101', lifecycle: 'all', sort: 'newest' }).map((document) => document.id))
       .toEqual(['document-2']);
@@ -72,28 +81,28 @@ describe('document library list', () => {
 
   it('keeps filters available with no matches and resets search and sorting', () => {
     render(createElement(DocumentsPage));
-    fireEvent.click(screen.getByRole('button', { name: 'Newest first' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Oldest first' }));
+    fireEvent.click(screen.getByRole('combobox', { description: 'Sort documents' }));
+    fireEvent.click(screen.getByRole('option', { name: 'Oldest first' }));
     expect(screen.getAllByRole('row')[1].textContent).toContain('Certificate of Employment.pdf');
-    fireEvent.change(screen.getByPlaceholderText('Search documents...'), { target: { value: 'missing' } });
-    expect(screen.getByText('No matching documents')).toBeTruthy();
+    fireEvent.change(screen.getByRole('textbox', { name: 'Filter by filename or reference' }), { target: { value: 'missing' } });
+    expect(screen.getByText(/No matching documents/)).toBeTruthy();
     fireEvent.click(screen.getByText('More Filters'));
     fireEvent.click(screen.getByRole('button', { name: 'Reset filters' }));
-    expect(screen.getByRole('button', { name: 'Newest first' })).toBeTruthy();
+    expect(screen.getByRole('combobox', { description: 'Sort documents' }).textContent).toContain('Newest first');
     expect(screen.getByText('Showing 1–2 of 2 documents')).toBeTruthy();
   });
 
   it('clears an unmatched search and restores documents while preserving lifecycle and sorting', () => {
     render(createElement(DocumentsPage));
-    fireEvent.click(screen.getByRole('button', { name: 'Newest first' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Oldest first' }));
+    fireEvent.click(screen.getByRole('combobox', { description: 'Sort documents' }));
+    fireEvent.click(screen.getByRole('option', { name: 'Oldest first' }));
     fireEvent.click(screen.getByText('More Filters'));
-    fireEvent.click(screen.getByRole('button', { name: 'All Lifecycles' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Finalized' }));
-    const search = screen.getByPlaceholderText('Search documents...') as HTMLInputElement;
+    fireEvent.click(screen.getByRole('combobox', { description: 'Filter by lifecycle' }));
+    fireEvent.click(screen.getByRole('option', { name: 'Finalized' }));
+    const search = screen.getByRole('textbox', { name: 'Filter by filename or reference' }) as HTMLInputElement;
     fireEvent.change(search, { target: { value: 'missing' } });
 
-    expect(screen.getByText('No matching documents')).toBeTruthy();
+    expect(screen.getByText(/No matching documents/)).toBeTruthy();
     expect(screen.getByText('Showing 0–0 of 0 documents')).toBeTruthy();
     const clear = screen.getByRole('button', { name: 'Clear search' });
     expect(clear.tagName).toBe('BUTTON');
@@ -103,11 +112,11 @@ describe('document library list', () => {
     fireEvent.click(clear);
 
     expect(search.value).toBe('');
-    expect(screen.queryByText('No matching documents')).toBeNull();
+    expect(screen.queryByText(/No matching documents/)).toBeNull();
     expect(screen.queryByRole('button', { name: 'Clear search' })).toBeNull();
-    expect(screen.getByRole('button', { name: 'Oldest first' })).toBeTruthy();
+    expect(screen.getByRole('combobox', { description: 'Sort documents' }).textContent).toContain('Oldest first');
     fireEvent.click(screen.getByText(/More Filters/));
-    expect(screen.getByRole('button', { name: 'Finalized' })).toBeTruthy();
+    expect(screen.getByRole('combobox', { description: 'Filter by lifecycle' }).textContent).toContain('Finalized');
     const table = within(screen.getByRole('table'));
     expect(table.getByRole('row', { name: /Certificate of Employment/ })).toBeTruthy();
     expect(table.queryByRole('row', { name: /Lease Agreement/ })).toBeNull();
@@ -116,18 +125,18 @@ describe('document library list', () => {
 
   it('does not treat whitespace as an unmatched search', () => {
     render(createElement(DocumentsPage));
-    fireEvent.change(screen.getByPlaceholderText('Search documents...'), { target: { value: '   ' } });
+    fireEvent.change(screen.getByRole('textbox', { name: 'Filter by filename or reference' }), { target: { value: '   ' } });
     expect(screen.queryByRole('button', { name: 'Clear search' })).toBeNull();
     expect(screen.getByText('Showing 1–2 of 2 documents')).toBeTruthy();
   });
 
   it.each(['loading', 'error'] as const)('keeps an active unmatched search distinct from the request %s state', (state) => {
     const view = render(createElement(DocumentsPage));
-    fireEvent.change(screen.getByPlaceholderText('Search documents...'), { target: { value: 'missing' } });
+    fireEvent.change(screen.getByRole('textbox', { name: 'Filter by filename or reference' }), { target: { value: 'missing' } });
     documentQueryState = { isLoading: state === 'loading', isError: state === 'error' };
     view.rerender(createElement(DocumentsPage));
 
-    expect(screen.queryByText('No matching documents')).toBeNull();
+    expect(screen.queryByText(/No matching documents/)).toBeNull();
     expect(screen.queryByRole('button', { name: 'Clear search' })).toBeNull();
     if (state === 'loading') {
       expect(screen.getByLabelText('Loading documents')).toBeTruthy();
@@ -143,7 +152,7 @@ describe('document library list', () => {
 
     expect(screen.getByText('Showing 1–2 of 2 documents')).toBeTruthy();
     const leaseRow = within(screen.getByRole('table')).getByRole('row', { name: /Lease Agreement\.pdf/ });
-    expect(within(leaseRow).getByRole('link', { name: 'Open' })).toBeTruthy();
+    expect(within(leaseRow).getByRole('link', { name: 'Lease Agreement.pdf' })).toBeTruthy();
   });
 
   it.each([
@@ -169,8 +178,8 @@ describe('document library list', () => {
     expect(finalizedRow.textContent).toContain('Finalized');
     expect(finalizedRow.textContent).toContain('No processing status yet');
     expect(finalizedRow.textContent).toContain('Register 101 · page 2');
-    expect(within(finalizedRow).getByRole('link', { name: 'Open' })).toBeTruthy();
+    expect(within(finalizedRow).getByRole('link', { name: 'Certificate of Employment.pdf' })).toBeTruthy();
     expect(within(finalizedRow).queryByRole('link', { name: 'View / Download' })).toBeNull();
-    expect(within(finalizedRow).queryByRole('link', { name: 'Verify integrity' })).toBeNull();
+    expect(within(finalizedRow).queryByRole('link', { name: 'Check document' })).toBeNull();
   });
 });

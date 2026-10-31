@@ -20,6 +20,7 @@ const record = {
 
 afterEach(() => {
   vi.restoreAllMocks();
+  vi.unstubAllGlobals();
 });
 
 describe('document lifecycle client', () => {
@@ -62,6 +63,19 @@ describe('document lifecycle client', () => {
       expect.objectContaining({ method: 'POST', body: expect.any(FormData) }),
     );
     expect(fetchMock.mock.calls[0][1].body.get('file')).toBe(file);
+  });
+
+  it('preserves the structured backend error for a failed signed-copy attachment', async () => {
+    const payload = { message: 'The waiting document rejected this file.', details: { reason: 'INVALID_SIGNED_COPY', errors: [{ field: 'file', message: 'Invalid signature.' }] } };
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json(payload, { status: 422 })));
+
+    await expect(attachSignedCopy('document-1', new File(['pdf'], 'signed.pdf'), { bookId: 'book-1' })).rejects.toMatchObject({
+      message: payload.message,
+      status: 422,
+      reason: 'INVALID_SIGNED_COPY',
+      details: payload.details,
+      validationErrors: payload.details.errors,
+    });
   });
 
   it('replaces a signed PDF with a reason using PUT multipart form data', async () => {
@@ -141,6 +155,35 @@ describe('document lifecycle client', () => {
     await expect(markDocumentReady('document-1')).rejects.toThrow('UNRESOLVED_COMMENTS: resolve all threads');
   });
 
+  it('preserves validated unresolved-comment details and readable legacy errors', async () => {
+    const message = 'Resolve the remaining comments before marking ready.';
+    vi.stubGlobal('fetch', vi.fn()
+      .mockResolvedValueOnce(Response.json({ message, details: {
+        reason: 'UNRESOLVED_COMMENTS', unresolved: 2, draft_url: 'https://docs.google.com/document/d/example',
+      } }, { status: 409 }))
+      .mockResolvedValueOnce(Response.json({ message, details: {
+        reason: 'UNRESOLVED_COMMENTS', unresolved: -1, draft_url: 'https://evil.example/document',
+      } }, { status: 409 }))
+      .mockResolvedValueOnce(Response.json({ detail: 'Legacy readiness failure' }, { status: 409 }))
+      .mockResolvedValueOnce(new Response('not json', { status: 503 })));
+
+    await expect(markDocumentReady('document-1')).rejects.toMatchObject({
+      name: 'LifecycleRequestError', message, status: 409, reason: 'UNRESOLVED_COMMENTS', unresolved: 2,
+      draftUrl: 'https://docs.google.com/document/d/example',
+    });
+
+    try {
+      await markDocumentReady('document-1');
+      throw new Error('Expected readiness request to fail');
+    } catch (error) {
+      expect(error).toMatchObject({ message, status: 409, reason: 'UNRESOLVED_COMMENTS' });
+      expect(error).not.toHaveProperty('unresolved');
+      expect(error).not.toHaveProperty('draftUrl');
+    }
+    await expect(markDocumentReady('document-1')).rejects.toMatchObject({ message: 'Legacy readiness failure', status: 409 });
+    await expect(markDocumentReady('document-1')).rejects.toMatchObject({ message: 'API error: 503', status: 503 });
+  });
+
   it('finalizes through the existing same-origin mutation proxy', async () => {
     const fetchMock = vi.fn().mockResolvedValue(Response.json(record));
     vi.stubGlobal('fetch', fetchMock);
@@ -149,6 +192,27 @@ describe('document lifecycle client', () => {
 
     expect(fetchMock).toHaveBeenCalledWith(
       '/api/portal/proxy-post?path=%2Fdocuments%2Fdocument-1%2Ffinalize',
+      expect.objectContaining({ method: 'POST' }),
+    );
+  });
+
+  it('queues failed-document processing through the existing mutation proxy', async () => {
+    const response = {
+      document_id: 'document-1',
+      status: 'QUEUED',
+      job: 'extract',
+      message: 'Text extraction has been queued again.',
+    };
+    const fetchMock = vi.fn().mockResolvedValue(Response.json(response, { status: 202 }));
+    vi.stubGlobal('fetch', fetchMock);
+    const api = await import('@/features/documents/document-lifecycle-api');
+    const retryDocumentProcessing = Reflect.get(api, 'retryDocumentProcessing') as ((id: string) => Promise<unknown>) | undefined;
+
+    expect(retryDocumentProcessing).toBeTypeOf('function');
+    if (!retryDocumentProcessing) return;
+    await expect(retryDocumentProcessing('document-1')).resolves.toEqual(response);
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/portal/proxy-post?path=%2Fdocuments%2Fdocument-1%2Fretry-processing',
       expect.objectContaining({ method: 'POST' }),
     );
   });
@@ -167,5 +231,14 @@ describe('document lifecycle client', () => {
     ));
 
     await expect(finalizeDocument('document-1')).rejects.toThrow('Document cannot be finalized');
+  });
+});
+
+it('retains the shared backend message, HTTP status and structured details', async () => {
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json({
+    message: 'Backend action denied', detail: 'Legacy fallback', details: { reason: 'DENIED', retryable: false },
+  }, { status: 403 })));
+  await expect(markDocumentReady('document-1')).rejects.toMatchObject({
+    message: 'Backend action denied', status: 403, details: { reason: 'DENIED', retryable: false },
   });
 });

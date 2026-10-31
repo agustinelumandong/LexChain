@@ -1,8 +1,8 @@
 # LexChain — Agent Instructions
 
-This repository contains the **LexChain frontend only**: a Next.js App Router application for document workflows, verification and administration, with an installable PWA. The Python/FastAPI backend is a separate service maintained outside this repository. Next.js server components, Server Actions and API route handlers support frontend rendering and integration; they do not make this repository the authoritative backend.
+This repository contains the **LexChain frontend only**: a Next.js App Router application for lawyer/client document workflows, verification and office management, with an installable PWA. The product has lawyer and client roles; there is no separate admin role or admin page area. The Python/FastAPI backend is a separate service maintained outside this repository. Next.js server components, Server Actions and API route handlers support frontend rendering and integration; they do not make this repository the authoritative backend.
 
-Start with [README.md](README.md) and [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), then verify their paths against the current checkout. Source lives under `src/`. The Expo application is preserved only on the backup branch.
+Start with [README.md](README.md), [CODEBASE.md](CODEBASE.md), and [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), then verify their paths against the current checkout. Source lives under `src/`. The Expo application is preserved only on the backup branch.
 
 ## Frontend and backend API responsibilities
 
@@ -29,6 +29,7 @@ Apply these principles to new code, bug fixes, reviews and refactors. A folder m
 - **Accessibility by default:** use semantic HTML, labels, keyboard access, visible focus, focus management and appropriate ARIA. Include accessible names for icon-only actions.
 - **Behavior-focused tests:** verify visible outcomes, interaction and API/security contracts. Do not test incidental internals; preserve existing assertions and discovery when moving tests.
 - **Consistent naming and ownership:** use predictable domain names and module locations. Keep feature-specific code with its feature and promote code to shared only when it serves genuine cross-domain consumers.
+- **Shared UI typography:** follow [DESIGN.md](DESIGN.md) for the app font and type scale; prefer its existing Tailwind size utilities over arbitrary font sizes.
 - **Enforced quality:** retain ESLint, strict TypeScript, project formatting conventions, import-boundary checks, focused regression tests and CI verification. Reuse established API/error handling and React Query behavior.
 
 ## Skills and Ponytail
@@ -54,6 +55,10 @@ Use the canonical labels `needs-triage`, `needs-info`, `ready-for-agent`, `ready
 ### Domain docs
 
 Use the single-context root `GLOSSARY.md` and `docs/adr/` layout. See `docs/agents/domain.md`.
+
+### Backend integration context
+
+- For backend API, permissions, or document-lifecycle work, read `docs/ARCHITECTURE.md` for the whole-system map and `docs/USER-FLOW-ARCHITECTURE.md` for user flows. Verify contract claims against the sibling `lexchain-backend` repository when available; the frontend OpenAPI file and generated types are snapshots. The backend `CODEBASE.md` contains a superseded lifecycle and processing flow, so check current backend source. Treat dated handoffs and audits as leads to recheck, and mocks as frontend behavior rather than live proof.
 
 ## Working rules
 
@@ -90,7 +95,7 @@ Use `rg` for string literals, error messages, configuration and non-code files, 
 | `src/features/access/` | Invitations, requests, participants and portal role access |
 | `src/features/office/` | Books, categories, reports and office settings |
 | `src/features/account/`, `src/features/auth/` | Profile, authentication views and feature-owned schemas |
-| `src/features/admin/` | Admin views, schemas, server helpers and Server Actions |
+| `src/features/admin/` | Legacy-named management views, schemas and API helpers still used by lawyer portal flows; this folder name does not represent an admin role |
 | `src/features/portal/` | Dashboard and portal shell/navigation |
 | `src/shared/components/` | Browser-safe reusable UI |
 | `src/shared/api/client.ts` | Browser transport to same-origin Next routes |
@@ -144,10 +149,16 @@ pnpm build
 
 Vitest discovers `src/**/*.test.{ts,tsx}`. Script tests use Node's built-in test runner, including `scripts/architecture-boundaries.test.mjs`. Use `pnpm start` to serve a production build; the PWA browser check is `node e2e/pwa.mjs` against that server.
 
-`pnpm generate:api-types` uses the checked-in `openapi-updated.json` without a network refresh. Before regeneration, verify that its output matches the consumed schema at `src/shared/types/generated/schema.ts`: the current package script still targets the old `src/lib/types/generated/schema.ts` location. Resolve that mismatch within contract-maintenance work rather than generating a second unconsumed schema. Refresh explicitly with `OPENAPI_URL='http://localhost:8000/openapi.json' pnpm refresh:api-contract`, review the contract diff, then regenerate types. See README for setup and test-backend requirements.
+`pnpm generate:api-types` uses the checked-in `openapi-updated.json` without a network refresh and writes the consumed schema at `src/shared/types/generated/schema.ts`. Set `OPENAPI_URL` in the ignored `.env.local`, refresh with `pnpm refresh:api-contract`, review the contract diff, then regenerate types. See README for setup and test-backend requirements.
 
 ## Archive and handoff
 
 The published archive `codex/backup-expo-before-web-pwa-2026-09-09` preserves Expo at `1d3852c74c5162d1cb30f5aa5782acafe7e17b57`. Do not modify the archive or restore it wholesale onto the active branch. Revert the relevant migration commit for rollback; inspect the archive in a separate worktree if needed.
 
 Deployment uses repository root `.`. A passing local build does not verify hosting-dashboard settings, deployed CI, real backend flows or installation on physical Android/iOS devices. Record those checks explicitly when performed.
+
+## Browser debugging
+
+When debugging LexChain UI, frontend behavior, browser runtime, console or network issues, use Chrome DevTools MCP when available. Inspect the relevant live Chrome page before changing frontend code, and limit browser inspection to LexChain tabs. Never expose credentials, cookies, tokens or personal browsing data.
+
+Check screenshots, DOM, computed styles/layout, console, relevant network requests and runtime state as needed. After a frontend fix, reload the affected page, inspect it visually, confirm the original issue is gone, and check for new console or network errors. Do not claim a visual fix from source inspection alone when browser verification is available.

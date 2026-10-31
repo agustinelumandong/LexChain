@@ -6,7 +6,6 @@ import dayjs from "dayjs";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
-import SearchIcon from "@mui/icons-material/Search";
 import FilterListIcon from "@mui/icons-material/FilterList";
 import PersonAddIcon from "@mui/icons-material/PersonAdd";
 import VisibilityIcon from "@mui/icons-material/Visibility";
@@ -14,10 +13,11 @@ import EditIcon from "@mui/icons-material/Edit";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
+import { toast } from "sonner";
 import { Dropdown } from "@/features/admin/components/dropdown";
 import { FilterDetails } from "@/shared/components/ui/filter-details";
+import { SearchInput } from "@/shared/components/ui";
 import { usePopup } from "@/shared/components/ui/use-popup";
-import { useMockToast } from "@/features/admin/components/mock-ui";
 import { getPortalRoleLabel } from "@/features/access";
 import { UsersMetrics, RoleDistribution, RecentlyCreatedAccounts, StatusPill } from "./users-summary";
 import { UserDialogs, type UserDialogSelection } from "./user-dialogs";
@@ -75,10 +75,10 @@ function ActionsMenu({ user, onView, onEdit, onChangeStatus }: { user: Directory
 
   return (
     <div ref={ref} className="relative flex items-center justify-end gap-1">
-      <button type="button" onClick={onView} aria-label={`View ${user.displayName}`} className="rounded-lg p-1.5 text-[#7C8DA5] transition hover:bg-[#EEF4FB] hover:text-[#0985E7]">
+      <button type="button" onClick={onView} aria-label={`View ${user.displayName}`} className="rounded-lg p-1.5 text-[#5B6F8A] transition hover:bg-[#EEF4FB] hover:text-[#0067B3]">
         <VisibilityIcon fontSize="small" />
       </button>
-      <button type="button" onClick={onEdit} aria-label={`Edit ${user.displayName}`} className="rounded-lg p-1.5 text-[#7C8DA5] transition hover:bg-[#EEF4FB] hover:text-[#0985E7]">
+      <button type="button" onClick={onEdit} aria-label={`Edit ${user.displayName}`} className="rounded-lg p-1.5 text-[#5B6F8A] transition hover:bg-[#EEF4FB] hover:text-[#0067B3]">
         <EditIcon fontSize="small" />
       </button>
       <button
@@ -86,7 +86,7 @@ function ActionsMenu({ user, onView, onEdit, onChangeStatus }: { user: Directory
         aria-label={`More actions for ${user.displayName}`}
         aria-expanded={open}
         onClick={() => setOpen((value) => !value)}
-        className="rounded-lg p-1.5 text-[#7C8DA5] transition hover:bg-[#EEF4FB] hover:text-[#0985E7]"
+        className="rounded-lg p-1.5 text-[#5B6F8A] transition hover:bg-[#EEF4FB] hover:text-[#0067B3]"
       >
         <MoreVertIcon fontSize="small" />
       </button>
@@ -107,7 +107,7 @@ function ActionsMenu({ user, onView, onEdit, onChangeStatus }: { user: Directory
             onClick={() => { setOpen(false); onChangeStatus(); }}
             className={cn(
               "block w-full px-4 py-2.5 text-left text-sm font-bold transition",
-              user.statusLabel === "Active" ? "text-red-600 hover:bg-red-50" : "text-green-700 hover:bg-green-50",
+              user.statusLabel === "Active" ? "text-red-700 hover:bg-red-50" : "text-green-700 hover:bg-green-50",
             )}
           >
             {user.statusLabel === "Active" ? "Suspend user" : "Reactivate user"}
@@ -118,8 +118,7 @@ function ActionsMenu({ user, onView, onEdit, onChangeStatus }: { user: Directory
   );
 }
 
-export function UsersManagementView({ users, total }: { users: AdminUser[]; total: number }) {
-  const { showToast } = useMockToast();
+export function UsersManagementView({ users, total, loadError }: { users: AdminUser[]; total: number; loadError?: string }) {
   const [tableSearch, setTableSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -165,7 +164,7 @@ export function UsersManagementView({ users, total }: { users: AdminUser[]; tota
         throw new Error("The API returned an invalid account status. Please refresh and try again.");
       }
       setUserRows((currentUsers) => currentUsers.map((current) => current.id === user.id ? { ...current, is_active: returnedIsActive } : current));
-      showToast({ title: returnedIsActive ? "Account reactivated" : "Account suspended" });
+      toast.success(returnedIsActive ? "Account reactivated" : "Account suspended");
       setDialogSelection(null);
     } catch (error) {
       setStatusError(error instanceof Error ? error.message : "Unable to update account status. Please try again.");
@@ -200,16 +199,28 @@ export function UsersManagementView({ users, total }: { users: AdminUser[]; tota
   const safePage = Math.min(page, totalPages - 1);
   const visibleUsers = filtered.slice(safePage * perPage, (safePage + 1) * perPage);
 
+  if (loadError) {
+    return (
+      <div className="flex w-full flex-col gap-5">
+        <h1 className="text-3xl font-black text-[#071B33]">Users</h1>
+        <div role="alert" className="rounded-2xl border border-red-200 bg-red-50 p-5 text-sm font-semibold text-red-700">
+          <p>{loadError}</p>
+          <button type="button" onClick={() => window.location.reload()} className="mt-3 rounded-full border border-red-300 px-4 py-2 font-bold hover:bg-white">Retry</button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex w-full flex-col gap-5 xl:h-[calc(100dvh-113px)] xl:min-h-0">
       <header className="flex shrink-0 flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
         <div>
-          <p className="text-xs font-black uppercase tracking-[0.22em] text-[#0879D8]">LexChain Operations</p>
+          <p className="text-xs font-black uppercase tracking-[0.22em] text-[#0067B3]">LexChain Operations</p>
           <h1 className="mt-1 text-3xl font-black leading-tight text-[#071B33]">Users</h1>
           <p className="mt-1 text-sm font-semibold text-[#4B6382]">Manage registered accounts, roles, and access permissions.</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <Link href="/portal/issuer-invitations" className="inline-flex items-center gap-2 rounded-xl bg-[#0985E7] px-5 py-3 text-sm font-black text-white shadow-sm shadow-[#0985E7]/25 transition hover:bg-[#0770C4]">
+          <Link href="/portal/issuer-invitations" className="inline-flex items-center gap-2 rounded-xl bg-[#0067B3] px-5 py-3 text-sm font-black text-white shadow-sm shadow-[#0067B3]/25 transition hover:bg-[#005F9E]">
             <PersonAddIcon fontSize="small" />
             Invite User
           </Link>
@@ -223,17 +234,15 @@ export function UsersManagementView({ users, total }: { users: AdminUser[]; tota
           <div className="shrink-0 border-b border-[#E4EEF9] p-5">
             <div className="flex flex-wrap items-center gap-3">
               <h2 className="mr-auto shrink-0 text-lg font-black text-[#071B33]">User Directory</h2>
-              <label className="flex w-full items-center gap-2 rounded-xl border border-[#E4EEF9] bg-white px-4 py-2.5 focus-within:border-[#0985E7] sm:w-72">
-                <SearchIcon fontSize="small" className="text-[#4B6382]" />
-                <input
-                  value={tableSearch}
-                  onChange={(event) => setTableSearch(event.target.value)}
-                  placeholder="Search users..."
-                  className="w-full bg-transparent text-sm font-semibold text-[#0C2B49] outline-none placeholder:text-[#9AAAC0]"
-                />
-              </label>
+              <SearchInput
+                aria-label="Search users"
+                value={tableSearch}
+                onChange={(event) => setTableSearch(event.target.value)}
+                placeholder="Search users..."
+                className="w-full sm:w-72"
+              />
               <div className="flex items-center gap-2 text-sm font-semibold text-[#4B6382] [&>div>button]:py-2.5">
-                <Dropdown value={sortOrder} onChange={(value) => { setSortOrder(value); setPage(0); }} options={[
+                <Dropdown ariaLabel="Sort users" value={sortOrder} onChange={(value) => { setSortOrder(value); setPage(0); }} options={[
                   { label: "Newest first", value: "created-desc" },
                   { label: "Oldest first", value: "created-asc" },
                   { label: "Name A–Z", value: "name-asc" },
@@ -248,10 +257,10 @@ export function UsersManagementView({ users, total }: { users: AdminUser[]; tota
                 </>}>
                 <div className="absolute right-0 top-full z-50 mt-2 grid w-[min(440px,calc(100vw-3rem))] grid-cols-1 gap-x-3 gap-y-4 rounded-xl sm:grid-cols-2 border border-[#E4EEF9] bg-white p-4 text-sm font-semibold text-[#0C2B49] shadow-lg">
                   <div className="grid gap-1.5 [&>div>button]:w-full [&>div>button]:justify-between"><span>Role</span>
-                    <Dropdown value={roleFilter} onChange={(value) => { setRoleFilter(value); setPage(0); }} options={[{ label: "All Roles", value: "all" }, ...roleOptions.map((role) => ({ label: role, value: role }))]} />
+                    <Dropdown ariaLabel="Role filter" value={roleFilter} onChange={(value) => { setRoleFilter(value); setPage(0); }} options={[{ label: "All Roles", value: "all" }, ...roleOptions.map((role) => ({ label: role, value: role }))]} />
                   </div>
                   <div className="grid gap-1.5 [&>div>button]:w-full [&>div>button]:justify-between"><span>Status</span>
-                    <Dropdown value={statusFilter} onChange={(value) => { setStatusFilter(value); setPage(0); }} options={[{ label: "All Statuses", value: "all" }, { label: "Active", value: "Active" }, { label: "Suspended", value: "Suspended" }]} />
+                    <Dropdown ariaLabel="Status filter" value={statusFilter} onChange={(value) => { setStatusFilter(value); setPage(0); }} options={[{ label: "All Statuses", value: "all" }, { label: "Active", value: "Active" }, { label: "Suspended", value: "Suspended" }]} />
                   </div>
                   <LocalizationProvider dateAdapter={AdapterDayjs}>
                     <DatePicker
@@ -273,7 +282,7 @@ export function UsersManagementView({ users, total }: { users: AdminUser[]; tota
                       slotProps={datePickerSlotProps}
                     />
                   </LocalizationProvider>
-                  <button type="button" onClick={() => { setCreatedFrom(""); setCreatedTo(""); setSortOrder("created-desc"); setTableSearch(""); setRoleFilter("all"); setStatusFilter("all"); setPage(0); }} className="rounded-xl border-t border-[#E4EEF9] bg-[#EEF4FB] py-2.5 text-[#0879D8] sm:col-span-2">Reset filters</button>
+                  <button type="button" onClick={() => { setCreatedFrom(""); setCreatedTo(""); setSortOrder("created-desc"); setTableSearch(""); setRoleFilter("all"); setStatusFilter("all"); setPage(0); }} className="rounded-xl border-t border-[#E4EEF9] bg-[#EEF4FB] py-2.5 text-[#0067B3] sm:col-span-2">Reset filters</button>
                 </div>
               </FilterDetails>
             </div>
@@ -295,7 +304,7 @@ export function UsersManagementView({ users, total }: { users: AdminUser[]; tota
                   <tr key={user.id} className="h-[68px] border-b border-[#F1F5F9] transition hover:bg-[#F8FBFF]">
                     <td className="px-5 py-3">
                       <div className="flex items-center gap-3">
-                        <div className={cn("flex size-10 items-center justify-center rounded-full text-xs font-black", index % 3 === 0 ? "bg-[#EAF3FF] text-[#0879D8]" : index % 3 === 1 ? "bg-[#F4ECFF] text-[#7C3AED]" : "bg-[#FFF4DF] text-[#D97706]")}>{user.initials}</div>
+                        <div className={cn("flex size-10 items-center justify-center rounded-full text-xs font-black", index % 3 === 0 ? "bg-[#EAF3FF] text-[#0067B3]" : index % 3 === 1 ? "bg-[#F4ECFF] text-[#7C3AED]" : "bg-[#FFF4DF] text-[#8A5B00]")}>{user.initials}</div>
                         <div className="min-w-0">
                           <p className="truncate font-black text-[#071B33]">{user.displayName}</p>
                           <p className="truncate text-xs font-semibold text-[#5B6F8A]">{user.email}</p>
@@ -303,7 +312,7 @@ export function UsersManagementView({ users, total }: { users: AdminUser[]; tota
                       </div>
                     </td>
                     <td className="px-5 py-3 font-semibold text-[#0C2B49]">{user.roleLabel}</td>
-                    <td className="px-5 py-3">{statusPendingUserId === user.id ? <span role="status" className="text-xs font-bold text-[#0879D8]">Updating…</span> : <StatusPill status={user.statusLabel} />}</td>
+                    <td className="px-5 py-3">{statusPendingUserId === user.id ? <span role="status" className="text-xs font-bold text-[#0067B3]">Updating…</span> : <StatusPill status={user.statusLabel} />}</td>
                     <td className="px-5 py-3 font-semibold text-[#0C2B49]">{new Date(user.created_at).toLocaleDateString()}</td>
                     <td className="px-5 py-3">
                       <ActionsMenu
@@ -337,7 +346,7 @@ export function UsersManagementView({ users, total }: { users: AdminUser[]; tota
                   key={index}
                   type="button"
                   onClick={() => setPage(index)}
-                  className={cn("size-9 rounded-lg border text-sm font-black transition", safePage === index ? "border-[#0985E7] bg-[#EAF3FF] text-[#0879D8]" : "border-[#E4EEF9] text-[#0C2B49] hover:bg-[#EEF4FB]")}
+                  className={cn("size-9 rounded-lg border text-sm font-black transition", safePage === index ? "border-[#0067B3] bg-[#EAF3FF] text-[#0067B3]" : "border-[#E4EEF9] text-[#0C2B49] hover:bg-[#EEF4FB]")}
                 >
                   {index + 1}
                 </button>
@@ -371,7 +380,7 @@ export function UsersManagementView({ users, total }: { users: AdminUser[]; tota
           statusError={statusError}
           onSave={(changes) => {
             setUserRows((currentUsers) => updateDemoUser(currentUsers, dialogSelection.user.id, changes));
-            showToast({ title: "Demo account updated", detail: "Demo mode — changes reset when this page is refreshed." });
+            toast.success("Demo account updated", { description: "Demo mode — changes reset when this page is refreshed." });
             setDialogSelection(null);
           }}
         />

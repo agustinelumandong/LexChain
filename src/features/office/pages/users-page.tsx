@@ -15,7 +15,7 @@ type AdminUser = {
   created_at: string;
 };
 
-type UsersData = { users: AdminUser[]; total: number };
+type UsersData = { users: AdminUser[]; total: number; loadError?: string };
 
 async function getUsers(): Promise<UsersData> {
   if (useMock) {
@@ -37,7 +37,7 @@ async function getUsers(): Promise<UsersData> {
   try {
     return await adminFetch<UsersData>("/admin/users");
   } catch {
-    return { users: [], total: 0 };
+    return { users: [], total: 0, loadError: "Unable to load users. Please try again." };
   }
 }
 
@@ -45,5 +45,5 @@ export default async function PortalUsersPage() {
   await requireDocumentIssuerPage();
   const data = await getUsers();
 
-  return <UsersManagementView users={data.users} total={data.total} />;
+  return <UsersManagementView users={data.users} total={data.total} loadError={data.loadError} />;
 }

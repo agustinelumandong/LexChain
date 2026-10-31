@@ -7,6 +7,7 @@ import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import AssessmentOutlinedIcon from "@mui/icons-material/AssessmentOutlined";
 import DownloadOutlinedIcon from "@mui/icons-material/DownloadOutlined";
+import { toast } from "sonner";
 import { createDemoReport, downloadDemoReport, type DemoReport, type DemoReportType } from "@/features/office/reports";
 import { PortalDropdown } from "@/features/portal/components";
 
@@ -53,10 +54,21 @@ export function GeneratedReportsManagementView({ embedded = false }: { embedded?
     }
   }
 
+  function downloadReport() {
+    if (!report) return;
+
+    try {
+      downloadDemoReport(report);
+      toast.success("Report downloaded.");
+    } catch {
+      toast.error("Could not download the report. Please try again.", { duration: Infinity });
+    }
+  }
+
   return (
     <div className={`flex flex-col gap-5 ${embedded ? '' : 'min-h-[calc(100vh-48px)] w-full'}`}>
       {!embedded ? <header>
-        <p className="text-xs font-black uppercase tracking-[0.22em] text-[#0879D8]">LexChain Operations</p>
+        <p className="text-xs font-black uppercase tracking-[0.22em] text-[#0067B3]">LexChain Operations</p>
         <h1 className="mt-1 text-3xl font-black leading-tight text-[#071B33]">Generated Reports</h1>
         <p className="mt-1 text-sm font-semibold text-[#4B6382]">Generate one of two fixed reports from seeded system data.</p>
       </header> : null}
@@ -65,7 +77,7 @@ export function GeneratedReportsManagementView({ embedded = false }: { embedded?
         <div className="grid gap-4 lg:grid-cols-2">
           <div className="rounded-2xl border border-[#E4EEF9] bg-[#F8FBFF] p-4">
             <div className="flex items-start gap-3">
-              <span className="flex size-7 shrink-0 items-center justify-center rounded-full border border-[#B9DDF9] bg-white text-xs font-black text-[#0879D8]">2</span>
+              <span className="flex size-7 shrink-0 items-center justify-center rounded-full border border-[#B9DDF9] bg-white text-xs font-black text-[#0067B3]">2</span>
               <div>
                 <h3 className="text-sm font-black text-[#071B33]">Choose a system report</h3>
                 <p className="mt-1 text-sm font-semibold leading-5 text-[#5B6F8A]">{selected.description}</p>
@@ -84,7 +96,7 @@ export function GeneratedReportsManagementView({ embedded = false }: { embedded?
 
           <section aria-label="Report dates" className="rounded-2xl border border-[#E4EEF9] bg-[#F8FBFF] p-4">
             <div className="flex items-start gap-3">
-              <span className="flex size-7 shrink-0 items-center justify-center rounded-full border border-[#B9DDF9] bg-white text-xs font-black text-[#0879D8]">3</span>
+              <span className="flex size-7 shrink-0 items-center justify-center rounded-full border border-[#B9DDF9] bg-white text-xs font-black text-[#0067B3]">3</span>
               <div>
                 <h3 className="text-sm font-black text-[#071B33]">Choose a date range</h3>
                 <p className="mt-1 text-sm font-semibold leading-5 text-[#5B6F8A]">Preview system records between these dates.</p>
@@ -109,7 +121,7 @@ export function GeneratedReportsManagementView({ embedded = false }: { embedded?
                   slotProps={reportDatePickerSlotProps}
                 />
               </LocalizationProvider>
-              <button type="button" onClick={generate} className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#0985E7] px-5 py-3 text-sm font-black text-white transition hover:bg-[#0770C4] active:translate-y-px">
+              <button type="button" onClick={generate} className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#0067B3] px-5 py-3 text-sm font-black text-white transition hover:bg-[#005F9E] active:translate-y-px">
                 <AssessmentOutlinedIcon fontSize="small" />
                 Generate
               </button>
@@ -123,7 +135,7 @@ export function GeneratedReportsManagementView({ embedded = false }: { embedded?
             key={option.type}
             className={[
               "cursor-pointer rounded-2xl border bg-white p-5 shadow-sm shadow-[#DDEAF7]/35 transition",
-              reportType === option.type ? "border-[#0985E7] ring-2 ring-[#0985E7]/15" : "border-[#E4EEF9] hover:border-[#B9D6ED]",
+              reportType === option.type ? "border-[#0067B3] ring-2 ring-[#0067B3]/15" : "border-[#E4EEF9] hover:border-[#B9D6ED]",
             ].join(" ")}
           >
             <input
@@ -133,7 +145,7 @@ export function GeneratedReportsManagementView({ embedded = false }: { embedded?
               checked={reportType === option.type}
               onChange={() => setReportType(option.type)}
               aria-label={option.title}
-              className="accent-[#0985E7]"
+              className="accent-[#0067B3]"
             />
             <span className="contents">
               <span className="ml-3 text-lg font-black text-[#071B33]">{option.title}</span>
@@ -152,7 +164,7 @@ export function GeneratedReportsManagementView({ embedded = false }: { embedded?
           To
           <input type="date" value={to} onChange={(event) => setTo(event.target.value)} className={embedded ? "mt-2 block w-full rounded-xl border border-[#D9E5F0] px-3 py-2.5 font-semibold" : "rounded-xl border border-[#D7E4F2] px-3 py-2 font-semibold"} />
         </label>
-        <button type="button" onClick={generate} className={embedded ? "rounded-xl bg-[#0985E7] px-5 py-3 text-sm font-black text-white hover:bg-[#0770C4]" : "rounded-xl bg-[#0985E7] px-5 py-2.5 text-sm font-black text-white hover:bg-[#0770C4]"}>
+        <button type="button" onClick={generate} className={embedded ? "rounded-xl bg-[#0067B3] px-5 py-3 text-sm font-black text-white hover:bg-[#005F9E]" : "rounded-xl bg-[#0067B3] px-5 py-2.5 text-sm font-black text-white hover:bg-[#005F9E]"}>
           Generate
         </button>
       </section> : null}
@@ -169,22 +181,22 @@ export function GeneratedReportsManagementView({ embedded = false }: { embedded?
         <section aria-label={`${generated?.title} report`} className="overflow-hidden rounded-2xl border border-[#E4EEF9] bg-white shadow-sm shadow-[#DDEAF7]/35">
           <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[#E4EEF9] bg-[#FBFDFF] p-5 sm:p-6">
             <div className="flex items-start gap-3">
-              <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-[#EAF8F0] text-[#12A150]"><AssessmentOutlinedIcon fontSize="small" /></span>
+              <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-[#EAF8F0] text-[#166534]"><AssessmentOutlinedIcon fontSize="small" /></span>
               <div>
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-xs font-black uppercase tracking-[0.14em] text-[#0879D8]">CSV preview</span>
-                  <span className="rounded-full bg-[#EAF8F0] px-2.5 py-1 text-xs font-black text-[#16834B]">Ready</span>
+                  <span className="text-xs font-black uppercase tracking-[0.14em] text-[#0067B3]">CSV preview</span>
+                  <span className="rounded-full bg-[#EAF8F0] px-2.5 py-1 text-xs font-black text-[#166534]">Ready</span>
                 </div>
                 <h2 className="mt-1 text-lg font-black text-[#071B33]">{generated?.title}</h2>
                 <p className="mt-1 text-sm font-semibold text-[#5B6F8A]">{report.rows.length} {report.rows.length === 1 ? "row" : "rows"} in this preview <span aria-hidden="true">·</span> {report.from} to {report.to}</p>
               </div>
             </div>
-            <button type="button" onClick={() => downloadDemoReport(report)} className="inline-flex items-center gap-2 rounded-xl border border-[#B9D6ED] bg-white px-4 py-2.5 text-sm font-black text-[#0879D8] transition hover:border-[#0985E7] hover:bg-[#F0F7FF] active:translate-y-px">
+            <button type="button" onClick={downloadReport} className="inline-flex items-center gap-2 rounded-xl border border-[#B9D6ED] bg-white px-4 py-2.5 text-sm font-black text-[#0067B3] transition hover:border-[#0067B3] hover:bg-[#F0F7FF] active:translate-y-px">
               <DownloadOutlinedIcon fontSize="small" />
               Download CSV
             </button>
           </div>
-          <p className="mx-5 mt-5 rounded-xl border border-[#E4EEF9] bg-[#F8FBFF] px-3 py-2.5 text-sm font-bold text-[#64748b] sm:mx-6">Demo report — generated locally from seeded data and not stored.</p>
+          <p className="mx-5 mt-5 rounded-xl border border-[#E4EEF9] bg-[#F8FBFF] px-3 py-2.5 text-sm font-bold text-[#5B6F8A] sm:mx-6">Demo report — generated locally from seeded data and not stored.</p>
           <div className="mt-5 overflow-x-auto px-5 pb-5 sm:px-6">
             {report.rows.length ? (
               <table aria-label={`${generated?.title} preview`} className="w-full min-w-[720px] text-left text-sm">

@@ -12,14 +12,14 @@ function isIssuerRole(role?: unknown) {
   return typeof role === "string" && ["document_issuer", "lawyer", "admin", "super_admin"].includes(role.trim().toLowerCase());
 }
 
-function createSessionResponse(token: string, maxAge: number, user: { role?: string; email?: string; name?: string; id?: string }) {
+function createSessionResponse(token: string, maxAge: number | undefined, user: { role?: string; email?: string; name?: string; id?: string }) {
   const response = NextResponse.json({ ok: true, user });
 
   const cookieOpts = {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax" as const,
-    maxAge,
+    ...(maxAge === undefined ? {} : { maxAge }),
     path: "/",
   };
 
@@ -59,6 +59,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ message: "Invalid request body." }, { status: 400 });
   }
 
+  const loginInput = typeof body === "object" && body !== null && !Array.isArray(body)
+    ? body as Record<string, unknown>
+    : null;
+  const rememberMe = loginInput?.rememberMe === true;
+  const backendBody = loginInput
+    ? Object.fromEntries(Object.entries(loginInput).filter(([key]) => key !== "rememberMe"))
+    : body;
+
   // Mock mode
   if (useMock) {
     const credentials = body as { email?: unknown; password?: unknown };
@@ -70,7 +78,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: "Invalid credentials." }, { status: 401 });
     }
 
-    return createSessionResponse(`mock-token:${account.id}`, 60 * 60 * 24, account);
+    return createSessionResponse(`mock-token:${account.id}`, rememberMe ? 60 * 60 * 24 : undefined, account);
   }
 
   // Real backend
@@ -82,7 +90,7 @@ export async function POST(request: Request) {
         "Content-Type": "application/json",
         "ngrok-skip-browser-warning": "true",
       },
-      body: JSON.stringify(body),
+      body: JSON.stringify(backendBody),
     });
   } catch {
     return NextResponse.json({ message: "Unable to reach the API." }, { status: 502 });
@@ -105,7 +113,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const maxAge = payload?.expires_in ?? 60 * 60 * 24;
+  const maxAge = rememberMe ? payload?.expires_in ?? 60 * 60 * 24 : undefined;
   const rawUser = payload?.user ?? {};
 
   // The authenticated sign-in response is the primary role source. Retain the

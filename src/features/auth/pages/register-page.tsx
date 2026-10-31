@@ -84,7 +84,7 @@ function RegisterPageContent() {
     setSubmissionError(null);
     mutation.mutate(values);
   });
-  const inputClass = "mt-2 min-h-12 w-full rounded-[14px] border border-[#E4EEF9] bg-[#F5FAFF] px-3.5 text-sm font-semibold text-[#0C2B49] outline-none focus:border-[#0985E7]";
+  const inputClass = "mt-2 min-h-12 w-full rounded-[14px] border border-[#E4EEF9] bg-[#F5FAFF] px-3.5 text-sm font-semibold text-[#0C2B49] outline-none focus:border-[#0067B3]";
   const emailInputClass = hasInviteEmail
     ? `${inputClass} cursor-default bg-[#EEF4FB] text-[#4B6382]`
     : inputClass;
@@ -101,7 +101,7 @@ function RegisterPageContent() {
         <section className="w-full max-w-[440px] rounded-[24px] border border-[#E4EEF9] bg-white p-7 shadow-[0_10px_24px_rgba(12,43,73,0.08)]">
           <div className="flex items-center gap-2">
             <Image src="/lexchain/logo-lexchain.svg" alt="LexChain" width={36} height={36} className="rounded-[10px]" />
-            <span className="text-lg font-black text-[#0C2B49]">Lex<span className="text-[#0985E7]">Chain</span></span>
+            <span className="text-lg font-black text-[#0C2B49]">Lex<span className="text-[#0067B3]">Chain</span></span>
           </div>
           <div className="mt-7 rounded-[20px] bg-[#EAF6FF] p-5">
             <h1 className="text-3xl font-black leading-9 text-[#0C2B49]">
@@ -120,7 +120,7 @@ function RegisterPageContent() {
           ) : null}
           <Link
             href="/login"
-            className="mt-6 flex min-h-[52px] w-full items-center justify-center rounded-full bg-[#0985E7] px-5 py-3.5 text-[15px] font-black text-white transition hover:bg-[#0770c4]"
+            className="mt-6 flex min-h-[52px] w-full items-center justify-center rounded-full bg-[#0067B3] px-5 py-3.5 text-[15px] font-black text-white transition hover:bg-[#005F9E]"
           >
             Go to login
           </Link>
@@ -135,10 +135,10 @@ function RegisterPageContent() {
         <div className="space-y-2">
           <div className="flex items-center gap-2 mb-1">
             <Image src="/lexchain/logo-lexchain.svg" alt="LexChain" width={36} height={36} className="rounded-[10px]" />
-            <span className="text-lg font-black text-[#0C2B49]">Lex<span className="text-[#0985E7]">Chain</span></span>
+            <span className="text-lg font-black text-[#0C2B49]">Lex<span className="text-[#0067B3]">Chain</span></span>
           </div>
           <h1 className="text-3xl font-black leading-9 text-[#0C2B49]">Create account</h1>
-          <p className="text-sm font-semibold leading-5 text-[#64748b]">
+          <p className="text-sm font-semibold leading-5 text-[#5B6F8A]">
             {inviteToken
               ? hasInviteEmail
                 ? "Create a standard LexChain account with the email from your invitation."
@@ -157,13 +157,13 @@ function RegisterPageContent() {
           <div className="grid grid-cols-2 gap-3">
             <label className="block">
               <span className="text-[13px] font-black text-[#0C2B49]">First Name</span>
-              <input {...register("firstName")} placeholder="John" className={inputClass} />
-              {errors.firstName && <p className="text-xs text-red-500 mt-1">{errors.firstName.message}</p>}
+              <input {...register("firstName")} placeholder="John" className={inputClass} aria-invalid={errors.firstName ? "true" : undefined} aria-describedby={errors.firstName ? "first-name-error" : undefined} />
+              {errors.firstName && <p id="first-name-error" className="text-xs text-red-700 mt-1">{errors.firstName.message}</p>}
             </label>
             <label className="block">
               <span className="text-[13px] font-black text-[#0C2B49]">Last Name</span>
-              <input {...register("lastName")} placeholder="Doe" className={inputClass} />
-              {errors.lastName && <p className="text-xs text-red-500 mt-1">{errors.lastName.message}</p>}
+              <input {...register("lastName")} placeholder="Doe" className={inputClass} aria-invalid={errors.lastName ? "true" : undefined} aria-describedby={errors.lastName ? "last-name-error" : undefined} />
+              {errors.lastName && <p id="last-name-error" className="text-xs text-red-700 mt-1">{errors.lastName.message}</p>}
             </label>
           </div>
 
@@ -177,24 +177,28 @@ function RegisterPageContent() {
                 defaultValue={inviteEmail}
                 className={emailInputClass}
                 readOnly={hasInviteEmail}
-                aria-describedby={hasInviteEmail ? "invite-email-help" : undefined}
+                aria-invalid={errors.email ? "true" : undefined}
+                aria-describedby={[
+                  hasInviteEmail ? "invite-email-help" : null,
+                  errors.email ? "email-error" : null,
+                ].filter(Boolean).join(" ") || undefined}
               />
-              {errors.email && <p className="text-xs text-red-500 mt-1">{errors.email.message}</p>}
+              {errors.email && <p id="email-error" className="text-xs text-red-700 mt-1">{errors.email.message}</p>}
             </label>
-            {hasInviteEmail ? <p id="invite-email-help" className="mt-1 text-xs font-medium text-[#64748b]">Email from your invitation; it cannot be changed here.</p> : null}
+            {hasInviteEmail ? <p id="invite-email-help" className="mt-1 text-xs font-medium text-[#5B6F8A]">Email from your invitation; it cannot be changed here.</p> : null}
           </div>
 
           <label className="block">
             <span className="text-[13px] font-black text-[#0C2B49]">Password</span>
-            <span className="block text-xs font-medium text-[#64748b]">At least 8 characters, with uppercase, lowercase, and a number.</span>
-            <input {...register("password")} type="password" className={inputClass} />
-            {errors.password && <p className="text-xs text-red-500 mt-1">{errors.password.message}</p>}
+            <span id="password-help" className="block text-xs font-medium text-[#5B6F8A]">At least 8 characters, with uppercase, lowercase, and a number.</span>
+            <input {...register("password")} type="password" className={inputClass} aria-invalid={errors.password ? "true" : undefined} aria-describedby={errors.password ? "password-help password-error" : "password-help"} />
+            {errors.password && <p id="password-error" className="text-xs text-red-700 mt-1">{errors.password.message}</p>}
           </label>
 
           <label className="block">
             <span className="text-[13px] font-black text-[#0C2B49]">Confirm Password</span>
-            <input {...register("confirmPassword")} type="password" className={inputClass} />
-            {errors.confirmPassword && <p className="text-xs text-red-500 mt-1">{errors.confirmPassword.message}</p>}
+            <input {...register("confirmPassword")} type="password" className={inputClass} aria-invalid={errors.confirmPassword ? "true" : undefined} aria-describedby={errors.confirmPassword ? "confirm-password-error" : undefined} />
+            {errors.confirmPassword && <p id="confirm-password-error" className="text-xs text-red-700 mt-1">{errors.confirmPassword.message}</p>}
           </label>
 
           {submissionError ? <p role="alert" className="text-sm font-semibold text-red-700">{submissionError}</p> : null}
@@ -202,7 +206,7 @@ function RegisterPageContent() {
           <button
             type="submit"
             disabled={mutation.isPending}
-            className="mt-2 flex min-h-[52px] w-full items-center justify-center rounded-full bg-[#0985E7] px-5 py-3.5 text-[15px] font-black text-white transition hover:bg-[#0770c4] disabled:opacity-60"
+            className="mt-2 flex min-h-[52px] w-full items-center justify-center rounded-full bg-[#0067B3] px-5 py-3.5 text-[15px] font-black text-white transition hover:bg-[#005F9E] disabled:opacity-60"
           >
             {mutation.isPending ? "Creating account…" : "Create account"}
           </button>

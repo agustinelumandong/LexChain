@@ -444,6 +444,90 @@
         }
       }
     },
+    "/documents/register-lookup": {
+      "get": {
+        "tags": [
+          "Documents"
+        ],
+        "summary": "Find a document by its register reference",
+        "description": "Exact lookup by a complete notarial register reference: Doc. No., Page No., Book No. and Series year must all match. Searches every document the user owns or was accepted onto, filed in an open or closed book, whether or not it has been processed.\n\nBook numbers are per lawyer, so more than one document can match; each is returned. No match is an empty `results` list.",
+        "operationId": "lookup_register_reference_documents_register_lookup_get",
+        "security": [
+          {
+            "Bearer Token": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "doc_no",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "Doc. No. in the register",
+              "title": "Doc No"
+            },
+            "description": "Doc. No. in the register"
+          },
+          {
+            "name": "page_no",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "Page No. in the register",
+              "title": "Page No"
+            },
+            "description": "Page No. in the register"
+          },
+          {
+            "name": "book_number",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "maximum": 1000,
+              "minimum": 1,
+              "description": "Book No. of the physical register",
+              "title": "Book Number"
+            },
+            "description": "Book No. of the physical register"
+          },
+          {
+            "name": "series_year",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 2000,
+              "description": "Series year of the book",
+              "title": "Series Year"
+            },
+            "description": "Series year of the book"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Matching documents; empty if none",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisterLookupResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated — missing or invalid bearer token"
+          },
+          "422": {
+            "description": "A number is missing, not an integer, or out of range"
+          }
+        }
+      }
+    },
     "/documents/upload": {
       "post": {
         "tags": [
@@ -1241,6 +1325,72 @@
         }
       }
     },
+    "/documents/{document_id}/file": {
+      "get": {
+        "tags": [
+          "Documents · Signed copy & register"
+        ],
+        "summary": "Short-lived link to a signed copy's PDF",
+        "description": "Checks the caller's current access, then returns a signed URL valid for `expires_in` seconds. Defaults to the current copy; pass `copy_id` for an older one from /signed-copies. Ask again when it expires.",
+        "operationId": "get_signed_copy_file_documents__document_id__file_get",
+        "security": [
+          {
+            "Bearer Token": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "document_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Document Id"
+            }
+          },
+          {
+            "name": "copy_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Copy Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SignedCopyFileResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/documents/{document_id}/entry": {
       "patch": {
         "tags": [
@@ -1748,13 +1898,74 @@
         }
       }
     },
+    "/documents/{document_id}/retry-processing": {
+      "post": {
+        "tags": [
+          "Documents · Finalize & verify"
+        ],
+        "summary": "Retry processing a failed document",
+        "description": "Queue a FAILED document again from the phase that failed: OCR if the text was never approved, otherwise chunking, embedding and analysis. Nothing is re-anchored — the on-chain record from finalize stands. Shown to the client as `permissions.can_retry_processing`.",
+        "operationId": "retry_processing_documents__document_id__retry_processing_post",
+        "security": [
+          {
+            "Bearer Token": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "document_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Document Id"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Queued again",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RetryProcessingResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated — missing or invalid bearer token"
+          },
+          "403": {
+            "description": "Forbidden — only the document owner may retry"
+          },
+          "404": {
+            "description": "Document not found"
+          },
+          "409": {
+            "description": "The document is not FAILED"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/documents/{document_id}/verify": {
       "get": {
         "tags": [
           "Documents · Finalize & verify"
         ],
         "summary": "Verify a document against the chain",
-        "description": "Hashes the stored signed copy as it is now and compares it with the hash anchored on-chain. The verdict is computed server-side.",
+        "description": "Hashes the stored signed copy as it is now and compares it with the hash anchored on-chain. The verdict is computed server-side. When the status is TAMPERED, the archived original (re-hashed against the chain) and the current file are both extracted and diffed: `tamper_report` lists the changed segments with page and bbox where the OCR engine reports layout. If that diff cannot be produced, `tamper_report_status` is UNAVAILABLE and the TAMPERED verdict still stands.",
         "operationId": "verify_document_documents__document_id__verify_get",
         "security": [
           {
@@ -1775,7 +1986,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Verification result, with a tamper report when applicable",
+            "description": "Verification result; `tamper_report` is present only when status is TAMPERED and `tamper_report_status` is AVAILABLE",
             "content": {
               "application/json": {
                 "schema": {
@@ -1799,6 +2010,70 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/documents/{document_id}/restore": {
+      "post": {
+        "tags": [
+          "Documents · Finalize & verify"
+        ],
+        "summary": "Restore a tampered document from its archive",
+        "description": "For a FINALIZED document whose verification is TAMPERED. The archived original is re-hashed against the on-chain hash, then becomes the current signed copy; the tampered file is kept in /signed-copies and the restore is recorded in /history with both hashes. The lifecycle and the on-chain record are unchanged. If the document is already AUTHENTIC nothing changes and `restored` is false, so a retry is safe. `verification` is a fresh check of the result.",
+        "operationId": "restore_document_documents__document_id__restore_post",
+        "security": [
+          {
+            "Bearer Token": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "document_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Document Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Restored, or already authentic",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RestoreResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated — missing or invalid bearer token"
+          },
+          "403": {
+            "description": "Forbidden — only the document owner may restore"
+          },
+          "404": {
+            "description": "Document not found, or it has no on-chain record"
+          },
+          "409": {
+            "description": "Not FINALIZED, SNAPSHOT_COMPROMISED, no archived original, or the archive does not match the chain"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Storage or the archive is unavailable; nothing changed"
           }
         }
       }
@@ -2471,6 +2746,60 @@
         }
       }
     },
+    "/admin/backups/verify": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Verify document backups",
+        "description": "Downloads every finalized document's archive and checks it against the hash anchored on-chain. With `repair=true`, a missing archive is written from the live signed copy, if the snapshot matches the on-chain hash and the live copy still matches it. A bad archive is reported, never overwritten. Also runs daily without repair.",
+        "operationId": "verify_backups_admin_backups_verify_post",
+        "security": [
+          {
+            "Bearer Token": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "repair",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "description": "Re-archive missing or bad backups",
+              "default": false,
+              "title": "Repair"
+            },
+            "description": "Re-archive missing or bad backups"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Verification summary",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BackupVerificationResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not a lawyer"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/notifications/": {
       "get": {
         "tags": [
@@ -2886,6 +3215,80 @@
         }
       }
     },
+    "/books/{book_id}/entries": {
+      "get": {
+        "tags": [
+          "Books"
+        ],
+        "summary": "List a book's entries",
+        "description": "Return the book and a page of the documents filed in it, ordered by Doc. No., then Page No. The book's entry_count is the total number of entries for paging. Only documents with a LexChain record are listed — not paper-only lines of the physical register. Only the owner may access it.",
+        "operationId": "get_book_entries_books__book_id__entries_get",
+        "security": [
+          {
+            "Bearer Token": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "book_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Book Id"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 50,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "Offset"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Book and a page of its entries; empty past the last entry",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookEntriesResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated — missing or invalid bearer token"
+          },
+          "403": {
+            "description": "Forbidden — only lawyers may access books"
+          },
+          "404": {
+            "description": "Book not found"
+          },
+          "422": {
+            "description": "limit outside 1–100, or negative offset"
+          }
+        }
+      }
+    },
     "/books/{book_id}/close": {
       "post": {
         "tags": [
@@ -3126,6 +3529,51 @@
           }
         ]
       }
+    },
+    "/health": {
+      "get": {
+        "tags": [
+          "Health"
+        ],
+        "summary": "Liveness",
+        "operationId": "health_health_get",
+        "responses": {
+          "200": {
+            "description": "Process is up",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Health Health Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health/ready": {
+      "get": {
+        "tags": [
+          "Health"
+        ],
+        "summary": "Readiness",
+        "operationId": "ready_health_ready_get",
+        "responses": {
+          "200": {
+            "description": "Every dependency is reachable",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "503": {
+            "description": "At least one dependency is down"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -3309,6 +3757,91 @@
         ],
         "title": "AskRequest"
       },
+      "BackupCheck": {
+        "properties": {
+          "document_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Document Id"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "missing",
+              "mismatch",
+              "repaired",
+              "unrecoverable"
+            ],
+            "title": "Status",
+            "description": "ok: archive present and matches the anchored hash. missing: no archive. mismatch: the archive's bytes differ from the anchored hash. repaired: re-archived from the live copy. unrecoverable: no good archive and the live copy no longer matches either."
+          },
+          "backup_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Backup Key"
+          }
+        },
+        "type": "object",
+        "required": [
+          "document_id",
+          "status"
+        ],
+        "title": "BackupCheck"
+      },
+      "BackupVerificationResponse": {
+        "properties": {
+          "checked": {
+            "type": "integer",
+            "title": "Checked",
+            "description": "Finalized snapshots checked"
+          },
+          "ok": {
+            "type": "integer",
+            "title": "Ok"
+          },
+          "missing": {
+            "type": "integer",
+            "title": "Missing"
+          },
+          "mismatch": {
+            "type": "integer",
+            "title": "Mismatch"
+          },
+          "repaired": {
+            "type": "integer",
+            "title": "Repaired"
+          },
+          "unrecoverable": {
+            "type": "integer",
+            "title": "Unrecoverable"
+          },
+          "problems": {
+            "items": {
+              "$ref": "#/components/schemas/BackupCheck"
+            },
+            "type": "array",
+            "title": "Problems",
+            "description": "Every snapshot whose status is not ok"
+          }
+        },
+        "type": "object",
+        "required": [
+          "checked",
+          "ok",
+          "missing",
+          "mismatch",
+          "repaired",
+          "unrecoverable"
+        ],
+        "title": "BackupVerificationResponse"
+      },
       "BlockEdit": {
         "properties": {
           "index": {
@@ -3411,6 +3944,78 @@
           "series_year"
         ],
         "title": "BookCreateRequest"
+      },
+      "BookEntriesResponse": {
+        "properties": {
+          "book": {
+            "$ref": "#/components/schemas/BookResponse",
+            "description": "The book; its entry_count is the total for paging"
+          },
+          "entries": {
+            "items": {
+              "$ref": "#/components/schemas/BookEntryResponse"
+            },
+            "type": "array",
+            "title": "Entries",
+            "description": "One page of entries, by Doc. No., then Page No."
+          }
+        },
+        "type": "object",
+        "required": [
+          "book"
+        ],
+        "title": "BookEntriesResponse"
+      },
+      "BookEntryResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id",
+            "description": "Document ID — opens /documents/{id}"
+          },
+          "file_name": {
+            "type": "string",
+            "title": "File Name",
+            "description": "Display name"
+          },
+          "doc_no": {
+            "type": "integer",
+            "title": "Doc No",
+            "description": "Doc. No. in the register"
+          },
+          "page_no": {
+            "type": "integer",
+            "title": "Page No",
+            "description": "Page No. in the register"
+          },
+          "lifecycle": {
+            "type": "string",
+            "title": "Lifecycle",
+            "description": "PREPARING | READY_FOR_SIGNATURE | SIGNED | FINALIZED | CANCELLED"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status",
+            "description": "Processing status; null until the document is finalized"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "file_name",
+          "doc_no",
+          "page_no",
+          "lifecycle"
+        ],
+        "title": "BookEntryResponse"
       },
       "BookResponse": {
         "properties": {
@@ -3878,6 +4483,11 @@
             "title": "Can Finalize",
             "description": "May snapshot and anchor on-chain"
           },
+          "can_retry_processing": {
+            "type": "boolean",
+            "title": "Can Retry Processing",
+            "description": "May send a FAILED document back through processing"
+          },
           "can_share": {
             "type": "boolean",
             "title": "Can Share",
@@ -3900,6 +4510,7 @@
           "can_correct_entry",
           "can_cancel",
           "can_finalize",
+          "can_retry_processing",
           "can_share",
           "can_revoke"
         ],
@@ -4257,18 +4868,6 @@
             "title": "File Name",
             "description": "Display name of the document"
           },
-          "storage_url": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Storage Url",
-            "description": "URL of the document as it stands now, for rendering pages"
-          },
           "status": {
             "type": "string",
             "title": "Status",
@@ -4373,6 +4972,40 @@
             "type": "string",
             "title": "Message",
             "description": "Human-readable verdict"
+          },
+          "tamper_report_status": {
+            "type": "string",
+            "enum": [
+              "AVAILABLE",
+              "UNAVAILABLE",
+              "NOT_APPLICABLE"
+            ],
+            "title": "Tamper Report Status",
+            "description": "AVAILABLE — `tamper_report` holds a diff against a trusted baseline; UNAVAILABLE — the document is TAMPERED but no trustworthy diff could be produced (the verdict still stands); NOT_APPLICABLE — any status other than TAMPERED",
+            "default": "NOT_APPLICABLE"
+          },
+          "tamper_report": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TamperReport"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Present only when `tamper_report_status` is AVAILABLE"
+          },
+          "tamper_report_unavailable_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tamper Report Unavailable Reason",
+            "description": "Why no diff, when `tamper_report_status` is UNAVAILABLE"
           }
         },
         "type": "object",
@@ -4722,10 +5355,11 @@
             "title": "File Name",
             "description": "Display name of the document"
           },
-          "storage_url": {
+          "signed_copy_id": {
             "type": "string",
-            "title": "Storage Url",
-            "description": "URL of the source PDF, for rendering pages behind the blocks"
+            "format": "uuid",
+            "title": "Signed Copy Id",
+            "description": "The PDF behind the blocks; read it through GET /documents/{document_id}/file for rendering pages"
           },
           "engine": {
             "type": "string",
@@ -4807,7 +5441,7 @@
           "extraction_id",
           "status",
           "file_name",
-          "storage_url",
+          "signed_copy_id",
           "engine",
           "page_count",
           "blocks",
@@ -4839,6 +5473,28 @@
           "score": {
             "type": "number",
             "title": "Score"
+          },
+          "file_name": {
+            "type": "string",
+            "title": "File Name",
+            "description": "Display name of the document"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At",
+            "description": "When the document was created"
+          },
+          "register_reference": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RegisterReference"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Where the document is filed; null if not in a register"
           }
         },
         "type": "object",
@@ -4846,7 +5502,9 @@
           "chunk_id",
           "document_id",
           "chunk_index",
-          "score"
+          "score",
+          "file_name",
+          "created_at"
         ],
         "title": "GlobalSearchHit"
       },
@@ -5181,6 +5839,96 @@
         "title": "RecordResponse",
         "description": "Response returned after recording a document on-chain."
       },
+      "RegisterLookupHit": {
+        "properties": {
+          "document_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Document Id"
+          },
+          "file_name": {
+            "type": "string",
+            "title": "File Name",
+            "description": "Display name of the document"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At",
+            "description": "When the document was created"
+          },
+          "register_reference": {
+            "$ref": "#/components/schemas/RegisterReference",
+            "description": "Where the document is filed"
+          }
+        },
+        "type": "object",
+        "required": [
+          "document_id",
+          "file_name",
+          "created_at",
+          "register_reference"
+        ],
+        "title": "RegisterLookupHit",
+        "description": "A document found by its register reference."
+      },
+      "RegisterLookupResponse": {
+        "properties": {
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/RegisterLookupHit"
+            },
+            "type": "array",
+            "title": "Results",
+            "description": "Every accessible document with this reference; empty if none"
+          }
+        },
+        "type": "object",
+        "required": [
+          "results"
+        ],
+        "title": "RegisterLookupResponse"
+      },
+      "RegisterReference": {
+        "properties": {
+          "doc_no": {
+            "type": "integer",
+            "title": "Doc No",
+            "description": "Doc. No. in the register"
+          },
+          "page_no": {
+            "type": "integer",
+            "title": "Page No",
+            "description": "Page No. in the register"
+          },
+          "book_number": {
+            "type": "integer",
+            "title": "Book Number",
+            "description": "Book No. of the register book"
+          },
+          "series_year": {
+            "type": "integer",
+            "title": "Series Year",
+            "description": "Series year of the register book"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label",
+            "description": "The entry as written in the notarial block",
+            "readOnly": true
+          }
+        },
+        "type": "object",
+        "required": [
+          "doc_no",
+          "page_no",
+          "book_number",
+          "series_year",
+          "label"
+        ],
+        "title": "RegisterReference",
+        "description": "Where a document sits in the notarial register, with its book's numbers."
+      },
       "RemovePartyResponse": {
         "properties": {
           "document_id": {
@@ -5221,6 +5969,125 @@
           "email"
         ],
         "title": "ResendVerificationRequest"
+      },
+      "RestoreResponse": {
+        "properties": {
+          "document_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Document Id"
+          },
+          "restored": {
+            "type": "boolean",
+            "title": "Restored",
+            "description": "False if it was already authentic"
+          },
+          "previous_hash": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Previous Hash",
+            "description": "SHA-256 of the file that was replaced; null if none was"
+          },
+          "restored_hash": {
+            "type": "string",
+            "title": "Restored Hash",
+            "description": "SHA-256 now current: the on-chain hash"
+          },
+          "restored_copy_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Restored Copy Id",
+            "description": "The signed copy now current"
+          },
+          "preserved_copy_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Preserved Copy Id",
+            "description": "The replaced file, kept in signed-copy history"
+          },
+          "restored_by": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Restored By"
+          },
+          "restored_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Restored At"
+          },
+          "verification": {
+            "$ref": "#/components/schemas/DocumentVerificationResponse"
+          }
+        },
+        "type": "object",
+        "required": [
+          "document_id",
+          "restored",
+          "restored_hash",
+          "restored_copy_id",
+          "verification"
+        ],
+        "title": "RestoreResponse",
+        "description": "The outcome of restoring a finalized document from its archive.\n\n`restored` is false when the document was already authentic: nothing was\nchanged, so a retry is safe. Either way `verification` is a fresh check of\nthe current copy against the chain, to show the resulting integrity status."
+      },
+      "RetryProcessingResponse": {
+        "properties": {
+          "document_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Document Id"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "description": "QUEUED (OCR again) or ENRICHING"
+          },
+          "job": {
+            "type": "string",
+            "title": "Job",
+            "description": "extract | enrich — the phase that failed"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          }
+        },
+        "type": "object",
+        "required": [
+          "document_id",
+          "status",
+          "job",
+          "message"
+        ],
+        "title": "RetryProcessingResponse",
+        "description": "A FAILED document queued again."
       },
       "SearchHit": {
         "properties": {
@@ -5460,6 +6327,38 @@
         ],
         "title": "SignUpResponse"
       },
+      "SignedCopyFileResponse": {
+        "properties": {
+          "document_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Document Id"
+          },
+          "copy_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Copy Id"
+          },
+          "url": {
+            "type": "string",
+            "title": "Url"
+          },
+          "expires_in": {
+            "type": "integer",
+            "title": "Expires In",
+            "description": "Seconds until `url` stops working"
+          }
+        },
+        "type": "object",
+        "required": [
+          "document_id",
+          "copy_id",
+          "url",
+          "expires_in"
+        ],
+        "title": "SignedCopyFileResponse",
+        "description": "A short-lived link to read one signed copy's PDF.\n\nIssued only after the reader's current access is checked; it stops\nworking after `expires_in` seconds, so ask again rather than storing it."
+      },
       "SignedCopyListResponse": {
         "properties": {
           "document_id": {
@@ -5488,10 +6387,6 @@
             "type": "string",
             "format": "uuid",
             "title": "Id"
-          },
-          "storage_url": {
-            "type": "string",
-            "title": "Storage Url"
           },
           "sha256": {
             "type": "string",
@@ -5556,7 +6451,6 @@
         "type": "object",
         "required": [
           "id",
-          "storage_url",
           "sha256",
           "content_type",
           "size_bytes",
@@ -5598,6 +6492,30 @@
             ],
             "title": "Actor Id"
           },
+          "from_hash": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "From Hash",
+            "description": "Restore only: SHA-256 of the file that was replaced"
+          },
+          "to_hash": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "To Hash",
+            "description": "Restore only: SHA-256 of the archived bytes restored"
+          },
           "created_at": {
             "type": "string",
             "format": "date-time",
@@ -5614,6 +6532,207 @@
         ],
         "title": "StageChangeResponse",
         "description": "One lifecycle action on a document."
+      },
+      "TamperReport": {
+        "properties": {
+          "localized": {
+            "type": "boolean",
+            "title": "Localized",
+            "description": "Whether the OCR engine reported layout; when false every segment's `page_idx` and `bbox` are null and the diff is text-only"
+          },
+          "total_changes": {
+            "type": "integer",
+            "title": "Total Changes",
+            "description": "Number of segments returned"
+          },
+          "critical_changes": {
+            "type": "integer",
+            "title": "Critical Changes"
+          },
+          "replaced": {
+            "type": "integer",
+            "title": "Replaced",
+            "description": "Changed regions found, including any not returned"
+          },
+          "inserted": {
+            "type": "integer",
+            "title": "Inserted"
+          },
+          "deleted": {
+            "type": "integer",
+            "title": "Deleted"
+          },
+          "similarity": {
+            "type": "number",
+            "title": "Similarity",
+            "description": "0-1 text similarity, original vs current"
+          },
+          "truncated": {
+            "type": "boolean",
+            "title": "Truncated",
+            "description": "Whether more changes were found than `segments` returns"
+          },
+          "segments": {
+            "items": {
+              "$ref": "#/components/schemas/TamperSegment"
+            },
+            "type": "array",
+            "title": "Segments"
+          }
+        },
+        "type": "object",
+        "required": [
+          "localized",
+          "total_changes",
+          "critical_changes",
+          "replaced",
+          "inserted",
+          "deleted",
+          "similarity",
+          "truncated",
+          "segments"
+        ],
+        "title": "TamperReport",
+        "description": "Where the current file differs from the finalized original.\n\nThe baseline is the archived original, re-hashed against the chain before\nuse; both sides are extracted fresh from their bytes by the same engine.\nSegments are ordered most severe first."
+      },
+      "TamperSegment": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "replace",
+              "insert",
+              "delete"
+            ],
+            "title": "Type"
+          },
+          "severity": {
+            "type": "string",
+            "enum": [
+              "critical",
+              "major",
+              "minor"
+            ],
+            "title": "Severity",
+            "description": "critical: amounts or reference numbers; major: dates or figures"
+          },
+          "reason": {
+            "type": "string",
+            "title": "Reason",
+            "description": "What changed, in plain terms"
+          },
+          "original_text": {
+            "type": "string",
+            "title": "Original Text",
+            "description": "Text in the finalized original; empty for an insert"
+          },
+          "current_text": {
+            "type": "string",
+            "title": "Current Text",
+            "description": "Text in the current file; empty for a delete"
+          },
+          "original_line_start": {
+            "type": "integer",
+            "title": "Original Line Start",
+            "description": "1-based block position in the original"
+          },
+          "original_line_end": {
+            "type": "integer",
+            "title": "Original Line End"
+          },
+          "current_line_start": {
+            "type": "integer",
+            "title": "Current Line Start",
+            "description": "1-based block position in the current file"
+          },
+          "current_line_end": {
+            "type": "integer",
+            "title": "Current Line End"
+          },
+          "block_index": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Block Index",
+            "description": "Block in the current file's extraction; for a delete, the block in the original's extraction"
+          },
+          "original_block_index": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Original Block Index",
+            "description": "Block in the original's extraction the change starts at"
+          },
+          "location": {
+            "type": "string",
+            "enum": [
+              "current",
+              "original"
+            ],
+            "title": "Location",
+            "description": "Which PDF `page_idx`/`bbox` refer to: the current file, or — for a delete, whose text is no longer there — the finalized original"
+          },
+          "page_idx": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Page Idx",
+            "description": "Zero-based page; null when the OCR engine reports no layout"
+          },
+          "bbox": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "number"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bbox",
+            "description": "[x0, y0, x1, y1] normalized to a 0-1000 box per page, same convention as ExtractionBlock.bbox; null when the OCR engine reports no layout"
+          },
+          "word_diff": {
+            "items": {
+              "$ref": "#/components/schemas/WordDiffPart"
+            },
+            "type": "array",
+            "title": "Word Diff"
+          }
+        },
+        "type": "object",
+        "required": [
+          "type",
+          "severity",
+          "reason",
+          "original_text",
+          "current_text",
+          "original_line_start",
+          "original_line_end",
+          "current_line_start",
+          "current_line_end",
+          "location",
+          "word_diff"
+        ],
+        "title": "TamperSegment",
+        "description": "One changed region between the finalized original and the current file."
       },
       "UnreadCountResponse": {
         "properties": {
@@ -5773,6 +6892,30 @@
           "type"
         ],
         "title": "ValidationError"
+      },
+      "WordDiffPart": {
+        "properties": {
+          "op": {
+            "type": "string",
+            "enum": [
+              "equal",
+              "removed",
+              "added"
+            ],
+            "title": "Op"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          }
+        },
+        "type": "object",
+        "required": [
+          "op",
+          "text"
+        ],
+        "title": "WordDiffPart",
+        "description": "One run of words inside a changed segment, for inline highlighting."
       }
     },
     "securitySchemes": {
@@ -5826,6 +6969,9 @@
     },
     {
       "name": "Admin"
+    },
+    {
+      "name": "Health"
     }
   ]
 }

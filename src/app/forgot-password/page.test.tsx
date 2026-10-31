@@ -38,6 +38,8 @@ describe("ForgotPasswordPage", () => {
     fireEvent.click(screen.getByRole("button", { name: "Send reset link" }));
 
     expect(screen.getByText("Enter a valid email address")).toBeTruthy();
+    expect(screen.getByLabelText("Email").getAttribute("aria-invalid")).toBe("true");
+    expect(screen.getByLabelText("Email").getAttribute("aria-describedby")).toBe("email-error");
     expect(screen.queryByRole("link", { name: "Open demo reset page" })).toBeNull();
   });
 
@@ -65,18 +67,18 @@ describe("ForgotPasswordPage", () => {
     expect(screen.getByRole("button", { name: "Send reset link" })).toBeTruthy();
   });
 
-  it("does not report success until password recovery is connected outside demo mode", async () => {
+  it("shows the production limitation without offering a fake reset form", () => {
     vi.stubEnv("NEXT_PUBLIC_USE_MOCK_API", "false");
     render(<ForgotPasswordPage />);
 
-    fireEvent.change(screen.getByLabelText("Email"), {
-      target: { value: "issuer@example.com" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "Send reset link" }));
-
-    expect(await screen.findByText(
-      "Password recovery is not connected yet. The backend password-recovery endpoints are required before this can send a real email.",
-    )).toBeTruthy();
+    expect(screen.getByRole("status").textContent).toContain(
+      "Password recovery is not available yet. Contact your LexChain administrator",
+    );
+    expect(screen.getByText("Password recovery is not available in this deployment.")).toBeTruthy();
+    expect(screen.queryByText("Enter account email and we will send reset instructions.")).toBeNull();
+    expect(screen.queryByLabelText("Email")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Send reset link" })).toBeNull();
+    expect(screen.getByRole("link", { name: "Back to sign in" }).getAttribute("href")).toBe("/login");
     expect(screen.queryByRole("link", { name: "Open demo reset page" })).toBeNull();
   });
 });

@@ -1,31 +1,54 @@
 'use client';
 
-import { use, useState } from 'react';
+import { use, useState, useSyncExternalStore } from 'react';
 import { useMutation, useQueries, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import MoreVertIcon from '@mui/icons-material/MoreVert';
+import ShieldOutlinedIcon from '@mui/icons-material/ShieldOutlined';
+import { toast } from 'sonner';
+import { z } from 'zod';
 import type { ApiSchema } from '@/shared/types/index';
 import { PortalChatbot as PortalChatbot } from "@/features/portal/components";
-import { DocumentWorkspace } from '@/features/documents/components/document-workspace';
-import { getDocumentActions, getDocumentLifecycleLabel, getDocumentStatusLabel } from '@/features/documents/document-ui';
+import { CopyableIdentifier, DocumentWorkspace } from '@/features/documents/components/document-workspace';
+import { getDocumentActions, getDocumentLifecycleBadgeClasses, getDocumentLifecycleLabel, getDocumentProcessingBadgeClasses, getDocumentProcessingStatusLabel } from '@/features/documents/document-ui';
 import { renameDocument, finalizeDocument, markDocumentReady, reopenDocument, cancelDocument } from '@/features/documents/document-lifecycle-api';
 import { getPortalUiRole } from "@/features/access";
 import { Modal } from '@/features/admin/components/modal';
+import { portalRequest } from '@/shared/api/client';
+import { PortalApiError } from '@/shared/api/portal-error';
+import { isMockMode } from '@/lib/mocks/mode';
+import { retryDocumentProcessing } from '@/features/documents/document-lifecycle-api';
+import { usePopup } from '@/shared/components/ui/use-popup';
 
 type DocumentResponse = ApiSchema<'DocumentResponse'>;
 type UserProfile = ApiSchema<'UserProfileResponse'>;
 
-async function getJson<T>(path: string): Promise<T> {
-  const response = await fetch(`/api/portal/proxy?path=${encodeURIComponent(path)}`, { credentials: 'same-origin' });
-  if (!response.ok) throw Object.assign(new Error(`Failed to fetch ${path}`), { status: response.status });
-  return response.json();
-}
+const finalizationStatusDocumentSchema = z.object({
+  document_id: z.string(),
+  file_name: z.string(),
+  lifecycle: z.string(),
+  on_chain: z.boolean(),
+  permissions: z.object({
+    can_view: z.boolean(),
+    can_rename: z.boolean(),
+    can_create_draft: z.boolean(),
+    can_mark_ready: z.boolean(),
+    can_reopen: z.boolean(),
+    can_attach_signed_copy: z.boolean(),
+    can_replace_signed_copy: z.boolean(),
+    can_correct_entry: z.boolean(),
+    can_cancel: z.boolean(),
+    can_finalize: z.boolean(),
+    can_share: z.boolean(),
+    can_revoke: z.boolean(),
+  }),
+  created_at: z.string(),
+}).passthrough();
 
-function statusStyle(status?: string | null) {
-  const value = status?.toLowerCase();
-  if (value === 'anchored' || value === 'completed' || value === 'processed') return 'bg-[#EAF8F0] text-[#12A150]';
-  if (value === 'processing' || value === 'pending' || value === 'accepted') return 'bg-[#FFF4DD] text-[#B77900]';
-  return 'bg-[#EAF4FF] text-[#1689F5]';
+async function getJson<T>(path: string): Promise<T> {
+  const response = await portalRequest(`/api/portal/proxy?path=${encodeURIComponent(path)}`);
+  return response.json();
 }
 
 function readErrorStatus(error: unknown) {
@@ -34,48 +57,111 @@ function readErrorStatus(error: unknown) {
     : undefined;
 }
 
+function subscribeToFinalizationStatus(onStoreChange: () => void) {
+  window.addEventListener('portal-finalization-status', onStoreChange);
+  window.addEventListener('storage', onStoreChange);
+  return () => {
+    window.removeEventListener('portal-finalization-status', onStoreChange);
+    window.removeEventListener('storage', onStoreChange);
+  };
+}
+
 export default function DocumentDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
+  const mockMode = isMockMode();
   const queryClient = useQueryClient();
   const [renamePending, setRenamePending] = useState(false);
   const [renameOpen, setRenameOpen] = useState(false);
   const [renameName, setRenameName] = useState('');
   const [renameError, setRenameError] = useState<string>();
+  const { open: documentActionsOpen, setOpen: setDocumentActionsOpen, ref: documentActionsRef } = usePopup();
   const [confirmingFinalize, setConfirmingFinalize] = useState(false);
   const [cancelConfirmationOpen, setCancelConfirmationOpen] = useState(false);
   const [finalizationResult, setFinalizationResult] = useState<ApiSchema<'RecordResponse'>>();
-  const [success, setSuccess] = useState<string>();
+  const [statusMessage, setStatusMessage] = useState<string>();
+  const unknownFinalizationKey = `portal-finalize-unknown:${id}`;
+  const hasUnknownFinalization = useSyncExternalStore(
+    subscribeToFinalizationStatus,
+    () => sessionStorage.getItem(unknownFinalizationKey) === '1',
+    () => false,
+  );
   const [docQ, profileQ] = useQueries({
     queries: [
-      { queryKey: ['portal-doc', id], queryFn: () => getJson<DocumentResponse>(`/documents/${id}`) },
+      { queryKey: ['portal-doc', id], queryFn: () => getJson<DocumentResponse>(`/documents/${id}`), refetchInterval: 10_000 },
       { queryKey: ['portal-profile'], queryFn: () => getJson<UserProfile | null>('/users/') },
     ],
   });
 
+  function publishUpdatedDocument(updatedDocument: DocumentResponse) {
+    queryClient.setQueryData(['portal-doc', id], updatedDocument);
+    void Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['portal-documents'] }),
+      queryClient.invalidateQueries({ queryKey: ['portal-document-history', id] }),
+    ]);
+  }
+
   async function refreshLifecycleQueries() {
     await Promise.all([
       ['portal-doc', id],
+      ['portal-documents'],
       ['portal-doc-chain', id],
       ['portal-document-history', id],
     ].map((queryKey) => queryClient.invalidateQueries({ queryKey })));
   }
 
   const finalizeMutation = useMutation({
-    mutationFn: () => finalizeDocument(id),
+    mutationFn: async () => z.object({
+      document_id: z.literal(id),
+      onchain_document_id: z.string().min(1),
+      data_hash: z.string().min(1),
+      tx_hash: z.string().min(1),
+    }).parse(await finalizeDocument(id)),
+    retry: false,
     onSuccess: async (result) => {
       setFinalizationResult(result);
       setConfirmingFinalize(false);
-      setSuccess('Document finalized and anchored on-chain.');
+      toast.success(mockMode
+        ? 'Demo finalization complete. Synthetic demo data only; no real PDF digest or blockchain transaction was produced.'
+        : 'Document finalized and anchored on-chain.');
       await refreshLifecycleQueries();
+    },
+    onError: (error) => {
+      if (error instanceof PortalApiError && error.status >= 400 && error.status < 500 && error.status !== 408) return;
+      sessionStorage.setItem(unknownFinalizationKey, '1');
+      window.dispatchEvent(new Event('portal-finalization-status'));
+      setConfirmingFinalize(false);
+    },
+  });
+
+  const checkFinalizationMutation = useMutation({
+    mutationFn: async () => finalizationStatusDocumentSchema.parse(await getJson<unknown>(`/documents/${id}`)),
+    retry: false,
+    onSuccess: async (updatedDocument) => {
+      if (updatedDocument.document_id !== id || updatedDocument.lifecycle !== 'FINALIZED') {
+        setStatusMessage('Status is inconclusive. Finalization is still locked; check status again later.');
+        return;
+      }
+      queryClient.setQueryData(['portal-doc', id], updatedDocument);
+      sessionStorage.removeItem(unknownFinalizationKey);
+      window.dispatchEvent(new Event('portal-finalization-status'));
+      setStatusMessage(undefined);
+      toast.success(mockMode
+        ? 'Demo document status confirmed. Synthetic demo data only; no real PDF digest or blockchain transaction was produced.'
+        : 'Document finalized and anchored on-chain.');
+      await refreshLifecycleQueries();
+    },
+    onError: () => {
+      setStatusMessage('Unable to check finalization status. Finalization is still locked; check status again later.');
     },
   });
 
   const readinessMutation = useMutation({
     mutationFn: (action: 'ready' | 'reopen') => action === 'ready' ? markDocumentReady(id) : reopenDocument(id),
-    onSuccess: async (_result, action) => {
-      setSuccess(action === 'ready' ? 'Document marked ready for signature.' : 'Document reopened for editing.');
+    onSuccess: async (updatedDocument, action) => {
+      queryClient.setQueryData(['portal-doc', id], updatedDocument);
+      toast.success(action === 'ready' ? 'Document marked ready for signature.' : 'Document reopened for editing.');
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['portal-doc', id] }),
+        queryClient.invalidateQueries({ queryKey: ['portal-documents'] }),
         queryClient.invalidateQueries({ queryKey: ['portal-document-comments', id] }),
         queryClient.invalidateQueries({ queryKey: ['portal-document-history', id] }),
       ]);
@@ -87,7 +173,7 @@ export default function DocumentDetailPage({ params }: { params: Promise<{ id: s
     onSuccess: async (updatedDocument) => {
       queryClient.setQueryData(['portal-doc', id], updatedDocument);
       setCancelConfirmationOpen(false);
-      setSuccess('Document cancelled. The record was kept.');
+      toast.success('Document cancelled. The record was kept.');
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['portal-doc', id] }),
         queryClient.invalidateQueries({ queryKey: ['portal-documents'] }),
@@ -96,30 +182,40 @@ export default function DocumentDetailPage({ params }: { params: Promise<{ id: s
     },
   });
 
+  const retryProcessingMutation = useMutation({
+    mutationFn: () => retryDocumentProcessing(id),
+    onSuccess: async (result) => {
+      toast.success(result.message);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['portal-doc', id] }),
+        queryClient.invalidateQueries({ queryKey: ['portal-documents'] }),
+      ]);
+    },
+  });
+
   function openFinalizeConfirmation() {
     finalizeMutation.reset();
-    setSuccess(undefined);
     setFinalizationResult(undefined);
     setConfirmingFinalize(true);
   }
 
   function openCancelConfirmation() {
     cancelMutation.reset();
-    setSuccess(undefined);
     setCancelConfirmationOpen(true);
   }
 
   if (docQ.isLoading) return <div role="status" aria-label="Loading document" className="h-40 animate-pulse rounded-[18px] border border-[#E8F0F8] bg-white" />;
-  if (docQ.isError) {
+  if (docQ.isError && (!docQ.data || !finalizationResult)) {
     const status = readErrorStatus(docQ.error);
-    if (status === 404) return <p className="text-sm text-[#64748b]">Document not found.</p>;
+    if (status === 404) return <p className="text-sm text-[#4B6382]">Document not found.</p>;
     if (status === 401 || status === 403) return <p role="alert" className="text-sm font-bold text-[#B42318]">You do not have access to this document.</p>;
-    return <div role="alert" className="space-y-3"><p className="text-sm font-bold text-[#B42318]">Unable to load this document.</p><button type="button" onClick={() => void docQ.refetch()} className="rounded-full border border-[#0985E7] px-4 py-2 text-sm font-black text-[#0985E7]">Retry</button></div>;
+    return <div role="alert" className="space-y-3"><p className="text-sm font-bold text-[#B42318]">{docQ.error instanceof PortalApiError ? docQ.error.message : 'Unable to load this document.'}</p><button type="button" onClick={() => void docQ.refetch()} className="rounded-full border border-[#0067B3] px-4 py-2 text-sm font-black text-[#0067B3]">Retry</button></div>;
   }
-  if (!docQ.data) return <p role="status" className="text-sm text-[#64748b]">Loading document…</p>;
+  if (!docQ.data) return <p role="status" className="text-sm text-[#4B6382]">Loading document…</p>;
 
   const document = docQ.data;
   const role = getPortalUiRole(profileQ.data?.role);
+  const isDrafting = document.lifecycle === 'PREPARING' || document.lifecycle === 'READY_FOR_SIGNATURE';
   const actions = getDocumentActions(role, document);
 
   function requestRename() {
@@ -135,6 +231,7 @@ export default function DocumentDetailPage({ params }: { params: Promise<{ id: s
     setRenamePending(true);
     try {
       await renameDocument(id, fileName);
+      toast.success('Document renamed.');
       await docQ.refetch();
       setRenameOpen(false);
     } catch (error) {
@@ -145,47 +242,54 @@ export default function DocumentDetailPage({ params }: { params: Promise<{ id: s
   }
 
   return (
-    <div className="flex w-full min-w-0 flex-col gap-5 overflow-x-hidden">
-      <header className="flex flex-col gap-3">
-        <Link href="/portal/documents" className="flex w-fit items-center gap-1.5 text-sm font-bold text-[#0985E7]">
+    <div className="flex min-h-0 w-full min-w-0 flex-1 flex-col gap-3 overflow-hidden">
+      <header className={`mx-auto flex w-full flex-col gap-2 ${isDrafting ? 'max-w-4xl' : 'max-w-7xl'}`}>
+        <Link href="/portal/documents" className="flex w-fit shrink-0 items-center gap-1.5 text-sm font-semibold text-[#0C2B49] hover:text-[#0067B3]">
           <ArrowBackIcon sx={{ fontSize: 16 }} /> Back to documents
         </Link>
-        <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
-          <div>
-            <span className="text-xs font-bold uppercase tracking-[0.5px] text-[#0985E7]">Document review</span>
-            <h1 className="mt-1 text-2xl font-extrabold leading-[30px] text-[#0C2B49]">{document.file_name}</h1>
-            <div className="mt-2 flex flex-wrap items-center gap-2 text-[13px] font-medium text-[#64748b]">
-              <span className="rounded-full bg-[#EAF4FF] px-2.5 py-0.5 text-[11px] font-bold text-[#1689F5]">{getDocumentLifecycleLabel(document.lifecycle)}</span>
-              <span className={`${statusStyle(document.status)} rounded-full px-2.5 py-0.5 text-[11px] font-bold`}>{getDocumentStatusLabel(document.status)}</span>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
+            <h1 title={document.file_name} className="min-w-0 max-w-full break-words text-2xl font-bold leading-8 text-[#0C2B49]">{document.file_name}</h1>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${getDocumentLifecycleBadgeClasses(document.lifecycle)}`}>{getDocumentLifecycleLabel(document.lifecycle)}</span>
+              {document.lifecycle === 'FINALIZED' && <span className={`${getDocumentProcessingBadgeClasses(document.status)} rounded-full px-2.5 py-0.5 text-xs font-bold`}>{getDocumentProcessingStatusLabel(document.lifecycle, document.status)}</span>}
             </div>
           </div>
-          <div className="flex flex-wrap gap-2">
-            {actions.includes('Rename document') && <button type="button" onClick={requestRename} disabled={renamePending} className="rounded-full border border-[#D7E4F2] px-4 py-2.5 text-sm font-extrabold text-[#0C2B49]">Rename document</button>}
-            {actions.includes('Review extracted text') && <Link href={`/portal/documents/${id}/review`} className="rounded-full bg-[#0985E7] px-4 py-2.5 text-sm font-extrabold text-white">Review extracted text</Link>}
-            {document.signed_copy && <a href={document.signed_copy.storage_url} download className="rounded-full bg-[#0985E7] px-4 py-2.5 text-sm font-extrabold text-white">Download current signed PDF</a>}
-            {actions.includes('Finalize') && !finalizationResult && <button type="button" onClick={openFinalizeConfirmation} className="rounded-full bg-[#0985E7] px-4 py-2.5 text-sm font-extrabold text-white">Finalize</button>}
-            {document.permissions.can_cancel && <button type="button" onClick={openCancelConfirmation} className="rounded-full border border-[#B42318] px-4 py-2.5 text-sm font-extrabold text-[#B42318]">Cancel document</button>}
-            {actions.includes('Verify integrity') && <Link href={`/portal/documents/${id}/verify`} className="rounded-full border border-[#E8F0F8] bg-white px-4 py-2.5 text-sm font-extrabold text-[#0C2B49]">Verify integrity</Link>}
+          <div className="flex flex-wrap items-center gap-2">
+            {(actions.includes('Rename document') || document.permissions.can_cancel) && <div ref={documentActionsRef} className="relative">
+              <button type="button" aria-label="More document actions" aria-expanded={documentActionsOpen} aria-controls="document-actions-menu" onClick={() => setDocumentActionsOpen((open) => !open)} className="grid min-h-11 min-w-11 place-items-center rounded-full border border-[#D7E4F2] text-[#0C2B49] hover:bg-[#EAF4FF] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]">
+                <MoreVertIcon aria-hidden="true" sx={{ fontSize: 20 }} />
+              </button>
+              {documentActionsOpen && <div id="document-actions-menu" role="group" aria-label="Document actions" className="absolute right-0 top-full z-50 mt-1 w-48 overflow-hidden rounded-xl border border-[#D7E4F2] bg-white p-1 shadow-lg shadow-[#183B6B]/10">
+                {actions.includes('Rename document') && <button type="button" onClick={() => { setDocumentActionsOpen(false); requestRename(); }} disabled={renamePending} className="block min-h-11 w-full rounded-lg px-3 py-2 text-left text-sm font-bold text-[#0C2B49] hover:bg-[#EEF4FB] disabled:opacity-50">Rename</button>}
+                {document.permissions.can_cancel && <button type="button" onClick={() => { setDocumentActionsOpen(false); openCancelConfirmation(); }} className="block min-h-11 w-full rounded-lg px-3 py-2 text-left text-sm font-bold text-[#B42318] hover:bg-red-50">Cancel document</button>}
+              </div>}
+            </div>}
+            {actions.includes('Review extracted text') && <Link href={`/portal/documents/${id}/review`} aria-label="Review extracted text" className="inline-flex min-h-11 items-center rounded-full bg-[#0067B3] px-3 py-2 text-sm font-extrabold text-white">Review text</Link>}
+            {actions.includes('Finalize') && !finalizationResult && !hasUnknownFinalization && <button type="button" onClick={openFinalizeConfirmation} className="min-h-11 rounded-full bg-[#0673C4] px-3 py-2 text-sm font-extrabold text-white hover:bg-[#005FA3] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]">Finalize</button>}
+            {actions.includes('Retry processing') && <button type="button" onClick={() => retryProcessingMutation.mutate()} disabled={retryProcessingMutation.isPending} className="min-h-11 rounded-full border border-[#0067B3] px-3 py-2 text-sm font-extrabold text-[#0067B3] disabled:opacity-50">{retryProcessingMutation.isPending ? 'Retrying…' : 'Retry processing'}</button>}
+            {actions.includes('Check document') && <Link href={`/portal/documents/${id}/verify`} className="group inline-flex min-h-11 items-center gap-1.5 rounded-full border border-[#0067B3] bg-[#EAF4FF] px-3 py-2 text-sm font-extrabold text-[#0C2B49] transition-colors hover:border-[#0067B3] hover:bg-[#0067B3] hover:text-white active:bg-[#0067B3] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]"><ShieldOutlinedIcon aria-hidden="true" className="text-[#0067B3] transition-colors group-hover:text-white group-focus-visible:text-white" sx={{ fontSize: 18 }} />Verify integrity</Link>}
           </div>
         </div>
+        {retryProcessingMutation.error instanceof Error && <p role="alert" className="text-sm font-bold text-[#B42318]">{retryProcessingMutation.error.message || "Unable to retry document processing."}</p>}
       </header>
 
       <Modal open={renameOpen} onClose={() => { if (!renamePending) setRenameOpen(false); }} title="Rename document">
         <form onSubmit={submitRename}>
           <label htmlFor="document-name" className="grid gap-1.5 text-sm font-bold text-[#0C2B49]">
             Document name
-            <input id="document-name" value={renameName} onChange={(event) => setRenameName(event.target.value)} className="w-full rounded-xl border border-[#D7E4F2] px-3 py-2.5 text-sm font-medium outline-none focus:border-[#0985E7]" />
+            <input id="document-name" value={renameName} onChange={(event) => setRenameName(event.target.value)} className="w-full rounded-xl border border-[#D7E4F2] px-3 py-2.5 text-sm font-medium outline-none focus:border-[#0067B3]" />
           </label>
-          {renameError && <p role="alert" className="mt-3 text-sm font-bold text-red-600">{renameError}</p>}
+          {renameError && <p role="alert" className="mt-3 text-sm font-bold text-red-700">{renameError}</p>}
           <div className="mt-5 flex justify-end gap-2">
             <button type="button" onClick={() => setRenameOpen(false)} disabled={renamePending} className="rounded-full border border-[#D7E4F2] px-5 py-2.5 text-sm font-bold text-[#0C2B49] disabled:opacity-50">Cancel</button>
-            <button type="submit" disabled={!renameName.trim() || renamePending} className="rounded-full bg-[#0985E7] px-5 py-2.5 text-sm font-black text-white disabled:opacity-40">{renamePending ? 'Saving…' : 'Save changes'}</button>
+            <button type="submit" disabled={!renameName.trim() || renamePending} className="rounded-full bg-[#0067B3] px-5 py-2.5 text-sm font-black text-white disabled:opacity-40">{renamePending ? 'Saving…' : 'Save changes'}</button>
           </div>
         </form>
       </Modal>
 
       <Modal open={cancelConfirmationOpen} onClose={() => { if (!cancelMutation.isPending) setCancelConfirmationOpen(false); }} title="Cancel document?">
-        <p className="text-sm leading-6 text-[#64748b]">This will mark the document as cancelled. The document record will be kept.</p>
+        <p className="text-sm leading-6 text-[#4B6382]">This will mark the document as cancelled. The document record will be kept.</p>
         {cancelMutation.error instanceof Error && <p role="alert" className="mt-3 rounded-xl bg-red-50 p-3 text-sm font-bold text-[#B42318]">{cancelMutation.error.message}</p>}
         <div className="mt-5 flex justify-end gap-2">
           <button type="button" onClick={() => setCancelConfirmationOpen(false)} disabled={cancelMutation.isPending} className="rounded-full border border-[#D7E4F2] px-5 py-2.5 text-sm font-bold text-[#0C2B49] disabled:opacity-50">Keep document</button>
@@ -193,19 +297,48 @@ export default function DocumentDetailPage({ params }: { params: Promise<{ id: s
         </div>
       </Modal>
 
+      {hasUnknownFinalization && <div role="status" className="space-y-3 rounded-xl border border-[#F1D29A] bg-[#FFF8E8] px-4 py-3 text-sm text-[#785000]">
+        <p className="font-bold">Finalization outcome unknown. The request may have been accepted. Check status before taking further action.</p>
+        {statusMessage && <p>{statusMessage}</p>}
+        <button type="button" onClick={() => checkFinalizationMutation.mutate()} disabled={checkFinalizationMutation.isPending} className="rounded-full border border-[#0067B3] px-4 py-2 font-bold text-[#0067B3] disabled:opacity-60">{checkFinalizationMutation.isPending ? 'Checking status…' : 'Check status'}</button>
+      </div>}
+      {docQ.isError && finalizationResult && <p role="alert" className="text-sm font-bold text-[#B42318]">{mockMode ? 'Demo finalization completed, but the document could not be refreshed.' : 'Finalization succeeded, but the document could not be refreshed.'}</p>}
+      {finalizationResult && <>
+        {mockMode && <p role="note" className="rounded-xl border border-[#F1D29A] bg-[#FFF8E8] px-4 py-3 text-sm font-bold text-[#785000]">Synthetic demo record. No real PDF digest or blockchain transaction was produced.</p>}
+        <details className="rounded-xl border border-[#E8F0F8] bg-[#F8FBFF] p-4">
+          <summary className="cursor-pointer text-sm font-bold text-[#0C2B49]">Record details (IDs and fingerprints)</summary>
+          <dl className="mt-4 grid gap-4 text-sm sm:grid-cols-2">
+            <div><dt className="font-bold text-[#4B6382]">Document ID{mockMode ? ' (synthetic)' : ''}</dt><dd className="mt-1"><CopyableIdentifier value={finalizationResult.document_id} label="document ID" /></dd></div>
+            <div><dt className="font-bold text-[#4B6382]">Blockchain record ID{mockMode ? ' (synthetic)' : ''}</dt><dd className="mt-1"><CopyableIdentifier value={finalizationResult.onchain_document_id} label="blockchain record ID" /></dd></div>
+            <div><dt className="font-bold text-[#4B6382]">Document fingerprint{mockMode ? ' (synthetic; not a real PDF digest)' : ''}</dt><dd className="mt-1"><CopyableIdentifier value={finalizationResult.data_hash} label="document fingerprint" /></dd></div>
+            <div><dt className="font-bold text-[#4B6382]">Transaction ID{mockMode ? ' (synthetic; no blockchain transaction)' : ''}</dt><dd className="mt-1"><CopyableIdentifier value={finalizationResult.tx_hash} label="transaction ID" /></dd></div>
+          </dl>
+        </details>
+      </>}
+
+      {confirmingFinalize && (
+        <div role="dialog" aria-modal="true" aria-label="Confirm finalization" className="fixed inset-0 z-50 flex items-center justify-center bg-[#0C2B49]/40 p-4">
+          <div className="w-full max-w-md rounded-2xl border border-[#CFE7FC] bg-white p-6 shadow-[0_16px_40px_rgba(12,43,73,0.25)]">
+            <p className="text-lg font-black text-[#0C2B49]">Finalize this document?</p>
+            <p className="mt-2 text-sm leading-6 text-[#4B6382]">{mockMode ? 'Demo mode: this action uses synthetic data. No real PDF digest or blockchain transaction will be produced.' : 'This freezes the signed copy and records its fingerprint on the blockchain. It cannot be undone.'}</p>
+            {finalizeMutation.isPending && <p role="status" className="mt-3 text-sm text-[#4B6382]">{mockMode ? 'Completing demo finalization…' : 'Waiting for blockchain confirmation…'}</p>}
+            {finalizeMutation.error instanceof Error && <p role="alert" className="mt-3 rounded-xl bg-red-50 p-3 text-sm font-bold text-[#B42318]">{finalizeMutation.error.message}</p>}
+            <div className="mt-5 flex flex-wrap justify-end gap-2">
+              <button type="button" onClick={() => setConfirmingFinalize(false)} disabled={finalizeMutation.isPending} className="rounded-full border border-[#D6E3F1] px-4 py-2 text-sm font-bold text-[#0C2B49] disabled:opacity-60">Cancel</button>
+              <button type="button" onClick={() => finalizeMutation.mutate()} disabled={finalizeMutation.isPending} className="rounded-full bg-[#0673C4] px-4 py-2 text-sm font-bold text-white hover:bg-[#005FA3] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3] disabled:opacity-60">{finalizeMutation.isPending ? 'Finalizing…' : 'Confirm finalization'}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <DocumentWorkspace
+        className="min-h-0 flex-1 md:flex"
         document={document}
+        onDocumentUpdated={publishUpdatedDocument}
         role={role}
-        finalizationResult={finalizationResult}
-        confirmingFinalize={confirmingFinalize}
-        isFinalizing={finalizeMutation.isPending}
-        finalizeError={finalizeMutation.error instanceof Error ? finalizeMutation.error.message : null}
-        onCancelFinalize={() => setConfirmingFinalize(false)}
-        onConfirmFinalize={() => finalizeMutation.mutate()}
-        success={success}
-        readinessError={readinessMutation.error instanceof Error ? readinessMutation.error.message : null}
-        readinessSuccess={readinessMutation.isSuccess ? success : undefined}
+        readinessError={readinessMutation.error instanceof Error ? readinessMutation.error : null}
         isChangingReadiness={readinessMutation.isPending}
+        finalizationOutcomeUnknown={hasUnknownFinalization}
         onMarkReady={() => readinessMutation.mutate('ready')}
         onReopen={() => readinessMutation.mutate('reopen')}
       />

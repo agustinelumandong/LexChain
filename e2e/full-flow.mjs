@@ -1,196 +1,148 @@
-import { chromium } from 'playwright';
+import assert from 'node:assert/strict';
+import { access } from 'node:fs/promises';
+import { createServer } from 'node:net';
+import { spawn } from 'node:child_process';
+import { createRequire } from 'node:module';
 
-const BASE = process.env.E2E_BASE_URL ?? 'http://localhost:3000';
-const LAWYER = { email: process.env.E2E_LAWYER_EMAIL, password: process.env.E2E_LAWYER_PASSWORD };
-const PARTICIPANT = { email: process.env.E2E_PARTICIPANT_EMAIL, password: process.env.E2E_PARTICIPANT_PASSWORD };
-const PDF_PATH = process.env.E2E_PDF_PATH ?? new URL('../docs/scanned-docx-for-testing/sample_scanned_deed_of_sale_app_test.pdf', import.meta.url).pathname;
-const DOC_TITLE = `E2E Deed of Sale ${Date.now()}`;
-if (![LAWYER.email, LAWYER.password, PARTICIPANT.email, PARTICIPANT.password].every(Boolean)) {
-  throw new Error('Set E2E_LAWYER_EMAIL, E2E_LAWYER_PASSWORD, E2E_PARTICIPANT_EMAIL and E2E_PARTICIPANT_PASSWORD for a test backend.');
+const required = [
+  'E2E_BACKEND_URL',
+  'E2E_DISPOSABLE_BACKEND_CONFIRM',
+  'E2E_LAWYER_EMAIL',
+  'E2E_LAWYER_PASSWORD',
+  'E2E_PARTICIPANT_EMAIL',
+  'E2E_PARTICIPANT_PASSWORD',
+  'E2E_PDF_PATH',
+];
+const missing = required.filter((name) => !process.env[name]?.trim());
+if (missing.length) {
+  throw new Error(`Missing required E2E settings: ${missing.join(', ')}. No browser or backend request was made.`);
 }
 
-(async () => {
-  const browser = await chromium.launch({ headless: false });
-  const ctxL = await browser.newContext({ viewport: { width: 1440, height: 900 } });
-  const lawyer = await ctxL.newPage();
-  const ctxP = await browser.newContext({ viewport: { width: 1440, height: 900 } });
-  const participant = await ctxP.newPage();
+const backendUrl = new URL(process.env.E2E_BACKEND_URL);
+const confirmationUrl = new URL(process.env.E2E_DISPOSABLE_BACKEND_CONFIRM);
+assert.equal(backendUrl.href, confirmationUrl.href, 'Confirm the exact disposable backend URL before running this mutating journey.');
+assert.ok(backendUrl.protocol === 'https:' || ['localhost', '127.0.0.1', '[::1]'].includes(backendUrl.hostname), 'The disposable backend must use HTTPS or run locally.');
 
-  async function ss(p, name) {
-    await p.screenshot({ path: `/tmp/e2e-${name}.png` }).catch(() => {});
-  }
+await access(process.env.E2E_PDF_PATH);
+const { chromium } = await import('playwright');
 
-  let docId;
-
+const portServer = createServer();
+await new Promise((resolve, reject) => {
+  portServer.once('error', reject);
+  portServer.listen(0, '127.0.0.1', resolve);
+});
+const { port } = portServer.address();
+await new Promise((resolve, reject) => portServer.close((error) => error ? reject(error) : resolve()));
+const baseUrl = new URL(`http://127.0.0.1:${port}`);
+const nextCli = createRequire(import.meta.url).resolve('next/dist/bin/next');
+const server = spawn(process.execPath, [nextCli, 'dev', '--hostname', '127.0.0.1', '--port', String(port)], {
+  cwd: process.cwd(),
+  env: { ...process.env, API_URL: backendUrl.href, NEXT_PUBLIC_API_URL: backendUrl.href, USE_MOCK_API: 'false', NEXT_PUBLIC_USE_MOCK_API: 'false' },
+  stdio: 'ignore',
+  windowsHide: true,
+});
+let serverExit;
+server.once('exit', (code) => { serverExit = code ?? 1; });
+const startupDeadline = Date.now() + 60_000;
+let serverReady = false;
+while (Date.now() < startupDeadline && serverExit === undefined) {
   try {
-    // ============================
-    // 1. LAWYER LOGIN
-    // ============================
-    console.log('1. Lawyer login...');
-    await lawyer.goto(`${BASE}/login`, { waitUntil: 'networkidle' });
-    await lawyer.fill('input[type="email"]', LAWYER.email);
-    await lawyer.fill('input[type="password"]', LAWYER.password);
-    await lawyer.click('button:has-text("Sign in")');
-    await lawyer.waitForURL('**/portal/**', { timeout: 15000 });
-    console.log(`   -> ${lawyer.url()}`);
-
-    // ============================
-    // 2. UPLOAD DOCUMENT
-    // ============================
-    console.log('2. Uploading document...');
-    await lawyer.goto(`${BASE}/portal/upload`, { waitUntil: 'networkidle' });
-    await lawyer.waitForTimeout(3000);
-
-    const body = await lawyer.locator('body').textContent();
-    if (body.includes('Upload unavailable')) throw new Error('Upload not available');
-
-    await lawyer.fill('input[placeholder="e.g. Deed of Sale"]', DOC_TITLE);
-
-    const bookSelect = lawyer.locator('select');
-    await bookSelect.waitFor({ state: 'visible', timeout: 10000 });
-    await lawyer.waitForTimeout(2000);
-
-    const options = await bookSelect.locator('option').all();
-    let selectedVal = null;
-    for (const opt of options) {
-      const val = await opt.getAttribute('value');
-      if (val) { selectedVal = val; break; }
+    const response = await fetch(baseUrl, { signal: AbortSignal.timeout(1_000) });
+    if (response.status < 500) {
+      serverReady = true;
+      break;
     }
-    if (!selectedVal) throw new Error('No books available');
-    await bookSelect.selectOption(selectedVal);
-    console.log('   -> Book selected');
-
-    await lawyer.locator('input[type="file"]').setInputFiles(PDF_PATH);
-    await lawyer.waitForTimeout(1000);
-    await lawyer.click('button:has-text("Confirm and process")');
-    await lawyer.waitForTimeout(8000);
-
-    docId = (await lawyer.locator('dd').first().textContent()).trim();
-    console.log(`   -> Doc ID: ${docId}`);
-
-    // ============================
-    // 3. ADD PARTICIPANT
-    // ============================
-    console.log('3. Adding participant...');
-    await lawyer.goto(`${BASE}/portal/documents/${docId}/participants`, { waitUntil: 'networkidle' });
-    await lawyer.waitForTimeout(3000);
-
-    const emailInput = lawyer.locator('input[type="email"]');
-    if (!(await emailInput.isVisible({ timeout: 3000 }).catch(() => false))) {
-      throw new Error('Participant form not accessible');
-    }
-
-    await emailInput.fill(PARTICIPANT.email);
-    await lawyer.selectOption('select', 'viewer');
-    await lawyer.click('button:has-text("Send invitation")');
-    await lawyer.waitForTimeout(5000);
-
-    const err = await lawyer.locator('[role="alert"]').textContent().catch(() => '');
-    if (err) {
-      console.log(`   -> Error: "${err}"`);
-    } else {
-      console.log('   -> Invitation sent');
-    }
-    await ss(lawyer, '04-participant-added');
-
-    // ============================
-    // 4. PARTICIPANT LOGIN
-    // ============================
-    console.log('4. Participant login...');
-    await participant.goto(`${BASE}/login`, { waitUntil: 'networkidle' });
-    await participant.fill('input[type="email"]', PARTICIPANT.email);
-    await participant.fill('input[type="password"]', PARTICIPANT.password);
-    await participant.click('button:has-text("Sign in")');
-    await participant.waitForURL('**/portal/**', { timeout: 15000 });
-    console.log(`   -> ${participant.url()}`);
-
-    // ============================
-    // 5. PARTICIPANT SHARED DOCUMENTS
-    // ============================
-    console.log('5. Participant shared documents...');
-    await participant.goto(`${BASE}/portal/documents`, { waitUntil: 'networkidle' });
-    await participant.waitForTimeout(4000);
-    await ss(participant, 'p01-shared');
-
-    const pBody = await participant.locator('body').textContent();
-    const found = pBody.includes(docId) || pBody.includes(DOC_TITLE.substring(0, 15));
-    console.log(`   -> Doc visible: ${found}`);
-
-    // ============================
-    // 6. CHECK DOCUMENT STATUS ON BACKEND
-    // ============================
-    console.log('6. Checking backend status...');
-    const cookies = await ctxL.cookies(`${BASE}/`);
-    const portalToken = cookies.find(c => c.name === 'portal_token')?.value;
-    console.log(`   -> Token obtained: ${portalToken ? portalToken.substring(0, 20) + '...' : 'NO'}`);
-
-    if (portalToken) {
-      const apiBase = 'https://temeka-nonrelenting-corey.ngrok-free.dev';
-      const docRes = await fetch(`${apiBase}/documents/${docId}`, {
-        headers: { Authorization: `Bearer ${portalToken}`, 'ngrok-skip-browser-warning': 'true' }
-      });
-      if (docRes.ok) {
-        const doc = await docRes.json();
-        console.log(`   -> Status: ${doc.status}, Lifecycle: ${doc.lifecycle_state || doc.lifecycle}`);
-      } else {
-        console.log(`   -> API status: ${docRes.status}`);
-      }
-
-      // Also check parties endpoint to verify participant was added
-      const partiesRes = await fetch(`${apiBase}/documents/${docId}/parties`, {
-        headers: { Authorization: `Bearer ${portalToken}`, 'ngrok-skip-browser-warning': 'true' }
-      });
-      if (partiesRes.ok) {
-        const parties = await partiesRes.json();
-        console.log(`   -> Parties: ${JSON.stringify(parties)}`);
-      } else {
-        console.log(`   -> Parties endpoint: ${partiesRes.status}`);
-      }
-    }
-
-    // ============================
-    // 7. VERIFY INTEGRITY
-    // ============================
-    console.log('7. Verify integrity...');
-    await lawyer.goto(`${BASE}/portal/documents/${docId}/verify`, { waitUntil: 'networkidle' });
-    await lawyer.waitForTimeout(3000);
-
-    const verifyBtn = lawyer.locator('button:has-text("Verify")');
-    if (await verifyBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
-      await verifyBtn.click();
-      await lawyer.waitForTimeout(8000);
-    }
-
-    await ss(lawyer, '09-verify');
-    const vBody = await lawyer.locator('body').textContent();
-    console.log(`   -> Result: "${vBody.substring(0, 400)}"`);
-
-    // ============================
-    // RESULTS SUMMARY
-    // ============================
-    console.log('\n═══════════════════════════════════');
-    console.log('  E2E TEST RESULTS');
-    console.log('═══════════════════════════════════');
-    console.log(`  Doc ID:     ${docId}`);
-    console.log(`  Title:      ${DOC_TITLE}`);
-    console.log(`  File:       sample_scanned_deed_of_sale_app_test.pdf`);
-    console.log(`  Participant: lodexep679@kingcq.com`);
-    console.log('───────────────────────────────────');
-    console.log('  ✅ Login (lawyer)');
-    console.log('  ✅ Upload document');
-    console.log('  ✅ Add participant to document');
-    console.log('  ✅ Login (participant)');
-    console.log(`  ✅ Participant sees document: ${found}`);
-    console.log('  ✅ Verify integrity (returns doc state)');
-    console.log('  ⏳ Document processing - needs backend');
-    console.log('═══════════════════════════════════\n');
-
-    await new Promise(() => {});
-
-  } catch (error) {
-    console.error('\n=== FAILED ===');
-    console.error(error.message || error);
-    await ss(lawyer, 'error');
-    await new Promise(() => {});
+  } catch {
+    // Next.js is still starting; the bounded deadline keeps this wait finite.
   }
-})();
+  await new Promise((resolve) => setTimeout(resolve, 250));
+}
+if (!serverReady) {
+  server.kill();
+  throw new Error(`Could not start the isolated local Next.js server (exit ${serverExit ?? 'pending'}); no live browser journey was started.`);
+}
+
+const lawyerCredentials = { email: process.env.E2E_LAWYER_EMAIL, password: process.env.E2E_LAWYER_PASSWORD };
+const participantCredentials = { email: process.env.E2E_PARTICIPANT_EMAIL, password: process.env.E2E_PARTICIPANT_PASSWORD };
+const documentTitle = `E2E document ${Date.now()}`;
+let browser;
+const contexts = [];
+let stage = 'browser setup';
+
+async function signIn(page, credentials) {
+  await page.goto(new URL('/login', baseUrl).href, { waitUntil: 'domcontentloaded' });
+  await page.getByLabel(/email/i).fill(credentials.email);
+  await page.getByLabel(/password/i).fill(credentials.password);
+  await page.getByRole('button', { name: 'Sign in', exact: true }).click();
+  await page.waitForURL('**/portal/**', { timeout: 30_000 });
+}
+
+try {
+  browser = await chromium.launch();
+  const lawyerContext = await browser.newContext({ viewport: { width: 1440, height: 900 }, serviceWorkers: 'block' });
+  contexts.push(lawyerContext);
+  const lawyer = await lawyerContext.newPage();
+  lawyer.setDefaultTimeout(15_000);
+  lawyer.setDefaultNavigationTimeout(30_000);
+
+  const participantContext = await browser.newContext({ viewport: { width: 1440, height: 900 }, serviceWorkers: 'block' });
+  contexts.push(participantContext);
+  const participant = await participantContext.newPage();
+  participant.setDefaultTimeout(15_000);
+  participant.setDefaultNavigationTimeout(30_000);
+
+  stage = 'lawyer sign-in';
+  console.log(`Running against explicitly confirmed backend host: ${backendUrl.host}`);
+  await signIn(lawyer, lawyerCredentials);
+
+  stage = 'document upload';
+  await lawyer.goto(new URL('/portal/upload', baseUrl).href, { waitUntil: 'domcontentloaded' });
+  await lawyer.getByRole('heading', { name: 'Upload Document' }).waitFor();
+  await lawyer.getByLabel('Document title').fill(documentTitle);
+  const bookPicker = lawyer.getByRole('button', { name: 'Register book' });
+  await bookPicker.waitFor({ state: 'visible' });
+  await bookPicker.click();
+  const bookOption = lawyer.getByRole('option').filter({ hasText: /· Open$/ }).first();
+  await bookOption.waitFor({ state: 'visible' });
+  await bookOption.click();
+  await lawyer.locator('input[type="file"]').setInputFiles(process.env.E2E_PDF_PATH);
+  await lawyer.getByRole('button', { name: 'Confirm and file', exact: true }).click();
+  await lawyer.waitForURL('**/portal/documents/**', { timeout: 60_000 });
+  const docMatch = new URL(lawyer.url()).pathname.match(/\/portal\/documents\/([^/]+)$/);
+  assert.ok(docMatch, 'Upload did not land on a document page.');
+  const documentId = decodeURIComponent(docMatch[1]);
+
+  stage = 'participant invitation';
+  await lawyer.goto(new URL(`/portal/documents/${encodeURIComponent(documentId)}/participants`, baseUrl).href, { waitUntil: 'domcontentloaded' });
+  const participantEmail = lawyer.getByLabel('Email');
+  await participantEmail.fill(participantCredentials.email);
+  await lawyer.getByRole('button', { name: 'Find account', exact: true }).click();
+  await lawyer.getByRole('status').filter({ hasText: 'Account found:' }).waitFor({ state: 'visible' });
+  await lawyer.getByRole('button', { name: 'Send invitation', exact: true }).click();
+  await participantEmail.waitFor({ state: 'visible' });
+  assert.equal(await participantEmail.inputValue(), '', 'Invitation did not complete successfully.');
+
+  stage = 'participant sign-in';
+  await signIn(participant, participantCredentials);
+
+  stage = 'participant document visibility';
+  await participant.goto(new URL('/portal/documents', baseUrl).href, { waitUntil: 'domcontentloaded' });
+  await participant.getByText(documentTitle, { exact: true }).waitFor({ state: 'visible' });
+
+  stage = 'document verification';
+  await lawyer.goto(new URL(`/portal/documents/${encodeURIComponent(documentId)}`, baseUrl).href, { waitUntil: 'domcontentloaded' });
+  const verificationLink = lawyer.getByRole('link', { name: 'Verify integrity', exact: true });
+  await verificationLink.waitFor({ state: 'visible' });
+  await verificationLink.click();
+  await lawyer.waitForURL(`**/portal/documents/${encodeURIComponent(documentId)}/verify`, { timeout: 30_000 });
+  await lawyer.locator('main').waitFor({ state: 'visible' });
+
+  console.log('Legacy live journey passed: upload, invite, participant visibility, and verification page loaded.');
+} catch (error) {
+  console.error(`Legacy live journey failed during ${stage} (${error?.name ?? 'Error'}). Details omitted to avoid logging account data or backend responses.`);
+  process.exitCode = 1;
+} finally {
+  await Promise.allSettled(contexts.map((context) => context.close()));
+  await browser?.close();
+  if (server.exitCode === null) server.kill();
+}

@@ -8,41 +8,48 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import MenuIcon from "@mui/icons-material/Menu";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
-import { Toaster } from 'sonner';
 import { getPortalLoginRedirect, getPortalRoleLabel, isSupportedPortalUiRole } from "@/features/access";
-import { getPortalNavigation } from "@/features/portal/portal-dashboard";
+import { getFinalizedProcessingDocuments, getPortalNavigation } from "@/features/portal/portal-dashboard";
 import { getPortalNavigationIcon, isPortalRouteActive, usePortalRole } from "@/features/access/components";
 import { PortalBottomNav } from "@/features/portal/components/portal-bottom-nav";
 import { PortalTopBar } from "@/features/portal/components/portal-topbar";
-import { fetchNotifications, fetchUnreadNotificationCount, invalidateNotificationQueries, markAllNotificationsRead, notificationQueryKeys } from "@/features/portal/notifications-api";
+import { RegisterReferenceSearchDialog } from "@/features/documents/components/register-reference-search-dialog";
+import { fetchNotifications, fetchUnreadNotificationCount, invalidateNotificationQueries, markNotificationRead, notificationQueryKeys } from "@/features/portal/notifications-api";
+import { portalRequest } from '@/shared/api/client';
 
-type PortalDocument = { status?: string | null };
+type PortalDocument = { lifecycle: string; status?: string | null };
 
-export default function PortalLayout({ children }: { children: React.ReactNode }) {
+export default function PortalLayout({ children, demoMode }: { children: React.ReactNode; demoMode: boolean }) {
   const pathname = usePathname();
+  const isDocumentWorkspace = pathname === '/portal/documents' || /^\/portal\/documents\/[^/]+$/.test(pathname);
   const queryClient = useQueryClient();
   const [collapsed, setCollapsed] = useState(false);
+  const [registerSearchOpen, setRegisterSearchOpen] = useState(false);
   const uiRole = usePortalRole();
   const { data: documents = [] } = useQuery<PortalDocument[]>({
-    queryKey: ['portal-shell-documents'],
+    queryKey: ['portal-documents'],
     queryFn: async () => {
-      const res = await fetch('/api/portal/proxy?path=%2Fdocuments%2F', { credentials: 'same-origin' });
-      return res.ok ? res.json() : [];
+      const res = await portalRequest('/api/portal/proxy?path=%2Fdocuments%2F');
+      return res.json();
     },
     enabled: uiRole === "lawyer",
+    refetchInterval: 10_000,
+    refetchOnWindowFocus: 'always',
   });
   const unreadCountQuery = useQuery({
     queryKey: notificationQueryKeys.unreadCount,
     queryFn: fetchUnreadNotificationCount,
     enabled: isSupportedPortalUiRole(uiRole),
+    refetchInterval: 15_000,
   });
   const notificationsQuery = useQuery({
     queryKey: notificationQueryKeys.shell,
     queryFn: fetchNotifications,
     enabled: isSupportedPortalUiRole(uiRole),
+    refetchInterval: 15_000,
   });
-  const markAllMutation = useMutation({
-    mutationFn: markAllNotificationsRead,
+  const markNotificationMutation = useMutation({
+    mutationFn: markNotificationRead,
     onSuccess: () => invalidateNotificationQueries(queryClient),
   });
   const roleLabel = getPortalRoleLabel(uiRole);
@@ -50,10 +57,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
     ? getPortalNavigation(uiRole)
     : [];
   const portalHome = getPortalLoginRedirect(uiRole) ?? "/portal/dashboard";
-  const processingCount = documents.filter((document) => {
-    const status = document.status?.trim().toLowerCase();
-    return status === "processing" || status === "pending";
-  }).length;
+  const processingCount = getFinalizedProcessingDocuments(documents).length;
 
   async function handleLogout() {
     try {
@@ -67,14 +71,14 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
 
   if (!isSupportedPortalUiRole(uiRole)) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-[#F5FAFF] p-6 text-[#0C2B49]">
+      <main className="flex min-h-screen items-center justify-center bg-[var(--portal-bg)] p-6 text-[#0C2B49]">
         <section className="w-full max-w-md rounded-2xl border border-[#E4EEF9] bg-white p-6 text-center shadow-sm">
           <h1 className="text-xl font-black">Portal access unavailable</h1>
-          <p className="mt-2 text-sm font-semibold text-[#64748b]">Your account does not have a supported portal role.</p>
+          <p className="mt-2 text-sm font-semibold text-[#5B6F8A]">Your account does not have a supported portal role.</p>
           <button
             type="button"
             onClick={handleLogout}
-            className="mt-5 rounded-full bg-[#0985E7] px-5 py-2.5 text-sm font-black text-white transition hover:bg-[#0770c4]"
+            className="mt-5 rounded-full bg-[#0067B3] px-5 py-2.5 text-sm font-black text-white transition hover:bg-[#005F9E]"
           >
             Sign out
           </button>
@@ -84,8 +88,8 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
   }
 
   return (
-    <main className="min-h-screen bg-[#F5FAFF] text-[#111827]">
-      <div className="flex min-h-screen">
+    <main className={`${isDocumentWorkspace ? 'h-dvh overflow-hidden' : 'min-h-screen'} bg-[var(--portal-bg)] text-[#111827]`}>
+      <div className={`flex ${isDocumentWorkspace ? 'h-dvh min-h-0 overflow-hidden' : 'min-h-screen'}`}>
         <a
           href="#portal-content"
           className="sr-only z-[60] rounded-md bg-[#0C2B49] px-4 py-2 text-sm font-bold text-white focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:outline-none"
@@ -93,12 +97,12 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
           Skip to content
         </a>
         {/* Desktop office navigation */}
-        <aside className={`relative sticky top-0 hidden h-screen shrink-0 flex-col gap-7 border-r border-[#E8F0F8] bg-white pb-[22px] pt-[26px] transition-all duration-300 md:flex ${collapsed ? "w-[72px] px-3" : "w-[260px] px-[22px]"}`}>
+        <aside className={`relative sticky top-0 hidden ${isDocumentWorkspace ? 'h-dvh' : 'h-screen'} shrink-0 flex-col gap-7 border-r border-[#E8F0F8] bg-white pb-[22px] pt-[26px] transition-all duration-300 md:flex ${collapsed ? "w-[72px] px-3" : "w-[260px] px-[22px]"}`}>
           <button
             type="button"
             onClick={() => setCollapsed(!collapsed)}
             aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-            className="absolute -right-3 top-7 z-10 flex h-6 w-6 cursor-pointer items-center justify-center rounded-full border border-[#E8F0F8] bg-white text-[#64748b] shadow-sm transition hover:bg-[#EEF4FB] hover:text-[#0C2B49]"
+            className="absolute -right-3 top-7 z-10 flex h-6 w-6 cursor-pointer items-center justify-center rounded-full border border-[#E8F0F8] bg-white text-[#5B6F8A] shadow-sm transition hover:bg-[#EEF4FB] hover:text-[#0C2B49]"
           >
             {collapsed ? <MenuIcon style={{ fontSize: 14 }} /> : <ChevronLeftIcon style={{ fontSize: 14 }} />}
           </button>
@@ -109,7 +113,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
               <Image src="/lexchain/logo-lexchain.svg" alt="LexChain" width={44} height={44} className="rounded-[14px]" />
               {!collapsed && (
                 <div>
-                  <p className="text-[25px] font-black leading-8">Lex<span className="text-[#0985E7]">Chain</span></p>
+                  <p className="text-[25px] font-black leading-8">Lex<span className="text-[#0067B3]">Chain</span></p>
                 </div>
               )}
             </Link>
@@ -119,7 +123,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
           <nav className="flex flex-1 flex-col gap-4 overflow-y-auto">
             {portalNavigationGroups.map((group) => (
               <section key={group.label} aria-label={group.label}>
-                {!collapsed && <p className="px-3 pb-1 text-[10px] font-black uppercase tracking-[0.12em] text-[#A0AAB8]">{group.label}</p>}
+                {!collapsed && <p className="px-3 pb-1 text-[10px] font-black uppercase tracking-[0.12em] text-[#5B6F8A]">{group.label}</p>}
                 <div className="flex flex-col gap-0.5">
                   {group.items.map((link) => {
                     const isActive = isPortalRouteActive(pathname, link);
@@ -130,7 +134,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
                           "flex min-h-11 items-center gap-3.5 rounded-xl py-2 text-[13px] font-black leading-4",
                           collapsed ? "justify-center px-2" : "pl-[22px] pr-3",
                           isActive
-                            ? "bg-[#0985E7]/15 text-[#0C2B49]"
+                            ? "bg-[#0067B3]/15 text-[#0C2B49]"
                             : "text-[#111827] transition hover:bg-[#F5FAFF]",
                         ].join(" ")}
                         href={link.href}
@@ -139,12 +143,12 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
                         aria-label={link.label}
                         title={collapsed ? link.label : undefined}
                       >
-                        <span className={isActive ? "text-[#0985E7]" : "text-[#64748b]"}>
+                        <span className={isActive ? "text-[#0067B3]" : "text-[#5B6F8A]"}>
                           <Icon fontSize="small" />
                         </span>
                         {!collapsed && <span className="flex-1">{link.label}</span>}
                         {!collapsed && (
-                          <span className={["h-6 w-[5px] rounded-full", isActive ? "bg-[#0985E7]" : "bg-transparent"].join(" ")} />
+                          <span className={["h-6 w-[5px] rounded-full", isActive ? "bg-[#0067B3]" : "bg-transparent"].join(" ")} />
                         )}
                       </Link>
                     );
@@ -156,31 +160,39 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
         </aside>
 
         {/* Main content */}
-        <section id="portal-content" tabIndex={-1} className="flex min-w-0 flex-1 flex-col overflow-x-clip px-6 pb-24 pt-0 md:pb-6">
+        <section id="portal-content" tabIndex={-1} className={`flex min-w-0 flex-1 flex-col overflow-x-clip px-6 pb-32 pt-0 md:pb-6 ${isDocumentWorkspace ? 'h-dvh min-h-0 overflow-y-hidden' : ''}`}>
           <PortalTopBar
             initials="?"
             roleLabel={roleLabel}
             role={uiRole}
             processingCount={processingCount}
+            registerSearchOpen={registerSearchOpen}
+            onOpenRegisterSearch={() => setRegisterSearchOpen(true)}
             unreadCount={unreadCountQuery.data}
             unreadCountLoading={unreadCountQuery.isLoading}
             unreadCountError={unreadCountQuery.isError}
             notifications={notificationsQuery.data?.notifications}
             notificationsLoading={notificationsQuery.isLoading}
             notificationsError={notificationsQuery.isError ? notificationsQuery.error.message : undefined}
-            markAllError={markAllMutation.isError ? markAllMutation.error.message : undefined}
-            markAllPending={markAllMutation.isPending}
+            markNotificationError={markNotificationMutation.isError ? markNotificationMutation.error.message : undefined}
+            markNotificationPending={markNotificationMutation.isPending}
             onRetryNotifications={() => { void Promise.all([notificationsQuery.refetch(), unreadCountQuery.refetch()]); }}
-            onMarkAllRead={() => markAllMutation.mutate()}
+            onMarkNotificationRead={(id) => markNotificationMutation.mutate(id)}
             onSignOut={handleLogout}
           />
+          <RegisterReferenceSearchDialog open={registerSearchOpen} onClose={() => setRegisterSearchOpen(false)} />
+          {demoMode && (
+            <p role="status" className="mb-4 flex flex-wrap items-center gap-2 rounded-xl border border-[#D9E7F5] bg-white px-4 py-2.5 text-xs font-medium text-[#526579]">
+              <span className="rounded-full bg-[#EAF4FF] px-2 py-1 text-[10px] font-black uppercase tracking-wide text-[#0A67B1]">Prototype</span>
+              Document processing and blockchain results are simulated; no live transaction was sent.
+            </p>
+          )}
           {children}
         </section>
       </div>
       {isSupportedPortalUiRole(uiRole) ? (
         <PortalBottomNav pathname={pathname} role={uiRole} />
       ) : null}
-      <Toaster position="top-center" richColors />
     </main>
   );
 }

@@ -42,6 +42,28 @@ it('does not proxy audit logs when the authenticated profile is not an issuer', 
   });
 });
 
+it('preserves an upstream profile authentication failure before checking the issuer role', async () => {
+  const fetchMock = vi.fn().mockResolvedValue(
+    new Response(JSON.stringify({ message: 'Session expired' }), {
+      status: 401,
+      headers: { 'content-type': 'application/json' },
+    }),
+  );
+  vi.stubGlobal('fetch', fetchMock);
+
+  const response = await GET(
+    new NextRequest('http://localhost/api/portal/documents/document-123/audit-logs', {
+      headers: { cookie: 'portal_token=portal-token' },
+    }),
+    { params: Promise.resolve({ id: 'document-123' }) },
+  );
+
+  expect(response.status).toBe(401);
+  await expect(response.json()).resolves.toEqual({ message: 'Session expired' });
+  expect(fetchMock).toHaveBeenCalledTimes(1);
+  expect(fetchMock).toHaveBeenCalledWith('/users/', expect.any(Object));
+});
+
 it('proxies audit logs after the authenticated profile confirms a Document Issuer issuer', async () => {
   const fetchMock = vi.fn()
     .mockResolvedValueOnce(new Response(JSON.stringify({ role: 'document_issuer' }), { status: 200 }))

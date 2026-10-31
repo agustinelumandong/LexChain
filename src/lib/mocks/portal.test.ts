@@ -4,6 +4,29 @@ import { isMockPortalToken, mockPortalGet, mockPortalMutate } from '@/lib/mocks/
 afterEach(() => vi.restoreAllMocks());
 
 describe('portal mock extraction contract', () => {
+  it('uses contract-shaped metadata for notification fixtures and uploads', async () => {
+    const initialNotifications = await mockPortalGet('/notifications/', 'mock-token:mock-document-issuer').json() as { notifications: Array<Record<string, unknown>> };
+    expect(initialNotifications.notifications).toEqual(expect.arrayContaining([
+      expect.objectContaining({ type: 'document_recorded', event_metadata: { document_id: 'mock-document-1' } }),
+      expect.objectContaining({ type: 'document_processed', event_metadata: { document_id: 'mock-document-2' } }),
+    ]));
+
+    const form = new FormData();
+    form.append('file', new File(['PDF'], 'uploaded.pdf', { type: 'application/pdf' }));
+    await mockPortalMutate(
+      'POST',
+      '/documents/upload?book_id=mock-book-1&file_name=Uploaded%20document',
+      new Request('https://mock.lexchain.local/api/portal/proxy-post', { method: 'POST', body: form }),
+      'mock-token:mock-document-issuer',
+    );
+
+    const uploadedNotifications = await mockPortalGet('/notifications/', 'mock-token:mock-document-issuer').json() as { notifications: Array<Record<string, unknown>> };
+    expect(uploadedNotifications.notifications[0]).toMatchObject({
+      type: 'document_processed',
+      event_metadata: { document_id: expect.stringMatching(/^mock-document-/) },
+    });
+  });
+
   it('includes issuer permissions in the shared document detail response', async () => {
     const response = mockPortalGet('/documents/mock-document-4', 'mock-token:mock-document-issuer');
 
@@ -23,7 +46,7 @@ describe('portal mock extraction contract', () => {
     await expect(response.json()).resolves.toMatchObject({
       document_id: 'mock-document-2',
       file_name: 'Certificate of Employment.pdf',
-      storage_url: '/mock-documents/certificate-of-employment.pdf',
+      signed_copy_id: 'mock-signed-copy-2',
       blocks: expect.arrayContaining([
         expect.objectContaining({
           index: 0,
@@ -33,6 +56,18 @@ describe('portal mock extraction contract', () => {
         }),
         expect.objectContaining({ index: 2, editable: false, type: 'image' }),
       ]),
+    });
+  });
+
+  it('returns a short-lived mock file link for an accessible document', async () => {
+    const response = mockPortalGet('/documents/mock-document-2/file', 'mock-token:mock-document-issuer');
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      document_id: 'mock-document-2',
+      copy_id: 'mock-signed-copy-2',
+      url: '/mock-documents/certificate-of-employment.pdf',
+      expires_in: 300,
     });
   });
 
@@ -53,23 +88,21 @@ describe('portal mock extraction contract', () => {
 });
 
 describe('portal mock mutations', () => {
-  it('requires extraction approval before finalizing once with its snapshot audit trail', async () => {
-    const premature = await mockPortalMutate(
-      'POST',
-      '/documents/mock-document-2/finalize',
-      new Request('https://mock.lexchain.local/api/portal/proxy-post', { method: 'POST' }),
-      'mock-token:mock-document-issuer',
-    );
-    expect(premature.status).toBe(400);
-
-    const approval = await mockPortalMutate(
-      'POST',
-      '/documents/mock-document-2/extraction/approve',
-      new Request('https://mock.lexchain.local/api/portal/proxy-post', { method: 'POST' }),
-      'mock-token:mock-document-issuer',
-    );
-    const approved = await approval.json() as { content_hash: string };
-    expect(approval.status).toBe(200);
+  it('finalizes the signed copy before extraction approval and returns the same synthetic record on repeat', async () => {
+    const before = await mockPortalGet('/documents/mock-document-2', 'mock-token:mock-document-issuer').json() as {
+      lifecycle: string;
+      status: string | null;
+      document_hash: string | null;
+      signed_copy: { sha256: string; size_bytes: number; is_current: boolean };
+      permissions: { can_finalize: boolean };
+    };
+    expect(before).toMatchObject({
+      lifecycle: 'signed',
+      status: null,
+      document_hash: null,
+      signed_copy: { sha256: expect.stringMatching(/^mock-signed-pdf:/), is_current: true },
+      permissions: { can_finalize: true },
+    });
 
     const first = await mockPortalMutate(
       'POST',
@@ -79,20 +112,22 @@ describe('portal mock mutations', () => {
     );
 
     expect(first.status).toBe(200);
-    await expect(first.json()).resolves.toEqual({
+    const record = await first.json() as { data_hash: string };
+    expect(record).toEqual({
       document_id: 'mock-document-2',
       tx_hash: expect.any(String),
       onchain_document_id: 'chain-mock-document-2',
-      data_hash: approved.content_hash,
+      data_hash: before.signed_copy.sha256,
     });
 
     await expect(mockPortalGet('/documents/mock-document-2', 'mock-token:mock-document-issuer').json()).resolves.toMatchObject({
       lifecycle: 'finalized',
       on_chain: true,
-      document_hash: expect.stringMatching(/^[a-f0-9]{64}$/),
+      document_hash: before.signed_copy.sha256,
+      signed_copy: before.signed_copy,
       finalized_by: 'mock-document-issuer',
       anchor_status: 'confirmed',
-      snapshots: [expect.objectContaining({ document_id: 'mock-document-2' })],
+      snapshots: [expect.objectContaining({ document_id: 'mock-document-2', text_hash: before.signed_copy.sha256 })],
     });
 
     const snapshots = mockPortalGet('/documents/mock-document-2/snapshots', 'mock-token:mock-document-issuer');
@@ -100,9 +135,11 @@ describe('portal mock mutations', () => {
     await expect(mockPortalGet('/documents/mock-document-2/verify', 'mock-token:mock-document-issuer').json()).resolves.toMatchObject({
       document_id: 'mock-document-2',
       is_authentic: true,
+      tamper_report_status: 'NOT_APPLICABLE',
+      tamper_report: null,
     });
     const repository = await mockPortalGet('/documents/', 'mock-token:mock-document-issuer').json() as Array<{ document_id: string; on_chain: boolean }>;
-    expect(repository.filter((document) => document.on_chain)).toHaveLength(3);
+    expect(repository.filter((document) => document.on_chain)).toHaveLength(5);
     expect(repository.find((document) => document.document_id === 'mock-document-2')).toMatchObject({ on_chain: true });
 
     const second = await mockPortalMutate(
@@ -112,9 +149,11 @@ describe('portal mock mutations', () => {
       'mock-token:mock-document-issuer',
     );
     expect(second.status).toBe(200);
-    await expect(second.json()).resolves.toMatchObject({
+    await expect(second.json()).resolves.toEqual({
       document_id: 'mock-document-2',
+      tx_hash: expect.any(String),
       onchain_document_id: 'chain-mock-document-2',
+      data_hash: record.data_hash,
     });
 
     const audits = await mockPortalGet('/documents/mock-document-2/audit-logs', 'mock-token:mock-document-issuer').json();
@@ -123,7 +162,11 @@ describe('portal mock mutations', () => {
 
   it('restores a mismatched finalized document from its retained snapshot with a reason', async () => {
     const integrity = mockPortalGet('/documents/mock-document-3/verify', 'mock-token:mock-document-issuer');
-    await expect(integrity.json()).resolves.toMatchObject({ is_authentic: false });
+    await expect(integrity.json()).resolves.toMatchObject({
+      is_authentic: false,
+      tamper_report_status: 'UNAVAILABLE',
+      tamper_report: null,
+    });
     const sourceSnapshots = await mockPortalGet('/documents/mock-document-3/snapshots', 'mock-token:mock-document-issuer').json();
     const blankReason = await mockPortalMutate(
       'POST',
@@ -157,6 +200,47 @@ describe('portal mock mutations', () => {
     }));
   });
 
+  it('returns a mock blockchain tamper report with the changed deed price block', async () => {
+    const documents = await mockPortalGet('/documents', 'mock-token:mock-document-issuer').json() as Array<Record<string, unknown>>;
+    expect(documents).toContainEqual(expect.objectContaining({
+      document_id: 'mock-document-5',
+      file_name: 'Tampered Deed of Sale.pdf',
+      on_chain: true,
+      integrity_state: 'mismatch',
+    }));
+
+    const verification = mockPortalGet('/documents/mock-document-5/verify', 'mock-token:mock-document-issuer');
+    expect(verification.status).toBe(200);
+    await expect(verification.json()).resolves.toMatchObject({
+      document_id: 'mock-document-5',
+      file_name: 'Tampered Deed of Sale.pdf',
+      status: 'TAMPERED',
+      is_authentic: false,
+      baseline_trusted: true,
+      tamper_report_status: 'AVAILABLE',
+      tamper_report: {
+        localized: true,
+        total_changes: 1,
+        critical_changes: 1,
+        replaced: 1,
+        inserted: 0,
+        deleted: 0,
+        similarity: 0.72,
+        truncated: false,
+        segments: [expect.objectContaining({
+          type: 'replace',
+          severity: 'critical',
+          reason: 'The sale price increased substantially.',
+          original_text: 'Price: PHP 2,750,000.00',
+          current_text: 'Price: PHP 10,000,000.00',
+          location: 'current',
+          bbox: [100, 520, 700, 565],
+          page_idx: 0,
+        })],
+      },
+    });
+  });
+
   it('rejects an issuer restore request when the integrity state is not a mismatch', async () => {
     const response = await mockPortalMutate(
       'POST',
@@ -188,7 +272,7 @@ describe('portal mock mutations', () => {
     );
 
     expect(response.status).toBe(201);
-    await expect(response.json()).resolves.toMatchObject({ status: 'ready_for_review' });
+    await expect(response.json()).resolves.toMatchObject({ status: 'READY_FOR_REVIEW' });
   });
 
   it('rejects an upload that omits the required file-name metadata', async () => {
@@ -247,6 +331,7 @@ describe('portal mock mutations', () => {
     const { document_id } = await upload.json() as { document_id: string };
     await expect(mockPortalGet(`/documents/${document_id}`, 'mock-token:mock-document-issuer').json()).resolves.toMatchObject({
       file_name: 'Issuer document title',
+      summary: 'Document uploaded and ready for review.',
     });
   });
 
@@ -333,6 +418,34 @@ describe('portal mock document isolation', () => {
 });
 
 describe('portal mock books', () => {
+  it('lists the book’s recorded documents in register order with pagination and lawyer access', async () => {
+    vi.resetModules();
+    const freshMock = await import('@/lib/mocks/portal');
+    const issuerToken = 'mock-token:mock-document-issuer';
+    const response = freshMock.mockPortalGet('/books/mock-book-1/entries?limit=50&offset=0', issuerToken);
+
+    expect(response.status).toBe(200);
+    const result = await response.json() as {
+      book: { id: string; entry_count: number };
+      entries: Array<{ id: string; file_name: string; doc_no: number; page_no: number; lifecycle: string; status: string | null }>;
+    };
+    expect(result.book).toMatchObject({ id: 'mock-book-1', entry_count: 2 });
+    expect(result.entries.map(({ id, doc_no, page_no }) => [id, doc_no, page_no])).toEqual([
+      ['mock-document-1', 1, 1],
+      ['mock-document-2', 2, 2],
+    ]);
+    expect(result.entries[0]).toMatchObject({ file_name: 'Lease Agreement.pdf', lifecycle: 'FINALIZED', status: 'ANCHORED' });
+    expect(result.entries[1].status).toBeNull();
+
+    await expect(freshMock.mockPortalGet('/books/mock-book-1/entries?limit=1&offset=1', issuerToken).json()).resolves.toMatchObject({
+      entries: [{ id: 'mock-document-2', doc_no: 2, page_no: 2 }],
+    });
+    expect(freshMock.mockPortalGet('/books/mock-book-1/entries', 'mock-token:mock-document-participant').status).toBe(403);
+    expect(freshMock.mockPortalGet('/books/missing/entries', issuerToken).status).toBe(404);
+    expect(freshMock.mockPortalGet('/books/mock-book-1/entries?limit=0', issuerToken).status).toBe(422);
+    expect(freshMock.mockPortalGet('/books/mock-book-1/entries?offset=-1', issuerToken).status).toBe(422);
+  });
+
   it('lists the latest PDF version first when an issuer renames and updates within the same millisecond', async () => {
     vi.spyOn(Date.prototype, 'toISOString').mockReturnValue('2026-09-14T00:00:00.000Z');
     const uploadForm = new FormData();
@@ -371,11 +484,13 @@ describe('portal mock books', () => {
   });
 
   it('lists active issuer books and creates a book that can be used for upload', async () => {
-    const initial = mockPortalGet('/books/?limit=50&offset=0', 'mock-token:mock-document-issuer');
+    vi.resetModules();
+    const freshMock = await import('@/lib/mocks/portal');
+    const initial = freshMock.mockPortalGet('/books/?limit=50&offset=0', 'mock-token:mock-document-issuer');
     expect(initial.status).toBe(200);
     await expect(initial.json()).resolves.toContainEqual(expect.objectContaining({ id: 'mock-book-1', is_full: false }));
 
-    const created = await mockPortalMutate(
+    const created = await freshMock.mockPortalMutate(
       'POST',
       '/books/',
       new Request('https://mock.lexchain.local/api/portal/proxy-post', {
@@ -392,13 +507,18 @@ describe('portal mock books', () => {
 
     const form = new FormData();
     form.append('file', new File(['PDF'], 'registered-book.pdf', { type: 'application/pdf' }));
-    const upload = await mockPortalMutate(
+    const upload = await freshMock.mockPortalMutate(
       'POST',
       `/documents/upload?book_id=${book.id}&file_name=Registered%20book`,
       new Request('https://mock.lexchain.local/api/portal/proxy-post', { method: 'POST', body: form }),
       'mock-token:mock-document-issuer',
     );
     expect(upload.status).toBe(201);
+
+    await expect(freshMock.mockPortalGet(`/books/${book.id}/entries?limit=50&offset=0`, 'mock-token:mock-document-issuer').json()).resolves.toMatchObject({
+      book: { entry_count: 1 },
+      entries: [],
+    });
   });
 
   it('denies participant book access and book registration', async () => {
@@ -616,7 +736,13 @@ describe('portal mock search and document questions', () => {
       'mock-token:mock-document-issuer',
     );
     await expect(issuerSearch.json()).resolves.toMatchObject({
-      results: [expect.objectContaining({ document_id: 'mock-document-3' })],
+      results: [expect.objectContaining({
+        document_id: 'mock-document-3',
+        chunk_index: 0,
+        file_name: 'Restoration Review.pdf',
+        created_at: '2026-07-15T10:00:00.000Z',
+        register_reference: null,
+      })],
     });
     expect((await scopedMock.mockPortalMutate(
       'POST',
@@ -654,7 +780,19 @@ describe('portal mock search and document questions', () => {
       'mock-token:mock-document-participant',
     );
     await expect(sharedSearch.json()).resolves.toMatchObject({
-      results: [expect.objectContaining({ document_id: 'mock-document-1' })],
+      results: [expect.objectContaining({
+        document_id: 'mock-document-1',
+        chunk_index: 0,
+        file_name: 'Lease Agreement.pdf',
+        created_at: '2026-07-10T09:00:00.000Z',
+        register_reference: {
+          doc_no: 1,
+          page_no: 1,
+          book_number: 1,
+          series_year: 2026,
+          label: 'Doc. No. 1, Page No. 1, Book No. 1, Series of 2026',
+        },
+      })],
     });
     expect((await scopedMock.mockPortalMutate(
       'POST',
@@ -708,22 +846,17 @@ describe('portal mock extraction review', () => {
     await expect(review.json()).resolves.toMatchObject({
       document_id: 'mock-document-2',
       file_name: 'Certificate of Employment.pdf',
-      storage_url: '/mock-documents/certificate-of-employment.pdf',
+      signed_copy_id: 'mock-signed-copy-2',
       blocks: expect.arrayContaining([expect.objectContaining({ index: 0, edited: false, original_text: expect.any(String) })]),
       flags: expect.any(Array),
       is_reviewed: false,
     });
     await expect(extractionMock.mockPortalGet('/documents/mock-document-2', issuerToken).json()).resolves.toMatchObject({
-      status: 'ready_for_review',
+      lifecycle: 'signed',
+      status: null,
       on_chain: false,
-      lifecycle: 'draft',
+      permissions: { can_finalize: true },
     });
-    expect((await extractionMock.mockPortalMutate(
-      'POST',
-      '/documents/mock-document-2/finalize',
-      request('POST'),
-      issuerToken,
-    )).status).toBe(400);
 
     const denied = await extractionMock.mockPortalMutate(
       'POST',
@@ -734,7 +867,7 @@ describe('portal mock extraction review', () => {
     expect(denied.status).toBe(403);
   });
 
-  it('moves an upload from review-ready extraction through approval and completion before finalization', async () => {
+  it('keeps legacy uploaded drafts unfinalizable after extraction approval', async () => {
     const extractionMock = await freshMock();
     const form = new FormData();
     form.append('file', new File(['PDF'], 'new-document.pdf', { type: 'application/pdf' }));
@@ -747,7 +880,7 @@ describe('portal mock extraction review', () => {
     const accepted = await upload.json() as { document_id: string; status: string };
     const path = `/documents/${accepted.document_id}`;
 
-    expect(accepted.status).toBe('ready_for_review');
+    expect(accepted.status).toBe('READY_FOR_REVIEW');
     await expect(extractionMock.mockPortalGet(`${path}/extraction`, issuerToken).json()).resolves.toMatchObject({
       document_id: accepted.document_id,
       status: 'AWAITING_REVIEW',
@@ -760,28 +893,18 @@ describe('portal mock extraction review', () => {
     const approved = await approval.json() as { content_hash: string };
     expect(approval.status).toBe(200);
     await expect(extractionMock.mockPortalGet(path, issuerToken).json()).resolves.toMatchObject({
-      status: 'completed',
+      status: 'ready_for_review',
       lifecycle: 'draft',
       on_chain: false,
       snapshots: [],
       integrity_state: 'not-recorded',
     });
 
-    const finalized = await extractionMock.mockPortalMutate('POST', `${path}/finalize`, request('POST'), issuerToken);
-    expect(finalized.status).toBe(200);
-    await expect(finalized.json()).resolves.toEqual({
-      document_id: accepted.document_id,
-      tx_hash: expect.any(String),
-      onchain_document_id: `chain-${accepted.document_id}`,
-      data_hash: approved.content_hash,
-    });
+    expect(approved.content_hash).toMatch(/^[a-f0-9]{64}$/);
     await expect(extractionMock.mockPortalGet(path, issuerToken).json()).resolves.toMatchObject({
-      lifecycle: 'finalized',
-      on_chain: true,
-      document_hash: approved.content_hash,
-      snapshots: [expect.objectContaining({ text_hash: approved.content_hash })],
-      integrity_state: 'match',
-      audit_log: expect.arrayContaining([expect.objectContaining({ action: 'document_finalized' })]),
+      lifecycle: 'draft',
+      on_chain: false,
+      document_hash: null,
     });
   });
 
@@ -899,5 +1022,122 @@ describe('portal mock extraction review', () => {
       blocks: expect.arrayContaining([expect.objectContaining({ index: 0, text: 'Approved extraction text.', edited: true })]),
       flags: expect.not.arrayContaining([expect.objectContaining({ kind: 'llm_missing_space' })]),
     });
+  });
+
+  it('keeps signed-copy metadata and its finalization fingerprint unchanged when extraction is reviewed', async () => {
+    const extractionMock = await freshMock();
+    const path = '/documents/mock-document-2';
+    const request = (method: 'POST' | 'PATCH', body?: unknown) => new Request('https://mock.lexchain.local/api/portal/proxy-post', {
+      method,
+      headers: body === undefined ? undefined : { 'content-type': 'application/json' },
+      body: body === undefined ? undefined : JSON.stringify(body),
+    });
+    const initial = await extractionMock.mockPortalGet(path, issuerToken).json() as { signed_copy: unknown };
+    const finalized = await extractionMock.mockPortalMutate('POST', `${path}/finalize`, request('POST'), issuerToken);
+    const record = await finalized.json() as { data_hash: string };
+    const afterFinalize = await extractionMock.mockPortalGet(path, issuerToken).json() as {
+      document_hash: string;
+      signed_copy: unknown;
+      snapshots: Array<{ text_hash: string }>;
+    };
+
+    expect(afterFinalize).toMatchObject({ document_hash: record.data_hash, snapshots: [{ text_hash: record.data_hash }] });
+    expect(afterFinalize.signed_copy).toEqual(initial.signed_copy);
+
+    expect((await extractionMock.mockPortalMutate('PATCH', `${path}/extraction`, request('PATCH', {
+      edits: [{ index: 0, text: 'Jane Doe is employed by LexChain under agreement 8792.' }],
+    }), issuerToken)).status).toBe(200);
+    expect((await extractionMock.mockPortalMutate('POST', `${path}/extraction/analyze`, request('POST'), issuerToken)).status).toBe(200);
+    const approval = await extractionMock.mockPortalMutate('POST', `${path}/extraction/approve`, request('POST'), issuerToken);
+    const approved = await approval.json() as { content_hash: string };
+
+    expect(approved.content_hash).not.toBe(record.data_hash);
+    await expect(extractionMock.mockPortalGet(path, issuerToken).json()).resolves.toMatchObject({
+      document_hash: record.data_hash,
+      signed_copy: initial.signed_copy,
+      snapshots: [{ text_hash: record.data_hash }],
+    });
+    await expect((await extractionMock.mockPortalMutate('POST', `${path}/finalize`, request('POST'), issuerToken)).json()).resolves.toMatchObject({ data_hash: record.data_hash });
+  });
+
+  it('makes only approved extraction text searchable and available to Ask', async () => {
+    const extractionMock = await freshMock();
+    const path = '/documents/mock-document-2';
+    const query = (value: string) => new Request('https://mock.lexchain.local/api/portal/proxy-post', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ query: value }),
+    });
+    const ask = (question: string) => new Request('https://mock.lexchain.local/api/portal/proxy-post', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ question }),
+    });
+    const uniqueText = 'agreement 8792';
+
+    await expect((await extractionMock.mockPortalMutate('POST', '/search', query(uniqueText), issuerToken)).json()).resolves.toMatchObject({ results: [] });
+    const unreviewedAnswer = await extractionMock.mockPortalMutate('POST', `${path}/ask`, ask(`Find ${uniqueText}`), issuerToken);
+    await expect(unreviewedAnswer.json()).resolves.not.toMatchObject({ answer: expect.stringContaining(uniqueText) });
+
+    await extractionMock.mockPortalMutate('POST', `${path}/finalize`, request('POST'), issuerToken);
+    await extractionMock.mockPortalMutate('PATCH', `${path}/extraction`, request('PATCH', {
+      edits: [{ index: 0, text: 'Jane Doe is employed by LexChain under agreement 8792.' }],
+    }), issuerToken);
+    await extractionMock.mockPortalMutate('POST', `${path}/extraction/approve`, request('POST'), issuerToken);
+
+    await expect((await extractionMock.mockPortalMutate('POST', '/search', query(uniqueText), issuerToken)).json()).resolves.toMatchObject({
+      results: [expect.objectContaining({ document_id: 'mock-document-2', text: expect.stringContaining(uniqueText) })],
+    });
+    await expect((await extractionMock.mockPortalMutate('POST', `${path}/ask`, ask(`Find ${uniqueText}`), issuerToken)).json()).resolves.toMatchObject({
+      answer: expect.stringContaining(uniqueText),
+    });
+    await expect((await extractionMock.mockPortalMutate('POST', '/search', query(uniqueText), participantToken)).json()).resolves.toMatchObject({ results: [] });
+    const inaccessibleAsk = await extractionMock.mockPortalMutate('POST', `${path}/ask`, ask(`Find ${uniqueText}`), participantToken);
+    expect(inaccessibleAsk.status).toBe(404);
+  });
+});
+
+describe('portal mock processing retry', () => {
+  it('retries a failed record without changing its existing on-chain anchor', async () => {
+    vi.resetModules();
+    const mock = await import('@/lib/mocks/portal');
+    const request = new Request('https://mock.lexchain.local/api/portal/proxy-post', { method: 'POST' });
+    const before = mock.mockPortalGet('/documents/mock-document-retry', 'mock-token:mock-document-issuer');
+    await expect(before.json()).resolves.toMatchObject({
+      status: 'FAILED',
+      on_chain: true,
+      permissions: { can_retry_processing: true },
+    });
+
+    const retried = await mock.mockPortalMutate(
+      'POST',
+      '/documents/mock-document-retry/retry-processing',
+      request,
+      'mock-token:mock-document-issuer',
+    );
+
+    expect(retried.status).toBe(202);
+    await expect(retried.json()).resolves.toMatchObject({
+      document_id: 'mock-document-retry',
+      status: 'QUEUED',
+      job: 'extract',
+    });
+    await expect(mock.mockPortalGet('/documents/mock-document-retry', 'mock-token:mock-document-issuer').json()).resolves.toMatchObject({
+      status: 'queued',
+      on_chain: true,
+      permissions: { can_retry_processing: false },
+    });
+    expect((await mock.mockPortalMutate(
+      'POST',
+      '/documents/mock-document-retry/retry-processing',
+      request,
+      'mock-token:mock-document-issuer',
+    )).status).toBe(409);
+    expect((await mock.mockPortalMutate(
+      'POST',
+      '/documents/mock-document-retry/retry-processing',
+      request,
+      'mock-token:mock-document-participant',
+    )).status).toBe(403);
   });
 });

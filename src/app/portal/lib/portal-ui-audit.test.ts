@@ -21,7 +21,6 @@ afterEach(() => {
   cleanup();
 });
 
-const appDirectory = path.resolve(process.cwd(), "src", "app");
 const featuresDirectory = path.resolve(process.cwd(), "src", "features");
 
 async function sourceFiles(directory: string): Promise<string[]> {
@@ -37,7 +36,7 @@ async function sourceFiles(directory: string): Promise<string[]> {
 
 describe("portal UI source audit", () => {
   it("keeps rendered admin product copy neutral", async () => {
-    const adminSources = await Promise.all((await sourceFiles(path.join(appDirectory, "admin"))).map((file) => readFile(file, "utf8")));
+    const adminSources = await Promise.all((await sourceFiles(path.join(featuresDirectory, "admin"))).filter((file) => !file.includes(".test.")).map((file) => readFile(file, "utf8")));
 
     expect(adminSources.join("\n")).not.toMatch(/super admin|developer dashboard|platform administration/i);
   });
@@ -67,18 +66,22 @@ describe("portal UI source audit", () => {
     expect(screen.getByRole('link', { name: /help and support/i }).getAttribute('href')).toBe('mailto:support@lexchain.app');
   });
 
-  it('uses Lawyer terminology in participant request guidance', () => {
+  it('does not advertise unsupported e-copy request routes from the profile page', () => {
     profile.role = 'document_participant';
     render(createElement(ProfilePage));
 
-    expect(screen.getByText('Track requests sent to your Lawyer')).toBeTruthy();
+    expect(screen.queryByRole('link', { name: 'My E-copy Requests' })).toBeNull();
+    expect(screen.queryByRole('link', { name: 'Document Requests' })).toBeNull();
   });
 
-  it('offers safe document-assistant guidance', () => {
-    render(createElement(PortalChatbot));
+  it('opens the document-assistant pop-up with guidance and a full-page option', () => {
+    render(createElement(PortalChatbot, { documentId: 'doc-101' }));
     fireEvent.click(screen.getByRole('button', { name: 'Open document assistant' }));
 
-    expect(screen.getByText('Suggested questions')).toBeTruthy();
-    expect(screen.getByText('AI-generated assistance. Review the original PDF before relying on an answer.')).toBeTruthy();
+    expect(screen.getByRole('dialog', { name: 'Ask about this document' })).toBeTruthy();
+    expect(screen.getByText(/AI-generated help/i)).toBeTruthy();
+    expect(screen.getByRole('textbox', { name: 'Ask a question about this document' })).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'Open full-page assistant' }).getAttribute('href'))
+      .toBe('/portal/documents/doc-101/ask');
   });
 });

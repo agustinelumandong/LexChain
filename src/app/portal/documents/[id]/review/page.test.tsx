@@ -52,7 +52,7 @@ type ApproveExtractionResponse = ApiSchema<'ApproveExtractionResponse'>;
 
 const review: ExtractionReview = {
   document_id: 'doc-1', extraction_id: 'extraction-1', status: 'AWAITING_REVIEW', file_name: 'Review document.pdf',
-  storage_url: '/mock-documents/review-document.pdf', engine: 'LexChain OCR', page_count: 2, confidence_avg: 0.88,
+  signed_copy_id: 'copy-1', engine: 'LexChain OCR', page_count: 2, confidence_avg: 0.88,
   blocks: [{ index: 2, editable: true, type: 'text', text: 'OCR output', original_text: '0CR output', bbox: [80, 200, 920, 290], page_idx: 1, text_level: null, score: 0.61, is_html: false, edited: false }],
   flags: [{ block_index: 2, kind: 'low_confidence', severity: 'high', message: 'Check the low-confidence name.', excerpt: '0CR output' }],
   flag_count: 1, high_severity_count: 1, edited_block_count: 0, is_reviewed: false, reviewed_by: null, reviewed_at: null,
@@ -129,10 +129,10 @@ describe('ReviewPage', () => {
   });
 
   it('shows profile failures without requesting extraction review', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json({}, { status: 500 })));
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json({ message: 'Review access is unavailable.' }, { status: 500 })));
     renderPage();
 
-    expect((await screen.findByRole('alert')).textContent).toContain('Unable to load your review access.');
+    expect((await screen.findByRole('alert')).textContent).toContain('Review access is unavailable.');
     expect(extractionMocks.get).not.toHaveBeenCalled();
   });
 

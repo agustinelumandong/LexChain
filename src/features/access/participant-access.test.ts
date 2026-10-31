@@ -1,13 +1,8 @@
+import { PortalApiError } from '@/shared/api/portal-error';
 import { describe, expect, it } from "vitest";
-import { canManageParticipants, isParticipantAccessCapabilityError, validateParticipantInvitation } from "@/features/access/participant-access";
+import { isParticipantAccessCapabilityError, validateParticipantInvitation } from "@/features/access/participant-access";
 
 describe("participant access", () => {
-  it("allows only the Document Issuer to manage document participants", () => {
-    expect(canManageParticipants("lawyer")).toBe(true);
-    expect(canManageParticipants("user")).toBe(false);
-    expect(canManageParticipants("unsupported")).toBe(false);
-  });
-
   it("requires an email and one supported document permission for invitations", () => {
     expect(validateParticipantInvitation({ email: "", role: "viewer" }).valid).toBe(false);
     expect(validateParticipantInvitation({ email: "not-an-email", role: "viewer" }).valid).toBe(false);
@@ -23,4 +18,10 @@ describe("participant access", () => {
     expect(isParticipantAccessCapabilityError(new Error("API error: 403"))).toBe(true);
     expect(isParticipantAccessCapabilityError(new Error("API error: 500"))).toBe(false);
   });
+});
+
+it('recognizes forbidden shared errors independently of their backend wording', () => {
+  expect(isParticipantAccessCapabilityError(new PortalApiError('Document sharing is disabled.', 403, undefined))).toBe(true);
+  expect(isParticipantAccessCapabilityError(new PortalApiError('Document unavailable.', 404, undefined))).toBe(false);
+  expect(isParticipantAccessCapabilityError(new PortalApiError('Session rejected.', 401, undefined))).toBe(false);
 });

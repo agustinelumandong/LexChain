@@ -5,8 +5,8 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import ProcessingPage from '@/features/documents/pages/upload-processing-page';
 
-function documentResponse(status: string) {
-  return Response.json({ document_id: 'doc-1', status });
+function documentResponse(status: string, lifecycle = 'FINALIZED') {
+  return Response.json({ document_id: 'doc-1', lifecycle, status });
 }
 
 function renderPage() {
@@ -32,6 +32,32 @@ afterEach(() => {
 });
 
 describe('ProcessingPage', () => {
+  it('shows document loading before its lifecycle is known', async () => {
+    vi.stubGlobal('fetch', vi.fn(() => new Promise<Response>(() => {})));
+    renderPage();
+    expect(await screen.findByRole('progressbar', { name: 'Checking document status…' })).toBeTruthy();
+    expect(screen.getByRole('status').textContent).toContain('Loading backend status');
+  });
+
+  it.each([
+    ['PREPARING', 'Preparing', 'queued_for_embeddings'],
+    ['READY_FOR_SIGNATURE', 'Ready for signature', 'FAILED'],
+    ['SIGNED', 'Signed', 'AWAITING_REVIEW'],
+  ])('waits for finalization before showing OCR status (%s)', async (lifecycle, label, status) => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(documentResponse(status, lifecycle))
+      .mockResolvedValue(documentResponse('AWAITING_REVIEW'));
+    vi.stubGlobal('fetch', fetchMock);
+    renderPage();
+    expect(await screen.findByRole('progressbar', { name: 'Waiting for finalization' })).toBeTruthy();
+    expect(screen.getByRole('status').textContent).toContain(`Current status: ${label}`);
+    expect(screen.getByText(/OCR processing starts after the document is finalized/)).toBeTruthy();
+    expect(screen.queryByText('Processing failed')).toBeNull();
+    expect(screen.queryByRole('link')).toBeNull();
+    expect(await screen.findByRole('link', { name: 'Review extracted text' }, { timeout: 3_000 })).toBeTruthy();
+    expect(screen.getByText('Lifecycle: Finalized')).toBeTruthy();
+  });
+
   it('links the live awaiting-review status to the extracted-text review route', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(documentResponse('AWAITING_REVIEW')));
     renderPage();
@@ -52,7 +78,9 @@ describe('ProcessingPage', () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(documentResponse('processing')));
     const { container } = renderPage();
 
+    expect(await screen.findByRole('progressbar', { name: 'Processing your document…' })).toBeTruthy();
     expect(await screen.findByText('Current status: Processing')).toBeTruthy();
+    expect(screen.getByRole('progressbar').getAttribute('aria-valuetext')).toBe('Processing');
     expect(container.querySelector('.w-2\\/3')).toBeNull();
     expect(screen.queryByText(/summary will appear here/i)).toBeNull();
   });
@@ -72,12 +100,13 @@ describe('ProcessingPage', () => {
 
   it('keeps a status lookup failure retryable without claiming document processing failed', async () => {
     const fetchMock = vi.fn()
-      .mockResolvedValueOnce(Response.json({ message: 'Unavailable' }, { status: 503 }))
+      .mockResolvedValueOnce(Response.json({ message: 'Status service is unavailable.' }, { status: 503 }))
       .mockResolvedValue(documentResponse('processing'));
     vi.stubGlobal('fetch', fetchMock);
     renderPage();
 
     expect(await screen.findByText('Unable to check document status')).toBeTruthy();
+    expect(screen.getByText('Status service is unavailable.')).toBeTruthy();
     expect(screen.queryByText('Processing failed')).toBeNull();
     expect(screen.queryByRole('link', { name: 'Try Again' })).toBeNull();
 
@@ -85,12 +114,16 @@ describe('ProcessingPage', () => {
     expect(await screen.findByText('Current status: Processing')).toBeTruthy();
   });
 
-  it('reserves processing failure and re-upload guidance for an explicit failed status', async () => {
+  it('links finalized processing failures to the document without upload recovery', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(documentResponse('failed')));
     renderPage();
 
     expect(await screen.findByText('Processing failed')).toBeTruthy();
-    expect(screen.getByRole('link', { name: 'Try Again' }).getAttribute('href')).toBe('/portal/upload');
+    expect(screen.getByText('Lifecycle: Finalized')).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'View document' }).getAttribute('href')).toBe('/portal/documents/doc-1');
+    expect(screen.queryByText(/try uploading again/i)).toBeNull();
+    expect(document.querySelector('a[href="/portal/upload"]')).toBeNull();
+    expect(screen.queryByRole('button', { name: /finalize/i })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Retry status check' })).toBeNull();
   });
 

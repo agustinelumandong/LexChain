@@ -3,10 +3,11 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
+import { toast } from "sonner";
 import { resendVerificationRequestSchema } from "@/features/auth";
 
 type ResendState = {
-  status: "idle" | "success" | "error";
+  status: "idle" | "error";
   message: string;
 };
 
@@ -53,7 +54,8 @@ export function VerifiedContent() {
 
     try {
       const message = await resendVerification(parsed.data.email);
-      setResendState({ status: "success", message });
+      toast.success(message);
+      setResendState({ status: "idle", message: "" });
     } catch (error) {
       setResendState({
         status: "error",
@@ -76,12 +78,12 @@ export function VerifiedContent() {
             className="rounded-[10px]"
           />
           <span className="text-lg font-black text-[#0C2B49]">
-            Lex<span className="text-[#0985E7]">Chain</span>
+            Lex<span className="text-[#0067B3]">Chain</span>
           </span>
         </div>
 
         <div className="mt-7 rounded-[20px] bg-[#EAF6FF] p-5">
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#0985E7] text-white">
+          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#0067B3] text-white">
             <svg
               aria-hidden="true"
               className="h-6 w-6"
@@ -108,7 +110,7 @@ export function VerifiedContent() {
 
         <Link
           href="/login"
-          className="mt-6 flex min-h-[52px] w-full items-center justify-center rounded-full bg-[#0985E7] px-5 py-3.5 text-[15px] font-black text-white transition hover:bg-[#0770c4]"
+          className="mt-6 flex min-h-[52px] w-full items-center justify-center rounded-full bg-[#0067B3] px-5 py-3.5 text-[15px] font-black text-white transition hover:bg-[#005F9E]"
         >
           Go to login
         </Link>
@@ -117,26 +119,23 @@ export function VerifiedContent() {
           <h2 className="text-sm font-black text-[#0C2B49]">
             Need another verification email?
           </h2>
-          <p className="mt-1 text-sm font-semibold leading-5 text-[#64748b]">
+          <p className="mt-1 text-sm font-semibold leading-5 text-[#5B6F8A]">
             Enter your account email to request another verification link.
           </p>
           <label className="mt-4 block">
             <span className="text-[13px] font-black text-[#0C2B49]">Email</span>
             <input
-              className="mt-2 min-h-12 w-full rounded-[14px] border border-[#E4EEF9] bg-[#F5FAFF] px-3.5 text-sm font-semibold text-[#0C2B49] outline-none focus:border-[#0985E7]"
+              className="mt-2 min-h-12 w-full rounded-[14px] border border-[#E4EEF9] bg-[#F5FAFF] px-3.5 text-sm font-semibold text-[#0C2B49] outline-none focus:border-[#0067B3]"
               type="email"
               autoComplete="email"
               value={email}
               onChange={(event) => setEmail(event.currentTarget.value)}
             />
           </label>
-          {resendState.message ? (
+          {resendState.status === "error" && resendState.message ? (
             <p
-              role={resendState.status === "success" ? "status" : "alert"}
-              className={[
-                "mt-3 text-sm font-semibold",
-                resendState.status === "success" ? "text-[#127A43]" : "text-red-600",
-              ].join(" ")}
+              role="alert"
+              className="mt-3 text-sm font-semibold text-red-700"
             >
               {resendState.message}
             </p>

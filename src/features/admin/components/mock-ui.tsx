@@ -138,7 +138,7 @@ export function MockModal({
             <h2 className="text-lg font-black text-[#071B33]">{title}</h2>
             {description ? <p className="mt-1 text-sm font-semibold text-[#5B6F8A]">{description}</p> : null}
           </div>
-          <button type="button" onClick={onClose} className="rounded-lg p-1.5 text-[#64748B] transition hover:bg-[#EEF4FB] hover:text-[#0C2B49]" aria-label="Close modal">
+          <button type="button" onClick={onClose} className="rounded-lg p-1.5 text-[#5B6F8A] transition hover:bg-[#EEF4FB] hover:text-[#0C2B49]" aria-label="Close modal">
             <CloseIcon fontSize="small" />
           </button>
         </div>
@@ -178,10 +178,10 @@ function toCsv(rows: Array<Record<string, unknown>>) {
 export function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="block">
-      <span className="mb-1.5 block text-xs font-black uppercase tracking-[0.12em] text-[#64748B]">{label}</span>
+      <span className="mb-1.5 block text-xs font-black uppercase tracking-[0.12em] text-[#5B6F8A]">{label}</span>
       {children}
     </label>
   );
 }
 
-export const inputClassName = "w-full rounded-xl border border-[#E4EEF9] bg-[#F8FBFF] px-4 py-2.5 text-sm font-semibold text-[#0C2B49] outline-none transition placeholder:text-[#94A3B8] focus:border-[#0985E7] focus:bg-white";
+export const inputClassName = "w-full rounded-xl border border-[#E4EEF9] bg-[#F8FBFF] px-4 py-2.5 text-sm font-semibold text-[#0C2B49] outline-none transition placeholder:text-[#5B6F8A] focus:border-[#0067B3] focus:bg-white";
