@@ -71,7 +71,7 @@ export default function PortalLayout({ children, demoMode }: { children: React.R
 
   if (!isSupportedPortalUiRole(uiRole)) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-[#F5FAFF] p-6 text-[#0C2B49]">
+      <main className="flex min-h-screen items-center justify-center bg-[var(--portal-bg)] p-6 text-[#0C2B49]">
         <section className="w-full max-w-md rounded-2xl border border-[#E4EEF9] bg-white p-6 text-center shadow-sm">
           <h1 className="text-xl font-black">Portal access unavailable</h1>
           <p className="mt-2 text-sm font-semibold text-[#5B6F8A]">Your account does not have a supported portal role.</p>
@@ -88,7 +88,7 @@ export default function PortalLayout({ children, demoMode }: { children: React.R
   }
 
   return (
-    <main className={`${isDocumentWorkspace ? 'h-dvh overflow-hidden' : 'min-h-screen'} bg-[#F5FAFF] text-[#111827]`}>
+    <main className={`${isDocumentWorkspace ? 'h-dvh overflow-hidden' : 'min-h-screen'} bg-[var(--portal-bg)] text-[#111827]`}>
       <div className={`flex ${isDocumentWorkspace ? 'h-dvh min-h-0 overflow-hidden' : 'min-h-screen'}`}>
         <a
           href="#portal-content"

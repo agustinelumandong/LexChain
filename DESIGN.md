@@ -26,6 +26,8 @@ Use 16px for readable body copy. Long supporting paragraphs may use 28px leading
 
 ## Shared components
 
+The portal canvas uses `--portal-bg` (`#E9F4FF`) behind white content surfaces, giving panels clear separation from the surrounding workspace.
+
 Reuse the browser-safe UI in `src/shared/components/ui/` before adding page-specific copies.
 
 | Need | Shared component | Rule |
