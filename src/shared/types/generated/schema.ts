@@ -182,6 +182,66 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/documents/verifications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Integrity report: stored verification results
+         * @description Every check made through GET /documents/{document_id}/verify on a document the lawyer owns, newest first. Range is on `verified_at` in UTC: `verified_from` inclusive, `verified_to` exclusive; a time without an offset is read as UTC; either may be omitted. `summary` counts every result in the range, not just the page. Reads stored verdicts only — nothing is re-verified. Parties to a document do not see its results.
+         */
+        get: operations["get_integrity_report_results_documents_verifications_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/documents/ecopy-requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Review queue: e-copy requests on my documents
+         * @description Every e-copy request on a document the lawyer owns, newest first. Filter with `status=PENDING` for what still needs a decision. Requests on other lawyers' documents are never included.
+         */
+        get: operations["list_ecopy_review_queue_documents_ecopy_requests_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/documents/ecopy-requests/mine": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * My e-copy requests
+         * @description Every e-copy request the caller made, newest first, on documents they still have access to — with decision and delivery status.
+         */
+        get: operations["list_my_ecopy_requests_documents_ecopy_requests_mine_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/documents/register-lookup": {
         parameters: {
             query?: never;
@@ -265,7 +325,7 @@ export interface paths {
          * Create the working draft in Google Docs
          * @description Creates the draft in the lawyer's own Google Drive and shares it with every accepted client as a commenter (another lawyer on the document as an editor). Open `draft_url` in a new tab afterwards.
          *
-         *     `source`: `blank` (new empty Doc), `template` (copy of `file_id`) or `existing` (use `file_id` itself). `file_id` comes from the Google Picker — see `GET /google/picker-token`.
+         *     Form fields. `source`: `blank` (new empty Doc), `template` (copy of `file_id`), `existing` (use `file_id` itself) or `upload` (`file` — say a Word file from the client — converted to a Doc). `file_id` comes from the Google Picker — see `GET /google/picker-token`. `file`: docx, doc, odt or rtf, at most 10 MB.
          *
          *     Only while PREPARING, and only once per document.
          */
@@ -427,6 +487,8 @@ export interface paths {
         /**
          * Short-lived link to a signed copy's PDF
          * @description Checks the caller's current access, then returns a signed URL valid for `expires_in` seconds. Defaults to the current copy; pass `copy_id` for an older one from /signed-copies. Ask again when it expires.
+         *
+         *     The owner always gets the signed original. Anyone else gets a watermarked preview (`watermarked: true`) — for every copy, current or older — unless their e-copy request was approved for the document's current file, in which case that file comes unwatermarked.
          */
         get: operations["get_signed_copy_file_documents__document_id__file_get"];
         put?: never;
@@ -630,7 +692,7 @@ export interface paths {
         };
         /**
          * Verify a document against the chain
-         * @description Hashes the stored signed copy as it is now and compares it with the hash anchored on-chain. The verdict is computed server-side. When the status is TAMPERED, the archived original (re-hashed against the chain) and the current file are both extracted and diffed: `tamper_report` lists the changed segments with page and bbox where the OCR engine reports layout. If that diff cannot be produced, `tamper_report_status` is UNAVAILABLE and the TAMPERED verdict still stands.
+         * @description Hashes the stored signed copy as it is now and compares it with the hash anchored on-chain. The verdict is computed server-side. When the status is TAMPERED, the archived original (re-hashed against the chain) and the current file are both extracted and diffed: `tamper_report` lists the changed segments with page and bbox where the OCR engine reports layout. If that diff cannot be produced, `tamper_report_status` is UNAVAILABLE and the TAMPERED verdict still stands. Every check that reaches a verdict is kept for the integrity report.
          */
         get: operations["verify_document_documents__document_id__verify_get"];
         put?: never;
@@ -655,6 +717,90 @@ export interface paths {
          * @description For a FINALIZED document whose verification is TAMPERED. The archived original is re-hashed against the on-chain hash, then becomes the current signed copy; the tampered file is kept in /signed-copies and the restore is recorded in /history with both hashes. The lifecycle and the on-chain record are unchanged. If the document is already AUTHENTIC nothing changes and `restored` is false, so a retry is safe. `verification` is a fresh check of the result.
          */
         post: operations["restore_document_documents__document_id__restore_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/documents/{document_id}/ecopy-requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * E-copy requests on a document
+         * @description The owner sees every request on the document; a party sees only their own. Each carries its decision, delivery status and audit trail.
+         */
+        get: operations["list_document_ecopy_requests_documents__document_id__ecopy_requests_get"];
+        put?: never;
+        /**
+         * Request an e-copy of the signed document
+         * @description A party asks the owner for the unwatermarked signed PDF of a FINALIZED document. The owner is notified in LexChain. One PENDING request per client and document; after a decline the client may ask again. Until approved, GET /{document_id}/file gives the client a watermarked preview.
+         */
+        post: operations["request_ecopy_documents__document_id__ecopy_requests_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/documents/{document_id}/ecopy-requests/{request_id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Approve an e-copy request and email the copy
+         * @description Approves the document's current signed copy for this client, then emails it as an attachment to the client's verified account address. The approval stands whether or not the email goes out: check `delivery_status` — FAILED (with `delivery_error`) can be retried with /retry-delivery. Once approved the client can download the unwatermarked file in the app while they keep access and the file is unchanged.
+         */
+        post: operations["approve_ecopy_request_documents__document_id__ecopy_requests__request_id__approve_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/documents/{document_id}/ecopy-requests/{request_id}/decline": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Decline an e-copy request
+         * @description Declines the request, optionally with a reason shown to the client, who is notified and may request again.
+         */
+        post: operations["decline_ecopy_request_documents__document_id__ecopy_requests__request_id__decline_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/documents/{document_id}/ecopy-requests/{request_id}/retry-delivery": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Send an approved e-copy again
+         * @description For an APPROVED request whose `delivery_status` is FAILED, or stuck in SENDING for over 10 minutes. Access, the verified address and the file's fingerprint are checked again before sending; only one retry runs at a time.
+         */
+        post: operations["retry_ecopy_delivery_documents__document_id__ecopy_requests__request_id__retry_delivery_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1314,6 +1460,25 @@ export interface components {
             /** File */
             file: string;
         };
+        /** Body_create_draft_documents__document_id__draft_post */
+        Body_create_draft_documents__document_id__draft_post: {
+            /**
+             * Source
+             * @default blank
+             * @enum {string}
+             */
+            source: "blank" | "template" | "existing" | "upload";
+            /**
+             * File Id
+             * @description Drive file id from the Google Picker, for template / existing
+             */
+            file_id?: string | null;
+            /**
+             * File
+             * @description The file to convert, for upload
+             */
+            file?: string | null;
+        };
         /** Body_replace_signed_copy_documents__document_id__signed_copy_put */
         Body_replace_signed_copy_documents__document_id__signed_copy_put: {
             /** Reason */
@@ -1447,24 +1612,6 @@ export interface components {
             /** Page No */
             page_no: number;
         };
-        /**
-         * CreateDraftRequest
-         * @description Create the working draft in the lawyer's Google Drive.
-         */
-        CreateDraftRequest: {
-            /**
-             * Source
-             * @description blank — a new empty Doc; template — a copy of `file_id`; existing — `file_id` itself, a Doc the lawyer already started
-             * @default blank
-             * @enum {string}
-             */
-            source: "blank" | "template" | "existing";
-            /**
-             * File Id
-             * @description Drive file id from the Google Picker. Required unless source is blank
-             */
-            file_id?: string | null;
-        };
         /** CreateInvitationRequest */
         CreateInvitationRequest: {
             /**
@@ -1480,6 +1627,14 @@ export interface components {
              * @enum {string}
              */
             role: "lawyer" | "user";
+        };
+        /** DeclineEcopyRequest */
+        DeclineEcopyRequest: {
+            /**
+             * Reason
+             * @description Optional; shown to the client
+             */
+            reason?: string | null;
         };
         /** DocumentHistoryResponse */
         DocumentHistoryResponse: {
@@ -1708,6 +1863,18 @@ export interface components {
              * @description May remove whitelisted users
              */
             can_revoke: boolean;
+            /**
+             * Can Request Ecopy
+             * @description May ask the owner for the unwatermarked signed copy
+             * @default false
+             */
+            can_request_ecopy: boolean;
+            /**
+             * Can Review Ecopy
+             * @description May approve or decline e-copy requests
+             * @default false
+             */
+            can_review_ecopy: boolean;
         };
         /**
          * DocumentResponse
@@ -2043,6 +2210,115 @@ export interface components {
             created_at: string;
         };
         /**
+         * EcopyEventResponse
+         * @description One step in an e-copy request's audit trail.
+         */
+        EcopyEventResponse: {
+            /**
+             * Action
+             * @description requested | approved | declined | delivery_attempted | delivered | delivery_failed
+             */
+            action: string;
+            /** Actor Id */
+            actor_id: string | null;
+            /**
+             * Detail
+             * @description A delivery error code, or the address a copy went to
+             */
+            detail?: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /** EcopyRequestListResponse */
+        EcopyRequestListResponse: {
+            /** Requests */
+            requests: components["schemas"]["EcopyRequestResponse"][];
+            /** Total */
+            total: number;
+        };
+        /**
+         * EcopyRequestResponse
+         * @description A client's request for the unwatermarked signed copy, and how it went.
+         */
+        EcopyRequestResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Document Id
+             * Format: uuid
+             */
+            document_id: string;
+            /** File Name */
+            file_name: string;
+            /**
+             * Client Id
+             * Format: uuid
+             */
+            client_id: string;
+            /** Client Name */
+            client_name: string;
+            /** Client Email */
+            client_email: string;
+            /**
+             * Status
+             * @description PENDING | APPROVED | DECLINED
+             */
+            status: string;
+            /**
+             * Requested At
+             * Format: date-time
+             */
+            requested_at: string;
+            /** Decided At */
+            decided_at: string | null;
+            /** Decided By */
+            decided_by: string | null;
+            /** Decline Reason */
+            decline_reason: string | null;
+            /**
+             * Approved Copy Id
+             * @description The signed copy the approval was given for
+             */
+            approved_copy_id?: string | null;
+            /**
+             * Delivery Status
+             * @description Null until approved, then SENDING | SENT | FAILED. APPROVED with FAILED means the email did not go out and the owner may retry it
+             */
+            delivery_status?: string | null;
+            /** Delivery Attempts */
+            delivery_attempts: number;
+            /** Delivered At */
+            delivered_at: string | null;
+            /**
+             * Delivered To
+             * @description The verified account address the copy was sent to
+             */
+            delivered_to?: string | null;
+            /**
+             * Delivery Error
+             * @description Why the last send failed: provider_error | attachment_too_large | integrity_mismatch | storage_unavailable | access_revoked | email_unverified
+             */
+            delivery_error?: string | null;
+            /**
+             * Can Download
+             * @description The client may read the unwatermarked copy in the app now: approved, still a party, and the document's file is still the approved one
+             */
+            can_download: boolean;
+            /**
+             * Can Retry Delivery
+             * @description The owner may send the email again now
+             */
+            can_retry_delivery: boolean;
+            /** Events */
+            events: components["schemas"]["EcopyEventResponse"][];
+        };
+        /**
          * ExtractionBlock
          * @description One reviewable piece of the document.
          */
@@ -2268,6 +2544,62 @@ export interface components {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
         };
+        /** IntegrityReportResponse */
+        IntegrityReportResponse: {
+            /**
+             * Verified From
+             * @description Inclusive lower bound on verified_at (UTC); null for no bound
+             */
+            verified_from?: string | null;
+            /**
+             * Verified To
+             * @description Exclusive upper bound on verified_at (UTC); null for no bound
+             */
+            verified_to?: string | null;
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+            summary: components["schemas"]["IntegrityReportSummary"];
+            /**
+             * Results
+             * @description One page, newest first; ties on verified_at ordered by id
+             */
+            results?: components["schemas"]["VerificationResultResponse"][];
+        };
+        /**
+         * IntegrityReportSummary
+         * @description Counts over every result in the range, not just the returned page.
+         */
+        IntegrityReportSummary: {
+            /** Total */
+            total: number;
+            /**
+             * Authentic
+             * @default 0
+             */
+            authentic: number;
+            /**
+             * Tampered
+             * @default 0
+             */
+            tampered: number;
+            /**
+             * Snapshot Compromised
+             * @default 0
+             */
+            snapshot_compromised: number;
+            /**
+             * Not Anchored
+             * @default 0
+             */
+            not_anchored: number;
+            /**
+             * Verification Unavailable
+             * @default 0
+             */
+            verification_unavailable: number;
+        };
         /** InvitationListResponse */
         InvitationListResponse: {
             /** Invitations */
@@ -2347,7 +2679,7 @@ export interface components {
          * NotificationType
          * @enum {string}
          */
-        NotificationType: "party_added" | "party_removed" | "document_recorded" | "document_processed" | "document_failed" | "draft_comment" | "draft_reply" | "draft_resolved" | "draft_reopened";
+        NotificationType: "party_added" | "party_removed" | "document_recorded" | "document_processed" | "document_failed" | "draft_comment" | "draft_reply" | "draft_resolved" | "draft_reopened" | "ecopy_requested" | "ecopy_approved" | "ecopy_declined" | "ecopy_delivery_failed";
         /**
          * OpenDocumentRequest
          * @description Path 1 — open a document record before anything is signed.
@@ -2718,6 +3050,12 @@ export interface components {
              * @description Seconds until `url` stops working
              */
             expires_in: number;
+            /**
+             * Watermarked
+             * @description True when `url` is a watermarked preview, not the signed original: what a party gets until their e-copy request is approved for this file
+             * @default false
+             */
+            watermarked: boolean;
         };
         /** SignedCopyListResponse */
         SignedCopyListResponse: {
@@ -2994,6 +3332,63 @@ export interface components {
             input?: unknown;
             /** Context */
             ctx?: Record<string, never>;
+        };
+        /**
+         * VerificationResultResponse
+         * @description One stored check, as it was decided at `verified_at`.
+         */
+        VerificationResultResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Document Id
+             * Format: uuid
+             */
+            document_id: string;
+            /**
+             * File Name
+             * @description Display name of the document now
+             */
+            file_name?: string | null;
+            /**
+             * Verified At
+             * Format: date-time
+             * @description When the check ran (UTC)
+             */
+            verified_at: string;
+            /**
+             * Verified By
+             * @description Who ran the check
+             */
+            verified_by?: string | null;
+            /**
+             * Status
+             * @description AUTHENTIC | TAMPERED | SNAPSHOT_COMPROMISED | NOT_ANCHORED | VERIFICATION_UNAVAILABLE — as on DocumentVerificationResponse. VERIFICATION_UNAVAILABLE means integrity was unknown, not tampered
+             */
+            status: string;
+            /** Is Authentic */
+            is_authentic: boolean;
+            /**
+             * Baseline Trusted
+             * @description Whether the stored original matched the chain at the time
+             */
+            baseline_trusted: boolean;
+            /** Onchain Hash */
+            onchain_hash?: string | null;
+            /** Snapshot Hash */
+            snapshot_hash?: string | null;
+            /** Current Hash */
+            current_hash?: string | null;
+            /** Tx Hash */
+            tx_hash?: string | null;
+            /**
+             * Tamper Report Status
+             * @enum {string}
+             */
+            tamper_report_status: "AVAILABLE" | "UNAVAILABLE" | "NOT_APPLICABLE";
         };
         /**
          * WordDiffPart
@@ -3402,6 +3797,133 @@ export interface operations {
             };
         };
     };
+    get_integrity_report_results_documents_verifications_get: {
+        parameters: {
+            query?: {
+                /** @description Inclusive lower bound on verified_at (ISO 8601; UTC if no offset) */
+                verified_from?: string | null;
+                /** @description Exclusive upper bound on verified_at (ISO 8601; UTC if no offset) */
+                verified_to?: string | null;
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One page of results and the totals for the range */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IntegrityReportResponse"];
+                };
+            };
+            /** @description verified_from is not earlier than verified_to */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not authenticated — missing or invalid bearer token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden — only lawyers have an integrity report */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description limit outside 1–100, negative offset, or a malformed time */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    list_ecopy_review_queue_documents_ecopy_requests_get: {
+        parameters: {
+            query?: {
+                status?: ("PENDING" | "APPROVED" | "DECLINED") | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Requests on the lawyer's documents */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EcopyRequestListResponse"];
+                };
+            };
+            /** @description Not authenticated — missing or invalid bearer token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden — only lawyers review e-copy requests */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_my_ecopy_requests_documents_ecopy_requests_mine_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The caller's requests */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EcopyRequestListResponse"];
+                };
+            };
+            /** @description Not authenticated — missing or invalid bearer token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     lookup_register_reference_documents_register_lookup_get: {
         parameters: {
             query: {
@@ -3632,9 +4154,9 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody: {
+        requestBody?: {
             content: {
-                "application/json": components["schemas"]["CreateDraftRequest"];
+                "multipart/form-data": components["schemas"]["Body_create_draft_documents__document_id__draft_post"];
             };
         };
         responses: {
@@ -3647,7 +4169,7 @@ export interface operations {
                     "application/json": components["schemas"]["DocumentResponse"];
                 };
             };
-            /** @description No file picked, or the picked file is not a Google Doc */
+            /** @description No file picked or chosen, the picked file is not a Google Doc, or the uploaded file is the wrong type, empty or too large */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -3996,7 +4518,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Successful Response */
+            /** @description A link to the original, or to a watermarked preview */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -4004,6 +4526,20 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["SignedCopyFileResponse"];
                 };
+            };
+            /** @description Not authenticated — missing or invalid bearer token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Document or copy not found, or no access */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {
@@ -4013,6 +4549,13 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
+            };
+            /** @description The watermarked preview could not be made */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -4600,6 +5143,294 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    list_document_ecopy_requests_documents__document_id__ecopy_requests_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                document_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Requests, newest first */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EcopyRequestListResponse"];
+                };
+            };
+            /** @description Not authenticated — missing or invalid bearer token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Document not found or no access */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    request_ecopy_documents__document_id__ecopy_requests_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                document_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Request created, PENDING */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EcopyRequestResponse"];
+                };
+            };
+            /** @description The caller owns the document */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not authenticated — missing or invalid bearer token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Document not found or no access */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not FINALIZED, a request is already PENDING, or one was already approved for the current file */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    approve_ecopy_request_documents__document_id__ecopy_requests__request_id__approve_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                document_id: string;
+                request_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Approved; delivery SENT or FAILED */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EcopyRequestResponse"];
+                };
+            };
+            /** @description Not authenticated — missing or invalid bearer token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden — only the document owner decides */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Document or request not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Already decided, the client no longer has access, or the document has no finalized signed copy */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    decline_ecopy_request_documents__document_id__ecopy_requests__request_id__decline_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                document_id: string;
+                request_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeclineEcopyRequest"];
+            };
+        };
+        responses: {
+            /** @description Declined */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EcopyRequestResponse"];
+                };
+            };
+            /** @description Not authenticated — missing or invalid bearer token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden — only the document owner decides */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Document or request not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Already decided */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    retry_ecopy_delivery_documents__document_id__ecopy_requests__request_id__retry_delivery_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                document_id: string;
+                request_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Attempted; delivery SENT or FAILED */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EcopyRequestResponse"];
+                };
+            };
+            /** @description Not authenticated — missing or invalid bearer token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden — only the document owner may retry */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Document or request not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not approved, already delivered, or a send is in progress */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
             };
         };
     };

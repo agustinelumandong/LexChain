@@ -13,6 +13,23 @@ afterEach(() => {
 });
 
 describe('/api/portal/proxy-post signed-copy requests', () => {
+  it('forwards draft multipart fields and their original boundary', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(Response.json({ draft_url: 'https://docs.google.com/document/d/example' }));
+    vi.stubGlobal('fetch', fetchMock);
+    const form = new FormData();
+    form.set('source', 'template');
+    form.set('file_id', 'template-77');
+    const request = new NextRequest('http://localhost/api/portal/proxy-post?path=%2Fdocuments%2Fdocument-1%2Fdraft', {
+      method: 'POST', headers: { cookie: 'portal_token=secret-token' }, body: form,
+    });
+    const response = await POST(request);
+    expect(response.status).toBe(200);
+    const options = fetchMock.mock.calls[0][1] as RequestInit;
+    expect((options.headers as Record<string, string>)['content-type']).toBe(request.headers.get('content-type'));
+    const forwarded = await new Response(options.body, { headers: { 'content-type': request.headers.get('content-type')! } }).formData();
+    expect(forwarded.get('source')).toBe('template');
+    expect(forwarded.get('file_id')).toBe('template-77');
+  });
   it('forwards replacement multipart data with PUT and the server-held token', async () => {
     const fetchMock = vi.fn().mockResolvedValue(Response.json({ document_id: 'document-1' }));
     vi.stubGlobal('fetch', fetchMock);

@@ -6,6 +6,15 @@ afterEach(() => {
 });
 
 describe('createGoogleDraft errors', () => {
+  it('sends the selected Google draft source as multipart form data', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(Response.json({ draft_url: 'https://docs.google.com/document/d/example' }));
+    vi.stubGlobal('fetch', fetchMock);
+    await createGoogleDraft('doc-101', 'template', 'file-1');
+    const options = fetchMock.mock.calls[0][1] as RequestInit;
+    expect(options.body).toBeInstanceOf(FormData);
+    expect((options.body as FormData).get('source')).toBe('template');
+    expect((options.body as FormData).get('file_id')).toBe('file-1');
+  });
   it.each(['GOOGLE_NOT_CONNECTED', 'GOOGLE_RECONNECT_REQUIRED'])(
     'exposes %s from details.reason while retaining status and message',
     async (reason) => {

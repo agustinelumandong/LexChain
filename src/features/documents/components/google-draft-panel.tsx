@@ -8,7 +8,7 @@ import { createGoogleDraft, getGooglePickerToken, isGoogleDraftUrl } from '@/fea
 import { clearGoogleDraftReturnContext, readGoogleDraftReturnContext, saveGoogleDraftReturnContext } from '@/shared/utils/google-draft-return-context';
 import { Dropdown } from '@/shared/components/ui';
 
-type Source = ApiSchema<'CreateDraftRequest'>['source'];
+type Source = import('@/features/documents/document-draft-api').GoogleDraftSource;
 type PickedFile = { id: string; name: string };
 type PickerBuilder = {
   addView: (view: unknown) => PickerBuilder;

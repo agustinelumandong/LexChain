@@ -97,6 +97,8 @@ const document: ApiSchema<'DocumentResponse'> = {
     can_retry_processing: false,
     can_share: false,
     can_revoke: false,
+    can_request_ecopy: false,
+    can_review_ecopy: false,
   },
   summary: 'A summary generated from the document.',
   labels: ['Service agreement'],
@@ -581,7 +583,7 @@ describe('DocumentWorkspace', () => {
     expect(screen.getByRole('button', { name: 'Mark ready for signature' })).toBeTruthy();
     expect(fetchMock).toHaveBeenCalledWith(
       '/api/portal/proxy-post?path=%2Fdocuments%2Fdoc-101%2Fdraft',
-      expect.objectContaining({ method: 'POST', body: JSON.stringify({ source: 'blank' }) }),
+      expect.objectContaining({ method: 'POST', body: expect.any(FormData) }),
     );
   });
 
@@ -750,7 +752,7 @@ describe('DocumentWorkspace', () => {
     expect(fetchMock).toHaveBeenCalledWith('/api/portal/proxy?path=%2Fgoogle%2Fpicker-token', expect.any(Object));
     expect(fetchMock).toHaveBeenCalledWith(
       '/api/portal/proxy-post?path=%2Fdocuments%2Fdoc-101%2Fdraft',
-      expect.objectContaining({ method: 'POST', body: JSON.stringify({ source: 'template', file_id: 'template-77' }) }),
+      expect.objectContaining({ method: 'POST', body: expect.any(FormData) }),
     );
     await waitFor(() => expect(createCount).toBe(2));
   });

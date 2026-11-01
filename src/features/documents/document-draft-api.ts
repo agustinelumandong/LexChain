@@ -19,7 +19,7 @@ async function request<T>(path: string, method: 'GET' | 'POST', body?: unknown):
       method,
       credentials: 'same-origin',
       cache: 'no-store',
-      ...(body === undefined ? {} : { headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) }),
+      ...(body === undefined ? {} : body instanceof FormData ? { body } : { headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) }),
     });
   } catch (error) {
     if (error instanceof PortalApiError) {
@@ -48,13 +48,15 @@ export async function getGooglePickerToken(): Promise<ApiSchema<'GooglePickerTok
   return token;
 }
 
-export async function createGoogleDraft(documentId: string, source: ApiSchema<'CreateDraftRequest'>['source'], fileId?: string): Promise<ApiSchema<'DocumentResponse'>> {
+export type GoogleDraftSource = 'blank' | 'template' | 'existing';
+
+export async function createGoogleDraft(documentId: string, source: GoogleDraftSource, fileId?: string): Promise<ApiSchema<'DocumentResponse'>> {
   if (!documentId.trim()) throw new Error('Document ID is required.');
   if (source !== 'blank' && !fileId?.trim()) throw new Error('Choose a Google Doc first.');
-  const document = await request<ApiSchema<'DocumentResponse'>>(`/documents/${encodeURIComponent(documentId)}/draft`, 'POST', {
-    source,
-    ...(source === 'blank' ? {} : { file_id: fileId }),
-  });
+  const form = new FormData();
+  form.set('source', source);
+  if (source !== 'blank' && fileId) form.set('file_id', fileId);
+  const document = await request<ApiSchema<'DocumentResponse'>>(`/documents/${encodeURIComponent(documentId)}/draft`, 'POST', form);
   if (!document.draft_url) throw new Error('The backend did not return a Google draft link.');
   if (!isGoogleDraftUrl(document.draft_url)) throw new Error('The backend returned an invalid Google draft link.');
   return document;

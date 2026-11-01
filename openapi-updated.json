@@ -444,6 +444,204 @@
         }
       }
     },
+    "/documents/verifications": {
+      "get": {
+        "tags": [
+          "Documents · Finalize & verify"
+        ],
+        "summary": "Integrity report: stored verification results",
+        "description": "Every check made through GET /documents/{document_id}/verify on a document the lawyer owns, newest first. Range is on `verified_at` in UTC: `verified_from` inclusive, `verified_to` exclusive; a time without an offset is read as UTC; either may be omitted. `summary` counts every result in the range, not just the page. Reads stored verdicts only — nothing is re-verified. Parties to a document do not see its results.",
+        "operationId": "get_integrity_report_results_documents_verifications_get",
+        "security": [
+          {
+            "Bearer Token": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "verified_from",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Inclusive lower bound on verified_at (ISO 8601; UTC if no offset)",
+              "title": "Verified From"
+            },
+            "description": "Inclusive lower bound on verified_at (ISO 8601; UTC if no offset)"
+          },
+          {
+            "name": "verified_to",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Exclusive upper bound on verified_at (ISO 8601; UTC if no offset)",
+              "title": "Verified To"
+            },
+            "description": "Exclusive upper bound on verified_at (ISO 8601; UTC if no offset)"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 50,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "Offset"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "One page of results and the totals for the range",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IntegrityReportResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "verified_from is not earlier than verified_to"
+          },
+          "401": {
+            "description": "Not authenticated — missing or invalid bearer token"
+          },
+          "403": {
+            "description": "Forbidden — only lawyers have an integrity report"
+          },
+          "422": {
+            "description": "limit outside 1–100, negative offset, or a malformed time"
+          }
+        }
+      }
+    },
+    "/documents/ecopy-requests": {
+      "get": {
+        "tags": [
+          "Documents · E-copy requests"
+        ],
+        "summary": "Review queue: e-copy requests on my documents",
+        "description": "Every e-copy request on a document the lawyer owns, newest first. Filter with `status=PENDING` for what still needs a decision. Requests on other lawyers' documents are never included.",
+        "operationId": "list_ecopy_review_queue_documents_ecopy_requests_get",
+        "security": [
+          {
+            "Bearer Token": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "PENDING",
+                    "APPROVED",
+                    "DECLINED"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Requests on the lawyer's documents",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EcopyRequestListResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated — missing or invalid bearer token"
+          },
+          "403": {
+            "description": "Forbidden — only lawyers review e-copy requests"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/documents/ecopy-requests/mine": {
+      "get": {
+        "tags": [
+          "Documents · E-copy requests"
+        ],
+        "summary": "My e-copy requests",
+        "description": "Every e-copy request the caller made, newest first, on documents they still have access to — with decision and delivery status.",
+        "operationId": "list_my_ecopy_requests_documents_ecopy_requests_mine_get",
+        "responses": {
+          "200": {
+            "description": "The caller's requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EcopyRequestListResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated — missing or invalid bearer token"
+          }
+        },
+        "security": [
+          {
+            "Bearer Token": []
+          }
+        ]
+      }
+    },
     "/documents/register-lookup": {
       "get": {
         "tags": [
@@ -788,7 +986,7 @@
           "Documents · Preparation (Path 1)"
         ],
         "summary": "Create the working draft in Google Docs",
-        "description": "Creates the draft in the lawyer's own Google Drive and shares it with every accepted client as a commenter (another lawyer on the document as an editor). Open `draft_url` in a new tab afterwards.\n\n`source`: `blank` (new empty Doc), `template` (copy of `file_id`) or `existing` (use `file_id` itself). `file_id` comes from the Google Picker — see `GET /google/picker-token`.\n\nOnly while PREPARING, and only once per document.",
+        "description": "Creates the draft in the lawyer's own Google Drive and shares it with every accepted client as a commenter (another lawyer on the document as an editor). Open `draft_url` in a new tab afterwards.\n\nForm fields. `source`: `blank` (new empty Doc), `template` (copy of `file_id`), `existing` (use `file_id` itself) or `upload` (`file` — say a Word file from the client — converted to a Doc). `file_id` comes from the Google Picker — see `GET /google/picker-token`. `file`: docx, doc, odt or rtf, at most 10 MB.\n\nOnly while PREPARING, and only once per document.",
         "operationId": "create_draft_documents__document_id__draft_post",
         "security": [
           {
@@ -808,11 +1006,10 @@
           }
         ],
         "requestBody": {
-          "required": true,
           "content": {
-            "application/json": {
+            "multipart/form-data": {
               "schema": {
-                "$ref": "#/components/schemas/CreateDraftRequest"
+                "$ref": "#/components/schemas/Body_create_draft_documents__document_id__draft_post"
               }
             }
           }
@@ -829,7 +1026,7 @@
             }
           },
           "400": {
-            "description": "No file picked, or the picked file is not a Google Doc"
+            "description": "No file picked or chosen, the picked file is not a Google Doc, or the uploaded file is the wrong type, empty or too large"
           },
           "403": {
             "description": "Forbidden — only the document owner may create the draft"
@@ -1331,7 +1528,7 @@
           "Documents · Signed copy & register"
         ],
         "summary": "Short-lived link to a signed copy's PDF",
-        "description": "Checks the caller's current access, then returns a signed URL valid for `expires_in` seconds. Defaults to the current copy; pass `copy_id` for an older one from /signed-copies. Ask again when it expires.",
+        "description": "Checks the caller's current access, then returns a signed URL valid for `expires_in` seconds. Defaults to the current copy; pass `copy_id` for an older one from /signed-copies. Ask again when it expires.\n\nThe owner always gets the signed original. Anyone else gets a watermarked preview (`watermarked: true`) — for every copy, current or older — unless their e-copy request was approved for the document's current file, in which case that file comes unwatermarked.",
         "operationId": "get_signed_copy_file_documents__document_id__file_get",
         "security": [
           {
@@ -1369,7 +1566,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Successful Response",
+            "description": "A link to the original, or to a watermarked preview",
             "content": {
               "application/json": {
                 "schema": {
@@ -1377,6 +1574,12 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "Not authenticated — missing or invalid bearer token"
+          },
+          "404": {
+            "description": "Document or copy not found, or no access"
           },
           "422": {
             "description": "Validation Error",
@@ -1387,6 +1590,9 @@
                 }
               }
             }
+          },
+          "503": {
+            "description": "The watermarked preview could not be made"
           }
         }
       }
@@ -1965,7 +2171,7 @@
           "Documents · Finalize & verify"
         ],
         "summary": "Verify a document against the chain",
-        "description": "Hashes the stored signed copy as it is now and compares it with the hash anchored on-chain. The verdict is computed server-side. When the status is TAMPERED, the archived original (re-hashed against the chain) and the current file are both extracted and diffed: `tamper_report` lists the changed segments with page and bbox where the OCR engine reports layout. If that diff cannot be produced, `tamper_report_status` is UNAVAILABLE and the TAMPERED verdict still stands.",
+        "description": "Hashes the stored signed copy as it is now and compares it with the hash anchored on-chain. The verdict is computed server-side. When the status is TAMPERED, the archived original (re-hashed against the chain) and the current file are both extracted and diffed: `tamper_report` lists the changed segments with page and bbox where the OCR engine reports layout. If that diff cannot be produced, `tamper_report_status` is UNAVAILABLE and the TAMPERED verdict still stands. Every check that reaches a verdict is kept for the integrity report.",
         "operationId": "verify_document_documents__document_id__verify_get",
         "security": [
           {
@@ -2074,6 +2280,343 @@
           },
           "503": {
             "description": "Storage or the archive is unavailable; nothing changed"
+          }
+        }
+      }
+    },
+    "/documents/{document_id}/ecopy-requests": {
+      "post": {
+        "tags": [
+          "Documents · E-copy requests"
+        ],
+        "summary": "Request an e-copy of the signed document",
+        "description": "A party asks the owner for the unwatermarked signed PDF of a FINALIZED document. The owner is notified in LexChain. One PENDING request per client and document; after a decline the client may ask again. Until approved, GET /{document_id}/file gives the client a watermarked preview.",
+        "operationId": "request_ecopy_documents__document_id__ecopy_requests_post",
+        "security": [
+          {
+            "Bearer Token": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "document_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Document Id"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Request created, PENDING",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EcopyRequestResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The caller owns the document"
+          },
+          "401": {
+            "description": "Not authenticated — missing or invalid bearer token"
+          },
+          "404": {
+            "description": "Document not found or no access"
+          },
+          "409": {
+            "description": "Not FINALIZED, a request is already PENDING, or one was already approved for the current file"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Documents · E-copy requests"
+        ],
+        "summary": "E-copy requests on a document",
+        "description": "The owner sees every request on the document; a party sees only their own. Each carries its decision, delivery status and audit trail.",
+        "operationId": "list_document_ecopy_requests_documents__document_id__ecopy_requests_get",
+        "security": [
+          {
+            "Bearer Token": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "document_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Document Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Requests, newest first",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EcopyRequestListResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated — missing or invalid bearer token"
+          },
+          "404": {
+            "description": "Document not found or no access"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/documents/{document_id}/ecopy-requests/{request_id}/approve": {
+      "post": {
+        "tags": [
+          "Documents · E-copy requests"
+        ],
+        "summary": "Approve an e-copy request and email the copy",
+        "description": "Approves the document's current signed copy for this client, then emails it as an attachment to the client's verified account address. The approval stands whether or not the email goes out: check `delivery_status` — FAILED (with `delivery_error`) can be retried with /retry-delivery. Once approved the client can download the unwatermarked file in the app while they keep access and the file is unchanged.",
+        "operationId": "approve_ecopy_request_documents__document_id__ecopy_requests__request_id__approve_post",
+        "security": [
+          {
+            "Bearer Token": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "document_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Document Id"
+            }
+          },
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Request Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Approved; delivery SENT or FAILED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EcopyRequestResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated — missing or invalid bearer token"
+          },
+          "403": {
+            "description": "Forbidden — only the document owner decides"
+          },
+          "404": {
+            "description": "Document or request not found"
+          },
+          "409": {
+            "description": "Already decided, the client no longer has access, or the document has no finalized signed copy"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/documents/{document_id}/ecopy-requests/{request_id}/decline": {
+      "post": {
+        "tags": [
+          "Documents · E-copy requests"
+        ],
+        "summary": "Decline an e-copy request",
+        "description": "Declines the request, optionally with a reason shown to the client, who is notified and may request again.",
+        "operationId": "decline_ecopy_request_documents__document_id__ecopy_requests__request_id__decline_post",
+        "security": [
+          {
+            "Bearer Token": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "document_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Document Id"
+            }
+          },
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Request Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeclineEcopyRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Declined",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EcopyRequestResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated — missing or invalid bearer token"
+          },
+          "403": {
+            "description": "Forbidden — only the document owner decides"
+          },
+          "404": {
+            "description": "Document or request not found"
+          },
+          "409": {
+            "description": "Already decided"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/documents/{document_id}/ecopy-requests/{request_id}/retry-delivery": {
+      "post": {
+        "tags": [
+          "Documents · E-copy requests"
+        ],
+        "summary": "Send an approved e-copy again",
+        "description": "For an APPROVED request whose `delivery_status` is FAILED, or stuck in SENDING for over 10 minutes. Access, the verified address and the file's fingerprint are checked again before sending; only one retry runs at a time.",
+        "operationId": "retry_ecopy_delivery_documents__document_id__ecopy_requests__request_id__retry_delivery_post",
+        "security": [
+          {
+            "Bearer Token": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "document_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Document Id"
+            }
+          },
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Request Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Attempted; delivery SENT or FAILED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EcopyRequestResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated — missing or invalid bearer token"
+          },
+          "403": {
+            "description": "Forbidden — only the document owner may retry"
+          },
+          "404": {
+            "description": "Document or request not found"
+          },
+          "409": {
+            "description": "Not approved, already delivered, or a send is in progress"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
           }
         }
       }
@@ -3878,6 +4421,48 @@
         ],
         "title": "Body_attach_signed_copy_documents__document_id__signed_copy_post"
       },
+      "Body_create_draft_documents__document_id__draft_post": {
+        "properties": {
+          "source": {
+            "type": "string",
+            "enum": [
+              "blank",
+              "template",
+              "existing",
+              "upload"
+            ],
+            "title": "Source",
+            "default": "blank"
+          },
+          "file_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "File Id",
+            "description": "Drive file id from the Google Picker, for template / existing"
+          },
+          "file": {
+            "anyOf": [
+              {
+                "type": "string",
+                "contentMediaType": "application/octet-stream"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "File",
+            "description": "The file to convert, for upload"
+          }
+        },
+        "type": "object",
+        "title": "Body_create_draft_documents__document_id__draft_post"
+      },
       "Body_replace_signed_copy_documents__document_id__signed_copy_put": {
         "properties": {
           "reason": {
@@ -4141,36 +4726,6 @@
         "title": "CorrectEntryRequest",
         "description": "Correct the register entry of a signed document."
       },
-      "CreateDraftRequest": {
-        "properties": {
-          "source": {
-            "type": "string",
-            "enum": [
-              "blank",
-              "template",
-              "existing"
-            ],
-            "title": "Source",
-            "description": "blank — a new empty Doc; template — a copy of `file_id`; existing — `file_id` itself, a Doc the lawyer already started",
-            "default": "blank"
-          },
-          "file_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "File Id",
-            "description": "Drive file id from the Google Picker. Required unless source is blank"
-          }
-        },
-        "type": "object",
-        "title": "CreateDraftRequest",
-        "description": "Create the working draft in the lawyer's Google Drive."
-      },
       "CreateInvitationRequest": {
         "properties": {
           "email": {
@@ -4195,6 +4750,25 @@
           "email"
         ],
         "title": "CreateInvitationRequest"
+      },
+      "DeclineEcopyRequest": {
+        "properties": {
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 1000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason",
+            "description": "Optional; shown to the client"
+          }
+        },
+        "type": "object",
+        "title": "DeclineEcopyRequest"
       },
       "DocumentHistoryResponse": {
         "properties": {
@@ -4497,6 +5071,18 @@
             "type": "boolean",
             "title": "Can Revoke",
             "description": "May remove whitelisted users"
+          },
+          "can_request_ecopy": {
+            "type": "boolean",
+            "title": "Can Request Ecopy",
+            "description": "May ask the owner for the unwatermarked signed copy",
+            "default": false
+          },
+          "can_review_ecopy": {
+            "type": "boolean",
+            "title": "Can Review Ecopy",
+            "description": "May approve or decline e-copy requests",
+            "default": false
           }
         },
         "type": "object",
@@ -5186,6 +5772,252 @@
         ],
         "title": "DraftReplyResponse"
       },
+      "EcopyEventResponse": {
+        "properties": {
+          "action": {
+            "type": "string",
+            "title": "Action",
+            "description": "requested | approved | declined | delivery_attempted | delivered | delivery_failed"
+          },
+          "actor_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actor Id"
+          },
+          "detail": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Detail",
+            "description": "A delivery error code, or the address a copy went to"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "action",
+          "actor_id",
+          "created_at"
+        ],
+        "title": "EcopyEventResponse",
+        "description": "One step in an e-copy request's audit trail."
+      },
+      "EcopyRequestListResponse": {
+        "properties": {
+          "requests": {
+            "items": {
+              "$ref": "#/components/schemas/EcopyRequestResponse"
+            },
+            "type": "array",
+            "title": "Requests"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          }
+        },
+        "type": "object",
+        "required": [
+          "requests",
+          "total"
+        ],
+        "title": "EcopyRequestListResponse"
+      },
+      "EcopyRequestResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "document_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Document Id"
+          },
+          "file_name": {
+            "type": "string",
+            "title": "File Name"
+          },
+          "client_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Client Id"
+          },
+          "client_name": {
+            "type": "string",
+            "title": "Client Name"
+          },
+          "client_email": {
+            "type": "string",
+            "title": "Client Email"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "description": "PENDING | APPROVED | DECLINED"
+          },
+          "requested_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Requested At"
+          },
+          "decided_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decided At"
+          },
+          "decided_by": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decided By"
+          },
+          "decline_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decline Reason"
+          },
+          "approved_copy_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Approved Copy Id",
+            "description": "The signed copy the approval was given for"
+          },
+          "delivery_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Delivery Status",
+            "description": "Null until approved, then SENDING | SENT | FAILED. APPROVED with FAILED means the email did not go out and the owner may retry it"
+          },
+          "delivery_attempts": {
+            "type": "integer",
+            "title": "Delivery Attempts"
+          },
+          "delivered_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Delivered At"
+          },
+          "delivered_to": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Delivered To",
+            "description": "The verified account address the copy was sent to"
+          },
+          "delivery_error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Delivery Error",
+            "description": "Why the last send failed: provider_error | attachment_too_large | integrity_mismatch | storage_unavailable | access_revoked | email_unverified"
+          },
+          "can_download": {
+            "type": "boolean",
+            "title": "Can Download",
+            "description": "The client may read the unwatermarked copy in the app now: approved, still a party, and the document's file is still the approved one"
+          },
+          "can_retry_delivery": {
+            "type": "boolean",
+            "title": "Can Retry Delivery",
+            "description": "The owner may send the email again now"
+          },
+          "events": {
+            "items": {
+              "$ref": "#/components/schemas/EcopyEventResponse"
+            },
+            "type": "array",
+            "title": "Events"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "document_id",
+          "file_name",
+          "client_id",
+          "client_name",
+          "client_email",
+          "status",
+          "requested_at",
+          "decided_at",
+          "decided_by",
+          "decline_reason",
+          "delivery_attempts",
+          "delivered_at",
+          "can_download",
+          "can_retry_delivery",
+          "events"
+        ],
+        "title": "EcopyRequestResponse",
+        "description": "A client's request for the unwatermarked signed copy, and how it went."
+      },
       "ExtractionBlock": {
         "properties": {
           "index": {
@@ -5613,6 +6445,101 @@
         "type": "object",
         "title": "HTTPValidationError"
       },
+      "IntegrityReportResponse": {
+        "properties": {
+          "verified_from": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Verified From",
+            "description": "Inclusive lower bound on verified_at (UTC); null for no bound"
+          },
+          "verified_to": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Verified To",
+            "description": "Exclusive upper bound on verified_at (UTC); null for no bound"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit"
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset"
+          },
+          "summary": {
+            "$ref": "#/components/schemas/IntegrityReportSummary"
+          },
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/VerificationResultResponse"
+            },
+            "type": "array",
+            "title": "Results",
+            "description": "One page, newest first; ties on verified_at ordered by id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "limit",
+          "offset",
+          "summary"
+        ],
+        "title": "IntegrityReportResponse"
+      },
+      "IntegrityReportSummary": {
+        "properties": {
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "authentic": {
+            "type": "integer",
+            "title": "Authentic",
+            "default": 0
+          },
+          "tampered": {
+            "type": "integer",
+            "title": "Tampered",
+            "default": 0
+          },
+          "snapshot_compromised": {
+            "type": "integer",
+            "title": "Snapshot Compromised",
+            "default": 0
+          },
+          "not_anchored": {
+            "type": "integer",
+            "title": "Not Anchored",
+            "default": 0
+          },
+          "verification_unavailable": {
+            "type": "integer",
+            "title": "Verification Unavailable",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "required": [
+          "total"
+        ],
+        "title": "IntegrityReportSummary",
+        "description": "Counts over every result in the range, not just the returned page."
+      },
       "InvitationListResponse": {
         "properties": {
           "invitations": {
@@ -5785,7 +6712,11 @@
           "draft_comment",
           "draft_reply",
           "draft_resolved",
-          "draft_reopened"
+          "draft_reopened",
+          "ecopy_requested",
+          "ecopy_approved",
+          "ecopy_declined",
+          "ecopy_delivery_failed"
         ],
         "title": "NotificationType"
       },
@@ -6347,6 +7278,12 @@
             "type": "integer",
             "title": "Expires In",
             "description": "Seconds until `url` stops working"
+          },
+          "watermarked": {
+            "type": "boolean",
+            "title": "Watermarked",
+            "description": "True when `url` is a watermarked preview, not the signed original: what a party gets until their e-copy request is approved for this file",
+            "default": false
           }
         },
         "type": "object",
@@ -6893,6 +7830,130 @@
         ],
         "title": "ValidationError"
       },
+      "VerificationResultResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "document_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Document Id"
+          },
+          "file_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "File Name",
+            "description": "Display name of the document now"
+          },
+          "verified_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Verified At",
+            "description": "When the check ran (UTC)"
+          },
+          "verified_by": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Verified By",
+            "description": "Who ran the check"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "description": "AUTHENTIC | TAMPERED | SNAPSHOT_COMPROMISED | NOT_ANCHORED | VERIFICATION_UNAVAILABLE — as on DocumentVerificationResponse. VERIFICATION_UNAVAILABLE means integrity was unknown, not tampered"
+          },
+          "is_authentic": {
+            "type": "boolean",
+            "title": "Is Authentic"
+          },
+          "baseline_trusted": {
+            "type": "boolean",
+            "title": "Baseline Trusted",
+            "description": "Whether the stored original matched the chain at the time"
+          },
+          "onchain_hash": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Onchain Hash"
+          },
+          "snapshot_hash": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Hash"
+          },
+          "current_hash": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current Hash"
+          },
+          "tx_hash": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tx Hash"
+          },
+          "tamper_report_status": {
+            "type": "string",
+            "enum": [
+              "AVAILABLE",
+              "UNAVAILABLE",
+              "NOT_APPLICABLE"
+            ],
+            "title": "Tamper Report Status"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "document_id",
+          "verified_at",
+          "status",
+          "is_authentic",
+          "baseline_trusted",
+          "tamper_report_status"
+        ],
+        "title": "VerificationResultResponse",
+        "description": "One stored check, as it was decided at `verified_at`."
+      },
       "WordDiffPart": {
         "properties": {
           "op": {
@@ -6960,6 +8021,10 @@
     {
       "name": "Documents · Sharing",
       "description": "Parties and invitations."
+    },
+    {
+      "name": "Documents · E-copy requests",
+      "description": "A party asks for the unwatermarked signed copy; the owner approves (and it is emailed) or declines."
     },
     {
       "name": "Retrieval"

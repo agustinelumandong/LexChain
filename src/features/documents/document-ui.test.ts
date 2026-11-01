@@ -22,6 +22,8 @@ const document: ApiSchema<'DocumentResponse'> = {
     can_retry_processing: false,
     can_share: false,
     can_revoke: false,
+    can_request_ecopy: false,
+    can_review_ecopy: false,
   },
   created_at: '2026-10-08T09:00:00Z',
 };

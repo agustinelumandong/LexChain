@@ -527,6 +527,8 @@ function documentPermissions(document: MockDocument, token?: string) {
     can_retry_processing: Boolean(issuer && canMutateDocumentLifecycle(document) && document.status?.trim().toUpperCase() === 'FAILED'),
     can_share: false,
     can_revoke: false,
+    can_request_ecopy: false,
+    can_review_ecopy: false,
   };
 }
 
