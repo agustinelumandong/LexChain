@@ -20,10 +20,11 @@ beforeEach(() => {
   vi.stubEnv('USE_MOCK_API', 'false');
 });
 
-function renderPage(roleHint = 'lawyer') {
+function renderPage(roleHint = 'lawyer', cachedDocument?: Record<string, unknown>) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
+  if (cachedDocument) queryClient.setQueryData(['portal-doc', 'doc-1'], cachedDocument);
   const view = render(
     <QueryClientProvider client={queryClient}>
       <PortalRoleProvider roleHint={roleHint}>
@@ -161,12 +162,28 @@ describe('DocumentVerifyPage', () => {
     expect(documentRequests).toBe(2);
   });
 
+  it('hides restore when a cached owner permission fails to refresh', async () => {
+    vi.stubGlobal('fetch', vi.fn((input: RequestInfo | URL) => {
+      const path = new URL(String(input), 'http://localhost').searchParams.get('path');
+      if (path === '/documents/doc-1/verify') return Promise.resolve(Response.json(verification('TAMPERED', false, true)));
+      if (path === '/documents/doc-1') return Promise.resolve(Response.json({ message: 'Permission could not be refreshed' }, { status: 403 }));
+      return Promise.resolve(Response.json({ detail: 'Unexpected request' }, { status: 404 }));
+    }));
+    renderPage('lawyer', {
+      document_id: 'doc-1', lifecycle: 'FINALIZED', on_chain: true, permissions: { can_share: true },
+    });
+
+    expect(await screen.findByText('We could not confirm your permission to restore this document, so restore is unavailable.')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Restore from backup' })).toBeNull();
+  });
+
   it('requires confirmation and lets the lawyer cancel without sending a restore request', async () => {
     const fetchMock = stubPageApi([verification('TAMPERED', false, true)]);
     renderPage();
     fireEvent.click(await screen.findByRole('button', { name: 'Restore from backup' }));
 
     expect(screen.getByRole('dialog', { name: 'Restore archived original' })).toBeTruthy();
+    expect(screen.getByText(/replaces the current PDF with the trusted archived original/i)).toBeTruthy();
     expect(screen.getByText(/kept in signed-copy history if the backend can read it/i)).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
 

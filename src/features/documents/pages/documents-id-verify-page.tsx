@@ -56,6 +56,8 @@ export default function DocumentVerifyPage() {
     && !verifyQuery.data.is_authentic
     && verifyQuery.data.baseline_trusted;
   const documentAllowsRestore = role === 'lawyer'
+    && !documentQuery.isFetching
+    && !documentQuery.isError
     && documentQuery.data?.lifecycle?.toUpperCase() === 'FINALIZED'
     && documentQuery.data.on_chain === true
     && documentQuery.data.permissions?.can_share === true;
