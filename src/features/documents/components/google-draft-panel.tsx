@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { toast } from 'sonner';
 import type { ApiSchema } from '@/shared/types';
-import { createGoogleDraft, getGooglePickerToken, isGoogleDraftUrl } from '@/features/documents/document-draft-api';
+import { createGoogleDraft, getGoogleDraftUploadFileError, getGooglePickerToken, isGoogleDraftUrl } from '@/features/documents/document-draft-api';
 import { clearGoogleDraftReturnContext, readGoogleDraftReturnContext, saveGoogleDraftReturnContext } from '@/shared/utils/google-draft-return-context';
 import { Dropdown } from '@/shared/components/ui';
 
@@ -59,10 +59,20 @@ async function openGooglePicker(onPicked: (file: PickedFile) => void): Promise<v
   }).build().setVisible(true);
 }
 
-function errorMessage(cause: unknown): { message: string; needsGoogleConnection: boolean } {
+function errorMessage(cause: unknown, source: Source): { message: string; needsGoogleConnection: boolean } {
   const failure = cause as Error & { code?: string; status?: number };
-  if (failure.code === 'GOOGLE_NOT_CONNECTED' || failure.code === 'GOOGLE_RECONNECT_REQUIRED') return { message: 'Connect Google in account settings, then retry. Your draft choices are saved.', needsGoogleConnection: true };
-  if (failure.status === 502) return { message: 'Google Drive is unavailable. Try again in a moment. Your draft choices are saved.', needsGoogleConnection: false };
+  if (failure.code === 'GOOGLE_NOT_CONNECTED' || failure.code === 'GOOGLE_RECONNECT_REQUIRED') {
+    return {
+      message: source === 'upload'
+        ? 'Connect Google in account settings, then reselect your file after connecting Google. Uploaded files are not saved when you leave this page.'
+        : 'Connect Google in account settings, then retry. Your draft choices are saved.',
+      needsGoogleConnection: true,
+    };
+  }
+  if (failure.status === 502) return {
+    message: `Google Drive is unavailable. Try again in a moment. ${source === 'upload' ? 'Your selected file is still available.' : 'Your draft choices are saved.'}`,
+    needsGoogleConnection: false,
+  };
   return { message: failure.message || 'Unable to save the Google draft. Try again.', needsGoogleConnection: false };
 }
 
@@ -77,29 +87,46 @@ function ExistingDraft({ document }: { document: ApiSchema<'DocumentResponse'> }
   return <div className="rounded-xl border border-[#D7E4F2] bg-white p-5 sm:p-6"><p className="text-lg font-bold leading-6 text-[#0C2B49]">{document.lifecycle === 'READY_FOR_SIGNATURE' ? 'Approved text in Google Docs' : 'Working draft in Google Docs'}</p><p className="mt-2 max-w-3xl text-base leading-7 text-[#344054]">{description}</p>{isGoogleDraftUrl(url) ? <a href={url} target="_blank" rel="noreferrer" className="mt-4 inline-flex min-h-12 items-center rounded-full border border-[#006BB6] px-5 py-3 text-base font-bold text-[#006BB6] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]">{document.lifecycle === 'READY_FOR_SIGNATURE' ? 'Open approved Google Doc' : 'Open Google draft'}</a> : <p role="alert" className="mt-4 text-base font-bold leading-7 text-[#B42318]">The backend returned an invalid Google draft link. Contact your administrator.</p>}</div>;
 }
 
-function DraftCreationForm({ source, picked, error, needsGoogleConnection, pending, picking, onSourceChange, onPick, onCreate, onConnectGoogle }: {
+function DraftCreationForm({ source, picked, uploadFile, uploadError, uploadNeedsReselection, error, needsGoogleConnection, pending, picking, onSourceChange, onPick, onUploadFile, onCreate, onConnectGoogle }: {
   source: Source;
   picked: PickedFile | null;
+  uploadFile: File | null;
+  uploadError: string | null;
+  uploadNeedsReselection: boolean;
   error: string;
   needsGoogleConnection: boolean;
   pending: boolean;
   picking: boolean;
   onSourceChange: (source: Source) => void;
   onPick: () => void;
+  onUploadFile: (file: File | null) => void;
   onCreate: () => void;
   onConnectGoogle: (event: React.MouseEvent<HTMLAnchorElement>) => void;
 }) {
-  const pendingLabel = source === 'existing' ? 'Linking draft…' : 'Creating draft…';
-  const actionLabel = source === 'blank' ? 'Create blank Google draft' : source === 'template' ? 'Copy selected template' : 'Use selected Google Doc';
+  const pendingLabel = source === 'upload' ? 'Uploading document…' : source === 'existing' ? 'Linking draft…' : 'Creating draft…';
+  const actionLabel = source === 'blank' ? 'Create blank Google draft' : source === 'template' ? 'Copy selected template' : source === 'existing' ? 'Use selected Google Doc' : 'Create draft from uploaded document';
+  const uploadDescribedBy = [
+    'google-draft-upload-help',
+    uploadError ? 'google-draft-upload-error' : '',
+    uploadNeedsReselection ? 'google-draft-upload-return-note' : '',
+    error ? 'google-draft-error' : '',
+  ].filter(Boolean).join(' ');
 
   return <section aria-labelledby="google-draft-title" className="space-y-4 rounded-xl border border-[#D7E4F2] bg-white p-5 sm:p-6">
-    <div><h3 id="google-draft-title" className="text-lg font-bold leading-6 text-[#0C2B49]">Start a working draft in Google Docs</h3><p className="mt-2 max-w-3xl text-base leading-7 text-[#344054]">Use a blank Doc, copy a template, or select a Google Doc you already started. After signing outside LexChain, upload the signed PDF to this same record.</p></div>
+    <div><h3 id="google-draft-title" className="text-lg font-bold leading-6 text-[#0C2B49]">Start a working draft in Google Docs</h3><p className="mt-2 max-w-3xl text-base leading-7 text-[#344054]">Use a blank Doc, copy a template, choose a Google Doc you already started, or upload a Word document. After signing outside LexChain, upload the signed PDF to this same record.</p></div>
     <label className="grid max-w-sm gap-2 text-base font-bold text-[#0C2B49]">Choose a starting point
-      <Dropdown ariaLabel="Choose a starting point" fullWidth value={source} onChange={(value) => onSourceChange(value as Source)} options={[{ label: 'Blank Google Doc', value: 'blank' }, { label: 'Copy a template', value: 'template' }, { label: 'Use an existing Google Doc', value: 'existing' }]} />
+      <Dropdown ariaLabel="Choose a starting point" fullWidth value={source} onChange={(value) => onSourceChange(value as Source)} options={[{ label: 'Blank Google Doc', value: 'blank' }, { label: 'Copy a template', value: 'template' }, { label: 'Use an existing Google Doc', value: 'existing' }, { label: 'Upload a document', value: 'upload' }]} />
     </label>
-    {source !== 'blank' && <div className="space-y-2"><button type="button" disabled={picking} onClick={onPick} className="min-h-11 rounded-full border border-[#006BB6] px-4 py-2 text-base font-bold text-[#006BB6] disabled:opacity-60">{picking ? 'Opening Picker…' : source === 'template' ? 'Choose template' : 'Choose existing Google Doc'}</button>{picked && <p className="break-words text-base leading-7 text-[#0C2B49]">Selected: {picked.name}</p>}</div>}
-    {error && <div role="alert" className="space-y-2 text-base font-bold leading-7 text-[#B42318]"><p>{error}</p>{needsGoogleConnection && <Link href="/portal/profile/account?google_draft_return=1" onClick={onConnectGoogle} className="inline-flex min-h-11 items-center rounded-full border border-[#006BB6] px-4 py-2 text-base text-[#006BB6]">Connect Google in account settings</Link>}</div>}
-    <button type="button" disabled={pending || (source !== 'blank' && !picked)} onClick={onCreate} className="min-h-12 rounded-full bg-[#0673C4] px-5 py-3 text-base font-bold text-white hover:bg-[#005FA3] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3] disabled:opacity-60">{pending ? pendingLabel : actionLabel}</button>
+    {(source === 'template' || source === 'existing') && <div className="space-y-2"><button type="button" disabled={picking} onClick={onPick} className="min-h-11 rounded-full border border-[#006BB6] px-4 py-2 text-base font-bold text-[#006BB6] disabled:opacity-60">{picking ? 'Opening Picker…' : source === 'template' ? 'Choose template' : 'Choose existing Google Doc'}</button>{picked && <p className="break-words text-base leading-7 text-[#0C2B49]">Selected: {picked.name}</p>}</div>}
+    {source === 'upload' && <div className="grid max-w-xl gap-2">
+      <label htmlFor="google-draft-upload" className="text-base font-bold text-[#0C2B49]">Choose a document</label>
+      <input id="google-draft-upload" type="file" accept=".docx,.doc,.odt,.rtf" disabled={pending} aria-invalid={Boolean(uploadError)} aria-describedby={uploadDescribedBy} onChange={(event) => onUploadFile(event.currentTarget.files?.[0] ?? null)} className="min-h-11 w-full rounded-lg border border-[#D7E4F2] bg-white p-2 text-sm font-medium text-[#344054] file:mr-3 file:rounded-full file:border-0 file:bg-[#EAF4FF] file:px-3 file:py-1.5 file:text-sm file:font-bold file:text-[#0067B3] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3] disabled:opacity-60" />
+      <p id="google-draft-upload-help" className="text-sm leading-6 text-[#4B6382]">Supported formats: .docx, .doc, .odt, and .rtf. Maximum file size: 10 MiB.</p>
+      {uploadError && <p id="google-draft-upload-error" role="alert" className="text-sm font-bold leading-6 text-[#B42318]">{uploadError}</p>}
+      {uploadNeedsReselection && <p id="google-draft-upload-return-note" role="status" className="text-sm leading-6 text-[#344054]">For security, the selected file was not saved while you connected Google. Select it again to continue.</p>}
+    </div>}
+    {error && <div id="google-draft-error" role="alert" className="space-y-2 text-base font-bold leading-7 text-[#B42318]"><p>{error}</p>{needsGoogleConnection && <Link href="/portal/profile/account?google_draft_return=1" onClick={onConnectGoogle} className="inline-flex min-h-11 items-center rounded-full border border-[#006BB6] px-4 py-2 text-base text-[#006BB6]">Connect Google in account settings</Link>}</div>}
+    <button type="button" disabled={pending || (source === 'upload' ? !uploadFile || Boolean(uploadError) : source !== 'blank' && !picked)} onClick={onCreate} className="min-h-12 rounded-full bg-[#0673C4] px-5 py-3 text-base font-bold text-white hover:bg-[#005FA3] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3] disabled:opacity-60">{pending ? pendingLabel : actionLabel}</button>
   </section>;
 }
 
@@ -109,6 +136,8 @@ export function GoogleDraftPanel({ document, onDocumentUpdated }: {
 }) {
   const [source, setSource] = useState<Source>('blank');
   const [picked, setPicked] = useState<PickedFile | null>(null);
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [uploadNeedsReselection, setUploadNeedsReselection] = useState(false);
   const [error, setError] = useState('');
   const [needsGoogleConnection, setNeedsGoogleConnection] = useState(false);
   const [pending, setPending] = useState(false);
@@ -122,6 +151,8 @@ export function GoogleDraftPanel({ document, onDocumentUpdated }: {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setSource(context.source);
       setPicked(context.picked);
+      setUploadFile(null);
+      setUploadNeedsReselection(context.source === 'upload');
     }
     clearGoogleDraftReturnContext();
   }, [document.document_id]);
@@ -133,7 +164,7 @@ export function GoogleDraftPanel({ document, onDocumentUpdated }: {
     try {
       await openGooglePicker(setPicked);
     } catch (cause) {
-      const failure = errorMessage(cause);
+      const failure = errorMessage(cause, source);
       setError(failure.message);
       setNeedsGoogleConnection(failure.needsGoogleConnection);
     } finally {
@@ -146,15 +177,15 @@ export function GoogleDraftPanel({ document, onDocumentUpdated }: {
     setError('');
     setNeedsGoogleConnection(false);
     try {
-      const result = await createGoogleDraft(document.document_id, source, picked?.id);
+      const result = await createGoogleDraft(document.document_id, source, picked?.id, uploadFile ?? undefined);
       toast.success('Google draft is ready.');
       onDocumentUpdated(result);
     } catch (cause) {
-      const failure = errorMessage(cause);
+      const failure = errorMessage(cause, source);
       setError(failure.message);
       setNeedsGoogleConnection(failure.needsGoogleConnection);
       const status = cause instanceof Error && 'status' in cause && typeof cause.status === 'number' ? cause.status : undefined;
-      if (source !== 'blank' && (status === 400 || status === 404)) setPicked(null);
+      if (source !== 'blank' && source !== 'upload' && (status === 400 || status === 404)) setPicked(null);
     } finally {
       setPending(false);
     }
@@ -165,7 +196,7 @@ export function GoogleDraftPanel({ document, onDocumentUpdated }: {
 
   function preserveChoices(event: React.MouseEvent<HTMLAnchorElement>) {
     try {
-      saveGoogleDraftReturnContext({ documentId: document.document_id, source, picked });
+      saveGoogleDraftReturnContext({ documentId: document.document_id, source, picked: source === 'upload' ? null : picked });
     } catch (cause) {
       event.preventDefault();
       setError(cause instanceof Error ? cause.message : 'Your draft choices could not be saved. Try again.');
@@ -173,6 +204,8 @@ export function GoogleDraftPanel({ document, onDocumentUpdated }: {
     }
   }
 
-  return <DraftCreationForm source={source} picked={picked} error={error} needsGoogleConnection={needsGoogleConnection} pending={pending} picking={picking}
-    onSourceChange={(value) => { setSource(value); setPicked(null); setError(''); setNeedsGoogleConnection(false); }} onPick={() => void chooseFile()} onCreate={() => void createDraft()} onConnectGoogle={preserveChoices} />;
+  const uploadError = source === 'upload' && uploadFile ? getGoogleDraftUploadFileError(uploadFile) : null;
+
+  return <DraftCreationForm source={source} picked={picked} uploadFile={uploadFile} uploadError={uploadError} uploadNeedsReselection={uploadNeedsReselection} error={error} needsGoogleConnection={needsGoogleConnection} pending={pending} picking={picking}
+    onSourceChange={(value) => { setSource(value); setPicked(null); setUploadFile(null); setUploadNeedsReselection(false); setError(''); setNeedsGoogleConnection(false); }} onPick={() => void chooseFile()} onUploadFile={(file) => { setUploadFile(file); setUploadNeedsReselection(false); setError(''); setNeedsGoogleConnection(false); }} onCreate={() => void createDraft()} onConnectGoogle={preserveChoices} />;
 }

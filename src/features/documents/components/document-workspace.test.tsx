@@ -811,6 +811,88 @@ describe('DocumentWorkspace', () => {
     expect(screen.queryByRole('alert')).toBeNull();
   });
 
+  it.each([
+    [new File([], 'empty.docx'), 'Choose a non-empty document file.'],
+    [new File(['image'], 'renamed.pdf'), 'Choose a .docx, .doc, .odt, or .rtf file.'],
+    [new File([new Uint8Array(10 * 1024 * 1024 + 1)], 'large.docx'), 'Choose a file that is 10 MiB or smaller.'],
+  ])('rejects an invalid upload accessibly before submitting', async (file, message) => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    renderWorkspace({ document: { ...document, draft_url: null, permissions: { ...document.permissions, can_create_draft: true } } });
+
+    fireEvent.click(screen.getByRole('combobox', { name: 'Choose a starting point' }));
+    fireEvent.click(screen.getByRole('option', { name: 'Upload a document' }));
+    const input = screen.getByLabelText('Choose a document') as HTMLInputElement;
+    fireEvent.change(input, { target: { files: [file] } });
+
+    expect(screen.getByText(message)).toBeTruthy();
+    expect(input.getAttribute('aria-invalid')).toBe('true');
+    expect(input.getAttribute('aria-describedby')).toContain('google-draft-upload-error');
+    expect((screen.getByRole('button', { name: 'Create draft from uploaded document' }) as HTMLButtonElement).disabled).toBe(true);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('keeps the selected upload after a recoverable failure and updates the document on retry', async () => {
+    const file = new File(['draft bytes'], 'client-contract.docx', { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+    const updatedDocument = { ...document, draft_url: 'https://docs.google.com/document/d/uploaded-draft' };
+    let attempts = 0;
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const path = new URL(String(input), window.location.origin).searchParams.get('path');
+      if (path === '/documents/doc-101/draft') {
+        attempts += 1;
+        if (attempts === 1) return Response.json({ message: 'Google Drive is unreachable.' }, { status: 502 });
+        return Response.json(updatedDocument, { status: 201 });
+      }
+      throw new Error(`Unexpected request: ${input}`);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    renderWorkspace({ document: { ...document, draft_url: null, permissions: { ...document.permissions, can_create_draft: true } } });
+
+    fireEvent.click(screen.getByRole('combobox', { name: 'Choose a starting point' }));
+    fireEvent.click(screen.getByRole('option', { name: 'Upload a document' }));
+    const input = screen.getByLabelText('Choose a document') as HTMLInputElement;
+    fireEvent.change(input, { target: { files: [file] } });
+    const submit = screen.getByRole('button', { name: 'Create draft from uploaded document' });
+    fireEvent.click(submit);
+
+    expect(await screen.findByText('Google Drive is unavailable. Try again in a moment. Your selected file is still available.')).toBeTruthy();
+    expect(input.files?.[0]).toBe(file);
+    fireEvent.click(submit);
+
+    expect(await screen.findByRole('link', { name: 'Open Google draft' })).toBeTruthy();
+    expect(attempts).toBe(2);
+  });
+
+  it('asks for the upload again after Google OAuth without storing file bytes', async () => {
+    const file = new File(['private upload bytes'], 'client-contract.docx', { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const path = new URL(String(input), window.location.origin).searchParams.get('path');
+      if (path === '/documents/doc-101/draft') return Response.json({ message: 'Google must be connected.', details: { reason: 'GOOGLE_NOT_CONNECTED' } }, { status: 409 });
+      throw new Error(`Unexpected request: ${input}`);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const workspace = renderWorkspace({ document: { ...document, draft_url: null, permissions: { ...document.permissions, can_create_draft: true } } });
+
+    fireEvent.click(screen.getByRole('combobox', { name: 'Choose a starting point' }));
+    fireEvent.click(screen.getByRole('option', { name: 'Upload a document' }));
+    fireEvent.change(screen.getByLabelText('Choose a document'), { target: { files: [file] } });
+    fireEvent.click(screen.getByRole('button', { name: 'Create draft from uploaded document' }));
+    const connectLink = await screen.findByRole('link', { name: 'Connect Google in account settings' });
+    expect(screen.getByText(/reselect your file after connecting Google/i)).toBeTruthy();
+    fireEvent.click(connectLink);
+
+    const storedContext = sessionStorage.getItem('lexchain:google-draft-return');
+    expect(storedContext).toBe(JSON.stringify({ documentId: 'doc-101', source: 'upload', picked: null }));
+    expect(storedContext).not.toContain('private upload bytes');
+    expect(storedContext).not.toContain(file.name);
+
+    workspace.unmount();
+    renderWorkspace({ document: { ...document, draft_url: null, permissions: { ...document.permissions, can_create_draft: true } } });
+    expect(await screen.findByText(/select it again/i)).toBeTruthy();
+    expect((screen.getByLabelText('Choose a document') as HTMLInputElement).files).toHaveLength(0);
+    expect(sessionStorage.getItem('lexchain:google-draft-return')).toBeNull();
+  });
+
   it('explains unavailable data without inventing controls or restricted workflow actions', () => {
     renderWorkspace({ document: { ...document, lifecycle: 'SIGNED', status: 'PROCESSING', signed_copy: null, draft_url: null, summary: null, labels: [], entities: [], risk_flags: [] } });
 

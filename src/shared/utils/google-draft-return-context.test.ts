@@ -13,6 +13,12 @@ const context = {
   picked: { id: 'file-88', name: 'Client template' },
 };
 
+const uploadContext = {
+  documentId: 'doc-101',
+  source: 'upload' as const,
+  picked: null,
+};
+
 beforeEach(() => sessionStorage.clear());
 
 afterEach(() => {
@@ -27,6 +33,15 @@ describe('Google draft return context', () => {
     expect(readGoogleDraftReturnContext()).toEqual(context);
   });
 
+  it('remembers the upload source without storing file data for the OAuth return', () => {
+    saveGoogleDraftReturnContext(uploadContext);
+
+    const stored = sessionStorage.getItem('lexchain:google-draft-return');
+    expect(stored).toBe(JSON.stringify(uploadContext));
+    expect(stored).not.toContain('private upload content');
+    expect(readGoogleDraftReturnContext()).toEqual(uploadContext);
+  });
+
   it('rejects malformed data, unknown sources, invalid IDs, and invalid file shapes', () => {
     saveGoogleDraftReturnContext(context);
     const key = sessionStorage.key(0)!;
@@ -36,6 +51,8 @@ describe('Google draft return context', () => {
       JSON.stringify({ ...context, source: 'other' }),
       JSON.stringify({ ...context, picked: { id: '', name: 'Client template' } }),
       JSON.stringify({ ...context, returnTo: 'https://attacker.test' }),
+      JSON.stringify({ ...uploadContext, picked: { id: 'drive-file', name: 'not an upload' } }),
+      JSON.stringify({ ...uploadContext, file: 'private upload content' }),
     ]) {
       sessionStorage.setItem(key, value);
       expect(readGoogleDraftReturnContext()).toBeNull();
