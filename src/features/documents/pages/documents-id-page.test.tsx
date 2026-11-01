@@ -344,7 +344,7 @@ describe('document detail screen', () => {
     expect(screen.getByRole('button', { name: 'Finalize' })).toBeTruthy();
   });
 
-  it.each(['Overview', 'Files', 'Comments', 'Blockchain', 'Activity'])('keeps finalization confirmation visible from the %s tab', async (tab) => {
+  it.each(['Overview', 'Files', 'Comments', 'Blockchain', 'History'])('keeps finalization confirmation visible from the %s tab', async (tab) => {
     state.documentQuery = { ...state.documentQuery, data: { ...baseDocument, permissions: { ...baseDocument.permissions, can_finalize: true } } };
     await showPage();
     fireEvent.click(screen.getByRole('tab', { name: tab }));
@@ -384,7 +384,7 @@ describe('document detail screen', () => {
     expect(await screen.findByText('Document finalized and anchored on-chain.')).toBeTruthy();
     expect(screen.getAllByText('Finalized').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Queued').length).toBeGreaterThan(0);
-    for (const tab of ['Overview', 'Files', 'Comments', 'Blockchain', 'Activity']) {
+    for (const tab of ['Overview', 'Files', 'Comments', 'Blockchain', 'History']) {
       fireEvent.click(screen.getByRole('tab', { name: tab }));
       expect(screen.getByText('Document finalized and anchored on-chain.')).toBeTruthy();
       expect(screen.getByText('Document ID').parentElement?.querySelector('code')?.textContent).toBe('doc-1');

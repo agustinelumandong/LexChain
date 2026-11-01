@@ -1,4 +1,3 @@
-export { default as DocumentActivityPage } from "./documents-id-activity-page";
 export { default as AskPage } from "./documents-id-ask-page";
 export { default as DocumentDetailPage } from "./documents-id-page";
 export { default as DocumentParticipantsPage } from "./documents-id-participants-page";
