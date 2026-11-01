@@ -4,6 +4,16 @@ import { isMockPortalToken, mockPortalGet, mockPortalMutate } from '@/lib/mocks/
 afterEach(() => vi.restoreAllMocks());
 
 describe('portal mock extraction contract', () => {
+  it('paginates document lists and identifies ownership', async () => {
+    const first = await mockPortalGet('/documents/?limit=1&offset=0', 'mock-token:mock-document-issuer').json();
+    const second = await mockPortalGet('/documents/?limit=1&offset=1', 'mock-token:mock-document-issuer').json();
+    expect(first).toHaveLength(1);
+    expect(second).toHaveLength(1);
+    expect(first[0].id).not.toBe(second[0].id);
+    expect(first[0].is_owner).toBe(true);
+    const participant = await mockPortalGet('/documents/?limit=50&offset=0', 'mock-token:mock-document-participant').json();
+    expect(participant[0].is_owner).toBe(false);
+  });
   it('uses contract-shaped metadata for notification fixtures and uploads', async () => {
     const initialNotifications = await mockPortalGet('/notifications/', 'mock-token:mock-document-issuer').json() as { notifications: Array<Record<string, unknown>> };
     expect(initialNotifications.notifications).toEqual(expect.arrayContaining([

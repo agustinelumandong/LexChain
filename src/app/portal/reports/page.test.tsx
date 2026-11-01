@@ -25,6 +25,9 @@ vi.mock('@tanstack/react-query', () => ({
     ? { data: { role: queryState.role }, isLoading: false }
     : { data: queryState.documents, isLoading: false, isError: false },
 }));
+vi.mock('@/shared/api/client', () => ({
+  portalFetch: vi.fn(async () => [{ id: 'mock-document-1', file_name: 'Lease Agreement.pdf', lifecycle: 'FINALIZED', status: 'anchored', is_owner: true, created_at: '2026-07-10T09:00:00.000Z' }]),
+}));
 
 afterEach(() => {
   cleanup();
@@ -100,7 +103,7 @@ describe('ReportsPage', () => {
     expect(controls.className).toContain('shadow-sm');
   });
 
-  it('guides the user from report setup into a finished preview state', () => {
+  it('guides the user from report setup into a finished preview state', async () => {
     render(<OfficeReportsPage />);
 
     expect(screen.getByRole('heading', { name: 'Build a report', level: 2 })).toBeTruthy();
@@ -108,19 +111,19 @@ describe('ReportsPage', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Generate' }));
 
-    expect(screen.getByText('CSV preview')).toBeTruthy();
-    expect(screen.getByText(/in this preview/i)).toBeTruthy();
+    expect(await screen.findByText('CSV preview')).toBeTruthy();
+    expect(screen.getByText(/in this report/i)).toBeTruthy();
   });
 
-  it('generates a compact preview and shows the disclaimer for every result', () => {
+  it('shows the owned document report and retains the integrity demo disclaimer', async () => {
     render(<OfficeReportsPage />);
 
     fireEvent.click(screen.getByRole('button', { name: 'Generate' }));
-    expect(screen.getByRole('region', { name: 'Document Activity report' })).toBeTruthy();
+    expect(await screen.findByRole('region', { name: 'Document Activity report' })).toBeTruthy();
     expect(screen.getByRole('table', { name: 'Document Activity preview' })).toBeTruthy();
     expect(screen.getByText('Lease Agreement.pdf')).toBeTruthy();
     expect(screen.queryByText('Deed of Sale - Lot 18.pdf')).toBeNull();
-    expect(screen.getByText('Demo report — generated locally from seeded data and not stored.')).toBeTruthy();
+    expect(screen.getByText(/Scope: documents owned by you/)).toBeTruthy();
 
     fireEvent.click(screen.getByRole('combobox', { name: 'Report type' }));
     fireEvent.click(screen.getByRole('option', { name: 'Integrity' }));
@@ -129,17 +132,17 @@ describe('ReportsPage', () => {
     expect(screen.getByText('Demo report — generated locally from seeded data and not stored.')).toBeTruthy();
   });
 
-  it('requires both report dates before generating', () => {
+  it('requires both report dates before generating', async () => {
     render(<OfficeReportsPage />);
 
     fireEvent.click(within(screen.getByRole('group', { name: 'From' })).getByTitle('Clear'));
     fireEvent.click(screen.getByRole('button', { name: 'Generate' }));
 
-    expect(screen.getByRole('alert').textContent).toContain('Select both a start and end date.');
+    expect((await screen.findByRole('alert')).textContent).toContain('Select both a start and end date.');
     expect(screen.queryByRole('region', { name: 'Document Activity report' })).toBeNull();
   });
 
-  it('downloads CSV with the report type and dates in the filename', () => {
+  it('downloads CSV with the report type and dates in the filename', async () => {
     let downloadedFilename = '';
     Object.defineProperty(URL, 'createObjectURL', { configurable: true, value: vi.fn(() => 'blob:demo-report') });
     Object.defineProperty(URL, 'revokeObjectURL', { configurable: true, value: vi.fn() });
@@ -149,7 +152,7 @@ describe('ReportsPage', () => {
     render(<OfficeReportsPage />);
 
     fireEvent.click(screen.getByRole('button', { name: 'Generate' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Download CSV' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Download CSV' }));
 
     expect(downloadedFilename).toBe('office-document-activity-2026-07-01-to-2026-07-31.csv');
   });

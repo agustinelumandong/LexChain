@@ -600,7 +600,13 @@ export function mockPortalGet(path: string, token?: string): Response {
   if (requestPathname === '/documents' || requestPathname === '/documents/') {
     const allDocuments = [...documents, ...Array.from(scannedDeedDemoRecords.values(), ({ document }) => document)
       .filter((document) => !documents.some((candidate) => candidate.id === document.id))];
-    return json(isMockParticipant(token) ? allDocuments.filter((document) => sharedDocumentIds.has(document.id)) : allDocuments);
+    const params = new URL(path, 'https://mock.lexchain.local').searchParams;
+    const limit = Number(params.get('limit') ?? 50);
+    const offset = Number(params.get('offset') ?? 0);
+    if (!Number.isInteger(limit) || limit < 1 || limit > 100 || !Number.isInteger(offset) || offset < 0) return error('Invalid pagination parameters', 422);
+    const participant = isMockParticipant(token);
+    const visible = participant ? allDocuments.filter((document) => sharedDocumentIds.has(document.id)) : allDocuments;
+    return json(visible.slice(offset, offset + limit).map((document) => ({ ...document, is_owner: !participant })));
   }
   if (requestPathname === '/books' || requestPathname === '/books/') {
     if (!hasMockIssuerAccess(token)) return error('Lawyer access required', 403);
