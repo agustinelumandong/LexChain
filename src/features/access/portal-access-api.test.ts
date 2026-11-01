@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { inviteDocumentParty, listDocumentAuditLogs, listDocumentParties, revokeDocumentParty, searchUserByEmail } from '@/features/access/portal-access-api';
+import { inviteDocumentParty, listDocumentParties, revokeDocumentParty, searchUserByEmail } from '@/features/access/portal-access-api';
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -30,7 +30,6 @@ describe('access request failures', () => {
     () => listDocumentParties('doc-1'),
     () => inviteDocumentParty('doc-1', { email: 'person@example.com', role: 'viewer' }),
     () => revokeDocumentParty('doc-1', 'user-1'),
-    () => listDocumentAuditLogs('doc-1'),
     () => searchUserByEmail('person@example.com'),
   ])('preserves backend feedback and status', async (request) => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json({ message: 'Access rejected', details: { reason: 'DENIED', errors: [{ field: 'email', message: 'Account unavailable' }] } }, { status: 403 })));

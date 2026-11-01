@@ -1,7 +1,6 @@
 import { portalRequest } from '@/shared/api/client';
 import { PortalApiError } from '@/shared/api/portal-error';
 import type { components } from '@/shared/types/index';
-import type { PortalAuditLog } from '@/features/access/portal-compat-types';
 
 type DocumentPartyList = components['schemas']['DocumentPartyListResponse'];
 type AddPartyRequest = components['schemas']['AddPartyRequest'];
@@ -47,8 +46,4 @@ export async function searchUserByEmail(email: string): Promise<UserSearchRespon
     if (reason instanceof PortalApiError && reason.status === 404) return null;
     throw reason;
   }
-}
-
-export function listDocumentAuditLogs(documentId: string) {
-  return portalAccessFetch<PortalAuditLog[]>(`/api/portal/documents/${documentId}/audit-logs`);
 }

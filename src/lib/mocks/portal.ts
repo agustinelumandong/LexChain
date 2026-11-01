@@ -46,7 +46,6 @@ type MockDocument = {
   risk_flags: Array<Record<string, string>>;
   created_at: string;
   updated_at: string;
-  audit_log: Array<Record<string, unknown>>;
 } & DemoDocumentLifecycle & {
   integrity_state: DemoIntegrityState;
 };
@@ -101,17 +100,6 @@ function canRestoreMockDocument(document: MockDocument) {
   return document.integrity_state === 'mismatch' && document.snapshots.length > 0;
 }
 
-function mockCreationAudit(documentId: string, createdAt: string) {
-  return {
-    id: `mock-audit-${documentId}`,
-    document_id: documentId,
-    user_id: mockIssuerId,
-    action: 'document_created',
-    details: { source: 'mock portal' },
-    created_at: createdAt,
-  };
-}
-
 const issuerProfile = {
   email: 'issuer@example.com',
   f_name: 'Document',
@@ -150,7 +138,6 @@ let documents: MockDocument[] = [
     risk_flags: [],
     created_at: '2026-07-10T09:00:00.000Z',
     updated_at: '2026-07-10T09:05:00.000Z',
-    audit_log: [mockCreationAudit('mock-document-1', '2026-07-10T09:00:00.000Z')],
     lifecycle: 'finalized',
     document_hash: 'a'.repeat(64),
     finalized_at: '2026-07-10T09:05:00.000Z',
@@ -183,7 +170,6 @@ let documents: MockDocument[] = [
     risk_flags: [{ note: 'Awaiting document processing.' }],
     created_at: '2026-07-13T13:30:00.000Z',
     updated_at: '2026-07-13T13:30:00.000Z',
-    audit_log: [mockCreationAudit('mock-document-2', '2026-07-13T13:30:00.000Z')],
     lifecycle: 'signed',
     signed_copy: {
       id: 'mock-signed-copy-2',
@@ -219,7 +205,6 @@ let documents: MockDocument[] = [
     risk_flags: [{ note: 'Integrity mismatch detected.' }],
     created_at: '2026-07-15T10:00:00.000Z',
     updated_at: '2026-07-15T10:05:00.000Z',
-    audit_log: [mockCreationAudit('mock-document-3', '2026-07-15T10:00:00.000Z')],
     lifecycle: 'finalized',
     document_hash: 'b'.repeat(64),
     finalized_at: '2026-07-15T10:05:00.000Z',
@@ -249,7 +234,6 @@ let documents: MockDocument[] = [
     risk_flags: [],
     created_at: '2026-07-18T09:00:00.000Z',
     updated_at: '2026-07-18T09:00:00.000Z',
-    audit_log: [mockCreationAudit('mock-document-4', '2026-07-18T09:00:00.000Z')],
     lifecycle: 'draft',
     document_hash: null,
     finalized_at: null,
@@ -274,7 +258,6 @@ let documents: MockDocument[] = [
     risk_flags: [{ note: 'Fictional test fixture; no legal or ownership claims.' }],
     created_at: '2026-07-20T11:55:00.000Z',
     updated_at: '2026-07-20T12:00:00.000Z',
-    audit_log: [mockCreationAudit('mock-document-5', '2026-07-20T11:55:00.000Z')],
     lifecycle: 'finalized',
     document_hash: 'c'.repeat(64),
     finalized_at: '2026-07-20T12:00:00.000Z',
@@ -305,7 +288,6 @@ documents.push({
   labels: ['processing', 'retry'],
   created_at: '2026-07-21T10:00:00.000Z',
   updated_at: '2026-07-21T10:05:00.000Z',
-  audit_log: [mockCreationAudit('mock-document-retry', '2026-07-21T10:00:00.000Z')],
   document_hash: 'd'.repeat(64),
   finalized_at: '2026-07-21T10:05:00.000Z',
   finalized_by: mockIssuerId,
@@ -531,7 +513,7 @@ function documentPermissions(document: MockDocument, token?: string) {
 }
 
 function documentPaths(path: string) {
-  return path.match(/^\/documents\/([^/]+)(?:\/(parties|versions|audit-logs|verify))?\/?$/);
+  return path.match(/^\/documents\/([^/]+)(?:\/(parties|versions|verify))?\/?$/);
 }
 
 function mockPdfFileName(fileName: string) {
@@ -782,7 +764,7 @@ export function mockPortalGet(path: string, token?: string): Response {
         message: isAuthentic ? 'Document matches the anchored hash.' : 'Document content differs from the anchored hash.',
       });
     }
-    return json(document.audit_log);
+    return error('Mock endpoint not found', 404);
   }
 
   return error('Mock endpoint not found', 404);
@@ -834,7 +816,6 @@ async function uploadDocument(request: Request, path: string, token?: string) {
     risk_flags: [],
     created_at: now,
     updated_at: now,
-    audit_log: [mockCreationAudit(id, now)],
     lifecycle: 'draft',
     document_hash: null,
     finalized_at: null,
@@ -1259,7 +1240,6 @@ export async function mockPortalMutate(method: 'POST' | 'PUT' | 'PATCH' | 'DELET
       anchor_status: null,
       snapshots: [],
       integrity_state: 'not-recorded' as const,
-      audit_log: [mockCreationAudit(document.id, now)],
     };
     documents = [...documents.map((item) => item.id === document.id ? { ...item, is_latest: false } : item), next];
     return json({ document_id: next.id, status: next.status }, 202);
@@ -1338,14 +1318,6 @@ export async function mockPortalMutate(method: 'POST' | 'PUT' | 'PATCH' | 'DELET
       }],
       integrity_state: 'match',
       updated_at: now,
-      audit_log: [...document.audit_log, {
-        id: `mock-audit-finalized-${document.id}`,
-        document_id: document.id,
-        user_id: mockIssuerId,
-        action: 'document_finalized',
-        details: { document_hash: documentHash },
-        created_at: now,
-      }],
     };
     updateDocument(finalizedDocument);
     return json(recordResponse(documentHash));
@@ -1373,14 +1345,6 @@ export async function mockPortalMutate(method: 'POST' | 'PUT' | 'PATCH' | 'DELET
       document_hash: snapshot.text_hash,
       integrity_state: 'match',
       updated_at: now,
-      audit_log: [...document.audit_log, {
-        id: `mock-audit-restored-${document.id}-${Date.now()}`,
-        document_id: document.id,
-        user_id: mockIssuerId,
-        action: 'document_restored',
-        details: { snapshot_id: snapshot.id, reason },
-        created_at: now,
-      }],
     };
     documents = documents.map((item) => item.id === document.id ? restoredDocument : item);
     return json(restoredDocument);
