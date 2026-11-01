@@ -837,7 +837,7 @@ export function DocumentWorkspace({
                 ? hasGoogleDraft ? 'Open the Google Doc to review and edit the agreed text.' : document.draft_url ? 'The linked Google Doc needs attention before this draft can be reviewed.' : 'Create or link a Google Doc to start drafting. Comments and participants will stay with this record.'
                 : 'Open the approved Google Doc to print the version for signing.'}</p>
               {document.draft_url || (document.lifecycle === 'PREPARING' && document.permissions.can_create_draft)
-                ? <GoogleDraftPanel document={document} onDocumentUpdated={onDocumentUpdated} />
+                ? <GoogleDraftPanel key={document.document_id} document={document} onDocumentUpdated={onDocumentUpdated} />
                 : <p role="note" className="rounded-xl border border-[#D7E4F2] bg-white p-5 text-base leading-7 text-[#344054]">{document.lifecycle === 'PREPARING' ? role === 'lawyer' ? 'A working draft is not linked yet. Ask the document owner to create or link the Google Doc.' : 'Your lawyer is preparing the working draft. It will appear here when available.' : 'No Google Doc is linked to this record. Continue with the external signing instructions below.'}</p>}
             </section>
 
@@ -870,7 +870,7 @@ export function DocumentWorkspace({
           <div className="min-w-0">
             <div className="space-y-4">
               {document.lifecycle === 'SIGNED' && <FinalizationNextStep document={document} role={role} outcomeUnknown={finalizationOutcomeUnknown} />}
-              {document.draft_url && <GoogleDraftPanel document={document} onDocumentUpdated={onDocumentUpdated} />}
+              {document.draft_url && <GoogleDraftPanel key={document.document_id} document={document} onDocumentUpdated={onDocumentUpdated} />}
               <section aria-labelledby="document-summary-heading" className="rounded-xl border border-[#D7E4F2] bg-white p-4 sm:p-5">
                 <h2 id="document-summary-heading" className="inline-flex items-center gap-2 text-lg font-bold leading-6 text-[#0C2B49]"><DescriptionOutlinedIcon aria-hidden="true" sx={{ fontSize: 20, color: '#0067B3' }} />Document summary</h2>
                 <p className="mt-2 break-words text-base leading-7 text-[#344054]">{document.summary || 'No summary is available for this document yet.'}</p>

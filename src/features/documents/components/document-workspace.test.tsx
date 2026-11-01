@@ -888,7 +888,7 @@ describe('DocumentWorkspace', () => {
 
     workspace.unmount();
     renderWorkspace({ document: { ...document, draft_url: null, permissions: { ...document.permissions, can_create_draft: true } } });
-    expect(await screen.findByText(/select it again/i)).toBeTruthy();
+    expect(await screen.findByText(/reselect the file when you return/i)).toBeTruthy();
     expect((screen.getByLabelText('Choose a document') as HTMLInputElement).files).toHaveLength(0);
     expect(sessionStorage.getItem('lexchain:google-draft-return')).toBeNull();
   });
