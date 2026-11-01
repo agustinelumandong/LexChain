@@ -19,7 +19,7 @@ export const adminUserSchema = z.object({
   l_name: z.string(),
   role: z.string(),
   is_active: z.boolean(),
-  created_at: z.string(),
+  created_at: z.string().datetime({ offset: true }),
 });
 
 export const adminUserListResponseSchema = z.object({

@@ -1,7 +1,4 @@
-import {
-  adminAuditLogs,
-  adminUsers,
-} from '@/features/admin/admin-demo-data';
+import { adminAuditLogs } from '@/features/admin/admin-demo-data';
 import type { ApiSchema } from '@/shared/types/index';
 
 export type OfficeDateRange = {
@@ -34,14 +31,14 @@ export type PortalReportDocument = Pick<
   finalized_by?: string | null;
 };
 
-export type DemoReportType =
+export type ReportType =
   | 'office-document-activity'
   | 'office-integrity'
   | 'system-users'
   | 'system-audit';
 
-export type DemoReport = {
-  reportType: DemoReportType;
+export type Report = {
+  reportType: ReportType;
   from: string;
   to: string;
   columns: string[];
@@ -78,6 +75,14 @@ export function getOfficeInsightMetrics(
   ];
 }
 
+export function assertReportDateRange(from: string, to: string): void {
+  if (!from || !to) throw new Error('Select both a start and end date.');
+  const validDate = (value: string) => /^\d{4}-\d{2}-\d{2}$/.test(value)
+    && !Number.isNaN(Date.parse(value)) && new Date(value).toISOString().slice(0, 10) === value;
+  if (!validDate(from) || !validDate(to)) throw new Error('Select valid dates.');
+  if (from > to) throw new Error('Start date must be on or before end date.');
+}
+
 function datePart(value: string | null): string | undefined {
   return value?.slice(0, 10);
 }
@@ -88,13 +93,12 @@ function isWithin(value: string | null, from: string, to: string): boolean {
 }
 
 export function createDemoReport(
-  type: DemoReportType,
+  type: ReportType,
   from: string,
   to: string,
   portalDocuments: PortalReportDocument[] = [],
-): DemoReport {
-  if (!from || !to) throw new Error('Select both a start and end date.');
-  if (from > to) throw new Error('Start date must be on or before end date.');
+): Report {
+  assertReportDateRange(from, to);
 
   switch (type) {
     case 'office-document-activity':
@@ -132,21 +136,7 @@ export function createDemoReport(
           })),
       };
     case 'system-users':
-      return {
-        reportType: type,
-        from,
-        to,
-        columns: ['Name', 'Email', 'Role', 'Status', 'Created'],
-        rows: adminUsers
-          .filter((user) => isWithin(user.created_at, from, to))
-          .map((user) => ({
-            Name: user.name,
-            Email: user.email,
-            Role: user.role,
-            Status: user.status,
-            Created: datePart(user.created_at),
-          })),
-      };
+      throw new Error('System Users reports require live backend data.');
     case 'system-audit':
       return {
         reportType: type,
@@ -174,14 +164,14 @@ function csvValue(value: unknown): string {
   return /[",\r\n]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text;
 }
 
-export function toCsv(report: DemoReport): string {
+export function toCsv(report: Report): string {
   return [
     report.columns.map(csvValue).join(','),
     ...report.rows.map((row) => report.columns.map((column) => csvValue(row[column])).join(',')),
   ].join('\r\n');
 }
 
-export function downloadDemoReport(report: DemoReport): void {
+export function downloadReport(report: Report): void {
   const url = URL.createObjectURL(new Blob([toCsv(report)], { type: 'text/csv;charset=utf-8' }));
   const link = document.createElement('a');
   link.href = url;
