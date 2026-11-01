@@ -158,12 +158,31 @@ describe('DocumentWorkspace', () => {
   });
 
   it('submits an e-copy request for an eligible document', async () => {
-    const fetchMock = vi.fn().mockResolvedValue(Response.json({ status: 'PENDING' }, { status: 201 }));
+    const historyRequest = {
+      id: 'request-101', document_id: 'doc-101', file_name: 'service-agreement.pdf', client_id: 'client-101',
+      client_name: 'Jordan Client', client_email: 'jordan@example.test', status: 'PENDING', requested_at: '2026-11-01T12:00:00Z',
+      decided_at: null, decided_by: null, decline_reason: null, delivery_attempts: 0, delivered_at: null,
+      can_download: false, can_retry_delivery: false, events: [],
+    };
+    let historyCalls = 0;
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const path = new URL(String(input), window.location.origin).searchParams.get('path');
+      if (path === '/documents/doc-101/ecopy-requests' && (!init?.method || init.method === 'GET')) {
+        historyCalls += 1;
+        return Response.json({ requests: historyCalls === 1 ? [] : [historyRequest], total: historyCalls === 1 ? 0 : 1 });
+      }
+      if (path === '/documents/doc-101/ecopy-requests' && init?.method === 'POST') return Response.json({ status: 'PENDING' }, { status: 201 });
+      throw new Error(`Unexpected request: ${input}`);
+    });
     vi.stubGlobal('fetch', fetchMock);
-    renderWorkspace({ role: 'user', document: { ...document, lifecycle: 'FINALIZED', permissions: { ...document.permissions, can_request_ecopy: true } } });
+    const { invalidateQueries } = renderWorkspace({ role: 'user', document: { ...document, lifecycle: 'FINALIZED', permissions: { ...document.permissions, can_request_ecopy: true } } });
+    invalidateQueries.mockRestore();
     fireEvent.click(screen.getByRole('tab', { name: 'Files' }));
+    expect(await screen.findByText('No e-copy requests for this document yet.')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Request e-copy' }));
-    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith('/api/portal/proxy-post?path=%2Fdocuments%2Fdoc-101%2Fecopy-requests', expect.objectContaining({ method: 'POST' })));
+    expect(await screen.findByText('PENDING')).toBeTruthy();
+    await waitFor(() => expect(historyCalls).toBe(2));
+    expect(fetchMock).toHaveBeenCalledWith('/api/portal/proxy-post?path=%2Fdocuments%2Fdoc-101%2Fecopy-requests', expect.objectContaining({ method: 'POST' }));
   });
   it.each([
     ['PREPARING', 'Prepare and review the document', 'Step 1 of 4'],

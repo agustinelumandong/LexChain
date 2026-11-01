@@ -54,6 +54,7 @@ vi.mock('@tanstack/react-query', () => ({
   useQuery: ({ queryKey }: { queryKey: readonly unknown[] }) => {
     if (queryKey[0] === 'portal-document-comments') return state.commentsQuery;
     if (queryKey[0] === 'portal-document-parties') return state.partiesQuery;
+    if (queryKey[0] === 'ecopy-requests') return { data: { requests: [], total: 0 }, isLoading: false, isError: false, refetch: vi.fn() };
     if (queryKey[0] === 'portal-books') return { data: [], isLoading: false, isError: false };
     return state.signedCopiesQuery;
   },
