@@ -1,6 +1,6 @@
 export type GoogleDraftReturnContext = {
   documentId: string;
-  source: 'blank' | 'template' | 'existing';
+  source: 'blank' | 'template' | 'existing' | 'upload';
   picked: { id: string; name: string } | null;
 };
 
@@ -15,7 +15,7 @@ function isContext(value: unknown): value is GoogleDraftReturnContext {
   const context = value as Partial<GoogleDraftReturnContext>;
   return Object.keys(context).every((key) => ['documentId', 'source', 'picked'].includes(key))
     && isDocumentId(context.documentId)
-    && (context.source === 'blank' || context.source === 'template' || context.source === 'existing')
+    && (context.source === 'blank' || context.source === 'template' || context.source === 'existing' || context.source === 'upload')
     && (context.picked === null || (
       typeof context.picked === 'object'
       && Object.keys(context.picked).every((key) => key === 'id' || key === 'name')
@@ -24,7 +24,7 @@ function isContext(value: unknown): value is GoogleDraftReturnContext {
       && typeof context.picked.name === 'string'
       && Boolean(context.picked.name.trim())
     ))
-    && (context.source !== 'blank' || context.picked === null);
+    && ((context.source !== 'blank' && context.source !== 'upload') || context.picked === null);
 }
 
 function getSessionStorage(): Storage | null {
