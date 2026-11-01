@@ -28,6 +28,7 @@ import { getBaseSepoliaTransactionUrl } from '@/features/verification/integrity-
 import { isMockMode } from '@/lib/mocks/mode';
 import { GoogleDraftPanel } from '@/features/documents/components/google-draft-panel';
 import { listDocumentParties, type PortalUiRole } from '@/features/access';
+import { DocumentEcopyRequestHistory } from '@/features/access/components/document-ecopy-request-history';
 import { listRegisterBooks } from '@/features/office/books-api';
 import { PortalDropdown } from '@/features/portal/components';
 import { Checkbox } from '@/shared/components/ui';
@@ -356,6 +357,7 @@ function SignedPdfPreview({ document, role }: { document: WorkspaceDocument; rol
   return (
     <section aria-labelledby="signed-pdf-preview-heading" className="flex min-w-0 flex-col rounded-xl border border-[#D7E4F2] bg-white p-4 sm:p-5">
       {role === 'user' && document.lifecycle === 'FINALIZED' && <div className="mb-4">{document.permissions.can_request_ecopy && <button type="button" disabled={requestCopy.isPending || requestCopy.isSuccess} onClick={() => requestCopy.mutate()} className="rounded-full bg-[#0067B3] px-4 py-2 font-bold text-white disabled:opacity-60">{requestCopy.isPending ? 'Requesting…' : requestCopy.isSuccess ? 'E-copy requested' : 'Request e-copy'}</button>}{requestCopy.isError && <p role="alert">{requestCopy.error instanceof Error ? requestCopy.error.message : 'Could not request the e-copy.'}</p>}<p className="mt-2 text-sm"><Link href="/portal/requests/my">View e-copy requests and approved downloads</Link></p></div>}
+      {document.lifecycle === 'FINALIZED' && <DocumentEcopyRequestHistory documentId={document.document_id} />}
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <h2 id="signed-pdf-preview-heading" className="inline-flex items-center gap-2 text-lg font-bold leading-6 text-[#0C2B49]"><PictureAsPdfOutlinedIcon aria-hidden="true" sx={{ fontSize: 20, color: '#0067B3' }} />Signed PDF</h2>
