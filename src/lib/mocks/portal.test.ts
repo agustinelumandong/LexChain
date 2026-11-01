@@ -46,6 +46,12 @@ describe('portal mock extraction contract', () => {
     });
   });
 
+  it('marks owned mock documents as shareable for lawyer permission gating', async () => {
+    await expect(mockPortalGet('/documents/mock-document-3', 'mock-token:mock-document-issuer').json()).resolves.toMatchObject({
+      permissions: { can_share: true },
+    });
+  });
+
   it('returns the PDF metadata and normalized review regions', async () => {
     const response = mockPortalGet(
       '/documents/mock-document-2/extraction',
@@ -635,15 +641,33 @@ describe('portal mock participant invitations and requests', () => {
   });
 
   it('restores a tampered document through the restore endpoint', async () => {
-    const response = await mockPortalMutate(
+    vi.resetModules();
+    const freshMock = await import('@/lib/mocks/portal');
+    const before = await freshMock.mockPortalGet('/documents/mock-document-3/verify', 'mock-token:mock-document-issuer').json() as { status: string };
+    expect(before.status).toBe('TAMPERED');
+
+    const response = await freshMock.mockPortalMutate(
       'POST',
-      '/documents/mock-document-1/restore',
+      '/documents/mock-document-3/restore',
       new Request('https://mock.lexchain.local/api/portal/proxy-post', { method: 'POST' }),
       'mock-token:mock-document-issuer',
     );
 
     expect(response.status).toBe(200);
-    await expect(response.json()).resolves.toMatchObject({ document_id: 'mock-document-1' });
+    await expect(response.json()).resolves.toMatchObject({
+      document_id: 'mock-document-3',
+      restored: true,
+      preserved_copy_id: null,
+      verification: { status: 'AUTHENTIC', is_authentic: true },
+    });
+
+    const repeated = await freshMock.mockPortalMutate(
+      'POST',
+      '/documents/mock-document-3/restore',
+      new Request('https://mock.lexchain.local/api/portal/proxy-post', { method: 'POST' }),
+      'mock-token:mock-document-issuer',
+    );
+    await expect(repeated.json()).resolves.toMatchObject({ restored: false, verification: { status: 'AUTHENTIC' } });
   });
 
   it('accepts a participant invitation and leaves its document available for navigation', async () => {
@@ -670,7 +694,7 @@ describe('portal mock participant invitations and requests', () => {
     );
     const restore = await mockPortalMutate(
       'POST',
-      '/documents/mock-document-4/snapshots/mock-snapshot-4/restore',
+      '/documents/mock-document-4/restore',
       new Request('https://mock.lexchain.local/api/portal/proxy-post', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
