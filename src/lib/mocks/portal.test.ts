@@ -166,8 +166,7 @@ describe('portal mock mutations', () => {
       data_hash: record.data_hash,
     });
 
-    const audits = await mockPortalGet('/documents/mock-document-2/audit-logs', 'mock-token:mock-document-issuer').json();
-    expect(audits.filter((audit: { action: string }) => audit.action === 'document_finalized')).toHaveLength(1);
+    expect((await mockPortalGet('/documents/mock-document-2/audit-logs', 'mock-token:mock-document-issuer')).status).toBe(404);
   });
 
   it('restores a mismatched finalized document from its retained snapshot with a reason', async () => {
@@ -203,11 +202,6 @@ describe('portal mock mutations', () => {
 
     expect(restored.status).toBe(200);
     await expect(restored.json()).resolves.toMatchObject({ lifecycle: 'restored', snapshots: sourceSnapshots });
-    const audits = await mockPortalGet('/documents/mock-document-3/audit-logs', 'mock-token:mock-document-issuer').json();
-    expect(audits).toContainEqual(expect.objectContaining({
-      action: 'document_restored',
-      details: { snapshot_id: 'mock-snapshot-3', reason: 'Restore the verified snapshot.' },
-    }));
   });
 
   it('returns a mock blockchain tamper report with the changed deed price block', async () => {

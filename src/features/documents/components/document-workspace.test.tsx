@@ -185,6 +185,17 @@ describe('DocumentWorkspace', () => {
     expect(within(overview).getByText('Finalized', { selector: 'dt' })).toBeTruthy();
   });
 
+  it('labels lifecycle history as History, not Activity', async () => {
+    renderWorkspace({ document: { ...document, lifecycle: 'FINALIZED' } });
+
+    expect(screen.getByRole('tab', { name: 'History' })).toBeTruthy();
+    expect(screen.queryByRole('tab', { name: 'Activity' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'View document history' }));
+    expect(screen.getByRole('tab', { name: 'History' }).getAttribute('aria-selected')).toBe('true');
+    expect(await screen.findByText('No history has been recorded for this document yet.')).toBeTruthy();
+    expect(screen.queryByText(/audit history/i)).toBeNull();
+  });
+
   beforeEach(() => {
     vi.stubGlobal('ResizeObserver', ResizeObserverStub);
     attachSignedCopyMock.mockResolvedValue(document);

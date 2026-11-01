@@ -41,7 +41,7 @@ const PdfDocumentViewer = dynamic(() => import('@/features/documents/components/
   loading: () => <p role="status" className="p-4 text-sm text-[#4B6382]">Loading PDF viewer…</p>,
 });
 
-const tabs = ['Overview', 'Files', 'Comments', 'Participants', 'Blockchain', 'Activity'] as const;
+const tabs = ['Overview', 'Files', 'Comments', 'Participants', 'Blockchain', 'History'] as const;
 type Tab = typeof tabs[number];
 const overviewSectionHeadingClassName = 'inline-flex items-center gap-2 text-lg font-bold leading-6 text-[#0C2B49]';
 
@@ -134,7 +134,7 @@ function FinalizationNextStep({ document, role, outcomeUnknown }: {
   );
 }
 
-function ActivityTimeline({
+function HistoryTimeline({
   changes,
   ariaLabel,
   showActor = false,
@@ -575,7 +575,7 @@ export function DocumentWorkspace({
   const historyQuery = useQuery({
     queryKey: ['portal-document-history', document.document_id],
     queryFn: () => listDocumentHistory(document.document_id),
-    enabled: !isDrafting && (activeTab === 'Activity' || activeTab === 'Overview'),
+    enabled: !isDrafting && (activeTab === 'History' || activeTab === 'Overview'),
     retry: false,
     refetchInterval: 15_000,
   });
@@ -921,15 +921,15 @@ export function DocumentWorkspace({
                     </div>
                 </details>}
 
-                <section aria-labelledby="recent-activity-heading" className="space-y-3 rounded-xl border border-[#D7E4F2] bg-white p-4 sm:p-5">
+                <section aria-labelledby="recent-history-heading" className="space-y-3 rounded-xl border border-[#D7E4F2] bg-white p-4 sm:p-5">
                   <div className="flex min-h-11 items-center justify-between gap-3">
-                    <h2 id="recent-activity-heading" className={overviewSectionHeadingClassName}><HistoryOutlinedIcon aria-hidden="true" sx={{ fontSize: 20, color: '#0067B3' }} />Recent activity</h2>
-                    <button type="button" onClick={() => setActiveTab('Activity')} className="inline-flex min-h-11 items-center gap-1 text-sm font-semibold text-[#0067B3] hover:underline sm:min-h-9">View all<ArrowForwardIcon aria-hidden="true" sx={{ fontSize: 16 }} /></button>
+                    <h2 id="recent-history-heading" className={overviewSectionHeadingClassName}><HistoryOutlinedIcon aria-hidden="true" sx={{ fontSize: 20, color: '#0067B3' }} />Recent history</h2>
+                    <button type="button" aria-label="View document history" onClick={() => setActiveTab('History')} className="inline-flex min-h-11 items-center gap-1 text-sm font-semibold text-[#0067B3] hover:underline sm:min-h-9">View all<ArrowForwardIcon aria-hidden="true" sx={{ fontSize: 16 }} /></button>
                   </div>
-                  {historyQuery.isLoading && <p role="status" className="text-base leading-7 text-[#4B6382]">Loading activity…</p>}
-                  {historyQuery.isError && <p role="alert" className="text-base font-semibold leading-7 text-[#B42318]">Unable to load recent activity.</p>}
-                  {historyQuery.data && historyChanges.length === 0 && <p className="text-base leading-7 text-[#4B6382]">No activity has been recorded for this document yet.</p>}
-                  {historyChanges.length > 0 && <ActivityTimeline changes={historyChanges.slice(-2).reverse()} ariaLabel="Recent document activity" />}
+                  {historyQuery.isLoading && <p role="status" className="text-base leading-7 text-[#4B6382]">Loading history…</p>}
+                  {historyQuery.isError && <p role="alert" className="text-base font-semibold leading-7 text-[#B42318]">Unable to load recent history.</p>}
+                  {historyQuery.data && historyChanges.length === 0 && <p className="text-base leading-7 text-[#4B6382]">No history has been recorded for this document yet.</p>}
+                  {historyChanges.length > 0 && <HistoryTimeline changes={historyChanges.slice(-2).reverse()} ariaLabel="Recent document history" />}
                 </section>
               </div>
             </div>
@@ -1005,13 +1005,13 @@ export function DocumentWorkspace({
           </div>
         )}
 
-        {activeTab === 'Activity' && (
-          <section aria-labelledby="document-activity-heading" className="space-y-4 rounded-xl border border-[#D7E4F2] bg-white p-4 sm:p-5">
-            <div><h2 id="document-activity-heading" className={overviewSectionHeadingClassName}><HistoryOutlinedIcon aria-hidden="true" sx={{ fontSize: 20, color: '#0067B3' }} />Document activity</h2><p className="mt-1 text-sm leading-5 text-[#4B6382]">Important changes to this document, from oldest to newest.</p></div>
-            {historyQuery.isLoading && <p role="status" className="text-base leading-7 text-[#4B6382]">Loading activity…</p>}
-            {historyQuery.isError && <p role="alert" className="text-base font-semibold leading-7 text-[#B42318]">Unable to load document activity.</p>}
-            {historyQuery.data && historyChanges.length === 0 && <p className="text-base leading-7 text-[#4B6382]">No activity has been recorded for this document yet.</p>}
-            {historyChanges.length > 0 && <ActivityTimeline changes={historyChanges} ariaLabel="Document activity" showActor />}
+        {activeTab === 'History' && (
+          <section aria-labelledby="document-history-heading" className="space-y-4 rounded-xl border border-[#D7E4F2] bg-white p-4 sm:p-5">
+            <div><h2 id="document-history-heading" className={overviewSectionHeadingClassName}><HistoryOutlinedIcon aria-hidden="true" sx={{ fontSize: 20, color: '#0067B3' }} />Document history</h2><p className="mt-1 text-sm leading-5 text-[#4B6382]">Lifecycle changes to this document, from oldest to newest.</p></div>
+            {historyQuery.isLoading && <p role="status" className="text-base leading-7 text-[#4B6382]">Loading history…</p>}
+            {historyQuery.isError && <p role="alert" className="text-base font-semibold leading-7 text-[#B42318]">Unable to load document history.</p>}
+            {historyQuery.data && historyChanges.length === 0 && <p className="text-base leading-7 text-[#4B6382]">No history has been recorded for this document yet.</p>}
+            {historyChanges.length > 0 && <HistoryTimeline changes={historyChanges} ariaLabel="Document history" showActor />}
           </section>
         )}
 
