@@ -2,6 +2,8 @@ export async function createWatermarkedSignedPdf(sourceUrl: string) {
   const response = await fetch(sourceUrl, { cache: 'no-store' });
   if (!response.ok) throw new Error('Could not download the signed PDF.');
 
+  if (response.headers.get('X-LexChain-Watermarked') === 'true') return response.arrayBuffer();
+
   const { degrees, PDFDocument, rgb, StandardFonts } = await import('pdf-lib');
   const pdf = await PDFDocument.load(await response.arrayBuffer());
   const font = await pdf.embedFont(StandardFonts.HelveticaBold);
