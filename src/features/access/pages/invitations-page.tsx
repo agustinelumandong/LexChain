@@ -61,7 +61,7 @@ export default function InvitationsPage() {
   if (!isParticipant) return <section className="rounded-[18px] border border-[#E8F0F8] bg-white p-6"><h1 className="text-xl font-black text-[#0C2B49]">Invitations unavailable</h1><p className="mt-2 text-sm text-[#5B6F8A]">Users can manage shared document invitations.</p></section>;
 
   return (
-    <div className="flex max-w-3xl flex-col gap-5">
+    <div className="flex w-full flex-col gap-5">
       <div>
         <p className="text-xs font-black tracking-wider text-[#0067B3]">SHARED DOCUMENTS</p>
         <h1 className="mt-1 text-[28px] font-black text-[#0C2B49]">Invitations</h1>
