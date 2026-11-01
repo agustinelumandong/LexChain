@@ -28,6 +28,9 @@ vi.mock('@tanstack/react-query', () => ({
 vi.mock('@/shared/api/client', () => ({
   portalFetch: vi.fn(async () => [{ id: 'mock-document-1', file_name: 'Lease Agreement.pdf', lifecycle: 'FINALIZED', status: 'anchored', is_owner: true, created_at: '2026-07-10T09:00:00.000Z' }]),
 }));
+vi.mock('@/features/office/integrity-report', () => ({
+  fetchIntegrityReport: vi.fn(async () => ({ summary: { total: 1, authentic: 1, tampered: 0, snapshot_compromised: 0, not_anchored: 0, verification_unavailable: 0 }, rows: [{ file_name: 'Lease Agreement.pdf', status: 'AUTHENTIC', verified_at: '2026-07-10T09:00:00Z' }] })),
+}));
 
 afterEach(() => {
   cleanup();
@@ -115,7 +118,7 @@ describe('ReportsPage', () => {
     expect(screen.getByText(/in this report/i)).toBeTruthy();
   });
 
-  it('shows the owned document report and retains the integrity demo disclaimer', async () => {
+  it('shows the owned document report and the live integrity summary', async () => {
     render(<OfficeReportsPage />);
 
     fireEvent.click(screen.getByRole('button', { name: 'Generate' }));
@@ -128,8 +131,8 @@ describe('ReportsPage', () => {
     fireEvent.click(screen.getByRole('combobox', { name: 'Report type' }));
     fireEvent.click(screen.getByRole('option', { name: 'Integrity' }));
     fireEvent.click(screen.getByRole('button', { name: 'Generate' }));
-    expect(screen.getByRole('region', { name: 'Integrity report' })).toBeTruthy();
-    expect(screen.getByText('Demo report — generated locally from seeded data and not stored.')).toBeTruthy();
+    expect(await screen.findByRole('region', { name: 'Integrity report' })).toBeTruthy();
+    expect(screen.getByText(/Total: 1 · Authentic: 1/)).toBeTruthy();
   });
 
   it('requires both report dates before generating', async () => {

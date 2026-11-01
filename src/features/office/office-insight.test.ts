@@ -145,6 +145,11 @@ describe('office insights', () => {
     expect(toCsv(report)).toBe('Actor,Action\r\n"A ""quoted"", actor","First line\nSecond line"');
   });
 
+  it('prevents spreadsheet formulas in CSV values', () => {
+    const report: DemoReport = { reportType: 'office-integrity', from: '2026-01-01', to: '2026-01-01', columns: ['Document'], rows: [{ Document: '=1+1' }] };
+    expect(toCsv(report)).toBe("Document\r\n'=1+1");
+  });
+
   it.each(['scheduled', 'archived', 'queued', 'custom'])('does not support a %s report type', (reportType) => {
     expect(() => createDemoReport(
       reportType as DemoReportType,
