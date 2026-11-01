@@ -104,118 +104,50 @@ describe('document ownership directory', () => {
     expect(screen.queryByRole('heading', { name: 'Recently Created' })).toBeNull();
   });
 
-  it.each(['document_issuer', 'document_participant'])('shows the correct document collection for %s', async (role) => {
+  it.each(['document_issuer', 'document_participant'])('shows all accessible documents without ownership tabs for %s', async (role) => {
     const rows = [documentFixture('Owned Z', true), documentFixture('Owned A', true, 'SIGNED'), documentFixture('Shared only', false, 'PREPARING')];
     setupFetch(undefined, Response.json(rows), role);
     renderPage();
-    const isLawyer = role === 'document_issuer';
-    if (isLawyer) {
-      expect(await screen.findByText('Showing 1–3 of 3 documents')).toBeTruthy();
-      expect(screen.queryByRole('tablist', { name: 'Document ownership' })).toBeNull();
-      expect(screen.queryByRole('tab')).toBeNull();
-      expect(within(screen.getByRole('table')).getByText('Shared only.pdf')).toBeTruthy();
-      expect(screen.getByRole('button', { name: 'Create document draft' })).toBeTruthy();
-      const distribution = screen.getByRole('heading', { name: 'Status Distribution' }).closest('article')!;
-      expect(within(distribution).getByLabelText('Total documents: 3')).toBeTruthy();
-      return;
-    }
-    const sharedTab = await screen.findByRole('tab', { name: 'Shared with me (1)' });
-    const ownedTab = screen.getByRole('tab', { name: 'My documents (2)' });
-    await waitFor(() => expect(sharedTab.getAttribute('aria-selected')).toBe('true'));
+    expect(await screen.findByText('Showing 1–3 of 3 documents')).toBeTruthy();
+    expect(screen.queryByRole('tablist', { name: 'Document ownership' })).toBeNull();
+    const table = screen.getByRole('table');
+    expect(within(table).getByText('Owned A.pdf')).toBeTruthy();
+    expect(within(table).getByText('Shared only.pdf')).toBeTruthy();
     const distribution = screen.getByRole('heading', { name: 'Status Distribution' }).closest('article')!;
-    expect(within(distribution).getAllByText('1').length).toBeGreaterThan(0);
-    expect(screen.queryByRole('button', { name: 'Create document draft' })).toBeNull();
-    fireEvent.click(ownedTab);
-    expect(screen.queryByText('Shared only.pdf')).toBeNull();
-    expect(within(distribution).getByText('Finalized')).toBeTruthy();
-    expect(within(distribution).getByText('Signed')).toBeTruthy();
-    expect(within(distribution).queryByText('Preparing')).toBeNull();
+    expect(within(distribution).getByLabelText('Total documents: 3')).toBeTruthy();
+    expect(Boolean(screen.queryByRole('button', { name: 'Create document draft' }))).toBe(role === 'document_issuer');
+  });
+
+  it('filters and sorts the combined client document list', async () => {
+    setupFetch(undefined, Response.json([documentFixture('Owned Z', true), documentFixture('Owned A', true, 'SIGNED'), documentFixture('Shared only', false, 'PREPARING')]), 'document_participant');
+    renderPage();
+    await screen.findByText('Showing 1–3 of 3 documents');
     fireEvent.click(screen.getByRole('combobox', { name: 'Newest first' }));
-    fireEvent.click(screen.getByRole('option', { name: 'Name A\u2013Z' }));
+    fireEvent.click(screen.getByRole('option', { name: 'Name A–Z' }));
     expect(within(screen.getByRole('table')).getAllByRole('row')[1].textContent).toContain('Owned A.pdf');
     fireEvent.click(screen.getByText('More Filters'));
     fireEvent.click(screen.getByRole('combobox', { name: 'All Lifecycles' }));
-    expect(screen.queryByRole('option', { name: 'Preparing' })).toBeNull();
-    fireEvent.click(screen.getByRole('option', { name: 'Signed' }));
-    expect(within(screen.getByRole('table')).queryByText('Owned Z.pdf')).toBeNull();
-    fireEvent.change(screen.getByRole('textbox', { name: 'Filter by filename or reference' }), { target: { value: 'Shared' } });
-    expect(screen.getByText('No matching documents in My documents')).toBeTruthy();
-    expect(within(distribution).getByLabelText('Total documents: 2')).toBeTruthy();
-    expect(ownedTab.textContent).toBe('My documents (2)');
-    fireEvent.click(sharedTab);
-    expect(screen.getByText('No matching documents in Shared with me')).toBeTruthy();
-    expect(within(distribution).getAllByText('1').length).toBeGreaterThan(0);
-  });
-
-  it('keeps the retained lifecycle visibly selected when the next ownership partition has no matching records', async () => {
-    setupFetch(undefined, Response.json([
-      documentFixture('Owned signed', true, 'SIGNED'),
-      documentFixture('Owned finalized', true),
-      documentFixture('Shared preparing', false, 'PREPARING'),
-    ]), 'document_participant');
-    renderPage();
-    fireEvent.click(await screen.findByRole('tab', { name: 'My documents (2)' }));
-    fireEvent.click(screen.getByText('More Filters'));
-    fireEvent.click(screen.getByRole('combobox', { name: 'All Lifecycles' }));
-    fireEvent.click(screen.getByRole('option', { name: 'Signed' }));
-    fireEvent.click(screen.getByRole('tab', { name: 'Shared with me (1)' }));
-    expect(screen.getByText('No matching documents in Shared with me')).toBeTruthy();
-    fireEvent.click(screen.getByText(/More Filters/));
-    const lifecycleFilter = screen.getByRole('combobox', { name: 'Signed' });
-    fireEvent.click(lifecycleFilter);
-    expect(screen.getByRole('option', { name: 'Signed' })).toBeTruthy();
     expect(screen.getByRole('option', { name: 'Preparing' })).toBeTruthy();
-    expect(screen.queryByRole('option', { name: 'Finalized' })).toBeNull();
-    fireEvent.click(screen.getByRole('option', { name: 'All Lifecycles' }));
-    expect(within(screen.getByRole('table')).getByText('Shared preparing.pdf')).toBeTruthy();
+    fireEvent.click(screen.getByRole('option', { name: 'Signed' }));
+    expect(within(screen.getByRole('table')).getByText('Owned A.pdf')).toBeTruthy();
+    expect(within(screen.getByRole('table')).queryByText('Shared only.pdf')).toBeNull();
+    fireEvent.change(screen.getByRole('textbox', { name: 'Filter by filename or reference' }), { target: { value: 'Shared' } });
+    expect(screen.getByText('No matching documents in your documents')).toBeTruthy();
   });
 
-  it('resets page on tab change and shares paginated results across layouts', async () => {
+  it('paginates the combined client document list', async () => {
     const rows = [true, false].flatMap((isOwner) => Array.from({ length: 7 }, (_, index) => documentFixture(`${isOwner ? 'Owned' : 'Shared'} match ${index}`, isOwner)));
     setupFetch(undefined, Response.json(rows), 'document_participant');
     renderPage();
-    fireEvent.click(await screen.findByRole('tab', { name: 'My documents (7)' }));
-    fireEvent.change(screen.getByRole('textbox', { name: 'Filter by filename or reference' }), { target: { value: 'match' } });
-    fireEvent.click(screen.getByText('More Filters'));
-    fireEvent.click(screen.getByRole('combobox', { name: 'All Lifecycles' }));
-    fireEvent.click(screen.getByRole('option', { name: 'Finalized' }));
-    expect(screen.queryByText('Owned match 6.pdf')).toBeNull();
-    expect(screen.getAllByText('Owned match 0.pdf')).toHaveLength(2);
+    expect(await screen.findByText('Showing 1–5 of 14 documents')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Next page' }));
+    expect(screen.getByText('Showing 6–10 of 14 documents')).toBeTruthy();
+    fireEvent.change(screen.getByRole('textbox', { name: 'Filter by filename or reference' }), { target: { value: 'Shared' } });
     expect(screen.getByText('Showing 6–7 of 7 documents')).toBeTruthy();
-    expect(within(screen.getByRole('table')).queryByText('Owned match 0.pdf')).toBeNull();
-    fireEvent.click(screen.getByRole('tab', { name: 'Shared with me (7)' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Previous page' }));
     expect(screen.getByText('Showing 1–5 of 7 documents')).toBeTruthy();
-    expect((screen.getByRole('textbox', { name: 'Filter by filename or reference' }) as HTMLInputElement).value).toBe('match');
-    fireEvent.click(screen.getByText(/More Filters/));
-    expect(screen.getByRole('combobox', { name: 'Finalized' })).toBeTruthy();
-    expect(screen.queryByText('Shared match 6.pdf')).toBeNull();
-    expect(screen.getAllByText('Shared match 0.pdf')).toHaveLength(2);
+    expect(within(screen.getByRole('table')).getByText('Shared match 0.pdf')).toBeTruthy();
   });
-
-  it('supports keyboard tab changes and distinguishes an empty ownership partition', async () => {
-    setupFetch(undefined, Response.json([documentFixture('Owned only', true)]), 'document_participant');
-    renderPage();
-    const ownedTab = await screen.findByRole('tab', { name: 'My documents (1)' });
-    const sharedTab = screen.getByRole('tab', { name: 'Shared with me (0)' });
-    ownedTab.focus();
-    fireEvent.keyDown(ownedTab, { key: 'ArrowRight' });
-    expect(document.activeElement).toBe(sharedTab);
-    expect(sharedTab.getAttribute('aria-selected')).toBe('true');
-    expect(screen.getByText('No documents in Shared with me yet')).toBeTruthy();
-    const distribution = screen.getByRole('heading', { name: 'Status Distribution' }).closest('article')!;
-    expect(within(distribution).getByLabelText('Total documents: 0')).toBeTruthy();
-    const failedRow = within(distribution).getByText('Failed').closest('li')!;
-    expect(within(failedRow).getByText('0')).toBeTruthy();
-    fireEvent.keyDown(sharedTab, { key: 'Home' });
-    expect(document.activeElement).toBe(ownedTab);
-    expect(ownedTab.getAttribute('aria-selected')).toBe('true');
-    fireEvent.keyDown(ownedTab, { key: 'End' });
-    expect(document.activeElement).toBe(sharedTab);
-    fireEvent.keyDown(sharedTab, { key: 'ArrowLeft' });
-    expect(document.activeElement).toBe(ownedTab);
-  });
-
   it('counts processing statuses across all document lifecycle states', async () => {
     setupFetch(undefined, Response.json([
       documentFixture('Review', true, 'FINALIZED', 'AWAITING_REVIEW'),
