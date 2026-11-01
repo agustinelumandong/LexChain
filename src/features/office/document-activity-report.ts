@@ -1,4 +1,4 @@
-import type { DemoReport } from './office-insight';
+import { assertReportDateRange, type Report } from './office-insight';
 import { portalFetch } from '@/shared/api/client';
 import { z } from 'zod';
 
@@ -11,14 +11,10 @@ const documentSchema = z.object({
   created_at: z.string().refine((value) => /(?:Z|[+-]\d{2}:\d{2})$/i.test(value) && !Number.isNaN(Date.parse(value))),
 });
 
-export async function fetchDocumentActivityReport(from: string, to: string): Promise<DemoReport> {
-  if (!from || !to) throw new Error('Select both a start and end date.');
-  const validDate = (value: string) => /^\d{4}-\d{2}-\d{2}$/.test(value)
-    && !Number.isNaN(Date.parse(value)) && new Date(value).toISOString().slice(0, 10) === value;
-  if (!validDate(from) || !validDate(to)) throw new Error('Select valid dates.');
-  if (from > to) throw new Error('Start date must be on or before end date.');
+export async function fetchDocumentActivityReport(from: string, to: string): Promise<Report> {
+  assertReportDateRange(from, to);
 
-  const rows: DemoReport['rows'] = [];
+  const rows: Report['rows'] = [];
   const ids = new Set<string>();
   const limit = 50;
   let offset = 0;

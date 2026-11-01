@@ -12,9 +12,9 @@ import type { ApiSchema } from '@/shared/types/index';
 import { GeneratedReportsManagementView } from "@/features/admin/generated-reports";
 import { PortalDropdown } from "@/features/portal/components";
 import {
-  downloadDemoReport,
-  type DemoReport,
-  type DemoReportType,
+  downloadReport,
+  type Report,
+  type ReportType,
 } from '@/features/office/office-insight';
 import { portalFetch } from '@/shared/api/client';
 import { getPortalUiRole } from "@/features/access";
@@ -35,9 +35,9 @@ const reportOptions = [
     label: 'Integrity',
     description: 'Verification outcomes recorded during the selected dates (UTC).',
   },
-] satisfies Array<{ type: DemoReportType; label: string; description: string }>;
+] satisfies Array<{ type: ReportType; label: string; description: string }>;
 
-const reportLabels: Record<DemoReportType, string> = {
+const reportLabels: Record<ReportType, string> = {
   'office-document-activity': 'Document Activity',
   'office-integrity': 'Integrity',
   'system-users': 'System Users',
@@ -63,10 +63,10 @@ export default function OfficeReportsPage() {
     queryFn: () => portalFetch<UserProfile | null>('/users/'),
   });
   const isIssuer = getPortalUiRole(profileQuery.data?.role) === 'lawyer';
-  const [reportType, setReportType] = useState<DemoReportType>('office-document-activity');
+  const [reportType, setReportType] = useState<ReportType>('office-document-activity');
   const [from, setFrom] = useState('2026-07-01');
   const [to, setTo] = useState('2026-07-31');
-  const [report, setReport] = useState<DemoReport | null>(null);
+  const [report, setReport] = useState<Report | null>(null);
   const [error, setError] = useState('');
   const [pending, setPending] = useState(false);
   const [summary, setSummary] = useState<ApiSchema<'IntegrityReportSummary'> | null>(null);
@@ -129,7 +129,7 @@ export default function OfficeReportsPage() {
         ariaLabel="Report type"
         disabled={pending}
         value={reportType}
-        onChange={(value) => { setReportType(value as DemoReportType); setReport(null); setSummary(null); setError(''); }}
+        onChange={(value) => { setReportType(value as ReportType); setReport(null); setSummary(null); setError(''); }}
         options={reportOptions.map((option) => ({ label: option.label, value: option.type }))}
       />
     </label>
@@ -261,7 +261,7 @@ export default function OfficeReportsPage() {
                 <p className="mt-1 text-sm font-semibold text-[#5B6F8A]">{report.rows.length} {report.rows.length === 1 ? 'row' : 'rows'} in this report <span aria-hidden="true">·</span> {report.from} to {report.to}{report.reportType === 'office-integrity' ? ' (UTC)' : ' (UTC, inclusive)'}</p>
               </div>
             </div>
-            <button type="button" onClick={() => downloadDemoReport(report)} className="inline-flex items-center gap-2 rounded-xl border border-[#B9D6ED] bg-white px-4 py-2.5 text-sm font-black text-[#0067B3] transition hover:border-[#0067B3] hover:bg-[#F0F7FF] active:translate-y-px">
+            <button type="button" onClick={() => downloadReport(report)} className="inline-flex items-center gap-2 rounded-xl border border-[#B9D6ED] bg-white px-4 py-2.5 text-sm font-black text-[#0067B3] transition hover:border-[#0067B3] hover:bg-[#F0F7FF] active:translate-y-px">
               <DownloadOutlinedIcon fontSize="small" />
               Download CSV
             </button>
