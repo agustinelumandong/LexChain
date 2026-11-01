@@ -14,9 +14,9 @@ describe("portal feature access", () => {
     expect(canAccessPortalFeature("user", "books")).toBe(false);
   });
 
-  it("keeps participant-only features out of issuer direct routes", () => {
+  it("allows lawyers to view their own requests while keeping invitations participant-only", () => {
     expect(canAccessPortalFeature("lawyer", "invitations")).toBe(false);
-    expect(canAccessPortalFeature("lawyer", "my-requests")).toBe(false);
+    expect(canAccessPortalFeature("lawyer", "my-requests")).toBe(true);
   });
 
   it("does not grant protected features to unsupported roles", () => {

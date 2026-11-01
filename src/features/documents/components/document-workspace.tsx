@@ -17,13 +17,15 @@ import ManageAccountsOutlinedIcon from '@mui/icons-material/ManageAccountsOutlin
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import CommentOutlinedIcon from '@mui/icons-material/CommentOutlined';
-import FolderOutlinedIcon from '@mui/icons-material/FolderOutlined';
 import { toast } from 'sonner';
+import { portalRequest } from '@/shared/api/client';
 import type { ApiSchema } from '@/shared/types/index';
 import { attachSignedCopy, correctDocumentEntry, LifecycleRequestError, listDocumentHistory, listDraftComments, listSignedCopies, replaceSignedCopy, signedCopyFileUrl, syncDraftComments } from '@/features/documents/document-lifecycle-api';
 import { isGoogleDraftUrl } from '@/features/documents/document-draft-api';
 import { getDocumentLifecycleLabel } from '@/features/documents/document-ui';
-import { shortenIntegrityHash } from '@/features/verification';
+import { shortenIntegrityHash, verifyRepositoryDocument } from '@/features/verification';
+import { getBaseSepoliaTransactionUrl } from '@/features/verification/integrity-ui';
+import { isMockMode } from '@/lib/mocks/mode';
 import { GoogleDraftPanel } from '@/features/documents/components/google-draft-panel';
 import { listDocumentParties, type PortalUiRole } from '@/features/access';
 import { listRegisterBooks } from '@/features/office/books-api';
@@ -304,7 +306,12 @@ function RiskFlags({ items }: { items?: unknown[] | null }) {
   );
 }
 
-function SignedPdfPreview({ document }: { document: WorkspaceDocument }) {
+function SignedPdfPreview({ document, role }: { document: WorkspaceDocument; role: PortalUiRole }) {
+  const queryClient = useQueryClient();
+  const requestCopy = useMutation({
+    mutationFn: () => portalRequest(`/api/portal/proxy-post?path=${encodeURIComponent(`/documents/${encodeURIComponent(document.document_id)}/ecopy-requests`)}`, { method: 'POST' }),
+    onSuccess: () => { void queryClient.invalidateQueries({ queryKey: ['ecopy-requests'] }); void queryClient.invalidateQueries({ queryKey: ['portal-doc', document.document_id] }); },
+  });
   const [pdfLoading, setPdfLoading] = useState(true);
   const [pdfViewerOpen, setPdfViewerOpen] = useState(false);
   const pdfDialogRef = useRef<HTMLDialogElement>(null);
@@ -348,6 +355,7 @@ function SignedPdfPreview({ document }: { document: WorkspaceDocument }) {
 
   return (
     <section aria-labelledby="signed-pdf-preview-heading" className="flex min-w-0 flex-col rounded-xl border border-[#D7E4F2] bg-white p-4 sm:p-5">
+      {role === 'user' && document.lifecycle === 'FINALIZED' && <div className="mb-4">{document.permissions.can_request_ecopy && <button type="button" disabled={requestCopy.isPending || requestCopy.isSuccess} onClick={() => requestCopy.mutate()} className="rounded-full bg-[#0067B3] px-4 py-2 font-bold text-white disabled:opacity-60">{requestCopy.isPending ? 'Requesting…' : requestCopy.isSuccess ? 'E-copy requested' : 'Request e-copy'}</button>}{requestCopy.isError && <p role="alert">{requestCopy.error instanceof Error ? requestCopy.error.message : 'Could not request the e-copy.'}</p>}<p className="mt-2 text-sm"><Link href="/portal/requests/my">View e-copy requests and approved downloads</Link></p></div>}
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <h2 id="signed-pdf-preview-heading" className="inline-flex items-center gap-2 text-lg font-bold leading-6 text-[#0C2B49]"><PictureAsPdfOutlinedIcon aria-hidden="true" sx={{ fontSize: 20, color: '#0067B3' }} />Signed PDF</h2>
@@ -549,6 +557,13 @@ export function DocumentWorkspace({
       ]);
     },
   });
+  const chainQuery = useQuery({
+    queryKey: ['portal-doc-chain', document.document_id],
+    queryFn: () => verifyRepositoryDocument(document.document_id),
+    enabled: activeTab === 'Blockchain' && Boolean(document.on_chain) && !isMockMode(),
+    retry: false,
+  });
+  const transactionUrl = chainQuery.data?.tx_hash ? getBaseSepoliaTransactionUrl(chainQuery.data.tx_hash) : null;
   const signedCopiesQuery = useQuery({ queryKey: ['portal-doc-signed-copies', document.document_id], queryFn: () => listSignedCopies(document.document_id), enabled: !isDrafting && activeTab === 'Files', refetchInterval: 15_000 });
   const partiesQuery = useQuery({
     queryKey: ['portal-document-parties', document.document_id],
@@ -922,7 +937,7 @@ export function DocumentWorkspace({
         )}
 
         {activeTab === 'Participants' && (
-          <div className="w-full space-y-3">
+          <div className="w-full space-y-3 rounded-xl border border-[#D7E4F2] bg-white p-4 sm:p-5">
             <h2 className="inline-flex items-center gap-2 text-lg font-extrabold text-[#0C2B49]"><GroupsOutlinedIcon aria-hidden="true" sx={{ fontSize: 20, color: '#0067B3' }} />Manage participants</h2>
             <p className="text-sm text-[#4B6382]">Invite people to this document or update their access.</p>
             <Link href={`/portal/documents/${document.document_id}/participants`} className="inline-flex min-h-11 items-center rounded-full bg-[#0067B3] px-4 py-2.5 text-sm font-extrabold text-white hover:bg-[#0067B3] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]">Open participant management</Link>
@@ -935,16 +950,17 @@ export function DocumentWorkspace({
 
         {activeTab === 'Files' && (
           <div className="space-y-4">
-            <h2 className="inline-flex items-center gap-2 text-lg font-extrabold text-[#0C2B49]"><FolderOutlinedIcon aria-hidden="true" sx={{ fontSize: 20, color: '#0067B3' }} />Document files</h2>
-            <div className="flex flex-wrap gap-2">
-              {document.permissions?.can_attach_signed_copy && <button type="button" onClick={openSignedCopyForm} className="rounded-full bg-[#0067B3] px-4 py-2.5 text-sm font-extrabold text-white">Attach signed PDF</button>}
-              {document.permissions?.can_replace_signed_copy && <button type="button" onClick={() => { setSignedCopyMode('replace'); setSignedCopyError(null); signedCopyMutation.reset(); }} className="rounded-full border border-[#0067B3] px-4 py-2.5 text-sm font-extrabold text-[#0067B3]">Replace signed PDF</button>}
-            </div>
-            {signedCopyForm}
-            <SignedPdfPreview key={`${document.document_id}:${document.signed_copy?.id ?? 'missing'}`} document={document} />
+            {(document.permissions?.can_attach_signed_copy || document.permissions?.can_replace_signed_copy || signedCopyForm) && <div className="rounded-xl border border-[#D7E4F2] bg-white p-4 sm:p-5">
+              <div className="flex flex-wrap gap-2">
+                {document.permissions?.can_attach_signed_copy && <button type="button" onClick={openSignedCopyForm} className="rounded-full bg-[#0067B3] px-4 py-2.5 text-sm font-extrabold text-white">Attach signed PDF</button>}
+                {document.permissions?.can_replace_signed_copy && <button type="button" onClick={() => { setSignedCopyMode('replace'); setSignedCopyError(null); signedCopyMutation.reset(); }} className="rounded-full border border-[#0067B3] px-4 py-2.5 text-sm font-extrabold text-[#0067B3]">Replace signed PDF</button>}
+              </div>
+              {signedCopyForm}
+            </div>}
+            <SignedPdfPreview key={`${document.document_id}:${document.signed_copy?.id ?? 'missing'}`} document={document} role={role} />
             {signedCopiesQuery.isLoading && <p role="status" className="text-sm text-[#4B6382]">Loading earlier signed PDFs…</p>}
             {signedCopiesQuery.isError && <p role="alert" className="text-sm font-bold text-[#B42318]">Unable to load earlier signed PDFs.</p>}
-            {earlierSignedCopies.length > 0 && <details className="rounded-xl border border-[#E8F0F8] p-4">
+            {earlierSignedCopies.length > 0 && <details className="rounded-xl border border-[#D7E4F2] bg-white p-4 sm:p-5">
               <summary className="cursor-pointer text-sm font-bold text-[#0C2B49]">Earlier signed PDFs ({earlierSignedCopies.length})</summary>
               <div className="mt-4 space-y-3">
                 {earlierSignedCopies.map((copy) => <article key={copy.id} className="space-y-2 rounded-xl bg-[#F8FBFF] p-4">
@@ -973,9 +989,8 @@ export function DocumentWorkspace({
 
 
         {activeTab === 'Blockchain' && (
-          <div className="space-y-5">
+          <div className="space-y-5 rounded-xl border border-[#D7E4F2] bg-white p-4 sm:p-5">
             <div className="flex items-start gap-3">
-              <AccountTreeIcon aria-hidden="true" sx={{ fontSize: 24, color: '#0067B3', mt: '2px' }} />
               <div>
                 <h2 className="inline-flex items-center gap-2 text-lg font-extrabold text-[#0C2B49]"><AccountTreeIcon aria-hidden="true" sx={{ fontSize: 20, color: '#0067B3' }} />Blockchain record</h2>
                 <p className="mt-1 text-sm leading-6 text-[#4B6382]">When this document is finalized, its digital fingerprint is saved to the blockchain. Comparing fingerprints can show whether the saved PDF has changed.</p>
@@ -986,6 +1001,7 @@ export function DocumentWorkspace({
               {document.document_hash && <div><dt className="font-bold text-[#4B6382]">Document fingerprint (hash)</dt><dd className="mt-1 text-[#0C2B49]"><CopyableIdentifier value={document.document_hash} label="document hash" /></dd></div>}
               {document.on_chain && <div><dt className="font-bold text-[#4B6382]">Recorded</dt><dd className="mt-1 text-[#0C2B49]">{formatDate(document.finalized_at)}</dd></div>}
             </dl>
+            {document.on_chain && (isMockMode() ? <p className="text-sm text-[#4B6382]">Transaction details are unavailable in mock mode.</p> : chainQuery.isLoading ? <p role="status" className="text-sm text-[#4B6382]">Loading transaction details…</p> : transactionUrl ? <a href={transactionUrl} target="_blank" rel="noreferrer" className="inline-flex min-h-11 items-center rounded-full border border-[#0067B3] px-4 py-2.5 text-sm font-bold text-[#0067B3] hover:bg-[#EAF4FF] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]">View transaction on Base Sepolia <span className="sr-only">(opens in a new tab)</span></a> : <p className="text-sm text-[#4B6382]">Transaction link unavailable.</p>)}
           </div>
         )}
 

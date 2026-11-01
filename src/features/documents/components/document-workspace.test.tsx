@@ -144,6 +144,27 @@ function renderWorkspace(props: Partial<React.ComponentProps<typeof DocumentWork
 }
 
 describe('DocumentWorkspace', () => {
+  it('does not show requester controls to the lawyer', () => {
+    renderWorkspace({ role: 'lawyer', document: { ...document, lifecycle: 'FINALIZED', permissions: { ...document.permissions, can_request_ecopy: true } } });
+    fireEvent.click(screen.getByRole('tab', { name: 'Files' }));
+    expect(screen.queryByRole('link', { name: 'View e-copy requests and approved downloads' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Request e-copy' })).toBeNull();
+  });
+  it('keeps request history reachable after requesting is no longer permitted', () => {
+    renderWorkspace({ role: 'user', document: { ...document, lifecycle: 'FINALIZED', permissions: { ...document.permissions, can_request_ecopy: false } } });
+    fireEvent.click(screen.getByRole('tab', { name: 'Files' }));
+    expect(screen.getByRole('link', { name: 'View e-copy requests and approved downloads' }).getAttribute('href')).toBe('/portal/requests/my');
+    expect(screen.queryByRole('button', { name: 'Request e-copy' })).toBeNull();
+  });
+
+  it('submits an e-copy request for an eligible document', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(Response.json({ status: 'PENDING' }, { status: 201 }));
+    vi.stubGlobal('fetch', fetchMock);
+    renderWorkspace({ role: 'user', document: { ...document, lifecycle: 'FINALIZED', permissions: { ...document.permissions, can_request_ecopy: true } } });
+    fireEvent.click(screen.getByRole('tab', { name: 'Files' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Request e-copy' }));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith('/api/portal/proxy-post?path=%2Fdocuments%2Fdoc-101%2Fecopy-requests', expect.objectContaining({ method: 'POST' })));
+  });
   it.each([
     ['PREPARING', 'Prepare and review the document', 'Step 1 of 4'],
     ['READY_FOR_SIGNATURE', 'Sign the document and return the PDF', 'Step 3 of 4'],
@@ -798,6 +819,23 @@ describe('DocumentWorkspace', () => {
     fireEvent.click(screen.getByRole('tab', { name: 'Blockchain' }));
     expect(screen.getByText('aaaaaaaaaa…aaaaaaaa')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Copy document hash' })).toBeTruthy();
+  });
+
+  it('links to the returned transaction hash and handles an unavailable hash', async () => {
+    const hash = `0x${'ab'.repeat(32)}`;
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => ({ tx_hash: hash }) }));
+    const { unmount } = renderWorkspace({ document: { ...document, lifecycle: 'FINALIZED', on_chain: true } });
+    fireEvent.click(screen.getByRole('tab', { name: 'Blockchain' }));
+    const link = await screen.findByRole('link', { name: /View transaction on Base Sepolia/ });
+    expect(link.getAttribute('href')).toBe(`https://sepolia.basescan.org/tx/${hash}`);
+    expect(link.getAttribute('target')).toBe('_blank');
+    unmount();
+
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => ({ tx_hash: '' }) }));
+    renderWorkspace({ document: { ...document, lifecycle: 'FINALIZED', on_chain: true } });
+    fireEvent.click(screen.getByRole('tab', { name: 'Blockchain' }));
+    expect(await screen.findByText('Transaction link unavailable.')).toBeTruthy();
+    expect(screen.queryByRole('link', { name: /View transaction on Base Sepolia/ })).toBeNull();
   });
 
   it('renders a mismatched integrity record with the warning treatment', () => {

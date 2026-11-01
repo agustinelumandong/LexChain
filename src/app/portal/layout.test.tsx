@@ -75,6 +75,7 @@ describe("portal layout role hint", () => {
 
     expect(screen.getByText("Portal content")).toBeTruthy();
     expect(screen.getAllByRole("link", { name: "Books" }).length).toBeGreaterThan(0);
+    expect(screen.queryByRole("link", { name: "My E-copy Requests" })).toBeNull();
     expect(screen.getByText("Lawyer")).toBeTruthy();
     expect(screen.queryByText("undefined undefined")).toBeNull();
     expect(screen.queryByText("...")).toBeNull();
@@ -86,7 +87,7 @@ describe("portal layout role hint", () => {
 
     expect(screen.getAllByRole("link", { name: "Shared Documents" }).length).toBeGreaterThan(0);
     expect(screen.getAllByRole("link", { name: "Invitations" }).length).toBeGreaterThan(0);
-    expect(screen.queryByRole("link", { name: "My E-copy Requests" })).toBeNull();
+    expect(screen.getAllByRole("link", { name: "My E-copy Requests" }).length).toBeGreaterThan(0);
     expect(screen.queryByRole("link", { name: "Books" })).toBeNull();
     expect(fetchMock).not.toHaveBeenCalledWith(expect.stringContaining("%2Fusers%2F"), expect.anything());
   });

@@ -25,19 +25,21 @@ describe("portal dashboard", () => {
       "System Management",
       "Account",
     ]);
-    expect(navigation[0].items.map((item) => item.label)).toEqual(["Dashboard", "Documents"]);
+    expect(navigation[0].items.map((item) => item.label)).toEqual(["Dashboard", "Documents", "Document Requests"]);
+    expect(navigation.flatMap((group) => group.items).map((item) => item.label)).not.toContain("My E-copy Requests");
     expect(navigation.flatMap((group) => group.items).map((item) => item.href)).not.toContain("/portal/notifications");
     expect(navigation.find((group) => group.label === "Office")?.items.map((item) => item.label)).toEqual([
       "Books",
-      "Categories",
       "Reports",
     ]);
+    expect(navigation.flatMap((group) => group.items).map((item) => item.href)).not.toContain("/portal/categories");
   });
 
   it("only shows participant routes that exist", () => {
     expect(getPortalNavigation("user").flatMap((group) => group.items).map((item) => item.label)).toEqual([
       "Shared Documents",
       "Invitations",
+      "My E-copy Requests",
     ]);
   });
 

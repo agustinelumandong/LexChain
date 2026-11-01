@@ -40,6 +40,6 @@ describe("PortalBottomNav", () => {
       expect(visibleLabel).toBeTruthy();
       expect(visibleLabel.className).toContain("text-xs");
     }
-    expect(screen.queryByRole("link", { name: "My E-copy Requests" })).toBeNull();
+    expect(screen.getByRole("link", { name: "My E-copy Requests" })).toBeTruthy();
   });
 });

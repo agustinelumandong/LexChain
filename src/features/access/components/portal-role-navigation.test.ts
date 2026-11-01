@@ -3,6 +3,9 @@ import { getPortalNavigation } from "@/features/portal/portal-dashboard";
 import { isPortalRouteActive } from "@/features/access/components/portal-role-navigation";
 
 describe("portal navigation", () => {
+  it('does not mark the review queue active on the personal requests page', () => {
+    expect(isPortalRouteActive('/portal/requests/my', { label: 'Document Requests', href: '/portal/requests' })).toBe(false);
+  });
   it("keeps the complete issuer workspace focused on portal destinations", () => {
     const navigation = getPortalNavigation("lawyer");
 
@@ -30,7 +33,6 @@ describe("portal navigation", () => {
   it.each([
     ["/portal/dashboard", "Dashboard"],
     ["/portal/documents", "Documents"],
-    ["/portal/categories", "Categories"],
     ["/portal/reports", "Reports"],
     ["/portal/office-settings", "Office Settings"],
   ])("marks %s as the active %s destination", (pathname, label) => {
