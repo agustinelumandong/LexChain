@@ -507,7 +507,7 @@ function documentPermissions(document: MockDocument, token?: string) {
     can_cancel: false,
     can_finalize: issuer && canFinalizeMockDocument(document),
     can_retry_processing: Boolean(issuer && canMutateDocumentLifecycle(document) && document.status?.trim().toUpperCase() === 'FAILED'),
-    can_share: false,
+    can_share: issuer && canMutateDocumentLifecycle(document),
     can_revoke: false,
   };
 }
@@ -1105,11 +1105,31 @@ export async function mockPortalMutate(method: 'POST' | 'PUT' | 'PATCH' | 'DELET
     if (!isMockDocumentIssuerToken(token)) return error('Lawyer access required', 403);
     const document = documentFor(documentRestoreMatch[1]);
     if (!document) return error('Document not found', 404);
+    if (!canMutateDocumentLifecycle(document)) return error('Only the document owner may restore it', 403);
+    if (!document.on_chain || !['finalized', 'restored'].includes(document.lifecycle)) return error('Only finalized on-chain documents can be restored', 409);
+
+    const restored = canRestoreMockDocument(document);
+    if (!restored && document.integrity_state !== 'match') return error('The saved reference cannot be trusted', 409);
+    const restoredDocument = restored
+      ? {
+          ...document,
+          integrity_state: 'match' as const,
+          storage_url: document.id === 'mock-document-5'
+            ? `/mock-documents/${MOCK_SCANNED_DEED_FILE_NAME}`
+            : document.storage_url,
+          updated_at: new Date().toISOString(),
+        }
+      : document;
+    if (restored) updateDocument(restoredDocument);
+    const verification = await mockPortalGet(`/documents/${document.id}/verify`, token).json();
     return json({
       document_id: document.id,
-      restored_from: 'mock-archive',
-      evidence_key: null,
-      verified_hash: document.document_hash ?? `0x${deterministicHash(document.id)}`,
+      restored,
+      previous_hash: restored ? '0xtamperedhash' : null,
+      restored_hash: document.document_hash ?? deterministicHash(document.id),
+      restored_copy_id: restored ? `mock-restored-copy-${document.id}` : document.signed_copy?.id ?? document.id,
+      preserved_copy_id: null,
+      verification,
     });
   }
   const invitationActionMatch = requestPathname.match(/^\/documents\/invitations\/([^/]+)\/(accept|decline)$/);

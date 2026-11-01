@@ -1,24 +1,77 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
+import { useRef, useState } from 'react';
 import RestoreIcon from '@mui/icons-material/Restore';
+import { toast } from 'sonner';
+import { usePortalRole } from '@/features/access/components';
+import { Modal } from '@/features/admin/components/modal';
+import { restoreDocument } from '@/features/documents/document-lifecycle-api';
 import { verifyRepositoryDocument } from "@/features/verification";
 import { VerifyWorkspace as VerifyWorkspace } from "@/features/verification/components";
+import { portalFetch } from '@/shared/api/client';
+import type { ApiSchema } from '@/shared/types/index';
 
 export default function DocumentVerifyPage() {
   const { id } = useParams<{ id: string }>();
+  const queryClient = useQueryClient();
+  const role = usePortalRole();
+  const [restoreDialogOpen, setRestoreDialogOpen] = useState(false);
+  const restoreSubmissionLock = useRef(false);
+  const documentQuery = useQuery({
+    queryKey: ['portal-doc', id],
+    queryFn: () => portalFetch<ApiSchema<'DocumentResponse'>>(`/documents/${id}`),
+    retry: false,
+  });
   const verifyQuery = useQuery({
     queryKey: ['portal-doc-chain', id],
     queryFn: () => verifyRepositoryDocument(id),
     retry: false,
     refetchOnMount: 'always',
   });
-  const canOfferRestore = verifyQuery.data?.status === 'TAMPERED'
+  const restoreMutation = useMutation({
+    mutationFn: () => restoreDocument(id),
+    retry: false,
+    onSuccess: async (result) => {
+      queryClient.setQueryData(['portal-doc-chain', id], result.verification);
+      setRestoreDialogOpen(false);
+      toast.success(result.restored
+        ? result.preserved_copy_id
+          ? 'Archived original restored. The replaced PDF is available in signed-copy history.'
+          : 'Archived original restored. The replaced PDF could not be preserved in signed-copy history.'
+        : 'The document was already authentic. Verification has been refreshed.');
+      await Promise.all([
+        ['portal-doc', id],
+        ['portal-documents'],
+        ['portal-doc-signed-copies', id],
+        ['portal-document-history', id],
+        ['portal-doc-chain', id],
+      ].map((queryKey) => queryClient.invalidateQueries({ queryKey })));
+    },
+    onSettled: () => { restoreSubmissionLock.current = false; },
+  });
+  const verificationAllowsRestore = verifyQuery.data?.status === 'TAMPERED'
     && !verifyQuery.data.is_authentic
     && verifyQuery.data.baseline_trusted;
+  const documentAllowsRestore = role === 'lawyer'
+    && documentQuery.data?.lifecycle?.toUpperCase() === 'FINALIZED'
+    && documentQuery.data.on_chain === true
+    && documentQuery.data.permissions?.can_share === true;
+  const canOfferRestore = verificationAllowsRestore && documentAllowsRestore;
   const isNotFoundOrUnanchored = verifyQuery.error instanceof Error && 'status' in verifyQuery.error && verifyQuery.error.status === 404;
+
+  function closeRestoreDialog() {
+    if (restoreMutation.isPending || restoreSubmissionLock.current) return;
+    setRestoreDialogOpen(false);
+  }
+
+  function submitRestore() {
+    if (restoreMutation.isPending || restoreSubmissionLock.current) return;
+    restoreSubmissionLock.current = true;
+    restoreMutation.mutate();
+  }
 
   return (
     <div className="flex w-full min-w-0 flex-col gap-5 overflow-x-hidden md:h-[calc(100dvh-7rem)] md:overflow-hidden">
@@ -29,18 +82,25 @@ export default function DocumentVerifyPage() {
           {canOfferRestore && (
             <button
               type="button"
-              disabled
-              aria-label="Restore from backup, coming soon"
-              className="inline-flex cursor-not-allowed items-center gap-2 rounded-full border border-[#D7E4F2] bg-white px-4 py-2.5 text-sm font-black text-[#5B6F8A]"
+              onClick={() => { restoreMutation.reset(); setRestoreDialogOpen(true); }}
+              className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-[#D7E4F2] bg-white px-4 py-2.5 text-sm font-black text-[#0C2B49] transition hover:bg-[#F1F7FD]"
             >
               <RestoreIcon aria-hidden="true" sx={{ fontSize: 18 }} />
               Restore from backup
-              <span className="rounded-full bg-[#F1F5F9] px-2 py-1 text-[10px] font-black uppercase tracking-wide text-[#5B6F8A]">Coming soon</span>
             </button>
           )}
         </div>
         <p className="mt-1 text-sm text-[#4B6382]">We compare this PDF with the version saved when the document was finalized to help show whether it has changed.</p>
       </header>
+
+      {role === 'lawyer' && verificationAllowsRestore && documentQuery.isError && (
+        <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-[18px] border border-amber-200 bg-amber-50 p-4 text-sm text-[#6B4E00]">
+          <p>We could not confirm your permission to restore this document, so restore is unavailable.</p>
+          <button type="button" disabled={documentQuery.isFetching} onClick={() => void documentQuery.refetch()} className="rounded-full border border-amber-300 bg-white px-4 py-2 font-bold disabled:cursor-wait disabled:opacity-60">
+            {documentQuery.isFetching ? 'Checking permission…' : 'Try again'}
+          </button>
+        </div>
+      )}
 
       {verifyQuery.isPending || verifyQuery.isFetching ? (
         <VerifySkeleton />
@@ -57,6 +117,25 @@ export default function DocumentVerifyPage() {
       ) : verifyQuery.data ? (
         <VerifyWorkspace result={verifyQuery.data} onRetry={() => void verifyQuery.refetch()} />
       ) : null}
+
+      <Modal open={restoreDialogOpen} onClose={closeRestoreDialog} title="Restore archived original">
+        <div className="space-y-4">
+          <p className="text-sm leading-6 text-[#4B6382]">
+            This replaces the current PDF with the trusted archived original. The current tampered PDF will be kept in signed-copy history if the backend can read it.
+          </p>
+          {restoreMutation.isError && <p role="alert" className="text-sm font-semibold text-[#B42318]">
+            {restoreMutation.error instanceof Error ? restoreMutation.error.message : 'The document could not be restored. Please try again.'}
+          </p>}
+          <div className="flex flex-wrap justify-end gap-2">
+            <button type="button" disabled={restoreMutation.isPending} onClick={closeRestoreDialog} className="rounded-full border border-[#D7E4F2] bg-white px-4 py-2.5 text-sm font-bold text-[#4B6382] disabled:cursor-not-allowed disabled:opacity-60">
+              Cancel
+            </button>
+            <button type="button" disabled={restoreMutation.isPending} onClick={submitRestore} className="rounded-full bg-[#0C2B49] px-4 py-2.5 text-sm font-bold text-white disabled:cursor-wait disabled:opacity-60">
+              {restoreMutation.isPending ? 'Restoring…' : 'Restore archived original'}
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }
