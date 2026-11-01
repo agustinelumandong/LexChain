@@ -20,6 +20,7 @@ import { attachSignedCopy } from '@/features/documents/document-lifecycle-api';
 import { canAccessPortalFeature, getPortalUiRole } from "@/features/access";
 import { PortalDropdown } from "@/features/portal/components";
 import { DocumentProcessingStatus } from '@/features/documents/components/document-processing-status';
+import { Modal } from '@/features/admin/components/modal';
 import { Checkbox } from '@/shared/components/ui';
 import type { ApiSchema } from '@/shared/types/index';
 import { listRegisterBooks } from '@/features/office/books-api';
@@ -53,6 +54,7 @@ export default function UploadPage() {
   const [pageNo, setPageNo] = useState('');
   const [drag, setDrag] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
+  const [duplicateDismissed, setDuplicateDismissed] = useState(false);
   const [outcome, setOutcome] = useState<UploadedDocument | null>(null);
   const profileQuery = useQuery<UserProfile | null>({
     queryKey: ['portal-profile'],
@@ -133,6 +135,7 @@ export default function UploadPage() {
 
   function submit() {
     if (isSubmissionPending) return;
+    setDuplicateDismissed(false);
     const retryAsNewRecord = mutation.isError && mutation.variables === true;
     setValidationError(null);
     mutation.reset();
@@ -257,11 +260,20 @@ export default function UploadPage() {
         <div>
           <h2 id="confirm-process-heading" className="font-black text-[#0C2B49]">Confirm and file signed document</h2>
           <p className="mt-1 text-sm text-[#5B6F8A]">Review the selected signed PDF, title, and book before filing it.</p>
-          {requiresConfirmation && uploadError && <div role="group" aria-label="Upload recovery" className="mt-3 rounded-xl border border-[#F3D59B] bg-[#FFF9EA] p-3 text-sm text-[#704D00]"><p role="alert">{uploadError.message}</p>{uploadError.relatedDocuments.length > 0 ? <ul className="mt-3 space-y-3">{uploadError.relatedDocuments.map((waitingDocument) => <li key={waitingDocument.documentId} className="rounded-lg border border-[#F3D59B] bg-white p-3"><p className="font-bold">{waitingDocument.fileName}</p>{waitingDocument.parties.length > 0 && <ul className="mt-1 space-y-1">{waitingDocument.parties.map((party) => <li key={`${party.email ?? party.name}-${party.role ?? ''}`}>{party.name}{party.email ? ` · ${party.email}` : ''}{party.role ? ` · ${party.role}` : ''}</li>)}</ul>}<Link className="mt-2 inline-block font-bold text-[#0067B3] underline" href={`/portal/documents/${encodeURIComponent(waitingDocument.documentId)}`}>View document details</Link><button type="button" disabled={isSubmissionPending} onClick={() => attachMutation.mutate(waitingDocument.documentId)} className="mt-2 block rounded-full bg-[#0067B3] px-4 py-2 text-sm font-bold text-white disabled:opacity-50">Attach signed PDF to {waitingDocument.fileName}</button></li>)}</ul> : <p className="mt-2">No waiting documents were included in this response.</p>}{uploadError.validationErrors.map((validationError, index) => <p key={`${index}-${validationError.field ?? 'upload'}-${validationError.message}`} className="mt-2">{validationError.field ? `${validationError.field}: ` : ''}{validationError.message}</p>)}{attachMutation.isError && <p role="alert" className="mt-3">{attachMutation.error instanceof Error ? attachMutation.error.message : 'Attachment failed.'} Your selected PDF and filing details have been kept. Review the error and retry.</p>}<div className="mt-3 flex flex-wrap gap-2"><button type="button" disabled={isSubmissionPending} onClick={() => mutation.mutate(true)} className="rounded-full bg-[#0067B3] px-4 py-2 text-sm font-bold text-white">No, this is a new document</button><button type="button" disabled={isSubmissionPending} onClick={() => { mutation.reset(); attachMutation.reset(); }} className="rounded-full border border-[#D7E4F2] px-4 py-2 text-sm font-bold text-[#0C2B49]">Return without submitting</button></div></div>}
-          {error && <div role="alert" className="mt-3 rounded-xl bg-red-50 p-3 text-sm font-bold text-red-700"><p>{error}</p>{activeUploadError && <>{uploadSummaryErrors.map((validationError, index) => <p key={`${index}-${validationError.field ?? 'upload'}-${validationError.message}`} className="mt-1">{validationError.field ? `${validationError.field}: ` : ''}{validationError.message}</p>)}{activeUploadError.reason === 'DUPLICATE_FILE' && activeUploadError.documentId && <Link className="mt-2 inline-block text-[#0067B3] underline" href={`/portal/documents/${encodeURIComponent(activeUploadError.documentId)}`}>View existing document</Link>}</>}</div>}
+          {error && activeUploadError?.reason !== 'DUPLICATE_FILE' && <div role="alert" className="mt-3 rounded-xl bg-red-50 p-3 text-sm font-bold text-red-700"><p>{error}</p>{uploadSummaryErrors.map((validationError, index) => <p key={`${index}-${validationError.field ?? 'upload'}-${validationError.message}`} className="mt-1">{validationError.field ? `${validationError.field}: ` : ''}{validationError.message}</p>)}</div>}
         </div>
         {!requiresConfirmation && <button disabled={!file || !title.trim() || !bookId} onClick={submit} className="mt-4 shrink-0 rounded-full bg-[#0067B3] px-8 py-3 text-sm font-black text-white transition hover:bg-[#005F9E] disabled:opacity-40 sm:mt-0">Confirm and file</button>}
       </section>
+      <Modal open={requiresConfirmation} onClose={() => { mutation.reset(); attachMutation.reset(); }} title="Documents awaiting a signed copy">
+        {requiresConfirmation && uploadError && <div role="group" aria-label="Upload recovery" className="max-h-[60vh] overflow-y-auto text-sm text-[#0C2B49]"><p role="alert">{uploadError.message}</p>{uploadError.relatedDocuments.length > 0 ? <ul className="mt-3 space-y-3">{uploadError.relatedDocuments.map((waitingDocument) => <li key={waitingDocument.documentId} className="rounded-lg border border-[#F3D59B] bg-white p-3"><p className="font-bold">{waitingDocument.fileName}</p>{waitingDocument.parties.length > 0 && <ul className="mt-1 space-y-1">{waitingDocument.parties.map((party) => <li key={`${party.email ?? party.name}-${party.role ?? ''}`}>{party.name}{party.email ? ` · ${party.email}` : ''}{party.role ? ` · ${party.role}` : ''}</li>)}</ul>}<Link className="mt-2 inline-block font-bold text-[#0067B3] underline" href={`/portal/documents/${encodeURIComponent(waitingDocument.documentId)}`}>View document details</Link><button type="button" disabled={isSubmissionPending} onClick={() => attachMutation.mutate(waitingDocument.documentId)} className="mt-2 block rounded-full bg-[#0067B3] px-4 py-2 text-sm font-bold text-white disabled:opacity-50">Attach signed PDF to {waitingDocument.fileName}</button></li>)}</ul> : <p className="mt-2">No waiting documents were included in this response.</p>}{uploadError.validationErrors.map((validationError, index) => <p key={`${index}-${validationError.field ?? 'upload'}-${validationError.message}`} className="mt-2">{validationError.field ? `${validationError.field}: ` : ''}{validationError.message}</p>)}{attachMutation.isError && <p role="alert" className="mt-3">{attachMutation.error instanceof Error ? attachMutation.error.message : 'Attachment failed.'} Your selected PDF and filing details have been kept. Review the error and retry.</p>}<div className="mt-3 flex flex-wrap gap-2"><button type="button" disabled={isSubmissionPending} onClick={() => mutation.mutate(true)} className="rounded-full bg-[#0067B3] px-4 py-2 text-sm font-bold text-white">No, this is a new document</button><button type="button" disabled={isSubmissionPending} onClick={() => { mutation.reset(); attachMutation.reset(); }} className="rounded-full border border-[#D7E4F2] px-4 py-2 text-sm font-bold text-[#0C2B49]">Return without submitting</button></div></div>}
+      </Modal>
+      <Modal open={!requiresConfirmation && activeUploadError?.reason === 'DUPLICATE_FILE' && !duplicateDismissed} onClose={() => setDuplicateDismissed(true)} title="Document already filed">
+        <div role="alert" className="text-sm text-[#0C2B49]">
+          <p>{error}</p>
+          {uploadSummaryErrors.map((validationError, index) => <p key={`${index}-${validationError.field ?? 'upload'}-${validationError.message}`} className="mt-1">{validationError.field ? `${validationError.field}: ` : ''}{validationError.message}</p>)}
+          {activeUploadError?.documentId && <Link className="mt-4 inline-block font-bold text-[#0067B3] underline" href={`/portal/documents/${encodeURIComponent(activeUploadError.documentId)}`}>View existing document</Link>}
+        </div>
+      </Modal>
     </div>
   );
 }
