@@ -44,7 +44,7 @@ const PdfDocumentViewer = dynamic(() => import('@/features/documents/components/
 });
 
 const tabs = ['Overview', 'Files', 'Comments', 'Participants', 'Blockchain', 'History'] as const;
-type Tab = typeof tabs[number];
+export type Tab = typeof tabs[number];
 const overviewSectionHeadingClassName = 'inline-flex items-center gap-2 text-lg font-bold leading-6 text-[#0C2B49]';
 
 function readable(value: unknown): string {
@@ -477,6 +477,9 @@ type DocumentWorkspaceProps = {
   document: WorkspaceDocument;
   role?: PortalUiRole;
   initialTab?: Tab;
+  activeTab?: Tab;
+  onTabChange?: (tab: Tab) => void;
+  finalizationResult?: ApiSchema<'RecordResponse'>;
   readinessError?: Error | null;
   isChangingReadiness?: boolean;
   finalizationOutcomeUnknown?: boolean;
@@ -490,6 +493,9 @@ export function DocumentWorkspace({
   document,
   role = 'user',
   initialTab,
+  activeTab: activeTabProp,
+  onTabChange,
+  finalizationResult,
   readinessError,
   isChangingReadiness = false,
   finalizationOutcomeUnknown = false,
@@ -497,7 +503,8 @@ export function DocumentWorkspace({
   onReopen,
   onDocumentUpdated = () => undefined,
 }: DocumentWorkspaceProps) {
-  const [activeTab, setActiveTab] = useState<Tab>(initialTab ?? 'Overview');
+  const [internalActiveTab, setInternalActiveTab] = useState<Tab>(initialTab ?? 'Overview');
+  const activeTab = activeTabProp ?? internalActiveTab;
   const isDrafting = document.lifecycle === 'PREPARING' || document.lifecycle === 'READY_FOR_SIGNATURE';
   const hasGoogleDraft = isGoogleDraftUrl(document.draft_url ?? '');
   const [signedCopyMode, setSignedCopyMode] = useState<'attach' | 'replace' | null>(null);
@@ -570,7 +577,8 @@ export function DocumentWorkspace({
     enabled: activeTab === 'Blockchain' && Boolean(document.on_chain) && !isMockMode(),
     retry: false,
   });
-  const transactionUrl = chainQuery.data?.tx_hash ? getBaseSepoliaTransactionUrl(chainQuery.data.tx_hash) : null;
+  const txHash = chainQuery.data?.tx_hash || finalizationResult?.tx_hash;
+  const transactionUrl = txHash ? getBaseSepoliaTransactionUrl(txHash) : null;
   const signedCopiesQuery = useQuery({ queryKey: ['portal-doc-signed-copies', document.document_id], queryFn: () => listSignedCopies(document.document_id), enabled: !isDrafting && activeTab === 'Files', refetchInterval: 15_000 });
   const partiesQuery = useQuery({
     queryKey: ['portal-document-parties', document.document_id],
@@ -607,12 +615,15 @@ export function DocumentWorkspace({
   const visibleTabs = isDrafting ? [] : tabs.filter((tab) => (tab !== 'Comments' || Boolean(document.draft_url)) && (tab !== 'Participants' || canManageParticipants));
 
   function selectTab(tab: Tab) {
-    setActiveTab(tab);
+    if (activeTabProp === undefined) {
+      setInternalActiveTab(tab);
+    }
+    onTabChange?.(tab);
   }
 
   useEffect(() => {
     if (initialTab && visibleTabs.includes(initialTab)) {
-      setActiveTab(initialTab);
+      selectTab(initialTab);
       return;
     }
     if (typeof window !== 'undefined' && window.location.search) {
@@ -621,7 +632,7 @@ export function DocumentWorkspace({
       if (tabParam) {
         const matchingTab = tabs.find((t) => t.toLowerCase() === tabParam.toLowerCase());
         if (matchingTab && visibleTabs.includes(matchingTab)) {
-          setActiveTab(matchingTab);
+          selectTab(matchingTab);
         }
       }
     }
@@ -697,7 +708,7 @@ export function DocumentWorkspace({
   }
 
   function openSignedCopyForm() {
-    setActiveTab(isDrafting ? 'Overview' : 'Files');
+    selectTab(isDrafting ? 'Overview' : 'Files');
     setSignedCopyMode('attach');
     setSignedCopyError(null);
     signedCopyMutation.reset();
@@ -1035,9 +1046,15 @@ export function DocumentWorkspace({
                 <p className="mt-1 text-sm leading-6 text-[#4B6382]">When this document is finalized, its digital fingerprint is saved to the blockchain. Comparing fingerprints can show whether the saved PDF has changed.</p>
               </div>
             </div>
+            {finalizationResult && isMockMode() && (
+              <p role="note" className="rounded-xl border border-[#F1D29A] bg-[#FFF8E8] px-4 py-3 text-sm font-bold text-[#785000]">Synthetic demo record. No real PDF digest or blockchain transaction was produced.</p>
+            )}
             <dl className="grid gap-3 text-sm sm:grid-cols-2">
               <div><dt className="font-bold text-[#4B6382]">Record status</dt><dd className="mt-1 text-[#0C2B49]">{anchorLabel(document.lifecycle, document.on_chain)}</dd></div>
-              {document.document_hash && <div><dt className="font-bold text-[#4B6382]">Document fingerprint (hash)</dt><dd className="mt-1 text-[#0C2B49]"><CopyableIdentifier value={document.document_hash} label="document hash" /></dd></div>}
+              {(finalizationResult?.data_hash || document.document_hash) && <div><dt className="font-bold text-[#4B6382]">Document fingerprint (hash)</dt><dd className="mt-1 text-[#0C2B49]"><CopyableIdentifier value={finalizationResult?.data_hash || document.document_hash || ''} label="document hash" /></dd></div>}
+              {document.document_id && <div><dt className="font-bold text-[#4B6382]">Document ID</dt><dd className="mt-1 text-[#0C2B49]"><CopyableIdentifier value={document.document_id} label="document ID" /></dd></div>}
+              {finalizationResult?.onchain_document_id && <div><dt className="font-bold text-[#4B6382]">Blockchain record ID</dt><dd className="mt-1 text-[#0C2B49]"><CopyableIdentifier value={finalizationResult.onchain_document_id} label="blockchain record ID" /></dd></div>}
+              {(chainQuery.data?.tx_hash || finalizationResult?.tx_hash) && <div><dt className="font-bold text-[#4B6382]">Transaction ID</dt><dd className="mt-1 text-[#0C2B49]"><CopyableIdentifier value={chainQuery.data?.tx_hash || finalizationResult?.tx_hash || ''} label="transaction ID" /></dd></div>}
               {document.on_chain && <div><dt className="font-bold text-[#4B6382]">Recorded</dt><dd className="mt-1 text-[#0C2B49]">{formatDate(document.finalized_at)}</dd></div>}
             </dl>
             {document.on_chain && (isMockMode() ? <p className="text-sm text-[#4B6382]">Transaction details are unavailable in mock mode.</p> : chainQuery.isLoading ? <p role="status" className="text-sm text-[#4B6382]">Loading transaction details…</p> : transactionUrl ? <a href={transactionUrl} target="_blank" rel="noreferrer" className="inline-flex min-h-11 items-center rounded-full border border-[#0067B3] px-4 py-2.5 text-sm font-bold text-[#0067B3] hover:bg-[#EAF4FF] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]">View transaction on Base Sepolia <span className="sr-only">(opens in a new tab)</span></a> : <p className="text-sm text-[#4B6382]">Transaction link unavailable.</p>)}

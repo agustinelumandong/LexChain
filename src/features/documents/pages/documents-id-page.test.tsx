@@ -375,7 +375,7 @@ describe('document detail screen', () => {
     await act(async () => finish?.({ document_id: 'doc-1', onchain_document_id: 'onchain-doc-101', data_hash: 'datahash101', tx_hash: '0xtxhash101' }));
   });
 
-  it('shows the complete returned record across tabs and keeps processing separate from finalization', async () => {
+  it('navigates to blockchain record via toast action and keeps processing separate from finalization', async () => {
     state.finalizeDocument.mockImplementation(async () => {
       state.documentQuery = { ...state.documentQuery, data: { ...baseDocument, lifecycle: 'FINALIZED', status: 'QUEUED' } };
       return { document_id: 'doc-1', onchain_document_id: 'onchain-doc-101', data_hash: 'datahash101', tx_hash: '0xtxhash101' };
@@ -387,14 +387,16 @@ describe('document detail screen', () => {
     expect(await screen.findByText('Document finalized and anchored on-chain.')).toBeTruthy();
     expect(screen.getAllByText('Finalized').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Queued').length).toBeGreaterThan(0);
-    for (const tab of ['Overview', 'Files', 'Comments', 'Blockchain', 'History']) {
-      fireEvent.click(screen.getByRole('tab', { name: tab }));
-      expect(screen.getByText('Document finalized and anchored on-chain.')).toBeTruthy();
-      expect(screen.getByText('Document ID').parentElement?.querySelector('code')?.textContent).toBe('doc-1');
-      expect(screen.getByText('onchain-doc-101')).toBeTruthy();
-      expect(screen.getByText('datahash101')).toBeTruthy();
-      expect(screen.getByText('0xtxhash101')).toBeTruthy();
-    }
+
+    const viewBlockchainBtn = screen.getByRole('button', { name: 'View blockchain record →' });
+    expect(viewBlockchainBtn).toBeTruthy();
+    fireEvent.click(viewBlockchainBtn);
+
+    expect(screen.getByText('Document ID').parentElement?.querySelector('code')?.textContent).toBe('doc-1');
+    expect(screen.getByText('onchain-doc-101')).toBeTruthy();
+    expect(screen.getByText('datahash101')).toBeTruthy();
+    expect(screen.getByText('0xtxhash101')).toBeTruthy();
+
     expect(state.finalizeDocument).toHaveBeenCalledExactlyOnceWith('doc-1');
     expect(state.queryClient.invalidateQueries).toHaveBeenCalledWith({ queryKey: ['portal-doc', 'doc-1'] });
     expect(state.queryClient.invalidateQueries).toHaveBeenCalledWith({ queryKey: ['portal-documents'] });

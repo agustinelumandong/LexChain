@@ -10,7 +10,7 @@ import { toast } from 'sonner';
 import { z } from 'zod';
 import type { ApiSchema } from '@/shared/types/index';
 import { PortalChatbot as PortalChatbot } from "@/features/portal/components";
-import { CopyableIdentifier, DocumentWorkspace } from '@/features/documents/components/document-workspace';
+import { CopyableIdentifier, DocumentWorkspace, type Tab } from '@/features/documents/components/document-workspace';
 import { getDocumentActions, getDocumentLifecycleBadgeClasses, getDocumentLifecycleLabel, getDocumentProcessingBadgeClasses, getDocumentProcessingStatusLabel } from '@/features/documents/document-ui';
 import { renameDocument, finalizeDocument, markDocumentReady, reopenDocument, cancelDocument } from '@/features/documents/document-lifecycle-api';
 import { getPortalUiRole } from "@/features/access";
@@ -77,6 +77,7 @@ export default function DocumentDetailPage({ params }: { params: Promise<{ id: s
   const { open: documentActionsOpen, setOpen: setDocumentActionsOpen, ref: documentActionsRef } = usePopup();
   const [confirmingFinalize, setConfirmingFinalize] = useState(false);
   const [cancelConfirmationOpen, setCancelConfirmationOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<Tab>('Overview');
   const [finalizationResult, setFinalizationResult] = useState<ApiSchema<'RecordResponse'>>();
   const [statusMessage, setStatusMessage] = useState<string>();
   const unknownFinalizationKey = `portal-finalize-unknown:${id}`;
@@ -120,9 +121,17 @@ export default function DocumentDetailPage({ params }: { params: Promise<{ id: s
     onSuccess: async (result) => {
       setFinalizationResult(result);
       setConfirmingFinalize(false);
-      toast.success(mockMode
-        ? 'Demo finalization complete. Synthetic demo data only; no real PDF digest or blockchain transaction was produced.'
-        : 'Document finalized and anchored on-chain.');
+      toast.success(
+        mockMode
+          ? 'Demo finalization complete. Synthetic demo data only; no real PDF digest or blockchain transaction was produced.'
+          : 'Document finalized and anchored on-chain.',
+        {
+          action: {
+            label: 'View blockchain record →',
+            onClick: () => setActiveTab('Blockchain'),
+          },
+        },
+      );
       await refreshLifecycleQueries();
     },
     onError: (error) => {
@@ -145,9 +154,17 @@ export default function DocumentDetailPage({ params }: { params: Promise<{ id: s
       sessionStorage.removeItem(unknownFinalizationKey);
       window.dispatchEvent(new Event('portal-finalization-status'));
       setStatusMessage(undefined);
-      toast.success(mockMode
-        ? 'Demo document status confirmed. Synthetic demo data only; no real PDF digest or blockchain transaction was produced.'
-        : 'Document finalized and anchored on-chain.');
+      toast.success(
+        mockMode
+          ? 'Demo document status confirmed. Synthetic demo data only; no real PDF digest or blockchain transaction was produced.'
+          : 'Document finalized and anchored on-chain.',
+        {
+          action: {
+            label: 'View blockchain record →',
+            onClick: () => setActiveTab('Blockchain'),
+          },
+        },
+      );
       await refreshLifecycleQueries();
     },
     onError: () => {
@@ -302,8 +319,8 @@ export default function DocumentDetailPage({ params }: { params: Promise<{ id: s
         {statusMessage && <p>{statusMessage}</p>}
         <button type="button" onClick={() => checkFinalizationMutation.mutate()} disabled={checkFinalizationMutation.isPending} className="rounded-full border border-[#0067B3] px-4 py-2 font-bold text-[#0067B3] disabled:opacity-60">{checkFinalizationMutation.isPending ? 'Checking status…' : 'Check status'}</button>
       </div>}
-      {docQ.isError && finalizationResult && <p role="alert" className="text-sm font-bold text-[#B42318]">{mockMode ? 'Demo finalization completed, but the document could not be refreshed.' : 'Finalization succeeded, but the document could not be refreshed.'}</p>}
-      {finalizationResult && <>
+      {docQ.isError && finalizationResult && <>
+        <p role="alert" className="text-sm font-bold text-[#B42318]">{mockMode ? 'Demo finalization completed, but the document could not be refreshed.' : 'Finalization succeeded, but the document could not be refreshed.'}</p>
         {mockMode && <p role="note" className="rounded-xl border border-[#F1D29A] bg-[#FFF8E8] px-4 py-3 text-sm font-bold text-[#785000]">Synthetic demo record. No real PDF digest or blockchain transaction was produced.</p>}
         <details className="rounded-xl border border-[#E8F0F8] bg-[#F8FBFF] p-4">
           <summary className="cursor-pointer text-sm font-bold text-[#0C2B49]">Record details (IDs and fingerprints)</summary>
@@ -334,6 +351,9 @@ export default function DocumentDetailPage({ params }: { params: Promise<{ id: s
       <DocumentWorkspace
         className="min-h-0 flex-1 md:flex"
         document={document}
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        finalizationResult={finalizationResult}
         onDocumentUpdated={publishUpdatedDocument}
         role={role}
         readinessError={readinessMutation.error instanceof Error ? readinessMutation.error : null}
