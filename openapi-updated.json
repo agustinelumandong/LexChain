@@ -206,6 +206,109 @@
         }
       }
     },
+    "/auth/password-recovery": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Request a password reset email",
+        "description": "Email a password-reset link to the address, if it has an account.\n\n    - **Response**: Always the same message, whether or not the address has an account.\n    - **Link**: Opens the frontend reset page with `?token_hash=...&type=recovery`.\n      Pass `token_hash` to `POST /auth/password-reset`.\n    - **Rate Limit**: 3 requests per minute.",
+        "operationId": "request_password_recovery_auth_password_recovery_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PasswordRecoveryRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Request accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests - Rate limit exceeded",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": "Rate limit exceeded"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/password-reset": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Set a new password from a reset link",
+        "description": "Set a new password using the `token_hash` from a password-reset link.\n\n    - **Single use**: A link works once and expires per the Supabase email OTP\n      expiry (default 1 hour). A 400 or 502 spends the link — request a new one.\n      A 422 (password policy) is rejected before the link is checked.\n    - **Sessions**: Every refresh token for the account is revoked; the user signs\n      in again. Access tokens already issued stay valid until they expire.\n    - **Password**: Same policy as sign-up (8+ characters, upper, lower, digit).\n    - **Rate Limit**: 5 requests per minute.",
+        "operationId": "reset_password_auth_password_reset_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PasswordResetRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Password updated; all sessions revoked",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Link invalid, expired or already used, or Supabase rejected the password"
+          },
+          "422": {
+            "description": "New password does not meet the policy"
+          },
+          "429": {
+            "description": "Too Many Requests - Rate limit exceeded",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": "Rate limit exceeded"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Failed to connect to Supabase"
+          }
+        }
+      }
+    },
     "/users/search": {
       "get": {
         "tags": [
@@ -6767,6 +6870,42 @@
         ],
         "title": "OpenDocumentRequest",
         "description": "Path 1 — open a document record before anything is signed."
+      },
+      "PasswordRecoveryRequest": {
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "title": "Email",
+            "description": "Address to send the reset link to"
+          }
+        },
+        "type": "object",
+        "required": [
+          "email"
+        ],
+        "title": "PasswordRecoveryRequest"
+      },
+      "PasswordResetRequest": {
+        "properties": {
+          "token_hash": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Token Hash",
+            "description": "The `token_hash` query parameter from the reset link"
+          },
+          "new_password": {
+            "type": "string",
+            "title": "New Password",
+            "description": "New password; same policy as sign-up"
+          }
+        },
+        "type": "object",
+        "required": [
+          "token_hash",
+          "new_password"
+        ],
+        "title": "PasswordResetRequest"
       },
       "RecordResponse": {
         "properties": {

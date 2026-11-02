@@ -102,6 +102,59 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/auth/password-recovery": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Request a password reset email
+         * @description Email a password-reset link to the address, if it has an account.
+         *
+         *         - **Response**: Always the same message, whether or not the address has an account.
+         *         - **Link**: Opens the frontend reset page with `?token_hash=...&type=recovery`.
+         *           Pass `token_hash` to `POST /auth/password-reset`.
+         *         - **Rate Limit**: 3 requests per minute.
+         */
+        post: operations["request_password_recovery_auth_password_recovery_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/password-reset": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Set a new password from a reset link
+         * @description Set a new password using the `token_hash` from a password-reset link.
+         *
+         *         - **Single use**: A link works once and expires per the Supabase email OTP
+         *           expiry (default 1 hour). A 400 or 502 spends the link — request a new one.
+         *           A 422 (password policy) is rejected before the link is checked.
+         *         - **Sessions**: Every refresh token for the account is revoked; the user signs
+         *           in again. Access tokens already issued stay valid until they expire.
+         *         - **Password**: Same policy as sign-up (8+ characters, upper, lower, digit).
+         *         - **Rate Limit**: 5 requests per minute.
+         */
+        post: operations["reset_password_auth_password_reset_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/users/search": {
         parameters: {
             query?: never;
@@ -2700,6 +2753,28 @@ export interface components {
             /** File Name */
             file_name: string;
         };
+        /** PasswordRecoveryRequest */
+        PasswordRecoveryRequest: {
+            /**
+             * Email
+             * Format: email
+             * @description Address to send the reset link to
+             */
+            email: string;
+        };
+        /** PasswordResetRequest */
+        PasswordResetRequest: {
+            /**
+             * Token Hash
+             * @description The `token_hash` query parameter from the reset link
+             */
+            token_hash: string;
+            /**
+             * New Password
+             * @description New password; same policy as sign-up
+             */
+            new_password: string;
+        };
         /**
          * RecordResponse
          * @description Response returned after recording a document on-chain.
@@ -3624,6 +3699,112 @@ export interface operations {
                      */
                     "application/json": unknown;
                 };
+            };
+        };
+    };
+    request_password_recovery_auth_password_recovery_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PasswordRecoveryRequest"];
+            };
+        };
+        responses: {
+            /** @description Request accepted */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessageResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Too Many Requests - Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "error": "Rate limit exceeded"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    reset_password_auth_password_reset_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PasswordResetRequest"];
+            };
+        };
+        responses: {
+            /** @description Password updated; all sessions revoked */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessageResponse"];
+                };
+            };
+            /** @description Link invalid, expired or already used, or Supabase rejected the password */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description New password does not meet the policy */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Too Many Requests - Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "error": "Rate limit exceeded"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Failed to connect to Supabase */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
