@@ -13,11 +13,28 @@ vi.mock('@/features/documents/components/pdf-document-viewer', () => ({ default:
 const createWatermarkedSignedPdfMock = vi.hoisted(() => vi.fn());
 vi.mock('@/features/documents/watermark-signed-pdf', () => ({ createWatermarkedSignedPdf: createWatermarkedSignedPdfMock }));
 
-const { attachSignedCopyMock, correctDocumentEntryMock, listDocumentHistoryMock, listDocumentPartiesMock, listRegisterBooksMock, listSignedCopiesMock, listDraftCommentsMock, replaceSignedCopyMock, syncDraftCommentsMock, LifecycleRequestErrorMock } = vi.hoisted(() => ({
+const {
+  attachSignedCopyMock,
+  correctDocumentEntryMock,
+  listDocumentHistoryMock,
+  listDocumentPartiesMock,
+  inviteDocumentPartyMock,
+  revokeDocumentPartyMock,
+  searchUserByEmailMock,
+  listRegisterBooksMock,
+  listSignedCopiesMock,
+  listDraftCommentsMock,
+  replaceSignedCopyMock,
+  syncDraftCommentsMock,
+  LifecycleRequestErrorMock,
+} = vi.hoisted(() => ({
   attachSignedCopyMock: vi.fn(),
   correctDocumentEntryMock: vi.fn(),
   listDocumentHistoryMock: vi.fn(),
   listDocumentPartiesMock: vi.fn(),
+  inviteDocumentPartyMock: vi.fn(),
+  revokeDocumentPartyMock: vi.fn(),
+  searchUserByEmailMock: vi.fn(),
   listRegisterBooksMock: vi.fn(),
   listSignedCopiesMock: vi.fn(),
   listDraftCommentsMock: vi.fn(),
@@ -40,6 +57,10 @@ const { attachSignedCopyMock, correctDocumentEntryMock, listDocumentHistoryMock,
 
 vi.mock('@/features/access', () => ({
   listDocumentParties: listDocumentPartiesMock,
+  inviteDocumentParty: inviteDocumentPartyMock,
+  revokeDocumentParty: revokeDocumentPartyMock,
+  searchUserByEmail: searchUserByEmailMock,
+  isParticipantAccessCapabilityError: () => false,
 }));
 
 vi.mock('@/features/documents/document-lifecycle-api', () => ({
@@ -233,6 +254,9 @@ describe('DocumentWorkspace', () => {
     listDraftCommentsMock.mockResolvedValue({ document_id: 'doc-101', unresolved: 0, comments: [] });
     replaceSignedCopyMock.mockResolvedValue(document);
     syncDraftCommentsMock.mockResolvedValue({ document_id: 'doc-101', unresolved: 0, comments: [] });
+    inviteDocumentPartyMock.mockResolvedValue({});
+    revokeDocumentPartyMock.mockResolvedValue({});
+    searchUserByEmailMock.mockResolvedValue(null);
   });
 
   afterEach(() => {
@@ -241,6 +265,7 @@ describe('DocumentWorkspace', () => {
     vi.unstubAllEnvs();
     vi.clearAllMocks();
     sessionStorage.clear();
+    window.history.replaceState(null, '', '/');
   });
 
   it('only offers register correction for signed documents allowed by the backend', () => {
@@ -1104,5 +1129,60 @@ describe('DocumentWorkspace', () => {
     renderWorkspace();
     expect(screen.queryByRole('button', { name: 'Mark ready for signature' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Reopen draft' })).toBeNull();
+  });
+
+  it('renders participant management directly inside the Participants tab for a finalized document', async () => {
+    listDocumentPartiesMock.mockResolvedValue({
+      document_id: 'doc-101',
+      issuer: { id: 'owner-101', user_id: 'owner-101', email: 'lawyer@example.com', f_name: 'Jordan', l_name: 'Lawyer', role: 'owner', status: 'accepted', responded_at: null, created_at: '2026-07-28T00:00:00Z' },
+      parties: [{ id: 'party-1', user_id: 'user-1', document_id: 'doc-101', email: 'client@example.com', f_name: 'Alex', l_name: 'Client', role: 'viewer', status: 'accepted' }],
+    });
+
+    renderWorkspace({
+      role: 'lawyer',
+      document: {
+        ...document,
+        lifecycle: 'FINALIZED',
+        permissions: { ...document.permissions, can_share: true, can_revoke: true },
+      },
+    });
+
+    // Overview tab is initially selected
+    expect(screen.getByRole('tab', { name: 'Participants' })).toBeTruthy();
+
+    // Click Participants tab
+    fireEvent.click(screen.getByRole('tab', { name: 'Participants' }));
+
+    // Verify in-place participant management is rendered
+    expect(await screen.findByRole('heading', { name: 'Manage participants' })).toBeTruthy();
+    expect(await screen.findByRole('heading', { name: 'Invite a participant' })).toBeTruthy();
+    expect(await screen.findByRole('heading', { name: 'Document participants' })).toBeTruthy();
+    expect(await screen.findByText('Alex Client')).toBeTruthy();
+    expect(screen.getByText('client@example.com')).toBeTruthy();
+  });
+
+  it('switches to the Participants tab when clicking Manage on the Overview card', async () => {
+    listDocumentPartiesMock.mockResolvedValue({
+      document_id: 'doc-101',
+      issuer: { id: 'owner-101', user_id: 'owner-101', email: 'lawyer@example.com', f_name: 'Jordan', l_name: 'Lawyer', role: 'owner', status: 'accepted', responded_at: null, created_at: '2026-07-28T00:00:00Z' },
+      parties: [{ id: 'party-1', user_id: 'user-1', document_id: 'doc-101', email: 'client@example.com', f_name: 'Alex', l_name: 'Client', role: 'viewer', status: 'accepted' }],
+    });
+
+    renderWorkspace({
+      role: 'lawyer',
+      document: {
+        ...document,
+        lifecycle: 'FINALIZED',
+        permissions: { ...document.permissions, can_share: true, can_revoke: true },
+      },
+    });
+
+    // On overview tab, find the Manage button/link and click it
+    const manageLink = screen.getByRole('link', { name: 'Manage' });
+    fireEvent.click(manageLink);
+
+    // Verify it switched to the Participants tab
+    expect(screen.getByRole('tab', { name: 'Participants' }).getAttribute('aria-selected')).toBe('true');
+    expect(await screen.findByRole('heading', { name: 'Manage participants' })).toBeTruthy();
   });
 });

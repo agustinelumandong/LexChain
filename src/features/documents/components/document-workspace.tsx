@@ -34,6 +34,7 @@ import { PortalDropdown } from '@/features/portal/components';
 import { Checkbox } from '@/shared/components/ui';
 import { getRegisterEntryError, getUploadFileError } from '@/features/documents/portal-upload';
 import { createWatermarkedSignedPdf } from '@/features/documents/watermark-signed-pdf';
+import { DocumentParticipantManagement } from '@/features/documents/components/document-participant-management';
 
 type WorkspaceDocument = ApiSchema<'DocumentResponse'>;
 
@@ -181,6 +182,7 @@ function ParticipantsPanel({
   isError,
   people,
   onRetry,
+  onManage,
 }: {
   documentId: string;
   canManage: boolean;
@@ -188,12 +190,13 @@ function ParticipantsPanel({
   isError: boolean;
   people: ApiSchema<'DocumentPartyResponse'>[];
   onRetry: () => void;
+  onManage?: () => void;
 }) {
   return (
     <section aria-labelledby="participants-heading" className="rounded-xl border border-[#D7E4F2] bg-white p-5 sm:p-6">
       <div className="flex items-center justify-between gap-3">
         <h2 id="participants-heading" className="inline-flex items-center gap-1.5 text-lg font-bold leading-6 text-[#0C2B49]"><GroupsOutlinedIcon aria-hidden="true" sx={{ fontSize: 20, color: '#0067B3' }} />Participants</h2>
-        {canManage && <Link href={`/portal/documents/${documentId}/participants`} className="inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-full border border-[#D7E4F2] px-2.5 py-1 text-sm font-semibold text-[#0C2B49] hover:bg-[#EAF4FF] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3] sm:min-h-9"><ManageAccountsOutlinedIcon aria-hidden="true" sx={{ fontSize: 17 }} />Manage</Link>}
+        {canManage && <Link href={`/portal/documents/${documentId}/participants`} onClick={onManage ? (e) => { e.preventDefault(); onManage(); } : undefined} className="inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-full border border-[#D7E4F2] px-2.5 py-1 text-sm font-semibold text-[#0C2B49] hover:bg-[#EAF4FF] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3] sm:min-h-9"><ManageAccountsOutlinedIcon aria-hidden="true" sx={{ fontSize: 17 }} />Manage</Link>}
       </div>
       {isLoading && <p role="status" className="mt-3 text-base leading-7 text-[#4B6382]">Loading participants…</p>}
       {isError && <div className="mt-3 flex flex-wrap items-center gap-2"><p role="alert" className="text-base leading-7 text-[#B42318]">Unable to load participants.</p><button type="button" onClick={onRetry} className="min-h-11 rounded-full border border-[#D7E4F2] px-4 py-2 text-sm font-bold text-[#0C2B49] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]">Retry participants</button></div>}
@@ -473,6 +476,7 @@ type DocumentWorkspaceProps = {
   className?: string;
   document: WorkspaceDocument;
   role?: PortalUiRole;
+  initialTab?: Tab;
   readinessError?: Error | null;
   isChangingReadiness?: boolean;
   finalizationOutcomeUnknown?: boolean;
@@ -485,6 +489,7 @@ export function DocumentWorkspace({
   className,
   document,
   role = 'user',
+  initialTab,
   readinessError,
   isChangingReadiness = false,
   finalizationOutcomeUnknown = false,
@@ -492,7 +497,7 @@ export function DocumentWorkspace({
   onReopen,
   onDocumentUpdated = () => undefined,
 }: DocumentWorkspaceProps) {
-  const [activeTab, setActiveTab] = useState<Tab>('Overview');
+  const [activeTab, setActiveTab] = useState<Tab>(initialTab ?? 'Overview');
   const isDrafting = document.lifecycle === 'PREPARING' || document.lifecycle === 'READY_FOR_SIGNATURE';
   const hasGoogleDraft = isGoogleDraftUrl(document.draft_url ?? '');
   const [signedCopyMode, setSignedCopyMode] = useState<'attach' | 'replace' | null>(null);
@@ -570,7 +575,7 @@ export function DocumentWorkspace({
   const partiesQuery = useQuery({
     queryKey: ['portal-document-parties', document.document_id],
     queryFn: () => listDocumentParties(document.document_id),
-    enabled: isDrafting || activeTab === 'Overview',
+    enabled: isDrafting || activeTab === 'Overview' || activeTab === 'Participants',
     retry: false,
     refetchInterval: 15_000,
   });
@@ -600,6 +605,27 @@ export function DocumentWorkspace({
   ];
   const canManageParticipants = role === 'lawyer' && (document.permissions.can_share || document.permissions.can_revoke);
   const visibleTabs = isDrafting ? [] : tabs.filter((tab) => (tab !== 'Comments' || Boolean(document.draft_url)) && (tab !== 'Participants' || canManageParticipants));
+
+  function selectTab(tab: Tab) {
+    setActiveTab(tab);
+  }
+
+  useEffect(() => {
+    if (initialTab && visibleTabs.includes(initialTab)) {
+      setActiveTab(initialTab);
+      return;
+    }
+    if (typeof window !== 'undefined' && window.location.search) {
+      const params = new URLSearchParams(window.location.search);
+      const tabParam = params.get('tab');
+      if (tabParam) {
+        const matchingTab = tabs.find((t) => t.toLowerCase() === tabParam.toLowerCase());
+        if (matchingTab && visibleTabs.includes(matchingTab)) {
+          setActiveTab(matchingTab);
+        }
+      }
+    }
+  }, [initialTab, visibleTabs]);
   useEffect(() => {
     if (signedCopyMode === 'attach') signedCopyFileInput.current?.focus({ preventScroll: true });
   }, [signedCopyMode]);
@@ -636,6 +662,7 @@ export function DocumentWorkspace({
     isError={partiesQuery.isError}
     people={people}
     onRetry={() => { void partiesQuery.refetch(); }}
+    onManage={!isDrafting && visibleTabs.includes('Participants') ? () => selectTab('Participants') : undefined}
   />;
 
   function openEntryCorrection() {
@@ -858,7 +885,7 @@ export function DocumentWorkspace({
             role="tab"
             type="button"
             aria-selected={activeTab === tab}
-            onClick={() => setActiveTab(tab)}
+            onClick={() => selectTab(tab)}
             className={`flex min-h-11 shrink-0 items-center gap-1.5 rounded-t-md border-b-2 px-4 py-3 text-sm font-semibold focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[#0067B3] ${activeTab === tab ? 'border-[#0067B3] text-[#0C2B49]' : 'border-transparent text-[#4B6382] hover:text-[#0C2B49]'}`}
           >
             {tab === 'Blockchain' && <AccountTreeIcon aria-hidden="true" sx={{ fontSize: 18, color: '#0067B3' }} />}
@@ -926,7 +953,7 @@ export function DocumentWorkspace({
                 <section aria-labelledby="recent-history-heading" className="space-y-3 rounded-xl border border-[#D7E4F2] bg-white p-4 sm:p-5">
                   <div className="flex min-h-11 items-center justify-between gap-3">
                     <h2 id="recent-history-heading" className={overviewSectionHeadingClassName}><HistoryOutlinedIcon aria-hidden="true" sx={{ fontSize: 20, color: '#0067B3' }} />Recent history</h2>
-                    <button type="button" aria-label="View document history" onClick={() => setActiveTab('History')} className="inline-flex min-h-11 items-center gap-1 text-sm font-semibold text-[#0067B3] hover:underline sm:min-h-9">View all<ArrowForwardIcon aria-hidden="true" sx={{ fontSize: 16 }} /></button>
+                    <button type="button" aria-label="View document history" onClick={() => selectTab('History')} className="inline-flex min-h-11 items-center gap-1 text-sm font-semibold text-[#0067B3] hover:underline sm:min-h-9">View all<ArrowForwardIcon aria-hidden="true" sx={{ fontSize: 16 }} /></button>
                   </div>
                   {historyQuery.isLoading && <p role="status" className="text-base leading-7 text-[#4B6382]">Loading history…</p>}
                   {historyQuery.isError && <p role="alert" className="text-base font-semibold leading-7 text-[#B42318]">Unable to load recent history.</p>}
@@ -939,10 +966,20 @@ export function DocumentWorkspace({
         )}
 
         {activeTab === 'Participants' && (
-          <div className="w-full space-y-3 rounded-xl border border-[#D7E4F2] bg-white p-4 sm:p-5">
-            <h2 className="inline-flex items-center gap-2 text-lg font-extrabold text-[#0C2B49]"><GroupsOutlinedIcon aria-hidden="true" sx={{ fontSize: 20, color: '#0067B3' }} />Manage participants</h2>
-            <p className="text-sm text-[#4B6382]">Invite people to this document or update their access.</p>
-            <Link href={`/portal/documents/${document.document_id}/participants`} className="inline-flex min-h-11 items-center rounded-full bg-[#0067B3] px-4 py-2.5 text-sm font-extrabold text-white hover:bg-[#0067B3] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]">Open participant management</Link>
+          <div className="flex w-full min-w-0 flex-col gap-4 overflow-x-hidden">
+            <div className="rounded-xl border border-[#D7E4F2] bg-white p-4 sm:p-5">
+              <h2 className="inline-flex items-center gap-2 text-lg font-extrabold text-[#0C2B49]"><GroupsOutlinedIcon aria-hidden="true" sx={{ fontSize: 20, color: '#0067B3' }} />Manage participants</h2>
+              <p className="mt-1 text-sm text-[#4B6382]">Invite people to this document or update their access. Access is limited to this document.</p>
+            </div>
+            <DocumentParticipantManagement
+              documentId={document.document_id}
+              canShare={document.permissions?.can_share === true}
+              canRevoke={document.permissions?.can_revoke === true}
+              documentError={false}
+              onPartiesChanged={() => {
+                void queryClient.invalidateQueries({ queryKey: ['portal-document-parties', document.document_id] });
+              }}
+            />
           </div>
         )}
 

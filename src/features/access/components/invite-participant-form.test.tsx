@@ -6,8 +6,8 @@ import { InviteParticipantForm } from '@/features/access/components/invite-parti
 
 afterEach(() => cleanup());
 
-describe('InviteParticipantForm account lookup', () => {
-  it('looks up an account only when requested and shows the matching user', async () => {
+describe('InviteParticipantForm account lookup and modal confirmation', () => {
+  it('looks up an account on "Send invitation" click and shows confirmation modal', async () => {
     const onFindAccount = vi.fn().mockResolvedValue({
       user_id: 'user-1',
       email: 'person@example.com',
@@ -19,9 +19,13 @@ describe('InviteParticipantForm account lookup', () => {
     fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'person@example.com' } });
     expect(onFindAccount).not.toHaveBeenCalled();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Find account' }));
+    // No "Find account" button exists; clicking "Send invitation" triggers lookup
+    expect(screen.queryByRole('button', { name: 'Find account' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Send invitation' }));
 
-    expect(await screen.findByText('Account found: Sample Person (person@example.com).')).toBeTruthy();
+    // Confirmation modal opens
+    expect(await screen.findByRole('dialog', { name: 'Confirm participant account' })).toBeTruthy();
+    expect(screen.getByText('Sample Person')).toBeTruthy();
     expect(onFindAccount).toHaveBeenCalledWith('person@example.com');
   });
 
@@ -30,26 +34,45 @@ describe('InviteParticipantForm account lookup', () => {
     render(<InviteParticipantForm onFindAccount={vi.fn().mockResolvedValue(null)} onInvite={onInvite} />);
 
     fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'new@example.com' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Find account' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Send invitation' }));
+
     expect(await screen.findByText('No account found. Invitations can only be sent to existing accounts.')).toBeTruthy();
     expect((screen.getByLabelText('Email') as HTMLInputElement).value).toBe('new@example.com');
-    expect((screen.getByRole('button', { name: 'Send invitation' }) as HTMLButtonElement).disabled).toBe(true);
-
-    fireEvent.click(screen.getByRole('button', { name: 'Send invitation' }));
+    expect(screen.queryByRole('dialog', { name: 'Confirm participant account' })).toBeNull();
     expect(onInvite).not.toHaveBeenCalled();
   });
 
-  it('sends invitations for existing accounts', async () => {
+  it('sends invitations after confirming in the modal', async () => {
     const onInvite = vi.fn().mockResolvedValue(undefined);
     const onFindAccount = vi.fn().mockResolvedValue({ user_id: 'user-1', email: 'person@example.com', f_name: 'Sample', l_name: 'Person' });
     render(<InviteParticipantForm onFindAccount={onFindAccount} onInvite={onInvite} />);
 
     fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'person@example.com' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Find account' }));
-    await screen.findByText('Account found: Sample Person (person@example.com).');
     fireEvent.click(screen.getByRole('button', { name: 'Send invitation' }));
 
+    // Modal appears with account details
+    expect(await screen.findByRole('dialog', { name: 'Confirm participant account' })).toBeTruthy();
+    expect(screen.getByText('Sample Person')).toBeTruthy();
+
+    // Confirm invite
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm and send' }));
+
     await waitFor(() => expect(onInvite).toHaveBeenCalledWith({ email: 'person@example.com', role: 'viewer' }));
+  });
+
+  it('allows cancelling from the confirmation modal without sending an invitation', async () => {
+    const onInvite = vi.fn().mockResolvedValue(undefined);
+    const onFindAccount = vi.fn().mockResolvedValue({ user_id: 'user-1', email: 'person@example.com', f_name: 'Sample', l_name: 'Person' });
+    render(<InviteParticipantForm onFindAccount={onFindAccount} onInvite={onInvite} />);
+
+    fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'person@example.com' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Send invitation' }));
+
+    expect(await screen.findByRole('dialog', { name: 'Confirm participant account' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+
+    expect(screen.queryByRole('dialog', { name: 'Confirm participant account' })).toBeNull();
+    expect(onInvite).not.toHaveBeenCalled();
   });
 
   it('keeps entered values and shows backend feedback when an invitation is rejected', async () => {
@@ -57,9 +80,10 @@ describe('InviteParticipantForm account lookup', () => {
     render(<InviteParticipantForm onFindAccount={vi.fn().mockResolvedValue({ user_id: 'user-1', email: 'person@example.com', f_name: 'Sample', l_name: 'Person' })} onInvite={onInvite} />);
 
     fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'person@example.com' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Find account' }));
-    await screen.findByText('Account found: Sample Person (person@example.com).');
     fireEvent.click(screen.getByRole('button', { name: 'Send invitation' }));
+
+    expect(await screen.findByRole('dialog', { name: 'Confirm participant account' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm and send' }));
 
     expect((await screen.findByRole('alert')).textContent).toContain('API error: 403');
     expect((screen.getByLabelText('Email') as HTMLInputElement).value).toBe('person@example.com');
@@ -69,12 +93,11 @@ describe('InviteParticipantForm account lookup', () => {
     render(<InviteParticipantForm onFindAccount={vi.fn().mockRejectedValue(new PortalApiError('API error: 429', 429, undefined))} onInvite={vi.fn()} />);
 
     fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'person@example.com' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Find account' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Send invitation' }));
 
     expect(await screen.findByText('Account lookup is rate-limited. Please wait and try again.')).toBeTruthy();
   });
 });
-
 
 it.each(['search', 'invite'])('associates %s validation feedback with controls and preserves unmatched details and values', async (operation) => {
   const rejection = new PortalApiError('Please correct the invitation.', 422, { errors: [
@@ -88,10 +111,10 @@ it.each(['search', 'invite'])('associates %s validation feedback with controls a
   render(<InviteParticipantForm onFindAccount={operation === 'search' ? vi.fn().mockRejectedValue(rejection) : vi.fn().mockResolvedValue(account)} onInvite={vi.fn().mockRejectedValue(rejection)} />);
   fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'person@example.com' } });
   fireEvent.change(screen.getByLabelText('Permission'), { target: { value: 'signer' } });
-  fireEvent.click(screen.getByRole('button', { name: 'Find account' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Send invitation' }));
   if (operation === 'invite') {
-    await screen.findByText('Account found: Sample Person (person@example.com).');
-    fireEvent.click(screen.getByRole('button', { name: 'Send invitation' }));
+    expect(await screen.findByRole('dialog', { name: 'Confirm participant account' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm and send' }));
   }
   const alert = await screen.findByRole('alert');
   expect(alert.textContent).toContain('Please correct the invitation.');
@@ -111,10 +134,9 @@ it.each(['search', 'invite'])('associates %s validation feedback with controls a
 it('prefers a useful backend rate-limit message over the lookup fallback', async () => {
   render(<InviteParticipantForm onFindAccount={vi.fn().mockRejectedValue(new PortalApiError('Wait 30 seconds before searching again.', 429, undefined))} onInvite={vi.fn()} />);
   fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'person@example.com' } });
-  fireEvent.click(screen.getByRole('button', { name: 'Find account' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Send invitation' }));
   expect((await screen.findByRole('alert')).textContent).toContain('Wait 30 seconds before searching again.');
 });
-
 
 it.each([
   { email: ['Account unavailable.'], role: 'Permission unavailable.' },
@@ -122,7 +144,7 @@ it.each([
 ])('maps supported backend field-error representations to existing controls', async (errors) => {
   render(<InviteParticipantForm onFindAccount={vi.fn().mockRejectedValue(new PortalApiError('Correct these fields.', 422, { errors }))} onInvite={vi.fn()} />);
   fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'person@example.com' } });
-  fireEvent.click(screen.getByRole('button', { name: 'Find account' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Send invitation' }));
   await screen.findByRole('alert');
   const email = screen.getByLabelText('Email');
   const permission = screen.getByLabelText('Permission');
