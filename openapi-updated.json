@@ -2078,6 +2078,74 @@
         }
       }
     },
+    "/documents/{document_id}/parties/{party_id}/resend": {
+      "post": {
+        "tags": [
+          "Documents · Sharing"
+        ],
+        "summary": "Resend an email invitation",
+        "description": "Email the sign-up link again to someone invited before they had an account, and restart its 7-day expiry. Works on pending and expired email invitations. Only the document owner (or admin) may resend.",
+        "operationId": "resend_party_invite_documents__document_id__parties__party_id__resend_post",
+        "security": [
+          {
+            "Bearer Token": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "document_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Document Id"
+            }
+          },
+          {
+            "name": "party_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Party Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Invitation resent",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentPartyResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated — missing or invalid bearer token"
+          },
+          "403": {
+            "description": "Forbidden — only the document owner may resend"
+          },
+          "404": {
+            "description": "Document or email invitation not found"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/documents/{document_id}/parties/{party_user_id}": {
       "delete": {
         "tags": [
@@ -5076,10 +5144,17 @@
             "description": "Party record ID."
           },
           "user_id": {
-            "type": "string",
-            "format": "uuid",
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "User Id",
-            "description": "User ID"
+            "description": "User ID; null while an email invitation has no account yet"
           },
           "email": {
             "type": "string",
@@ -5104,7 +5179,7 @@
           "status": {
             "type": "string",
             "title": "Status",
-            "description": "pending | accepted | declined — the owner is always accepted",
+            "description": "pending | accepted | declined | expired — the owner is always accepted; expired only for an email invitation past its expiry",
             "default": "accepted"
           },
           "responded_at": {
@@ -5120,6 +5195,19 @@
             "title": "Responded At",
             "description": "When this party accepted or declined"
           },
+          "expires_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expires At",
+            "description": "Email invitations only: when the sign-up link stops adding them"
+          },
           "created_at": {
             "type": "string",
             "format": "date-time",
@@ -5129,7 +5217,6 @@
         "type": "object",
         "required": [
           "id",
-          "user_id",
           "email",
           "f_name",
           "l_name",

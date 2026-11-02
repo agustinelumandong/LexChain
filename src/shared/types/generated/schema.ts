@@ -676,6 +676,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/documents/{document_id}/parties/{party_id}/resend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Resend an email invitation
+         * @description Email the sign-up link again to someone invited before they had an account, and restart its 7-day expiry. Works on pending and expired email invitations. Only the document owner (or admin) may resend.
+         */
+        post: operations["resend_party_invite_documents__document_id__parties__party_id__resend_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/documents/{document_id}/parties/{party_user_id}": {
         parameters: {
             query?: never;
@@ -1813,10 +1833,9 @@ export interface components {
             id: string;
             /**
              * User Id
-             * Format: uuid
-             * @description User ID
+             * @description User ID; null while an email invitation has no account yet
              */
-            user_id: string;
+            user_id?: string | null;
             /**
              * Email
              * @description User's email
@@ -1839,7 +1858,7 @@ export interface components {
             role: string;
             /**
              * Status
-             * @description pending | accepted | declined — the owner is always accepted
+             * @description pending | accepted | declined | expired — the owner is always accepted; expired only for an email invitation past its expiry
              * @default accepted
              */
             status: string;
@@ -1848,6 +1867,11 @@ export interface components {
              * @description When this party accepted or declined
              */
             responded_at?: string | null;
+            /**
+             * Expires At
+             * @description Email invitations only: when the sign-up link stops adding them
+             */
+            expires_at?: string | null;
             /**
              * Created At
              * Format: date-time
@@ -5040,6 +5064,59 @@ export interface operations {
                 content?: never;
             };
             /** @description Document not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    resend_party_invite_documents__document_id__parties__party_id__resend_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                document_id: string;
+                party_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Invitation resent */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentPartyResponse"];
+                };
+            };
+            /** @description Not authenticated — missing or invalid bearer token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden — only the document owner may resend */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Document or email invitation not found */
             404: {
                 headers: {
                     [name: string]: unknown;
