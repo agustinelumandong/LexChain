@@ -137,7 +137,7 @@ The backend source fixes the processing order: a SIGNED record is finalized and 
 
 The document workspace provides actions such as viewing the record, opening the PDF, asking questions about the document, reviewing available extracted text, managing participants, and checking verification. Which lifecycle actions appear depends on the returned document state and permissions. The backend response is authoritative; the screen should not assume every document follows the same sequence.
 
-Books, categories, reports, and office settings appear in the lawyer’s office navigation, but they do not all persist through the backend. Books use backend operations to list, create, open, list recorded documents, close, and delete registers; backend state and permissions determine whether a mutation succeeds. The entry list includes LexChain document records, not paper-only lines. Categories, reports, and office settings currently use demo/local state. Their pages may call `GET /users/` to identify the current role, but that profile request does not persist those page changes.
+Books, categories, reports, and office settings appear in the lawyer’s office navigation, but they do not all persist through the backend. Books use backend operations to list, create, open, list recorded documents, close, and delete registers; backend state and permissions determine whether a mutation succeeds. The entry list includes LexChain document records, not paper-only lines. Categories use backend operations scoped to the authenticated lawyer account. Reports and office settings still use demo/local state. Their pages may call `GET /users/` to identify the current role, but that profile request does not persist those page changes.
 
 | Office action | Frontend page | FastAPI endpoint(s) |
 |---|---|---|
@@ -145,7 +145,7 @@ Books, categories, reports, and office settings appear in the lawyer’s office 
 | Close or delete a book | `/portal/books` | `POST /books/{book_id}/close`, `DELETE /books/{book_id}` |
 | Review admin dashboard and users | Portal dashboard and `/portal/users` | `GET /admin/dashboard`, `GET /admin/users`, `PATCH /admin/users/{user_id}/active` |
 | Create or revoke issuer invitations | `/portal/issuer-invitations` | `GET /admin/invitations`, `POST /admin/invitations`, `DELETE /admin/invitations/{invitation_id}` |
-| View or edit categories | `/portal/categories` | UI state only; no category CRUD operation in the checked-in OpenAPI contract. `GET /users/` is used for role gating. Changes reset on refresh. |
+| View or edit categories | `/portal/categories` | `GET /categories/`, `POST /categories/`, `PATCH /categories/{category_id}`, and `POST /categories/{category_id}/deactivate`; operations are restricted to the authenticated lawyer’s categories. `GET /users/` is used for role gating. Deactivation preserves the category for existing references. |
 | Generate or download reports | `/portal/reports` | Local seeded demo data; no report-generation or persistence endpoint is called. |
 | View or save office settings | `/portal/office-settings` | UI state only; `GET /users/` is used for role gating. Saves last for the demo session and reset on refresh. |
 | Review document requests | `/portal/requests` | Unavailable UI state; no matching request-review endpoint is called. |

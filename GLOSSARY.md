@@ -41,5 +41,11 @@ _Avoid_: Document lifecycle, finalization result.
 **Register book**:
 The book in which a signed document is filed with its document and page numbers. An open book can allocate the next entry; filing in a closed book requires the paper register numbers.
 
+**Office**:
+The document workspace managed by one lawyer account. The current product treats each lawyer account as a separate office; shared membership across lawyers is not supported.
+
+**Category**:
+A named document label managed by the office. Deactivating a category retains its saved record while marking it unavailable.
+
 **Accepted invitation**:
 A document-sharing invitation the recipient has accepted, granting the document access permitted by that invitation. A pending invitation grants no document access.

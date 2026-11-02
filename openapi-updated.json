@@ -4117,6 +4117,204 @@
           }
         }
       }
+    },
+    "/categories/": {
+      "get": {
+        "tags": [
+          "Categories"
+        ],
+        "summary": "List document categories",
+        "description": "Return active and inactive categories owned by the authenticated lawyer.",
+        "operationId": "list_categories_categories__get",
+        "responses": {
+          "200": {
+            "description": "Categories in creation order",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/CategoryResponse"
+                  },
+                  "type": "array",
+                  "title": "Response List Categories Categories  Get"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated"
+          },
+          "403": {
+            "description": "Only lawyers may manage categories"
+          }
+        },
+        "security": [
+          {
+            "Bearer Token": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Categories"
+        ],
+        "summary": "Create a document category",
+        "operationId": "create_category_categories__post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CategoryWriteRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Category created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CategoryResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated"
+          },
+          "403": {
+            "description": "Only lawyers may manage categories"
+          },
+          "422": {
+            "description": "Name must contain 1 to 100 characters"
+          }
+        },
+        "security": [
+          {
+            "Bearer Token": []
+          }
+        ]
+      }
+    },
+    "/categories/{category_id}": {
+      "patch": {
+        "tags": [
+          "Categories"
+        ],
+        "summary": "Rename a document category",
+        "operationId": "rename_category_categories__category_id__patch",
+        "security": [
+          {
+            "Bearer Token": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "category_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Category Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CategoryWriteRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Category updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CategoryResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated"
+          },
+          "403": {
+            "description": "Only lawyers may manage categories"
+          },
+          "404": {
+            "description": "Category not found"
+          },
+          "422": {
+            "description": "Name must contain 1 to 100 characters"
+          }
+        }
+      }
+    },
+    "/categories/{category_id}/deactivate": {
+      "post": {
+        "tags": [
+          "Categories"
+        ],
+        "summary": "Deactivate a document category",
+        "description": "Keep the category saved in the directory while marking it inactive.",
+        "operationId": "deactivate_category_categories__category_id__deactivate_post",
+        "security": [
+          {
+            "Bearer Token": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "category_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Category Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Category deactivated; safe to retry",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CategoryResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated"
+          },
+          "403": {
+            "description": "Only lawyers may manage categories"
+          },
+          "404": {
+            "description": "Category not found"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -7977,6 +8175,46 @@
         ],
         "title": "WordDiffPart",
         "description": "One run of words inside a changed segment, for inline highlighting."
+      },
+      "CategoryResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "active": {
+            "type": "boolean",
+            "title": "Active"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "active"
+        ],
+        "title": "CategoryResponse"
+      },
+      "CategoryWriteRequest": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Name"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "title": "CategoryWriteRequest"
       }
     },
     "securitySchemes": {
@@ -7997,6 +8235,10 @@
     {
       "name": "Books",
       "description": "Notarial register books."
+    },
+    {
+      "name": "Categories",
+      "description": "Lawyer-owned document categories."
     },
     {
       "name": "Documents",
