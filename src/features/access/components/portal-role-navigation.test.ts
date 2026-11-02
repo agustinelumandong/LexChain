@@ -18,7 +18,7 @@ describe("portal navigation", () => {
     expect(navigation.flatMap((group) => group.items).map((item) => item.href)).not.toContain("/admin");
   });
 
-  it("includes the three system management routes for every issuer", () => {
+  it("includes available system management routes for every issuer", () => {
     const managementItems = getPortalNavigation("lawyer").find(
       (group) => group.label === "System Management",
     )?.items;
@@ -26,7 +26,6 @@ describe("portal navigation", () => {
     expect(managementItems?.map(({ label, href }) => [label, href])).toEqual([
       ["User Accounts", "/portal/users"],
       ["Issuer Invitations", "/portal/issuer-invitations"],
-      ["Audit Logs", "/portal/audit-logs"],
     ]);
   });
 
@@ -34,7 +33,7 @@ describe("portal navigation", () => {
     ["/portal/dashboard", "Dashboard"],
     ["/portal/documents", "Documents"],
     ["/portal/reports", "Reports"],
-    ["/portal/office-settings", "Office Settings"],
+    ["/portal/profile/security", "Profile & Security"],
   ])("marks %s as the active %s destination", (pathname, label) => {
     const item = getPortalNavigation("lawyer").flatMap((group) => group.items).find((navigationItem) => navigationItem.label === label);
 

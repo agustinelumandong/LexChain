@@ -6,7 +6,6 @@ import { useSearchParams } from "next/navigation";
 import { Suspense, useState, type ReactNode } from "react";
 import { demoResetToken, webResetPasswordSchema } from "@/features/auth/schemas/auth";
 
-const unavailableMessage = "Password recovery is not available yet. Contact your LexChain administrator for help resetting your account.";
 
 export default function ResetPasswordPage() {
   return (
@@ -17,13 +16,18 @@ export default function ResetPasswordPage() {
 }
 
 function ResetPasswordForm() {
-  const tokens = useSearchParams().getAll("token");
+  const searchParams = useSearchParams();
+  const tokens = searchParams.getAll("token");
+  const hashes = searchParams.getAll("token_hash");
+  const types = searchParams.getAll("type");
   const isDemoMode = process.env.NEXT_PUBLIC_USE_MOCK_API === "true";
-  const hasValidToken = tokens.length === 1 && tokens[0] === demoResetToken;
+  const hasValidToken = isDemoMode ? tokens.length === 1 && tokens[0] === demoResetToken : hashes.length === 1 && hashes[0].length > 0 && types.length === 1 && types[0] === "recovery";
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [errors, setErrors] = useState<string[]>([]);
   const [isComplete, setIsComplete] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [linkSpent, setLinkSpent] = useState(false);
 
   if (!hasValidToken) {
     return (
@@ -40,27 +44,12 @@ function ResetPasswordForm() {
     );
   }
 
-  if (!isDemoMode) {
-    return (
-    <ResetPasswordShell description="Password recovery is not available yet.">
-        <div className="mt-6 space-y-4">
-          <p role="status" className="rounded-xl border border-[#CFE7FC] bg-[#F1F8FF] px-4 py-3 text-sm font-semibold text-[#0C5B9C]">
-            {unavailableMessage}
-          </p>
-          <Link href="/login" className="flex min-h-[52px] w-full items-center justify-center rounded-full border-2 border-[#E4EEF9] px-5 py-3.5 text-[15px] font-black text-[#0C2B49] transition hover:bg-[#F5FAFF]">
-            Back to sign in
-          </Link>
-        </div>
-      </ResetPasswordShell>
-    );
-  }
-
   if (isComplete) {
     return (
-      <ResetPasswordShell description="This local demo checks the reset form without changing a real account password.">
+      <ResetPasswordShell description={isDemoMode ? "This local demo checks the reset form without changing a real account password." : "Your password has been reset."}>
         <div className="mt-6 space-y-4">
           <p className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm font-black text-[#0C2B49]">
-            Demo complete — no real password was changed.
+            {isDemoMode ? "Demo complete — no real password was changed." : "Your password has been updated. Please sign in."}
           </p>
           <Link href="/login" className="flex min-h-[52px] w-full items-center justify-center rounded-full bg-[#0067B3] px-5 py-3.5 text-[15px] font-black text-white transition hover:bg-[#005F9E]">
             Back to sign in
@@ -70,7 +59,7 @@ function ResetPasswordForm() {
     );
   }
 
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const parsed = webResetPasswordSchema.safeParse({ password, confirmPassword });
 
@@ -80,11 +69,44 @@ function ResetPasswordForm() {
     }
 
     setErrors([]);
-    setIsComplete(true);
+    if (isDemoMode) {
+      setIsComplete(true);
+      return;
+    }
+    setIsSubmitting(true);
+    try {
+      const response = await fetch("/api/auth/password-reset", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token_hash: hashes[0], new_password: password }),
+      });
+      if (response.ok) {
+        setIsComplete(true);
+      } else if (response.status === 422) {
+        setErrors(["The password does not meet the password policy. Please check it and try again."]);
+      } else if (response.status === 429) {
+        setErrors(["Too many requests. Please wait before trying again."]);
+      } else {
+        setLinkSpent(true);
+      }
+    } catch {
+      setLinkSpent(true);
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  if (linkSpent) {
+    return (
+      <ResetPasswordShell description="Your reset could not be completed.">
+        <p role="alert" className="mt-6 rounded-xl bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">This link may no longer work. Please request a new reset link.</p>
+        <Link href="/forgot-password" className="mt-4 flex min-h-[52px] items-center justify-center rounded-full bg-[#0067B3] px-5 text-white">Request a new link</Link>
+      </ResetPasswordShell>
+    );
   }
 
   return (
-    <ResetPasswordShell description="Try the password reset form in this local demo. Submitting it will not change a real account password.">
+    <ResetPasswordShell description={isDemoMode ? "Try the password reset form in this local demo. Submitting it will not change a real account password." : "Choose a new password for your account."}>
       <form noValidate className="mt-6 space-y-3.5" onSubmit={handleSubmit}>
         <label className="block">
           <span className="text-[13px] font-black text-[#0C2B49]">New password</span>
@@ -111,8 +133,8 @@ function ResetPasswordForm() {
             {errors.map((error) => <li key={error}>{error}</li>)}
           </ul>
         )}
-        <button type="submit" className="mt-2 flex min-h-[52px] w-full items-center justify-center rounded-full bg-[#0067B3] px-5 py-3.5 text-[15px] font-black text-white transition hover:bg-[#005F9E]">
-          Reset password
+        <button type="submit" disabled={isSubmitting} className="mt-2 flex min-h-[52px] w-full items-center justify-center rounded-full bg-[#0067B3] px-5 py-3.5 text-[15px] font-black text-white transition hover:bg-[#005F9E]">
+          {isSubmitting ? "Resetting…" : "Reset password"}
         </button>
       </form>
     </ResetPasswordShell>

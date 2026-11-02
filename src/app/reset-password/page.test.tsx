@@ -37,15 +37,11 @@ describe("ResetPasswordPage", () => {
     )).toBeNull();
   });
 
-  it("does not offer demo completion for a valid token outside mock mode", async () => {
+  it("rejects the demo token outside mock mode", async () => {
     vi.stubEnv("NEXT_PUBLIC_USE_MOCK_API", "false");
     renderResetPage("lexchain-web-demo-reset");
-
-    expect(await screen.findByText(
-      "Password recovery is not available yet. Contact your LexChain administrator for help resetting your account.",
-    )).toBeTruthy();
+    expect(await screen.findByText("This password reset link is invalid or has expired.")).toBeTruthy();
     expect(screen.queryByLabelText("New password")).toBeNull();
-    expect(screen.queryByText("Demo complete — no real password was changed.")).toBeNull();
   });
 
   it("keeps weak passwords on the form", async () => {

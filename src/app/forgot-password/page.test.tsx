@@ -67,18 +67,11 @@ describe("ForgotPasswordPage", () => {
     expect(screen.getByRole("button", { name: "Send reset link" })).toBeTruthy();
   });
 
-  it("shows the production limitation without offering a fake reset form", () => {
+  it("offers the recovery form outside mock mode", () => {
     vi.stubEnv("NEXT_PUBLIC_USE_MOCK_API", "false");
     render(<ForgotPasswordPage />);
-
-    expect(screen.getByRole("status").textContent).toContain(
-      "Password recovery is not available yet. Contact your LexChain administrator",
-    );
-    expect(screen.getByText("Password recovery is not available in this deployment.")).toBeTruthy();
-    expect(screen.queryByText("Enter account email and we will send reset instructions.")).toBeNull();
-    expect(screen.queryByLabelText("Email")).toBeNull();
-    expect(screen.queryByRole("button", { name: "Send reset link" })).toBeNull();
-    expect(screen.getByRole("link", { name: "Back to sign in" }).getAttribute("href")).toBe("/login");
+    expect(screen.getByLabelText("Email")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Send reset link" })).toBeTruthy();
     expect(screen.queryByRole("link", { name: "Open demo reset page" })).toBeNull();
   });
 });

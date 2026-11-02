@@ -8,11 +8,10 @@ afterEach(cleanup);
 const systemManagementTools = [
   "User Accounts",
   "Issuer Invitations",
-  "Audit Logs",
 ];
 
 describe("PortalBottomNav", () => {
-  it("exposes the three distinct system management tools for every issuer", () => {
+  it("exposes available system management tools for every issuer", () => {
     render(<PortalBottomNav pathname="/portal/dashboard" role="lawyer" />);
 
     for (const label of systemManagementTools) {
@@ -29,6 +28,8 @@ describe("PortalBottomNav", () => {
     expect(screen.queryByRole("link", { name: "Analytics" })).toBeNull();
     expect(screen.queryByRole("link", { name: "System Statistics" })).toBeNull();
     expect(screen.queryByRole("link", { name: "System Reports" })).toBeNull();
+    expect(screen.queryByRole("link", { name: "Audit Logs" })).toBeNull();
+    expect(screen.queryByRole("link", { name: "Office Settings" })).toBeNull();
   });
 
   it("exposes visible participant navigation labels on mobile", () => {

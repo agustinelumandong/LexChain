@@ -56,13 +56,12 @@ export function getPortalNavigation(role: PortalUiRole): PortalNavigationGroup[]
         items: [
           { label: "User Accounts", href: "/portal/users" },
           { label: "Issuer Invitations", href: "/portal/issuer-invitations" },
-          { label: "Audit Logs", href: "/portal/audit-logs" },
         ],
       },
       {
         label: "Account",
         items: [
-          { label: "Office Settings", href: "/portal/office-settings" },
+          { label: "Profile & Security", href: "/portal/profile" },
         ],
       },
     ];
@@ -78,6 +77,10 @@ export function getPortalNavigation(role: PortalUiRole): PortalNavigationGroup[]
         { label: "Invitations", href: "/portal/invitations" },
         { label: "My E-copy Requests", href: "/portal/requests/my" },
       ],
+    },
+    {
+      label: "Account",
+      items: [{ label: "Profile & Security", href: "/portal/profile" }],
     },
   ];
 }

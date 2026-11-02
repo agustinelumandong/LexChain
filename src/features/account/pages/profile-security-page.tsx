@@ -8,6 +8,7 @@ import PhonelinkLockIcon from '@mui/icons-material/PhonelinkLock';
 import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
 import PasswordIcon from '@mui/icons-material/Password';
 import { useQuery } from '@tanstack/react-query';
+import type { ReactNode } from 'react';
 import type { PortalUserProfile } from "@/features/access";
 
 async function fetchProfile(): Promise<PortalUserProfile> {
@@ -39,7 +40,7 @@ export default function SecurityPage() {
         />
         <SecurityItem icon={PhonelinkLockIcon} title="Device lock" description="Use your device screen lock to protect access to this browser." />
         <SecurityItem icon={NotificationsActiveIcon} title="Trusted-device alerts" description="Trusted-device alerts are not available in this browser portal yet." />
-        <SecurityItem icon={PasswordIcon} title="Password changes" description="Password changes are not available in this browser portal yet." />
+        <SecurityItem icon={PasswordIcon} title="Password changes" description="Request a password reset link by email." action={<Link href="/forgot-password" className="text-sm font-bold text-[#0067B3] underline underline-offset-2">Reset password</Link>} />
       </div>
     </div>
   );
@@ -50,14 +51,16 @@ function SecurityItem({
   title,
   description,
   status,
+  action,
 }: {
   icon: typeof VerifiedUserIcon;
   title: string;
   description: string;
   status?: string;
+  action?: ReactNode;
 }) {
   return (
-    <div className="flex items-center gap-4 px-5 py-4">
+    <div className="flex flex-wrap items-center gap-4 px-5 py-4">
       <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#EEF6FF]">
         <Icon sx={{ fontSize: 18, color: '#0067B3' }} />
       </div>
@@ -66,6 +69,7 @@ function SecurityItem({
         <span className="text-[11px] text-[#5B6F8A]">{description}</span>
       </div>
       {status ? <span className="shrink-0 rounded-full bg-[#EEF4FB] px-3 py-1 text-[11px] font-bold text-[#0067B3]">{status}</span> : null}
+      {action}
     </div>
   );
 }

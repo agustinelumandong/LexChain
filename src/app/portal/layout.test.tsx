@@ -92,6 +92,18 @@ describe("portal layout role hint", () => {
     expect(fetchMock).not.toHaveBeenCalledWith(expect.stringContaining("%2Fusers%2F"), expect.anything());
   });
 
+  it.each(["lawyer", "document_participant"])("shows profile navigation for %s and marks security pages active", async (role) => {
+    routePathname.value = "/portal/profile/security";
+    await renderPortal(role);
+
+    const links = screen.getAllByRole("link", { name: "Profile & Security" });
+    expect(links.length).toBeGreaterThan(0);
+    for (const link of links) {
+      expect(link.getAttribute("href")).toBe("/portal/profile");
+      expect(link.getAttribute("aria-current")).toBe("page");
+    }
+  });
+
   it("shows unread-count failures instead of displaying a false zero badge", async () => {
     fetchMock.mockImplementation((input: RequestInfo | URL) => {
       const url = String(input);
