@@ -52,9 +52,18 @@ export default function DocumentVerifyPage() {
     },
     onSettled: () => { restoreSubmissionLock.current = false; },
   });
+  const hasNoArchivedBackup = Boolean(
+    verifyQuery.data?.tamper_report_status === 'UNAVAILABLE'
+    && (
+      verifyQuery.data.tamper_report_unavailable_reason?.toLowerCase().includes('no archived original')
+      || verifyQuery.data.tamper_report_unavailable_reason?.toLowerCase().includes('archived original is missing')
+      || verifyQuery.data.tamper_report_unavailable_reason?.toLowerCase().includes('archived original does not match')
+    )
+  );
   const verificationAllowsRestore = verifyQuery.data?.status === 'TAMPERED'
     && !verifyQuery.data.is_authentic
-    && verifyQuery.data.baseline_trusted;
+    && verifyQuery.data.baseline_trusted
+    && !hasNoArchivedBackup;
   const documentAllowsRestore = role === 'lawyer'
     && !documentQuery.isFetching
     && !documentQuery.isError
@@ -94,6 +103,12 @@ export default function DocumentVerifyPage() {
         </div>
         <p className="mt-1 text-sm text-[#4B6382]">We compare this PDF with the version saved when the document was finalized to help show whether it has changed.</p>
       </header>
+
+      {role === 'lawyer' && verifyQuery.data?.status === 'TAMPERED' && !verifyQuery.data.is_authentic && verifyQuery.data.baseline_trusted && hasNoArchivedBackup && (
+        <div role="status" aria-label="Restoration unavailable" className="flex items-center gap-3 rounded-[18px] border border-amber-200 bg-amber-50 p-4 text-sm text-[#6B4E00]">
+          <p>This document differs from its anchored record, but no archived backup is available to restore it from.</p>
+        </div>
+      )}
 
       {role === 'lawyer' && verificationAllowsRestore && documentQuery.isError && (
         <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-[18px] border border-amber-200 bg-amber-50 p-4 text-sm text-[#6B4E00]">

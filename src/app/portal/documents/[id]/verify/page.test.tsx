@@ -110,6 +110,21 @@ describe('DocumentVerifyPage', () => {
     expect(screen.getByRole('button', { name: 'Restore from backup' })).toBeTruthy();
   });
 
+  it('does not offer restore when the backend indicates no archived backup is available', async () => {
+    const tamperedNoBackup = {
+      ...verification('TAMPERED', false, true),
+      tamper_report_status: 'UNAVAILABLE',
+      tamper_report_unavailable_reason: 'No archived original to compare against.',
+    };
+    stubPageApi([tamperedNoBackup]);
+    renderPage();
+
+    expect(await screen.findByText('This PDF differs from the saved version')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Restore from backup' })).toBeNull();
+    expect(screen.getByRole('status', { name: 'Restoration unavailable' })).toBeTruthy();
+    expect(screen.getByText('This document differs from its anchored record, but no archived backup is available to restore it from.')).toBeTruthy();
+  });
+
   it.each([
     ['user', {}],
     ['lawyer', { permissions: { can_share: false } }],

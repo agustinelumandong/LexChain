@@ -59,6 +59,13 @@ function HashRow({ label, hash, transactionUrl }: { label: string; hash: string;
   );
 }
 
+function formatDateTime(value: string | null | undefined): string {
+  if (!value) return '—';
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return value;
+  return parsed.toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' });
+}
+
 function VerificationDetails({ result }: { result: VerificationResult }) {
   const simulated = isMockMode();
   const simulatedAnchorConfirmed = simulated
@@ -79,8 +86,20 @@ function VerificationDetails({ result }: { result: VerificationResult }) {
       )}
       <dl className="grid gap-3 text-sm sm:grid-cols-2">
         <div><dt className="font-bold text-[#5B6F8A]">Trusted baseline</dt><dd className="mt-1 text-[#0C2B49]">{result.baseline_trusted ? 'Trusted' : 'Not trusted'}</dd></div>
-        {result.finalized_at && <div><dt className="font-bold text-[#5B6F8A]">Finalized</dt><dd className="mt-1 text-[#0C2B49]">{result.finalized_at}</dd></div>}
-        <div><dt className="font-bold text-[#5B6F8A]">Verified</dt><dd className="mt-1 text-[#0C2B49]">{result.verified_at}</dd></div>
+        {result.finalized_at && (
+          <div>
+            <dt className="font-bold text-[#5B6F8A]">Finalized</dt>
+            <dd className="mt-1 text-[#0C2B49]">
+              <time dateTime={result.finalized_at}>{formatDateTime(result.finalized_at)}</time>
+            </dd>
+          </div>
+        )}
+        <div>
+          <dt className="font-bold text-[#5B6F8A]">Verified</dt>
+          <dd className="mt-1 text-[#0C2B49]">
+            <time dateTime={result.verified_at}>{formatDateTime(result.verified_at)}</time>
+          </dd>
+        </div>
       </dl>
       <div className="grid gap-3 sm:grid-cols-2">
         {result.onchain_hash && <HashRow label="On-chain hash" hash={result.onchain_hash} />}
@@ -141,10 +160,14 @@ export default function VerifyWorkspace({ result, onRetry }: { result: Verificat
           <header className="mb-3 flex flex-wrap items-start justify-between gap-2">
             <div>
               <h3 className="font-extrabold text-[#0C2B49]">Current PDF</h3>
-              <p className="mt-1 text-xs text-[#5B6F8A]">Review the current document beside its trusted baseline comparison.</p>
+              <p className="mt-1 text-xs text-[#5B6F8A]">
+                {tamperedSegments.length > 0
+                  ? 'Review the current document beside its trusted baseline comparison.'
+                  : 'Review the current document alongside verification details.'}
+              </p>
             </div>
           </header>
-          <div className="min-h-0 flex-1 overflow-hidden">
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
             <PdfDocumentViewer
               sourceUrl={signedCopyFileUrl(result.document_id, { filename: result.file_name ?? undefined })}
               currentPage={currentPage}
