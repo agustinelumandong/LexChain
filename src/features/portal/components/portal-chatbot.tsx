@@ -7,6 +7,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import OpenInFullIcon from '@mui/icons-material/OpenInFull';
 import SendIcon from '@mui/icons-material/Send';
 import { isMockMode } from '@/lib/mocks/mode';
+import type { components } from '@/shared/types/generated/schema';
 
 const mockResponses = [
   'Based on the document, the contract term is 12 months with automatic renewal.',
@@ -21,15 +22,15 @@ const suggestedQuestions = [
   'What should I review?',
 ];
 
-type Message = { from: 'bot' | 'user'; text: string };
+type Message = { from: 'bot' | 'user'; text: string; includeInHistory?: boolean };
 
-async function askDocument(id: string, question: string): Promise<string> {
+async function askDocument(id: string, question: string, history: components['schemas']['ChatTurn'][]): Promise<string> {
   const res = await fetch(
     `/api/portal/proxy-post?path=${encodeURIComponent(`/documents/${id}/ask`)}`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ question }),
+      body: JSON.stringify({ question, history }),
       credentials: 'same-origin',
     },
   );
@@ -49,7 +50,7 @@ async function askDocument(id: string, question: string): Promise<string> {
 export default function PortalChatbot({ documentId }: { documentId: string }) {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
-    { from: 'bot', text: 'Ask me a question about this document.' },
+    { from: 'bot', text: 'Ask me a question about this document.', includeInHistory: false },
   ]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -63,6 +64,10 @@ export default function PortalChatbot({ documentId }: { documentId: string }) {
     const question = input.trim();
     if (!question || loading) return;
 
+    const history = messages.filter(({ includeInHistory }) => includeInHistory !== false).slice(-10).map(({ from, text }) => ({
+      role: from === 'user' ? 'user' as const : 'assistant' as const,
+      content: text.slice(0, 4000),
+    }));
     setMessages((current) => [...current, { from: 'user', text: question }]);
     setInput('');
 
@@ -76,10 +81,10 @@ export default function PortalChatbot({ documentId }: { documentId: string }) {
 
     setLoading(true);
     try {
-      const answer = await askDocument(documentId, question);
+      const answer = await askDocument(documentId, question, history);
       setMessages((current) => [...current, { from: 'bot', text: answer }]);
     } catch {
-      setMessages((current) => [...current, { from: 'bot', text: 'Sorry, I could not get an answer. Please try again.' }]);
+      setMessages((current) => [...current, { from: 'bot', text: 'Sorry, I could not get an answer. Please try again.', includeInHistory: false }]);
     } finally {
       setLoading(false);
     }

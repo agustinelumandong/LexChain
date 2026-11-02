@@ -1399,6 +1399,8 @@ export interface components {
         AskRequest: {
             /** Question */
             question: string;
+            /** History */
+            history?: components["schemas"]["ChatTurn"][];
         };
         /** BackupCheck */
         BackupCheck: {
@@ -1596,6 +1598,16 @@ export interface components {
             created_at: string;
             /** Updated At */
             updated_at?: string | null;
+        };
+        /** ChatTurn */
+        ChatTurn: {
+            /**
+             * Role
+             * @enum {string}
+             */
+            role: "user" | "assistant";
+            /** Content */
+            content: string;
         };
         /**
          * CorrectEntryRequest
