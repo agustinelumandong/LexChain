@@ -56,7 +56,6 @@ export function ParticipantAccessTable({ parties, canRevoke, onRevoke, onResend 
     <Card padded={false}>
       <div className="border-b border-[var(--border-soft)] px-5 py-4">
         <h2 className="text-lg font-extrabold text-[var(--text-primary)]">Document participants</h2>
-        <p className="mt-1 text-sm font-medium text-[var(--text-secondary)]">Access is limited to this document.</p>
       </div>
       <Table
         ariaLabel="Document participants"

@@ -131,4 +131,26 @@ describe('ParticipantAccessTable', () => {
     expect(screen.getByRole('button', { name: 'Resend' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Remove' })).toBeTruthy();
   });
+
+  it('renders clean empty state with accessible columns and empty message when no participants exist', () => {
+    render(<ParticipantAccessTable parties={[]} onRevoke={vi.fn()} canRevoke={false} />);
+
+    expect(screen.getByRole('heading', { name: 'Document participants' })).toBeTruthy();
+    expect(screen.queryByText('Access is limited to this document.')).toBeNull();
+    expect(screen.getByText('No participants have access yet.')).toBeTruthy();
+    expect(screen.getByRole('columnheader', { name: 'Participant' })).toBeTruthy();
+    expect(screen.getByRole('columnheader', { name: 'Permission' })).toBeTruthy();
+    expect(screen.getByRole('columnheader', { name: 'Status' })).toBeTruthy();
+  });
+
+  it('renders populated participants with visible email, permission, and status without duplicated helper copy', () => {
+    render(<ParticipantAccessTable parties={[party]} onRevoke={vi.fn()} canRevoke={false} />);
+
+    expect(screen.getByRole('heading', { name: 'Document participants' })).toBeTruthy();
+    expect(screen.queryByText('Access is limited to this document.')).toBeNull();
+    expect(screen.getByText('client@example.com')).toBeTruthy();
+    expect(screen.getByText('Client Example')).toBeTruthy();
+    expect(screen.getByText('viewer')).toBeTruthy();
+    expect(screen.getByText('accepted')).toBeTruthy();
+  });
 });
