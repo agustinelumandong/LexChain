@@ -66,7 +66,7 @@ function subscribeToFinalizationStatus(onStoreChange: () => void) {
   };
 }
 
-export default function DocumentDetailPage({ params }: { params: Promise<{ id: string }> }) {
+export default function DocumentDetailPage({ params, initialTab }: { params: Promise<{ id: string }>; initialTab?: string }) {
   const { id } = use(params);
   const mockMode = isMockMode();
   const queryClient = useQueryClient();
@@ -77,7 +77,7 @@ export default function DocumentDetailPage({ params }: { params: Promise<{ id: s
   const { open: documentActionsOpen, setOpen: setDocumentActionsOpen, ref: documentActionsRef } = usePopup();
   const [confirmingFinalize, setConfirmingFinalize] = useState(false);
   const [cancelConfirmationOpen, setCancelConfirmationOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<Tab>('Overview');
+  const [activeTab, setActiveTab] = useState<Tab>();
   const [finalizationResult, setFinalizationResult] = useState<ApiSchema<'RecordResponse'>>();
   const [statusMessage, setStatusMessage] = useState<string>();
   const unknownFinalizationKey = `portal-finalize-unknown:${id}`;
@@ -349,6 +349,7 @@ export default function DocumentDetailPage({ params }: { params: Promise<{ id: s
       )}
 
       <DocumentWorkspace
+        initialTab={initialTab}
         className="min-h-0 flex-1 md:flex"
         document={document}
         activeTab={activeTab}

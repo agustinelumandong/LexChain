@@ -480,7 +480,7 @@ type DocumentWorkspaceProps = {
   className?: string;
   document: WorkspaceDocument;
   role?: PortalUiRole;
-  initialTab?: Tab;
+  initialTab?: string;
   activeTab?: Tab;
   onTabChange?: (tab: Tab) => void;
   finalizationResult?: ApiSchema<'RecordResponse'>;
@@ -507,9 +507,12 @@ export function DocumentWorkspace({
   onReopen,
   onDocumentUpdated = () => undefined,
 }: DocumentWorkspaceProps) {
-  const [internalActiveTab, setInternalActiveTab] = useState<Tab>(initialTab ?? 'Overview');
-  const activeTab = activeTabProp ?? internalActiveTab;
+  const requestedTab = tabs.find((tab) => tab.toLowerCase() === initialTab?.toLowerCase());
   const isDrafting = document.lifecycle === 'PREPARING' || document.lifecycle === 'READY_FOR_SIGNATURE';
+  const canManageParticipants = role === 'lawyer' && (document.permissions.can_share || document.permissions.can_revoke);
+  const visibleTabs = isDrafting ? [] : tabs.filter((tab) => (tab !== 'Comments' || Boolean(document.draft_url)) && (tab !== 'Participants' || canManageParticipants));
+  const [internalActiveTab, setInternalActiveTab] = useState<Tab>(requestedTab && visibleTabs.includes(requestedTab) ? requestedTab : 'Overview');
+  const activeTab = activeTabProp ?? internalActiveTab;
   const hasGoogleDraft = isGoogleDraftUrl(document.draft_url ?? '');
   const [signedCopyMode, setSignedCopyMode] = useState<'attach' | 'replace' | null>(null);
   const signedCopyFileInput = useRef<HTMLInputElement>(null);
@@ -615,9 +618,6 @@ export function DocumentWorkspace({
       value: book.id,
     })),
   ];
-  const canManageParticipants = role === 'lawyer' && (document.permissions.can_share || document.permissions.can_revoke);
-  const visibleTabs = isDrafting ? [] : tabs.filter((tab) => (tab !== 'Comments' || Boolean(document.draft_url)) && (tab !== 'Participants' || canManageParticipants));
-
   function selectTab(tab: Tab) {
     if (activeTabProp === undefined) {
       setInternalActiveTab(tab);
@@ -625,22 +625,6 @@ export function DocumentWorkspace({
     onTabChange?.(tab);
   }
 
-  useEffect(() => {
-    if (initialTab && visibleTabs.includes(initialTab)) {
-      selectTab(initialTab);
-      return;
-    }
-    if (typeof window !== 'undefined' && window.location.search) {
-      const params = new URLSearchParams(window.location.search);
-      const tabParam = params.get('tab');
-      if (tabParam) {
-        const matchingTab = tabs.find((t) => t.toLowerCase() === tabParam.toLowerCase());
-        if (matchingTab && visibleTabs.includes(matchingTab)) {
-          selectTab(matchingTab);
-        }
-      }
-    }
-  }, [initialTab, visibleTabs]);
   useEffect(() => {
     if (signedCopyMode === 'attach') signedCopyFileInput.current?.focus({ preventScroll: true });
   }, [signedCopyMode]);

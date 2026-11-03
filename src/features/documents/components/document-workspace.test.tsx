@@ -165,6 +165,12 @@ function renderWorkspace(props: Partial<React.ComponentProps<typeof DocumentWork
 }
 
 describe('DocumentWorkspace', () => {
+  it('allows switching away from the initial tab', () => {
+    renderWorkspace({ initialTab: 'files', document: { ...document, lifecycle: 'FINALIZED' } });
+    expect(screen.getByRole('tab', { name: 'Files' }).getAttribute('aria-selected')).toBe('true');
+    fireEvent.click(screen.getByRole('tab', { name: 'History' }));
+    expect(screen.getByRole('tab', { name: 'History' }).getAttribute('aria-selected')).toBe('true');
+  });
   it('does not show requester controls to the lawyer', () => {
     renderWorkspace({ role: 'lawyer', document: { ...document, lifecycle: 'FINALIZED', permissions: { ...document.permissions, can_request_ecopy: true } } });
     fireEvent.click(screen.getByRole('tab', { name: 'Files' }));
