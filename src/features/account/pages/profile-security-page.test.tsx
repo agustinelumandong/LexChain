@@ -11,4 +11,6 @@ it('offers password recovery from security settings', () => {
   render(<QueryClientProvider client={client}><SecurityPage /></QueryClientProvider>);
   expect(screen.getByRole('link', { name: 'Reset password' }).getAttribute('href')).toBe('/forgot-password');
   expect(screen.getByText('Request a password reset link by email.')).toBeTruthy();
+  expect(screen.getByText('Trusted-device alerts are not available in this browser portal yet.')).toBeTruthy();
+  expect(screen.getByText('Unavailable')).toBeTruthy();
 });

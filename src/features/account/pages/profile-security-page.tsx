@@ -39,7 +39,7 @@ export default function SecurityPage() {
           status={isLoading ? 'Checking' : profileUnavailable ? 'Unavailable' : profile?.mfa_enabled ? 'Enabled' : 'Not enabled'}
         />
         <SecurityItem icon={PhonelinkLockIcon} title="Device lock" description="Use your device screen lock to protect access to this browser." />
-        <SecurityItem icon={NotificationsActiveIcon} title="Trusted-device alerts" description="Trusted-device alerts are not available in this browser portal yet." />
+        <SecurityItem icon={NotificationsActiveIcon} title="Trusted-device alerts" description="Trusted-device alerts are not available in this browser portal yet." status="Unavailable" />
         <SecurityItem icon={PasswordIcon} title="Password changes" description="Request a password reset link by email." action={<Link href="/forgot-password" className="text-sm font-bold text-[#0067B3] underline underline-offset-2">Reset password</Link>} />
       </div>
     </div>
