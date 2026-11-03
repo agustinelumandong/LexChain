@@ -224,9 +224,42 @@ export default function DocumentDetailPage({ params, initialTab }: { params: Pro
   if (docQ.isLoading) return <div role="status" aria-label="Loading document" className="h-40 animate-pulse rounded-[18px] border border-[#E8F0F8] bg-white" />;
   if (docQ.isError && (!docQ.data || !finalizationResult)) {
     const status = readErrorStatus(docQ.error);
-    if (status === 404) return <p className="text-sm text-[#4B6382]">Document not found.</p>;
-    if (status === 401 || status === 403) return <p role="alert" className="text-sm font-bold text-[#B42318]">You do not have access to this document.</p>;
-    return <div role="alert" className="space-y-3"><p className="text-sm font-bold text-[#B42318]">{docQ.error instanceof PortalApiError ? docQ.error.message : 'Unable to load this document.'}</p><button type="button" onClick={() => void docQ.refetch()} className="rounded-full border border-[#0067B3] px-4 py-2 text-sm font-black text-[#0067B3]">Retry</button></div>;
+    if (status === 404) {
+      return (
+        <section aria-labelledby="document-unavailable-heading" className="mx-auto flex w-full max-w-2xl flex-col items-center rounded-2xl border border-[#E8F0F8] bg-white p-8 text-center shadow-sm">
+          <h1 id="document-unavailable-heading" className="text-xl font-black text-[#0C2B49]">Document unavailable</h1>
+          <p className="mt-2 text-sm text-[#5B6F8A]">This document could not be found or your account does not have permission to view it.</p>
+          <Link href="/portal/documents" className="mt-5 inline-flex min-h-11 items-center justify-center rounded-full bg-[#0067B3] px-5 py-2 text-sm font-bold text-white hover:bg-[#00528F] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]">
+            Back to Documents
+          </Link>
+        </section>
+      );
+    }
+    if (status === 401 || status === 403) {
+      return (
+        <section role="alert" aria-labelledby="document-access-heading" className="mx-auto flex w-full max-w-2xl flex-col items-center rounded-2xl border border-[#E8F0F8] bg-white p-8 text-center shadow-sm">
+          <h1 id="document-access-heading" className="text-xl font-black text-[#0C2B49]">Access denied</h1>
+          <p className="mt-2 text-sm text-[#5B6F8A]">You do not have access to this document.</p>
+          <Link href="/portal/documents" className="mt-5 inline-flex min-h-11 items-center justify-center rounded-full bg-[#0067B3] px-5 py-2 text-sm font-bold text-white hover:bg-[#00528F] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]">
+            Back to Documents
+          </Link>
+        </section>
+      );
+    }
+    return (
+      <section role="alert" aria-labelledby="document-error-heading" className="mx-auto flex w-full max-w-2xl flex-col items-center rounded-2xl border border-[#E8F0F8] bg-white p-8 text-center shadow-sm">
+        <h1 id="document-error-heading" className="text-xl font-black text-[#0C2B49]">Unable to load document</h1>
+        <p className="mt-2 text-sm text-[#B42318]">{docQ.error instanceof PortalApiError ? docQ.error.message : 'Unable to load this document.'}</p>
+        <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
+          <button type="button" onClick={() => void docQ.refetch()} className="inline-flex min-h-11 items-center justify-center rounded-full border border-[#0067B3] px-5 py-2 text-sm font-black text-[#0067B3] hover:bg-[#EEF6FF] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]">
+            Retry
+          </button>
+          <Link href="/portal/documents" className="inline-flex min-h-11 items-center justify-center rounded-full border border-[#D7E4F2] px-5 py-2 text-sm font-bold text-[#0C2B49] hover:bg-[#F4F8FC] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]">
+            Back to Documents
+          </Link>
+        </div>
+      </section>
+    );
   }
   if (!docQ.data) return <p role="status" className="text-sm text-[#4B6382]">Loading document…</p>;
 
