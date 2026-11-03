@@ -379,4 +379,21 @@ describe('signed document upload screen', () => {
     expect(screen.getByRole('group', { name: 'Upload recovery' }).textContent).toContain('initial_field: Initial upload validation.');
     expect(screen.queryByText('initial_field: Initial upload validation.', { selector: '[role="alert"] p' })).toBeNull();
   });
+
+  it('provides distinct, concise headings distinguishing page, workflow steps, and fields (#173)', async () => {
+    setupFetch([]);
+    renderPage();
+
+    // Top-level page heading
+    expect(await screen.findByRole('heading', { level: 1, name: 'Upload Document' })).toBeTruthy();
+
+    // Workflow step section headings (h2)
+    expect(screen.getByRole('heading', { level: 2, name: 'Document information' })).toBeTruthy();
+    expect(screen.getByRole('heading', { level: 2, name: 'Select PDF' })).toBeTruthy();
+    expect(screen.getByRole('heading', { level: 2, name: 'Confirm and file signed document' })).toBeTruthy();
+
+    // Field labels remain clear and accessible
+    expect(screen.getByLabelText('Document title')).toBeTruthy();
+    expect(screen.getByLabelText('Register book')).toBeTruthy();
+  });
 });

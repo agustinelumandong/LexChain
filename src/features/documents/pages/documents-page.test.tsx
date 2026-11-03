@@ -164,4 +164,19 @@ describe('document ownership directory', () => {
     expect(within(distribution).getByText('Processing failed')).toBeTruthy();
     expect(within(distribution).getByText('Failed')).toBeTruthy();
   });
+
+  it('renders clean document directory layout without redundant Document Directory sub-heading (#173)', async () => {
+    setupFetch(undefined, Response.json([documentFixture('Agreement', true)]));
+    renderPage();
+
+    // Top-level page heading is present
+    expect(screen.getByRole('heading', { level: 1, name: 'Documents' })).toBeTruthy();
+    // Wait for data to load and table to render
+    expect(await screen.findByRole('table')).toBeTruthy();
+    // Redundant inner sub-heading is removed
+    expect(screen.queryByRole('heading', { name: 'Document Directory' })).toBeNull();
+    // Search, filters, and directory table region remain accessible
+    expect(screen.getByRole('textbox', { name: 'Filter by filename or reference' })).toBeTruthy();
+    expect(screen.getByRole('region', { name: 'Document directory results' })).toBeTruthy();
+  });
 });
