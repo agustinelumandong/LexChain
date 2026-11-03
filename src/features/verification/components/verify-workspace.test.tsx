@@ -199,4 +199,50 @@ describe('VerifyWorkspace', () => {
     expect(screen.queryByRole('link', { name: 'Open current PDF' })).toBeNull();
     expect(screen.getByRole('note').textContent).toContain('Mock verification is simulated');
   });
+
+  it('renders a plain-language legal notice stating a match does not prove legal validity (#160)', () => {
+    vi.stubEnv('NEXT_PUBLIC_USE_MOCK_API', 'false');
+    vi.stubEnv('USE_MOCK_API', 'false');
+    const authenticResult: ApiSchema<'DocumentVerificationResponse'> = {
+      ...result,
+      status: 'AUTHENTIC',
+      is_authentic: true,
+      tamper_report_status: 'NOT_APPLICABLE',
+      tamper_report: null,
+      tx_hash: '0x' + 'a'.repeat(64),
+    };
+    render(<VerifyWorkspace result={authenticResult} onRetry={vi.fn()} />);
+
+    expect(screen.getByRole('complementary', { name: 'Legal validity notice' })).toBeTruthy();
+    expect(screen.getByText(/A match alone does not prove legal validity, notarization, authority, or contract enforceability\./)).toBeTruthy();
+    expect(screen.getByText('This PDF file matches the cryptographic fingerprint recorded on the blockchain at finalization. The file content is authentic and unaltered.')).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'View transaction on Base Sepolia' })).toBeTruthy();
+  });
+
+  it('explains unavailable, compromised, and unconfirmed states in plain language (#160)', () => {
+    vi.stubEnv('NEXT_PUBLIC_USE_MOCK_API', 'false');
+    vi.stubEnv('USE_MOCK_API', 'false');
+    const unavailableResult: ApiSchema<'DocumentVerificationResponse'> = {
+      ...result,
+      status: 'VERIFICATION_UNAVAILABLE',
+      is_authentic: false,
+      tamper_report_status: 'NOT_APPLICABLE',
+      tamper_report: null,
+    };
+    const { rerender } = render(<VerifyWorkspace result={unavailableResult} onRetry={vi.fn()} role="user" />);
+
+    expect(screen.getByText('The document or blockchain record could not be evaluated at this time. This is not a tampering result. Please try again.')).toBeTruthy();
+
+    const compromisedResult: ApiSchema<'DocumentVerificationResponse'> = {
+      ...result,
+      status: 'SNAPSHOT_COMPROMISED',
+      is_authentic: false,
+      baseline_trusted: false,
+      tamper_report_status: 'NOT_APPLICABLE',
+      tamper_report: null,
+    };
+    rerender(<VerifyWorkspace result={compromisedResult} onRetry={vi.fn()} role="user" />);
+    expect(screen.getByText('The stored baseline copy could not be verified against the blockchain record. Because the reference baseline is untrusted, no comparison can be made.')).toBeTruthy();
+    expect(screen.getByText("Contact your lawyer or the document owner if you have questions regarding this document's integrity.")).toBeTruthy();
+  });
 });
