@@ -178,4 +178,23 @@ describe("RegisterPage", () => {
     expect(body).toEqual({ email: "issuer@example.com", password: "Password1", f_name: "Ada", l_name: "O'Connor" });
     expect(body).not.toHaveProperty("token");
   });
+
+  it("pre-fills email and keeps it editable for document invitations, showing suggested copy after signup", async () => {
+    fetchMock.mockResolvedValue(Response.json({ requires_email_confirmation: true, message: "Check email" }));
+    renderRegister("email=newcomer%40example.com");
+
+    const emailInput = screen.getByLabelText("Email") as HTMLInputElement;
+    expect(emailInput.value).toBe("newcomer@example.com");
+    expect(emailInput.readOnly).toBe(false);
+
+    fireEvent.change(screen.getByLabelText("First Name"), { target: { value: "Sam" } });
+    fireEvent.change(screen.getByLabelText("Last Name"), { target: { value: "Lee" } });
+    fireEvent.change(screen.getByLabelText(/^Password/), { target: { value: "Password1" } });
+    fireEvent.change(screen.getByLabelText("Confirm Password"), { target: { value: "Password1" } });
+
+    fireEvent.click(screen.getByRole("button", { name: "Create account" }));
+
+    expect(await screen.findByRole("heading", { name: "Check your email" })).toBeTruthy();
+    expect(screen.getByText("Confirm your email, then sign in. The document you were invited to will be waiting for you.")).toBeTruthy();
+  });
 });
