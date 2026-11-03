@@ -11,8 +11,9 @@ import { Modal } from '@/features/admin/components/modal';
 type UserSearchResponse = components['schemas']['UserSearchResponse'];
 
 type InviteParticipantFormProps = {
-  onFindAccount: (email: string) => Promise<UserSearchResponse | null>;
+  onFindAccount?: (email: string) => Promise<UserSearchResponse | null>;
   onInvite: (invitation: { email: string; role: DocumentParticipantPermission }) => Promise<void>;
+  onResend?: (email: string) => Promise<void>;
 };
 
 type AccountLookup =
@@ -26,11 +27,16 @@ const permissionLabels: Record<DocumentParticipantPermission, string> = {
   editor: 'Editor',
 };
 
-type InvitationFeedback = { summary: string; fields: Partial<Record<'email' | 'role', string>> };
+type InvitationFeedback = {
+  summary: string;
+  status?: number;
+  fields: Partial<Record<'email' | 'role', string>>;
+};
 
 function invitationFeedback(reason: unknown, fallback: string): InvitationFeedback {
   const hasUsefulMessage = reason instanceof Error && Boolean(reason.message.trim()) && !(reason instanceof PortalApiError && reason.message === `API error: ${reason.status}`);
-  const feedback: InvitationFeedback = { summary: hasUsefulMessage ? reason.message : fallback, fields: {} };
+  const status = reason instanceof PortalApiError ? reason.status : undefined;
+  const feedback: InvitationFeedback = { summary: hasUsefulMessage ? reason.message : fallback, status, fields: {} };
   const details = reason instanceof PortalApiError ? reason.details : undefined;
   if (typeof details !== 'object' || details === null || !('errors' in details)) return feedback;
   const errors = details.errors;
@@ -52,7 +58,7 @@ function invitationFeedback(reason: unknown, fallback: string): InvitationFeedba
   return feedback;
 }
 
-export function InviteParticipantForm({ onFindAccount, onInvite }: InviteParticipantFormProps) {
+export function InviteParticipantForm({ onFindAccount, onInvite, onResend }: InviteParticipantFormProps) {
   const feedbackId = useId();
   const [email, setEmail] = useState('');
   const [role, setRole] = useState<DocumentParticipantPermission>('viewer');
@@ -72,23 +78,62 @@ export function InviteParticipantForm({ onFindAccount, onInvite }: InvitePartici
       return;
     }
 
-    setLookup({ status: 'loading' });
-    try {
-      const account = await onFindAccount(validation.value.email);
-      if (account) {
-        setLookup({ status: 'found', account });
-        setPendingAccount(account);
-        setModalOpen(true);
-      } else {
-        setLookup({ status: 'not-found' });
+    if (onFindAccount) {
+      setLookup({ status: 'loading' });
+      try {
+        const account = await onFindAccount(validation.value.email);
+        if (account) {
+          setLookup({ status: 'found', account });
+          setPendingAccount(account);
+          setModalOpen(true);
+          return;
+        }
+      } catch (reason) {
+        const fallback = reason instanceof PortalApiError && reason.status === 429
+          ? 'Account lookup is rate-limited. Please wait and try again.'
+          : 'Unable to find an account right now. Please try again.';
+        const feedback = invitationFeedback(reason, fallback);
+        setLookup({ status: 'idle' });
+        setError(feedback);
+        return;
       }
-    } catch (reason) {
-      const fallback = reason instanceof PortalApiError && reason.status === 429
-        ? 'Account lookup is rate-limited. Please wait and try again.'
-        : 'Unable to find an account right now. Please try again.';
-      const feedback = invitationFeedback(reason, fallback);
+    }
+
+    if (validation.value.role !== 'viewer') {
       setLookup({ status: 'idle' });
-      setError(feedback);
+      setError({
+        summary: 'Only viewer can be invited by email.',
+        fields: { role: 'Only viewer can be invited by email.' },
+      });
+      return;
+    }
+
+    setLookup({ status: 'idle' });
+    setIsSubmitting(true);
+    try {
+      await onInvite(validation.value);
+      setEmail('');
+      setRole('viewer');
+      setError(undefined);
+    } catch (reason) {
+      setError(invitationFeedback(reason, 'Unable to invite this participant.'));
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  async function handleResendPending() {
+    if (!onResend || !email.trim()) return;
+    setIsSubmitting(true);
+    try {
+      await onResend(email.trim());
+      setEmail('');
+      setRole('viewer');
+      setError(undefined);
+    } catch (reason) {
+      setError(invitationFeedback(reason, 'Unable to resend invitation.'));
+    } finally {
+      setIsSubmitting(false);
     }
   }
 
@@ -173,11 +218,20 @@ export function InviteParticipantForm({ onFindAccount, onInvite }: InvitePartici
             {isLoading ? 'Finding account…' : isSubmitting ? 'Inviting…' : 'Send invitation'}
           </button>
         </div>
-        {error && <p role="alert" className="mt-3 text-sm font-semibold text-[#C2410C]">{error.summary}</p>}
-        {lookup.status === 'not-found' && (
-          <p role="status" className="mt-3 text-sm font-semibold text-[#5B6F8A]">
-            No account found. Invitations can only be sent to existing accounts.
-          </p>
+        {error && (
+          <div className="mt-3 flex flex-wrap items-center gap-3">
+            <p role="alert" className="text-sm font-semibold text-[#C2410C]">{error.summary}</p>
+            {onResend && (error.status === 409 || /pending|already/i.test(error.summary)) && (
+              <button
+                type="button"
+                disabled={isSubmitting}
+                onClick={handleResendPending}
+                className="rounded-full bg-[#0067B3] px-3.5 py-1 text-xs font-bold text-white hover:bg-[#005FA3] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3] disabled:opacity-50"
+              >
+                Resend invitation
+              </button>
+            )}
+          </div>
         )}
         {lookup.status === 'error' && <p role="alert" className="mt-3 text-sm font-semibold text-[#C2410C]">{lookup.message}</p>}
       </form>

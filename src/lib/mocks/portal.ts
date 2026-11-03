@@ -1150,6 +1150,20 @@ export async function mockPortalMutate(method: 'POST' | 'PUT' | 'PATCH' | 'DELET
     if (action === 'accept') sharedDocumentIds.add(invitation.document_id);
     return json({ message: `Invitation ${action}ed` });
   }
+  const resendMatch = requestPathname.match(/^\/documents\/([^/]+)\/parties\/([^/]+)\/resend\/?$/);
+  if (method === 'POST' && resendMatch) {
+    if (!hasMockIssuerAccess(token)) return error('Lawyer access required', 403);
+    const [, documentId, partyId] = resendMatch;
+    const document = documentFor(documentId);
+    if (!document) return error('Document not found', 404);
+    const party = documentParties.find((item) => item.document_id === documentId && item.id === partyId);
+    if (!party || party.user_id !== null) {
+      return error('Not an email invitation on this document, or not yours', 404);
+    }
+    party.status = 'pending';
+    party.expires_at = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+    return json(party, 200);
+  }
   const partiesMatch = requestPathname.match(/^\/documents\/([^/]+)\/parties\/?$/);
   if (method === 'POST' && partiesMatch) {
     if (!hasMockIssuerAccess(token)) return error('Lawyer access required', 403);
@@ -1161,20 +1175,32 @@ export async function mockPortalMutate(method: 'POST' | 'PUT' | 'PATCH' | 'DELET
     if (!/^\S+@\S+\.\S+$/.test(email) || !['viewer', 'signer', 'editor'].includes(role)) {
       return error('A valid participant email and permission are required', 400);
     }
-    if (documentParties.some((party) => party.document_id === document.id && party.email.toLowerCase() === email.toLowerCase())) {
-      return error('Participant already has access to this document', 409);
+    const existing = documentParties.find((p) => p.document_id === document.id && p.email.toLowerCase() === email.toLowerCase());
+    if (existing) {
+      if (existing.user_id === null && (existing.status === 'expired' || (existing.expires_at && new Date(existing.expires_at).getTime() < Date.now()))) {
+        existing.status = 'pending';
+        existing.role = role;
+        existing.expires_at = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+        return json(existing, 201);
+      }
+      return error('That address already has a pending, unexpired invitation on this document', 409);
+    }
+    const isExistingUser = email.toLowerCase() === participantProfile.email.toLowerCase() || email.toLowerCase().includes('user') || email.toLowerCase().includes('person');
+    if (!isExistingUser && role !== 'viewer') {
+      return error('Only viewer can be invited by email.', 400);
     }
     const now = new Date().toISOString();
     const party: MockDocumentParty = {
       id: `mock-party-${Date.now()}`,
-      user_id: `mock-user-${Date.now()}`,
+      user_id: isExistingUser ? `mock-user-${Date.now()}` : null,
       document_id: document.id,
       email,
-      f_name: 'Invited user',
+      f_name: isExistingUser ? 'Invited user' : '',
       l_name: '',
       role,
       status: 'pending',
       responded_at: null,
+      expires_at: isExistingUser ? null : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
       created_at: now,
     };
     documentParties = [...documentParties, party];
@@ -1183,14 +1209,15 @@ export async function mockPortalMutate(method: 'POST' | 'PUT' | 'PATCH' | 'DELET
   const partyMatch = requestPathname.match(/^\/documents\/([^/]+)\/parties\/([^/]+)\/?$/);
   if (method === 'DELETE' && partyMatch) {
     if (!hasMockIssuerAccess(token)) return error('Lawyer access required', 403);
-    const [, documentId, userId] = partyMatch;
+    const [, documentId, identifier] = partyMatch;
     const document = documentFor(documentId);
     if (!document) return error('Document not found', 404);
-    const party = documentParties.find((item) => item.document_id === documentId && item.user_id === userId);
+    const party = documentParties.find((item) => item.document_id === documentId && (item.user_id === identifier || item.id === identifier));
     if (!party) return error('Participant not found', 404);
     documentParties = documentParties.filter((item) => item !== party);
     if (party.status === 'accepted' && party.user_id === mockParticipantId) sharedDocumentIds.delete(documentId);
-    return json({ document_id: documentId, user_id: userId, message: 'Document access revoked.' });
+    const message = party.user_id ? 'Document access revoked.' : 'Invitation removed';
+    return json({ document_id: documentId, user_id: party.user_id ?? party.id, message });
   }
   if (method === 'POST' && (requestPathname === '/documents/upload' || requestPathname === '/documents/upload/')) {
     if (!hasMockIssuerAccess(token)) return error('Lawyer access required', 403);

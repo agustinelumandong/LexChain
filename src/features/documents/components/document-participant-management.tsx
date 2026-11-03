@@ -8,6 +8,7 @@ import { InviteParticipantForm, ParticipantAccessTable } from '@/features/access
 import {
   inviteDocumentParty,
   listDocumentParties,
+  resendPartyInvitation,
   revokeDocumentParty,
   searchUserByEmail,
   isParticipantAccessCapabilityError,
@@ -86,24 +87,40 @@ export function DocumentParticipantManagement({
   const inviteMutation = useMutation({
     mutationFn: (invitation: { email: string; role: string }) =>
       inviteDocumentParty(documentId, invitation),
-    onSuccess: () => {
-      toast.success('Invitation sent.');
+    onSuccess: (party) => {
+      if (party.user_id) {
+        toast.success('Invitation sent');
+      } else {
+        toast.success(`Invitation emailed to ${party.email}. They'll be added when they create an account.`);
+      }
       return refreshParties();
     },
     onError: rejectUnavailableCapability,
   });
 
+  const resendMutation = useMutation({
+    mutationFn: (party: DocumentParty) => resendPartyInvitation(documentId, party.id),
+    onSuccess: (party) => {
+      toast.success(`Invitation resent to ${party.email}`);
+      return refreshParties();
+    },
+    onError: (reason) => {
+      rejectUnavailableCapability(reason);
+      toast.error(reason instanceof Error ? reason.message : 'Unable to resend invitation.');
+    },
+  });
+
   const revokeMutation = useMutation({
     mutationFn: (party: DocumentParty) => {
-      if (!party.user_id) {
-        return Promise.reject(
-          new Error('This participant cannot be revoked because no user identifier was returned.')
-        );
-      }
-      return revokeDocumentParty(documentId, party.user_id);
+      const identifier = party.user_id || party.id;
+      return revokeDocumentParty(documentId, identifier);
     },
-    onSuccess: () => {
-      toast.success('Participant access revoked.');
+    onSuccess: (_, party) => {
+      if (!party.user_id) {
+        toast.success('Invitation removed');
+      } else {
+        toast.success('Participant access revoked.');
+      }
       return refreshParties();
     },
     onError: rejectUnavailableCapability,
@@ -121,6 +138,16 @@ export function DocumentParticipantManagement({
           onInvite={(invitation) =>
             inviteMutation.mutateAsync(invitation).then(() => undefined)
           }
+          onResend={async (email) => {
+            const party = partiesQuery.data?.parties?.find(
+              (p) => p.email.toLowerCase() === email.toLowerCase()
+            );
+            if (party) {
+              await resendMutation.mutateAsync(party);
+            } else {
+              throw new Error('No pending invitation found for this address.');
+            }
+          }}
         />
       )}
       {partiesQuery.isError ? (
@@ -137,6 +164,9 @@ export function DocumentParticipantManagement({
           canRevoke={canRevoke}
           onRevoke={(party) =>
             revokeMutation.mutateAsync(party).then(() => undefined)
+          }
+          onResend={(party) =>
+            resendMutation.mutateAsync(party).then(() => undefined)
           }
         />
       )}

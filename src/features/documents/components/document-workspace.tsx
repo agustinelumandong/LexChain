@@ -171,6 +171,10 @@ function participantName(party: ApiSchema<'DocumentPartyResponse'>) {
 function participantRole(party: ApiSchema<'DocumentPartyResponse'>) {
   if (party.role === 'owner') return 'Lawyer';
   const role = ({ viewer: 'Viewer', signer: 'Signer', editor: 'Editor' } as Record<string, string>)[party.role];
+  if (party.user_id === null) {
+    if (party.status === 'expired') return [role ?? 'Participant', 'Invitation expired'].filter(Boolean).join(' · ');
+    return [role ?? 'Participant', 'Waiting for sign-up'].filter(Boolean).join(' · ');
+  }
   const access = party.status === 'accepted' ? 'Has access' : party.status === 'pending' ? 'Invitation pending' : null;
   return [role ?? 'Participant', access].filter(Boolean).join(' · ');
 }

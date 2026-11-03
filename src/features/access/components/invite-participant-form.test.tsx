@@ -29,17 +29,46 @@ describe('InviteParticipantForm account lookup and modal confirmation', () => {
     expect(onFindAccount).toHaveBeenCalledWith('person@example.com');
   });
 
-  it('keeps missing accounts from being invited', async () => {
+  it('allows inviting missing accounts with viewer role directly by email', async () => {
     const onInvite = vi.fn().mockResolvedValue(undefined);
     render(<InviteParticipantForm onFindAccount={vi.fn().mockResolvedValue(null)} onInvite={onInvite} />);
 
     fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'new@example.com' } });
     fireEvent.click(screen.getByRole('button', { name: 'Send invitation' }));
 
-    expect(await screen.findByText('No account found. Invitations can only be sent to existing accounts.')).toBeTruthy();
-    expect((screen.getByLabelText('Email') as HTMLInputElement).value).toBe('new@example.com');
+    await waitFor(() => expect(onInvite).toHaveBeenCalledWith({ email: 'new@example.com', role: 'viewer' }));
     expect(screen.queryByRole('dialog', { name: 'Confirm participant account' })).toBeNull();
+  });
+
+  it('rejects non-viewer role for missing accounts with an explanation', async () => {
+    const onInvite = vi.fn().mockResolvedValue(undefined);
+    render(<InviteParticipantForm onFindAccount={vi.fn().mockResolvedValue(null)} onInvite={onInvite} />);
+
+    fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'new@example.com' } });
+    fireEvent.click(screen.getByRole('combobox', { name: /Permission/i }));
+    fireEvent.click(screen.getByRole('option', { name: 'Signer' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Send invitation' }));
+
+    expect((await screen.findByRole('alert')).textContent).toContain('Only viewer can be invited by email.');
     expect(onInvite).not.toHaveBeenCalled();
+  });
+
+  it('offers resend button when an invitation conflict (409) occurs', async () => {
+    const conflictError = new PortalApiError('That address already has a pending, unexpired invitation on this document', 409, undefined);
+    const onInvite = vi.fn().mockRejectedValue(conflictError);
+    const onResend = vi.fn().mockResolvedValue(undefined);
+
+    render(<InviteParticipantForm onFindAccount={vi.fn().mockResolvedValue(null)} onInvite={onInvite} onResend={onResend} />);
+
+    fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'pending@example.com' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Send invitation' }));
+
+    expect(await screen.findByText('That address already has a pending, unexpired invitation on this document')).toBeTruthy();
+    const resendButton = screen.getByRole('button', { name: 'Resend invitation' });
+    expect(resendButton).toBeTruthy();
+
+    fireEvent.click(resendButton);
+    await waitFor(() => expect(onResend).toHaveBeenCalledWith('pending@example.com'));
   });
 
   it('sends invitations after confirming in the modal', async () => {

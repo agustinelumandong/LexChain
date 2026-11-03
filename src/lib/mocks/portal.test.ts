@@ -101,6 +101,63 @@ describe('portal mock extraction contract', () => {
 
     expect(response.status).toBe(400);
   });
+
+  it('allows an issuer to invite a user with no account as viewer and resend the invitation', async () => {
+    // 1. Invite newcomer as signer -> should fail with 400
+    const failResponse = await mockPortalMutate(
+      'POST',
+      '/documents/mock-document-1/parties',
+      new Request('https://mock.lexchain.local/api/portal/documents/mock-document-1/parties', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ email: 'newcomer@example.com', role: 'signer' }),
+      }),
+      'mock-token:mock-document-issuer',
+    );
+    expect(failResponse.status).toBe(400);
+
+    // 2. Invite newcomer as viewer -> 201 with user_id: null
+    const addResponse = await mockPortalMutate(
+      'POST',
+      '/documents/mock-document-1/parties',
+      new Request('https://mock.lexchain.local/api/portal/documents/mock-document-1/parties', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ email: 'newcomer@example.com', role: 'viewer' }),
+      }),
+      'mock-token:mock-document-issuer',
+    );
+    expect(addResponse.status).toBe(201);
+    const addedParty = await addResponse.json();
+    expect(addedParty.user_id).toBeNull();
+    expect(addedParty.email).toBe('newcomer@example.com');
+    expect(addedParty.role).toBe('viewer');
+    expect(addedParty.status).toBe('pending');
+    expect(addedParty.expires_at).toBeTruthy();
+
+    // 3. Resend invitation -> 200 with updated expires_at
+    const resendResponse = await mockPortalMutate(
+      'POST',
+      `/documents/mock-document-1/parties/${addedParty.id}/resend`,
+      new Request('https://mock.lexchain.local/api/portal/proxy-post', { method: 'POST' }),
+      'mock-token:mock-document-issuer',
+    );
+    expect(resendResponse.status).toBe(200);
+    const resentParty = await resendResponse.json();
+    expect(resentParty.id).toBe(addedParty.id);
+    expect(resentParty.status).toBe('pending');
+
+    // 4. Remove email invitation by party id -> 200 with Invitation removed
+    const deleteResponse = await mockPortalMutate(
+      'DELETE',
+      `/documents/mock-document-1/parties/${addedParty.id}`,
+      new Request('https://mock.lexchain.local/api/portal/proxy-post', { method: 'DELETE' }),
+      'mock-token:mock-document-issuer',
+    );
+    expect(deleteResponse.status).toBe(200);
+    const deleteBody = await deleteResponse.json();
+    expect(deleteBody.message).toBe('Invitation removed');
+  });
 });
 
 describe('portal mock mutations', () => {

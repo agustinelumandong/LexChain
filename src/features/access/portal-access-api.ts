@@ -36,6 +36,12 @@ export function revokeDocumentParty(documentId: string, partyUserId: string) {
   });
 }
 
+export function resendPartyInvitation(documentId: string, partyId: string) {
+  return portalAccessFetch<DocumentParty>(`/api/portal/documents/${documentId}/parties/${partyId}/resend`, {
+    method: 'POST',
+  });
+}
+
 export async function searchUserByEmail(email: string): Promise<UserSearchResponse | null> {
   try {
     const response = await portalRequest(`/api/portal/proxy?path=${encodeURIComponent(`/users/search?email=${encodeURIComponent(email)}`)}`, {
