@@ -1107,6 +1107,26 @@ describe('DocumentWorkspace', () => {
     expect(screen.getByText(/Afterward, clients can read the draft but cannot comment\. Reopen it if revisions are needed\./)).toBeTruthy();
   });
 
+  it('consolidates working draft guidance and distinguishes list polling from explicit sync (#166)', async () => {
+    listDraftCommentsMock.mockResolvedValue({
+      document_id: 'doc-101',
+      unresolved: 0,
+      synced_at: '2026-07-28T12:00:00Z',
+      comments: [],
+    });
+    renderWorkspace({ role: 'lawyer', document: { ...document, permissions: { ...document.permissions, can_mark_ready: true } } });
+
+    expect(screen.getByRole('heading', { name: 'Working draft' })).toBeTruthy();
+    expect(screen.queryByText('Working draft in Google Docs')).toBeNull();
+    expect(screen.getByRole('link', { name: 'Open Google draft' })).toBeTruthy();
+
+    const commentsSection = screen.getByRole('region', { name: 'Draft comments' });
+    expect(within(commentsSection).getByText(/Saved comments refresh periodically\. Use Refresh comments to check Google Docs now\./)).toBeTruthy();
+    expect(within(commentsSection).queryByText(/New comments are checked automatically while the draft is in progress/)).toBeNull();
+    expect(within(commentsSection).getByRole('button', { name: 'Refresh comments' })).toBeTruthy();
+    expect(await within(commentsSection).findByText(/0 unresolved · Last checked/)).toBeTruthy();
+  });
+
   it('shows mirrored thread actions and only validated unresolved readiness details', async () => {
     listDraftCommentsMock.mockResolvedValue({
       document_id: 'doc-101', unresolved: 2, comments: [{

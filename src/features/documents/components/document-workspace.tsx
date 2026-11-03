@@ -240,7 +240,8 @@ function DraftCommentsPanel({
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 id="draft-comments-heading" className="inline-flex items-center gap-2 text-lg font-bold leading-6 text-[#0C2B49]"><CommentOutlinedIcon aria-hidden="true" sx={{ fontSize: 20, color: '#0067B3' }} />Draft comments</h2>
-          <p className="mt-1 text-base leading-7 text-[#4B6382]">{document.lifecycle === 'PREPARING' ? 'New comments are checked automatically while the draft is in progress. Use Refresh comments to check Google Docs now.' : 'Comments are no longer checked automatically after the draft is marked ready for signature.'}</p>
+          <p className="mt-1 text-base leading-7 text-[#4B6382]">{document.lifecycle === 'PREPARING' ? 'Saved comments refresh periodically. Use Refresh comments to check Google Docs now.' : 'Comments are no longer checked automatically after the draft is marked ready for signature.'}</p>
+          {comments && <p className="mt-2 text-base font-bold leading-7 text-[#344054]">{comments.unresolved} unresolved · Last checked {formatDate(comments.synced_at)}</p>}
         </div>
         {document.lifecycle === 'PREPARING' && document.permissions.can_mark_ready && <button type="button" onClick={onSync} disabled={isSyncing} className="min-h-11 rounded-full border border-[#006BB6] px-4 py-2 text-sm font-bold text-[#006BB6] disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]">{isSyncing ? 'Refreshing comments…' : 'Refresh comments'}</button>}
       </div>
@@ -250,7 +251,6 @@ function DraftCommentsPanel({
       {isError && <div className="mt-4 flex flex-wrap items-center gap-2"><p role="alert" className="text-base leading-7 text-[#B42318]">Unable to load draft comments.</p><button type="button" onClick={onRetry} className="min-h-11 rounded-full border border-[#D7E4F2] px-4 py-2 text-sm font-bold text-[#0C2B49] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]">Retry comments</button></div>}
       {syncError && <p role="alert" className="mt-4 text-base font-bold leading-7 text-[#B42318]">{syncError.message || 'Unable to refresh comments.'}</p>}
       {comments && <div className="mt-3 space-y-3">
-        <p className="text-base font-bold leading-7 text-[#344054]">{comments.unresolved} unresolved · Last checked {formatDate(comments.synced_at)}</p>
         {comments.comments.length === 0 ? <p className="text-base leading-7 text-[#4B6382]">No comments found in the draft.</p> : comments.comments.map((comment) => <article key={comment.id} className="max-w-4xl space-y-3 rounded-xl border border-[#D7E4F2] bg-[#F8FBFF] p-5">
           <div className="flex justify-between gap-3"><p className="text-base font-bold leading-6 text-[#0C2B49]">{comment.author_name || 'Draft commenter'}</p><span className="shrink-0 text-sm font-medium text-[#4B6382]">{comment.resolved ? 'Resolved' : 'Unresolved'}</span></div>
           {comment.quoted_text && <blockquote className="break-words border-l-2 border-[#0067B3] pl-3 text-base leading-7 text-[#4B6382]">{comment.quoted_text}</blockquote>}
@@ -861,9 +861,11 @@ export function DocumentWorkspace({
           <div className="mt-6 flex flex-col gap-6 pb-6">
             <section aria-labelledby="working-draft-heading" className="space-y-3">
               <h2 id="working-draft-heading" className="text-xl font-bold leading-7 text-[#0C2B49]">{document.lifecycle === 'PREPARING' ? 'Working draft' : 'Approved text'}</h2>
-              <p className="max-w-3xl text-base leading-7 text-[#344054]">{document.lifecycle === 'PREPARING'
-                ? hasGoogleDraft ? 'Open the Google Doc to review and edit the agreed text.' : document.draft_url ? 'The linked Google Doc needs attention before this draft can be reviewed.' : 'Create or link a Google Doc to start drafting. Comments and participants will stay with this record.'
-                : 'Open the approved Google Doc to print the version for signing.'}</p>
+              {(!hasGoogleDraft || !document.draft_url) && (
+                <p className="max-w-3xl text-base leading-7 text-[#344054]">{document.lifecycle === 'PREPARING'
+                  ? document.draft_url ? 'The linked Google Doc needs attention before this draft can be reviewed.' : 'Create or link a Google Doc to start drafting. Comments and participants will stay with this record.'
+                  : 'No Google Doc is linked to this record. Continue with the external signing instructions below.'}</p>
+              )}
               {document.draft_url || (document.lifecycle === 'PREPARING' && document.permissions.can_create_draft)
                 ? <GoogleDraftPanel key={document.document_id} document={document} onDocumentUpdated={onDocumentUpdated} />
                 : <p role="note" className="rounded-xl border border-[#D7E4F2] bg-white p-5 text-base leading-7 text-[#344054]">{document.lifecycle === 'PREPARING' ? role === 'lawyer' ? 'A working draft is not linked yet. Ask the document owner to create or link the Google Doc.' : 'Your lawyer is preparing the working draft. It will appear here when available.' : 'No Google Doc is linked to this record. Continue with the external signing instructions below.'}</p>}
