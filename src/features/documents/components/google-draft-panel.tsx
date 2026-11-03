@@ -102,7 +102,7 @@ function ExistingDraft({ document }: { document: ApiSchema<'DocumentResponse'> }
   const description = document.lifecycle === 'PREPARING'
     ? 'Use this Google Doc to draft and share feedback. The signed PDF is added to this same record after external signing.'
     : document.lifecycle === 'READY_FOR_SIGNATURE'
-      ? 'This is the agreed text. Print it, complete signatures and any required notarization outside LexChain, then attach the signed PDF to this same record.'
+      ? 'This is the agreed text for signing and notarization outside LexChain.'
       : 'This is the working draft for reference. The signed PDF is the filing and verification copy.';
 
   return (
