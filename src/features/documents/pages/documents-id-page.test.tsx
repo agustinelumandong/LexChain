@@ -662,14 +662,14 @@ describe('document detail screen', () => {
       .toBe('/portal/documents/doc-1/review');
   });
 
-  it('distinguishes not found, forbidden, and service failures', async () => {
+  it('distinguishes not found, forbidden, and service failures with accessible recovery (#162)', async () => {
     const cases = [
-      { status: 404, message: 'Document not found.' },
-      { status: 403, message: 'You do not have access to this document.' },
-      { status: 503, message: 'Unable to load this document.' },
+      { status: 404, heading: 'Document unavailable', message: 'This document could not be found or your account does not have permission to view it.' },
+      { status: 403, heading: 'Access denied', message: 'You do not have access to this document.' },
+      { status: 503, heading: 'Unable to load document', message: 'Unable to load this document.' },
     ];
 
-    for (const { status, message } of cases) {
+    for (const { status, heading, message } of cases) {
       state.documentQuery = {
         isLoading: false,
         isError: true,
@@ -677,7 +677,9 @@ describe('document detail screen', () => {
         refetch: vi.fn(),
       };
       const view = await act(async () => renderPage());
-      expect(await screen.findByText(message)).toBeTruthy();
+      expect(await screen.findByRole('heading', { level: 1, name: heading })).toBeTruthy();
+      expect(screen.getByText(message)).toBeTruthy();
+      expect(screen.getByRole('link', { name: 'Back to Documents' }).getAttribute('href')).toBe('/portal/documents');
       if (status === 503) expect(screen.getByRole('button', { name: 'Retry' })).toBeTruthy();
       view.unmount();
     }
