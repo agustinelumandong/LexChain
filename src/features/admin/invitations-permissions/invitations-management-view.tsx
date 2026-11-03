@@ -185,14 +185,14 @@ function StatusDistribution({ invitations }: { invitations: DirectoryInvitation[
     { label: "Expired", status: "Expired", color: "#F97316" },
     { label: "Revoked", status: "Revoked", color: "#EF4444" },
   ] as const;
-  const total = Math.max(1, invitations.length);
+  const total = invitations.length;
   let cursor = 0;
-  const gradient = groups.map((group) => {
+  const gradient = total > 0 ? groups.map((group) => {
     const count = invitations.filter((invite) => invite.statusLabel === group.status).length;
     const start = cursor;
     cursor += (count / total) * 100;
     return `${group.color} ${start}% ${cursor}%`;
-  }).join(", ");
+  }).join(", ") : "#E4EEF9 0% 100%";
 
   return (
     <article className="flex h-fit self-start flex-col rounded-2xl border border-[#E4EEF9] bg-white p-3 shadow-sm shadow-[#DDEAF7]/35">
@@ -209,12 +209,13 @@ function StatusDistribution({ invitations }: { invitations: DirectoryInvitation[
         <div className="space-y-3">
           {groups.map((group) => {
             const count = invitations.filter((invite) => invite.statusLabel === group.status).length;
+            const percentage = total > 0 ? Math.round((count / total) * 100) : 0;
             return (
               <div key={group.status} className="flex items-center gap-3 text-sm">
                 <span className="size-2.5 rounded-full" style={{ backgroundColor: group.color }} />
                 <span className="min-w-0 flex-1 font-semibold text-[#4B6382]">{group.label}</span>
                 <strong className="font-black text-[#071B33]">{count}</strong>
-                <span className="text-xs font-semibold text-[#5B6F8A]">({Math.round((count / total) * 100)}%)</span>
+                <span className="text-xs font-semibold text-[#5B6F8A]">({percentage}%)</span>
               </div>
             );
           })}
