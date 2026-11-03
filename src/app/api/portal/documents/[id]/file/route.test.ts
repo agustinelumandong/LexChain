@@ -23,7 +23,7 @@ afterEach(() => {
 
 it('streams the authorized signed PDF inline through the same-origin route', async () => {
   const fetchMock = vi.fn()
-    .mockResolvedValueOnce(Response.json({ url: 'https://storage.example/signed.pdf', expires_in: 300 }))
+    .mockResolvedValueOnce(Response.json({ url: 'https://storage.example/signed.pdf', expires_in: 300, watermarked: true }))
     .mockResolvedValueOnce(new Response('pdf bytes', { headers: { 'content-type': 'application/pdf' } }));
   vi.stubGlobal('fetch', fetchMock);
   const request = new NextRequest('http://localhost/api/portal/documents/doc-1/file', {
@@ -36,6 +36,7 @@ it('streams the authorized signed PDF inline through the same-origin route', asy
   expect(response.headers.get('content-type')).toBe('application/pdf');
   expect(response.headers.get('content-disposition')).toContain('inline');
   expect(response.headers.get('cache-control')).toContain('no-store');
+  expect(response.headers.get('X-LexChain-Watermarked')).toBe('true');
   await expect(response.text()).resolves.toBe('pdf bytes');
   expect(fetchMock).toHaveBeenNthCalledWith(1, 'https://backend.example/documents/doc-1/file', expect.objectContaining({
     headers: expect.objectContaining({ Authorization: 'Bearer real-token' }),

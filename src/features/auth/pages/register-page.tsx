@@ -25,6 +25,7 @@ type RegisterForm = z.infer<typeof registerSchema>;
 type CreatedAccount = {
   email: string;
   isInvitationSignup: boolean;
+  isDocumentInvite: boolean;
   requiresEmailConfirmation: boolean;
   message?: string;
 };
@@ -56,6 +57,8 @@ function RegisterPageContent() {
   const searchParams = useSearchParams();
   const inviteToken = searchParams.get("token")?.trim() ?? "";
   const inviteEmail = searchParams.get("email")?.trim() || getEmailFromInviteToken(inviteToken);
+  const isTokenInvite = Boolean(inviteToken);
+  const isDocumentInvite = Boolean(inviteEmail) && !inviteToken;
   const hasInviteEmail = inviteEmail.length > 0;
   const [createdAccount, setCreatedAccount] = useState<CreatedAccount | null>(null);
   const [submissionError, setSubmissionError] = useState<string | null>(null);
@@ -72,7 +75,8 @@ function RegisterPageContent() {
       const requiresEmailConfirmation = response.requires_email_confirmation;
       setCreatedAccount({
         email: values.email,
-        isInvitationSignup: Boolean(inviteToken),
+        isInvitationSignup: isTokenInvite,
+        isDocumentInvite,
         requiresEmailConfirmation,
         message: response.message?.trim() || undefined,
       });
@@ -85,7 +89,7 @@ function RegisterPageContent() {
     mutation.mutate(values);
   });
   const inputClass = "mt-2 min-h-12 w-full rounded-[14px] border border-[#E4EEF9] bg-[#F5FAFF] px-3.5 text-sm font-semibold text-[#0C2B49] outline-none focus:border-[#0067B3]";
-  const emailInputClass = hasInviteEmail
+  const emailInputClass = isTokenInvite && hasInviteEmail
     ? `${inputClass} cursor-default bg-[#EEF4FB] text-[#4B6382]`
     : inputClass;
 
@@ -108,9 +112,11 @@ function RegisterPageContent() {
               {createdAccount.requiresEmailConfirmation ? "Check your email" : "Account created"}
             </h1>
             <p className="mt-3 text-sm font-semibold leading-5 text-[#4B6382]">
-              {createdAccount.requiresEmailConfirmation
-                ? createdAccount.message ?? `Your account for ${createdAccount.email} was created. Check your email to verify it before signing in.`
-                : createdAccount.message ?? `Your account for ${createdAccount.email} is ready. You can now sign in.`}
+              {createdAccount.isDocumentInvite
+                ? "Confirm your email, then sign in. The document you were invited to will be waiting for you."
+                : createdAccount.requiresEmailConfirmation
+                  ? createdAccount.message ?? `Your account for ${createdAccount.email} was created. Check your email to verify it before signing in.`
+                  : createdAccount.message ?? `Your account for ${createdAccount.email} is ready. You can now sign in.`}
             </p>
           </div>
           {createdAccount.isInvitationSignup ? (
@@ -139,11 +145,13 @@ function RegisterPageContent() {
           </div>
           <h1 className="text-3xl font-black leading-9 text-[#0C2B49]">Create account</h1>
           <p className="text-sm font-semibold leading-5 text-[#5B6F8A]">
-            {inviteToken
+            {isTokenInvite
               ? hasInviteEmail
                 ? "Create a standard LexChain account with the email from your invitation."
                 : "Create a standard LexChain account using the email address from your invitation."
-              : "Register to access your documents."}
+              : isDocumentInvite
+                ? "Create an account to access the document you were invited to."
+                : "Register to access your documents."}
           </p>
         </div>
 
@@ -176,7 +184,7 @@ function RegisterPageContent() {
                 autoComplete="email"
                 defaultValue={inviteEmail}
                 className={emailInputClass}
-                readOnly={hasInviteEmail}
+                readOnly={Boolean(isTokenInvite && hasInviteEmail)}
                 aria-invalid={errors.email ? "true" : undefined}
                 aria-describedby={[
                   hasInviteEmail ? "invite-email-help" : null,
@@ -185,7 +193,11 @@ function RegisterPageContent() {
               />
               {errors.email && <p id="email-error" className="text-xs text-red-700 mt-1">{errors.email.message}</p>}
             </label>
-            {hasInviteEmail ? <p id="invite-email-help" className="mt-1 text-xs font-medium text-[#5B6F8A]">Email from your invitation; it cannot be changed here.</p> : null}
+            {isTokenInvite && hasInviteEmail ? (
+              <p id="invite-email-help" className="mt-1 text-xs font-medium text-[#5B6F8A]">Email from your invitation; it cannot be changed here.</p>
+            ) : isDocumentInvite ? (
+              <p id="invite-email-help" className="mt-1 text-xs font-medium text-[#5B6F8A]">The document is only added if you sign up with this exact address.</p>
+            ) : null}
           </div>
 
           <label className="block">

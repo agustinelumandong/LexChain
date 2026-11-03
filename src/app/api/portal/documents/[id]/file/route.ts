@@ -40,7 +40,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     }
   }
 
-  const linkData = await linkResponse.json().catch(() => null) as { url?: unknown } | null;
+  const linkData = await linkResponse.json().catch(() => null) as { url?: unknown; watermarked?: unknown } | null;
   if (!linkResponse.ok) return NextResponse.json(linkData, { status: linkResponse.status });
   if (!linkData || typeof linkData.url !== 'string') {
     return NextResponse.json({ message: 'Backend returned an invalid signed PDF link' }, { status: 502 });
@@ -81,6 +81,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     'Content-Disposition': `${request.nextUrl.searchParams.get('download') === '1' ? 'attachment' : 'inline'}; filename*=UTF-8''${encodeURIComponent(downloadName(request.nextUrl.searchParams.get('filename'), id))}`,
     'Cache-Control': 'private, no-store',
   });
+  if (typeof linkData?.watermarked === 'boolean') responseHeaders.set('X-LexChain-Watermarked', String(linkData.watermarked));
   for (const header of ['accept-ranges', 'content-length', 'content-range']) {
     const value = fileResponse.headers.get(header);
     if (value) responseHeaders.set(header, value);

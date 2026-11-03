@@ -8,6 +8,7 @@ import {
   replaceSignedCopy,
   markDocumentReady,
   reopenDocument,
+  restoreDocument,
   syncDraftComments,
 } from '@/features/documents/document-lifecycle-api';
 
@@ -147,6 +148,37 @@ describe('document lifecycle client', () => {
     );
   });
 
+  it('restores a document through the same-origin POST proxy and returns fresh verification', async () => {
+    const response = {
+      document_id: 'document-1',
+      restored: true,
+      restored_hash: 'anchored-hash',
+      restored_copy_id: 'restored-copy-1',
+      verification: { document_id: 'document-1', status: 'AUTHENTIC', is_authentic: true, baseline_trusted: true },
+    };
+    const fetchMock = vi.fn().mockResolvedValue(Response.json(response));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(restoreDocument('document-1')).resolves.toEqual(response);
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/portal/proxy-post?path=%2Fdocuments%2Fdocument-1%2Frestore',
+      expect.objectContaining({ method: 'POST' }),
+    );
+  });
+
+  it('preserves restore authorization status and structured backend errors', async () => {
+    const payload = { message: 'Restore is restricted to the document owner.', details: { reason: 'FORBIDDEN' } };
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json(payload, { status: 403 })));
+
+    await expect(restoreDocument('document-1')).rejects.toMatchObject({
+      name: 'LifecycleRequestError',
+      message: payload.message,
+      status: 403,
+      details: payload.details,
+    });
+  });
+
   it('preserves the backend reason when readiness is rejected', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(
       Response.json({ detail: 'UNRESOLVED_COMMENTS: resolve all threads' }, { status: 409 }),
@@ -222,6 +254,7 @@ describe('document lifecycle client', () => {
     vi.stubGlobal('fetch', fetchMock);
 
     await expect(finalizeDocument('  ')).rejects.toThrow('Document ID is required');
+    await expect(Promise.resolve().then(() => restoreDocument('  '))).rejects.toThrow('Document ID is required');
     expect(fetchMock).not.toHaveBeenCalled();
   });
 

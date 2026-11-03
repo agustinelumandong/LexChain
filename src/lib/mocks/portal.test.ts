@@ -4,6 +4,16 @@ import { isMockPortalToken, mockPortalGet, mockPortalMutate } from '@/lib/mocks/
 afterEach(() => vi.restoreAllMocks());
 
 describe('portal mock extraction contract', () => {
+  it('paginates document lists and identifies ownership', async () => {
+    const first = await mockPortalGet('/documents/?limit=1&offset=0', 'mock-token:mock-document-issuer').json();
+    const second = await mockPortalGet('/documents/?limit=1&offset=1', 'mock-token:mock-document-issuer').json();
+    expect(first).toHaveLength(1);
+    expect(second).toHaveLength(1);
+    expect(first[0].id).not.toBe(second[0].id);
+    expect(first[0].is_owner).toBe(true);
+    const participant = await mockPortalGet('/documents/?limit=50&offset=0', 'mock-token:mock-document-participant').json();
+    expect(participant[0].is_owner).toBe(false);
+  });
   it('uses contract-shaped metadata for notification fixtures and uploads', async () => {
     const initialNotifications = await mockPortalGet('/notifications/', 'mock-token:mock-document-issuer').json() as { notifications: Array<Record<string, unknown>> };
     expect(initialNotifications.notifications).toEqual(expect.arrayContaining([
@@ -33,6 +43,12 @@ describe('portal mock extraction contract', () => {
     await expect(response.json()).resolves.toMatchObject({
       document_id: 'mock-document-4',
       permissions: { can_view: true },
+    });
+  });
+
+  it('marks owned mock documents as shareable for lawyer permission gating', async () => {
+    await expect(mockPortalGet('/documents/mock-document-3', 'mock-token:mock-document-issuer').json()).resolves.toMatchObject({
+      permissions: { can_share: true },
     });
   });
 
@@ -84,6 +100,63 @@ describe('portal mock extraction contract', () => {
     );
 
     expect(response.status).toBe(400);
+  });
+
+  it('allows an issuer to invite a user with no account as viewer and resend the invitation', async () => {
+    // 1. Invite newcomer as signer -> should fail with 400
+    const failResponse = await mockPortalMutate(
+      'POST',
+      '/documents/mock-document-1/parties',
+      new Request('https://mock.lexchain.local/api/portal/documents/mock-document-1/parties', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ email: 'newcomer@example.com', role: 'signer' }),
+      }),
+      'mock-token:mock-document-issuer',
+    );
+    expect(failResponse.status).toBe(400);
+
+    // 2. Invite newcomer as viewer -> 201 with user_id: null
+    const addResponse = await mockPortalMutate(
+      'POST',
+      '/documents/mock-document-1/parties',
+      new Request('https://mock.lexchain.local/api/portal/documents/mock-document-1/parties', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ email: 'newcomer@example.com', role: 'viewer' }),
+      }),
+      'mock-token:mock-document-issuer',
+    );
+    expect(addResponse.status).toBe(201);
+    const addedParty = await addResponse.json();
+    expect(addedParty.user_id).toBeNull();
+    expect(addedParty.email).toBe('newcomer@example.com');
+    expect(addedParty.role).toBe('viewer');
+    expect(addedParty.status).toBe('pending');
+    expect(addedParty.expires_at).toBeTruthy();
+
+    // 3. Resend invitation -> 200 with updated expires_at
+    const resendResponse = await mockPortalMutate(
+      'POST',
+      `/documents/mock-document-1/parties/${addedParty.id}/resend`,
+      new Request('https://mock.lexchain.local/api/portal/proxy-post', { method: 'POST' }),
+      'mock-token:mock-document-issuer',
+    );
+    expect(resendResponse.status).toBe(200);
+    const resentParty = await resendResponse.json();
+    expect(resentParty.id).toBe(addedParty.id);
+    expect(resentParty.status).toBe('pending');
+
+    // 4. Remove email invitation by party id -> 200 with Invitation removed
+    const deleteResponse = await mockPortalMutate(
+      'DELETE',
+      `/documents/mock-document-1/parties/${addedParty.id}`,
+      new Request('https://mock.lexchain.local/api/portal/proxy-post', { method: 'DELETE' }),
+      'mock-token:mock-document-issuer',
+    );
+    expect(deleteResponse.status).toBe(200);
+    const deleteBody = await deleteResponse.json();
+    expect(deleteBody.message).toBe('Invitation removed');
   });
 });
 
@@ -156,8 +229,7 @@ describe('portal mock mutations', () => {
       data_hash: record.data_hash,
     });
 
-    const audits = await mockPortalGet('/documents/mock-document-2/audit-logs', 'mock-token:mock-document-issuer').json();
-    expect(audits.filter((audit: { action: string }) => audit.action === 'document_finalized')).toHaveLength(1);
+    expect((await mockPortalGet('/documents/mock-document-2/audit-logs', 'mock-token:mock-document-issuer')).status).toBe(404);
   });
 
   it('restores a mismatched finalized document from its retained snapshot with a reason', async () => {
@@ -193,11 +265,6 @@ describe('portal mock mutations', () => {
 
     expect(restored.status).toBe(200);
     await expect(restored.json()).resolves.toMatchObject({ lifecycle: 'restored', snapshots: sourceSnapshots });
-    const audits = await mockPortalGet('/documents/mock-document-3/audit-logs', 'mock-token:mock-document-issuer').json();
-    expect(audits).toContainEqual(expect.objectContaining({
-      action: 'document_restored',
-      details: { snapshot_id: 'mock-snapshot-3', reason: 'Restore the verified snapshot.' },
-    }));
   });
 
   it('returns a mock blockchain tamper report with the changed deed price block', async () => {
@@ -631,15 +698,33 @@ describe('portal mock participant invitations and requests', () => {
   });
 
   it('restores a tampered document through the restore endpoint', async () => {
-    const response = await mockPortalMutate(
+    vi.resetModules();
+    const freshMock = await import('@/lib/mocks/portal');
+    const before = await freshMock.mockPortalGet('/documents/mock-document-3/verify', 'mock-token:mock-document-issuer').json() as { status: string };
+    expect(before.status).toBe('TAMPERED');
+
+    const response = await freshMock.mockPortalMutate(
       'POST',
-      '/documents/mock-document-1/restore',
+      '/documents/mock-document-3/restore',
       new Request('https://mock.lexchain.local/api/portal/proxy-post', { method: 'POST' }),
       'mock-token:mock-document-issuer',
     );
 
     expect(response.status).toBe(200);
-    await expect(response.json()).resolves.toMatchObject({ document_id: 'mock-document-1' });
+    await expect(response.json()).resolves.toMatchObject({
+      document_id: 'mock-document-3',
+      restored: true,
+      preserved_copy_id: null,
+      verification: { status: 'AUTHENTIC', is_authentic: true },
+    });
+
+    const repeated = await freshMock.mockPortalMutate(
+      'POST',
+      '/documents/mock-document-3/restore',
+      new Request('https://mock.lexchain.local/api/portal/proxy-post', { method: 'POST' }),
+      'mock-token:mock-document-issuer',
+    );
+    await expect(repeated.json()).resolves.toMatchObject({ restored: false, verification: { status: 'AUTHENTIC' } });
   });
 
   it('accepts a participant invitation and leaves its document available for navigation', async () => {
@@ -666,7 +751,7 @@ describe('portal mock participant invitations and requests', () => {
     );
     const restore = await mockPortalMutate(
       'POST',
-      '/documents/mock-document-4/snapshots/mock-snapshot-4/restore',
+      '/documents/mock-document-4/restore',
       new Request('https://mock.lexchain.local/api/portal/proxy-post', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },

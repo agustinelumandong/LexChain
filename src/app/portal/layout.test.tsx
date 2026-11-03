@@ -75,6 +75,7 @@ describe("portal layout role hint", () => {
 
     expect(screen.getByText("Portal content")).toBeTruthy();
     expect(screen.getAllByRole("link", { name: "Books" }).length).toBeGreaterThan(0);
+    expect(screen.queryByRole("link", { name: "My E-copy Requests" })).toBeNull();
     expect(screen.getByText("Lawyer")).toBeTruthy();
     expect(screen.queryByText("undefined undefined")).toBeNull();
     expect(screen.queryByText("...")).toBeNull();
@@ -86,9 +87,21 @@ describe("portal layout role hint", () => {
 
     expect(screen.getAllByRole("link", { name: "Shared Documents" }).length).toBeGreaterThan(0);
     expect(screen.getAllByRole("link", { name: "Invitations" }).length).toBeGreaterThan(0);
-    expect(screen.queryByRole("link", { name: "My E-copy Requests" })).toBeNull();
+    expect(screen.getAllByRole("link", { name: "My E-copy Requests" }).length).toBeGreaterThan(0);
     expect(screen.queryByRole("link", { name: "Books" })).toBeNull();
     expect(fetchMock).not.toHaveBeenCalledWith(expect.stringContaining("%2Fusers%2F"), expect.anything());
+  });
+
+  it.each(["lawyer", "document_participant"])("shows profile navigation for %s and marks security pages active", async (role) => {
+    routePathname.value = "/portal/profile/security";
+    await renderPortal(role);
+
+    const links = screen.getAllByRole("link", { name: "Profile & Security" });
+    expect(links.length).toBeGreaterThan(0);
+    for (const link of links) {
+      expect(link.getAttribute("href")).toBe("/portal/profile");
+      expect(link.getAttribute("aria-current")).toBe("page");
+    }
   });
 
   it("shows unread-count failures instead of displaying a false zero badge", async () => {

@@ -27,6 +27,11 @@ beforeEach(() => {
 });
 
 describe('client document invitations', () => {
+  it('uses the available portal width', async () => {
+    renderPage();
+    const heading = await screen.findByRole('heading', { name: 'Invitations' });
+    expect(heading.parentElement?.parentElement?.className).toContain('w-full');
+  });
   it('keeps a pending invitation on the page after decline', async () => {
     const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 204 }));
     vi.stubGlobal('fetch', fetchMock);

@@ -201,12 +201,14 @@ describe('signed document upload screen', () => {
     await fillClosedBookUpload();
     fireEvent.click(screen.getByRole('button', { name: 'Confirm and file' }));
     await screen.findByRole('button', { name: 'No, this is a new document' });
+    expect(screen.getByRole('dialog', { name: 'Documents awaiting a signed copy' })).toBeTruthy();
     expect(screen.getAllByText('file_name: Please review this upload.')).toHaveLength(2);
     expect(duplicateKeyWarnings).toEqual([]);
     consoleError.mockRestore();
     expect((document.getElementById('upload-title') as HTMLInputElement).disabled).toBe(true);
     fireEvent.click(await screen.findByRole('button', { name: 'Return without submitting' }));
 
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Documents awaiting a signed copy' })).toBeNull());
     expect(document.getElementById('upload-title')).toHaveProperty('value', 'Signed deed');
     await waitFor(() => expect((document.getElementById('upload-title') as HTMLInputElement).disabled).toBe(false));
     expect(screen.getByLabelText('Paper document number')).toHaveProperty('value', '12');
@@ -333,6 +335,7 @@ describe('signed document upload screen', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Confirm and file' }));
 
     expect((await screen.findByRole('alert')).textContent).toContain('This file is already filed.');
+    expect(screen.getByRole('dialog', { name: 'Document already filed' })).toBeTruthy();
     expect(screen.getByText('Document number is already used.')).toBeTruthy();
     expect(screen.getAllByText('Use a positive number.')).toHaveLength(2);
     expect(screen.getByText('unknown_column: This field is not available in the form.')).toBeTruthy();
@@ -345,6 +348,10 @@ describe('signed document upload screen', () => {
     expect(document.querySelectorAll('#upload-doc-no-error')).toHaveLength(1);
     expect(screen.getByRole('link', { name: 'View existing document' }).getAttribute('href')).toBe('/portal/documents/duplicate-doc');
     expect(screen.queryByRole('button', { name: 'No, this is a new document' })).toBeNull();
+    expect(document.getElementById('upload-doc-no')).toHaveProperty('value', '12');
+    expect(screen.getByText(/Signed deed\.pdf/)).toBeTruthy();
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(screen.queryByRole('dialog', { name: 'Document already filed' })).toBeNull();
     expect(document.getElementById('upload-doc-no')).toHaveProperty('value', '12');
     expect(screen.getByText(/Signed deed\.pdf/)).toBeTruthy();
   });

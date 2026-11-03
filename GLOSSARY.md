@@ -23,6 +23,9 @@ _Avoid_: Finalized, signed.
 The scanned PDF of the signed and notarized legal document. Replaced copies remain part of the document's history.
 _Avoid_: Working draft, reviewed extraction.
 
+**E-copy request**:
+A client's request for the lawyer to approve delivery of an unwatermarked copy of a specific finalized signed document.
+
 **Finalization**:
 The operation that freezes the signed copy and records its fingerprint for later verification. Subsequent text processing does not change that signed-copy fingerprint.
 _Avoid_: OCR approval, completion of processing.

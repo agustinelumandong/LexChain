@@ -13,6 +13,13 @@ const toneClasses = {
   neutral: 'border-[#D7E4F2] bg-[#F8FBFF] text-[#45627D]',
 };
 
+function formatDateTime(value: string | null | undefined): string {
+  if (!value) return '—';
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return value;
+  return parsed.toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' });
+}
+
 function Detail({ label, value }: { label: string; value: string | null | undefined }) {
   return (
     <div>
@@ -51,7 +58,7 @@ export function IntegrityResult({
           <Detail label="Transaction hash" value={record.tx_hash} />
           <Detail label="On-chain timestamp" value={String(record.onchain_timestamp)} />
           <Detail label="Issued by" value={record.issued_by} />
-          <Detail label="Verified at" value={record.verified_at} />
+          <Detail label="Verified at" value={formatDateTime(record.verified_at)} />
         </dl>
       )}
 

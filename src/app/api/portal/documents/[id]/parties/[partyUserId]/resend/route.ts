@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { backendUrl } from '@/server/api/backend';
-import { isMockPortalToken, mockPortalGet } from '@/lib/mocks/portal';
+import { isMockPortalToken, mockPortalGet, mockPortalMutate } from '@/lib/mocks/portal';
 import { isMockMode } from '@/lib/mocks/mode';
 import { getPortalUiRole } from "@/features/access";
 
-type RouteContext = { params: Promise<{ id: string }> };
+type RouteContext = { params: Promise<{ id: string; partyUserId: string }> };
 
-export async function GET(request: NextRequest, context: RouteContext) {
+export async function POST(request: NextRequest, context: RouteContext) {
   const token = request.cookies.get('portal_token')?.value;
   if (!token) return NextResponse.json({ message: 'Not authenticated' }, { status: 401 });
 
@@ -24,26 +24,29 @@ export async function GET(request: NextRequest, context: RouteContext) {
         },
         cache: 'no-store',
       });
-  if (profile.status === 401) return profile;
-
   const profileData = await profile.json().catch(() => null);
   if (getPortalUiRole(profileData?.role) !== 'lawyer') {
     return NextResponse.json(
-      { message: 'Document activity is available to Lawyers only.' },
+      { message: 'Participant management is available to Lawyers only.' },
       { status: 403 },
     );
   }
 
-  const { id } = await context.params;
-  const upstream = mockMode
-    ? mockPortalGet(`/documents/${id}/audit-logs`, token)
-    : await fetch(backendUrl(`/documents/${id}/audit-logs`), {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'ngrok-skip-browser-warning': 'true',
-        },
-        cache: 'no-store',
-      });
+  const { id, partyUserId } = await context.params;
+  const path = `/documents/${id}/parties/${partyUserId}/resend`;
+
+  if (mockMode) {
+    return mockPortalMutate('POST', path, request, token);
+  }
+
+  const upstream = await fetch(backendUrl(path), {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'ngrok-skip-browser-warning': 'true',
+    },
+    cache: 'no-store',
+  });
 
   const data = await upstream.json().catch(() => null);
   return NextResponse.json(data, { status: upstream.status });

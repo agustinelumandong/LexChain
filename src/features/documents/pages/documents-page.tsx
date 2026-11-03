@@ -24,7 +24,6 @@ import { getPortalUiRole } from "@/features/access";
 import { CreateDocumentRecordForm } from '@/features/documents/components/create-document-record-form';
 import {
   getDocumentLifecycles,
-  getDocumentsByOwnership,
   getVisibleDocuments,
   type DocumentListItem,
   type DocumentListFilters,
@@ -247,7 +246,6 @@ function StatusDistribution({ docs }: { docs: Document[] }) {
 
 export default function DocumentsPage() {
   const router = useRouter();
-  const [selectedOwnership, setSelectedOwnership] = useState<'owned' | 'shared' | null>(null);
   const [search, setSearch] = useState('');
   const [lifecycle, setLifecycle] = useState('all');
   const [sort, setSort] = useState<DocumentListFilters['sort']>('newest');
@@ -267,16 +265,10 @@ export default function DocumentsPage() {
   const allDocuments = documentsQuery.data ?? [];
   const uiRole = getPortalUiRole(profileQuery.data?.role);
   const isIssuer = uiRole === 'lawyer';
-  const hasOwnershipTabs = uiRole === 'user';
-  const ownership = selectedOwnership ?? (isIssuer ? 'owned' : 'shared');
-  const documents = isIssuer ? allDocuments : getDocumentsByOwnership(allDocuments, ownership);
+  const documents = allDocuments;
   const lifecycles = getDocumentLifecycles(documents);
   if (lifecycle !== 'all' && !lifecycles.includes(lifecycle)) lifecycles.push(lifecycle);
-  const ownershipLabel = isIssuer ? 'office repository' : ownership === 'owned' ? 'My documents' : 'Shared with me';
-  function changeOwnership(value: 'owned' | 'shared') {
-    setSelectedOwnership(value);
-    setPage(0);
-  }
+  const ownershipLabel = isIssuer ? 'office repository' : 'your documents';
   const visibleDocuments = getVisibleDocuments(documents, {
     query: search,
     lifecycle,
@@ -302,22 +294,7 @@ export default function DocumentsPage() {
 
       {isIssuer && showCreateRecord && <CreateDocumentRecordForm onClose={() => setShowCreateRecord(false)} onCreated={(id) => router.push(`/portal/documents/${id}`)} />}
 
-      {hasOwnershipTabs && <div role="tablist" aria-label="Document ownership" className="flex shrink-0 gap-2">
-        {(['owned', 'shared'] as const).map((value) => (
-          <button key={value} id={`ownership-${value}`} type="button" role="tab" aria-selected={ownership === value} aria-controls="ownership-results" tabIndex={ownership === value ? 0 : -1}
-            onClick={() => changeOwnership(value)}
-            onKeyDown={(event) => {
-              if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
-              event.preventDefault();
-              const next = event.key === 'Home' ? 'owned' : event.key === 'End' ? 'shared' : value === 'owned' ? 'shared' : 'owned';
-              changeOwnership(next);
-              document.getElementById(`ownership-${next}`)?.focus();
-            }}
-            className={cn('rounded-full border px-4 py-2 text-sm font-black focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]', ownership === value ? 'border-[#0067B3] bg-[#EAF3FF] text-[#0067B3]' : 'border-[#E4EEF9] text-[#0C2B49]')}
-          >{value === 'owned' ? 'My documents' : 'Shared with me'} ({getDocumentsByOwnership(allDocuments, value).length})</button>
-        ))}
-      </div>}
-      <div id="ownership-results" role={hasOwnershipTabs ? 'tabpanel' : 'region'} aria-labelledby={hasOwnershipTabs ? `ownership-${ownership}` : undefined} aria-label={hasOwnershipTabs ? undefined : isIssuer ? 'Office document results' : 'Document results'} className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto min-[1680px]:overflow-hidden">
+      <div role="region" aria-label={isIssuer ? 'Office document results' : 'Document results'} className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto min-[1680px]:overflow-hidden">
       {documentsQuery.isLoading ? (
         <div className="flex flex-col gap-3" aria-label="Loading documents">{[1, 2, 3].map((index) => <div key={index} className="h-[80px] animate-pulse rounded-[18px] border border-[#E8F0F8] bg-white" />)}</div>
       ) : documentsQuery.isError ? (

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { inviteDocumentParty, listDocumentAuditLogs, listDocumentParties, revokeDocumentParty, searchUserByEmail } from '@/features/access/portal-access-api';
+import { inviteDocumentParty, listDocumentParties, resendPartyInvitation, revokeDocumentParty, searchUserByEmail } from '@/features/access/portal-access-api';
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -24,13 +24,27 @@ describe('searchUserByEmail', () => {
   });
 });
 
+describe('resendPartyInvitation', () => {
+  it('posts to the document party resend endpoint', async () => {
+    const updatedParty = { id: 'party-1', user_id: null, email: 'new@example.com', role: 'viewer', status: 'pending', expires_at: '2026-11-10T00:00:00Z' };
+    const fetchMock = vi.fn().mockResolvedValue(Response.json(updatedParty));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(resendPartyInvitation('doc-1', 'party-1')).resolves.toEqual(updatedParty);
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/portal/documents/doc-1/parties/party-1/resend',
+      { method: 'POST', credentials: 'same-origin', cache: 'no-store' },
+    );
+  });
+});
+
 
 describe('access request failures', () => {
   it.each([
     () => listDocumentParties('doc-1'),
     () => inviteDocumentParty('doc-1', { email: 'person@example.com', role: 'viewer' }),
+    () => resendPartyInvitation('doc-1', 'party-1'),
     () => revokeDocumentParty('doc-1', 'user-1'),
-    () => listDocumentAuditLogs('doc-1'),
     () => searchUserByEmail('person@example.com'),
   ])('preserves backend feedback and status', async (request) => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json({ message: 'Access rejected', details: { reason: 'DENIED', errors: [{ field: 'email', message: 'Account unavailable' }] } }, { status: 403 })));

@@ -13,11 +13,28 @@ vi.mock('@/features/documents/components/pdf-document-viewer', () => ({ default:
 const createWatermarkedSignedPdfMock = vi.hoisted(() => vi.fn());
 vi.mock('@/features/documents/watermark-signed-pdf', () => ({ createWatermarkedSignedPdf: createWatermarkedSignedPdfMock }));
 
-const { attachSignedCopyMock, correctDocumentEntryMock, listDocumentHistoryMock, listDocumentPartiesMock, listRegisterBooksMock, listSignedCopiesMock, listDraftCommentsMock, replaceSignedCopyMock, syncDraftCommentsMock, LifecycleRequestErrorMock } = vi.hoisted(() => ({
+const {
+  attachSignedCopyMock,
+  correctDocumentEntryMock,
+  listDocumentHistoryMock,
+  listDocumentPartiesMock,
+  inviteDocumentPartyMock,
+  revokeDocumentPartyMock,
+  searchUserByEmailMock,
+  listRegisterBooksMock,
+  listSignedCopiesMock,
+  listDraftCommentsMock,
+  replaceSignedCopyMock,
+  syncDraftCommentsMock,
+  LifecycleRequestErrorMock,
+} = vi.hoisted(() => ({
   attachSignedCopyMock: vi.fn(),
   correctDocumentEntryMock: vi.fn(),
   listDocumentHistoryMock: vi.fn(),
   listDocumentPartiesMock: vi.fn(),
+  inviteDocumentPartyMock: vi.fn(),
+  revokeDocumentPartyMock: vi.fn(),
+  searchUserByEmailMock: vi.fn(),
   listRegisterBooksMock: vi.fn(),
   listSignedCopiesMock: vi.fn(),
   listDraftCommentsMock: vi.fn(),
@@ -40,6 +57,10 @@ const { attachSignedCopyMock, correctDocumentEntryMock, listDocumentHistoryMock,
 
 vi.mock('@/features/access', () => ({
   listDocumentParties: listDocumentPartiesMock,
+  inviteDocumentParty: inviteDocumentPartyMock,
+  revokeDocumentParty: revokeDocumentPartyMock,
+  searchUserByEmail: searchUserByEmailMock,
+  isParticipantAccessCapabilityError: () => false,
 }));
 
 vi.mock('@/features/documents/document-lifecycle-api', () => ({
@@ -97,6 +118,8 @@ const document: ApiSchema<'DocumentResponse'> = {
     can_retry_processing: false,
     can_share: false,
     can_revoke: false,
+    can_request_ecopy: false,
+    can_review_ecopy: false,
   },
   summary: 'A summary generated from the document.',
   labels: ['Service agreement'],
@@ -142,6 +165,52 @@ function renderWorkspace(props: Partial<React.ComponentProps<typeof DocumentWork
 }
 
 describe('DocumentWorkspace', () => {
+  it('allows switching away from the initial tab', () => {
+    renderWorkspace({ initialTab: 'files', document: { ...document, lifecycle: 'FINALIZED' } });
+    expect(screen.getByRole('tab', { name: 'Files' }).getAttribute('aria-selected')).toBe('true');
+    fireEvent.click(screen.getByRole('tab', { name: 'History' }));
+    expect(screen.getByRole('tab', { name: 'History' }).getAttribute('aria-selected')).toBe('true');
+  });
+  it('does not show requester controls to the lawyer', () => {
+    renderWorkspace({ role: 'lawyer', document: { ...document, lifecycle: 'FINALIZED', permissions: { ...document.permissions, can_request_ecopy: true } } });
+    fireEvent.click(screen.getByRole('tab', { name: 'Files' }));
+    expect(screen.queryByRole('link', { name: 'View e-copy requests and approved downloads' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Request e-copy' })).toBeNull();
+  });
+  it('keeps request history reachable after requesting is no longer permitted', () => {
+    renderWorkspace({ role: 'user', document: { ...document, lifecycle: 'FINALIZED', permissions: { ...document.permissions, can_request_ecopy: false } } });
+    fireEvent.click(screen.getByRole('tab', { name: 'Files' }));
+    expect(screen.getByRole('link', { name: 'View e-copy requests and approved downloads' }).getAttribute('href')).toBe('/portal/requests/my');
+    expect(screen.queryByRole('button', { name: 'Request e-copy' })).toBeNull();
+  });
+
+  it('submits an e-copy request for an eligible document', async () => {
+    const historyRequest = {
+      id: 'request-101', document_id: 'doc-101', file_name: 'service-agreement.pdf', client_id: 'client-101',
+      client_name: 'Jordan Client', client_email: 'jordan@example.test', status: 'PENDING', requested_at: '2026-11-01T12:00:00Z',
+      decided_at: null, decided_by: null, decline_reason: null, delivery_attempts: 0, delivered_at: null,
+      can_download: false, can_retry_delivery: false, events: [],
+    };
+    let historyCalls = 0;
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const path = new URL(String(input), window.location.origin).searchParams.get('path');
+      if (path === '/documents/doc-101/ecopy-requests' && (!init?.method || init.method === 'GET')) {
+        historyCalls += 1;
+        return Response.json({ requests: historyCalls === 1 ? [] : [historyRequest], total: historyCalls === 1 ? 0 : 1 });
+      }
+      if (path === '/documents/doc-101/ecopy-requests' && init?.method === 'POST') return Response.json({ status: 'PENDING' }, { status: 201 });
+      throw new Error(`Unexpected request: ${input}`);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const { invalidateQueries } = renderWorkspace({ role: 'user', document: { ...document, lifecycle: 'FINALIZED', permissions: { ...document.permissions, can_request_ecopy: true } } });
+    invalidateQueries.mockRestore();
+    fireEvent.click(screen.getByRole('tab', { name: 'Files' }));
+    expect(await screen.findByText('No e-copy requests for this document yet.')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Request e-copy' }));
+    expect(await screen.findByText('PENDING')).toBeTruthy();
+    await waitFor(() => expect(historyCalls).toBe(2));
+    expect(fetchMock).toHaveBeenCalledWith('/api/portal/proxy-post?path=%2Fdocuments%2Fdoc-101%2Fecopy-requests', expect.objectContaining({ method: 'POST' }));
+  });
   it.each([
     ['PREPARING', 'Prepare and review the document', 'Step 1 of 4'],
     ['READY_FOR_SIGNATURE', 'Sign the document and return the PDF', 'Step 3 of 4'],
@@ -162,6 +231,17 @@ describe('DocumentWorkspace', () => {
     expect(within(overview).getByText('Finalized', { selector: 'dt' })).toBeTruthy();
   });
 
+  it('labels lifecycle history as History, not Activity', async () => {
+    renderWorkspace({ document: { ...document, lifecycle: 'FINALIZED' } });
+
+    expect(screen.getByRole('tab', { name: 'History' })).toBeTruthy();
+    expect(screen.queryByRole('tab', { name: 'Activity' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'View document history' }));
+    expect(screen.getByRole('tab', { name: 'History' }).getAttribute('aria-selected')).toBe('true');
+    expect(await screen.findByText('No history has been recorded for this document yet.')).toBeTruthy();
+    expect(screen.queryByText(/audit history/i)).toBeNull();
+  });
+
   beforeEach(() => {
     vi.stubGlobal('ResizeObserver', ResizeObserverStub);
     attachSignedCopyMock.mockResolvedValue(document);
@@ -180,6 +260,9 @@ describe('DocumentWorkspace', () => {
     listDraftCommentsMock.mockResolvedValue({ document_id: 'doc-101', unresolved: 0, comments: [] });
     replaceSignedCopyMock.mockResolvedValue(document);
     syncDraftCommentsMock.mockResolvedValue({ document_id: 'doc-101', unresolved: 0, comments: [] });
+    inviteDocumentPartyMock.mockResolvedValue({});
+    revokeDocumentPartyMock.mockResolvedValue({});
+    searchUserByEmailMock.mockResolvedValue(null);
   });
 
   afterEach(() => {
@@ -188,6 +271,7 @@ describe('DocumentWorkspace', () => {
     vi.unstubAllEnvs();
     vi.clearAllMocks();
     sessionStorage.clear();
+    window.history.replaceState(null, '', '/');
   });
 
   it('only offers register correction for signed documents allowed by the backend', () => {
@@ -581,7 +665,7 @@ describe('DocumentWorkspace', () => {
     expect(screen.getByRole('button', { name: 'Mark ready for signature' })).toBeTruthy();
     expect(fetchMock).toHaveBeenCalledWith(
       '/api/portal/proxy-post?path=%2Fdocuments%2Fdoc-101%2Fdraft',
-      expect.objectContaining({ method: 'POST', body: JSON.stringify({ source: 'blank' }) }),
+      expect.objectContaining({ method: 'POST', body: expect.any(FormData) }),
     );
   });
 
@@ -750,7 +834,7 @@ describe('DocumentWorkspace', () => {
     expect(fetchMock).toHaveBeenCalledWith('/api/portal/proxy?path=%2Fgoogle%2Fpicker-token', expect.any(Object));
     expect(fetchMock).toHaveBeenCalledWith(
       '/api/portal/proxy-post?path=%2Fdocuments%2Fdoc-101%2Fdraft',
-      expect.objectContaining({ method: 'POST', body: JSON.stringify({ source: 'template', file_id: 'template-77' }) }),
+      expect.objectContaining({ method: 'POST', body: expect.any(FormData) }),
     );
     await waitFor(() => expect(createCount).toBe(2));
   });
@@ -777,6 +861,88 @@ describe('DocumentWorkspace', () => {
     expect(screen.queryByRole('alert')).toBeNull();
   });
 
+  it.each([
+    [new File([], 'empty.docx'), 'Choose a non-empty document file.'],
+    [new File(['image'], 'renamed.pdf'), 'Choose a .docx, .doc, .odt, or .rtf file.'],
+    [new File([new Uint8Array(10 * 1024 * 1024 + 1)], 'large.docx'), 'Choose a file that is 10 MiB or smaller.'],
+  ])('rejects an invalid upload accessibly before submitting', async (file, message) => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    renderWorkspace({ document: { ...document, draft_url: null, permissions: { ...document.permissions, can_create_draft: true } } });
+
+    fireEvent.click(screen.getByRole('combobox', { name: 'Choose a starting point' }));
+    fireEvent.click(screen.getByRole('option', { name: 'Upload a document' }));
+    const input = screen.getByLabelText('Choose a document') as HTMLInputElement;
+    fireEvent.change(input, { target: { files: [file] } });
+
+    expect(screen.getByText(message)).toBeTruthy();
+    expect(input.getAttribute('aria-invalid')).toBe('true');
+    expect(input.getAttribute('aria-describedby')).toContain('google-draft-upload-error');
+    expect((screen.getByRole('button', { name: 'Create draft from uploaded document' }) as HTMLButtonElement).disabled).toBe(true);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('keeps the selected upload after a recoverable failure and updates the document on retry', async () => {
+    const file = new File(['draft bytes'], 'client-contract.docx', { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+    const updatedDocument = { ...document, draft_url: 'https://docs.google.com/document/d/uploaded-draft' };
+    let attempts = 0;
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const path = new URL(String(input), window.location.origin).searchParams.get('path');
+      if (path === '/documents/doc-101/draft') {
+        attempts += 1;
+        if (attempts === 1) return Response.json({ message: 'Google Drive is unreachable.' }, { status: 502 });
+        return Response.json(updatedDocument, { status: 201 });
+      }
+      throw new Error(`Unexpected request: ${input}`);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    renderWorkspace({ document: { ...document, draft_url: null, permissions: { ...document.permissions, can_create_draft: true } } });
+
+    fireEvent.click(screen.getByRole('combobox', { name: 'Choose a starting point' }));
+    fireEvent.click(screen.getByRole('option', { name: 'Upload a document' }));
+    const input = screen.getByLabelText('Choose a document') as HTMLInputElement;
+    fireEvent.change(input, { target: { files: [file] } });
+    const submit = screen.getByRole('button', { name: 'Create draft from uploaded document' });
+    fireEvent.click(submit);
+
+    expect(await screen.findByText('Google Drive is unavailable. Try again in a moment. Your selected file is still available.')).toBeTruthy();
+    expect(input.files?.[0]).toBe(file);
+    fireEvent.click(submit);
+
+    expect(await screen.findByRole('link', { name: 'Open Google draft' })).toBeTruthy();
+    expect(attempts).toBe(2);
+  });
+
+  it('asks for the upload again after Google OAuth without storing file bytes', async () => {
+    const file = new File(['private upload bytes'], 'client-contract.docx', { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const path = new URL(String(input), window.location.origin).searchParams.get('path');
+      if (path === '/documents/doc-101/draft') return Response.json({ message: 'Google must be connected.', details: { reason: 'GOOGLE_NOT_CONNECTED' } }, { status: 409 });
+      throw new Error(`Unexpected request: ${input}`);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const workspace = renderWorkspace({ document: { ...document, draft_url: null, permissions: { ...document.permissions, can_create_draft: true } } });
+
+    fireEvent.click(screen.getByRole('combobox', { name: 'Choose a starting point' }));
+    fireEvent.click(screen.getByRole('option', { name: 'Upload a document' }));
+    fireEvent.change(screen.getByLabelText('Choose a document'), { target: { files: [file] } });
+    fireEvent.click(screen.getByRole('button', { name: 'Create draft from uploaded document' }));
+    const connectLink = await screen.findByRole('link', { name: 'Connect Google in account settings' });
+    expect(screen.getByText(/reselect your file after connecting Google/i)).toBeTruthy();
+    fireEvent.click(connectLink);
+
+    const storedContext = sessionStorage.getItem('lexchain:google-draft-return');
+    expect(storedContext).toBe(JSON.stringify({ documentId: 'doc-101', source: 'upload', picked: null }));
+    expect(storedContext).not.toContain('private upload bytes');
+    expect(storedContext).not.toContain(file.name);
+
+    workspace.unmount();
+    renderWorkspace({ document: { ...document, draft_url: null, permissions: { ...document.permissions, can_create_draft: true } } });
+    expect(await screen.findByText(/reselect the file when you return/i)).toBeTruthy();
+    expect((screen.getByLabelText('Choose a document') as HTMLInputElement).files).toHaveLength(0);
+    expect(sessionStorage.getItem('lexchain:google-draft-return')).toBeNull();
+  });
+
   it('explains unavailable data without inventing controls or restricted workflow actions', () => {
     renderWorkspace({ document: { ...document, lifecycle: 'SIGNED', status: 'PROCESSING', signed_copy: null, draft_url: null, summary: null, labels: [], entities: [], risk_flags: [] } });
 
@@ -796,6 +962,23 @@ describe('DocumentWorkspace', () => {
     fireEvent.click(screen.getByRole('tab', { name: 'Blockchain' }));
     expect(screen.getByText('aaaaaaaaaa…aaaaaaaa')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Copy document hash' })).toBeTruthy();
+  });
+
+  it('links to the returned transaction hash and handles an unavailable hash', async () => {
+    const hash = `0x${'ab'.repeat(32)}`;
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => ({ tx_hash: hash }) }));
+    const { unmount } = renderWorkspace({ document: { ...document, lifecycle: 'FINALIZED', on_chain: true } });
+    fireEvent.click(screen.getByRole('tab', { name: 'Blockchain' }));
+    const link = await screen.findByRole('link', { name: /View transaction on Base Sepolia/ });
+    expect(link.getAttribute('href')).toBe(`https://sepolia.basescan.org/tx/${hash}`);
+    expect(link.getAttribute('target')).toBe('_blank');
+    unmount();
+
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => ({ tx_hash: '' }) }));
+    renderWorkspace({ document: { ...document, lifecycle: 'FINALIZED', on_chain: true } });
+    fireEvent.click(screen.getByRole('tab', { name: 'Blockchain' }));
+    expect(await screen.findByText('Transaction link unavailable.')).toBeTruthy();
+    expect(screen.queryByRole('link', { name: /View transaction on Base Sepolia/ })).toBeNull();
   });
 
   it('renders a mismatched integrity record with the warning treatment', () => {
@@ -952,5 +1135,60 @@ describe('DocumentWorkspace', () => {
     renderWorkspace();
     expect(screen.queryByRole('button', { name: 'Mark ready for signature' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Reopen draft' })).toBeNull();
+  });
+
+  it('renders participant management directly inside the Participants tab for a finalized document', async () => {
+    listDocumentPartiesMock.mockResolvedValue({
+      document_id: 'doc-101',
+      issuer: { id: 'owner-101', user_id: 'owner-101', email: 'lawyer@example.com', f_name: 'Jordan', l_name: 'Lawyer', role: 'owner', status: 'accepted', responded_at: null, created_at: '2026-07-28T00:00:00Z' },
+      parties: [{ id: 'party-1', user_id: 'user-1', document_id: 'doc-101', email: 'client@example.com', f_name: 'Alex', l_name: 'Client', role: 'viewer', status: 'accepted' }],
+    });
+
+    renderWorkspace({
+      role: 'lawyer',
+      document: {
+        ...document,
+        lifecycle: 'FINALIZED',
+        permissions: { ...document.permissions, can_share: true, can_revoke: true },
+      },
+    });
+
+    // Overview tab is initially selected
+    expect(screen.getByRole('tab', { name: 'Participants' })).toBeTruthy();
+
+    // Click Participants tab
+    fireEvent.click(screen.getByRole('tab', { name: 'Participants' }));
+
+    // Verify in-place participant management is rendered
+    expect(await screen.findByRole('heading', { name: 'Manage participants' })).toBeTruthy();
+    expect(await screen.findByRole('heading', { name: 'Invite a participant' })).toBeTruthy();
+    expect(await screen.findByRole('heading', { name: 'Document participants' })).toBeTruthy();
+    expect(await screen.findByText('Alex Client')).toBeTruthy();
+    expect(screen.getByText('client@example.com')).toBeTruthy();
+  });
+
+  it('switches to the Participants tab when clicking Manage on the Overview card', async () => {
+    listDocumentPartiesMock.mockResolvedValue({
+      document_id: 'doc-101',
+      issuer: { id: 'owner-101', user_id: 'owner-101', email: 'lawyer@example.com', f_name: 'Jordan', l_name: 'Lawyer', role: 'owner', status: 'accepted', responded_at: null, created_at: '2026-07-28T00:00:00Z' },
+      parties: [{ id: 'party-1', user_id: 'user-1', document_id: 'doc-101', email: 'client@example.com', f_name: 'Alex', l_name: 'Client', role: 'viewer', status: 'accepted' }],
+    });
+
+    renderWorkspace({
+      role: 'lawyer',
+      document: {
+        ...document,
+        lifecycle: 'FINALIZED',
+        permissions: { ...document.permissions, can_share: true, can_revoke: true },
+      },
+    });
+
+    // On overview tab, find the Manage button/link and click it
+    const manageLink = screen.getByRole('link', { name: 'Manage' });
+    fireEvent.click(manageLink);
+
+    // Verify it switched to the Participants tab
+    expect(screen.getByRole('tab', { name: 'Participants' }).getAttribute('aria-selected')).toBe('true');
+    expect(await screen.findByRole('heading', { name: 'Manage participants' })).toBeTruthy();
   });
 });

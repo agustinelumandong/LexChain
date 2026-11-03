@@ -23,6 +23,8 @@ export function getNotificationDestination(
   notification: Pick<PortalNotification, 'type' | 'event_metadata'>,
 ): NotificationDestination | null {
   const { type, event_metadata: metadata } = notification;
+  if (type === 'ecopy_requested' || type === 'ecopy_delivery_failed') return { href: '/portal/requests', external: false };
+  if (type === 'ecopy_approved' || type === 'ecopy_declined') return { href: '/portal/requests/my', external: false };
   if (typeof metadata !== 'object' || metadata === null) return null;
 
   if (documentNotificationTypes.has(type)) return getDocumentDestination(metadata.document_id);

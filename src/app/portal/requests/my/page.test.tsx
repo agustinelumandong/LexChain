@@ -13,18 +13,23 @@ afterEach(() => {
 });
 
 describe('MyRequestsPage', () => {
-  it('explains the unsupported direct route and links back to shared documents without calling a request endpoint', async () => {
-    fetchMock.mockResolvedValue(Response.json({ role: 'document_participant' }));
+  it('allows a lawyer who is a document party to view their requests', async () => {
+    fetchMock.mockResolvedValueOnce(Response.json({ role: 'lawyer' })).mockResolvedValueOnce(Response.json({ requests: [], total: 0 }));
+    vi.stubGlobal('fetch', fetchMock);
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(<QueryClientProvider client={queryClient}><MyRequestsPage /></QueryClientProvider>);
+    expect(await screen.findByText('No e-copy requests yet.')).toBeTruthy();
+  });
+  it('loads the participant request history', async () => {
+    fetchMock.mockResolvedValueOnce(Response.json({ role: 'document_participant' })).mockResolvedValueOnce(Response.json({ requests: [], total: 0 }));
     vi.stubGlobal('fetch', fetchMock);
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     render(<QueryClientProvider client={queryClient}><MyRequestsPage /></QueryClientProvider>);
 
-    expect(await screen.findByRole('heading', { name: 'Request tracking is not available yet' })).toBeTruthy();
-    expect(screen.getByRole('status').textContent).toContain('when e-copy requests are supported');
-    expect(screen.getByRole('link', { name: 'Browse shared documents' }).getAttribute('href')).toBe('/portal/documents');
-    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    expect(await screen.findByText('No e-copy requests yet.')).toBeTruthy();
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
     expect(String(fetchMock.mock.calls[0][0])).toContain('%2Fusers%2F');
-    expect(screen.queryByText('No e-copy requests yet')).toBeNull();
+    expect(String(fetchMock.mock.calls[1][0])).toContain('%2Fdocuments%2Fecopy-requests%2Fmine');
   });
 
   it('shows a retryable profile error instead of a role message', async () => {

@@ -5,6 +5,7 @@ import Link from 'next/link';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import SendIcon from '@mui/icons-material/Send';
 import { isMockMode } from '@/lib/mocks/mode';
+import type { components } from '@/shared/types/generated/schema';
 
 const suggestedQuestions = [
   'What are the key dates?',
@@ -19,15 +20,15 @@ const mockResponses = [
   'The monthly payment obligation is $5,000 due by the 15th of each month.',
 ];
 
-type Message = { from: 'bot' | 'user'; text: string };
+type Message = { from: 'bot' | 'user'; text: string; includeInHistory?: boolean };
 
-async function askDocument(id: string, question: string): Promise<string> {
+async function askDocument(id: string, question: string, history: components['schemas']['ChatTurn'][]): Promise<string> {
   const res = await fetch(
     `/api/portal/proxy-post?path=${encodeURIComponent(`/documents/${id}/ask`)}`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ question }),
+      body: JSON.stringify({ question, history }),
       credentials: 'same-origin',
     },
   );
@@ -59,6 +60,10 @@ export default function AskPage({ params }: { params: Promise<{ id: string }> })
     const question = input.trim();
     if (!question || loading) return;
 
+    const history = messages.filter(({ includeInHistory }) => includeInHistory !== false).slice(-10).map(({ from, text }) => ({
+      role: from === 'user' ? 'user' as const : 'assistant' as const,
+      content: text.slice(0, 4000),
+    }));
     setInput('');
     setMessages((current) => [...current, { from: 'user', text: question }]);
 
@@ -73,10 +78,10 @@ export default function AskPage({ params }: { params: Promise<{ id: string }> })
     setLoading(true);
 
     try {
-      const answer = await askDocument(id, question);
+      const answer = await askDocument(id, question, history);
       setMessages((current) => [...current, { from: 'bot', text: answer }]);
     } catch {
-      setMessages((current) => [...current, { from: 'bot', text: 'Sorry, I could not get an answer. Please try again.' }]);
+      setMessages((current) => [...current, { from: 'bot', text: 'Sorry, I could not get an answer. Please try again.', includeInHistory: false }]);
     } finally {
       setLoading(false);
     }

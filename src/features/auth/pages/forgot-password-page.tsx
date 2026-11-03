@@ -13,7 +13,7 @@ export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<DemoForgotPasswordResult | null>(null);
+  const [result, setResult] = useState<DemoForgotPasswordResult | { message: typeof resetMessage } | null>(null);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -26,14 +26,26 @@ export default function ForgotPasswordPage() {
 
     setError(null);
     setIsSubmitting(true);
-    await new Promise((resolve) => setTimeout(resolve, demoSubmitDelayMs));
-    setIsSubmitting(false);
-
-    if (isMockMode) {
-      setResult({
-        message: resetMessage,
-        demoResetHref: `/reset-password?token=${demoResetToken}`,
-      });
+    try {
+      if (isMockMode) {
+        await new Promise((resolve) => setTimeout(resolve, demoSubmitDelayMs));
+        setResult({ message: resetMessage, demoResetHref: `/reset-password?token=${demoResetToken}` });
+      } else {
+        const response = await fetch("/api/auth/password-recovery", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: normalizedEmail }),
+        });
+        if (!response.ok) {
+          setError(response.status === 429 ? "Too many requests. Please wait before trying again." : "Could not send reset instructions. Please try again.");
+          return;
+        }
+        setResult({ message: resetMessage });
+      }
+    } catch {
+      setError("Could not send reset instructions. Please try again.");
+    } finally {
+      setIsSubmitting(false);
     }
   }
 
@@ -47,28 +59,19 @@ export default function ForgotPasswordPage() {
           </div>
           <h1 className="text-3xl font-black leading-9 text-[#0C2B49]">Forgot password?</h1>
           <p className="text-sm font-semibold leading-5 text-[#5B6F8A]">
-            {isMockMode ? "Preview the demo password-reset flow." : "Password recovery is not available in this deployment."}
+            {isMockMode ? "Preview the demo password-reset flow." : "Enter your email and we will send reset instructions."}
           </p>
         </div>
 
-        {!isMockMode ? (
-          <div className="mt-6 space-y-4">
-            <p role="status" className="rounded-xl border border-[#CFE7FC] bg-[#F1F8FF] px-4 py-3 text-sm font-semibold text-[#0C5B9C]">
-              Password recovery is not available yet. Contact your LexChain administrator for help resetting your account.
-            </p>
-            <Link href="/login" className="flex min-h-[52px] w-full items-center justify-center rounded-full border-2 border-[#E4EEF9] px-5 py-3.5 text-[15px] font-black text-[#0C2B49] transition hover:bg-[#F5FAFF]">
-              Back to sign in
-            </Link>
-          </div>
-        ) : result ? (
+        {result ? (
           <div className="mt-6 space-y-3.5">
             <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3">
               <p className="text-sm font-black text-[#0C2B49]">{result.message}</p>
-              <p className="mt-1 text-xs font-semibold text-[#5B6F8A]">Demo mode — no email was sent and no password was changed.</p>
+              {isMockMode && <p className="mt-1 text-xs font-semibold text-[#5B6F8A]">Demo mode — no email was sent and no password was changed.</p>}
             </div>
-            <Link href={result.demoResetHref} className="flex min-h-[52px] w-full items-center justify-center rounded-full bg-[#0067B3] px-5 py-3.5 text-[15px] font-black text-white transition hover:bg-[#005F9E]">
+            {"demoResetHref" in result && <Link href={result.demoResetHref} className="flex min-h-[52px] w-full items-center justify-center rounded-full bg-[#0067B3] px-5 py-3.5 text-[15px] font-black text-white transition hover:bg-[#005F9E]">
               Open demo reset page
-            </Link>
+            </Link>}
             <button type="button" onClick={() => setResult(null)} className="flex min-h-[52px] w-full items-center justify-center rounded-full border-2 border-[#E4EEF9] px-5 py-3.5 text-[15px] font-black text-[#0C2B49] transition hover:bg-[#F5FAFF]">
               Try another email
             </button>

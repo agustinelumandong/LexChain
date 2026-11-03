@@ -60,4 +60,75 @@ describe('ParticipantAccessTable', () => {
     expect(screen.getByRole('dialog', { name: 'Revoke access for client@example.com?' })).toBeTruthy();
     expect(onRevoke).toHaveBeenCalledWith(party);
   });
+
+  it('renders pending email invitations with waiting badge, expiry, Resend and Remove actions', async () => {
+    const emailParty = {
+      id: 'party-email-1',
+      user_id: null,
+      email: 'newcomer@example.com',
+      f_name: '',
+      l_name: '',
+      role: 'viewer',
+      status: 'pending',
+      expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+      created_at: '2026-11-03T00:00:00Z',
+    };
+    const onRevoke = vi.fn().mockResolvedValue(undefined);
+    const onResend = vi.fn().mockResolvedValue(undefined);
+
+    render(
+      <ParticipantAccessTable
+        parties={[emailParty]}
+        onRevoke={onRevoke}
+        onResend={onResend}
+        canRevoke
+      />,
+    );
+
+    expect(screen.getByText('newcomer@example.com')).toBeTruthy();
+    expect(screen.getByText('Waiting for sign-up')).toBeTruthy();
+    expect(screen.getByText(/expires in 7 days/i)).toBeTruthy();
+
+    const resendBtn = screen.getByRole('button', { name: 'Resend' });
+    const removeBtn = screen.getByRole('button', { name: 'Remove' });
+    expect(resendBtn).toBeTruthy();
+    expect(removeBtn).toBeTruthy();
+
+    fireEvent.click(resendBtn);
+    await waitFor(() => expect(onResend).toHaveBeenCalledWith(emailParty));
+
+    fireEvent.click(removeBtn);
+    const dialog = await screen.findByRole('dialog', { name: 'Remove invitation for newcomer@example.com?' });
+    expect(dialog).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Remove invitation' }));
+    await waitFor(() => expect(onRevoke).toHaveBeenCalledWith(emailParty));
+  });
+
+  it('renders expired email invitations with Invitation expired badge', () => {
+    const expiredParty = {
+      id: 'party-email-2',
+      user_id: null,
+      email: 'expired@example.com',
+      f_name: '',
+      l_name: '',
+      role: 'viewer',
+      status: 'expired',
+      expires_at: '2026-10-20T00:00:00Z',
+      created_at: '2026-10-13T00:00:00Z',
+    };
+
+    render(
+      <ParticipantAccessTable
+        parties={[expiredParty]}
+        onRevoke={vi.fn()}
+        onResend={vi.fn()}
+        canRevoke
+      />,
+    );
+
+    expect(screen.getByText('expired@example.com')).toBeTruthy();
+    expect(screen.getByText('Invitation expired')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Resend' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Remove' })).toBeTruthy();
+  });
 });

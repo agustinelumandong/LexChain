@@ -12,14 +12,14 @@ import type { ApiSchema } from '@/shared/types/index';
 import { GeneratedReportsManagementView } from "@/features/admin/generated-reports";
 import { PortalDropdown } from "@/features/portal/components";
 import {
-  createDemoReport,
-  downloadDemoReport,
-  type DemoReport,
-  type DemoReportType,
-  type PortalReportDocument,
+  downloadReport,
+  type Report,
+  type ReportType,
 } from '@/features/office/office-insight';
 import { portalFetch } from '@/shared/api/client';
 import { getPortalUiRole } from "@/features/access";
+import { fetchIntegrityReport } from '@/features/office/integrity-report';
+import { fetchDocumentActivityReport } from '@/features/office/document-activity-report';
 
 type UserProfile = ApiSchema<'UserProfileResponse'>;
 type ReportScope = 'document' | 'system';
@@ -28,16 +28,16 @@ const reportOptions = [
   {
     type: 'office-document-activity',
     label: 'Document Activity',
-    description: 'Documents in your office workspace during the selected dates.',
+    description: 'Documents you own, created during the selected dates.',
   },
   {
     type: 'office-integrity',
     label: 'Integrity',
-    description: 'Seeded verification outcomes recorded during the selected dates.',
+    description: 'Verification outcomes recorded during the selected dates (UTC).',
   },
-] satisfies Array<{ type: DemoReportType; label: string; description: string }>;
+] satisfies Array<{ type: ReportType; label: string; description: string }>;
 
-const reportLabels: Record<DemoReportType, string> = {
+const reportLabels: Record<ReportType, string> = {
   'office-document-activity': 'Document Activity',
   'office-integrity': 'Integrity',
   'system-users': 'System Users',
@@ -63,16 +63,15 @@ export default function OfficeReportsPage() {
     queryFn: () => portalFetch<UserProfile | null>('/users/'),
   });
   const isIssuer = getPortalUiRole(profileQuery.data?.role) === 'lawyer';
-  const documentsQuery = useQuery<PortalReportDocument[]>({
-    queryKey: ['portal-documents'],
-    queryFn: () => portalFetch('/documents/'),
-    enabled: isIssuer && scope === 'document',
-  });
-  const [reportType, setReportType] = useState<DemoReportType>('office-document-activity');
+  const [reportType, setReportType] = useState<ReportType>('office-document-activity');
   const [from, setFrom] = useState('2026-07-01');
   const [to, setTo] = useState('2026-07-31');
-  const [report, setReport] = useState<DemoReport | null>(null);
+  const [report, setReport] = useState<Report | null>(null);
   const [error, setError] = useState('');
+  const [pending, setPending] = useState(false);
+  const [summary, setSummary] = useState<ApiSchema<'IntegrityReportSummary'> | null>(null);
+  const [fromDateInvalid, setFromDateInvalid] = useState(false);
+  const [toDateInvalid, setToDateInvalid] = useState(false);
 
   if (profileQuery.isLoading) return <div className="h-36 animate-pulse rounded-[18px] border border-[#E8F0F8] bg-white" />;
 
@@ -80,29 +79,45 @@ export default function OfficeReportsPage() {
     return <p className="text-sm font-semibold text-[#5B6F8A]">Reports are available to Lawyers only.</p>;
   }
 
-  if (scope === 'document' && documentsQuery.isLoading) {
-    return <div role="status" className="h-36 animate-pulse rounded-[18px] border border-[#E8F0F8] bg-white"><span className="sr-only">Loading office report data…</span></div>;
-  }
-
-  function generateReport() {
+  async function generateReport() {
+    setPending(true);
+    setReport(null);
+    setSummary(null);
+    setError('');
     try {
-      setReport(createDemoReport(reportType, from, to, documentsQuery.data ?? []));
+      if (reportType === 'office-integrity') {
+        const result = await fetchIntegrityReport(from, to);
+        setSummary(result.summary);
+        setReport({ reportType, from, to, columns: ['Document', 'Status', 'Verified (UTC)'], rows: result.rows.map((row) => ({ Document: row.file_name ?? '', Status: row.status, 'Verified (UTC)': row.verified_at })) });
+      } else {
+        setReport(await fetchDocumentActivityReport(from, to));
+      }
       setError('');
     } catch (caught) {
       setReport(null);
       setError(caught instanceof Error ? caught.message : 'Could not generate this demo report.');
+    } finally {
+      setPending(false);
     }
   }
 
   const reportLabel = report ? reportLabels[report.reportType] : '';
+  const lifecycleCounts = report?.reportType === 'office-document-activity'
+    ? report.rows.reduce<Map<string, number>>((counts, row) => {
+      const lifecycle = String(row.Lifecycle ?? 'Unavailable');
+      counts.set(lifecycle, (counts.get(lifecycle) ?? 0) + 1);
+      return counts;
+    }, new Map())
+    : new Map<string, number>();
   const selectedReport = reportOptions.find((option) => option.type === reportType) ?? reportOptions[0];
   const scopeSelector = (
     <label className="block text-sm font-black text-[#0C2B49]">
       Report scope
       <PortalDropdown
         ariaLabel="Report scope"
+        disabled={pending}
         value={scope}
-        onChange={(value) => setScope(value as ReportScope)}
+        onChange={(value) => { setScope(value as ReportScope); setReport(null); setSummary(null); setError(''); }}
         options={reportScopeOptions}
       />
     </label>
@@ -112,8 +127,9 @@ export default function OfficeReportsPage() {
       Report type
       <PortalDropdown
         ariaLabel="Report type"
+        disabled={pending}
         value={reportType}
-        onChange={(value) => setReportType(value as DemoReportType)}
+        onChange={(value) => { setReportType(value as ReportType); setReport(null); setSummary(null); setError(''); }}
         options={reportOptions.map((option) => ({ label: option.label, value: option.type }))}
       />
     </label>
@@ -190,43 +206,44 @@ export default function OfficeReportsPage() {
                 <span className="flex size-7 shrink-0 items-center justify-center rounded-full border border-[#B9DDF9] bg-white text-xs font-black text-[#0067B3]">3</span>
                 <div>
                   <h3 className="text-sm font-black text-[#071B33]">Choose a date range</h3>
-                  <p className="mt-1 text-sm font-semibold leading-5 text-[#5B6F8A]">Preview activity that falls between these dates.</p>
+                  <p className="mt-1 text-sm font-semibold leading-5 text-[#5B6F8A]">{reportType === 'office-document-activity' ? 'Creation dates are inclusive, using UTC calendar days.' : 'Preview activity that falls between these dates.'}</p>
                 </div>
               </div>
               <div className="mt-4 grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
                 <LocalizationProvider dateAdapter={AdapterDayjs}>
                   <DatePicker
                     label="From"
+                    disabled={pending}
                     format="MM/DD/YYYY"
                     value={from ? dayjs(from) : null}
                     maxDate={to ? dayjs(to) : undefined}
-                    onChange={(value, context) => { if (context.validationError) return; setFrom(value?.format('YYYY-MM-DD') ?? ''); }}
+                    onError={(reason) => setFromDateInvalid(Boolean(reason))}
+                    onChange={(value, context) => { setReport(null); setSummary(null); setError(''); if (!context.validationError) setFrom(value?.format('YYYY-MM-DD') ?? ''); }}
                     slotProps={reportDatePickerSlotProps}
                   />
                   <DatePicker
                     label="To"
+                    disabled={pending}
                     format="MM/DD/YYYY"
                     value={to ? dayjs(to) : null}
                     minDate={from ? dayjs(from) : undefined}
-                    onChange={(value, context) => { if (context.validationError) return; setTo(value?.format('YYYY-MM-DD') ?? ''); }}
+                    onError={(reason) => setToDateInvalid(Boolean(reason))}
+                    onChange={(value, context) => { setReport(null); setSummary(null); setError(''); if (!context.validationError) setTo(value?.format('YYYY-MM-DD') ?? ''); }}
                     slotProps={reportDatePickerSlotProps}
                   />
                 </LocalizationProvider>
-                <button type="button" onClick={generateReport} className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#0067B3] px-5 py-3 text-sm font-black text-white transition hover:bg-[#005F9E] active:translate-y-px">
+                <button type="button" onClick={() => void generateReport()} disabled={pending || fromDateInvalid || toDateInvalid} className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#0067B3] px-5 py-3 text-sm font-black text-white transition hover:bg-[#005F9E] active:translate-y-px disabled:opacity-60">
                   <AssessmentOutlinedIcon fontSize="small" />
-                  Generate
+                  {pending ? 'Generating…' : 'Generate'}
                 </button>
               </div>
+              {fromDateInvalid || toDateInvalid ? <p role="alert" className="mt-2 text-sm font-semibold text-red-700">Enter valid dates with the start on or before the end.</p> : null}
             </div>
           ) : null}
         </div>
       </section>
 
-      {documentsQuery.isError ? (
-        <p role="alert" className="rounded-[18px] border border-[#F5C6C6] bg-[#FFF7F7] p-5 text-sm font-semibold text-[#9B2C2C]">
-          We could not load office report data.
-        </p>
-      ) : null}
+      {pending ? <p role="status" className="text-sm font-semibold text-[#5B6F8A]">Loading report data…</p> : null}
 
       {error ? <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700">{error}</p> : null}
 
@@ -241,16 +258,16 @@ export default function OfficeReportsPage() {
                   <span className="rounded-full bg-[#EAF8F0] px-2.5 py-1 text-xs font-black text-[#166534]">Ready</span>
                 </div>
                 <h2 className="mt-1 text-xl font-black text-[#071B33]">{reportLabel}</h2>
-                <p className="mt-1 text-sm font-semibold text-[#5B6F8A]">{report.rows.length} {report.rows.length === 1 ? 'row' : 'rows'} in this preview <span aria-hidden="true">·</span> {report.from} to {report.to}</p>
+                <p className="mt-1 text-sm font-semibold text-[#5B6F8A]">{report.rows.length} {report.rows.length === 1 ? 'row' : 'rows'} in this report <span aria-hidden="true">·</span> {report.from} to {report.to}{report.reportType === 'office-integrity' ? ' (UTC)' : ' (UTC, inclusive)'}</p>
               </div>
             </div>
-            <button type="button" onClick={() => downloadDemoReport(report)} className="inline-flex items-center gap-2 rounded-xl border border-[#B9D6ED] bg-white px-4 py-2.5 text-sm font-black text-[#0067B3] transition hover:border-[#0067B3] hover:bg-[#F0F7FF] active:translate-y-px">
+            <button type="button" onClick={() => downloadReport(report)} className="inline-flex items-center gap-2 rounded-xl border border-[#B9D6ED] bg-white px-4 py-2.5 text-sm font-black text-[#0067B3] transition hover:border-[#0067B3] hover:bg-[#F0F7FF] active:translate-y-px">
               <DownloadOutlinedIcon fontSize="small" />
               Download CSV
             </button>
           </div>
 
-          <p className="mx-5 mt-5 rounded-xl border border-[#E4EEF9] bg-[#F8FBFF] px-3 py-2.5 text-sm font-bold text-[#5B6F8A] sm:mx-6">Demo report — generated locally from seeded data and not stored.</p>
+          {report.reportType === 'office-integrity' && summary ? <p className="mx-5 mt-5 text-sm font-bold text-[#5B6F8A]">Total: {summary.total} · Authentic: {summary.authentic} · Tampered: {summary.tampered} · Snapshot compromised: {summary.snapshot_compromised} · Not anchored: {summary.not_anchored} · Unavailable: {summary.verification_unavailable}</p> : <div className="mx-5 mt-5 rounded-xl border border-[#E4EEF9] bg-[#F8FBFF] px-3 py-2.5 text-sm font-bold text-[#5B6F8A] sm:mx-6"><p>Scope: documents owned by you. Total documents: {report.rows.length}.</p>{Array.from(lifecycleCounts, ([lifecycle, count]) => <p key={lifecycle}>{lifecycle}: {count}</p>)}</div>}
 
           {report.rows.length ? (
             <div className="mt-5 overflow-x-auto px-5 pb-5 sm:px-6">
@@ -261,7 +278,7 @@ export default function OfficeReportsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {report.rows.slice(0, 5).map((row, index) => (
+                  {(report.reportType === 'office-document-activity' ? report.rows : report.rows.slice(0, 5)).map((row, index) => (
                     <tr key={index} className="transition hover:bg-[#FBFDFF]">
                       {report.columns.map((column) => <td key={column} className="border-b border-[#EEF4F8] p-3 font-semibold text-[#5B6F8A]">{String(row[column] ?? '')}</td>)}
                     </tr>
@@ -269,9 +286,9 @@ export default function OfficeReportsPage() {
                 </tbody>
               </table>
             </div>
-          ) : <p className="px-5 py-5 text-sm font-semibold text-[#5B6F8A] sm:px-6">No seeded rows fall within this date range.</p>}
+          ) : <p className="px-5 py-5 text-sm font-semibold text-[#5B6F8A] sm:px-6">{report.reportType === 'office-document-activity' ? 'No owned documents were created in this date range.' : 'No rows fall within this date range.'}</p>}
         </section>
-      ) : scope === 'document' && !error ? (
+      ) : scope === 'document' && !error && !pending ? (
         <section role="status" className="flex flex-col items-center justify-center gap-4 rounded-2xl border border-dashed border-[#CFE1F2] bg-white px-6 py-10 text-center shadow-sm shadow-[#DDEAF7]/25">
           <span className="flex size-14 items-center justify-center rounded-2xl bg-[#EAF4FF] text-[#0067B3]"><AssessmentOutlinedIcon /></span>
           <div>

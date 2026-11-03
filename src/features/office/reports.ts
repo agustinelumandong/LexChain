@@ -1,2 +1,2 @@
-export { createDemoReport, downloadDemoReport } from "./office-insight";
-export type { DemoReport, DemoReportType } from "./office-insight";
+export { createDemoReport, downloadReport } from "./office-insight";
+export type { Report, ReportType } from "./office-insight";

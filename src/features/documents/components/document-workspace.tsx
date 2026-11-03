@@ -17,20 +17,24 @@ import ManageAccountsOutlinedIcon from '@mui/icons-material/ManageAccountsOutlin
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import CommentOutlinedIcon from '@mui/icons-material/CommentOutlined';
-import FolderOutlinedIcon from '@mui/icons-material/FolderOutlined';
 import { toast } from 'sonner';
+import { portalRequest } from '@/shared/api/client';
 import type { ApiSchema } from '@/shared/types/index';
 import { attachSignedCopy, correctDocumentEntry, LifecycleRequestError, listDocumentHistory, listDraftComments, listSignedCopies, replaceSignedCopy, signedCopyFileUrl, syncDraftComments } from '@/features/documents/document-lifecycle-api';
 import { isGoogleDraftUrl } from '@/features/documents/document-draft-api';
 import { getDocumentLifecycleLabel } from '@/features/documents/document-ui';
-import { shortenIntegrityHash } from '@/features/verification';
+import { shortenIntegrityHash, verifyRepositoryDocument } from '@/features/verification';
+import { getBaseSepoliaTransactionUrl } from '@/features/verification/integrity-ui';
+import { isMockMode } from '@/lib/mocks/mode';
 import { GoogleDraftPanel } from '@/features/documents/components/google-draft-panel';
 import { listDocumentParties, type PortalUiRole } from '@/features/access';
+import { DocumentEcopyRequestHistory } from '@/features/access/components/document-ecopy-request-history';
 import { listRegisterBooks } from '@/features/office/books-api';
 import { PortalDropdown } from '@/features/portal/components';
 import { Checkbox } from '@/shared/components/ui';
 import { getRegisterEntryError, getUploadFileError } from '@/features/documents/portal-upload';
 import { createWatermarkedSignedPdf } from '@/features/documents/watermark-signed-pdf';
+import { DocumentParticipantManagement } from '@/features/documents/components/document-participant-management';
 
 type WorkspaceDocument = ApiSchema<'DocumentResponse'>;
 
@@ -39,8 +43,8 @@ const PdfDocumentViewer = dynamic(() => import('@/features/documents/components/
   loading: () => <p role="status" className="p-4 text-sm text-[#4B6382]">Loading PDF viewer…</p>,
 });
 
-const tabs = ['Overview', 'Files', 'Comments', 'Participants', 'Blockchain', 'Activity'] as const;
-type Tab = typeof tabs[number];
+const tabs = ['Overview', 'Files', 'Comments', 'Participants', 'Blockchain', 'History'] as const;
+export type Tab = typeof tabs[number];
 const overviewSectionHeadingClassName = 'inline-flex items-center gap-2 text-lg font-bold leading-6 text-[#0C2B49]';
 
 function readable(value: unknown): string {
@@ -132,7 +136,7 @@ function FinalizationNextStep({ document, role, outcomeUnknown }: {
   );
 }
 
-function ActivityTimeline({
+function HistoryTimeline({
   changes,
   ariaLabel,
   showActor = false,
@@ -167,6 +171,10 @@ function participantName(party: ApiSchema<'DocumentPartyResponse'>) {
 function participantRole(party: ApiSchema<'DocumentPartyResponse'>) {
   if (party.role === 'owner') return 'Lawyer';
   const role = ({ viewer: 'Viewer', signer: 'Signer', editor: 'Editor' } as Record<string, string>)[party.role];
+  if (party.user_id === null) {
+    if (party.status === 'expired') return [role ?? 'Participant', 'Invitation expired'].filter(Boolean).join(' · ');
+    return [role ?? 'Participant', 'Waiting for sign-up'].filter(Boolean).join(' · ');
+  }
   const access = party.status === 'accepted' ? 'Has access' : party.status === 'pending' ? 'Invitation pending' : null;
   return [role ?? 'Participant', access].filter(Boolean).join(' · ');
 }
@@ -178,6 +186,7 @@ function ParticipantsPanel({
   isError,
   people,
   onRetry,
+  onManage,
 }: {
   documentId: string;
   canManage: boolean;
@@ -185,12 +194,13 @@ function ParticipantsPanel({
   isError: boolean;
   people: ApiSchema<'DocumentPartyResponse'>[];
   onRetry: () => void;
+  onManage?: () => void;
 }) {
   return (
     <section aria-labelledby="participants-heading" className="rounded-xl border border-[#D7E4F2] bg-white p-5 sm:p-6">
       <div className="flex items-center justify-between gap-3">
         <h2 id="participants-heading" className="inline-flex items-center gap-1.5 text-lg font-bold leading-6 text-[#0C2B49]"><GroupsOutlinedIcon aria-hidden="true" sx={{ fontSize: 20, color: '#0067B3' }} />Participants</h2>
-        {canManage && <Link href={`/portal/documents/${documentId}/participants`} className="inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-full border border-[#D7E4F2] px-2.5 py-1 text-sm font-semibold text-[#0C2B49] hover:bg-[#EAF4FF] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3] sm:min-h-9"><ManageAccountsOutlinedIcon aria-hidden="true" sx={{ fontSize: 17 }} />Manage</Link>}
+        {canManage && <Link href={`/portal/documents/${documentId}/participants`} onClick={onManage ? (e) => { e.preventDefault(); onManage(); } : undefined} className="inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-full border border-[#D7E4F2] px-2.5 py-1 text-sm font-semibold text-[#0C2B49] hover:bg-[#EAF4FF] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3] sm:min-h-9"><ManageAccountsOutlinedIcon aria-hidden="true" sx={{ fontSize: 17 }} />Manage</Link>}
       </div>
       {isLoading && <p role="status" className="mt-3 text-base leading-7 text-[#4B6382]">Loading participants…</p>}
       {isError && <div className="mt-3 flex flex-wrap items-center gap-2"><p role="alert" className="text-base leading-7 text-[#B42318]">Unable to load participants.</p><button type="button" onClick={onRetry} className="min-h-11 rounded-full border border-[#D7E4F2] px-4 py-2 text-sm font-bold text-[#0C2B49] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]">Retry participants</button></div>}
@@ -304,7 +314,12 @@ function RiskFlags({ items }: { items?: unknown[] | null }) {
   );
 }
 
-function SignedPdfPreview({ document }: { document: WorkspaceDocument }) {
+function SignedPdfPreview({ document, role }: { document: WorkspaceDocument; role: PortalUiRole }) {
+  const queryClient = useQueryClient();
+  const requestCopy = useMutation({
+    mutationFn: () => portalRequest(`/api/portal/proxy-post?path=${encodeURIComponent(`/documents/${encodeURIComponent(document.document_id)}/ecopy-requests`)}`, { method: 'POST' }),
+    onSuccess: () => { void queryClient.invalidateQueries({ queryKey: ['ecopy-requests'] }); void queryClient.invalidateQueries({ queryKey: ['portal-doc', document.document_id] }); },
+  });
   const [pdfLoading, setPdfLoading] = useState(true);
   const [pdfViewerOpen, setPdfViewerOpen] = useState(false);
   const pdfDialogRef = useRef<HTMLDialogElement>(null);
@@ -348,6 +363,8 @@ function SignedPdfPreview({ document }: { document: WorkspaceDocument }) {
 
   return (
     <section aria-labelledby="signed-pdf-preview-heading" className="flex min-w-0 flex-col rounded-xl border border-[#D7E4F2] bg-white p-4 sm:p-5">
+      {role === 'user' && document.lifecycle === 'FINALIZED' && <div className="mb-4">{document.permissions.can_request_ecopy && <button type="button" disabled={requestCopy.isPending || requestCopy.isSuccess} onClick={() => requestCopy.mutate()} className="rounded-full bg-[#0067B3] px-4 py-2 font-bold text-white disabled:opacity-60">{requestCopy.isPending ? 'Requesting…' : requestCopy.isSuccess ? 'E-copy requested' : 'Request e-copy'}</button>}{requestCopy.isError && <p role="alert">{requestCopy.error instanceof Error ? requestCopy.error.message : 'Could not request the e-copy.'}</p>}<p className="mt-2 text-sm"><Link href="/portal/requests/my">View e-copy requests and approved downloads</Link></p></div>}
+      {document.lifecycle === 'FINALIZED' && <DocumentEcopyRequestHistory documentId={document.document_id} />}
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <h2 id="signed-pdf-preview-heading" className="inline-flex items-center gap-2 text-lg font-bold leading-6 text-[#0C2B49]"><PictureAsPdfOutlinedIcon aria-hidden="true" sx={{ fontSize: 20, color: '#0067B3' }} />Signed PDF</h2>
@@ -463,6 +480,10 @@ type DocumentWorkspaceProps = {
   className?: string;
   document: WorkspaceDocument;
   role?: PortalUiRole;
+  initialTab?: string;
+  activeTab?: Tab;
+  onTabChange?: (tab: Tab) => void;
+  finalizationResult?: ApiSchema<'RecordResponse'>;
   readinessError?: Error | null;
   isChangingReadiness?: boolean;
   finalizationOutcomeUnknown?: boolean;
@@ -475,6 +496,10 @@ export function DocumentWorkspace({
   className,
   document,
   role = 'user',
+  initialTab,
+  activeTab: activeTabProp,
+  onTabChange,
+  finalizationResult,
   readinessError,
   isChangingReadiness = false,
   finalizationOutcomeUnknown = false,
@@ -482,8 +507,12 @@ export function DocumentWorkspace({
   onReopen,
   onDocumentUpdated = () => undefined,
 }: DocumentWorkspaceProps) {
-  const [activeTab, setActiveTab] = useState<Tab>('Overview');
+  const requestedTab = tabs.find((tab) => tab.toLowerCase() === initialTab?.toLowerCase());
   const isDrafting = document.lifecycle === 'PREPARING' || document.lifecycle === 'READY_FOR_SIGNATURE';
+  const canManageParticipants = role === 'lawyer' && (document.permissions.can_share || document.permissions.can_revoke);
+  const visibleTabs = isDrafting ? [] : tabs.filter((tab) => (tab !== 'Comments' || Boolean(document.draft_url)) && (tab !== 'Participants' || canManageParticipants));
+  const [internalActiveTab, setInternalActiveTab] = useState<Tab>(requestedTab && visibleTabs.includes(requestedTab) ? requestedTab : 'Overview');
+  const activeTab = activeTabProp ?? internalActiveTab;
   const hasGoogleDraft = isGoogleDraftUrl(document.draft_url ?? '');
   const [signedCopyMode, setSignedCopyMode] = useState<'attach' | 'replace' | null>(null);
   const signedCopyFileInput = useRef<HTMLInputElement>(null);
@@ -549,18 +578,26 @@ export function DocumentWorkspace({
       ]);
     },
   });
+  const chainQuery = useQuery({
+    queryKey: ['portal-doc-chain', document.document_id],
+    queryFn: () => verifyRepositoryDocument(document.document_id),
+    enabled: activeTab === 'Blockchain' && Boolean(document.on_chain) && !isMockMode(),
+    retry: false,
+  });
+  const txHash = chainQuery.data?.tx_hash || finalizationResult?.tx_hash;
+  const transactionUrl = txHash ? getBaseSepoliaTransactionUrl(txHash) : null;
   const signedCopiesQuery = useQuery({ queryKey: ['portal-doc-signed-copies', document.document_id], queryFn: () => listSignedCopies(document.document_id), enabled: !isDrafting && activeTab === 'Files', refetchInterval: 15_000 });
   const partiesQuery = useQuery({
     queryKey: ['portal-document-parties', document.document_id],
     queryFn: () => listDocumentParties(document.document_id),
-    enabled: isDrafting || activeTab === 'Overview',
+    enabled: isDrafting || activeTab === 'Overview' || activeTab === 'Participants',
     retry: false,
     refetchInterval: 15_000,
   });
   const historyQuery = useQuery({
     queryKey: ['portal-document-history', document.document_id],
     queryFn: () => listDocumentHistory(document.document_id),
-    enabled: !isDrafting && (activeTab === 'Activity' || activeTab === 'Overview'),
+    enabled: !isDrafting && (activeTab === 'History' || activeTab === 'Overview'),
     retry: false,
     refetchInterval: 15_000,
   });
@@ -581,8 +618,13 @@ export function DocumentWorkspace({
       value: book.id,
     })),
   ];
-  const canManageParticipants = role === 'lawyer' && (document.permissions.can_share || document.permissions.can_revoke);
-  const visibleTabs = isDrafting ? [] : tabs.filter((tab) => (tab !== 'Comments' || Boolean(document.draft_url)) && (tab !== 'Participants' || canManageParticipants));
+  function selectTab(tab: Tab) {
+    if (activeTabProp === undefined) {
+      setInternalActiveTab(tab);
+    }
+    onTabChange?.(tab);
+  }
+
   useEffect(() => {
     if (signedCopyMode === 'attach') signedCopyFileInput.current?.focus({ preventScroll: true });
   }, [signedCopyMode]);
@@ -619,6 +661,7 @@ export function DocumentWorkspace({
     isError={partiesQuery.isError}
     people={people}
     onRetry={() => { void partiesQuery.refetch(); }}
+    onManage={!isDrafting && visibleTabs.includes('Participants') ? () => selectTab('Participants') : undefined}
   />;
 
   function openEntryCorrection() {
@@ -653,7 +696,7 @@ export function DocumentWorkspace({
   }
 
   function openSignedCopyForm() {
-    setActiveTab(isDrafting ? 'Overview' : 'Files');
+    selectTab(isDrafting ? 'Overview' : 'Files');
     setSignedCopyMode('attach');
     setSignedCopyError(null);
     signedCopyMutation.reset();
@@ -822,7 +865,7 @@ export function DocumentWorkspace({
                 ? hasGoogleDraft ? 'Open the Google Doc to review and edit the agreed text.' : document.draft_url ? 'The linked Google Doc needs attention before this draft can be reviewed.' : 'Create or link a Google Doc to start drafting. Comments and participants will stay with this record.'
                 : 'Open the approved Google Doc to print the version for signing.'}</p>
               {document.draft_url || (document.lifecycle === 'PREPARING' && document.permissions.can_create_draft)
-                ? <GoogleDraftPanel document={document} onDocumentUpdated={onDocumentUpdated} />
+                ? <GoogleDraftPanel key={document.document_id} document={document} onDocumentUpdated={onDocumentUpdated} />
                 : <p role="note" className="rounded-xl border border-[#D7E4F2] bg-white p-5 text-base leading-7 text-[#344054]">{document.lifecycle === 'PREPARING' ? role === 'lawyer' ? 'A working draft is not linked yet. Ask the document owner to create or link the Google Doc.' : 'Your lawyer is preparing the working draft. It will appear here when available.' : 'No Google Doc is linked to this record. Continue with the external signing instructions below.'}</p>}
             </section>
 
@@ -841,7 +884,7 @@ export function DocumentWorkspace({
             role="tab"
             type="button"
             aria-selected={activeTab === tab}
-            onClick={() => setActiveTab(tab)}
+            onClick={() => selectTab(tab)}
             className={`flex min-h-11 shrink-0 items-center gap-1.5 rounded-t-md border-b-2 px-4 py-3 text-sm font-semibold focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[#0067B3] ${activeTab === tab ? 'border-[#0067B3] text-[#0C2B49]' : 'border-transparent text-[#4B6382] hover:text-[#0C2B49]'}`}
           >
             {tab === 'Blockchain' && <AccountTreeIcon aria-hidden="true" sx={{ fontSize: 18, color: '#0067B3' }} />}
@@ -855,7 +898,7 @@ export function DocumentWorkspace({
           <div className="min-w-0">
             <div className="space-y-4">
               {document.lifecycle === 'SIGNED' && <FinalizationNextStep document={document} role={role} outcomeUnknown={finalizationOutcomeUnknown} />}
-              {document.draft_url && <GoogleDraftPanel document={document} onDocumentUpdated={onDocumentUpdated} />}
+              {document.draft_url && <GoogleDraftPanel key={document.document_id} document={document} onDocumentUpdated={onDocumentUpdated} />}
               <section aria-labelledby="document-summary-heading" className="rounded-xl border border-[#D7E4F2] bg-white p-4 sm:p-5">
                 <h2 id="document-summary-heading" className="inline-flex items-center gap-2 text-lg font-bold leading-6 text-[#0C2B49]"><DescriptionOutlinedIcon aria-hidden="true" sx={{ fontSize: 20, color: '#0067B3' }} />Document summary</h2>
                 <p className="mt-2 break-words text-base leading-7 text-[#344054]">{document.summary || 'No summary is available for this document yet.'}</p>
@@ -906,15 +949,15 @@ export function DocumentWorkspace({
                     </div>
                 </details>}
 
-                <section aria-labelledby="recent-activity-heading" className="space-y-3 rounded-xl border border-[#D7E4F2] bg-white p-4 sm:p-5">
+                <section aria-labelledby="recent-history-heading" className="space-y-3 rounded-xl border border-[#D7E4F2] bg-white p-4 sm:p-5">
                   <div className="flex min-h-11 items-center justify-between gap-3">
-                    <h2 id="recent-activity-heading" className={overviewSectionHeadingClassName}><HistoryOutlinedIcon aria-hidden="true" sx={{ fontSize: 20, color: '#0067B3' }} />Recent activity</h2>
-                    <button type="button" onClick={() => setActiveTab('Activity')} className="inline-flex min-h-11 items-center gap-1 text-sm font-semibold text-[#0067B3] hover:underline sm:min-h-9">View all<ArrowForwardIcon aria-hidden="true" sx={{ fontSize: 16 }} /></button>
+                    <h2 id="recent-history-heading" className={overviewSectionHeadingClassName}><HistoryOutlinedIcon aria-hidden="true" sx={{ fontSize: 20, color: '#0067B3' }} />Recent history</h2>
+                    <button type="button" aria-label="View document history" onClick={() => selectTab('History')} className="inline-flex min-h-11 items-center gap-1 text-sm font-semibold text-[#0067B3] hover:underline sm:min-h-9">View all<ArrowForwardIcon aria-hidden="true" sx={{ fontSize: 16 }} /></button>
                   </div>
-                  {historyQuery.isLoading && <p role="status" className="text-base leading-7 text-[#4B6382]">Loading activity…</p>}
-                  {historyQuery.isError && <p role="alert" className="text-base font-semibold leading-7 text-[#B42318]">Unable to load recent activity.</p>}
-                  {historyQuery.data && historyChanges.length === 0 && <p className="text-base leading-7 text-[#4B6382]">No activity has been recorded for this document yet.</p>}
-                  {historyChanges.length > 0 && <ActivityTimeline changes={historyChanges.slice(-2).reverse()} ariaLabel="Recent document activity" />}
+                  {historyQuery.isLoading && <p role="status" className="text-base leading-7 text-[#4B6382]">Loading history…</p>}
+                  {historyQuery.isError && <p role="alert" className="text-base font-semibold leading-7 text-[#B42318]">Unable to load recent history.</p>}
+                  {historyQuery.data && historyChanges.length === 0 && <p className="text-base leading-7 text-[#4B6382]">No history has been recorded for this document yet.</p>}
+                  {historyChanges.length > 0 && <HistoryTimeline changes={historyChanges.slice(-2).reverse()} ariaLabel="Recent document history" />}
                 </section>
               </div>
             </div>
@@ -922,10 +965,20 @@ export function DocumentWorkspace({
         )}
 
         {activeTab === 'Participants' && (
-          <div className="w-full space-y-3">
-            <h2 className="inline-flex items-center gap-2 text-lg font-extrabold text-[#0C2B49]"><GroupsOutlinedIcon aria-hidden="true" sx={{ fontSize: 20, color: '#0067B3' }} />Manage participants</h2>
-            <p className="text-sm text-[#4B6382]">Invite people to this document or update their access.</p>
-            <Link href={`/portal/documents/${document.document_id}/participants`} className="inline-flex min-h-11 items-center rounded-full bg-[#0067B3] px-4 py-2.5 text-sm font-extrabold text-white hover:bg-[#0067B3] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]">Open participant management</Link>
+          <div className="flex w-full min-w-0 flex-col gap-4 overflow-x-hidden">
+            <div className="rounded-xl border border-[#D7E4F2] bg-white p-4 sm:p-5">
+              <h2 className="inline-flex items-center gap-2 text-lg font-extrabold text-[#0C2B49]"><GroupsOutlinedIcon aria-hidden="true" sx={{ fontSize: 20, color: '#0067B3' }} />Manage participants</h2>
+              <p className="mt-1 text-sm text-[#4B6382]">Invite people to this document or update their access. Access is limited to this document.</p>
+            </div>
+            <DocumentParticipantManagement
+              documentId={document.document_id}
+              canShare={document.permissions?.can_share === true}
+              canRevoke={document.permissions?.can_revoke === true}
+              documentError={false}
+              onPartiesChanged={() => {
+                void queryClient.invalidateQueries({ queryKey: ['portal-document-parties', document.document_id] });
+              }}
+            />
           </div>
         )}
 
@@ -935,16 +988,17 @@ export function DocumentWorkspace({
 
         {activeTab === 'Files' && (
           <div className="space-y-4">
-            <h2 className="inline-flex items-center gap-2 text-lg font-extrabold text-[#0C2B49]"><FolderOutlinedIcon aria-hidden="true" sx={{ fontSize: 20, color: '#0067B3' }} />Document files</h2>
-            <div className="flex flex-wrap gap-2">
-              {document.permissions?.can_attach_signed_copy && <button type="button" onClick={openSignedCopyForm} className="rounded-full bg-[#0067B3] px-4 py-2.5 text-sm font-extrabold text-white">Attach signed PDF</button>}
-              {document.permissions?.can_replace_signed_copy && <button type="button" onClick={() => { setSignedCopyMode('replace'); setSignedCopyError(null); signedCopyMutation.reset(); }} className="rounded-full border border-[#0067B3] px-4 py-2.5 text-sm font-extrabold text-[#0067B3]">Replace signed PDF</button>}
-            </div>
-            {signedCopyForm}
-            <SignedPdfPreview key={`${document.document_id}:${document.signed_copy?.id ?? 'missing'}`} document={document} />
+            {(document.permissions?.can_attach_signed_copy || document.permissions?.can_replace_signed_copy || signedCopyForm) && <div className="rounded-xl border border-[#D7E4F2] bg-white p-4 sm:p-5">
+              <div className="flex flex-wrap gap-2">
+                {document.permissions?.can_attach_signed_copy && <button type="button" onClick={openSignedCopyForm} className="rounded-full bg-[#0067B3] px-4 py-2.5 text-sm font-extrabold text-white">Attach signed PDF</button>}
+                {document.permissions?.can_replace_signed_copy && <button type="button" onClick={() => { setSignedCopyMode('replace'); setSignedCopyError(null); signedCopyMutation.reset(); }} className="rounded-full border border-[#0067B3] px-4 py-2.5 text-sm font-extrabold text-[#0067B3]">Replace signed PDF</button>}
+              </div>
+              {signedCopyForm}
+            </div>}
+            <SignedPdfPreview key={`${document.document_id}:${document.signed_copy?.id ?? 'missing'}`} document={document} role={role} />
             {signedCopiesQuery.isLoading && <p role="status" className="text-sm text-[#4B6382]">Loading earlier signed PDFs…</p>}
             {signedCopiesQuery.isError && <p role="alert" className="text-sm font-bold text-[#B42318]">Unable to load earlier signed PDFs.</p>}
-            {earlierSignedCopies.length > 0 && <details className="rounded-xl border border-[#E8F0F8] p-4">
+            {earlierSignedCopies.length > 0 && <details className="rounded-xl border border-[#D7E4F2] bg-white p-4 sm:p-5">
               <summary className="cursor-pointer text-sm font-bold text-[#0C2B49]">Earlier signed PDFs ({earlierSignedCopies.length})</summary>
               <div className="mt-4 space-y-3">
                 {earlierSignedCopies.map((copy) => <article key={copy.id} className="space-y-2 rounded-xl bg-[#F8FBFF] p-4">
@@ -973,29 +1027,35 @@ export function DocumentWorkspace({
 
 
         {activeTab === 'Blockchain' && (
-          <div className="space-y-5">
+          <div className="space-y-5 rounded-xl border border-[#D7E4F2] bg-white p-4 sm:p-5">
             <div className="flex items-start gap-3">
-              <AccountTreeIcon aria-hidden="true" sx={{ fontSize: 24, color: '#0067B3', mt: '2px' }} />
               <div>
                 <h2 className="inline-flex items-center gap-2 text-lg font-extrabold text-[#0C2B49]"><AccountTreeIcon aria-hidden="true" sx={{ fontSize: 20, color: '#0067B3' }} />Blockchain record</h2>
                 <p className="mt-1 text-sm leading-6 text-[#4B6382]">When this document is finalized, its digital fingerprint is saved to the blockchain. Comparing fingerprints can show whether the saved PDF has changed.</p>
               </div>
             </div>
+            {finalizationResult && isMockMode() && (
+              <p role="note" className="rounded-xl border border-[#F1D29A] bg-[#FFF8E8] px-4 py-3 text-sm font-bold text-[#785000]">Synthetic demo record. No real PDF digest or blockchain transaction was produced.</p>
+            )}
             <dl className="grid gap-3 text-sm sm:grid-cols-2">
               <div><dt className="font-bold text-[#4B6382]">Record status</dt><dd className="mt-1 text-[#0C2B49]">{anchorLabel(document.lifecycle, document.on_chain)}</dd></div>
-              {document.document_hash && <div><dt className="font-bold text-[#4B6382]">Document fingerprint (hash)</dt><dd className="mt-1 text-[#0C2B49]"><CopyableIdentifier value={document.document_hash} label="document hash" /></dd></div>}
+              {(finalizationResult?.data_hash || document.document_hash) && <div><dt className="font-bold text-[#4B6382]">Document fingerprint (hash)</dt><dd className="mt-1 text-[#0C2B49]"><CopyableIdentifier value={finalizationResult?.data_hash || document.document_hash || ''} label="document hash" /></dd></div>}
+              {document.document_id && <div><dt className="font-bold text-[#4B6382]">Document ID</dt><dd className="mt-1 text-[#0C2B49]"><CopyableIdentifier value={document.document_id} label="document ID" /></dd></div>}
+              {finalizationResult?.onchain_document_id && <div><dt className="font-bold text-[#4B6382]">Blockchain record ID</dt><dd className="mt-1 text-[#0C2B49]"><CopyableIdentifier value={finalizationResult.onchain_document_id} label="blockchain record ID" /></dd></div>}
+              {(chainQuery.data?.tx_hash || finalizationResult?.tx_hash) && <div><dt className="font-bold text-[#4B6382]">Transaction ID</dt><dd className="mt-1 text-[#0C2B49]"><CopyableIdentifier value={chainQuery.data?.tx_hash || finalizationResult?.tx_hash || ''} label="transaction ID" /></dd></div>}
               {document.on_chain && <div><dt className="font-bold text-[#4B6382]">Recorded</dt><dd className="mt-1 text-[#0C2B49]">{formatDate(document.finalized_at)}</dd></div>}
             </dl>
+            {document.on_chain && (isMockMode() ? <p className="text-sm text-[#4B6382]">Transaction details are unavailable in mock mode.</p> : chainQuery.isLoading ? <p role="status" className="text-sm text-[#4B6382]">Loading transaction details…</p> : transactionUrl ? <a href={transactionUrl} target="_blank" rel="noreferrer" className="inline-flex min-h-11 items-center rounded-full border border-[#0067B3] px-4 py-2.5 text-sm font-bold text-[#0067B3] hover:bg-[#EAF4FF] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]">View transaction on Base Sepolia <span className="sr-only">(opens in a new tab)</span></a> : <p className="text-sm text-[#4B6382]">Transaction link unavailable.</p>)}
           </div>
         )}
 
-        {activeTab === 'Activity' && (
-          <section aria-labelledby="document-activity-heading" className="space-y-4 rounded-xl border border-[#D7E4F2] bg-white p-4 sm:p-5">
-            <div><h2 id="document-activity-heading" className={overviewSectionHeadingClassName}><HistoryOutlinedIcon aria-hidden="true" sx={{ fontSize: 20, color: '#0067B3' }} />Document activity</h2><p className="mt-1 text-sm leading-5 text-[#4B6382]">Important changes to this document, from oldest to newest.</p></div>
-            {historyQuery.isLoading && <p role="status" className="text-base leading-7 text-[#4B6382]">Loading activity…</p>}
-            {historyQuery.isError && <p role="alert" className="text-base font-semibold leading-7 text-[#B42318]">Unable to load document activity.</p>}
-            {historyQuery.data && historyChanges.length === 0 && <p className="text-base leading-7 text-[#4B6382]">No activity has been recorded for this document yet.</p>}
-            {historyChanges.length > 0 && <ActivityTimeline changes={historyChanges} ariaLabel="Document activity" showActor />}
+        {activeTab === 'History' && (
+          <section aria-labelledby="document-history-heading" className="space-y-4 rounded-xl border border-[#D7E4F2] bg-white p-4 sm:p-5">
+            <div><h2 id="document-history-heading" className={overviewSectionHeadingClassName}><HistoryOutlinedIcon aria-hidden="true" sx={{ fontSize: 20, color: '#0067B3' }} />Document history</h2><p className="mt-1 text-sm leading-5 text-[#4B6382]">Lifecycle changes to this document, from oldest to newest.</p></div>
+            {historyQuery.isLoading && <p role="status" className="text-base leading-7 text-[#4B6382]">Loading history…</p>}
+            {historyQuery.isError && <p role="alert" className="text-base font-semibold leading-7 text-[#B42318]">Unable to load document history.</p>}
+            {historyQuery.data && historyChanges.length === 0 && <p className="text-base leading-7 text-[#4B6382]">No history has been recorded for this document yet.</p>}
+            {historyChanges.length > 0 && <HistoryTimeline changes={historyChanges} ariaLabel="Document history" showActor />}
           </section>
         )}
 

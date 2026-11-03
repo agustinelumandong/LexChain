@@ -4,8 +4,8 @@ import {
   getOfficeDateRanges,
   getOfficeInsightMetrics,
   toCsv,
-  type DemoReport,
-  type DemoReportType,
+  type Report,
+  type ReportType,
   type PortalReportDocument,
 } from '@/features/office/office-insight';
 
@@ -40,9 +40,8 @@ describe('office insights', () => {
   it.each([
     ['office-document-activity', ['Document', 'Owner', 'Category', 'Status', 'Created']],
     ['office-integrity', ['Document', 'Integrity status', 'Verifier', 'Blockchain hash', 'Verified']],
-    ['system-users', ['Name', 'Email', 'Role', 'Status', 'Created']],
     ['system-audit', ['Actor', 'Action', 'Target', 'Severity', 'Created']],
-  ] satisfies Array<[DemoReportType, string[]]>)('uses fixed columns for %s', (reportType, columns) => {
+  ] satisfies Array<[ReportType, string[]]>)('uses fixed columns for %s', (reportType, columns) => {
     expect(createDemoReport(reportType, '2026-03-01', '2026-05-31').columns).toEqual(columns);
   });
 
@@ -96,18 +95,11 @@ describe('office insights', () => {
     expect(activity.rows.some((row) => row.Document === 'Deed of Sale - Lot 18.pdf')).toBe(false);
   });
 
-  it('builds system reports only from seeded user and audit rows', () => {
-    const users = createDemoReport('system-users', '2026-03-01', '2026-05-31');
+  it('keeps System Audit on seeded demo data and requires the live user report helper', () => {
     const audit = createDemoReport('system-audit', '2026-05-01', '2026-05-31');
 
-    expect(users.rows).toHaveLength(4);
-    expect(users.rows[0]).toEqual({
-      Name: 'Atty. Maria Santos',
-      Email: 'maria.santos@davaolaw.ph',
-      Role: 'lawyer',
-      Status: 'active',
-      Created: '2026-04-12',
-    });
+    expect(() => createDemoReport('system-users', '2026-03-01', '2026-05-31'))
+      .toThrow('System Users reports require live backend data.');
     expect(audit.rows).toHaveLength(4);
     expect(audit.rows[0]).toEqual({
       Actor: 'owner@lexchain.local',
@@ -116,13 +108,17 @@ describe('office insights', () => {
       Severity: 'info',
       Created: '2026-05-13',
     });
-    expect(users.rows.every((row) => !('Document' in row))).toBe(true);
     expect(audit.rows.every((row) => !('Email' in row))).toBe(true);
   });
 
   it('rejects a date range whose start is after its end', () => {
     expect(() => createDemoReport('system-audit', '2026-05-31', '2026-05-01'))
       .toThrow('Start date must be on or before end date.');
+  });
+
+  it('rejects invalid calendar dates', () => {
+    expect(() => createDemoReport('system-audit', '2026-02-30', '2026-03-01'))
+      .toThrow('Select valid dates.');
   });
 
   it.each([
@@ -134,7 +130,7 @@ describe('office insights', () => {
   });
 
   it('escapes quotes, commas, and newlines in CSV values', () => {
-    const report: DemoReport = {
+    const report: Report = {
       reportType: 'system-audit',
       from: '2026-05-01',
       to: '2026-05-31',
@@ -145,9 +141,14 @@ describe('office insights', () => {
     expect(toCsv(report)).toBe('Actor,Action\r\n"A ""quoted"", actor","First line\nSecond line"');
   });
 
+  it('prevents spreadsheet formulas in CSV values', () => {
+    const report: Report = { reportType: 'office-integrity', from: '2026-01-01', to: '2026-01-01', columns: ['Document'], rows: [{ Document: '=1+1' }] };
+    expect(toCsv(report)).toBe("Document\r\n'=1+1");
+  });
+
   it.each(['scheduled', 'archived', 'queued', 'custom'])('does not support a %s report type', (reportType) => {
     expect(() => createDemoReport(
-      reportType as DemoReportType,
+      reportType as ReportType,
       '2026-05-01',
       '2026-05-31',
     )).toThrow('Unknown report type.');

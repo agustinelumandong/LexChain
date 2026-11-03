@@ -2,7 +2,6 @@ import type { ComponentType } from "react";
 import HomeIcon from "@mui/icons-material/Home";
 import DescriptionIcon from "@mui/icons-material/Description";
 import MenuBookIcon from "@mui/icons-material/MenuBook";
-import CategoryOutlinedIcon from "@mui/icons-material/CategoryOutlined";
 import PersonIcon from "@mui/icons-material/Person";
 import EmailOutlinedIcon from "@mui/icons-material/EmailOutlined";
 import FileUploadIcon from "@mui/icons-material/FileUpload";
@@ -17,7 +16,6 @@ type PortalNavigationIcon = ComponentType<{ fontSize?: "small" }>;
 const iconsByLabel: Record<string, PortalNavigationIcon> = {
   Dashboard: HomeIcon,
   Documents: DescriptionIcon,
-  Categories: CategoryOutlinedIcon,
   Reports: AssessmentOutlinedIcon,
   Books: MenuBookIcon,
   "Shared Documents": DescriptionIcon,
@@ -32,6 +30,7 @@ const iconsByLabel: Record<string, PortalNavigationIcon> = {
 };
 
 export function isPortalRouteActive(pathname: string, item: PortalNavigationItem): boolean {
+  if (item.href === '/portal/requests' && pathname.startsWith('/portal/requests/my')) return false;
   return pathname === item.href || pathname.startsWith(`${item.href}/`);
 }
 

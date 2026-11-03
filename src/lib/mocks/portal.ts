@@ -46,7 +46,6 @@ type MockDocument = {
   risk_flags: Array<Record<string, string>>;
   created_at: string;
   updated_at: string;
-  audit_log: Array<Record<string, unknown>>;
 } & DemoDocumentLifecycle & {
   integrity_state: DemoIntegrityState;
 };
@@ -101,17 +100,6 @@ function canRestoreMockDocument(document: MockDocument) {
   return document.integrity_state === 'mismatch' && document.snapshots.length > 0;
 }
 
-function mockCreationAudit(documentId: string, createdAt: string) {
-  return {
-    id: `mock-audit-${documentId}`,
-    document_id: documentId,
-    user_id: mockIssuerId,
-    action: 'document_created',
-    details: { source: 'mock portal' },
-    created_at: createdAt,
-  };
-}
-
 const issuerProfile = {
   email: 'issuer@example.com',
   f_name: 'Document',
@@ -150,7 +138,6 @@ let documents: MockDocument[] = [
     risk_flags: [],
     created_at: '2026-07-10T09:00:00.000Z',
     updated_at: '2026-07-10T09:05:00.000Z',
-    audit_log: [mockCreationAudit('mock-document-1', '2026-07-10T09:00:00.000Z')],
     lifecycle: 'finalized',
     document_hash: 'a'.repeat(64),
     finalized_at: '2026-07-10T09:05:00.000Z',
@@ -183,7 +170,6 @@ let documents: MockDocument[] = [
     risk_flags: [{ note: 'Awaiting document processing.' }],
     created_at: '2026-07-13T13:30:00.000Z',
     updated_at: '2026-07-13T13:30:00.000Z',
-    audit_log: [mockCreationAudit('mock-document-2', '2026-07-13T13:30:00.000Z')],
     lifecycle: 'signed',
     signed_copy: {
       id: 'mock-signed-copy-2',
@@ -219,7 +205,6 @@ let documents: MockDocument[] = [
     risk_flags: [{ note: 'Integrity mismatch detected.' }],
     created_at: '2026-07-15T10:00:00.000Z',
     updated_at: '2026-07-15T10:05:00.000Z',
-    audit_log: [mockCreationAudit('mock-document-3', '2026-07-15T10:00:00.000Z')],
     lifecycle: 'finalized',
     document_hash: 'b'.repeat(64),
     finalized_at: '2026-07-15T10:05:00.000Z',
@@ -249,7 +234,6 @@ let documents: MockDocument[] = [
     risk_flags: [],
     created_at: '2026-07-18T09:00:00.000Z',
     updated_at: '2026-07-18T09:00:00.000Z',
-    audit_log: [mockCreationAudit('mock-document-4', '2026-07-18T09:00:00.000Z')],
     lifecycle: 'draft',
     document_hash: null,
     finalized_at: null,
@@ -274,7 +258,6 @@ let documents: MockDocument[] = [
     risk_flags: [{ note: 'Fictional test fixture; no legal or ownership claims.' }],
     created_at: '2026-07-20T11:55:00.000Z',
     updated_at: '2026-07-20T12:00:00.000Z',
-    audit_log: [mockCreationAudit('mock-document-5', '2026-07-20T11:55:00.000Z')],
     lifecycle: 'finalized',
     document_hash: 'c'.repeat(64),
     finalized_at: '2026-07-20T12:00:00.000Z',
@@ -305,7 +288,6 @@ documents.push({
   labels: ['processing', 'retry'],
   created_at: '2026-07-21T10:00:00.000Z',
   updated_at: '2026-07-21T10:05:00.000Z',
-  audit_log: [mockCreationAudit('mock-document-retry', '2026-07-21T10:00:00.000Z')],
   document_hash: 'd'.repeat(64),
   finalized_at: '2026-07-21T10:05:00.000Z',
   finalized_by: mockIssuerId,
@@ -525,13 +507,15 @@ function documentPermissions(document: MockDocument, token?: string) {
     can_cancel: false,
     can_finalize: issuer && canFinalizeMockDocument(document),
     can_retry_processing: Boolean(issuer && canMutateDocumentLifecycle(document) && document.status?.trim().toUpperCase() === 'FAILED'),
-    can_share: false,
+    can_share: issuer && canMutateDocumentLifecycle(document),
     can_revoke: false,
+    can_request_ecopy: false,
+    can_review_ecopy: false,
   };
 }
 
 function documentPaths(path: string) {
-  return path.match(/^\/documents\/([^/]+)(?:\/(parties|versions|audit-logs|verify))?\/?$/);
+  return path.match(/^\/documents\/([^/]+)(?:\/(parties|versions|verify))?\/?$/);
 }
 
 function mockPdfFileName(fileName: string) {
@@ -600,7 +584,13 @@ export function mockPortalGet(path: string, token?: string): Response {
   if (requestPathname === '/documents' || requestPathname === '/documents/') {
     const allDocuments = [...documents, ...Array.from(scannedDeedDemoRecords.values(), ({ document }) => document)
       .filter((document) => !documents.some((candidate) => candidate.id === document.id))];
-    return json(isMockParticipant(token) ? allDocuments.filter((document) => sharedDocumentIds.has(document.id)) : allDocuments);
+    const params = new URL(path, 'https://mock.lexchain.local').searchParams;
+    const limit = Number(params.get('limit') ?? 50);
+    const offset = Number(params.get('offset') ?? 0);
+    if (!Number.isInteger(limit) || limit < 1 || limit > 100 || !Number.isInteger(offset) || offset < 0) return error('Invalid pagination parameters', 422);
+    const participant = isMockParticipant(token);
+    const visible = participant ? allDocuments.filter((document) => sharedDocumentIds.has(document.id)) : allDocuments;
+    return json(visible.slice(offset, offset + limit).map((document) => ({ ...document, is_owner: !participant })));
   }
   if (requestPathname === '/books' || requestPathname === '/books/') {
     if (!hasMockIssuerAccess(token)) return error('Lawyer access required', 403);
@@ -782,7 +772,7 @@ export function mockPortalGet(path: string, token?: string): Response {
         message: isAuthentic ? 'Document matches the anchored hash.' : 'Document content differs from the anchored hash.',
       });
     }
-    return json(document.audit_log);
+    return error('Mock endpoint not found', 404);
   }
 
   return error('Mock endpoint not found', 404);
@@ -834,7 +824,6 @@ async function uploadDocument(request: Request, path: string, token?: string) {
     risk_flags: [],
     created_at: now,
     updated_at: now,
-    audit_log: [mockCreationAudit(id, now)],
     lifecycle: 'draft',
     document_hash: null,
     finalized_at: null,
@@ -1124,11 +1113,31 @@ export async function mockPortalMutate(method: 'POST' | 'PUT' | 'PATCH' | 'DELET
     if (!isMockDocumentIssuerToken(token)) return error('Lawyer access required', 403);
     const document = documentFor(documentRestoreMatch[1]);
     if (!document) return error('Document not found', 404);
+    if (!canMutateDocumentLifecycle(document)) return error('Only the document owner may restore it', 403);
+    if (!document.on_chain || !['finalized', 'restored'].includes(document.lifecycle)) return error('Only finalized on-chain documents can be restored', 409);
+
+    const restored = canRestoreMockDocument(document);
+    if (!restored && document.integrity_state !== 'match') return error('The saved reference cannot be trusted', 409);
+    const restoredDocument = restored
+      ? {
+          ...document,
+          integrity_state: 'match' as const,
+          storage_url: document.id === 'mock-document-5'
+            ? `/mock-documents/${MOCK_SCANNED_DEED_FILE_NAME}`
+            : document.storage_url,
+          updated_at: new Date().toISOString(),
+        }
+      : document;
+    if (restored) updateDocument(restoredDocument);
+    const verification = await mockPortalGet(`/documents/${document.id}/verify`, token).json();
     return json({
       document_id: document.id,
-      restored_from: 'mock-archive',
-      evidence_key: null,
-      verified_hash: document.document_hash ?? `0x${deterministicHash(document.id)}`,
+      restored,
+      previous_hash: restored ? '0xtamperedhash' : null,
+      restored_hash: document.document_hash ?? deterministicHash(document.id),
+      restored_copy_id: restored ? `mock-restored-copy-${document.id}` : document.signed_copy?.id ?? document.id,
+      preserved_copy_id: null,
+      verification,
     });
   }
   const invitationActionMatch = requestPathname.match(/^\/documents\/invitations\/([^/]+)\/(accept|decline)$/);
@@ -1141,6 +1150,20 @@ export async function mockPortalMutate(method: 'POST' | 'PUT' | 'PATCH' | 'DELET
     if (action === 'accept') sharedDocumentIds.add(invitation.document_id);
     return json({ message: `Invitation ${action}ed` });
   }
+  const resendMatch = requestPathname.match(/^\/documents\/([^/]+)\/parties\/([^/]+)\/resend\/?$/);
+  if (method === 'POST' && resendMatch) {
+    if (!hasMockIssuerAccess(token)) return error('Lawyer access required', 403);
+    const [, documentId, partyId] = resendMatch;
+    const document = documentFor(documentId);
+    if (!document) return error('Document not found', 404);
+    const party = documentParties.find((item) => item.document_id === documentId && item.id === partyId);
+    if (!party || party.user_id !== null) {
+      return error('Not an email invitation on this document, or not yours', 404);
+    }
+    party.status = 'pending';
+    party.expires_at = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+    return json(party, 200);
+  }
   const partiesMatch = requestPathname.match(/^\/documents\/([^/]+)\/parties\/?$/);
   if (method === 'POST' && partiesMatch) {
     if (!hasMockIssuerAccess(token)) return error('Lawyer access required', 403);
@@ -1152,20 +1175,32 @@ export async function mockPortalMutate(method: 'POST' | 'PUT' | 'PATCH' | 'DELET
     if (!/^\S+@\S+\.\S+$/.test(email) || !['viewer', 'signer', 'editor'].includes(role)) {
       return error('A valid participant email and permission are required', 400);
     }
-    if (documentParties.some((party) => party.document_id === document.id && party.email.toLowerCase() === email.toLowerCase())) {
-      return error('Participant already has access to this document', 409);
+    const existing = documentParties.find((p) => p.document_id === document.id && p.email.toLowerCase() === email.toLowerCase());
+    if (existing) {
+      if (existing.user_id === null && (existing.status === 'expired' || (existing.expires_at && new Date(existing.expires_at).getTime() < Date.now()))) {
+        existing.status = 'pending';
+        existing.role = role;
+        existing.expires_at = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+        return json(existing, 201);
+      }
+      return error('That address already has a pending, unexpired invitation on this document', 409);
+    }
+    const isExistingUser = email.toLowerCase() === participantProfile.email.toLowerCase() || email.toLowerCase().includes('user') || email.toLowerCase().includes('person');
+    if (!isExistingUser && role !== 'viewer') {
+      return error('Only viewer can be invited by email.', 400);
     }
     const now = new Date().toISOString();
     const party: MockDocumentParty = {
       id: `mock-party-${Date.now()}`,
-      user_id: `mock-user-${Date.now()}`,
+      user_id: isExistingUser ? `mock-user-${Date.now()}` : null,
       document_id: document.id,
       email,
-      f_name: 'Invited user',
+      f_name: isExistingUser ? 'Invited user' : '',
       l_name: '',
       role,
       status: 'pending',
       responded_at: null,
+      expires_at: isExistingUser ? null : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
       created_at: now,
     };
     documentParties = [...documentParties, party];
@@ -1174,14 +1209,15 @@ export async function mockPortalMutate(method: 'POST' | 'PUT' | 'PATCH' | 'DELET
   const partyMatch = requestPathname.match(/^\/documents\/([^/]+)\/parties\/([^/]+)\/?$/);
   if (method === 'DELETE' && partyMatch) {
     if (!hasMockIssuerAccess(token)) return error('Lawyer access required', 403);
-    const [, documentId, userId] = partyMatch;
+    const [, documentId, identifier] = partyMatch;
     const document = documentFor(documentId);
     if (!document) return error('Document not found', 404);
-    const party = documentParties.find((item) => item.document_id === documentId && item.user_id === userId);
+    const party = documentParties.find((item) => item.document_id === documentId && (item.user_id === identifier || item.id === identifier));
     if (!party) return error('Participant not found', 404);
     documentParties = documentParties.filter((item) => item !== party);
     if (party.status === 'accepted' && party.user_id === mockParticipantId) sharedDocumentIds.delete(documentId);
-    return json({ document_id: documentId, user_id: userId, message: 'Document access revoked.' });
+    const message = party.user_id ? 'Document access revoked.' : 'Invitation removed';
+    return json({ document_id: documentId, user_id: party.user_id ?? party.id, message });
   }
   if (method === 'POST' && (requestPathname === '/documents/upload' || requestPathname === '/documents/upload/')) {
     if (!hasMockIssuerAccess(token)) return error('Lawyer access required', 403);
@@ -1259,7 +1295,6 @@ export async function mockPortalMutate(method: 'POST' | 'PUT' | 'PATCH' | 'DELET
       anchor_status: null,
       snapshots: [],
       integrity_state: 'not-recorded' as const,
-      audit_log: [mockCreationAudit(document.id, now)],
     };
     documents = [...documents.map((item) => item.id === document.id ? { ...item, is_latest: false } : item), next];
     return json({ document_id: next.id, status: next.status }, 202);
@@ -1338,14 +1373,6 @@ export async function mockPortalMutate(method: 'POST' | 'PUT' | 'PATCH' | 'DELET
       }],
       integrity_state: 'match',
       updated_at: now,
-      audit_log: [...document.audit_log, {
-        id: `mock-audit-finalized-${document.id}`,
-        document_id: document.id,
-        user_id: mockIssuerId,
-        action: 'document_finalized',
-        details: { document_hash: documentHash },
-        created_at: now,
-      }],
     };
     updateDocument(finalizedDocument);
     return json(recordResponse(documentHash));
@@ -1373,14 +1400,6 @@ export async function mockPortalMutate(method: 'POST' | 'PUT' | 'PATCH' | 'DELET
       document_hash: snapshot.text_hash,
       integrity_state: 'match',
       updated_at: now,
-      audit_log: [...document.audit_log, {
-        id: `mock-audit-restored-${document.id}-${Date.now()}`,
-        document_id: document.id,
-        user_id: mockIssuerId,
-        action: 'document_restored',
-        details: { snapshot_id: snapshot.id, reason },
-        created_at: now,
-      }],
     };
     documents = documents.map((item) => item.id === document.id ? restoredDocument : item);
     return json(restoredDocument);
