@@ -1192,12 +1192,39 @@ describe('DocumentWorkspace', () => {
     // Click Participants tab
     fireEvent.click(screen.getByRole('tab', { name: 'Participants' }));
 
-    // Verify in-place participant management is rendered
+    // Verify in-place participant management is rendered with consolidated copy
     expect(await screen.findByRole('heading', { name: 'Manage participants' })).toBeTruthy();
+    expect(screen.getAllByText(/Access is limited to this document/i)).toHaveLength(1);
+    expect(screen.queryByText('Grant access to this document only.')).toBeNull();
     expect(await screen.findByRole('heading', { name: 'Invite a participant' })).toBeTruthy();
     expect(await screen.findByRole('heading', { name: 'Document participants' })).toBeTruthy();
     expect(await screen.findByText('Alex Client')).toBeTruthy();
     expect(screen.getByText('client@example.com')).toBeTruthy();
+  });
+
+  it('renders clean empty state on the Participants tab when no parties exist', async () => {
+    listDocumentPartiesMock.mockResolvedValue({
+      document_id: 'doc-101',
+      issuer: { id: 'owner-101', user_id: 'owner-101', email: 'lawyer@example.com', f_name: 'Jordan', l_name: 'Lawyer', role: 'owner', status: 'accepted', responded_at: null, created_at: '2026-07-28T00:00:00Z' },
+      parties: [],
+    });
+
+    renderWorkspace({
+      role: 'lawyer',
+      document: {
+        ...document,
+        lifecycle: 'FINALIZED',
+        permissions: { ...document.permissions, can_share: true, can_revoke: true },
+      },
+    });
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Participants' }));
+
+    expect(await screen.findByRole('heading', { name: 'Manage participants' })).toBeTruthy();
+    expect(screen.getAllByText(/Access is limited to this document/i)).toHaveLength(1);
+    expect(screen.queryByText('Grant access to this document only.')).toBeNull();
+    expect(await screen.findByRole('heading', { name: 'Document participants' })).toBeTruthy();
+    expect(await screen.findByText('No participants have access yet.')).toBeTruthy();
   });
 
   it('switches to the Participants tab when clicking Manage on the Overview card', async () => {

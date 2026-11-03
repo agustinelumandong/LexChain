@@ -180,3 +180,12 @@ it.each([
   expect(document.getElementById(email.getAttribute('aria-describedby')!)?.textContent).toContain('Account unavailable.');
   expect(document.getElementById(permission.getAttribute('aria-describedby')!)?.textContent).toContain('Permission unavailable.');
 });
+
+it('renders Invite a participant heading without duplicated document-scope helper copy', () => {
+  render(<InviteParticipantForm onInvite={vi.fn()} />);
+  expect(screen.getByRole('heading', { name: 'Invite a participant' })).toBeTruthy();
+  expect(screen.queryByText('Grant access to this document only.')).toBeNull();
+  expect(screen.getByLabelText('Email')).toBeTruthy();
+  expect(screen.getByLabelText('Permission')).toBeTruthy();
+  expect(screen.getByRole('button', { name: 'Send invitation' })).toBeTruthy();
+});

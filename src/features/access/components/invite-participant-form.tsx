@@ -169,7 +169,6 @@ export function InviteParticipantForm({ onFindAccount, onInvite, onResend }: Inv
     <>
       <form onSubmit={handleSendInvitation} className="rounded-[18px] border border-[#E8F0F8] bg-white p-5 shadow-[0_4px_12px_rgba(19,59,115,0.05)]">
         <h2 className="text-lg font-extrabold text-[#0C2B49]">Invite a participant</h2>
-        <p className="mt-1 text-sm font-medium text-[#5B6F8A]">Grant access to this document only.</p>
         <div className="mt-4 grid gap-3 sm:grid-cols-[minmax(0,1fr)_180px_auto]">
           <label className="flex flex-col gap-1.5 text-xs font-bold text-[#0C2B49]">
             <span id={`${feedbackId}-email-label`}>Email</span>
