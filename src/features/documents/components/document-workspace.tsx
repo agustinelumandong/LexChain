@@ -765,7 +765,7 @@ export function DocumentWorkspace({
   const chainQuery = useQuery({
     queryKey: ['portal-doc-chain', document.document_id],
     queryFn: () => verifyRepositoryDocument(document.document_id),
-    enabled: activeTab === 'Blockchain' && Boolean(document.on_chain) && !isMockMode(),
+    enabled: activeTab === 'Blockchain' && Boolean(document.on_chain || document.lifecycle === 'FINALIZED') && !isMockMode(),
     retry: false,
   });
   const txHash = chainQuery.data?.tx_hash || finalizationResult?.tx_hash;
@@ -1248,21 +1248,71 @@ export function DocumentWorkspace({
             <div className="flex items-start gap-3">
               <div>
                 <h2 className="inline-flex items-center gap-2 text-lg font-extrabold text-[#0C2B49]"><AccountTreeIcon aria-hidden="true" sx={{ fontSize: 20, color: '#0067B3' }} />Blockchain record</h2>
-                <p className="mt-1 text-sm leading-6 text-[#4B6382]">When this document is finalized, its digital fingerprint is saved to the blockchain. Comparing fingerprints can show whether the saved PDF has changed.</p>
+                <p className="mt-1 text-sm leading-6 text-[#4B6382]">When this document is finalized, its digital fingerprint is saved to the blockchain. A signed document is not recorded on-chain until it is finalized. Comparing fingerprints can show whether the saved PDF has changed.</p>
               </div>
             </div>
-            {finalizationResult && isMockMode() && (
+            {(finalizationResult || document.on_chain) && isMockMode() && (
               <p role="note" className="rounded-xl border border-[#F1D29A] bg-[#FFF8E8] px-4 py-3 text-sm font-bold text-[#785000]">Synthetic demo record. No real PDF digest or blockchain transaction was produced.</p>
             )}
             <dl className="grid gap-3 text-sm sm:grid-cols-2">
-              <div><dt className="font-bold text-[#4B6382]">Record status</dt><dd className="mt-1 text-[#0C2B49]">{anchorLabel(document.lifecycle, document.on_chain)}</dd></div>
-              {(finalizationResult?.data_hash || document.document_hash) && <div><dt className="font-bold text-[#4B6382]">Document fingerprint (hash)</dt><dd className="mt-1 text-[#0C2B49]"><CopyableIdentifier value={finalizationResult?.data_hash || document.document_hash || ''} label="document hash" /></dd></div>}
+              <div>
+                <dt className="font-bold text-[#4B6382]">Record status</dt>
+                <dd className="mt-1 text-[#0C2B49]">
+                  <span>{anchorLabel(document.lifecycle, document.on_chain)}</span>
+                  {document.lifecycle === 'SIGNED' && !document.on_chain && (
+                    <p className="mt-0.5 text-xs text-[#5B6F8A]">Signed copy attached. Blockchain recording requires finalization.</p>
+                  )}
+                  {document.lifecycle === 'FINALIZED' && !document.on_chain && (
+                    <p className="mt-0.5 text-xs text-[#5B6F8A]">Finalized and submitted. Awaiting block confirmation on the network.</p>
+                  )}
+                </dd>
+              </div>
+              <div>
+                <dt className="font-bold text-[#4B6382]">Network</dt>
+                <dd className="mt-1 flex items-center gap-2 text-[#0C2B49]">
+                  <span>{isMockMode() ? 'Mock environment' : 'Base Sepolia'}</span>
+                  <span className="inline-flex items-center rounded-full bg-[#EAF4FF] px-2 py-0.5 text-xs font-semibold text-[#0067B3]">
+                    {isMockMode() ? 'Simulated' : 'Testnet'}
+                  </span>
+                </dd>
+              </div>
+              <div>
+                <dt className="font-bold text-[#4B6382]">Document fingerprint (hash)</dt>
+                <dd className="mt-1 text-[#0C2B49]">
+                  {(finalizationResult?.data_hash || document.document_hash) ? (
+                    <CopyableIdentifier value={finalizationResult?.data_hash || document.document_hash || ''} label="document hash" />
+                  ) : (
+                    <span className="text-[#4B6382]">No fingerprint recorded yet</span>
+                  )}
+                </dd>
+              </div>
+              <div>
+                <dt className="font-bold text-[#4B6382]">Transaction ID</dt>
+                <dd className="mt-1 text-[#0C2B49]">
+                  {(chainQuery.data?.tx_hash || finalizationResult?.tx_hash) ? (
+                    <CopyableIdentifier value={chainQuery.data?.tx_hash || finalizationResult?.tx_hash || ''} label="transaction ID" />
+                  ) : (
+                    <span className="text-[#4B6382]">No transaction ID recorded</span>
+                  )}
+                </dd>
+              </div>
               {document.document_id && <div><dt className="font-bold text-[#4B6382]">Document ID</dt><dd className="mt-1 text-[#0C2B49]"><CopyableIdentifier value={document.document_id} label="document ID" /></dd></div>}
               {finalizationResult?.onchain_document_id && <div><dt className="font-bold text-[#4B6382]">Blockchain record ID</dt><dd className="mt-1 text-[#0C2B49]"><CopyableIdentifier value={finalizationResult.onchain_document_id} label="blockchain record ID" /></dd></div>}
-              {(chainQuery.data?.tx_hash || finalizationResult?.tx_hash) && <div><dt className="font-bold text-[#4B6382]">Transaction ID</dt><dd className="mt-1 text-[#0C2B49]"><CopyableIdentifier value={chainQuery.data?.tx_hash || finalizationResult?.tx_hash || ''} label="transaction ID" /></dd></div>}
               {document.on_chain && <div><dt className="font-bold text-[#4B6382]">Recorded</dt><dd className="mt-1 text-[#0C2B49]">{formatDate(document.finalized_at)}</dd></div>}
             </dl>
-            {document.on_chain && (isMockMode() ? <p className="text-sm text-[#4B6382]">Transaction details are unavailable in mock mode.</p> : chainQuery.isLoading ? <p role="status" className="text-sm text-[#4B6382]">Loading transaction details…</p> : transactionUrl ? <a href={transactionUrl} target="_blank" rel="noreferrer" className="inline-flex min-h-11 items-center rounded-full border border-[#0067B3] px-4 py-2.5 text-sm font-bold text-[#0067B3] hover:bg-[#EAF4FF] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]">View transaction on Base Sepolia <span className="sr-only">(opens in a new tab)</span></a> : <p className="text-sm text-[#4B6382]">Transaction link unavailable.</p>)}
+            {isMockMode() ? (
+              <p className="text-sm text-[#4B6382]">Transaction details are unavailable in mock mode.</p>
+            ) : chainQuery.isLoading ? (
+              <p role="status" className="text-sm text-[#4B6382]">Loading transaction details…</p>
+            ) : transactionUrl ? (
+              <a href={transactionUrl} target="_blank" rel="noreferrer" className="inline-flex min-h-11 items-center rounded-full border border-[#0067B3] px-4 py-2.5 text-sm font-bold text-[#0067B3] hover:bg-[#EAF4FF] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]">View transaction on Base Sepolia <span className="sr-only">(opens in a new tab)</span></a>
+            ) : document.on_chain ? (
+              <p className="text-sm text-[#4B6382]">Transaction link unavailable.</p>
+            ) : document.lifecycle === 'FINALIZED' ? (
+              <p className="text-sm text-[#4B6382]">Transaction link unavailable while waiting for confirmation.</p>
+            ) : (
+              <p className="text-sm text-[#4B6382]">No transaction recorded yet.</p>
+            )}
           </div>
         )}
 

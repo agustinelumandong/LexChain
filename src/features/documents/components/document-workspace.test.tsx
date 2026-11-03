@@ -1009,6 +1009,61 @@ describe('DocumentWorkspace', () => {
     expect(screen.getByText('chain-hash')).toBeTruthy();
   });
 
+  it('groups recording status, fingerprint, network and transaction information without conflating Signed and confirmed on-chain (#171)', () => {
+    renderWorkspace({ document: { ...document, lifecycle: 'SIGNED', on_chain: false, document_hash: 'b'.repeat(64) } });
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Blockchain' }));
+    expect(screen.getByText('No blockchain record yet')).toBeTruthy();
+    expect(screen.getByText('Signed copy attached. Blockchain recording requires finalization.')).toBeTruthy();
+    expect(screen.getByText('Base Sepolia')).toBeTruthy();
+    expect(screen.getByText('Testnet')).toBeTruthy();
+    expect(screen.getByText('No transaction ID recorded')).toBeTruthy();
+    expect(screen.getByText('No transaction recorded yet.')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Copy document hash' })).toBeTruthy();
+    expect(screen.queryByRole('link', { name: /View transaction on Base Sepolia/ })).toBeNull();
+  });
+
+  it('displays Base Sepolia explorer link for pending finalized document when transaction URL is available (#171)', async () => {
+    const hash = `0x${'cd'.repeat(32)}`;
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => ({ tx_hash: hash }) }));
+    renderWorkspace({ document: { ...document, lifecycle: 'FINALIZED', on_chain: false, document_hash: 'c'.repeat(64) } });
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Blockchain' }));
+    expect(screen.getByText('Waiting for confirmation')).toBeTruthy();
+    expect(screen.getByText('Finalized and submitted. Awaiting block confirmation on the network.')).toBeTruthy();
+    expect(screen.getByText('Base Sepolia')).toBeTruthy();
+    expect(screen.getByText('Testnet')).toBeTruthy();
+    const link = await screen.findByRole('link', { name: /View transaction on Base Sepolia/ });
+    expect(link.getAttribute('href')).toBe(`https://sepolia.basescan.org/tx/${hash}`);
+  });
+
+  it('explains pending confirmation when transaction URL is unavailable without inventing links (#171)', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => ({ tx_hash: '' }) }));
+    renderWorkspace({ document: { ...document, lifecycle: 'FINALIZED', on_chain: false } });
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Blockchain' }));
+    expect(screen.getByText('Waiting for confirmation')).toBeTruthy();
+    expect(await screen.findByText('Transaction link unavailable while waiting for confirmation.')).toBeTruthy();
+    expect(screen.queryByRole('link', { name: /View transaction on Base Sepolia/ })).toBeNull();
+  });
+
+  it('identifies mock environment and avoids creating real explorer links in mock mode (#171)', () => {
+    const originalEnv = process.env.NEXT_PUBLIC_USE_MOCK_API;
+    process.env.NEXT_PUBLIC_USE_MOCK_API = 'true';
+    try {
+      renderWorkspace({ document: { ...document, lifecycle: 'FINALIZED', on_chain: true, document_hash: 'e'.repeat(64) } });
+
+      fireEvent.click(screen.getByRole('tab', { name: 'Blockchain' }));
+      expect(screen.getByText('Mock environment')).toBeTruthy();
+      expect(screen.getByText('Simulated')).toBeTruthy();
+      expect(screen.getByText('Synthetic demo record. No real PDF digest or blockchain transaction was produced.')).toBeTruthy();
+      expect(screen.getByText('Transaction details are unavailable in mock mode.')).toBeTruthy();
+      expect(screen.queryByRole('link', { name: /View transaction on Base Sepolia/ })).toBeNull();
+    } finally {
+      process.env.NEXT_PUBLIC_USE_MOCK_API = originalEnv;
+    }
+  });
+
   it('renders one-key insight objects as readable key-value details', () => {
     renderWorkspace({ document: { ...document, lifecycle: 'SIGNED' } });
 
