@@ -16,7 +16,10 @@ const eslintConfig = defineConfig([
     "packages/**",
     ".superpowers/**",
     ".worktrees/**",
+    ".agents/**",
     "docs/**",
+    "output/**",
+    "artifacts/**",
   ]),
 ]);
 

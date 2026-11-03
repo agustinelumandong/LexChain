@@ -157,10 +157,12 @@ export default function DocumentDetailPage({ params, initialTab }: { params: Pro
       toast.success(
         mockMode
           ? 'Demo document status confirmed. Synthetic demo data only; no real PDF digest or blockchain transaction was produced.'
-          : 'Document finalized and anchored on-chain.',
+          : updatedDocument.on_chain
+            ? 'Document finalized and recorded on-chain.'
+            : 'Document finalization confirmed.',
         {
           action: {
-            label: 'View blockchain record →',
+            label: updatedDocument.on_chain ? 'View blockchain record →' : 'View record status →',
             onClick: () => setActiveTab('Blockchain'),
           },
         },
