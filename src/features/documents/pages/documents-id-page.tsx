@@ -371,12 +371,40 @@ export default function DocumentDetailPage({ params, initialTab }: { params: Pro
       {confirmingFinalize && (
         <div role="dialog" aria-modal="true" aria-label="Confirm finalization" className="fixed inset-0 z-50 flex items-center justify-center bg-[#0C2B49]/40 p-4">
           <div className="w-full max-w-md rounded-2xl border border-[#CFE7FC] bg-white p-6 shadow-[0_16px_40px_rgba(12,43,73,0.25)]">
-            <p className="text-lg font-black text-[#0C2B49]">Finalize this document?</p>
-            <p className="mt-2 text-sm leading-6 text-[#4B6382]">{mockMode ? 'Demo mode: this action uses synthetic data. No real PDF digest or blockchain transaction will be produced.' : 'This freezes the signed copy and records its fingerprint on the blockchain. It cannot be undone.'}</p>
-            {finalizeMutation.isPending && <p role="status" className="mt-3 text-sm text-[#4B6382]">{mockMode ? 'Completing demo finalization…' : 'Waiting for blockchain confirmation…'}</p>}
+            <h2 className="text-lg font-black text-[#0C2B49]">Finalize this document?</h2>
+            <div className="mt-4 rounded-xl border border-[#D7E4F2] bg-[#F8FBFF] p-3.5 text-sm">
+              <div className="min-w-0">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-[#4B6382]">Document</span>
+                <p className="mt-0.5 truncate font-bold text-[#0C2B49]">{document.file_name}</p>
+              </div>
+              <div className="mt-2.5 min-w-0 border-t border-[#E8F0F8] pt-2.5">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-[#4B6382]">Signed filing copy</span>
+                <p className="mt-0.5 truncate font-semibold text-[#0C2B49]">
+                  {document.signed_copy?.original_filename ?? document.file_name ?? 'Current signed PDF'}
+                  {typeof document.signed_copy?.size_bytes === 'number'
+                    ? ` · ${(document.signed_copy.size_bytes / (1024 * 1024)).toFixed(1)} MB`
+                    : ''}
+                </p>
+                {document.signed_copy?.sha256 && (
+                  <p className="mt-1 font-mono text-xs text-[#5B6F8A] break-all">
+                    SHA-256: {document.signed_copy.sha256}
+                  </p>
+                )}
+              </div>
+            </div>
+            <div className="mt-3 space-y-1.5 text-sm leading-6 text-[#4B6382]">
+              <p>{mockMode ? 'Demo mode: this action uses synthetic data. No real PDF digest or blockchain transaction will be produced.' : 'This freezes the signed copy and records its fingerprint on the blockchain. It cannot be undone.'}</p>
+              <p className="text-xs leading-5 text-[#5B6F8A]">The frozen filing copy cannot be replaced or removed after finalization. Text extraction and review will proceed in the background.</p>
+            </div>
+            {finalizeMutation.isPending && (
+              <div role="status" className="mt-3 rounded-xl border border-[#CFE7FC] bg-[#F0F7FE] p-3 text-sm font-semibold text-[#0067B3]">
+                <p>{mockMode ? 'Completing demo finalization…' : 'Waiting for blockchain confirmation…'}</p>
+                <p className="mt-0.5 text-xs font-normal text-[#4B6382]">Please keep this window open while the transaction is recorded.</p>
+              </div>
+            )}
             {finalizeMutation.error instanceof Error && <p role="alert" className="mt-3 rounded-xl bg-red-50 p-3 text-sm font-bold text-[#B42318]">{finalizeMutation.error.message}</p>}
             <div className="mt-5 flex flex-wrap justify-end gap-2">
-              <button type="button" onClick={() => setConfirmingFinalize(false)} disabled={finalizeMutation.isPending} className="rounded-full border border-[#D6E3F1] px-4 py-2 text-sm font-bold text-[#0C2B49] disabled:opacity-60">Cancel</button>
+              <button type="button" onClick={() => setConfirmingFinalize(false)} disabled={finalizeMutation.isPending} className="rounded-full border border-[#D6E3F1] px-4 py-2 text-sm font-bold text-[#0C2B49] hover:bg-[#F4F8FC] disabled:opacity-60">Cancel</button>
               <button type="button" onClick={() => finalizeMutation.mutate()} disabled={finalizeMutation.isPending} className="rounded-full bg-[#0673C4] px-4 py-2 text-sm font-bold text-white hover:bg-[#005FA3] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3] disabled:opacity-60">{finalizeMutation.isPending ? 'Finalizing…' : 'Confirm finalization'}</button>
             </div>
           </div>
