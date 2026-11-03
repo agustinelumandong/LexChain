@@ -433,7 +433,9 @@ describe('document detail screen', () => {
     expect(sessionStorage.getItem('portal-finalize-unknown:doc-1')).toBe('1');
     fireEvent.click(checkStatus);
 
-    expect(await screen.findByText('Document finalized and anchored on-chain.')).toBeTruthy();
+    expect(await screen.findByText('Document finalization confirmed.')).toBeTruthy();
+    expect(screen.queryByText('Document finalized and anchored on-chain.')).toBeNull();
+    expect(screen.queryByText('Document finalized and recorded on-chain.')).toBeNull();
     expect(screen.getAllByText('Finalized').length).toBeGreaterThan(0);
     expect(screen.queryByText('Transaction hash')).toBeNull();
     expect(screen.queryByText('On-chain document ID')).toBeNull();
@@ -445,6 +447,24 @@ describe('document detail screen', () => {
     expect(state.queryClient.invalidateQueries).toHaveBeenCalledWith({ queryKey: ['portal-doc', 'doc-1'] });
     expect(state.queryClient.invalidateQueries).toHaveBeenCalledWith({ queryKey: ['portal-documents'] });
     expect(state.queryClient.invalidateQueries).toHaveBeenCalledWith({ queryKey: ['portal-document-history', 'doc-1'] });
+  });
+
+  it('reconciles a lost finalization response with confirmed on-chain status when on_chain is true', async () => {
+    const finalized = { ...baseDocument, lifecycle: 'FINALIZED', status: 'QUEUED', on_chain: true };
+    const fetchStatus = vi.fn().mockResolvedValue(Response.json(finalized));
+    vi.stubGlobal('fetch', fetchStatus);
+    state.finalizeDocument.mockRejectedValue(new DOMException('Request timed out', 'TimeoutError'));
+    state.documentQuery = { ...state.documentQuery, data: { ...baseDocument, permissions: { ...baseDocument.permissions, can_finalize: true } } };
+    await showPage();
+    fireEvent.click(screen.getByRole('button', { name: 'Finalize' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm finalization' }));
+
+    const checkStatus = await screen.findByRole('button', { name: 'Check status' });
+    fireEvent.click(checkStatus);
+
+    expect(await screen.findByText('Document finalized and recorded on-chain.')).toBeTruthy();
+    expect(screen.getAllByText('Finalized').length).toBeGreaterThan(0);
+    expect(sessionStorage.getItem('portal-finalize-unknown:doc-1')).toBeNull();
   });
 
   it('keeps finalization locked when a lost response is followed by GET SIGNED', async () => {
