@@ -52,7 +52,7 @@ function HashRow({ label, hash, transactionUrl }: { label: string; hash: string;
       </div>
       <div className="flex shrink-0 items-center gap-2">
         {transactionUrl && <a href={transactionUrl} target="_blank" rel="noreferrer" aria-label="View transaction on Base Sepolia" className="text-[11px] font-black text-[#0067B3]">Base Sepolia</a>}
-        <button type="button" aria-label={`Copy ${label}`} onClick={() => void copyHash()} className="rounded-full border border-[#D7E4F2] bg-white px-3 py-1 text-[11px] font-black text-[#0067B3] transition hover:bg-[#EAF4FF]">
+        <button type="button" aria-label={`Copy ${label}`} onClick={() => void copyHash()} className="rounded-full border border-[#D7E4F2] bg-white px-3 py-1 text-[11px] font-black text-[#0067B3] transition hover:bg-[#EAF4FF] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]">
         Copy
         </button>
       </div>
@@ -200,7 +200,7 @@ export default function VerifyWorkspace({
           )}
         </div>
       </div>
-      {(unavailable || notAnchored) && <button type="button" onClick={onRetry} className="mt-4 rounded-full border border-[#0067B3] bg-white px-4 py-2 text-sm font-black text-[#0067B3]">Try again</button>}
+      {(unavailable || notAnchored) && <button type="button" onClick={onRetry} className="mt-4 inline-flex min-h-11 items-center justify-center rounded-full border border-[#0067B3] bg-white px-5 py-2 text-sm font-black text-[#0067B3] hover:bg-[#EEF6FF] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]">Try again</button>}
     </div>
 
     {showTamperComparison ? (
