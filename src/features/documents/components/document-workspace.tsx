@@ -403,7 +403,19 @@ function RiskFlags({ items }: { items?: unknown[] | null }) {
   );
 }
 
-function SignedPdfPreview({ document, role }: { document: WorkspaceDocument; role: PortalUiRole }) {
+function SignedPdfPreview({
+  document,
+  role,
+  onOpenReplace,
+  onOpenAttach,
+  signedCopyForm,
+}: {
+  document: WorkspaceDocument;
+  role: PortalUiRole;
+  onOpenReplace?: () => void;
+  onOpenAttach?: () => void;
+  signedCopyForm?: React.ReactNode;
+}) {
   const queryClient = useQueryClient();
   const requestCopy = useMutation({
     mutationFn: () => portalRequest(`/api/portal/proxy-post?path=${encodeURIComponent(`/documents/${encodeURIComponent(document.document_id)}/ecopy-requests`)}`, { method: 'POST' }),
@@ -456,20 +468,81 @@ function SignedPdfPreview({ document, role }: { document: WorkspaceDocument; rol
       {document.lifecycle === 'FINALIZED' && <DocumentEcopyRequestHistory documentId={document.document_id} />}
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
-          <h2 id="signed-pdf-preview-heading" className="inline-flex items-center gap-2 text-lg font-bold leading-6 text-[#0C2B49]"><PictureAsPdfOutlinedIcon aria-hidden="true" sx={{ fontSize: 20, color: '#0067B3' }} />Signed PDF</h2>
-          {signedCopy && <p className="mt-1 break-words text-sm leading-5 text-[#4B6382]">{signedCopy.original_filename ?? document.file_name}</p>}
+          <div className="flex items-center gap-2">
+            <h2 id="signed-pdf-preview-heading" className="inline-flex items-center gap-2 text-lg font-bold leading-6 text-[#0C2B49]"><PictureAsPdfOutlinedIcon aria-hidden="true" sx={{ fontSize: 20, color: '#0067B3' }} />Signed PDF</h2>
+            {signedCopy && <span className="rounded-full bg-[#E7F5EC] px-2.5 py-0.5 text-xs font-bold text-[#067647]">Current</span>}
+          </div>
+          {signedCopy && <p className="mt-1 break-words text-sm leading-5 text-[#4B6382]">{signedCopy.original_filename ?? document.file_name}{typeof signedCopy.size_bytes === 'number' ? ` · ${formatFileSize(signedCopy.size_bytes)}` : ''}{signedCopy.created_at ? ` · Attached ${formatDate(signedCopy.created_at)}` : ''}</p>}
         </div>
-        {signedCopy && <button type="button" onClick={() => void downloadWatermarkedCopy()} disabled={watermarkedCopyStatus === 'preparing'} className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-[#D7E4F2] px-2.5 py-1 text-sm font-semibold text-[#0C2B49] hover:bg-[#EAF4FF] disabled:cursor-wait disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3] sm:min-h-9">
-          <DownloadOutlinedIcon aria-hidden="true" sx={{ fontSize: 17 }} />{watermarkedCopyStatus === 'preparing' ? 'Preparing copy…' : 'Download PDF Copy'}
-        </button>}
+        <div className="flex flex-wrap items-center gap-2">
+          {document.permissions?.can_replace_signed_copy && onOpenReplace && (
+            <button
+              type="button"
+              onClick={onOpenReplace}
+              className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-[#0067B3] px-4 py-2 text-sm font-extrabold text-[#0067B3] hover:bg-[#EAF4FF] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3] sm:min-h-9"
+            >
+              Replace signed PDF
+            </button>
+          )}
+          {document.permissions?.can_attach_signed_copy && !signedCopy && onOpenAttach && (
+            <button
+              type="button"
+              onClick={onOpenAttach}
+              className="inline-flex min-h-11 items-center gap-1.5 rounded-full bg-[#0067B3] px-4 py-2 text-sm font-extrabold text-white hover:bg-[#0673C4] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3] sm:min-h-9"
+            >
+              Attach signed PDF
+            </button>
+          )}
+        </div>
       </div>
-      {signedCopy && <p aria-live="polite" className="mt-2 text-xs leading-5 text-[#4B6382]">
-        {watermarkedCopyStatus === 'failed'
-          ? 'Could not create the watermarked copy. The signed original is unchanged.'
-          : watermarkedCopyStatus === 'downloaded'
-            ? 'Watermarked PDF copy downloaded. The signed original remains unchanged for integrity checks.'
-            : 'This copy includes the LEXCHAIN COPY watermark. The signed original remains unchanged for integrity checks.'}
-      </p>}
+
+      {document.permissions?.can_replace_signed_copy && (
+        <p className="mt-2 text-xs leading-5 text-[#4B6382]">
+          Replacement is available while this document is in the signed stage. A replacement reason is required, and the current file is preserved in earlier signed PDFs below.
+        </p>
+      )}
+      {document.lifecycle === 'FINALIZED' && (
+        <p className="mt-2 text-xs leading-5 text-[#4B6382]">
+          This document is finalized on the blockchain. The signed PDF is permanently locked and cannot be replaced.
+        </p>
+      )}
+
+      {signedCopyForm}
+
+      {signedCopy && (
+        <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-[#E8F0F8] pt-4">
+          <a
+            aria-label="Download original signed PDF"
+            href={signedCopyFileUrl(document.document_id, {
+              copyId: signedCopy.id,
+              download: true,
+              filename: signedCopy.original_filename ?? document.file_name ?? undefined,
+            })}
+            className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-[#D7E4F2] px-3 py-1.5 text-sm font-semibold text-[#0C2B49] hover:bg-[#EAF4FF] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3] sm:min-h-9"
+          >
+            <DownloadOutlinedIcon aria-hidden="true" sx={{ fontSize: 17 }} />
+            Download original PDF
+          </a>
+          <button
+            type="button"
+            onClick={() => void downloadWatermarkedCopy()}
+            disabled={watermarkedCopyStatus === 'preparing'}
+            className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-[#D7E4F2] px-3 py-1.5 text-sm font-semibold text-[#0C2B49] hover:bg-[#EAF4FF] disabled:cursor-wait disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3] sm:min-h-9"
+          >
+            <DownloadOutlinedIcon aria-hidden="true" sx={{ fontSize: 17 }} />
+            {watermarkedCopyStatus === 'preparing' ? 'Preparing copy…' : 'Download PDF Copy'}
+          </button>
+        </div>
+      )}
+      {signedCopy && (
+        <p aria-live="polite" className="mt-2 text-xs leading-5 text-[#4B6382]">
+          {watermarkedCopyStatus === 'failed'
+            ? 'Could not create the watermarked copy. The signed original is unchanged.'
+            : watermarkedCopyStatus === 'downloaded'
+              ? 'Watermarked PDF copy downloaded. The signed original remains unchanged for integrity checks.'
+              : 'Download original PDF for the unmodified file matching the SHA-256 hash. Download PDF Copy adds the LEXCHAIN COPY watermark across all pages.'}
+        </p>
+      )}
 
       {signedCopy ? (
         <div className="mt-4 flex min-h-56 flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-[#C9DDF2] bg-[#F8FBFF] px-4 py-8 text-center">
@@ -1106,14 +1179,18 @@ export function DocumentWorkspace({
 
         {activeTab === 'Files' && (
           <div className="space-y-4">
-            {(document.permissions?.can_attach_signed_copy || document.permissions?.can_replace_signed_copy || signedCopyForm) && <div className="rounded-xl border border-[#D7E4F2] bg-white p-4 sm:p-5">
-              <div className="flex flex-wrap gap-2">
-                {document.permissions?.can_attach_signed_copy && <button type="button" onClick={openSignedCopyForm} className="rounded-full bg-[#0067B3] px-4 py-2.5 text-sm font-extrabold text-white">Attach signed PDF</button>}
-                {document.permissions?.can_replace_signed_copy && <button type="button" onClick={() => { setSignedCopyMode('replace'); setSignedCopyError(null); signedCopyMutation.reset(); }} className="rounded-full border border-[#0067B3] px-4 py-2.5 text-sm font-extrabold text-[#0067B3]">Replace signed PDF</button>}
-              </div>
-              {signedCopyForm}
-            </div>}
-            <SignedPdfPreview key={`${document.document_id}:${document.signed_copy?.id ?? 'missing'}`} document={document} role={role} />
+            <SignedPdfPreview
+              key={`${document.document_id}:${document.signed_copy?.id ?? 'missing'}`}
+              document={document}
+              role={role}
+              onOpenReplace={() => {
+                setSignedCopyMode('replace');
+                setSignedCopyError(null);
+                signedCopyMutation.reset();
+              }}
+              onOpenAttach={openSignedCopyForm}
+              signedCopyForm={signedCopyForm}
+            />
             {signedCopiesQuery.isLoading && <p role="status" className="text-sm text-[#4B6382]">Loading earlier signed PDFs…</p>}
             {signedCopiesQuery.isError && <p role="alert" className="text-sm font-bold text-[#B42318]">Unable to load earlier signed PDFs.</p>}
             {earlierSignedCopies.length > 0 && <details className="rounded-xl border border-[#D7E4F2] bg-white p-4 sm:p-5">
