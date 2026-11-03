@@ -1,6 +1,7 @@
 'use client';
 
 import type { ApiSchema } from '@/shared/types/index';
+import type { PortalUiRole } from '@/features/access';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ErrorIcon from '@mui/icons-material/Error';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
@@ -66,6 +67,28 @@ function formatDateTime(value: string | null | undefined): string {
   return parsed.toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' });
 }
 
+function plainLanguageExplanation(result: VerificationResult, contradictoryVerdict: boolean): string {
+  if (contradictoryVerdict) {
+    return 'The backend returned conflicting verification fields, so integrity could not be confirmed.';
+  }
+  if (result.status === 'AUTHENTIC' && result.is_authentic) {
+    return 'This PDF file matches the cryptographic fingerprint recorded on the blockchain at finalization. The file content is authentic and unaltered.';
+  }
+  if (result.status === 'TAMPERED' && !result.is_authentic) {
+    return 'This PDF file differs from the cryptographic fingerprint recorded on the blockchain. Changes have been detected in the current copy.';
+  }
+  if (result.status === 'SNAPSHOT_COMPROMISED') {
+    return 'The stored baseline copy could not be verified against the blockchain record. Because the reference baseline is untrusted, no comparison can be made.';
+  }
+  if (result.status === 'NOT_ANCHORED') {
+    return 'This document has not been anchored on the blockchain. Finalize the document first to record its fingerprint.';
+  }
+  if (result.status === 'VERIFICATION_UNAVAILABLE') {
+    return 'The document or blockchain record could not be evaluated at this time. This is not a tampering result. Please try again.';
+  }
+  return result.message || 'We could not evaluate this document.';
+}
+
 function VerificationDetails({ result }: { result: VerificationResult }) {
   const simulated = isMockMode();
   const simulatedAnchorConfirmed = simulated
@@ -84,6 +107,12 @@ function VerificationDetails({ result }: { result: VerificationResult }) {
           <p className="mt-1 text-xs text-green-800">The stored baseline matches the chain hash; the current PDF does not.</p>
         </div>
       )}
+      <aside aria-label="Legal validity notice" className="rounded-xl border border-[#D7E4F2] bg-[#F8FBFF] p-3.5 text-xs leading-5 text-[#4B6382]">
+        <p className="font-bold text-[#0C2B49]">File integrity only</p>
+        <p className="mt-1">
+          A cryptographic match confirms that this PDF file has not changed since its fingerprint was saved to the blockchain. A match alone does not prove legal validity, notarization, authority, or contract enforceability.
+        </p>
+      </aside>
       <dl className="grid gap-3 text-sm sm:grid-cols-2">
         <div><dt className="font-bold text-[#5B6F8A]">Trusted baseline</dt><dd className="mt-1 text-[#0C2B49]">{result.baseline_trusted ? 'Trusted' : 'Not trusted'}</dd></div>
         {result.finalized_at && (
@@ -111,7 +140,15 @@ function VerificationDetails({ result }: { result: VerificationResult }) {
   );
 }
 
-export default function VerifyWorkspace({ result, onRetry }: { result: VerificationResult; onRetry: () => void }) {
+export default function VerifyWorkspace({
+  result,
+  onRetry,
+  role = 'user',
+}: {
+  result: VerificationResult;
+  onRetry: () => void;
+  role?: PortalUiRole;
+}) {
   const [currentPage, setCurrentPage] = useState(0);
   const authentic = result.status === 'AUTHENTIC' && result.is_authentic;
   const contradictoryVerdict = (result.status === 'AUTHENTIC' && !result.is_authentic) || (result.status === 'TAMPERED' && result.is_authentic);
@@ -149,7 +186,19 @@ export default function VerifyWorkspace({ result, onRetry }: { result: Verificat
     <div className={`rounded-[18px] border p-5 ${authentic ? 'border-green-200 bg-green-50' : neutral ? 'border-amber-200 bg-amber-50' : 'border-red-200 bg-red-50'}`}>
       <div className="flex items-start gap-3">
         {authentic ? <CheckCircleIcon className="text-[#166534]" sx={{ fontSize: 38 }} /> : neutral ? <InfoOutlinedIcon className="text-[#8A5B00]" sx={{ fontSize: 38 }} /> : <ErrorIcon className="text-[#B42318]" sx={{ fontSize: 38 }} />}
-        <div><h2 className={`text-xl font-extrabold ${authentic ? 'text-[#166534]' : neutral ? 'text-[#8A5B00]' : 'text-[#B42318]'}`}>{statusHeading(result)}</h2><p className="mt-1 text-sm text-[#475467]">{contradictoryVerdict ? 'The backend returned conflicting verification fields, so integrity could not be confirmed.' : result.message}</p></div>
+        <div>
+          <h2 className={`text-xl font-extrabold ${authentic ? 'text-[#166534]' : neutral ? 'text-[#8A5B00]' : 'text-[#B42318]'}`}>
+            {statusHeading(result)}
+          </h2>
+          <p className="mt-1 text-sm text-[#475467]">
+            {plainLanguageExplanation(result, contradictoryVerdict)}
+          </p>
+          {role === 'user' && !authentic && !unavailable && (
+            <p className="mt-1.5 text-xs text-[#5B6F8A]">
+              Contact your lawyer or the document owner if you have questions regarding this document&apos;s integrity.
+            </p>
+          )}
+        </div>
       </div>
       {(unavailable || notAnchored) && <button type="button" onClick={onRetry} className="mt-4 rounded-full border border-[#0067B3] bg-white px-4 py-2 text-sm font-black text-[#0067B3]">Try again</button>}
     </div>
