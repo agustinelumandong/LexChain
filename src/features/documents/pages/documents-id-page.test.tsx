@@ -359,6 +359,34 @@ describe('document detail screen', () => {
     expect(state.finalizeDocument).not.toHaveBeenCalled();
   });
 
+  it('identifies the document and signed filing copy and explains consequences in finalization confirmation (#159)', async () => {
+    state.documentQuery = {
+      ...state.documentQuery,
+      data: {
+        ...baseDocument,
+        file_name: 'Property Purchase Agreement.pdf',
+        signed_copy: {
+          id: 'copy-123',
+          sha256: '9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08',
+          content_type: 'application/pdf',
+          size_bytes: 2097152,
+          is_current: true,
+          created_at: '2026-10-10T14:30:00Z',
+          original_filename: 'Executed_Agreement_Signed.pdf',
+        },
+        permissions: { ...baseDocument.permissions, can_finalize: true },
+      },
+    };
+    await showPage();
+    fireEvent.click(screen.getByRole('button', { name: 'Finalize' }));
+    const dialog = screen.getByRole('dialog', { name: 'Confirm finalization' });
+    expect(within(dialog).getByText('Property Purchase Agreement.pdf')).toBeTruthy();
+    expect(within(dialog).getByText(/Executed_Agreement_Signed\.pdf · 2\.0 MB/)).toBeTruthy();
+    expect(within(dialog).getByText(/SHA-256: 9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08/)).toBeTruthy();
+    expect(within(dialog).getByText('This freezes the signed copy and records its fingerprint on the blockchain. It cannot be undone.')).toBeTruthy();
+    expect(within(dialog).getByText(/The frozen filing copy cannot be replaced or removed after finalization/)).toBeTruthy();
+  });
+
   it('disables duplicate finalization and cancellation while waiting for the chain', async () => {
     let finish: ((record: ApiSchema<'RecordResponse'>) => void) | undefined;
     state.finalizeDocument.mockImplementation(() => new Promise<ApiSchema<'RecordResponse'>>((resolve) => { finish = resolve; }));
