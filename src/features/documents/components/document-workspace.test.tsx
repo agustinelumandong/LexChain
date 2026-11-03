@@ -1350,6 +1350,63 @@ describe('DocumentWorkspace', () => {
     expect(within(signedSection).queryByRole('button', { name: 'View signed PDF' })).toBeNull();
   });
 
+  it('groups the signed file and replacement action in Files and clarifies consequences (#169)', () => {
+    const signedDoc = {
+      ...document,
+      lifecycle: 'SIGNED' as const,
+      permissions: {
+        ...document.permissions,
+        can_replace_signed_copy: true,
+      },
+    };
+
+    renderWorkspace({ role: 'lawyer', document: signedDoc });
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Files' }));
+
+    const filesSection = screen.getByRole('region', { name: 'Signed PDF' });
+    expect(within(filesSection).getByRole('heading', { name: 'Signed PDF' })).toBeTruthy();
+    expect(within(filesSection).getByText('Current')).toBeTruthy();
+
+    // Replacement button is grouped in the same section
+    const replaceButton = within(filesSection).getByRole('button', { name: 'Replace signed PDF' });
+    expect(replaceButton).toBeTruthy();
+
+    // Consequence clarification
+    expect(within(filesSection).getByText(/Replacement is available while this document is in the signed stage. A replacement reason is required/i)).toBeTruthy();
+
+    // Both original download and watermarked copy download are clearly distinguished
+    const downloadOriginal = within(filesSection).getByRole('link', { name: 'Download original signed PDF' });
+    const downloadWatermarked = within(filesSection).getByRole('button', { name: 'Download PDF Copy' });
+    expect(downloadOriginal.getAttribute('href')).toContain('/api/portal/documents/doc-101/file?');
+    expect(downloadWatermarked).toBeTruthy();
+    expect(within(filesSection).getByText(/Download original PDF for the unmodified file matching the SHA-256 hash. Download PDF Copy adds the LEXCHAIN COPY watermark across all pages/i)).toBeTruthy();
+
+    // Opening replace form renders inline in the same section
+    fireEvent.click(replaceButton);
+    expect(within(filesSection).getByRole('heading', { name: 'Replace the signed PDF' })).toBeTruthy();
+    expect(within(filesSection).getByLabelText('Replacement reason')).toBeTruthy();
+  });
+
+  it('clarifies that finalized documents cannot be replaced (#169)', () => {
+    const finalizedDoc = {
+      ...document,
+      lifecycle: 'FINALIZED' as const,
+      permissions: {
+        ...document.permissions,
+        can_replace_signed_copy: false,
+      },
+    };
+
+    renderWorkspace({ role: 'lawyer', document: finalizedDoc });
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Files' }));
+
+    const filesSection = screen.getByRole('region', { name: 'Signed PDF' });
+    expect(within(filesSection).queryByRole('button', { name: 'Replace signed PDF' })).toBeNull();
+    expect(within(filesSection).getByText(/This document is finalized on the blockchain. The signed PDF is permanently locked and cannot be replaced/i)).toBeTruthy();
+  });
+
   it('renders scanable multi-event history with timestamps, transitions, and actor disclosures (#172)', async () => {
     listDocumentHistoryMock.mockResolvedValue({
       document_id: 'doc-101',
