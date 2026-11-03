@@ -1223,4 +1223,102 @@ describe('DocumentWorkspace', () => {
     expect(screen.getByRole('tab', { name: 'Participants' }).getAttribute('aria-selected')).toBe('true');
     expect(await screen.findByRole('heading', { name: 'Manage participants' })).toBeTruthy();
   });
+
+  it('prioritizes the signed copy and next action on the Overview tab while keeping working draft accessible (#168)', () => {
+    const signedDoc = {
+      ...document,
+      lifecycle: 'SIGNED' as const,
+      signed_copy: {
+        id: 'copy-1',
+        original_filename: 'executed_agreement.pdf',
+        size_bytes: 204800,
+        content_type: 'application/pdf',
+        created_at: '2026-07-28T10:00:00Z',
+        sha256: 'a'.repeat(64),
+        is_current: true,
+      },
+      permissions: {
+        ...document.permissions,
+        can_finalize: true,
+        can_replace_signed_copy: true,
+      },
+    };
+
+    renderWorkspace({ role: 'lawyer', document: signedDoc });
+
+    // Overview tab is active
+    expect(screen.getByRole('tab', { name: 'Overview' }).getAttribute('aria-selected')).toBe('true');
+
+    // Signed copy section is prominent
+    const signedSection = screen.getByRole('region', { name: 'Current signed copy' });
+    expect(within(signedSection).getByRole('heading', { name: 'Current signed copy' })).toBeTruthy();
+    expect(within(signedSection).getByText('Attached')).toBeTruthy();
+    expect(within(signedSection).getByText('executed_agreement.pdf')).toBeTruthy();
+    expect(within(signedSection).getByText(/200\.0 KB/)).toBeTruthy();
+
+    // Next action guidance is prominent within the section
+    expect(within(signedSection).getByRole('heading', { name: 'Finalize the signed PDF' })).toBeTruthy();
+    expect(within(signedSection).getByText(/Finalize the attached PDF to lock this file/)).toBeTruthy();
+
+    // Action buttons are present
+    const viewButton = within(signedSection).getByRole('button', { name: 'View signed PDF' });
+    const downloadLink = within(signedSection).getByRole('link', { name: 'Download PDF' });
+    expect(within(signedSection).getByRole('button', { name: 'Replace signed PDF' })).toBeTruthy();
+
+    expect(downloadLink.getAttribute('href')).toContain('copy_id=copy-1');
+
+    // View button switches to Files tab
+    fireEvent.click(viewButton);
+    expect(screen.getByRole('tab', { name: 'Files' }).getAttribute('aria-selected')).toBe('true');
+
+    // Return to Overview tab
+    fireEvent.click(screen.getByRole('tab', { name: 'Overview' }));
+
+    // Replace button switches to Files tab and opens replace mode
+    fireEvent.click(screen.getByRole('button', { name: 'Replace signed PDF' }));
+    expect(screen.getByRole('tab', { name: 'Files' }).getAttribute('aria-selected')).toBe('true');
+    expect(screen.getByLabelText(/Replacement reason/i)).toBeTruthy();
+
+    // Working draft is kept available in details element
+    fireEvent.click(screen.getByRole('tab', { name: 'Overview' }));
+    expect(screen.getByText('Working draft and drafting history')).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'Open Google draft' }).getAttribute('href')).toBe(document.draft_url);
+  });
+
+  it('preserves preparing, ready, and signed stage guidance distinctions (#168)', () => {
+    // PREPARING view
+    renderWorkspace({ document: { ...document, lifecycle: 'PREPARING' } });
+    expect(screen.getByRole('navigation', { name: 'Draft and filing progress' })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Working draft' })).toBeTruthy();
+    expect(screen.queryByRole('tablist')).toBeNull();
+    expect(screen.queryByRole('heading', { name: 'Current signed copy' })).toBeNull();
+
+    cleanup();
+
+    // READY_FOR_SIGNATURE view
+    renderWorkspace({ document: { ...document, lifecycle: 'READY_FOR_SIGNATURE' } });
+    expect(screen.getByRole('navigation', { name: 'Draft and filing progress' })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Approved text' })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Waiting for the signed PDF' })).toBeTruthy();
+    expect(screen.queryByRole('tablist')).toBeNull();
+    expect(screen.queryByRole('heading', { name: 'Current signed copy' })).toBeNull();
+
+    cleanup();
+
+    // SIGNED view
+    renderWorkspace({ document: { ...document, lifecycle: 'SIGNED' } });
+    expect(screen.getByRole('tablist')).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Current signed copy' })).toBeTruthy();
+    expect(screen.getByText('Attached')).toBeTruthy();
+  });
+
+  it('handles signed document without an attached copy gracefully (#168)', () => {
+    renderWorkspace({ document: { ...document, lifecycle: 'SIGNED', signed_copy: null } });
+
+    const signedSection = screen.getByRole('region', { name: 'Current signed copy' });
+    expect(within(signedSection).getByText('Pending attachment')).toBeTruthy();
+    expect(within(signedSection).getByText('No signed PDF is attached to this document yet.')).toBeTruthy();
+    expect(within(signedSection).getByRole('heading', { name: 'Waiting for finalization' })).toBeTruthy();
+    expect(within(signedSection).queryByRole('button', { name: 'View signed PDF' })).toBeNull();
+  });
 });
