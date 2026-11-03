@@ -260,7 +260,7 @@ export default function DocumentDetailPage({ params, initialTab }: { params: Pro
 
   return (
     <div className="flex min-h-0 w-full min-w-0 flex-1 flex-col gap-3 overflow-hidden">
-      <header className={`mx-auto flex w-full flex-col gap-2 ${isDrafting ? 'max-w-4xl' : 'max-w-7xl'}`}>
+      <header className={`mx-auto flex w-full flex-col gap-2 px-4 sm:px-6 ${isDrafting ? 'max-w-4xl' : 'max-w-7xl'}`}>
         <Link href="/portal/documents" className="flex w-fit shrink-0 items-center gap-1.5 text-sm font-semibold text-[#0C2B49] hover:text-[#0067B3]">
           <ArrowBackIcon sx={{ fontSize: 16 }} /> Back to documents
         </Link>
@@ -314,7 +314,7 @@ export default function DocumentDetailPage({ params, initialTab }: { params: Pro
         </div>
       </Modal>
 
-      {hasUnknownFinalization && <div role="status" className="space-y-3 rounded-xl border border-[#F1D29A] bg-[#FFF8E8] px-4 py-3 text-sm text-[#785000]">
+      {hasUnknownFinalization && <div role="status" className={`mx-auto w-full space-y-3 rounded-xl border border-[#F1D29A] bg-[#FFF8E8] px-4 py-3 text-sm text-[#785000] ${isDrafting ? 'max-w-4xl' : 'max-w-7xl'}`}>
         <p className="font-bold">Finalization outcome unknown. The request may have been accepted. Check status before taking further action.</p>
         {statusMessage && <p>{statusMessage}</p>}
         <button type="button" onClick={() => checkFinalizationMutation.mutate()} disabled={checkFinalizationMutation.isPending} className="rounded-full border border-[#0067B3] px-4 py-2 font-bold text-[#0067B3] disabled:opacity-60">{checkFinalizationMutation.isPending ? 'Checking status…' : 'Check status'}</button>

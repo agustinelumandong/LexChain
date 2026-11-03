@@ -224,6 +224,18 @@ describe('DocumentWorkspace', () => {
     expect(screen.queryByText('No signed PDF is attached to this document yet.')).toBeNull();
   });
 
+  it('highlights the current step with accessible semantics in drafting progress', () => {
+    renderWorkspace({ document: { ...document, lifecycle: 'PREPARING' } });
+    const nav = screen.getByRole('navigation', { name: 'Draft and filing progress' });
+    const currentStepItem = within(nav).getByRole('listitem', { current: 'step' });
+    expect(currentStepItem.textContent).toContain('Current step:');
+    expect(currentStepItem.textContent).toContain('Draft and review');
+
+    const upcomingLabels = within(nav).getAllByText('Upcoming:');
+    expect(upcomingLabels.length).toBe(3);
+    expect(within(nav).getByText('Finalize')).toBeTruthy();
+  });
+
   it('does not duplicate finalized processing status in the overview', () => {
     renderWorkspace({ document: { ...document, lifecycle: 'FINALIZED', status: 'FAILED' } });
     const overview = screen.getByRole('tabpanel');
