@@ -109,6 +109,12 @@ function DraftProgress({ lifecycle, readinessPending = false }: {
   );
 }
 
+function formatFileSize(bytes: number) {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
 function FinalizationNextStep({ document, role, outcomeUnknown }: {
   document: WorkspaceDocument;
   role: PortalUiRole;
@@ -128,10 +134,93 @@ function FinalizationNextStep({ document, role, outcomeUnknown }: {
         : 'Your lawyer will finalize the signed PDF.';
 
   return (
-    <section aria-labelledby="finalization-next-step-heading" className="mb-3 border-b border-[#E8F0F8] pb-3">
+    <div aria-labelledby="finalization-next-step-heading">
       <p className="text-xs font-bold uppercase tracking-[0.08em] text-[#4B6382]">Next step</p>
-      <h2 id="finalization-next-step-heading" className="mt-1 text-sm font-bold text-[#0C2B49]">{heading}</h2>
+      <h3 id="finalization-next-step-heading" className="mt-1 text-sm font-bold text-[#0C2B49]">{heading}</h3>
       <p className="mt-1 text-sm leading-5 text-[#4B6382]">{guidance}</p>
+    </div>
+  );
+}
+
+function SignedCopyOverview({
+  document,
+  role,
+  outcomeUnknown,
+  onViewInFiles,
+  onReplace,
+}: {
+  document: WorkspaceDocument;
+  role: PortalUiRole;
+  outcomeUnknown: boolean;
+  onViewInFiles: () => void;
+  onReplace?: () => void;
+}) {
+  const signedCopy = document.signed_copy;
+
+  return (
+    <section aria-labelledby="signed-copy-overview-heading" className="rounded-xl border border-[#D7E4F2] bg-white p-4 sm:p-5">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <h2 id="signed-copy-overview-heading" className={overviewSectionHeadingClassName}>
+              <PictureAsPdfOutlinedIcon aria-hidden="true" sx={{ fontSize: 20, color: '#0067B3' }} />
+              Current signed copy
+            </h2>
+            <span className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${signedCopy ? 'bg-[#E7F5EC] text-[#067647]' : 'bg-[#FFF8E8] text-[#785000]'}`}>
+              {signedCopy ? 'Attached' : 'Pending attachment'}
+            </span>
+          </div>
+          {signedCopy ? (
+            <>
+              <p className="mt-1.5 break-words text-base font-semibold text-[#0C2B49]">
+                {signedCopy.original_filename ?? document.file_name ?? 'Signed PDF'}
+              </p>
+              <p className="mt-0.5 text-xs text-[#4B6382]">
+                Attached {formatDate(signedCopy.created_at)}
+                {typeof signedCopy.size_bytes === 'number' ? ` · ${formatFileSize(signedCopy.size_bytes)}` : ''}
+              </p>
+            </>
+          ) : (
+            <p className="mt-1 text-sm text-[#4B6382]">No signed PDF is attached to this document yet.</p>
+          )}
+        </div>
+        {signedCopy && (
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={onViewInFiles}
+              className="inline-flex min-h-11 items-center gap-1.5 rounded-full bg-[#0067B3] px-3.5 py-2 text-sm font-bold text-white hover:bg-[#0673C4] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3] sm:min-h-9"
+            >
+              <PictureAsPdfOutlinedIcon aria-hidden="true" sx={{ fontSize: 17 }} />
+              View signed PDF
+            </button>
+            <a
+              href={signedCopyFileUrl(document.document_id, {
+                copyId: signedCopy.id,
+                download: true,
+                filename: signedCopy.original_filename ?? document.file_name ?? undefined,
+              })}
+              className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-[#D7E4F2] px-3 py-1.5 text-sm font-semibold text-[#0C2B49] hover:bg-[#EAF4FF] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3] sm:min-h-9"
+            >
+              <DownloadOutlinedIcon aria-hidden="true" sx={{ fontSize: 17 }} />
+              Download PDF
+            </a>
+            {onReplace && (
+              <button
+                type="button"
+                onClick={onReplace}
+                className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-[#0067B3] px-3 py-1.5 text-sm font-semibold text-[#0067B3] hover:bg-[#EAF4FF] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3] sm:min-h-9"
+              >
+                Replace signed PDF
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+
+      <div className="mt-4 border-t border-[#E8F0F8] pt-3">
+        <FinalizationNextStep document={document} role={role} outcomeUnknown={outcomeUnknown} />
+      </div>
     </section>
   );
 }
@@ -899,8 +988,20 @@ export function DocumentWorkspace({
         {activeTab === 'Overview' && (
           <div className="min-w-0">
             <div className="space-y-4">
-              {document.lifecycle === 'SIGNED' && <FinalizationNextStep document={document} role={role} outcomeUnknown={finalizationOutcomeUnknown} />}
-              {document.draft_url && <GoogleDraftPanel key={document.document_id} document={document} onDocumentUpdated={onDocumentUpdated} />}
+              {document.lifecycle === 'SIGNED' && (
+                <SignedCopyOverview
+                  document={document}
+                  role={role}
+                  outcomeUnknown={finalizationOutcomeUnknown}
+                  onViewInFiles={() => selectTab('Files')}
+                  onReplace={document.permissions?.can_replace_signed_copy ? () => {
+                    selectTab('Files');
+                    setSignedCopyMode('replace');
+                    setSignedCopyError(null);
+                    signedCopyMutation.reset();
+                  } : undefined}
+                />
+              )}
               <section aria-labelledby="document-summary-heading" className="rounded-xl border border-[#D7E4F2] bg-white p-4 sm:p-5">
                 <h2 id="document-summary-heading" className="inline-flex items-center gap-2 text-lg font-bold leading-6 text-[#0C2B49]"><DescriptionOutlinedIcon aria-hidden="true" sx={{ fontSize: 20, color: '#0067B3' }} />Document summary</h2>
                 <p className="mt-2 break-words text-base leading-7 text-[#344054]">{document.summary || 'No summary is available for this document yet.'}</p>
@@ -912,6 +1013,21 @@ export function DocumentWorkspace({
               </section>
 
               {participantsPanel}
+
+              {document.draft_url && (
+                <details className="rounded-xl border border-[#D7E4F2] bg-white p-4 sm:p-5">
+                  <summary className="min-h-11 cursor-pointer py-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]">
+                    <span className={overviewSectionHeadingClassName}>
+                      <DescriptionOutlinedIcon aria-hidden="true" sx={{ fontSize: 20, color: '#0067B3' }} />
+                      Working draft and drafting history
+                    </span>{' '}
+                    <span className="text-sm font-normal leading-5 text-[#4B6382]">(Google Doc)</span>
+                  </summary>
+                  <div className="mt-3 border-t border-[#E8F0F8] pt-4">
+                    <GoogleDraftPanel key={document.document_id} document={document} onDocumentUpdated={onDocumentUpdated} />
+                  </div>
+                </details>
+              )}
 
               {canCorrectEntry && <div className="space-y-3 border-t border-[#E8F0F8] py-3">
                 {!correctingEntry ? <button type="button" onClick={openEntryCorrection} className="inline-flex items-center gap-1.5 rounded-full border border-[#0067B3] px-4 py-2 text-sm font-extrabold text-[#0067B3]"><EditOutlinedIcon aria-hidden="true" sx={{ fontSize: 17 }} />Correct register entry</button> : <form aria-labelledby="correct-entry-heading" className="space-y-3 rounded-xl border border-[#D7E4F2] bg-[#F8FBFF] p-4" onSubmit={submitEntryCorrection}>
