@@ -311,8 +311,7 @@ export default function DocumentsPage() {
             <article className="flex min-w-0 flex-col rounded-2xl border border-[#E4EEF9] bg-white shadow-sm shadow-[#DDEAF7]/35 min-[1680px]:min-h-0 min-[1680px]:overflow-hidden">
               <div className="border-b border-[#E4EEF9] p-5">
                 <div className="flex flex-wrap items-center gap-3">
-                  <h2 className="mr-auto shrink-0 text-lg font-black text-[#071B33]">Document Directory</h2>
-                  <label className="flex w-full items-center gap-2 rounded-xl border border-[#B8C9D9] bg-white px-4 py-2.5 focus-within:border-[#0067B3] sm:w-72">
+                  <label className="flex min-w-0 flex-1 items-center gap-2 rounded-xl border border-[#B8C9D9] bg-white px-4 py-2.5 focus-within:border-[#0067B3] sm:min-w-[280px]">
                     <SearchIcon fontSize="small" className="text-[#4B6382]" />
                     <span className="sr-only">Filter by filename or reference</span>
                     <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Filter by filename or reference…" className="w-full bg-transparent text-sm font-semibold text-[#0C2B49] outline-none placeholder:text-[#5B6F8A]" />
