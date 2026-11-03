@@ -317,9 +317,9 @@ export default function DocumentDetailPage({ params, initialTab }: { params: Pro
                 {document.permissions.can_cancel && <button type="button" onClick={() => { setDocumentActionsOpen(false); openCancelConfirmation(); }} className="block min-h-11 w-full rounded-lg px-3 py-2 text-left text-sm font-bold text-[#B42318] hover:bg-red-50">Cancel document</button>}
               </div>}
             </div>}
-            {actions.includes('Review extracted text') && <Link href={`/portal/documents/${id}/review`} aria-label="Review extracted text" className="inline-flex min-h-11 items-center rounded-full bg-[#0067B3] px-3 py-2 text-sm font-extrabold text-white">Review text</Link>}
+            {actions.includes('Review extracted text') && <Link href={`/portal/documents/${id}/review`} aria-label="Review extracted text" className="inline-flex min-h-11 items-center rounded-full bg-[#0067B3] px-3 py-2 text-sm font-extrabold text-white hover:bg-[#00528F] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]">Review text</Link>}
             {actions.includes('Finalize') && !finalizationResult && !hasUnknownFinalization && <button type="button" onClick={openFinalizeConfirmation} className="min-h-11 rounded-full bg-[#0673C4] px-3 py-2 text-sm font-extrabold text-white hover:bg-[#005FA3] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]">Finalize</button>}
-            {actions.includes('Retry processing') && <button type="button" onClick={() => retryProcessingMutation.mutate()} disabled={retryProcessingMutation.isPending} className="min-h-11 rounded-full border border-[#0067B3] px-3 py-2 text-sm font-extrabold text-[#0067B3] disabled:opacity-50">{retryProcessingMutation.isPending ? 'Retrying…' : 'Retry processing'}</button>}
+            {actions.includes('Retry processing') && <button type="button" onClick={() => retryProcessingMutation.mutate()} disabled={retryProcessingMutation.isPending} className="min-h-11 rounded-full border border-[#0067B3] px-3 py-2 text-sm font-extrabold text-[#0067B3] hover:bg-[#EEF6FF] disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]">{retryProcessingMutation.isPending ? 'Retrying…' : 'Retry processing'}</button>}
             {actions.includes('Check document') && <Link href={`/portal/documents/${id}/verify`} className="group inline-flex min-h-11 items-center gap-1.5 rounded-full border border-[#0067B3] bg-[#EAF4FF] px-3 py-2 text-sm font-extrabold text-[#0C2B49] transition-colors hover:border-[#0067B3] hover:bg-[#0067B3] hover:text-white active:bg-[#0067B3] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]"><ShieldOutlinedIcon aria-hidden="true" className="text-[#0067B3] transition-colors group-hover:text-white group-focus-visible:text-white" sx={{ fontSize: 18 }} />Verify integrity</Link>}
           </div>
         </div>
@@ -334,8 +334,8 @@ export default function DocumentDetailPage({ params, initialTab }: { params: Pro
           </label>
           {renameError && <p role="alert" className="mt-3 text-sm font-bold text-red-700">{renameError}</p>}
           <div className="mt-5 flex justify-end gap-2">
-            <button type="button" onClick={() => setRenameOpen(false)} disabled={renamePending} className="rounded-full border border-[#D7E4F2] px-5 py-2.5 text-sm font-bold text-[#0C2B49] disabled:opacity-50">Cancel</button>
-            <button type="submit" disabled={!renameName.trim() || renamePending} className="rounded-full bg-[#0067B3] px-5 py-2.5 text-sm font-black text-white disabled:opacity-40">{renamePending ? 'Saving…' : 'Save changes'}</button>
+            <button type="button" onClick={() => setRenameOpen(false)} disabled={renamePending} className="inline-flex min-h-11 items-center justify-center rounded-full border border-[#D7E4F2] px-5 py-2.5 text-sm font-bold text-[#0C2B49] hover:bg-[#F4F8FC] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3] disabled:opacity-50">Cancel</button>
+            <button type="submit" disabled={!renameName.trim() || renamePending} className="inline-flex min-h-11 items-center justify-center rounded-full bg-[#0067B3] px-5 py-2.5 text-sm font-black text-white hover:bg-[#00528F] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3] disabled:opacity-40">{renamePending ? 'Saving…' : 'Save changes'}</button>
           </div>
         </form>
       </Modal>
@@ -344,15 +344,15 @@ export default function DocumentDetailPage({ params, initialTab }: { params: Pro
         <p className="text-sm leading-6 text-[#4B6382]">This will mark the document as cancelled. The document record will be kept.</p>
         {cancelMutation.error instanceof Error && <p role="alert" className="mt-3 rounded-xl bg-red-50 p-3 text-sm font-bold text-[#B42318]">{cancelMutation.error.message}</p>}
         <div className="mt-5 flex justify-end gap-2">
-          <button type="button" onClick={() => setCancelConfirmationOpen(false)} disabled={cancelMutation.isPending} className="rounded-full border border-[#D7E4F2] px-5 py-2.5 text-sm font-bold text-[#0C2B49] disabled:opacity-50">Keep document</button>
-          <button type="button" onClick={() => cancelMutation.mutate()} disabled={cancelMutation.isPending} className="rounded-full bg-[#B42318] px-5 py-2.5 text-sm font-black text-white disabled:opacity-50">{cancelMutation.isPending ? 'Cancelling…' : 'Confirm cancellation'}</button>
+          <button type="button" onClick={() => setCancelConfirmationOpen(false)} disabled={cancelMutation.isPending} className="inline-flex min-h-11 items-center justify-center rounded-full border border-[#D7E4F2] px-5 py-2.5 text-sm font-bold text-[#0C2B49] hover:bg-[#F4F8FC] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3] disabled:opacity-50">Keep document</button>
+          <button type="button" onClick={() => cancelMutation.mutate()} disabled={cancelMutation.isPending} className="inline-flex min-h-11 items-center justify-center rounded-full bg-[#B42318] px-5 py-2.5 text-sm font-black text-white hover:bg-[#912018] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3] disabled:opacity-50">{cancelMutation.isPending ? 'Cancelling…' : 'Confirm cancellation'}</button>
         </div>
       </Modal>
 
       {hasUnknownFinalization && <div role="status" className={`mx-auto w-full space-y-3 rounded-xl border border-[#F1D29A] bg-[#FFF8E8] px-4 py-3 text-sm text-[#785000] ${isDrafting ? 'max-w-4xl' : 'max-w-7xl'}`}>
         <p className="font-bold">Finalization outcome unknown. The request may have been accepted. Check status before taking further action.</p>
         {statusMessage && <p>{statusMessage}</p>}
-        <button type="button" onClick={() => checkFinalizationMutation.mutate()} disabled={checkFinalizationMutation.isPending} className="rounded-full border border-[#0067B3] px-4 py-2 font-bold text-[#0067B3] disabled:opacity-60">{checkFinalizationMutation.isPending ? 'Checking status…' : 'Check status'}</button>
+        <button type="button" onClick={() => checkFinalizationMutation.mutate()} disabled={checkFinalizationMutation.isPending} className="inline-flex min-h-11 items-center justify-center rounded-full border border-[#0067B3] px-4 py-2 font-bold text-[#0067B3] hover:bg-[#EEF6FF] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3] disabled:opacity-60">{checkFinalizationMutation.isPending ? 'Checking status…' : 'Check status'}</button>
       </div>}
       {docQ.isError && finalizationResult && <>
         <p role="alert" className="text-sm font-bold text-[#B42318]">{mockMode ? 'Demo finalization completed, but the document could not be refreshed.' : 'Finalization succeeded, but the document could not be refreshed.'}</p>
