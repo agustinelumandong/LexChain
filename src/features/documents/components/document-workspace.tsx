@@ -235,20 +235,42 @@ function HistoryTimeline({
   showActor?: boolean;
 }) {
   return (
-    <ol aria-label={ariaLabel} className="ml-1 border-l border-[#D7E4F2]">
-      {changes.map((change, index) => <li key={`${change.created_at}-${change.action}-${index}`} className="relative grid grid-cols-[minmax(0,1fr)_auto] gap-x-3 py-2 pl-4 before:absolute before:-left-[5px] before:top-3 before:h-2.5 before:w-2.5 before:rounded-full before:bg-[#0067B3] before:ring-2 before:ring-white">
-        <p className="min-w-0 break-words text-sm font-semibold leading-5 text-[#0C2B49]">{getDocumentLifecycleLabel(change.action)}</p>
-        <time dateTime={change.created_at} className="row-span-2 shrink-0 text-right text-xs font-medium leading-5 text-[#4B6382]">{formatDate(change.created_at)}</time>
-        <p className="min-w-0 break-words text-xs leading-4 text-[#4B6382]">
-          {change.from_stage
-            ? `Stage changed from ${getDocumentLifecycleLabel(change.from_stage)} to ${getDocumentLifecycleLabel(change.to_stage)}`
-            : `Stage set to ${getDocumentLifecycleLabel(change.to_stage)}`}
-        </p>
-        {showActor && change.actor_id && <details className="col-start-1 mt-1 text-xs text-[#4B6382]">
-          <summary className="cursor-pointer font-semibold">Show actor ID</summary>
-          <div className="mt-1"><CopyableIdentifier value={change.actor_id} label="actor ID" /></div>
-        </details>}
-      </li>)}
+    <ol aria-label={ariaLabel} className="ml-1 border-l-2 border-[#D7E4F2]">
+      {changes.map((change, index) => (
+        <li
+          key={`${change.created_at}-${change.action}-${index}`}
+          className="relative pb-5 pl-5 last:pb-1"
+        >
+          <span
+            aria-hidden="true"
+            className="absolute -left-[7px] top-1 h-3 w-3 rounded-full border-2 border-white bg-[#0067B3] shadow-sm"
+          />
+          <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
+            <p className="min-w-0 font-bold text-sm leading-5 text-[#0C2B49]">
+              {getDocumentLifecycleLabel(change.action)}
+            </p>
+            <time dateTime={change.created_at} className="shrink-0 text-xs font-medium text-[#4B6382]">
+              {formatDate(change.created_at)}
+            </time>
+          </div>
+          <p className="mt-0.5 min-w-0 text-xs leading-5 text-[#4B6382]">
+            {change.from_stage
+              ? `Stage changed from ${getDocumentLifecycleLabel(change.from_stage)} to ${getDocumentLifecycleLabel(change.to_stage)}`
+              : `Stage set to ${getDocumentLifecycleLabel(change.to_stage)}`}
+          </p>
+          {showActor && change.actor_id && (
+            <details className="mt-1.5 text-xs text-[#4B6382]">
+              <summary className="cursor-pointer font-semibold text-[#0067B3] hover:underline focus-visible:outline-2 focus-visible:outline-[#0067B3]">
+                Show actor ID
+              </summary>
+              <div className="mt-1 flex items-center gap-2 rounded-lg bg-[#F8FBFF] p-2 border border-[#E8F0F8]">
+                <span className="font-medium text-[#4B6382]">Actor ID:</span>
+                <CopyableIdentifier value={change.actor_id} label="actor ID" />
+              </div>
+            </details>
+          )}
+        </li>
+      ))}
     </ol>
   );
 }

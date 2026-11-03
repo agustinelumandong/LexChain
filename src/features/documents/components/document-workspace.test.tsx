@@ -1406,4 +1406,109 @@ describe('DocumentWorkspace', () => {
     expect(within(filesSection).queryByRole('button', { name: 'Replace signed PDF' })).toBeNull();
     expect(within(filesSection).getByText(/This document is finalized on the blockchain. The signed PDF is permanently locked and cannot be replaced/i)).toBeTruthy();
   });
+
+  it('renders scanable multi-event history with timestamps, transitions, and actor disclosures (#172)', async () => {
+    listDocumentHistoryMock.mockResolvedValue({
+      document_id: 'doc-101',
+      changes: [
+        {
+          action: 'PREPARING',
+          from_stage: null,
+          to_stage: 'PREPARING',
+          created_at: '2026-07-28T09:00:00Z',
+          actor_id: 'actor-lawyer-1',
+        },
+        {
+          action: 'READY',
+          from_stage: 'PREPARING',
+          to_stage: 'READY_FOR_SIGNATURE',
+          created_at: '2026-07-28T11:30:00Z',
+          actor_id: 'actor-lawyer-1',
+        },
+        {
+          action: 'SIGNED',
+          from_stage: 'READY_FOR_SIGNATURE',
+          to_stage: 'SIGNED',
+          created_at: '2026-07-29T14:00:00Z',
+          actor_id: 'actor-client-2',
+        },
+      ],
+    });
+
+    renderWorkspace({
+      role: 'lawyer',
+      document: {
+        ...document,
+        lifecycle: 'FINALIZED',
+      },
+    });
+
+    // Navigate to History tab
+    fireEvent.click(screen.getByRole('tab', { name: 'History' }));
+
+    // History section heading and description
+    expect(await screen.findByRole('heading', { name: 'Document history' })).toBeTruthy();
+    expect(screen.getByText('Lifecycle changes to this document, from oldest to newest.')).toBeTruthy();
+
+    // Timeline list element
+    const timelineList = await screen.findByRole('list', { name: 'Document history' });
+    expect(timelineList).toBeTruthy();
+
+    const items = within(timelineList).getAllByRole('listitem');
+    expect(items).toHaveLength(3);
+
+    // Verify ordering, event titles, and stage transition copy
+    expect(within(items[0]).getByText('Preparing')).toBeTruthy();
+    expect(within(items[0]).getByText('Stage set to Preparing')).toBeTruthy();
+    expect(within(items[0]).getByText(/Jul 28, 2026/)).toBeTruthy();
+
+    expect(within(items[1]).getByText('Ready')).toBeTruthy();
+    expect(within(items[1]).getByText('Stage changed from Preparing to Ready for signature')).toBeTruthy();
+
+    expect(within(items[2]).getByText('Signed')).toBeTruthy();
+    expect(within(items[2]).getByText('Stage changed from Ready for signature to Signed')).toBeTruthy();
+
+    // Accessible actor disclosure without invented names
+    const actorDetails = within(items[2]).getByText('Show actor ID');
+    expect(actorDetails).toBeTruthy();
+    expect(within(items[2]).getByText('actor-client-2')).toBeTruthy();
+  });
+
+  it('renders accessible empty state when document history has no events (#172)', async () => {
+    listDocumentHistoryMock.mockResolvedValue({
+      document_id: 'doc-101',
+      changes: [],
+    });
+
+    renderWorkspace({
+      role: 'lawyer',
+      document: {
+        ...document,
+        lifecycle: 'FINALIZED',
+      },
+    });
+
+    fireEvent.click(screen.getByRole('tab', { name: 'History' }));
+
+    expect(await screen.findByRole('heading', { name: 'Document history' })).toBeTruthy();
+    expect(await screen.findByText('No history has been recorded for this document yet.')).toBeTruthy();
+    expect(screen.queryByRole('list', { name: 'Document history' })).toBeNull();
+  });
+
+  it('renders accessible error state when document history fails to load (#172)', async () => {
+    listDocumentHistoryMock.mockRejectedValue(new Error('Network error'));
+
+    renderWorkspace({
+      role: 'lawyer',
+      document: {
+        ...document,
+        lifecycle: 'FINALIZED',
+      },
+    });
+
+    fireEvent.click(screen.getByRole('tab', { name: 'History' }));
+
+    expect(await screen.findByRole('alert')).toBeTruthy();
+    expect(screen.getByText('Unable to load document history.')).toBeTruthy();
+  });
 });
