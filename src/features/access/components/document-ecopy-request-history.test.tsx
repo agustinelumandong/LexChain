@@ -61,8 +61,8 @@ describe('DocumentEcopyRequestHistory', () => {
     expect(within(history).getByText(/Jordan Client/)).toBeTruthy();
     expect(within(history).getByText(/Taylor Client/)).toBeTruthy();
     expect(within(history).getByText('Decline reason: Please correct the signed copy.')).toBeTruthy();
-    expect(within(history).getByText('DECLINED')).toBeTruthy();
-    expect(within(history).getByText('Email delivery: FAILED')).toBeTruthy();
+    expect(within(history).getByText('Declined')).toBeTruthy();
+    expect(within(history).getByText('Email delivery: Failed')).toBeTruthy();
     expect(within(history).getByText('Delivery error: provider_error')).toBeTruthy();
     expect(within(history).getAllByText(/^Requested /)).toHaveLength(3);
     expect(portalFetch).toHaveBeenCalledWith('/documents/doc-101/ecopy-requests');

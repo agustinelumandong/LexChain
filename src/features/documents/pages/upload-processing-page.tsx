@@ -59,7 +59,7 @@ export default function ProcessingPage({
   }, [id, processingTerminal, queryClient]);
 
   if (isLoading && id) {
-    return <DocumentProcessingStatus heading="Checking document status…" currentStatus="Loading backend status" description="Fetching the latest status from the document service." />;
+    return <DocumentProcessingStatus heading="Checking document status…" currentStatus="Checking status" description="Fetching the latest status from the document service." />;
   }
 
   if (data && !isFinalized && !lookupError) {
@@ -67,7 +67,7 @@ export default function ProcessingPage({
       <DocumentProcessingStatus
         heading="Waiting for finalization"
         currentStatus={getDocumentLifecycleLabel(data.lifecycle)}
-        description="OCR processing starts after the document is finalized. This page will update when the document reaches its next backend state."
+        description="OCR processing starts after the document is finalized. This page will update as processing progresses."
       />
     );
   }
@@ -77,7 +77,7 @@ export default function ProcessingPage({
       <DocumentProcessingStatus
         heading="Processing your document…"
         currentStatus={normalizedStatus}
-        description="This page will update when the document reaches its next backend state."
+        description="This page will update as processing progresses."
       />
     );
   }

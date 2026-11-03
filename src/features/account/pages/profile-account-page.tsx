@@ -237,7 +237,7 @@ export default function AccountPage({ google, message, documentReturn = false }:
       </Link>
       <div>
         <h1 className="text-[28px] font-black text-[#0C2B49]">Account Details</h1>
-        <p className="mt-1 text-sm text-[#5B6F8A]">Profile editing is not available in the current backend contract.</p>
+        <p className="mt-1 text-sm text-[#5B6F8A]">Profile details are managed by your administrator and cannot be edited directly.</p>
       </div>
 
       <div className="divide-y divide-[#E8F0F8] rounded-[18px] border border-[#E8F0F8] bg-white shadow-[0_4px_12px_rgba(19,59,115,0.05)]">

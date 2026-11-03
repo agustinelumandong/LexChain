@@ -38,7 +38,7 @@ it('shows a failed email delivery and lets the lawyer retry it', async () => {
   vi.mocked(portalFetch).mockResolvedValue({ requests: [{ id: 'r1', document_id: 'd1', file_name: 'Document', client_name: 'Client', client_email: 'client@example.test', status: 'APPROVED', delivery_status: 'FAILED', delivery_error: 'provider_error', can_retry_delivery: true }], total: 1 });
   vi.mocked(portalRequest).mockResolvedValue(new Response('{}'));
   render(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}><EcopyRequests mode="review" /></QueryClientProvider>);
-  expect(await screen.findByText(/Email delivery: FAILED/)).toBeTruthy();
+  expect(await screen.findByText(/Email delivery: Failed/)).toBeTruthy();
   fireEvent.click(screen.getByRole('button', { name: 'Retry email delivery' }));
   await waitFor(() => expect(portalRequest).toHaveBeenCalledWith(expect.stringContaining('retry-delivery'), expect.objectContaining({ method: 'POST' })));
 });
@@ -46,7 +46,7 @@ it('shows a failed email delivery and lets the lawyer retry it', async () => {
 it('does not offer a download when access is unavailable', async () => {
   vi.mocked(portalFetch).mockResolvedValue({ requests: [{ id: 'r1', document_id: 'd1', file_name: 'Document', status: 'APPROVED', can_download: false }], total: 1 });
   render(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}><EcopyRequests mode="mine" /></QueryClientProvider>);
-  await screen.findByText('APPROVED');
+  await screen.findByText('Approved');
   expect(screen.queryByRole('link', { name: 'Download approved e-copy' })).toBeNull();
 });
 
@@ -55,7 +55,7 @@ it('shows each personal request as a card with its document and status', async (
   render(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}><EcopyRequests mode="mine" /></QueryClientProvider>);
   expect(await screen.findByRole('article')).toBeTruthy();
   expect(screen.getByRole('link', { name: 'Signed deed' }).getAttribute('href')).toBe('/portal/documents/d1');
-  expect(screen.getByText('PENDING')).toBeTruthy();
+  expect(screen.getByText('Pending')).toBeTruthy();
   expect(screen.getByText(/Requested/)).toBeTruthy();
 });
 
@@ -65,7 +65,7 @@ it('shows an approval failure without claiming success', async () => {
   render(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })}><EcopyRequests mode="review" /></QueryClientProvider>);
   fireEvent.click(await screen.findByRole('button', { name: 'Approve' }));
   expect((await screen.findByRole('alert')).textContent).toContain('Approval failed');
-  expect(screen.getByText('Status: PENDING')).toBeTruthy();
+  expect(screen.getByText('Pending')).toBeTruthy();
 });
 
 it.each([
@@ -91,6 +91,6 @@ it.each([
   fireEvent.click(screen.getByRole('button', { name: button }));
 
   await waitFor(() => expect(historyCalls).toBe(2));
-  if (updatedRequest.status === 'DECLINED') expect(within(history).getByText('DECLINED')).toBeTruthy();
-  else expect(within(history).getByText(new RegExp(`Email delivery: ${updatedRequest.delivery_status}`))).toBeTruthy();
+  if (updatedRequest.status === 'DECLINED') expect(within(history).getByText('Declined')).toBeTruthy();
+  else expect(within(history).getByText(/Email delivery: Sent/)).toBeTruthy();
 });
