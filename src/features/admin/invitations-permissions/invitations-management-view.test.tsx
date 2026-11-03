@@ -60,3 +60,40 @@ it("matches the portal management layout without duplicate header controls", () 
   expect(screen.queryByRole("button", { name: "Filter" })).toBeNull();
   expect(screen.queryByText("More Filters")).toBeNull();
 });
+
+it("renders a coherent zero state in the chart center when invitations are empty (#164)", () => {
+  render(
+    <MockToastProvider>
+      <InvitationsManagementView mockMode invitations={[]} />
+    </MockToastProvider>,
+  );
+
+  const statusSection = screen.getByRole("heading", { name: "Invitation Status" }).closest("article")!;
+  const chartCenter = within(statusSection).getByText("Total Invites").closest("div")!;
+  expect(within(chartCenter).getByText("0")).toBeTruthy();
+
+  const totalInvitesMetric = screen.getByText("All invitation records").closest("article")!;
+  expect(within(totalInvitesMetric).getByText("0")).toBeTruthy();
+});
+
+it("renders matching counts and percentages when invitations are populated (#164)", () => {
+  render(
+    <MockToastProvider>
+      <InvitationsManagementView
+        mockMode
+        invitations={[
+          { ...invitation, id: "inv-1", email: "one@example.com", role: "lawyer", status: "pending" },
+          { ...invitation, id: "inv-2", email: "two@example.com", role: "lawyer", status: "accepted" },
+        ]}
+      />
+    </MockToastProvider>,
+  );
+
+  const statusSection = screen.getByRole("heading", { name: "Invitation Status" }).closest("article")!;
+  const chartCenter = within(statusSection).getByText("Total Invites").closest("div")!;
+  expect(within(chartCenter).getByText("2")).toBeTruthy();
+
+  const totalInvitesMetric = screen.getByText("All invitation records").closest("article")!;
+  expect(within(totalInvitesMetric).getByText("2")).toBeTruthy();
+  expect(within(statusSection).getAllByText("(50%)")).toHaveLength(2);
+});
