@@ -207,7 +207,7 @@ describe('DocumentWorkspace', () => {
     fireEvent.click(screen.getByRole('tab', { name: 'Files' }));
     expect(await screen.findByText('No e-copy requests for this document yet.')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Request e-copy' }));
-    expect(await screen.findByText('PENDING')).toBeTruthy();
+    expect(await screen.findByText('Pending')).toBeTruthy();
     await waitFor(() => expect(historyCalls).toBe(2));
     expect(fetchMock).toHaveBeenCalledWith('/api/portal/proxy-post?path=%2Fdocuments%2Fdoc-101%2Fecopy-requests', expect.objectContaining({ method: 'POST' }));
   });

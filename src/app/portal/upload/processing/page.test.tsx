@@ -36,7 +36,7 @@ describe('ProcessingPage', () => {
     vi.stubGlobal('fetch', vi.fn(() => new Promise<Response>(() => {})));
     renderPage();
     expect(await screen.findByRole('progressbar', { name: 'Checking document status…' })).toBeTruthy();
-    expect(screen.getByRole('status').textContent).toContain('Loading backend status');
+    expect(screen.getByRole('status').textContent).toContain('Checking status');
   });
 
   it.each([
