@@ -66,10 +66,10 @@ function getMetricColor(label: string) {
 
 function getMetricDetail(label: string) {
   if (label === 'Total Users') return 'Registered accounts';
-  if (label === 'Total Documents') return 'Documents in the system';
-  if (label === 'Total Processed') return 'Documents processed';
-  if (label === 'Total Failed') return 'Documents that failed processing';
-  if (label === 'Total On Chain') return 'Documents recorded on chain';
+  if (label === 'Total Documents') return 'System-wide documents';
+  if (label === 'Total Processed') return 'System-wide processed';
+  if (label === 'Total Failed') return 'System-wide failed processing';
+  if (label === 'Total On Chain') return 'System-wide recorded on chain';
   if (label === 'Pending Invitations') return 'awaiting acceptance';
   return '—';
 }
@@ -179,7 +179,23 @@ export default function DashboardPage() {
         <div className="flex min-h-0 flex-col gap-5">
           <section className={`${cardClass} flex min-h-0 flex-1 flex-col p-5`}>
             <h2 className="mb-3 shrink-0 text-base font-black text-[#0C2B49]">Documents needing attention</h2>
-            {documentsQuery.isLoading ? <p className="text-sm text-[#5B6F8A]">Checking document statuses…</p> : documentsQuery.isError ? <p className="text-sm text-[#5B6F8A]">Attention status is unavailable.</p> : attentionDocuments.length === 0 ? <p className="text-sm text-[#5B6F8A]">No action required. All documents are progressing normally.</p> : <div className="table-scroll-thin min-h-0 flex-1 overflow-y-auto"><div className="flex flex-col divide-y divide-[#E8F0F8]">{attentionDocuments.slice(0, 3).map((document) => <DocumentLink document={document} key={document.id} />)}</div></div>}
+            {documentsQuery.isLoading ? (
+              <p className="text-sm text-[#5B6F8A]">Checking document statuses…</p>
+            ) : documentsQuery.isError ? (
+              <p className="text-sm text-[#5B6F8A]">Attention status is unavailable.</p>
+            ) : attentionDocuments.length === 0 ? (
+              <p className="text-sm text-[#5B6F8A]">
+                {adminMetrics?.total_failed && adminMetrics.total_failed > 0
+                  ? 'No action required on your documents. (System-wide failures are tracked above.)'
+                  : 'No action required. All documents are progressing normally.'}
+              </p>
+            ) : (
+              <div className="table-scroll-thin min-h-0 flex-1 overflow-y-auto">
+                <div className="flex flex-col divide-y divide-[#E8F0F8]">
+                  {attentionDocuments.slice(0, 3).map((document) => <DocumentLink document={document} key={document.id} />)}
+                </div>
+              </div>
+            )}
           </section>
 
           <section className={`${cardClass} flex min-h-0 flex-1 flex-col p-5`}>
