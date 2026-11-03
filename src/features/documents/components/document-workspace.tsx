@@ -91,14 +91,14 @@ function DraftProgress({ lifecycle, readinessPending = false }: {
 
   return (
     <nav aria-label="Draft and filing progress" className="border-b border-[#D7E4F2] pb-5">
-      <p className="text-sm font-bold uppercase tracking-[0.08em] text-[#4B6382]">{isFinalized ? 'All four steps complete' : `Step ${currentStage + 1} of ${draftWorkflowStages.length}`}</p>
-      <ol className="mt-3 grid gap-x-5 gap-y-3 sm:grid-cols-2 xl:grid-cols-4">
+      <p className="text-xs font-bold uppercase tracking-[0.08em] text-[#4B6382]">{isFinalized ? 'All four steps complete' : `Step ${currentStage + 1} of ${draftWorkflowStages.length}`}</p>
+      <ol className="mt-3 grid grid-cols-1 gap-x-5 gap-y-3 sm:grid-cols-2 lg:grid-cols-4">
         {draftWorkflowStages.map((stage, index) => (
           <li key={stage} aria-current={!isFinalized && index === currentStage ? 'step' : undefined} className="flex min-w-0 items-start gap-2.5">
-            <span aria-hidden="true" className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold ${isFinalized || index < currentStage ? 'bg-[#E7F5EC] text-[#067647]' : index === currentStage ? 'bg-[#EAF4FF] text-[#0C2B49]' : 'bg-[#F2F5F8] text-[#4B6382]'}`}>
+            <span aria-hidden="true" className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold ${isFinalized || index < currentStage ? 'bg-[#E7F5EC] text-[#067647]' : index === currentStage ? 'bg-[#0067B3] text-white ring-4 ring-[#EAF4FF]' : 'border border-[#D7E4F2] bg-[#F2F5F8] text-[#4B6382]'}`}>
               {isFinalized || index < currentStage ? '✓' : index + 1}
             </span>
-            <span className={`text-base leading-6 ${!isFinalized && index === currentStage ? 'font-bold text-[#0C2B49]' : 'font-medium text-[#4B6382]'}`}>
+            <span className={`text-base leading-6 ${!isFinalized && index === currentStage ? 'font-bold text-[#0C2B49]' : isFinalized || index < currentStage ? 'font-semibold text-[#0C2B49]' : 'font-medium text-[#4B6382]'}`}>
               <span className="sr-only">{isFinalized || index < currentStage ? 'Completed: ' : index === currentStage ? 'Current step: ' : 'Upcoming: '}</span>
               {stage}
             </span>
@@ -849,9 +849,9 @@ export function DocumentWorkspace({
   return (
     <section className={`mx-auto flex min-h-0 w-full flex-col bg-transparent ${isDrafting ? 'overflow-hidden' : 'max-w-7xl'} ${className ?? ''}`}>
       {isDrafting ? (
-        <div className="mx-auto min-h-0 w-full max-w-4xl flex-1 overflow-y-auto px-4 py-6 sm:px-8">
+        <div className="mx-auto min-h-0 w-full max-w-4xl flex-1 overflow-y-auto px-4 py-6 sm:px-6">
           <header className="mb-6">
-            <p className="text-sm font-bold uppercase tracking-[0.1em] text-[#4B6382]">{document.lifecycle === 'PREPARING' ? 'Drafting workspace' : 'Ready for signature'}</p>
+            <p className="text-xs font-bold uppercase tracking-[0.08em] text-[#4B6382]">{document.lifecycle === 'PREPARING' ? 'Drafting workspace' : 'Ready for signature'}</p>
             <h2 className="mt-1 text-xl font-bold leading-7 text-[#0C2B49]">{document.lifecycle === 'PREPARING' ? 'Prepare and review the document' : 'Sign the document and return the PDF'}</h2>
             <p className="mt-2 max-w-3xl text-base leading-7 text-[#344054]">{document.lifecycle === 'PREPARING' ? 'The Google Doc is the working draft. Comments and participants stay with this record while you agree on the text.' : 'Signing happens outside LexChain. Upload the signed PDF here to keep it attached to this same record.'}</p>
           </header>
