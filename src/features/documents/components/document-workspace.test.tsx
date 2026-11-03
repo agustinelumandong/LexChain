@@ -593,6 +593,7 @@ describe('DocumentWorkspace', () => {
     expect(screen.getByText('Ready for signature')).toBeTruthy();
     expect(screen.getByRole('heading', { name: 'Approved text' })).toBeTruthy();
     expect(screen.getByRole('link', { name: 'Open approved Google Doc' }).getAttribute('href')).toBe(document.draft_url);
+    expect(screen.getByText('This is the agreed text for signing and notarization outside LexChain.')).toBeTruthy();
     expect(screen.getByText(/Print the approved text, collect signatures and any required notary stamp, then upload the signed PDF here\./)).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Attach signed PDF' }));
 
