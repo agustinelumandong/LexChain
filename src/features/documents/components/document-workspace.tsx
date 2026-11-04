@@ -13,6 +13,7 @@ import HistoryOutlinedIcon from '@mui/icons-material/HistoryOutlined';
 import PictureAsPdfOutlinedIcon from '@mui/icons-material/PictureAsPdfOutlined';
 import DownloadOutlinedIcon from '@mui/icons-material/DownloadOutlined';
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
+import MoreVertIcon from '@mui/icons-material/MoreVert';
 import CloseOutlinedIcon from '@mui/icons-material/CloseOutlined';
 import ManageAccountsOutlinedIcon from '@mui/icons-material/ManageAccountsOutlined';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
@@ -33,6 +34,7 @@ import { DocumentEcopyRequestHistory } from '@/features/access/components/docume
 import { listRegisterBooks } from '@/features/office/books-api';
 import { PortalDropdown } from '@/features/portal/components';
 import { Checkbox } from '@/shared/components/ui';
+import { usePopup } from '@/shared/components/ui/use-popup';
 import { getRegisterEntryError, getUploadFileError } from '@/features/documents/portal-upload';
 import { createWatermarkedSignedPdf } from '@/features/documents/watermark-signed-pdf';
 import { DocumentParticipantManagement } from '@/features/documents/components/document-participant-management';
@@ -480,6 +482,8 @@ function SignedPdfPreview({
     }
   }
 
+  const { open: downloadMenuOpen, setOpen: setDownloadMenuOpen, ref: downloadMenuRef } = usePopup();
+
   function openPdfViewer() {
     setPdfLoading(true);
     setPdfViewerOpen(true);
@@ -487,7 +491,7 @@ function SignedPdfPreview({
 
   return (
     <section aria-labelledby="signed-pdf-preview-heading" className="flex min-w-0 flex-col rounded-xl border border-[#D7E4F2] bg-white p-4 sm:p-5">
-      <div className="flex flex-wrap items-start justify-between gap-3">
+      <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <h2 id="signed-pdf-preview-heading" className="inline-flex items-center gap-2 text-lg font-bold leading-6 text-[#0C2B49]"><PictureAsPdfOutlinedIcon aria-hidden="true" sx={{ fontSize: 20, color: '#0067B3' }} />Signed PDF</h2>
@@ -495,27 +499,93 @@ function SignedPdfPreview({
             {document.lifecycle === 'FINALIZED' && (
               <span className="inline-flex items-center gap-1 rounded-full bg-[#F0F4F8] px-2.5 py-0.5 text-xs font-bold text-[#344054]">
                 <LockOutlinedIcon aria-hidden="true" sx={{ fontSize: 13, color: '#0067B3' }} />
-                Finalized on blockchain (Locked)
+                On-Chain (Locked)
               </span>
             )}
           </div>
-          {signedCopy && <p className="mt-1 break-words text-sm leading-5 text-[#4B6382]">{signedCopy.original_filename ?? document.file_name}{typeof signedCopy.size_bytes === 'number' ? ` · ${formatFileSize(signedCopy.size_bytes)}` : ''}{signedCopy.created_at ? ` · Attached ${formatDate(signedCopy.created_at)}` : ''}</p>}
+          {signedCopy && <p className="mt-1 break-words text-sm leading-5 text-[#4B6382]"><span className="font-semibold text-[#0C2B49]">{signedCopy.original_filename ?? document.file_name}</span>{typeof signedCopy.size_bytes === 'number' ? ` · ${formatFileSize(signedCopy.size_bytes)}` : ''}{signedCopy.created_at ? ` · Attached ${formatDate(signedCopy.created_at)}` : ''}</p>}
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {document.permissions?.can_replace_signed_copy && onOpenReplace && (
             <button
               type="button"
               onClick={onOpenReplace}
-              className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-[#0067B3] px-4 py-2 text-sm font-extrabold text-[#0067B3] hover:bg-[#EAF4FF] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3] sm:min-h-9"
+              className="inline-flex min-h-10 items-center gap-1.5 rounded-full border border-[#0067B3] px-3.5 py-2 text-sm font-extrabold text-[#0067B3] hover:bg-[#EAF4FF] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]"
             >
               Replace signed PDF
             </button>
+          )}
+          {signedCopy && (
+            <>
+              <button
+                type="button"
+                aria-haspopup="dialog"
+                aria-controls="signed-pdf-viewer-dialog"
+                onClick={openPdfViewer}
+                className="inline-flex min-h-10 items-center justify-center gap-2 rounded-full bg-[#0067B3] px-4 py-2 text-sm font-bold text-white shadow-sm hover:bg-[#0673C4] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]"
+              >
+                <PictureAsPdfOutlinedIcon aria-hidden="true" sx={{ fontSize: 18 }} />
+                View PDF
+              </button>
+              <div ref={downloadMenuRef} className="relative">
+                <button
+                  type="button"
+                  aria-label="Download options"
+                  aria-expanded={downloadMenuOpen}
+                  aria-controls="signed-pdf-download-menu"
+                  onClick={() => setDownloadMenuOpen((open) => !open)}
+                  className="grid min-h-10 min-w-10 place-items-center rounded-full border border-[#D7E4F2] text-[#0C2B49] hover:bg-[#EAF4FF] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]"
+                >
+                  <MoreVertIcon aria-hidden="true" sx={{ fontSize: 20 }} />
+                </button>
+                {downloadMenuOpen && (
+                  <div
+                    id="signed-pdf-download-menu"
+                    role="menu"
+                    aria-label="Download options"
+                    className="absolute right-0 top-full z-50 mt-1 min-w-56 overflow-hidden rounded-xl border border-[#D7E4F2] bg-white p-1.5 shadow-lg shadow-[#183B6B]/10"
+                  >
+                    <a
+                      role="menuitem"
+                      aria-label="Download original signed PDF"
+                      href={signedCopyFileUrl(document.document_id, {
+                        copyId: signedCopy.id,
+                        download: true,
+                        filename: signedCopy.original_filename ?? document.file_name ?? undefined,
+                      })}
+                      onClick={() => setDownloadMenuOpen(false)}
+                      className="flex min-h-10 items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-semibold text-[#0C2B49] hover:bg-[#EAF4FF]"
+                    >
+                      <DownloadOutlinedIcon aria-hidden="true" sx={{ fontSize: 18, color: '#0067B3' }} />
+                      <span>Download original PDF <span className="text-xs font-normal text-[#4B6382]">(SHA-256)</span></span>
+                    </a>
+                    <button
+                      type="button"
+                      role="menuitem"
+                      aria-label={watermarkedCopyStatus === 'preparing' ? 'Preparing copy…' : 'Download PDF Copy'}
+                      disabled={watermarkedCopyStatus === 'preparing'}
+                      onClick={() => {
+                        void downloadWatermarkedCopy();
+                      }}
+                      className="flex min-h-10 w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-semibold text-[#0C2B49] hover:bg-[#EAF4FF] disabled:opacity-50"
+                    >
+                      <DownloadOutlinedIcon aria-hidden="true" sx={{ fontSize: 18, color: '#0067B3' }} />
+                      {watermarkedCopyStatus === 'preparing' ? (
+                        'Preparing copy…'
+                      ) : (
+                        <span>Download PDF Copy <span className="text-xs font-normal text-[#4B6382]">(Watermarked)</span></span>
+                      )}
+                    </button>
+                  </div>
+                )}
+              </div>
+            </>
           )}
           {document.permissions?.can_attach_signed_copy && !signedCopy && onOpenAttach && (
             <button
               type="button"
               onClick={onOpenAttach}
-              className="inline-flex min-h-11 items-center gap-1.5 rounded-full bg-[#0067B3] px-4 py-2 text-sm font-extrabold text-white hover:bg-[#0673C4] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3] sm:min-h-9"
+              className="inline-flex min-h-10 items-center gap-1.5 rounded-full bg-[#0067B3] px-4 py-2 text-sm font-extrabold text-white hover:bg-[#0673C4] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]"
             >
               Attach signed PDF
             </button>
@@ -523,69 +593,25 @@ function SignedPdfPreview({
         </div>
       </div>
 
+      {!signedCopy && (
+        <p className="mt-4 rounded-lg bg-[#F8FBFF] p-4 text-base leading-7 text-[#4B6382]">No signed PDF is attached to this document yet.</p>
+      )}
+
       {document.permissions?.can_replace_signed_copy && (
         <p className="mt-2 text-xs leading-5 text-[#4B6382]">
           Replacement is available while this document is in the signed stage. A replacement reason is required, and the current file is preserved in earlier signed PDFs below.
         </p>
       )}
 
-      {signedCopyForm}
-
-      {signedCopy ? (
-        <div className="mt-4 border-t border-[#E8F0F8] pt-4">
-          <div className="flex flex-wrap items-center gap-2.5">
-            <button
-              type="button"
-              aria-haspopup="dialog"
-              aria-controls="signed-pdf-viewer-dialog"
-              onClick={openPdfViewer}
-              className="inline-flex min-h-10 items-center justify-center gap-2 rounded-full bg-[#0067B3] px-5 py-2 text-sm font-bold text-white shadow-sm hover:bg-[#0673C4] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]"
-            >
-              <PictureAsPdfOutlinedIcon aria-hidden="true" sx={{ fontSize: 18 }} />
-              View PDF
-            </button>
-            <a
-              aria-label="Download original signed PDF"
-              href={signedCopyFileUrl(document.document_id, {
-                copyId: signedCopy.id,
-                download: true,
-                filename: signedCopy.original_filename ?? document.file_name ?? undefined,
-              })}
-              className="inline-flex min-h-10 items-center gap-1.5 rounded-full border border-[#D7E4F2] bg-white px-3.5 py-1.5 text-sm font-semibold text-[#0C2B49] hover:bg-[#EAF4FF] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3] sm:min-h-9"
-            >
-              <DownloadOutlinedIcon aria-hidden="true" sx={{ fontSize: 17 }} />
-              Download original PDF
-              <span className="text-xs font-normal text-[#4B6382]">(SHA-256)</span>
-            </a>
-            <button
-              type="button"
-              aria-label={watermarkedCopyStatus === 'preparing' ? 'Preparing copy…' : 'Download PDF Copy'}
-              onClick={() => void downloadWatermarkedCopy()}
-              disabled={watermarkedCopyStatus === 'preparing'}
-              className="inline-flex min-h-10 items-center gap-1.5 rounded-full border border-[#D7E4F2] bg-white px-3.5 py-1.5 text-sm font-semibold text-[#0C2B49] hover:bg-[#EAF4FF] disabled:cursor-wait disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3] sm:min-h-9"
-            >
-              <DownloadOutlinedIcon aria-hidden="true" sx={{ fontSize: 17 }} />
-              {watermarkedCopyStatus === 'preparing' ? (
-                'Preparing copy…'
-              ) : (
-                <>
-                  Download PDF Copy
-                  <span className="text-xs font-normal text-[#4B6382]">(Watermarked)</span>
-                </>
-              )}
-            </button>
-          </div>
-          {(watermarkedCopyStatus === 'failed' || watermarkedCopyStatus === 'downloaded') && (
-            <p aria-live="polite" className="mt-2 text-xs leading-5 text-[#4B6382]">
-              {watermarkedCopyStatus === 'failed'
-                ? 'Could not create the watermarked copy. The signed original is unchanged.'
-                : 'Watermarked PDF copy downloaded. The signed original remains unchanged for integrity checks.'}
-            </p>
-          )}
-        </div>
-      ) : (
-        <p className="mt-4 rounded-lg bg-[#F8FBFF] p-4 text-base leading-7 text-[#4B6382]">No signed PDF is attached to this document yet.</p>
+      {(watermarkedCopyStatus === 'failed' || watermarkedCopyStatus === 'downloaded') && (
+        <p aria-live="polite" className="mt-2 text-xs leading-5 text-[#4B6382]">
+          {watermarkedCopyStatus === 'failed'
+            ? 'Could not create the watermarked copy. The signed original is unchanged.'
+            : 'Watermarked PDF copy downloaded. The signed original remains unchanged for integrity checks.'}
+        </p>
       )}
+
+      {signedCopyForm}
 
       {role === 'user' && document.lifecycle === 'FINALIZED' && (
         <div className="mt-5 border-t border-[#D7E4F2] pt-4">

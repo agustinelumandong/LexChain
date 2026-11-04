@@ -392,9 +392,10 @@ describe('DocumentWorkspace', () => {
     fireEvent.click(screen.getByRole('tab', { name: 'Files' }));
     expect(within(screen.getByRole('heading', { name: 'Signed PDF' }).closest('section')!).getAllByText('attached.pdf').length).toBeTruthy();
     createWatermarkedSignedPdfMock.mockReturnValue(new Promise(() => {}));
-    fireEvent.click(screen.getByRole('button', { name: 'Download PDF Copy' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Download options' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Download PDF Copy' }));
     expect(createWatermarkedSignedPdfMock).toHaveBeenCalledWith('/api/portal/documents/doc-101/file?copy_id=copy-attached');
-    expect(screen.getByRole('button', { name: /Preparing copy/ }).hasAttribute('disabled')).toBe(true);
+    expect(screen.getByRole('menuitem', { name: /Preparing copy/ }).hasAttribute('disabled')).toBe(true);
   });
 
   it('attaches a prepared document without a book using automatic open-book numbering', async () => {
@@ -552,7 +553,7 @@ describe('DocumentWorkspace', () => {
     renderWorkspace({ document: { ...document, lifecycle: 'SIGNED' } });
     expect(screen.getByRole('tab', { name: 'Overview' })).toBeTruthy();
     fireEvent.click(screen.getByRole('tab', { name: 'Files' }));
-    expect(screen.getByRole('button', { name: 'Download PDF Copy' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Download options' })).toBeTruthy();
     fireEvent.click(screen.getByRole('tab', { name: 'Blockchain' }));
     expect(screen.getByText('No blockchain record yet')).toBeTruthy();
   });
@@ -789,7 +790,7 @@ describe('DocumentWorkspace', () => {
     expect(screen.queryByRole('link', { name: 'Open Google draft' })).toBeNull();
     expect(screen.getByRole('alert').textContent).toContain('invalid Google draft link');
     fireEvent.click(screen.getByRole('tab', { name: 'Files' }));
-    expect(screen.getByRole('button', { name: 'Download PDF Copy' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Download options' })).toBeTruthy();
   });
 
   it.each(['GOOGLE_NOT_CONNECTED', 'GOOGLE_RECONNECT_REQUIRED'])(
@@ -1431,8 +1432,9 @@ describe('DocumentWorkspace', () => {
     expect(within(filesSection).getByText(/Replacement is available while this document is in the signed stage. A replacement reason is required/i)).toBeTruthy();
 
     // Both original download and watermarked copy download are clearly distinguished
-    const downloadOriginal = within(filesSection).getByRole('link', { name: 'Download original signed PDF' });
-    const downloadWatermarked = within(filesSection).getByRole('button', { name: 'Download PDF Copy' });
+    fireEvent.click(within(filesSection).getByRole('button', { name: 'Download options' }));
+    const downloadOriginal = within(filesSection).getByRole('menuitem', { name: 'Download original signed PDF' });
+    const downloadWatermarked = within(filesSection).getByRole('menuitem', { name: 'Download PDF Copy' });
     expect(downloadOriginal.getAttribute('href')).toContain('/api/portal/documents/doc-101/file?');
     expect(downloadWatermarked).toBeTruthy();
     expect(within(filesSection).getByText('(SHA-256)')).toBeTruthy();
@@ -1460,7 +1462,7 @@ describe('DocumentWorkspace', () => {
 
     const filesSection = screen.getByRole('region', { name: 'Signed PDF' });
     expect(within(filesSection).queryByRole('button', { name: 'Replace signed PDF' })).toBeNull();
-    expect(within(filesSection).getByText(/Finalized on blockchain \(Locked\)/i)).toBeTruthy();
+    expect(within(filesSection).getByText(/On-Chain \(Locked\)/i)).toBeTruthy();
   });
 
   it('renders scanable multi-event history with timestamps, transitions, and actor disclosures (#172)', async () => {
