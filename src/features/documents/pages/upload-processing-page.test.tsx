@@ -29,10 +29,10 @@ describe('document processing cache updates', () => {
       ),
     )));
 
-    expect(await screen.findByRole('heading', { name: 'Waiting for finalization' })).toBeTruthy();
-    expect(screen.getByRole('progressbar', { name: 'Waiting for finalization' })).toBeTruthy();
+    expect(await screen.findByRole('heading', { name: 'Waiting for signed PDF' })).toBeTruthy();
+    expect(screen.getByRole('progressbar', { name: 'Waiting for signed PDF' })).toBeTruthy();
     expect(screen.getByRole('status').textContent).toContain('Current status: Preparing');
-    expect(screen.getByRole('status').textContent).toContain('OCR processing starts after the document is finalized.');
+    expect(screen.getByRole('status').textContent).toContain('Processing starts when a signed PDF is attached');
     queryClient.clear();
   });
 

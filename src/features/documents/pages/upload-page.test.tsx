@@ -82,15 +82,15 @@ afterEach(() => {
 });
 
 describe('signed document upload screen', () => {
-  it('omits processing status from a SIGNED upload result', async () => {
+  it('shows processing status from a SIGNED upload result', async () => {
     setupFetch([Response.json({ ...signedDocument, status: 'FAILED' }, { status: 201 })]);
     renderPage();
     await fillClosedBookUpload();
     fireEvent.click(screen.getByRole('button', { name: 'Confirm and file' }));
     expect(await screen.findByText('Signed document filed')).toBeTruthy();
     expect(screen.getByText('Signed')).toBeTruthy();
-    expect(screen.queryByText('Processing status')).toBeNull();
-    expect(screen.queryByText(/^(Failed|Processing failed)$/)).toBeNull();
+    expect(screen.getByText('Processing status')).toBeTruthy();
+    expect(screen.getByText('Failed')).toBeTruthy();
   });
 
   it('navigates to the created signed document instead of processing poll', async () => {

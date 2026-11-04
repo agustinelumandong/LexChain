@@ -88,7 +88,7 @@ vi.mock('@/features/portal/components', async (importOriginal) => {
   const actual = await importOriginal<Record<string, unknown>>();
   return {
     ...actual,
-    PortalChatbot: () => null,
+    PortalChatbot: () => createElement('button', { type: 'button' }, 'Ask document'),
   };
 });
 
@@ -180,6 +180,18 @@ afterEach(() => {
 });
 
 describe('document detail screen', () => {
+  it('labels a finalized document on-chain only when confirmed', async () => {
+    state.documentQuery = { data: { ...baseDocument, lifecycle: 'FINALIZED', on_chain: true }, isLoading: false, isError: false, refetch: vi.fn() };
+    await showPage();
+    expect(screen.getByText('On-chain')).toBeTruthy();
+  });
+
+  it.each([['PREPARING', false], ['READY_FOR_SIGNATURE', false], ['SIGNED', false], ['FINALIZED', true]])('shows document chat only after finalization (%s)', async (lifecycle, visible) => {
+    state.documentQuery = { ...state.documentQuery, data: { ...baseDocument, lifecycle } };
+    await showPage();
+    expect(Boolean(screen.queryByRole('button', { name: 'Ask document' }))).toBe(visible);
+  });
+
   it('refreshes document status while the detail page stays open', async () => {
     await showPage();
 
@@ -200,8 +212,7 @@ describe('document detail screen', () => {
     expect(screen.queryByText('Processing status')).toBeNull();
     expect(screen.queryByText('Finalized', { selector: 'dt' })).toBeNull();
     if (lifecycle === 'SIGNED') {
-      const overview = screen.getByRole('tabpanel');
-      expect(within(overview).queryByText('Processing', { selector: 'dt' })).toBeNull();
+      expect(screen.queryByText('Processing', { selector: 'dt' })).toBeNull();
     } else {
       expect(screen.getByText(lifecycle === 'PREPARING' ? 'Drafting workspace' : 'Ready for signature', { selector: 'p' })).toBeTruthy();
       expect(screen.queryByRole('tablist')).toBeNull();
@@ -213,6 +224,13 @@ describe('document detail screen', () => {
     await showPage();
     expect(screen.getAllByText('Finalized').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Processing failed').length).toBeGreaterThan(0);
+    expect(screen.queryByRole('button', { name: 'Finalize' })).toBeNull();
+  });
+
+  it('shows processing on a signed document before finalization', async () => {
+    state.documentQuery = { data: { ...baseDocument, lifecycle: 'SIGNED', status: 'QUEUED' }, isLoading: false, isError: false, refetch: vi.fn() };
+    await showPage();
+    expect(screen.getAllByText('Queued').length).toBeGreaterThan(0);
     expect(screen.queryByRole('button', { name: 'Finalize' })).toBeNull();
   });
 
@@ -236,10 +254,7 @@ describe('document detail screen', () => {
 
     expect(screen.getByRole('link', { name: 'Open Google draft' }).getAttribute('href'))
       .toBe('https://docs.google.com/document/d/draft-1');
-    fireEvent.click(screen.getByRole('tab', { name: 'Files' }));
     expect(screen.getByRole('button', { name: 'Download options' })).toBeTruthy();
-    fireEvent.click(screen.getByRole('tab', { name: 'Blockchain' }));
-    expect(screen.getByText('record-hash')).toBeTruthy();
   });
 
   it('shows a newly opened PREPARING record in the drafting workspace', async () => {
@@ -353,10 +368,10 @@ describe('document detail screen', () => {
     expect(screen.getByRole('button', { name: 'Finalize' })).toBeTruthy();
   });
 
-  it.each(['Overview', 'Files', 'Comments', 'Blockchain', 'History'])('keeps finalization confirmation visible from the %s tab', async (tab) => {
+  it('keeps finalization confirmation accessible before tabs appear', async () => {
     state.documentQuery = { ...state.documentQuery, data: { ...baseDocument, permissions: { ...baseDocument.permissions, can_finalize: true } } };
     await showPage();
-    fireEvent.click(screen.getByRole('tab', { name: tab }));
+    expect(screen.queryByRole('tablist')).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Finalize' }));
     const dialog = screen.getByRole('dialog', { name: 'Confirm finalization' });
     expect(within(dialog).getByText('This freezes the signed copy and records its fingerprint on the blockchain. It cannot be undone.')).toBeTruthy();
@@ -448,6 +463,7 @@ describe('document detail screen', () => {
     expect(screen.queryByText('Document finalized and anchored on-chain.')).toBeNull();
     expect(screen.queryByText('datahash101')).toBeNull();
     expect(sessionStorage.getItem('portal-finalize-unknown:doc-1')).toBeNull();
+    expect(state.queryClient.invalidateQueries).toHaveBeenCalledWith({ queryKey: ['portal-doc', 'doc-1'] });
   });
 
   it('reconciles a lost finalization response with GET FINALIZED without inventing a chain record', async () => {
@@ -497,7 +513,7 @@ describe('document detail screen', () => {
     fireEvent.click(checkStatus);
 
     expect(await screen.findByText('Document finalized and recorded on-chain.')).toBeTruthy();
-    expect(screen.getAllByText('Finalized').length).toBeGreaterThan(0);
+    expect(screen.getByText('On-chain')).toBeTruthy();
     expect(sessionStorage.getItem('portal-finalize-unknown:doc-1')).toBeNull();
   });
 
@@ -768,8 +784,6 @@ describe('document detail screen', () => {
     };
 
     await showPage();
-    fireEvent.click(screen.getByRole('tab', { name: 'Files' }));
-
-    await waitFor(() => expect(screen.getByText('No signed PDF is attached to this document yet.')).toBeTruthy());
+    await waitFor(() => expect(screen.getAllByText('No signed PDF is attached to this document yet.').length).toBeGreaterThan(0));
   });
 });

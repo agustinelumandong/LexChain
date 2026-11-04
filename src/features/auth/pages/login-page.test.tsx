@@ -45,4 +45,22 @@ describe("LoginPage", () => {
     expect(window.localStorage.length).toBe(0);
     expect(window.sessionStorage.length).toBe(0);
   });
+
+  it("toggles password visibility between masked and plain text", () => {
+    const queryClient = new QueryClient({ defaultOptions: { mutations: { retry: false } } });
+    render(<QueryClientProvider client={queryClient}><LoginPage /></QueryClientProvider>);
+
+    const passwordInput = screen.getByLabelText("Password") as HTMLInputElement;
+    expect(passwordInput.type).toBe("password");
+
+    const toggleButton = screen.getByRole("button", { name: "Show password" });
+    fireEvent.click(toggleButton);
+
+    expect(passwordInput.type).toBe("text");
+    expect(screen.getByRole("button", { name: "Hide password" })).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "Hide password" }));
+    expect(passwordInput.type).toBe("password");
+    expect(screen.getByRole("button", { name: "Show password" })).toBeTruthy();
+  });
 });

@@ -16,6 +16,7 @@ const queryState = vi.hoisted(() => ({
 const useQuery = vi.hoisted(() => vi.fn());
 
 vi.mock('@tanstack/react-query', () => ({ useQuery }));
+vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn() }) }));
 
 function renderDashboard() {
   return render(<PortalRoleProvider roleHint={queryState.role}><DashboardPage /></PortalRoleProvider>);
@@ -60,6 +61,13 @@ beforeEach(() => {
 });
 
 describe('DashboardPage', () => {
+  it('opens the shared new document choices from the dashboard', () => {
+    renderDashboard();
+    fireEvent.click(screen.getByRole('button', { name: 'New Document' }));
+    const dialog = screen.getByRole('dialog', { name: 'New Document' });
+    expect(within(dialog).getByRole('button', { name: /Prepare a document/ })).toBeTruthy();
+    expect(within(dialog).getByRole('link', { name: /File a signed PDF/ }).getAttribute('href')).toBe('/portal/upload');
+  });
   it('refreshes aggregate dashboard metrics while the page stays open', () => {
     renderDashboard();
 
@@ -96,7 +104,7 @@ describe('DashboardPage', () => {
     expect(within(attention).queryByText('Draft.pdf')).toBeNull();
     const processing = screen.getByRole('heading', { name: 'Processing' }).closest('section')!;
     expect(within(processing).getByText('Processing.pdf')).toBeTruthy();
-    expect(within(processing).queryByText('Signed.pdf')).toBeNull();
+    expect(within(processing).getByText('Signed.pdf')).toBeTruthy();
   });
 
   it('denies participants before requesting or rendering issuer dashboard data', () => {

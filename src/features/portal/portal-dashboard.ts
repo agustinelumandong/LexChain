@@ -26,10 +26,11 @@ export function getStatusOverviewLabel(status?: string | null) {
   return getDocumentStatusLabel(status);
 }
 
-export function getFinalizedProcessingDocuments<T extends { lifecycle: string; status?: string | null }>(documents: T[]): T[] {
+export function getProcessingDocuments<T extends { lifecycle: string; status?: string | null }>(documents: T[]): T[] {
   return documents.filter((document) => {
     const status = document.status?.trim().toUpperCase();
-    return document.lifecycle === 'FINALIZED' && (status === 'PROCESSING' || status === 'PENDING');
+    return (document.lifecycle === 'FINALIZED' && (status === 'PROCESSING' || status === 'PENDING'))
+      || (document.lifecycle === 'SIGNED' && (status === 'QUEUED' || status === 'PROCESSING' || status === 'ENRICHING'));
   });
 }
 

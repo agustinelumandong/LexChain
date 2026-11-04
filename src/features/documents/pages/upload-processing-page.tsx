@@ -34,20 +34,20 @@ export default function ProcessingPage({
     queryFn: () => fetchDocument(id),
     enabled: !!id,
     refetchInterval: (query) => {
-      if (query.state.data?.lifecycle?.trim().toUpperCase() !== 'FINALIZED') return 2000;
+      if (!['SIGNED', 'FINALIZED'].includes(query.state.data?.lifecycle?.trim().toUpperCase() ?? '')) return 2000;
       const currentStatus = query.state.data?.status?.trim().toLowerCase() ?? '';
       return DONE.has(currentStatus) || FAILED.has(currentStatus) || REVIEW_READY.has(currentStatus) ? false : 2000;
     },
   });
 
-  const isFinalized = data?.lifecycle?.trim().toUpperCase() === 'FINALIZED';
+  const hasSignedCopy = ['SIGNED', 'FINALIZED'].includes(data?.lifecycle?.trim().toUpperCase() ?? '');
   const status = data?.status?.trim().toLowerCase() ?? 'processing';
-  const done = isFinalized && DONE.has(status);
-  const reviewReady = isFinalized && REVIEW_READY.has(status);
+  const done = hasSignedCopy && DONE.has(status);
+  const reviewReady = hasSignedCopy && REVIEW_READY.has(status);
   const lookupError = isError && !!id;
-  const failed = (isFinalized && FAILED.has(status)) || !id;
+  const failed = (hasSignedCopy && FAILED.has(status)) || !id;
   const normalizedStatus = getDocumentProcessingStatusLabel(data?.lifecycle ?? '', data?.status ?? (failed ? 'FAILED' : 'PROCESSING'));
-  const processingTerminal = isFinalized && (done || reviewReady || FAILED.has(status));
+  const processingTerminal = hasSignedCopy && (done || reviewReady || FAILED.has(status));
 
   useEffect(() => {
     if (!id || !processingTerminal) return;
@@ -62,17 +62,17 @@ export default function ProcessingPage({
     return <DocumentProcessingStatus heading="Checking document status…" currentStatus="Checking status" description="Fetching the latest status from the document service." />;
   }
 
-  if (data && !isFinalized && !lookupError) {
+  if (data && !hasSignedCopy && !lookupError) {
     return (
       <DocumentProcessingStatus
-        heading="Waiting for finalization"
+        heading="Waiting for signed PDF"
         currentStatus={getDocumentLifecycleLabel(data.lifecycle)}
-        description="OCR processing starts after the document is finalized. This page will update as processing progresses."
+        description="Processing starts when a signed PDF is attached. This page will update as processing progresses."
       />
     );
   }
 
-  if (isFinalized && !done && !reviewReady && !lookupError && !failed) {
+  if (hasSignedCopy && !done && !reviewReady && !lookupError && !failed) {
     return (
       <DocumentProcessingStatus
         heading="Processing your document…"
@@ -121,7 +121,7 @@ export default function ProcessingPage({
           <div>
             <p className="text-xl font-black text-[#0C2B49]">Processing failed</p>
             <p className="mt-1 text-sm text-[#5B6F8A]">
-              {id ? 'The document is finalized, but processing failed. Open the document to inspect its available details.' : 'Missing document id.'}
+              {id ? 'Open the document to inspect its available details and retry processing if permitted.' : 'Missing document id.'}
             </p>
           </div>
           <Link href={id ? `/portal/documents/${id}` : '/portal/upload'} className="rounded-full bg-[#0067B3] px-6 py-3 text-sm font-black text-white">{id ? 'View document' : 'Try Again'}</Link>
