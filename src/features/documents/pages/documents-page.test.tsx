@@ -38,7 +38,8 @@ describe('document directory draft creation', () => {
     const fetchMock = setupFetch();
     renderPage();
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Create document draft' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'New Document' }));
+    fireEvent.click(screen.getByRole('button', { name: /Prepare a document/ }));
     fireEvent.change(screen.getByRole('textbox', { name: 'Document name' }), { target: { value: 'Client agreement' } });
     fireEvent.click(screen.getByRole('button', { name: 'Open document record' }));
 
@@ -57,7 +58,8 @@ describe('document directory draft creation', () => {
     setupFetch(Response.json({ detail: 'The document name is not available.' }, { status: 503 }));
     renderPage();
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Create document draft' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'New Document' }));
+    fireEvent.click(screen.getByRole('button', { name: /Prepare a document/ }));
     const nameField = screen.getByRole('textbox', { name: 'Document name' });
     fireEvent.change(nameField, { target: { value: 'Client agreement' } });
     fireEvent.click(screen.getByRole('button', { name: 'Open document record' }));
@@ -73,6 +75,18 @@ describe('document directory draft creation', () => {
 
     expect(await screen.findByText('The repository is temporarily unavailable.')).toBeTruthy();
   });
+
+  it('offers signed PDF filing and explains how to attach to an existing document', async () => {
+    setupFetch();
+    renderPage();
+
+    fireEvent.click(await screen.findByRole('button', { name: 'New Document' }));
+    const dialog = screen.getByRole('dialog', { name: 'New Document' });
+    expect(within(dialog).getByRole('link', { name: /File a signed PDF/ }).getAttribute('href')).toBe('/portal/upload');
+    expect(within(dialog).getByText(/Open it from your documents to attach its signed PDF/)).toBeTruthy();
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(screen.queryByRole('dialog', { name: 'New Document' })).toBeNull();
+  });
 });
 
 function documentFixture(id: string, isOwner: boolean, lifecycle = 'FINALIZED', status: string | null = null): DocumentListItem {
@@ -80,7 +94,7 @@ function documentFixture(id: string, isOwner: boolean, lifecycle = 'FINALIZED', 
 }
 
 describe('document ownership directory', () => {
-  it('shows lifecycle and hides processing for pre-finalized list records', async () => {
+  it('shows processing for signed records while keeping preparation separate', async () => {
     setupFetch(undefined, Response.json([
       documentFixture('Draft', true, 'PREPARING', 'FAILED'),
       documentFixture('Signature', true, 'READY_FOR_SIGNATURE', 'PROCESSING'),
@@ -90,12 +104,15 @@ describe('document ownership directory', () => {
     ]));
     renderPage();
     const table = await screen.findByRole('table');
-    for (const [name, lifecycle] of [['Draft', 'Preparing'], ['Signature', 'Ready for signature'], ['Signed', 'Signed']]) {
+    for (const [name, lifecycle] of [['Draft', 'Preparing'], ['Signature', 'Ready for signature']]) {
       const row = within(table).getByText(`${name}.pdf`).closest('tr')!;
       expect(within(row).getByText(lifecycle)).toBeTruthy();
       expect(within(row).queryByText(/^(Failed|Processing|Ready for review)$/)).toBeNull();
     }
-    expect(within(table).getByText('Ready for review')).toBeTruthy();
+    const signedRow = within(table).getByText('Signed.pdf').closest('tr')!;
+    expect(within(signedRow).getByText('Signed')).toBeTruthy();
+    expect(within(signedRow).getByText('Ready for review')).toBeTruthy();
+    expect(within(table).getAllByText('Ready for review')).toHaveLength(2);
     expect(within(table).getByText('Processing failed')).toBeTruthy();
     const distribution = screen.getByRole('heading', { name: 'Status Distribution' }).closest('article')!;
     expect(within(distribution).getByText('Preparing')).toBeTruthy();
@@ -115,7 +132,7 @@ describe('document ownership directory', () => {
     expect(within(table).getByText('Shared only.pdf')).toBeTruthy();
     const distribution = screen.getByRole('heading', { name: 'Status Distribution' }).closest('article')!;
     expect(within(distribution).getByLabelText('Total documents: 3')).toBeTruthy();
-    expect(Boolean(screen.queryByRole('button', { name: 'Create document draft' }))).toBe(role === 'document_issuer');
+    expect(Boolean(screen.queryByRole('button', { name: 'New Document' }))).toBe(role === 'document_issuer');
   });
 
   it('filters and sorts the combined client document list', async () => {
@@ -163,5 +180,20 @@ describe('document ownership directory', () => {
     expect(within(distribution).getByText('Ready for review')).toBeTruthy();
     expect(within(distribution).getByText('Processing failed')).toBeTruthy();
     expect(within(distribution).getByText('Failed')).toBeTruthy();
+  });
+
+  it('renders clean document directory layout without redundant Document Directory sub-heading (#173)', async () => {
+    setupFetch(undefined, Response.json([documentFixture('Agreement', true)]));
+    renderPage();
+
+    // Top-level page heading is present
+    expect(screen.getByRole('heading', { level: 1, name: 'Documents' })).toBeTruthy();
+    // Wait for data to load and table to render
+    expect(await screen.findByRole('table')).toBeTruthy();
+    // Redundant inner sub-heading is removed
+    expect(screen.queryByRole('heading', { name: 'Document Directory' })).toBeNull();
+    // Search, filters, and directory table region remain accessible
+    expect(screen.getByRole('textbox', { name: 'Filter by filename or reference' })).toBeTruthy();
+    expect(screen.getByRole('region', { name: 'Document directory results' })).toBeTruthy();
   });
 });

@@ -328,7 +328,7 @@ export interface paths {
         put?: never;
         /**
          * Upload an already signed document (Path 2)
-         * @description Upload a signed/notarized PDF and file it in a register book. The document is SIGNED and waits for the lawyer to finalize it — nothing is processed yet.
+         * @description Upload a signed/notarized PDF and file it in a register book. The document is SIGNED and its signed copy is queued for processing (`status` QUEUED): OCR, the lawyer's review of the text, then analysis, so its risk clauses are shown before finalize.
          *
          *     `doc_no` / `page_no` are the Doc. No. and Page No. from the notarial block. Optional for an OPEN book — the next free entry is used. Required for a CLOSED book, where they are copied from the paper register.
          *
@@ -499,12 +499,12 @@ export interface paths {
         get?: never;
         /**
          * Replace the signed copy
-         * @description Swap in the right signed copy before finalize. A reason is required and the previous copy is kept.
+         * @description Swap in the right signed copy before finalize. A reason is required and the previous copy is kept in history. The extraction, chunks and insights of the previous copy are cleared and the new copy is processed from the start (`status` QUEUED).
          */
         put: operations["replace_signed_copy_documents__document_id__signed_copy_put"];
         /**
          * Attach the signed copy (Path 1)
-         * @description Attach the signed/notarized PDF to the record it was prepared in and file it in a register book. Only from READY_FOR_SIGNATURE.
+         * @description Attach the signed/notarized PDF to the record it was prepared in and file it in a register book. Only from READY_FOR_SIGNATURE. The signed copy is queued for processing (`status` QUEUED).
          */
         post: operations["attach_signed_copy_documents__document_id__signed_copy_post"];
         delete?: never;
@@ -727,7 +727,7 @@ export interface paths {
         put?: never;
         /**
          * Finalize a document
-         * @description The lawyer confirms the signed copy. Freezes it, anchors the SHA-256 of the PDF on-chain, then queues OCR and analysis on the frozen copy. Only from SIGNED. This is the only point at which a document is hashed on-chain.
+         * @description The lawyer confirms the signed copy. Freezes it and anchors the SHA-256 of the PDF on-chain. Only from SIGNED, and only once processing is COMPLETED (shown as `permissions.can_finalize`), so the risk clauses were seen first. Nothing is queued. This is the only point at which a document is hashed on-chain.
          */
         post: operations["finalize_document_documents__document_id__finalize_post"];
         delete?: never;
@@ -1934,7 +1934,7 @@ export interface components {
             can_cancel: boolean;
             /**
              * Can Finalize
-             * @description May snapshot and anchor on-chain
+             * @description May snapshot and anchor on-chain; false until processing is COMPLETED
              */
             can_finalize: boolean;
             /**
@@ -1988,7 +1988,7 @@ export interface components {
             lifecycle: string;
             /**
              * Status
-             * @description Processing status; null until the document is finalized
+             * @description Processing status of the current signed copy; null until one is attached or uploaded
              */
             status?: string | null;
             /**
@@ -2062,6 +2062,11 @@ export interface components {
                 [key: string]: unknown;
             }[];
             /**
+             * Analysis Status
+             * @description How much of the document the risk analysis covered: `complete`, or `partial` when some sections could not be analyzed (then `risk_flags` may be missing clauses). Null until analysis has run, or for an analysis made before this was recorded.
+             */
+            analysis_status?: string | null;
+            /**
              * Created At
              * Format: date-time
              */
@@ -2092,7 +2097,7 @@ export interface components {
             lifecycle: string;
             /**
              * Status
-             * @description Processing status; null until the document is finalized
+             * @description Processing status of the current signed copy; null until one is attached or uploaded
              */
             status?: string | null;
             /**
@@ -5228,7 +5233,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Not SIGNED, or the stored file no longer matches the upload */
+            /** @description Not SIGNED; processing not COMPLETED (`PROCESSING_NOT_COMPLETE`); or the stored file no longer matches the upload */
             409: {
                 headers: {
                     [name: string]: unknown;

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { PortalApiError } from '@/shared/api/portal-error';
 import { InviteParticipantForm } from '@/features/access/components/invite-participant-form';
 
@@ -29,15 +29,50 @@ describe('InviteParticipantForm account lookup and modal confirmation', () => {
     expect(onFindAccount).toHaveBeenCalledWith('person@example.com');
   });
 
-  it('allows inviting missing accounts with viewer role directly by email', async () => {
+  it('allows reviewing and confirming missing accounts with viewer role before sending by email (#161)', async () => {
     const onInvite = vi.fn().mockResolvedValue(undefined);
     render(<InviteParticipantForm onFindAccount={vi.fn().mockResolvedValue(null)} onInvite={onInvite} />);
 
     fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'new@example.com' } });
     fireEvent.click(screen.getByRole('button', { name: 'Send invitation' }));
 
+    const dialog = await screen.findByRole('dialog', { name: 'Confirm participant invitation' });
+    expect(within(dialog).getByText('new@example.com')).toBeTruthy();
+    expect(within(dialog).getByText('Viewer')).toBeTruthy();
+    expect(within(dialog).getByText(/Unregistered \(invitation email will be sent\)/)).toBeTruthy();
+    expect(onInvite).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm and send' }));
     await waitFor(() => expect(onInvite).toHaveBeenCalledWith({ email: 'new@example.com', role: 'viewer' }));
-    expect(screen.queryByRole('dialog', { name: 'Confirm participant account' })).toBeNull();
+  });
+
+  it('allows cancelling from the unregistered participant confirmation modal without sending (#161)', async () => {
+    const onInvite = vi.fn().mockResolvedValue(undefined);
+    render(<InviteParticipantForm onFindAccount={vi.fn().mockResolvedValue(null)} onInvite={onInvite} />);
+
+    fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'cancel@example.com' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Send invitation' }));
+
+    expect(await screen.findByRole('dialog', { name: 'Confirm participant invitation' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+
+    expect(screen.queryByRole('dialog', { name: 'Confirm participant invitation' })).toBeNull();
+    expect(onInvite).not.toHaveBeenCalled();
+    expect((screen.getByLabelText('Email') as HTMLInputElement).value).toBe('cancel@example.com');
+  });
+
+  it('keeps input and displays backend feedback when an unregistered invitation fails (#161)', async () => {
+    const onInvite = vi.fn().mockRejectedValue(new Error('Backend delivery error'));
+    render(<InviteParticipantForm onFindAccount={vi.fn().mockResolvedValue(null)} onInvite={onInvite} />);
+
+    fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'fail@example.com' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Send invitation' }));
+
+    expect(await screen.findByRole('dialog', { name: 'Confirm participant invitation' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm and send' }));
+
+    expect((await screen.findByRole('alert')).textContent).toContain('Backend delivery error');
+    expect((screen.getByLabelText('Email') as HTMLInputElement).value).toBe('fail@example.com');
   });
 
   it('rejects non-viewer role for missing accounts with an explanation', async () => {
@@ -62,6 +97,9 @@ describe('InviteParticipantForm account lookup and modal confirmation', () => {
 
     fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'pending@example.com' } });
     fireEvent.click(screen.getByRole('button', { name: 'Send invitation' }));
+
+    expect(await screen.findByRole('dialog', { name: 'Confirm participant invitation' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm and send' }));
 
     expect(await screen.findByText('That address already has a pending, unexpired invitation on this document')).toBeTruthy();
     const resendButton = screen.getByRole('button', { name: 'Resend invitation' });
@@ -179,4 +217,13 @@ it.each([
   const permission = screen.getByLabelText('Permission');
   expect(document.getElementById(email.getAttribute('aria-describedby')!)?.textContent).toContain('Account unavailable.');
   expect(document.getElementById(permission.getAttribute('aria-describedby')!)?.textContent).toContain('Permission unavailable.');
+});
+
+it('renders Invite a participant heading without duplicated document-scope helper copy', () => {
+  render(<InviteParticipantForm onInvite={vi.fn()} />);
+  expect(screen.getByRole('heading', { name: 'Invite a participant' })).toBeTruthy();
+  expect(screen.queryByText('Grant access to this document only.')).toBeNull();
+  expect(screen.getByLabelText('Email')).toBeTruthy();
+  expect(screen.getByLabelText('Permission')).toBeTruthy();
+  expect(screen.getByRole('button', { name: 'Send invitation' })).toBeTruthy();
 });

@@ -197,4 +197,31 @@ describe("RegisterPage", () => {
     expect(await screen.findByRole("heading", { name: "Check your email" })).toBeTruthy();
     expect(screen.getByText("Confirm your email, then sign in. The document you were invited to will be waiting for you.")).toBeTruthy();
   });
+
+  it("toggles password and confirm password visibility", () => {
+    renderRegister();
+
+    const passwordInput = screen.getByLabelText(/^Password/) as HTMLInputElement;
+    const confirmPasswordInput = screen.getByLabelText("Confirm Password") as HTMLInputElement;
+
+    expect(passwordInput.type).toBe("password");
+    expect(confirmPasswordInput.type).toBe("password");
+
+    const showPasswordBtn = screen.getByRole("button", { name: "Show password" });
+    const showConfirmPasswordBtn = screen.getByRole("button", { name: "Show confirm password" });
+
+    fireEvent.click(showPasswordBtn);
+    expect(passwordInput.type).toBe("text");
+    expect(screen.getByRole("button", { name: "Hide password" })).toBeTruthy();
+
+    fireEvent.click(showConfirmPasswordBtn);
+    expect(confirmPasswordInput.type).toBe("text");
+    expect(screen.getByRole("button", { name: "Hide confirm password" })).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "Hide password" }));
+    expect(passwordInput.type).toBe("password");
+
+    fireEvent.click(screen.getByRole("button", { name: "Hide confirm password" }));
+    expect(confirmPasswordInput.type).toBe("password");
+  });
 });

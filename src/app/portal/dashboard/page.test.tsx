@@ -16,6 +16,7 @@ const queryState = vi.hoisted(() => ({
 const useQuery = vi.hoisted(() => vi.fn());
 
 vi.mock('@tanstack/react-query', () => ({ useQuery }));
+vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn() }) }));
 
 function renderDashboard() {
   return render(<PortalRoleProvider roleHint={queryState.role}><DashboardPage /></PortalRoleProvider>);
@@ -60,6 +61,13 @@ beforeEach(() => {
 });
 
 describe('DashboardPage', () => {
+  it('opens the shared new document choices from the dashboard', () => {
+    renderDashboard();
+    fireEvent.click(screen.getByRole('button', { name: 'New Document' }));
+    const dialog = screen.getByRole('dialog', { name: 'New Document' });
+    expect(within(dialog).getByRole('button', { name: /Prepare a document/ })).toBeTruthy();
+    expect(within(dialog).getByRole('link', { name: /File a signed PDF/ }).getAttribute('href')).toBe('/portal/upload');
+  });
   it('refreshes aggregate dashboard metrics while the page stays open', () => {
     renderDashboard();
 
@@ -96,7 +104,7 @@ describe('DashboardPage', () => {
     expect(within(attention).queryByText('Draft.pdf')).toBeNull();
     const processing = screen.getByRole('heading', { name: 'Processing' }).closest('section')!;
     expect(within(processing).getByText('Processing.pdf')).toBeTruthy();
-    expect(within(processing).queryByText('Signed.pdf')).toBeNull();
+    expect(within(processing).getByText('Signed.pdf')).toBeTruthy();
   });
 
   it('denies participants before requesting or rendering issuer dashboard data', () => {
@@ -125,6 +133,27 @@ describe('DashboardPage', () => {
     renderDashboard();
 
     expect(screen.getByText('No action required. All documents are progressing normally.')).toBeTruthy();
+  });
+
+  it('clarifies scope when system-wide failed documents exist but owned documents require no action (#163)', () => {
+    queryState.adminDashboard = {
+      total_users: 10,
+      total_lawyers: 2,
+      total_documents: 50,
+      total_processed: 40,
+      total_failed: 5,
+      total_on_chain: 35,
+      pending_invitations: 1,
+    };
+    queryState.documents = [
+      { id: 'normal-doc', file_name: 'Normal.pdf', is_owner: true, lifecycle: 'FINALIZED', status: 'COMPLETED', created_at: '2026-10-15T00:00:00Z' },
+    ];
+
+    renderDashboard();
+
+    expect(screen.getByText('Total Failed').parentElement?.textContent).toContain('5');
+    expect(screen.getByText('System-wide failed processing')).toBeTruthy();
+    expect(screen.getByText('No action required on your documents. (System-wide failures are tracked above.)')).toBeTruthy();
   });
 
   it('hides the lawyer metric while rendering the other dashboard values', () => {

@@ -7,10 +7,8 @@ import dayjs from 'dayjs';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
-import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import SearchIcon from '@mui/icons-material/Search';
-import FileUploadIcon from '@mui/icons-material/FileUpload';
 import FilterListIcon from '@mui/icons-material/FilterList';
 import CircleIcon from '@mui/icons-material/Circle';
 import DescriptionIcon from '@mui/icons-material/Description';
@@ -21,7 +19,7 @@ import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import { Dropdown } from "@/features/admin/components";
 import { getDocumentLifecycleBadgeClasses, getDocumentLifecycleLabel, getDocumentProcessingBadgeClasses, getDocumentProcessingStatusLabel } from '@/features/documents/document-ui';
 import { getPortalUiRole } from "@/features/access";
-import { CreateDocumentRecordForm } from '@/features/documents/components/create-document-record-form';
+import { NewDocumentAction } from '@/features/documents/components/new-document-action';
 import {
   getDocumentLifecycles,
   getVisibleDocuments,
@@ -95,7 +93,7 @@ function DocumentBadges({ document }: { document: Document }) {
   return (
     <div className="flex flex-wrap items-center gap-2">
       <span className={`${badgeClasses} ${getDocumentLifecycleBadgeClasses(document.lifecycle)}`}><CircleIcon aria-hidden="true" sx={{ fontSize: 8 }} />{getDocumentLifecycleLabel(document.lifecycle)}</span>
-      {document.lifecycle === 'FINALIZED' && <span className={`${badgeClasses} ${getDocumentProcessingBadgeClasses(document.status)}`}><CircleIcon aria-hidden="true" sx={{ fontSize: 8 }} />{getDocumentProcessingStatusLabel(document.lifecycle, document.status)}</span>}
+      {(document.lifecycle === 'FINALIZED' || (document.lifecycle === 'SIGNED' && document.status)) && <span className={`${badgeClasses} ${getDocumentProcessingBadgeClasses(document.status)}`}><CircleIcon aria-hidden="true" sx={{ fontSize: 8 }} />{getDocumentProcessingStatusLabel(document.lifecycle, document.status)}</span>}
     </div>
   );
 }
@@ -245,7 +243,6 @@ function StatusDistribution({ docs }: { docs: Document[] }) {
 }
 
 export default function DocumentsPage() {
-  const router = useRouter();
   const [search, setSearch] = useState('');
   const [lifecycle, setLifecycle] = useState('all');
   const [sort, setSort] = useState<DocumentListFilters['sort']>('newest');
@@ -253,7 +250,6 @@ export default function DocumentsPage() {
   const [createdThrough, setCreatedThrough] = useState('');
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState("5");
-  const [showCreateRecord, setShowCreateRecord] = useState(false);
   const documentsQuery = useQuery<Document[]>({ queryKey: ['portal-documents'], queryFn: fetchDocuments });
   const profileQuery = useQuery<UserProfile | null>({
     queryKey: ['portal-profile'],
@@ -289,10 +285,9 @@ export default function DocumentsPage() {
           <h1 className="text-[28px] font-black text-[#0C2B49]">Documents</h1>
           <p className="mt-1 text-sm text-[#5B6F8A]">Manage and review documents in the office repository</p>
         </div>
-        {isIssuer && <div className="flex flex-wrap gap-2"><button type="button" onClick={() => setShowCreateRecord((open) => !open)} aria-expanded={showCreateRecord} className="rounded-full border border-[#0067B3] px-5 py-2.5 text-sm font-black text-[#0067B3]">Create document draft</button><Link href="/portal/upload" className="inline-flex items-center gap-2 rounded-full bg-[#0067B3] px-5 py-2.5 text-sm font-black text-white"><FileUploadIcon sx={{ fontSize: 16 }} />Upload Document</Link></div>}
+        {isIssuer && <NewDocumentAction />}
       </div>
 
-      {isIssuer && showCreateRecord && <CreateDocumentRecordForm onClose={() => setShowCreateRecord(false)} onCreated={(id) => router.push(`/portal/documents/${id}`)} />}
 
       <div role="region" aria-label={isIssuer ? 'Office document results' : 'Document results'} className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto min-[1680px]:overflow-hidden">
       {documentsQuery.isLoading ? (
@@ -302,8 +297,7 @@ export default function DocumentsPage() {
       ) : allDocuments.length === 0 ? (
         <div className="rounded-[18px] border border-[#E8F0F8] bg-white p-8 text-center">
           <p className="text-sm font-bold text-[#0C2B49]">{search || lifecycle !== 'all' ? 'No documents match your search or filter' : 'No documents yet'}</p>
-          <p className="mt-1 text-xs text-[#5B6F8A]">{isIssuer ? 'Upload your first document to get started.' : 'No documents are available yet.'}</p>
-          {isIssuer && <Link href="/portal/upload" className="mt-4 inline-flex rounded-full bg-[#0067B3] px-5 py-2.5 text-sm font-black text-white">Upload Document</Link>}
+          <p className="mt-1 text-xs text-[#5B6F8A]">{isIssuer ? 'Select New Document to get started.' : 'No documents are available yet.'}</p>
         </div>
       ) : (
         <>
@@ -311,8 +305,7 @@ export default function DocumentsPage() {
             <article className="flex min-w-0 flex-col rounded-2xl border border-[#E4EEF9] bg-white shadow-sm shadow-[#DDEAF7]/35 min-[1680px]:min-h-0 min-[1680px]:overflow-hidden">
               <div className="border-b border-[#E4EEF9] p-5">
                 <div className="flex flex-wrap items-center gap-3">
-                  <h2 className="mr-auto shrink-0 text-lg font-black text-[#071B33]">Document Directory</h2>
-                  <label className="flex w-full items-center gap-2 rounded-xl border border-[#B8C9D9] bg-white px-4 py-2.5 focus-within:border-[#0067B3] sm:w-72">
+                  <label className="flex min-w-0 flex-1 items-center gap-2 rounded-xl border border-[#B8C9D9] bg-white px-4 py-2.5 focus-within:border-[#0067B3] sm:min-w-[280px]">
                     <SearchIcon fontSize="small" className="text-[#4B6382]" />
                     <span className="sr-only">Filter by filename or reference</span>
                     <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Filter by filename or reference…" className="w-full bg-transparent text-sm font-semibold text-[#0C2B49] outline-none placeholder:text-[#5B6F8A]" />

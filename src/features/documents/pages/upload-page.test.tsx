@@ -82,15 +82,15 @@ afterEach(() => {
 });
 
 describe('signed document upload screen', () => {
-  it('omits processing status from a SIGNED upload result', async () => {
+  it('shows processing status from a SIGNED upload result', async () => {
     setupFetch([Response.json({ ...signedDocument, status: 'FAILED' }, { status: 201 })]);
     renderPage();
     await fillClosedBookUpload();
     fireEvent.click(screen.getByRole('button', { name: 'Confirm and file' }));
     expect(await screen.findByText('Signed document filed')).toBeTruthy();
     expect(screen.getByText('Signed')).toBeTruthy();
-    expect(screen.queryByText('Processing status')).toBeNull();
-    expect(screen.queryByText(/^(Failed|Processing failed)$/)).toBeNull();
+    expect(screen.getByText('Processing status')).toBeTruthy();
+    expect(screen.getByText('Failed')).toBeTruthy();
   });
 
   it('navigates to the created signed document instead of processing poll', async () => {
@@ -378,5 +378,22 @@ describe('signed document upload screen', () => {
     expect(await screen.findByText('attachment_field: Attachment validation.')).toBeTruthy();
     expect(screen.getByRole('group', { name: 'Upload recovery' }).textContent).toContain('initial_field: Initial upload validation.');
     expect(screen.queryByText('initial_field: Initial upload validation.', { selector: '[role="alert"] p' })).toBeNull();
+  });
+
+  it('provides distinct, concise headings distinguishing page, workflow steps, and fields (#173)', async () => {
+    setupFetch([]);
+    renderPage();
+
+    // Top-level page heading
+    expect(await screen.findByRole('heading', { level: 1, name: 'Upload Document' })).toBeTruthy();
+
+    // Workflow step section headings (h2)
+    expect(screen.getByRole('heading', { level: 2, name: 'Document information' })).toBeTruthy();
+    expect(screen.getByRole('heading', { level: 2, name: 'Select PDF' })).toBeTruthy();
+    expect(screen.getByRole('heading', { level: 2, name: 'Confirm and file signed document' })).toBeTruthy();
+
+    // Field labels remain clear and accessible
+    expect(screen.getByLabelText('Document title')).toBeTruthy();
+    expect(screen.getByLabelText('Register book')).toBeTruthy();
   });
 });

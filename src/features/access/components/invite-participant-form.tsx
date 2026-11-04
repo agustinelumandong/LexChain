@@ -66,7 +66,16 @@ export function InviteParticipantForm({ onFindAccount, onInvite, onResend }: Inv
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [lookup, setLookup] = useState<AccountLookup>({ status: 'idle' });
   const [pendingAccount, setPendingAccount] = useState<UserSearchResponse | null>(null);
+  const [pendingUnregistered, setPendingUnregistered] = useState<{ email: string; role: DocumentParticipantPermission } | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+
+  function handleCancelModal() {
+    if (isSubmitting) return;
+    setModalOpen(false);
+    setPendingAccount(null);
+    setPendingUnregistered(null);
+    setLookup({ status: 'idle' });
+  }
 
   async function handleSendInvitation(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -85,6 +94,7 @@ export function InviteParticipantForm({ onFindAccount, onInvite, onResend }: Inv
         if (account) {
           setLookup({ status: 'found', account });
           setPendingAccount(account);
+          setPendingUnregistered(null);
           setModalOpen(true);
           return;
         }
@@ -105,6 +115,14 @@ export function InviteParticipantForm({ onFindAccount, onInvite, onResend }: Inv
         summary: 'Only viewer can be invited by email.',
         fields: { role: 'Only viewer can be invited by email.' },
       });
+      return;
+    }
+
+    if (onFindAccount) {
+      setLookup({ status: 'not-found' });
+      setPendingAccount(null);
+      setPendingUnregistered({ email: validation.value.email, role: validation.value.role });
+      setModalOpen(true);
       return;
     }
 
@@ -138,7 +156,7 @@ export function InviteParticipantForm({ onFindAccount, onInvite, onResend }: Inv
   }
 
   async function handleConfirmInvite() {
-    if (!pendingAccount) return;
+    if (!pendingAccount && !pendingUnregistered) return;
     const validation = validateParticipantInvitation({ email, role });
     if (!validation.valid) {
       setError({ summary: validation.message, fields: {} });
@@ -154,6 +172,7 @@ export function InviteParticipantForm({ onFindAccount, onInvite, onResend }: Inv
       setRole('viewer');
       setLookup({ status: 'idle' });
       setPendingAccount(null);
+      setPendingUnregistered(null);
       setModalOpen(false);
     } catch (reason) {
       setError(invitationFeedback(reason, 'Unable to invite this participant.'));
@@ -169,7 +188,6 @@ export function InviteParticipantForm({ onFindAccount, onInvite, onResend }: Inv
     <>
       <form onSubmit={handleSendInvitation} className="rounded-[18px] border border-[#E8F0F8] bg-white p-5 shadow-[0_4px_12px_rgba(19,59,115,0.05)]">
         <h2 className="text-lg font-extrabold text-[#0C2B49]">Invite a participant</h2>
-        <p className="mt-1 text-sm font-medium text-[#5B6F8A]">Grant access to this document only.</p>
         <div className="mt-4 grid gap-3 sm:grid-cols-[minmax(0,1fr)_180px_auto]">
           <label className="flex flex-col gap-1.5 text-xs font-bold text-[#0C2B49]">
             <span id={`${feedbackId}-email-label`}>Email</span>
@@ -236,8 +254,8 @@ export function InviteParticipantForm({ onFindAccount, onInvite, onResend }: Inv
         {lookup.status === 'error' && <p role="alert" className="mt-3 text-sm font-semibold text-[#C2410C]">{lookup.message}</p>}
       </form>
 
-      <Modal open={modalOpen} onClose={() => { if (!isSubmitting) setModalOpen(false); }} title="Confirm participant account">
-        {pendingAccount && (
+      <Modal open={modalOpen} onClose={handleCancelModal} title={pendingAccount ? "Confirm participant account" : "Confirm participant invitation"}>
+        {pendingAccount ? (
           <div className="space-y-4">
             <p className="text-sm leading-6 text-[#4B6382]">
               Please verify that this is the correct user before sending the invitation:
@@ -255,7 +273,7 @@ export function InviteParticipantForm({ onFindAccount, onInvite, onResend }: Inv
             <div className="flex justify-end gap-2 pt-2">
               <button
                 type="button"
-                onClick={() => setModalOpen(false)}
+                onClick={handleCancelModal}
                 disabled={isSubmitting}
                 className="rounded-full border border-[#D7E4F2] px-4 py-2 text-sm font-bold text-[#0C2B49] hover:bg-[#EEF4FB] disabled:opacity-50"
               >
@@ -271,7 +289,41 @@ export function InviteParticipantForm({ onFindAccount, onInvite, onResend }: Inv
               </button>
             </div>
           </div>
-        )}
+        ) : pendingUnregistered ? (
+          <div className="space-y-4">
+            <p className="text-sm leading-6 text-[#4B6382]">
+              No existing account was found for this address. Please review the recipient and permission before sending the invitation:
+            </p>
+            <div className="rounded-xl border border-[#D7E4F2] bg-[#F8FBFF] p-4 text-sm">
+              <div className="grid grid-cols-[100px_1fr] gap-2">
+                <span className="font-semibold text-[#4B6382]">Recipient:</span>
+                <span className="font-bold text-[#0C2B49]">{pendingUnregistered.email}</span>
+                <span className="font-semibold text-[#4B6382]">Permission:</span>
+                <span className="font-bold capitalize text-[#0067B3]">{permissionLabels[role]}</span>
+                <span className="font-semibold text-[#4B6382]">Account:</span>
+                <span className="font-medium text-[#4B6382]">Unregistered (invitation email will be sent)</span>
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={handleCancelModal}
+                disabled={isSubmitting}
+                className="rounded-full border border-[#D7E4F2] px-4 py-2 text-sm font-bold text-[#0C2B49] hover:bg-[#EEF4FB] disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmInvite}
+                disabled={isSubmitting}
+                className="rounded-full bg-[#0067B3] px-5 py-2 text-sm font-black text-white hover:bg-[#005FA3] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3] disabled:opacity-50"
+              >
+                {isSubmitting ? 'Sending…' : 'Confirm and send'}
+              </button>
+            </div>
+          </div>
+        ) : null}
       </Modal>
     </>
   );

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Poppins } from "next/font/google";
 import { Toaster } from "sonner";
 import { PwaRegistration } from "@/pwa/pwa-registration";
+import { DevToolsGuard } from "@/shared/components/devtools-guard";
 import { Providers } from "./providers";
 import "./globals.css";
 
@@ -29,6 +30,7 @@ export default function RootLayout({
     <html lang="en" className={`${poppins.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col" suppressHydrationWarning>
         <Providers>
+          <DevToolsGuard />
           {children}
           <Toaster position="bottom-right" richColors closeButton visibleToasts={1} mobileOffset={{ bottom: 120 }} />
         </Providers>

@@ -132,7 +132,7 @@ export default function DocumentVerifyPage() {
           </button>}
         </div>
       ) : verifyQuery.data ? (
-        <VerifyWorkspace result={verifyQuery.data} onRetry={() => void verifyQuery.refetch()} />
+        <VerifyWorkspace result={verifyQuery.data} onRetry={() => void verifyQuery.refetch()} role={role} />
       ) : null}
 
       <Modal open={restoreDialogOpen} onClose={closeRestoreDialog} title="Restore archived original">

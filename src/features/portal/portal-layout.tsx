@@ -9,7 +9,7 @@ import { usePathname } from "next/navigation";
 import MenuIcon from "@mui/icons-material/Menu";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import { getPortalLoginRedirect, getPortalRoleLabel, isSupportedPortalUiRole } from "@/features/access";
-import { getFinalizedProcessingDocuments, getPortalNavigation } from "@/features/portal/portal-dashboard";
+import { getProcessingDocuments, getPortalNavigation } from "@/features/portal/portal-dashboard";
 import { getPortalNavigationIcon, isPortalRouteActive, usePortalRole } from "@/features/access/components";
 import { PortalBottomNav } from "@/features/portal/components/portal-bottom-nav";
 import { PortalTopBar } from "@/features/portal/components/portal-topbar";
@@ -57,7 +57,7 @@ export default function PortalLayout({ children, demoMode }: { children: React.R
     ? getPortalNavigation(uiRole)
     : [];
   const portalHome = getPortalLoginRedirect(uiRole) ?? "/portal/dashboard";
-  const processingCount = getFinalizedProcessingDocuments(documents).length;
+  const processingCount = getProcessingDocuments(documents).length;
 
   async function handleLogout() {
     try {

@@ -15,8 +15,8 @@ import { getPortalRoleLabel } from "@/features/access";
 type UserProfile = ApiSchema<'UserProfileResponse'>;
 
 const sharedSettingsItems = [
-  { label: 'Account details', description: 'Update your profile and legal contact info', href: '/portal/profile/account', icon: PersonIcon },
-  { label: 'Notifications', description: 'Manage notification preferences', href: '/portal/notifications', icon: NotificationsNoneIcon },
+  { label: 'Account details', description: 'View your profile and account information', href: '/portal/profile/account', icon: PersonIcon },
+  { label: 'Notifications', description: 'View updates and activity alerts', href: '/portal/notifications', icon: NotificationsNoneIcon },
   { label: 'Security', description: 'Password and login settings', href: '/portal/profile/security', icon: LockIcon },
   { label: 'Privacy policy', description: 'Review how document and account data is handled', href: '/privacy', icon: PolicyIcon },
   { label: 'Help and support', description: 'Get help with access or verification issues', href: 'mailto:support@lexchain.app', icon: HelpOutlineIcon },

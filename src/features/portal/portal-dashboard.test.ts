@@ -1,19 +1,22 @@
 import { describe, expect, it } from "vitest";
-import { getDashboardMetrics, getFinalizedProcessingDocuments, getPortalNavigation, getRecentActivityStatus, getStatusOverviewLabel } from "@/features/portal/portal-dashboard";
+import { getDashboardMetrics, getProcessingDocuments, getPortalNavigation, getRecentActivityStatus, getStatusOverviewLabel } from "@/features/portal/portal-dashboard";
 
 describe("portal dashboard", () => {
-  it('returns only finalized processing and pending documents', () => {
+  it('includes active signed processing while retaining legacy finalized processing', () => {
     const documents = [
       { id: 'processing', lifecycle: 'FINALIZED', status: ' processing ' },
       { id: 'draft', lifecycle: 'PREPARING', status: 'PROCESSING' },
       { id: 'pending', lifecycle: 'FINALIZED', status: ' Pending ' },
       { id: 'ready', lifecycle: 'READY_FOR_SIGNATURE', status: 'PENDING' },
       { id: 'signed', lifecycle: 'SIGNED', status: 'PROCESSING' },
+      { id: 'signed-queued', lifecycle: 'SIGNED', status: 'QUEUED' },
+      { id: 'signed-enriching', lifecycle: 'SIGNED', status: 'ENRICHING' },
+      { id: 'signed-review', lifecycle: 'SIGNED', status: 'AWAITING_REVIEW' },
       { id: 'failed', lifecycle: 'FINALIZED', status: 'FAILED' },
       { id: 'unknown', lifecycle: 'FINALIZED', status: 'queued_for_embeddings' },
       { id: 'empty', lifecycle: 'FINALIZED', status: null },
     ];
-    expect(getFinalizedProcessingDocuments(documents).map(({ id }) => id)).toEqual(['processing', 'pending']);
+    expect(getProcessingDocuments(documents).map(({ id }) => id)).toEqual(['processing', 'pending', 'signed', 'signed-queued', 'signed-enriching']);
   });
 
   it("gives issuers the enabled office workspace navigation", () => {

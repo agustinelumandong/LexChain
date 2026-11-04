@@ -36,26 +36,49 @@ describe('ProcessingPage', () => {
     vi.stubGlobal('fetch', vi.fn(() => new Promise<Response>(() => {})));
     renderPage();
     expect(await screen.findByRole('progressbar', { name: 'Checking document status…' })).toBeTruthy();
-    expect(screen.getByRole('status').textContent).toContain('Loading backend status');
+    expect(screen.getByRole('status').textContent).toContain('Checking status');
   });
 
   it.each([
     ['PREPARING', 'Preparing', 'queued_for_embeddings'],
     ['READY_FOR_SIGNATURE', 'Ready for signature', 'FAILED'],
-    ['SIGNED', 'Signed', 'AWAITING_REVIEW'],
-  ])('waits for finalization before showing OCR status (%s)', async (lifecycle, label, status) => {
+  ])('waits for a signed PDF before showing OCR status (%s)', async (lifecycle, label, status) => {
     const fetchMock = vi.fn()
       .mockResolvedValueOnce(documentResponse(status, lifecycle))
       .mockResolvedValue(documentResponse('AWAITING_REVIEW'));
     vi.stubGlobal('fetch', fetchMock);
     renderPage();
-    expect(await screen.findByRole('progressbar', { name: 'Waiting for finalization' })).toBeTruthy();
+    expect(await screen.findByRole('progressbar', { name: 'Waiting for signed PDF' })).toBeTruthy();
     expect(screen.getByRole('status').textContent).toContain(`Current status: ${label}`);
-    expect(screen.getByText(/OCR processing starts after the document is finalized/)).toBeTruthy();
+    expect(screen.getByText(/Processing starts when a signed PDF is attached/)).toBeTruthy();
     expect(screen.queryByText('Processing failed')).toBeNull();
     expect(screen.queryByRole('link')).toBeNull();
     expect(await screen.findByRole('link', { name: 'Review extracted text' }, { timeout: 3_000 })).toBeTruthy();
     expect(screen.getByText('Lifecycle: Finalized')).toBeTruthy();
+  });
+
+  it.each([
+    ['QUEUED', 'Queued'],
+    ['PROCESSING', 'Processing'],
+    ['ENRICHING', 'Preparing document'],
+  ])('shows signed document processing while status is %s', async (status, label) => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(documentResponse(status, 'SIGNED')));
+    renderPage();
+    expect(await screen.findByText(`Current status: ${label}`)).toBeTruthy();
+    expect(screen.queryByText('Waiting for signed PDF')).toBeNull();
+  });
+
+  it('offers text review for a signed copy awaiting review', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(documentResponse('AWAITING_REVIEW', 'SIGNED')));
+    renderPage();
+    expect((await screen.findByRole('link', { name: 'Review extracted text' })).getAttribute('href')).toBe('/portal/documents/doc-1/review');
+  });
+
+  it.each(['COMPLETED', 'FAILED'])('shows signed processing terminal state %s', async (status) => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(documentResponse(status, 'SIGNED')));
+    renderPage();
+    expect(await screen.findByText(status === 'COMPLETED' ? 'Document ready' : 'Processing failed')).toBeTruthy();
+    expect(screen.queryByText(/The document is finalized, but processing failed/)).toBeNull();
   });
 
   it('links the live awaiting-review status to the extracted-text review route', async () => {

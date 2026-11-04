@@ -3,169 +3,261 @@
 import { use, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
+import RestartAltIcon from '@mui/icons-material/RestartAlt';
 import SendIcon from '@mui/icons-material/Send';
 import { isMockMode } from '@/lib/mocks/mode';
-import type { components } from '@/shared/types/generated/schema';
-
-const suggestedQuestions = [
-  'What are the key dates?',
-  'Who are the parties?',
-  'What should I review?',
-];
-
-const mockResponses = [
-  'Based on the document, the contract term is 12 months with automatic renewal.',
-  'The key parties involved are LexChain Corp and Acme Inc.',
-  'There are 2 risk flags identified: auto-renewal without notice and unlimited liability.',
-  'The monthly payment obligation is $5,000 due by the 15th of each month.',
-];
-
-type Message = { from: 'bot' | 'user'; text: string; includeInHistory?: boolean };
-
-async function askDocument(id: string, question: string, history: components['schemas']['ChatTurn'][]): Promise<string> {
-  const res = await fetch(
-    `/api/portal/proxy-post?path=${encodeURIComponent(`/documents/${id}/ask`)}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ question, history }),
-      credentials: 'same-origin',
-    },
-  );
-
-  if (!res.ok) throw new Error('Failed to get answer');
-  const text = await res.text();
-  if (!text) return 'No answer returned.';
-
-  try {
-    const data = JSON.parse(text);
-    return data?.answer ?? data?.response ?? data?.message ?? JSON.stringify(data);
-  } catch {
-    return text;
-  }
-}
+import {
+  askDocument,
+  clearStoredChatMessages,
+  createBotMessage,
+  createUserMessage,
+  DEFAULT_SUGGESTED_QUESTIONS,
+  type DocumentChatMessage,
+  getRandomMockResponse,
+  getStoredChatMessages,
+  saveStoredChatMessages,
+} from '@/features/portal/lib/document-chat';
 
 export default function AskPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<DocumentChatMessage[]>(() =>
+    getStoredChatMessages(id),
+  );
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    const handleStorageUpdate = (event: Event) => {
+      const customEvent = event as CustomEvent<{ documentId?: string }>;
+      if (!customEvent.detail || customEvent.detail.documentId === id) {
+        setMessages(getStoredChatMessages(id));
+      }
+    };
+
+    window.addEventListener('lexchain:chat-updated', handleStorageUpdate);
+    return () => {
+      window.removeEventListener('lexchain:chat-updated', handleStorageUpdate);
+    };
+  }, [id]);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView?.({ behavior: 'smooth' });
   }, [messages, loading]);
 
-  async function send() {
-    const question = input.trim();
+  async function send(queryText?: string) {
+    const question = (queryText ?? input).trim();
     if (!question || loading) return;
 
-    const history = messages.filter(({ includeInHistory }) => includeInHistory !== false).slice(-10).map(({ from, text }) => ({
-      role: from === 'user' ? 'user' as const : 'assistant' as const,
-      content: text.slice(0, 4000),
-    }));
+    const userMessage = createUserMessage(question);
+    const nextMessages = [...messages, userMessage];
+    setMessages(nextMessages);
+    saveStoredChatMessages(id, nextMessages);
     setInput('');
-    setMessages((current) => [...current, { from: 'user', text: question }]);
+
+    const history = nextMessages
+      .filter(({ includeInHistory }) => includeInHistory !== false)
+      .slice(-10)
+      .map(({ from, text }) => ({
+        role: from === 'user' ? ('user' as const) : ('assistant' as const),
+        content: text.slice(0, 4000),
+      }));
 
     if (isMockMode()) {
-      setMessages((current) => [
-        ...current,
-        { from: 'bot', text: mockResponses[Math.floor(Math.random() * mockResponses.length)] },
-      ]);
+      const botResponse = createBotMessage(getRandomMockResponse());
+      const updated = [...nextMessages, botResponse];
+      setMessages(updated);
+      saveStoredChatMessages(id, updated);
       return;
     }
 
     setLoading(true);
-
     try {
       const answer = await askDocument(id, question, history);
-      setMessages((current) => [...current, { from: 'bot', text: answer }]);
+      const botResponse = createBotMessage(answer);
+      const updated = [...nextMessages, botResponse];
+      setMessages(updated);
+      saveStoredChatMessages(id, updated);
     } catch {
-      setMessages((current) => [...current, { from: 'bot', text: 'Sorry, I could not get an answer. Please try again.', includeInHistory: false }]);
+      const errorResponse = createBotMessage(
+        'Sorry, I could not get an answer. Please try again.',
+        false,
+      );
+      const updated = [...nextMessages, errorResponse];
+      setMessages(updated);
+      saveStoredChatMessages(id, updated);
     } finally {
       setLoading(false);
     }
   }
 
-  return (
-    <div className="flex h-[calc(100vh-120px)] w-full flex-col gap-4">
-      <Link href={`/portal/documents/${id}`} className="flex w-fit items-center gap-1 text-sm font-bold text-[#4B6382] hover:text-[#0067B3]">
-        <ArrowBackIcon sx={{ fontSize: 18 }} /> Back to Document
-      </Link>
+  function handleReset() {
+    clearStoredChatMessages(id);
+    setMessages(getStoredChatMessages(id));
+  }
 
-      <div>
-        <h1 className="text-[28px] font-black text-[#0C2B49]">Ask Document</h1>
-        <p className="mt-1 max-w-[72ch] text-sm text-[#4B6382]">Ask anything about this document. AI-generated assistance only; review the original PDF before relying on an answer.</p>
+  return (
+    <div className="flex h-[calc(100dvh-100px)] w-full flex-col gap-3 max-w-5xl mx-auto pb-4">
+      {/* Top Bar with Navigation and Status */}
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#E8F0F8] pb-3 pt-1">
+        <Link
+          href={`/portal/documents/${id}`}
+          className="inline-flex items-center gap-1.5 rounded-full border border-[#DCE8F6] bg-white px-3.5 py-1.5 text-xs font-bold text-[#0C2B49] shadow-xs transition-colors hover:border-[#0067B3] hover:text-[#0067B3]"
+        >
+          <ArrowBackIcon sx={{ fontSize: 16 }} /> Back to Document
+        </Link>
+
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 rounded-full border border-[#DCE8F6] bg-white px-3 py-1 shadow-xs">
+            <span
+              className={`h-2 w-2 rounded-full ${
+                loading ? 'bg-amber-400 animate-ping' : 'bg-emerald-500 animate-pulse'
+              }`}
+            />
+            <span className="text-xs font-semibold text-[#0C2B49]">
+              {loading ? 'Analyzing document…' : 'Document Assistant • Active'}
+            </span>
+            <span className="text-xs text-[#879BB0]">·</span>
+            <span className="text-xs font-mono font-medium text-[#5B6F8A]">{id}</span>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleReset}
+            aria-label="Clear chat history"
+            title="Clear chat history"
+            className="inline-flex items-center gap-1 rounded-full border border-[#DCE8F6] bg-white px-2.5 py-1 text-xs font-semibold text-[#5B6F8A] hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200"
+          >
+            <RestartAltIcon sx={{ fontSize: 15 }} />
+            <span>New chat</span>
+          </button>
+        </div>
       </div>
 
-      <div role="log" aria-label="Document assistant conversation" aria-live="polite" aria-relevant="additions" className="flex flex-1 flex-col gap-3 overflow-y-auto pr-1">
-        {messages.length === 0 ? (
-          <div className="flex h-full flex-col items-center justify-center gap-3 text-center">
-            <p className="text-sm font-bold text-[#0C2B49]">Ask a question about this document</p>
-            <p className="text-xs text-[#4B6382]">Try: summarize main obligations, parties, or risk points.</p>
-          </div>
-        ) : (
-          messages.map((msg, i) => (
-            <div key={i} className={msg.from === 'user' ? 'flex justify-end' : 'flex justify-start'}>
+      {/* Main Chat Container Card */}
+      <div className="flex flex-1 flex-col overflow-hidden rounded-[20px] border border-[#DCE8F6] bg-white shadow-sm">
+        {/* Chat Log */}
+        <div
+          role="log"
+          aria-label="Document assistant conversation"
+          aria-live="polite"
+          aria-relevant="additions"
+          className="flex flex-1 flex-col gap-4 overflow-y-auto bg-[#FBFDFF] p-4 sm:p-6"
+        >
+          {messages.map((msg) => (
+            <div
+              key={msg.id}
+              className={msg.from === 'user' ? 'flex justify-end' : 'flex justify-start gap-3'}
+            >
+              {msg.from === 'bot' && (
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-gradient-to-tr from-[#0067B3] to-[#2596be] text-white shadow-xs mt-0.5">
+                  <AutoAwesomeIcon sx={{ fontSize: 16 }} />
+                </div>
+              )}
               <div
                 className={
                   msg.from === 'user'
-                    ? 'bg-[#0067B3] text-white rounded-[14px] rounded-br-sm p-3 text-sm max-w-[80%]'
-                    : 'bg-[#EAF4FF] text-[#0C2B49] rounded-[14px] rounded-bl-sm p-3 text-sm max-w-[80%]'
+                    ? 'max-w-[80%] sm:max-w-[70%] rounded-2xl rounded-tr-xs bg-[#0067B3] p-4 text-sm text-white shadow-xs'
+                    : 'max-w-[85%] sm:max-w-[75%] rounded-2xl rounded-tl-xs border border-[#E1EEFA] bg-white p-4 text-sm text-[#0C2B49] shadow-xs'
                 }
               >
-                {msg.text}
+                {msg.from === 'bot' && (
+                  <div className="mb-1 flex items-center justify-between gap-4 border-b border-[#F0F5FA] pb-1">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-[#0067B3]">
+                      LexChain Assistant
+                    </span>
+                    <span className="text-[10px] text-[#879BB0]">{msg.timestamp}</span>
+                  </div>
+                )}
+                <p className="whitespace-pre-wrap leading-relaxed">{msg.text}</p>
+                {msg.from === 'user' && (
+                  <div className="mt-1 flex items-center justify-end text-[10px] text-blue-100">
+                    <span>{msg.timestamp}</span>
+                  </div>
+                )}
               </div>
             </div>
-          ))
-        )}
+          ))}
 
-        {loading && (
-          <div className="flex items-center gap-2 text-sm text-[#4B6382]">
-            <span className="h-2 w-2 animate-bounce rounded-full bg-[#0067B3]" />
-            <span className="h-2 w-2 animate-bounce rounded-full bg-[#0067B3]" style={{ animationDelay: '0.15s' }} />
-            <span className="h-2 w-2 animate-bounce rounded-full bg-[#0067B3]" style={{ animationDelay: '0.3s' }} />
-            <span className="ml-1">Thinking…</span>
-          </div>
-        )}
-
-        {messages.length === 0 && (
-          <div>
-            <p className="text-xs font-bold uppercase tracking-wide text-[#4B6382]">Suggested questions</p>
-            <div className="mt-2 flex flex-wrap gap-2">
-              {suggestedQuestions.map((question) => <button key={question} type="button" onClick={() => setInput(question)} className="min-h-11 rounded-full border border-[#E8F0F8] px-3 py-2 text-xs font-semibold text-[#0C2B49] hover:bg-[#EAF4FF]">{question}</button>)}
+          {loading && (
+            <div className="flex items-start gap-3">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-gradient-to-tr from-[#0067B3] to-[#2596be] text-white shadow-xs mt-0.5">
+                <AutoAwesomeIcon sx={{ fontSize: 16 }} />
+              </div>
+              <div className="rounded-2xl rounded-tl-xs border border-[#E1EEFA] bg-white p-4 shadow-xs">
+                <div className="flex items-center gap-2">
+                  <span className="h-2 w-2 rounded-full bg-[#0067B3] animate-bounce [animation-delay:-0.3s]" />
+                  <span className="h-2 w-2 rounded-full bg-[#0067B3] animate-bounce [animation-delay:-0.15s]" />
+                  <span className="h-2 w-2 rounded-full bg-[#0067B3] animate-bounce" />
+                  <p role="status" className="ml-1 text-xs font-semibold text-[#5B6F8A]">
+                    Thinking…
+                  </p>
+                </div>
+              </div>
             </div>
+          )}
+
+          {messages.length <= 1 && (
+            <div className="mt-2 rounded-2xl border border-dashed border-[#CFE1F4] bg-[#F4F9FE] p-4 sm:p-5">
+              <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#0067B3]">
+                <AutoAwesomeIcon sx={{ fontSize: 15 }} />
+                <span>Suggested Questions</span>
+              </div>
+              <p className="mt-1 text-xs text-[#5B6F8A]">
+                Click any prompt to ask immediately, or type your own question below:
+              </p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {DEFAULT_SUGGESTED_QUESTIONS.map((question) => (
+                  <button
+                    key={question}
+                    type="button"
+                    onClick={() => void send(question)}
+                    className="rounded-full border border-[#D0E2F5] bg-white px-3.5 py-1.5 text-xs font-semibold text-[#0C2B49] shadow-xs transition-all hover:border-[#0067B3] hover:bg-[#EAF4FF] hover:text-[#0067B3]"
+                  >
+                    {question}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div ref={bottomRef} />
+        </div>
+
+        {/* Input Bar */}
+        <div className="border-t border-[#E8F0F8] bg-white p-3.5 sm:p-4">
+          <div className="flex items-center gap-2 rounded-full border border-[#DCE8F6] bg-[#F8FAFD] p-1.5 transition-colors focus-within:border-[#0067B3] focus-within:bg-white focus-within:ring-2 focus-within:ring-[#0067B3]/20">
+            <input
+              value={input}
+              name="question"
+              aria-label="Ask a question about this document"
+              autoComplete="off"
+              autoFocus
+              onChange={(event) => setInput(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' && !event.shiftKey) {
+                  event.preventDefault();
+                  void send();
+                }
+              }}
+              placeholder="Ask anything about this document… (e.g. key obligations, termination clauses, parties)"
+              className="flex-1 bg-transparent px-4 text-sm text-[#0C2B49] outline-none placeholder:text-[#879BB0]"
+            />
+            <button
+              onClick={() => void send()}
+              disabled={!input.trim() || loading}
+              aria-label="Send question"
+              className="flex h-10 w-10 items-center justify-center rounded-full bg-[#0067B3] text-white shadow-xs transition-colors hover:bg-[#005a9e] disabled:cursor-not-allowed disabled:opacity-40"
+              type="button"
+            >
+              <SendIcon sx={{ fontSize: 18 }} />
+            </button>
           </div>
-        )}
-
-        <div ref={bottomRef} />
-      </div>
-
-      <div className="flex items-center gap-2 rounded-full border border-[#E8F0F8] bg-white p-2 focus-within:border-[#0067B3] focus-within:ring-2 focus-within:ring-[#0067B3] focus-within:ring-offset-2">
-        <input
-          value={input}
-          name="question"
-          aria-label="Ask a question about this document"
-          autoComplete="off"
-          onChange={(event) => setInput(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key === 'Enter' && !event.shiftKey) {
-              event.preventDefault();
-              void send();
-            }
-          }}
-          placeholder="Type a question…"
-          className="flex-1 bg-transparent px-3 text-sm text-[#0C2B49] outline-none placeholder:text-[#4B6382]"
-        />
-        <button
-          onClick={send}
-          disabled={!input.trim() || loading}
-          aria-label="Send question"
-          className="flex h-11 w-11 items-center justify-center rounded-full bg-[#0067B3] text-white disabled:opacity-40"
-          type="button"
-        >
-          <SendIcon sx={{ fontSize: 18 }} />
-        </button>
+          <p className="mt-2 text-center text-[11px] text-[#879BB0]">
+            AI-generated assistance. Check the original PDF before relying on an answer for legal decisions.
+          </p>
+        </div>
       </div>
     </div>
   );

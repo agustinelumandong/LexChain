@@ -84,7 +84,13 @@ vi.mock('@tanstack/react-query', () => ({
   },
 }));
 
-vi.mock('@/features/portal/components', () => ({ PortalChatbot: () => null }));
+vi.mock('@/features/portal/components', async (importOriginal) => {
+  const actual = await importOriginal<Record<string, unknown>>();
+  return {
+    ...actual,
+    PortalChatbot: () => createElement('button', { type: 'button' }, 'Ask document'),
+  };
+});
 
 type DocumentResponse = ApiSchema<'DocumentResponse'>;
 const baseDocument: DocumentResponse = {
@@ -174,6 +180,18 @@ afterEach(() => {
 });
 
 describe('document detail screen', () => {
+  it('labels a finalized document on-chain only when confirmed', async () => {
+    state.documentQuery = { data: { ...baseDocument, lifecycle: 'FINALIZED', on_chain: true }, isLoading: false, isError: false, refetch: vi.fn() };
+    await showPage();
+    expect(screen.getByText('On-chain')).toBeTruthy();
+  });
+
+  it.each([['PREPARING', false], ['READY_FOR_SIGNATURE', false], ['SIGNED', false], ['FINALIZED', true]])('shows document chat only after finalization (%s)', async (lifecycle, visible) => {
+    state.documentQuery = { ...state.documentQuery, data: { ...baseDocument, lifecycle } };
+    await showPage();
+    expect(Boolean(screen.queryByRole('button', { name: 'Ask document' }))).toBe(visible);
+  });
+
   it('refreshes document status while the detail page stays open', async () => {
     await showPage();
 
@@ -194,8 +212,7 @@ describe('document detail screen', () => {
     expect(screen.queryByText('Processing status')).toBeNull();
     expect(screen.queryByText('Finalized', { selector: 'dt' })).toBeNull();
     if (lifecycle === 'SIGNED') {
-      const overview = screen.getByRole('tabpanel');
-      expect(within(overview).queryByText('Processing', { selector: 'dt' })).toBeNull();
+      expect(screen.queryByText('Processing', { selector: 'dt' })).toBeNull();
     } else {
       expect(screen.getByText(lifecycle === 'PREPARING' ? 'Drafting workspace' : 'Ready for signature', { selector: 'p' })).toBeTruthy();
       expect(screen.queryByRole('tablist')).toBeNull();
@@ -207,6 +224,13 @@ describe('document detail screen', () => {
     await showPage();
     expect(screen.getAllByText('Finalized').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Processing failed').length).toBeGreaterThan(0);
+    expect(screen.queryByRole('button', { name: 'Finalize' })).toBeNull();
+  });
+
+  it('shows processing on a signed document before finalization', async () => {
+    state.documentQuery = { data: { ...baseDocument, lifecycle: 'SIGNED', status: 'QUEUED' }, isLoading: false, isError: false, refetch: vi.fn() };
+    await showPage();
+    expect(screen.getAllByText('Queued').length).toBeGreaterThan(0);
     expect(screen.queryByRole('button', { name: 'Finalize' })).toBeNull();
   });
 
@@ -230,10 +254,7 @@ describe('document detail screen', () => {
 
     expect(screen.getByRole('link', { name: 'Open Google draft' }).getAttribute('href'))
       .toBe('https://docs.google.com/document/d/draft-1');
-    fireEvent.click(screen.getByRole('tab', { name: 'Files' }));
-    expect(screen.getByRole('button', { name: 'Download PDF Copy' })).toBeTruthy();
-    fireEvent.click(screen.getByRole('tab', { name: 'Blockchain' }));
-    expect(screen.getByText('record-hash')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Download options' })).toBeTruthy();
   });
 
   it('shows a newly opened PREPARING record in the drafting workspace', async () => {
@@ -285,7 +306,7 @@ describe('document detail screen', () => {
     await showPage();
 
     expect(screen.getByRole('button', { name: 'Mark ready for signature' })).toBeTruthy();
-    expect(screen.queryByRole('button', { name: 'Reopen draft' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Back' })).toBeNull();
   });
 
   it('publishes returned ready lifecycle and permission flags before refreshing dependent queries', async () => {
@@ -310,7 +331,7 @@ describe('document detail screen', () => {
     state.documentQuery = { data: ready, isLoading: false, isError: false, refetch: vi.fn() };
     state.reopenDocument.mockResolvedValue(reopened);
     await showPage();
-    fireEvent.click(screen.getByRole('button', { name: 'Reopen draft' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Back' }));
 
     await waitFor(() => expect(state.queryClient.setQueryData).toHaveBeenCalledWith(['portal-doc', 'doc-1'], reopened));
     expect(screen.getAllByText('Document reopened for editing.')).toHaveLength(1);
@@ -347,16 +368,44 @@ describe('document detail screen', () => {
     expect(screen.getByRole('button', { name: 'Finalize' })).toBeTruthy();
   });
 
-  it.each(['Overview', 'Files', 'Comments', 'Blockchain', 'History'])('keeps finalization confirmation visible from the %s tab', async (tab) => {
+  it('keeps finalization confirmation accessible before tabs appear', async () => {
     state.documentQuery = { ...state.documentQuery, data: { ...baseDocument, permissions: { ...baseDocument.permissions, can_finalize: true } } };
     await showPage();
-    fireEvent.click(screen.getByRole('tab', { name: tab }));
+    expect(screen.queryByRole('tablist')).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Finalize' }));
     const dialog = screen.getByRole('dialog', { name: 'Confirm finalization' });
     expect(within(dialog).getByText('This freezes the signed copy and records its fingerprint on the blockchain. It cannot be undone.')).toBeTruthy();
     fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
     expect(screen.queryByRole('dialog')).toBeNull();
     expect(state.finalizeDocument).not.toHaveBeenCalled();
+  });
+
+  it('identifies the document and signed filing copy and explains consequences in finalization confirmation (#159)', async () => {
+    state.documentQuery = {
+      ...state.documentQuery,
+      data: {
+        ...baseDocument,
+        file_name: 'Property Purchase Agreement.pdf',
+        signed_copy: {
+          id: 'copy-123',
+          sha256: '9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08',
+          content_type: 'application/pdf',
+          size_bytes: 2097152,
+          is_current: true,
+          created_at: '2026-10-10T14:30:00Z',
+          original_filename: 'Executed_Agreement_Signed.pdf',
+        },
+        permissions: { ...baseDocument.permissions, can_finalize: true },
+      },
+    };
+    await showPage();
+    fireEvent.click(screen.getByRole('button', { name: 'Finalize' }));
+    const dialog = screen.getByRole('dialog', { name: 'Confirm finalization' });
+    expect(within(dialog).getByText('Property Purchase Agreement.pdf')).toBeTruthy();
+    expect(within(dialog).getByText(/Executed_Agreement_Signed\.pdf · 2\.0 MB/)).toBeTruthy();
+    expect(within(dialog).getByText(/SHA-256: 9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08/)).toBeTruthy();
+    expect(within(dialog).getByText('This freezes the signed copy and records its fingerprint on the blockchain. It cannot be undone.')).toBeTruthy();
+    expect(within(dialog).getByText(/The frozen filing copy cannot be replaced or removed after finalization/)).toBeTruthy();
   });
 
   it('disables duplicate finalization and cancellation while waiting for the chain', async () => {
@@ -414,6 +463,7 @@ describe('document detail screen', () => {
     expect(screen.queryByText('Document finalized and anchored on-chain.')).toBeNull();
     expect(screen.queryByText('datahash101')).toBeNull();
     expect(sessionStorage.getItem('portal-finalize-unknown:doc-1')).toBeNull();
+    expect(state.queryClient.invalidateQueries).toHaveBeenCalledWith({ queryKey: ['portal-doc', 'doc-1'] });
   });
 
   it('reconciles a lost finalization response with GET FINALIZED without inventing a chain record', async () => {
@@ -433,7 +483,9 @@ describe('document detail screen', () => {
     expect(sessionStorage.getItem('portal-finalize-unknown:doc-1')).toBe('1');
     fireEvent.click(checkStatus);
 
-    expect(await screen.findByText('Document finalized and anchored on-chain.')).toBeTruthy();
+    expect(await screen.findByText('Document finalization confirmed.')).toBeTruthy();
+    expect(screen.queryByText('Document finalized and anchored on-chain.')).toBeNull();
+    expect(screen.queryByText('Document finalized and recorded on-chain.')).toBeNull();
     expect(screen.getAllByText('Finalized').length).toBeGreaterThan(0);
     expect(screen.queryByText('Transaction hash')).toBeNull();
     expect(screen.queryByText('On-chain document ID')).toBeNull();
@@ -445,6 +497,24 @@ describe('document detail screen', () => {
     expect(state.queryClient.invalidateQueries).toHaveBeenCalledWith({ queryKey: ['portal-doc', 'doc-1'] });
     expect(state.queryClient.invalidateQueries).toHaveBeenCalledWith({ queryKey: ['portal-documents'] });
     expect(state.queryClient.invalidateQueries).toHaveBeenCalledWith({ queryKey: ['portal-document-history', 'doc-1'] });
+  });
+
+  it('reconciles a lost finalization response with confirmed on-chain status when on_chain is true', async () => {
+    const finalized = { ...baseDocument, lifecycle: 'FINALIZED', status: 'QUEUED', on_chain: true };
+    const fetchStatus = vi.fn().mockResolvedValue(Response.json(finalized));
+    vi.stubGlobal('fetch', fetchStatus);
+    state.finalizeDocument.mockRejectedValue(new DOMException('Request timed out', 'TimeoutError'));
+    state.documentQuery = { ...state.documentQuery, data: { ...baseDocument, permissions: { ...baseDocument.permissions, can_finalize: true } } };
+    await showPage();
+    fireEvent.click(screen.getByRole('button', { name: 'Finalize' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm finalization' }));
+
+    const checkStatus = await screen.findByRole('button', { name: 'Check status' });
+    fireEvent.click(checkStatus);
+
+    expect(await screen.findByText('Document finalized and recorded on-chain.')).toBeTruthy();
+    expect(screen.getByText('On-chain')).toBeTruthy();
+    expect(sessionStorage.getItem('portal-finalize-unknown:doc-1')).toBeNull();
   });
 
   it('keeps finalization locked when a lost response is followed by GET SIGNED', async () => {
@@ -662,14 +732,14 @@ describe('document detail screen', () => {
       .toBe('/portal/documents/doc-1/review');
   });
 
-  it('distinguishes not found, forbidden, and service failures', async () => {
+  it('distinguishes not found, forbidden, and service failures with accessible recovery (#162)', async () => {
     const cases = [
-      { status: 404, message: 'Document not found.' },
-      { status: 403, message: 'You do not have access to this document.' },
-      { status: 503, message: 'Unable to load this document.' },
+      { status: 404, heading: 'Document unavailable', message: 'This document could not be found or your account does not have permission to view it.' },
+      { status: 403, heading: 'Access denied', message: 'You do not have access to this document.' },
+      { status: 503, heading: 'Unable to load document', message: 'Unable to load this document.' },
     ];
 
-    for (const { status, message } of cases) {
+    for (const { status, heading, message } of cases) {
       state.documentQuery = {
         isLoading: false,
         isError: true,
@@ -677,7 +747,9 @@ describe('document detail screen', () => {
         refetch: vi.fn(),
       };
       const view = await act(async () => renderPage());
-      expect(await screen.findByText(message)).toBeTruthy();
+      expect(await screen.findByRole('heading', { level: 1, name: heading })).toBeTruthy();
+      expect(screen.getByText(message)).toBeTruthy();
+      expect(screen.getByRole('link', { name: 'Back to Documents' }).getAttribute('href')).toBe('/portal/documents');
       if (status === 503) expect(screen.getByRole('button', { name: 'Retry' })).toBeTruthy();
       view.unmount();
     }
@@ -712,8 +784,6 @@ describe('document detail screen', () => {
     };
 
     await showPage();
-    fireEvent.click(screen.getByRole('tab', { name: 'Files' }));
-
-    await waitFor(() => expect(screen.getByText('No signed PDF is attached to this document yet.')).toBeTruthy());
+    await waitFor(() => expect(screen.getAllByText('No signed PDF is attached to this document yet.').length).toBeGreaterThan(0));
   });
 });
