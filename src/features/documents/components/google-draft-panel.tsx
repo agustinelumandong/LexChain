@@ -7,6 +7,7 @@ import type { ApiSchema } from '@/shared/types';
 import { createGoogleDraft, getGoogleDraftUploadFileError, getGooglePickerToken, isGoogleDraftUrl } from '@/features/documents/document-draft-api';
 import { clearGoogleDraftReturnContext, readGoogleDraftReturnContext, saveGoogleDraftReturnContext } from '@/shared/utils/google-draft-return-context';
 import { Dropdown } from '@/shared/components/ui';
+import OpenInNewOutlinedIcon from '@mui/icons-material/OpenInNewOutlined';
 
 type Source = import('@/features/documents/document-draft-api').GoogleDraftSource;
 type PickedFile = { id: string; name: string };
@@ -105,16 +106,29 @@ function ExistingDraft({ document }: { document: ApiSchema<'DocumentResponse'> }
       ? 'This is the agreed text for signing and notarization outside LexChain.'
       : 'This is the working draft for reference. The signed PDF is the filing and verification copy.';
 
+  if (isDrafting) {
+    return (
+      <div className="mt-3 border-t border-[#E8F0F8] pt-3">
+        <p className="sr-only">{description}</p>
+        <p className="text-sm text-[#4B6382]">
+          Document: <span className="font-semibold text-[#0C2B49]">{document.file_name || 'Working draft'}</span> · External drafting in Google Docs
+        </p>
+        {!isGoogleDraftUrl(url) && (
+          <p role="alert" className="mt-2 text-sm font-bold leading-6 text-[#B42318]">The backend returned an invalid Google draft link. Contact your administrator.</p>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="rounded-xl border border-[#D7E4F2] bg-white p-5 sm:p-6">
-      {!isDrafting && (
-        <p className="text-lg font-bold leading-6 text-[#0C2B49]">
-          {document.lifecycle === 'READY_FOR_SIGNATURE' ? 'Approved text in Google Docs' : 'Working draft in Google Docs'}
-        </p>
-      )}
-      <p className={`${!isDrafting ? 'mt-2' : ''} max-w-3xl text-base leading-7 text-[#344054]`}>{description}</p>
+      <p className="text-lg font-bold leading-6 text-[#0C2B49]">
+        {document.lifecycle === 'READY_FOR_SIGNATURE' ? 'Approved text in Google Docs' : 'Working draft in Google Docs'}
+      </p>
+      <p className="mt-2 max-w-3xl text-base leading-7 text-[#344054]">{description}</p>
       {isGoogleDraftUrl(url) ? (
-        <a href={url} target="_blank" rel="noreferrer" className="mt-4 inline-flex min-h-12 items-center rounded-full border border-[#006BB6] px-5 py-3 text-base font-bold text-[#006BB6] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]">
+        <a href={url} target="_blank" rel="noreferrer" className="mt-4 inline-flex min-h-11 items-center justify-center gap-1.5 rounded-full border border-[#006BB6] px-4 py-2 text-sm font-bold text-[#006BB6] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]">
+          <OpenInNewOutlinedIcon aria-hidden="true" sx={{ fontSize: 18 }} />
           {document.lifecycle === 'READY_FOR_SIGNATURE' ? 'Open approved Google Doc' : 'Open Google draft'}
         </a>
       ) : (

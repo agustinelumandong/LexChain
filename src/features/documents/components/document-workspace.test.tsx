@@ -377,7 +377,7 @@ describe('DocumentWorkspace', () => {
     attachSignedCopyMock.mockResolvedValue(attached);
     renderWorkspace({ role: 'lawyer', document: { ...document, lifecycle: 'READY_FOR_SIGNATURE', signed_copy: null, permissions: { ...document.permissions, can_attach_signed_copy: true } } });
 
-    fireEvent.click(screen.getByRole('button', { name: 'Attach signed PDF' }));
+    expect(screen.queryByRole('button', { name: 'Attach signed PDF' })).toBeNull();
     await waitFor(() => expect((screen.getByRole('combobox', { name: 'Register book' }) as HTMLButtonElement).disabled).toBe(false));
     const file = new File(['signed pdf'], 'attached.pdf', { type: 'application/pdf' });
     const uploadArea = screen.getByText('Drop your signed PDF here').closest('label');
@@ -392,9 +392,10 @@ describe('DocumentWorkspace', () => {
     fireEvent.click(screen.getByRole('tab', { name: 'Files' }));
     expect(within(screen.getByRole('heading', { name: 'Signed PDF' }).closest('section')!).getAllByText('attached.pdf').length).toBeTruthy();
     createWatermarkedSignedPdfMock.mockReturnValue(new Promise(() => {}));
-    fireEvent.click(screen.getByRole('button', { name: 'Download PDF Copy' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Download options' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Download PDF Copy' }));
     expect(createWatermarkedSignedPdfMock).toHaveBeenCalledWith('/api/portal/documents/doc-101/file?copy_id=copy-attached');
-    expect(screen.getByRole('button', { name: /Preparing copy/ }).hasAttribute('disabled')).toBe(true);
+    expect(screen.getByRole('menuitem', { name: /Preparing copy/ }).hasAttribute('disabled')).toBe(true);
   });
 
   it('attaches a prepared document without a book using automatic open-book numbering', async () => {
@@ -409,7 +410,7 @@ describe('DocumentWorkspace', () => {
       permissions: { ...document.permissions, can_attach_signed_copy: true },
     } });
 
-    fireEvent.click(screen.getByRole('button', { name: 'Attach signed PDF' }));
+    expect(screen.queryByRole('button', { name: 'Attach signed PDF' })).toBeNull();
     await screen.findByRole('combobox', { name: 'Register book' });
     await waitFor(() => expect((screen.getByRole('combobox', { name: 'Register book' }) as HTMLButtonElement).disabled).toBe(false));
     fireEvent.click(screen.getByRole('combobox', { name: 'Register book' }));
@@ -432,7 +433,7 @@ describe('DocumentWorkspace', () => {
       signed_copy: null,
       permissions: { ...document.permissions, can_attach_signed_copy: true },
     } });
-    fireEvent.click(screen.getByRole('button', { name: 'Attach signed PDF' }));
+    expect(screen.queryByRole('button', { name: 'Attach signed PDF' })).toBeNull();
     await waitFor(() => expect((screen.getByRole('combobox', { name: 'Register book' }) as HTMLButtonElement).disabled).toBe(false));
     fireEvent.click(screen.getByRole('combobox', { name: 'Register book' }));
     fireEvent.click(await screen.findByRole('option', { name: /Register book 101/ }));
@@ -457,7 +458,7 @@ describe('DocumentWorkspace', () => {
       signed_copy: null,
       permissions: { ...document.permissions, can_attach_signed_copy: true },
     } });
-    fireEvent.click(screen.getByRole('button', { name: 'Attach signed PDF' }));
+    expect(screen.queryByRole('button', { name: 'Attach signed PDF' })).toBeNull();
     await screen.findByRole('combobox', { name: 'Register book' });
     await waitFor(() => expect((screen.getByRole('combobox', { name: 'Register book' }) as HTMLButtonElement).disabled).toBe(false));
     fireEvent.click(screen.getByRole('combobox', { name: 'Register book' }));
@@ -552,7 +553,7 @@ describe('DocumentWorkspace', () => {
     renderWorkspace({ document: { ...document, lifecycle: 'SIGNED' } });
     expect(screen.getByRole('tab', { name: 'Overview' })).toBeTruthy();
     fireEvent.click(screen.getByRole('tab', { name: 'Files' }));
-    expect(screen.getByRole('button', { name: 'Download PDF Copy' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Download options' })).toBeTruthy();
     fireEvent.click(screen.getByRole('tab', { name: 'Blockchain' }));
     expect(screen.getByText('No blockchain record yet')).toBeTruthy();
   });
@@ -568,6 +569,20 @@ describe('DocumentWorkspace', () => {
     expect(workingDraft.compareDocumentPosition(participants) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(participants.compareDocumentPosition(comments) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(comments.compareDocumentPosition(nextStep) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('orders ready-for-signature sections without draft comments', async () => {
+    renderWorkspace({ role: 'lawyer', document: { ...document, lifecycle: 'READY_FOR_SIGNATURE', signed_copy: null, permissions: { ...document.permissions, can_attach_signed_copy: true } } });
+
+    const approvedText = await screen.findByRole('heading', { name: 'Approved text' });
+    const participants = await screen.findByRole('heading', { name: 'Participants' });
+    const signedPdf = await screen.findByRole('heading', { name: 'Signed PDF' });
+    const completeSigning = await screen.findByRole('heading', { name: 'Complete signing outside LexChain' });
+
+    expect(screen.queryByRole('heading', { name: 'Draft comments' })).toBeNull();
+    expect(approvedText.compareDocumentPosition(participants) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(participants.compareDocumentPosition(signedPdf) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(signedPdf.compareDocumentPosition(completeSigning) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
   it('does not offer readiness until the working draft is linked', () => {
@@ -594,8 +609,8 @@ describe('DocumentWorkspace', () => {
     expect(screen.getByRole('heading', { name: 'Approved text' })).toBeTruthy();
     expect(screen.getByRole('link', { name: 'Open approved Google Doc' }).getAttribute('href')).toBe(document.draft_url);
     expect(screen.getByText('This is the agreed text for signing and notarization outside LexChain.')).toBeTruthy();
-    expect(screen.getByText(/Print the approved text, collect signatures and any required notary stamp, then upload the signed PDF here\./)).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: 'Attach signed PDF' }));
+    expect(screen.getByRole('heading', { name: 'Complete signing outside LexChain' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Attach signed PDF' })).toBeNull();
 
     expect(screen.queryByRole('tablist')).toBeNull();
     await waitFor(() => expect(window.document.activeElement).toBe(screen.getByLabelText('Signed PDF', { selector: 'input' })));
@@ -610,7 +625,7 @@ describe('DocumentWorkspace', () => {
       permissions: { ...document.permissions, can_attach_signed_copy: true },
     } });
 
-    fireEvent.click(screen.getByRole('button', { name: 'Attach signed PDF' }));
+    expect(screen.queryByRole('button', { name: 'Attach signed PDF' })).toBeNull();
     const input = screen.getByLabelText('Signed PDF', { selector: 'input' }) as HTMLInputElement;
     const uploadArea = input.closest('label');
 
@@ -630,7 +645,7 @@ describe('DocumentWorkspace', () => {
       signed_copy: null,
       permissions: { ...document.permissions, can_attach_signed_copy: true },
     } });
-    fireEvent.click(screen.getByRole('button', { name: 'Attach signed PDF' }));
+    expect(screen.queryByRole('button', { name: 'Attach signed PDF' })).toBeNull();
 
     fireEvent.click(await screen.findByRole('button', { name: 'Retry register books' }));
     await waitFor(() => expect(listRegisterBooksMock).toHaveBeenCalledTimes(2));
@@ -789,7 +804,7 @@ describe('DocumentWorkspace', () => {
     expect(screen.queryByRole('link', { name: 'Open Google draft' })).toBeNull();
     expect(screen.getByRole('alert').textContent).toContain('invalid Google draft link');
     fireEvent.click(screen.getByRole('tab', { name: 'Files' }));
-    expect(screen.getByRole('button', { name: 'Download PDF Copy' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Download options' })).toBeTruthy();
   });
 
   it.each(['GOOGLE_NOT_CONNECTED', 'GOOGLE_RECONNECT_REQUIRED'])(
@@ -1222,7 +1237,7 @@ describe('DocumentWorkspace', () => {
   it('hides readiness controls when the backend denies the permissions', () => {
     renderWorkspace();
     expect(screen.queryByRole('button', { name: 'Mark ready for signature' })).toBeNull();
-    expect(screen.queryByRole('button', { name: 'Reopen draft' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Back' })).toBeNull();
   });
 
   it('renders participant management directly inside the Participants tab for a finalized document', async () => {
@@ -1431,11 +1446,13 @@ describe('DocumentWorkspace', () => {
     expect(within(filesSection).getByText(/Replacement is available while this document is in the signed stage. A replacement reason is required/i)).toBeTruthy();
 
     // Both original download and watermarked copy download are clearly distinguished
-    const downloadOriginal = within(filesSection).getByRole('link', { name: 'Download original signed PDF' });
-    const downloadWatermarked = within(filesSection).getByRole('button', { name: 'Download PDF Copy' });
+    fireEvent.click(within(filesSection).getByRole('button', { name: 'Download options' }));
+    const downloadOriginal = within(filesSection).getByRole('menuitem', { name: 'Download original signed PDF' });
+    const downloadWatermarked = within(filesSection).getByRole('menuitem', { name: 'Download PDF Copy' });
     expect(downloadOriginal.getAttribute('href')).toContain('/api/portal/documents/doc-101/file?');
     expect(downloadWatermarked).toBeTruthy();
-    expect(within(filesSection).getByText(/Download original PDF for the unmodified file matching the SHA-256 hash. Download PDF Copy adds the LEXCHAIN COPY watermark across all pages/i)).toBeTruthy();
+    expect(within(filesSection).getByText('(SHA-256)')).toBeTruthy();
+    expect(within(filesSection).getByText('(Watermarked)')).toBeTruthy();
 
     // Opening replace form renders inline in the same section
     fireEvent.click(replaceButton);
@@ -1459,7 +1476,7 @@ describe('DocumentWorkspace', () => {
 
     const filesSection = screen.getByRole('region', { name: 'Signed PDF' });
     expect(within(filesSection).queryByRole('button', { name: 'Replace signed PDF' })).toBeNull();
-    expect(within(filesSection).getByText(/This document is finalized on the blockchain. The signed PDF is permanently locked and cannot be replaced/i)).toBeTruthy();
+    expect(within(filesSection).getByText(/On-Chain \(Locked\)/i)).toBeTruthy();
   });
 
   it('renders scanable multi-event history with timestamps, transitions, and actor disclosures (#172)', async () => {

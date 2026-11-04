@@ -219,6 +219,33 @@ describe('VerifyWorkspace', () => {
     expect(screen.getByRole('link', { name: 'View transaction on Base Sepolia' })).toBeTruthy();
   });
 
+  it('renders split workspace with PDF viewer and download action for authentic documents', () => {
+    vi.stubEnv('NEXT_PUBLIC_USE_MOCK_API', 'false');
+    vi.stubEnv('USE_MOCK_API', 'false');
+    const authenticResult: ApiSchema<'DocumentVerificationResponse'> = {
+      ...result,
+      status: 'AUTHENTIC',
+      is_authentic: true,
+      onchain_hash: '0x1111111111111111111111111111111111111111',
+      snapshot_hash: '0x1111111111111111111111111111111111111111',
+      current_hash: '0x1111111111111111111111111111111111111111',
+      tamper_report_status: 'NOT_APPLICABLE',
+      tamper_report: null,
+      tx_hash: '0x' + 'a'.repeat(64),
+    };
+    render(<VerifyWorkspace result={authenticResult} onRetry={vi.fn()} />);
+
+    expect(screen.getByRole('region', { name: 'Current document' })).toBeTruthy();
+    expect(screen.getByRole('link', { name: /Download PDF/i })).toBeTruthy();
+    expect(screen.queryByRole('link', { name: 'Open current PDF' })).toBeNull();
+    expect(screen.getByRole('status', { name: 'Cryptographic hash match' })).toBeTruthy();
+    expect(screen.getByText('All 3 cryptographic fingerprints match')).toBeTruthy();
+    expect(dynamicMocks.viewerProps).toMatchObject({
+      sourceUrl: '/api/portal/documents/mock-document-5/file?filename=Tampered+Deed+of+Sale.pdf',
+      blocks: [],
+    });
+  });
+
   it('explains unavailable, compromised, and unconfirmed states in plain language (#160)', () => {
     vi.stubEnv('NEXT_PUBLIC_USE_MOCK_API', 'false');
     vi.stubEnv('USE_MOCK_API', 'false');
