@@ -19,6 +19,7 @@ import ManageAccountsOutlinedIcon from '@mui/icons-material/ManageAccountsOutlin
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import CommentOutlinedIcon from '@mui/icons-material/CommentOutlined';
+import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutlined';
 import { toast } from 'sonner';
 import { portalRequest } from '@/shared/api/client';
 import type { ApiSchema } from '@/shared/types/index';
@@ -1047,10 +1048,12 @@ export function DocumentWorkspace({
       : role === 'lawyer'
         ? 'The document owner will attach the signed PDF to this record after signing.'
         : 'Your lawyer is arranging signatures outside LexChain and will add the signed PDF to this same record.';
-  const nextStepPanel = <section aria-labelledby="next-step-heading" className="rounded-xl border-l-4 border-[#0673C4] bg-[#F4F8FC] p-5 sm:p-6">
-    <p className="text-sm font-bold uppercase tracking-[0.08em] text-[#4B6382]">What happens next</p>
-    <h2 id="next-step-heading" className="mt-1 text-xl font-bold leading-7 text-[#0C2B49]">{nextStepHeading}</h2>
-    <p className="mt-2 max-w-3xl text-base leading-7 text-[#344054]">{nextStepGuidance}</p>
+  const nextStepPanel = <section aria-labelledby="next-step-heading" className="rounded-[18px] border border-[#E8F0F8] bg-white p-5 sm:p-6 shadow-sm">
+    <div className="flex items-center gap-2">
+      <CheckCircleOutlineIcon aria-hidden="true" sx={{ fontSize: 20, color: '#0067B3' }} />
+      <h2 id="next-step-heading" className="text-lg font-bold leading-6 text-[#0C2B49]">{nextStepHeading}</h2>
+    </div>
+    <p className="mt-1 text-sm text-[#5B6F8A]">{nextStepGuidance}</p>
     {document.lifecycle === 'PREPARING' && readinessError && <div role="alert" className="mt-4 space-y-2 rounded-lg bg-red-50 p-4 text-base font-bold leading-7 text-[#B42318]">
       <p>{readinessError.message}</p>
       {readinessError instanceof LifecycleRequestError && readinessError.reason === 'UNRESOLVED_COMMENTS' && <>
@@ -1059,53 +1062,64 @@ export function DocumentWorkspace({
       </>}
     </div>}
 
-    {document.lifecycle === 'PREPARING' && hasGoogleDraft && document.permissions.can_mark_ready && <div className="mt-5 border-t border-[#D7E4F2] pt-5">
-      <p className="text-sm font-bold uppercase tracking-[0.08em] text-[#344054]">Before marking ready</p>
-      {commentsQuery.isLoading && <p role="status" className="mt-2 text-base leading-7 text-[#344054]">Checking unresolved comments…</p>}
-      {commentsQuery.isError && <p role="alert" className="mt-2 text-base leading-7 text-[#B42318]">Comments could not be checked. Retry comments above before continuing.</p>}
-      {syncComments.isPending && <p role="status" className="mt-2 text-base leading-7 text-[#344054]">Refreshing comments…</p>}
-      {syncComments.isError && <p role="alert" className="mt-2 text-base leading-7 text-[#B42318]">Comments could not be refreshed. Choose Refresh comments above before continuing.</p>}
-      {typeof unresolvedCommentCount === 'number' && unresolvedCommentCount > 0 && <p role="status" className="mt-2 text-base leading-7 text-[#B42318]">Resolve {unresolvedCommentCount} unresolved {unresolvedCommentCount === 1 ? 'comment' : 'comments'} in Google Docs, then refresh comments before marking the draft ready.</p>}
+    {document.lifecycle === 'PREPARING' && hasGoogleDraft && document.permissions.can_mark_ready && <div className="mt-4 border-t border-[#E8F0F8] pt-4">
+      {commentsQuery.isLoading && <p role="status" className="text-sm text-[#4B6382]">Checking unresolved comments…</p>}
+      {commentsQuery.isError && <p role="alert" className="text-sm font-semibold text-[#B42318]">Comments could not be checked. Retry comments above before continuing.</p>}
+      {syncComments.isPending && <p role="status" className="text-sm text-[#4B6382]">Refreshing comments…</p>}
+      {syncComments.isError && <p role="alert" className="text-sm font-semibold text-[#B42318]">Comments could not be refreshed. Choose Refresh comments above before continuing.</p>}
+      {typeof unresolvedCommentCount === 'number' && unresolvedCommentCount > 0 && <p role="status" className="text-sm font-semibold text-[#B42318]">Resolve {unresolvedCommentCount} unresolved {unresolvedCommentCount === 1 ? 'comment' : 'comments'} in Google Docs, then refresh comments before marking the draft ready.</p>}
       {unresolvedCommentCount === 0 && !commentsQuery.isLoading && !commentsQuery.isError && !syncComments.isPending && !syncComments.isError && <>
-        <p role="status" className="mt-2 text-base leading-7 text-[#344054]">All comments are resolved.</p>
-        <label className="mt-3 flex min-h-11 items-start gap-2.5 text-sm font-semibold leading-6 text-[#344054]">
-          <Checkbox checked={suggestionsReviewed} onChange={(event) => setReviewedSuggestionsFor(event.target.checked ? document.document_id : null)} className="mt-1" />
+        <p role="status" className="text-sm font-semibold text-[#067647]">All comments are resolved.</p>
+        <label className="mt-3 flex min-h-11 items-center gap-2.5 text-sm font-semibold text-[#0C2B49]">
+          <Checkbox checked={suggestionsReviewed} onChange={(event) => setReviewedSuggestionsFor(event.target.checked ? document.document_id : null)} />
           <span>I checked Google Docs and resolved any pending suggestions.</span>
         </label>
       </>}
-      <button type="button" onClick={onMarkReady} disabled={isChangingReadiness || readinessBlocked} className="mt-4 min-h-12 rounded-full bg-[#0673C4] px-5 py-3 text-base font-bold text-white hover:bg-[#005FA3] disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]">{isChangingReadiness ? 'Updating…' : 'Mark ready for signature'}</button>
+      <button type="button" onClick={onMarkReady} disabled={isChangingReadiness || readinessBlocked} className="mt-4 inline-flex min-h-11 items-center justify-center rounded-full bg-[#0067B3] px-5 py-2.5 text-sm font-bold text-white hover:bg-[#00528F] disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]">{isChangingReadiness ? 'Updating…' : 'Mark ready for signature'}</button>
     </div>}
 
-    {document.lifecycle === 'READY_FOR_SIGNATURE' && <div className="mt-5 flex flex-wrap gap-3 border-t border-[#D7E4F2] pt-5">
-      {document.permissions.can_attach_signed_copy && !signedCopyMode && <button type="button" onClick={openSignedCopyForm} className="min-h-12 rounded-full bg-[#0673C4] px-5 py-3 text-base font-bold text-white hover:bg-[#005FA3] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]">Attach signed PDF</button>}
-      {document.permissions.can_reopen && <button type="button" onClick={() => { setReviewedSuggestionsFor(null); onReopen?.(); }} disabled={isChangingReadiness} className="min-h-12 rounded-full border border-[#B8C9D9] bg-white px-5 py-3 text-base font-bold text-[#0C2B49] hover:bg-[#EAF4FF] disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]">Reopen draft</button>}
+    {document.lifecycle === 'READY_FOR_SIGNATURE' && <div className="mt-4 flex flex-wrap gap-3 border-t border-[#E8F0F8] pt-4">
+      {document.permissions.can_attach_signed_copy && !signedCopyMode && <button type="button" onClick={openSignedCopyForm} className="min-h-11 rounded-full bg-[#0067B3] px-5 py-2.5 text-sm font-bold text-white hover:bg-[#00528F] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]">Attach signed PDF</button>}
+      {document.permissions.can_reopen && <button type="button" onClick={() => { setReviewedSuggestionsFor(null); onReopen?.(); }} disabled={isChangingReadiness} className="min-h-11 rounded-full border border-[#D7E4F2] bg-white px-5 py-2.5 text-sm font-bold text-[#0C2B49] hover:bg-[#EEF4FB] disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]">Reopen draft</button>}
     </div>}
     {document.lifecycle === 'READY_FOR_SIGNATURE' && signedCopyMode === 'attach' && signedCopyForm}
   </section>;
 
   return (
-    <section className={`mx-auto flex min-h-0 w-full flex-col bg-transparent ${isDrafting ? 'overflow-hidden' : 'max-w-7xl'} ${className ?? ''}`}>
+    <section className={`mx-auto flex min-h-0 w-full max-w-7xl flex-col bg-transparent ${isDrafting ? 'overflow-hidden' : ''} ${className ?? ''}`}>
       {isDrafting ? (
-        <div className="mx-auto min-h-0 w-full max-w-4xl flex-1 overflow-y-auto px-4 py-6 sm:px-6">
-          <header className="mb-6">
+        <div className="mx-auto min-h-0 w-full max-w-7xl flex-1 overflow-y-auto px-4 py-4 sm:px-6">
+          <header className="mb-4">
             <p className="text-xs font-bold uppercase tracking-[0.08em] text-[#4B6382]">{document.lifecycle === 'PREPARING' ? 'Drafting workspace' : 'Ready for signature'}</p>
             <h2 className="mt-1 text-xl font-bold leading-7 text-[#0C2B49]">{document.lifecycle === 'PREPARING' ? 'Prepare and review the document' : 'Sign the document and return the PDF'}</h2>
-            <p className="mt-2 max-w-3xl text-base leading-7 text-[#344054]">{document.lifecycle === 'PREPARING' ? 'The Google Doc is the working draft. Comments and participants stay with this record while you agree on the text.' : 'Signing happens outside LexChain. Upload the signed PDF here to keep it attached to this same record.'}</p>
+            <p className="mt-1 max-w-3xl text-sm leading-6 text-[#5B6F8A]">{document.lifecycle === 'PREPARING' ? 'The Google Doc is the working draft. Comments and participants stay with this record while you agree on the text.' : 'Signing happens outside LexChain. Upload the signed PDF here to keep it attached to this same record.'}</p>
           </header>
 
           <DraftProgress lifecycle={document.lifecycle === 'PREPARING' ? 'PREPARING' : 'READY_FOR_SIGNATURE'} readinessPending={document.lifecycle === 'PREPARING' && isChangingReadiness} />
 
           <div className="mt-6 flex flex-col gap-6 pb-6">
-            <section aria-labelledby="working-draft-heading" className="space-y-3">
-              <h2 id="working-draft-heading" className="text-xl font-bold leading-7 text-[#0C2B49]">{document.lifecycle === 'PREPARING' ? 'Working draft' : 'Approved text'}</h2>
+            <section aria-labelledby="working-draft-heading" className="rounded-[18px] border border-[#E8F0F8] bg-white p-5 sm:p-6 shadow-sm">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <DescriptionOutlinedIcon aria-hidden="true" sx={{ fontSize: 20, color: '#0067B3' }} />
+                  <h2 id="working-draft-heading" className="text-lg font-bold leading-6 text-[#0C2B49]">{document.lifecycle === 'PREPARING' ? 'Working draft' : 'Approved text'}</h2>
+                  {hasGoogleDraft && (
+                    <span className="rounded-full bg-[#EAF4FF] px-2.5 py-0.5 text-xs font-bold text-[#0067B3]">
+                      Google Docs
+                    </span>
+                  )}
+                </div>
+              </div>
               {(!hasGoogleDraft || !document.draft_url) && (
-                <p className="max-w-3xl text-base leading-7 text-[#344054]">{document.lifecycle === 'PREPARING'
+                <p className="mt-2 text-sm text-[#5B6F8A]">{document.lifecycle === 'PREPARING'
                   ? document.draft_url ? 'The linked Google Doc needs attention before this draft can be reviewed.' : 'Create or link a Google Doc to start drafting. Comments and participants will stay with this record.'
                   : 'No Google Doc is linked to this record. Continue with the external signing instructions below.'}</p>
               )}
-              {document.draft_url || (document.lifecycle === 'PREPARING' && document.permissions.can_create_draft)
-                ? <GoogleDraftPanel key={document.document_id} document={document} onDocumentUpdated={onDocumentUpdated} />
-                : <p role="note" className="rounded-xl border border-[#D7E4F2] bg-white p-5 text-base leading-7 text-[#344054]">{document.lifecycle === 'PREPARING' ? role === 'lawyer' ? 'A working draft is not linked yet. Ask the document owner to create or link the Google Doc.' : 'Your lawyer is preparing the working draft. It will appear here when available.' : 'No Google Doc is linked to this record. Continue with the external signing instructions below.'}</p>}
+              <div className={hasGoogleDraft && document.draft_url ? 'mt-1' : 'mt-4'}>
+                {document.draft_url || (document.lifecycle === 'PREPARING' && document.permissions.can_create_draft)
+                  ? <GoogleDraftPanel key={document.document_id} document={document} onDocumentUpdated={onDocumentUpdated} />
+                  : <p role="note" className="text-sm text-[#5B6F8A]">{document.lifecycle === 'PREPARING' ? role === 'lawyer' ? 'A working draft is not linked yet. Ask the document owner to create or link the Google Doc.' : 'Your lawyer is preparing the working draft. It will appear here when available.' : 'No Google Doc is linked to this record. Continue with the external signing instructions below.'}</p>}
+              </div>
             </section>
 
             {document.lifecycle === 'READY_FOR_SIGNATURE' && nextStepPanel}
