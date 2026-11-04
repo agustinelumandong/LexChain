@@ -12,6 +12,7 @@ import WarningAmberOutlinedIcon from '@mui/icons-material/WarningAmberOutlined';
 import HistoryOutlinedIcon from '@mui/icons-material/HistoryOutlined';
 import PictureAsPdfOutlinedIcon from '@mui/icons-material/PictureAsPdfOutlined';
 import DownloadOutlinedIcon from '@mui/icons-material/DownloadOutlined';
+import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import CloseOutlinedIcon from '@mui/icons-material/CloseOutlined';
 import ManageAccountsOutlinedIcon from '@mui/icons-material/ManageAccountsOutlined';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
@@ -486,8 +487,6 @@ function SignedPdfPreview({
 
   return (
     <section aria-labelledby="signed-pdf-preview-heading" className="flex min-w-0 flex-col rounded-xl border border-[#D7E4F2] bg-white p-4 sm:p-5">
-      {role === 'user' && document.lifecycle === 'FINALIZED' && <div className="mb-4">{document.permissions.can_request_ecopy && <button type="button" disabled={requestCopy.isPending || requestCopy.isSuccess} onClick={() => requestCopy.mutate()} className="rounded-full bg-[#0067B3] px-4 py-2 font-bold text-white disabled:opacity-60">{requestCopy.isPending ? 'Requesting…' : requestCopy.isSuccess ? 'E-copy requested' : 'Request e-copy'}</button>}{requestCopy.isError && <p role="alert">{requestCopy.error instanceof Error ? requestCopy.error.message : 'Could not request the e-copy.'}</p>}<p className="mt-2 text-sm"><Link href="/portal/requests/my">View e-copy requests and approved downloads</Link></p></div>}
-      {document.lifecycle === 'FINALIZED' && <DocumentEcopyRequestHistory documentId={document.document_id} />}
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
@@ -524,69 +523,104 @@ function SignedPdfPreview({
         </p>
       )}
       {document.lifecycle === 'FINALIZED' && (
-        <p className="mt-2 text-xs leading-5 text-[#4B6382]">
-          This document is finalized on the blockchain. The signed PDF is permanently locked and cannot be replaced.
-        </p>
+        <div className="mt-2.5 flex items-center gap-2 rounded-lg border border-[#D7E4F2] bg-[#F8FBFF] px-3 py-2 text-xs leading-5 text-[#4B6382]">
+          <LockOutlinedIcon aria-hidden="true" sx={{ fontSize: 16, color: '#0067B3', flexShrink: 0 }} />
+          <p>This document is finalized on the blockchain. The signed PDF is permanently locked and cannot be replaced.</p>
+        </div>
       )}
 
       {signedCopyForm}
 
-      {signedCopy && (
-        <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-[#E8F0F8] pt-4">
-          <a
-            aria-label="Download original signed PDF"
-            href={signedCopyFileUrl(document.document_id, {
-              copyId: signedCopy.id,
-              download: true,
-              filename: signedCopy.original_filename ?? document.file_name ?? undefined,
-            })}
-            className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-[#D7E4F2] px-3 py-1.5 text-sm font-semibold text-[#0C2B49] hover:bg-[#EAF4FF] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3] sm:min-h-9"
-          >
-            <DownloadOutlinedIcon aria-hidden="true" sx={{ fontSize: 17 }} />
-            Download original PDF
-          </a>
-          <button
-            type="button"
-            onClick={() => void downloadWatermarkedCopy()}
-            disabled={watermarkedCopyStatus === 'preparing'}
-            className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-[#D7E4F2] px-3 py-1.5 text-sm font-semibold text-[#0C2B49] hover:bg-[#EAF4FF] disabled:cursor-wait disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3] sm:min-h-9"
-          >
-            <DownloadOutlinedIcon aria-hidden="true" sx={{ fontSize: 17 }} />
-            {watermarkedCopyStatus === 'preparing' ? 'Preparing copy…' : 'Download PDF Copy'}
-          </button>
-        </div>
-      )}
-      {signedCopy && (
-        <p aria-live="polite" className="mt-2 text-xs leading-5 text-[#4B6382]">
-          {watermarkedCopyStatus === 'failed'
-            ? 'Could not create the watermarked copy. The signed original is unchanged.'
-            : watermarkedCopyStatus === 'downloaded'
-              ? 'Watermarked PDF copy downloaded. The signed original remains unchanged for integrity checks.'
-              : 'Download original PDF for the unmodified file matching the SHA-256 hash. Download PDF Copy adds the LEXCHAIN COPY watermark across all pages.'}
-        </p>
-      )}
-
       {signedCopy ? (
-        <div className="mt-4 flex min-h-56 flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-[#C9DDF2] bg-[#F8FBFF] px-4 py-8 text-center">
-          <span className="grid h-12 w-12 place-items-center rounded-xl bg-[#EAF4FF] text-[#0067B3]">
-            <PictureAsPdfOutlinedIcon aria-hidden="true" sx={{ fontSize: 28 }} />
-          </span>
-          <div>
-            <p className="text-sm font-bold text-[#0C2B49]">Open the signed PDF</p>
-            <p className="mt-1 text-sm text-[#4B6382]">View pages and zoom in a full-screen viewer.</p>
+        <div className="mt-4 rounded-xl border border-[#D7E4F2] bg-[#F8FBFF] p-4 sm:p-5">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-3">
+              <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-[#EAF4FF] text-[#0067B3]">
+                <PictureAsPdfOutlinedIcon aria-hidden="true" sx={{ fontSize: 24 }} />
+              </span>
+              <div className="min-w-0">
+                <p className="truncate text-sm font-bold text-[#0C2B49]">
+                  {signedCopy.original_filename ?? document.file_name ?? 'Signed PDF'}
+                </p>
+                <p className="text-xs text-[#4B6382]">
+                  Interactive full-screen viewer with zoom and page navigation
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              aria-haspopup="dialog"
+              aria-controls="signed-pdf-viewer-dialog"
+              onClick={openPdfViewer}
+              className="inline-flex min-h-10 items-center justify-center gap-2 rounded-full bg-[#0067B3] px-5 py-2 text-sm font-bold text-white shadow-sm hover:bg-[#0673C4] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]"
+            >
+              <PictureAsPdfOutlinedIcon aria-hidden="true" sx={{ fontSize: 18 }} />
+              View PDF
+            </button>
           </div>
-          <button
-            type="button"
-            aria-haspopup="dialog"
-            aria-controls="signed-pdf-viewer-dialog"
-            onClick={openPdfViewer}
-            className="inline-flex min-h-11 items-center gap-2 rounded-full bg-[#0067B3] px-4 py-2 text-sm font-bold text-white shadow-sm hover:bg-[#0673C4] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]"
-          >
-            <PictureAsPdfOutlinedIcon aria-hidden="true" sx={{ fontSize: 18 }} />View PDF
-          </button>
+
+          <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-[#E8F0F8] pt-3.5">
+            <a
+              aria-label="Download original signed PDF"
+              href={signedCopyFileUrl(document.document_id, {
+                copyId: signedCopy.id,
+                download: true,
+                filename: signedCopy.original_filename ?? document.file_name ?? undefined,
+              })}
+              className="inline-flex min-h-10 items-center gap-1.5 rounded-full border border-[#D7E4F2] bg-white px-3.5 py-1.5 text-sm font-semibold text-[#0C2B49] hover:bg-[#EAF4FF] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3] sm:min-h-9"
+            >
+              <DownloadOutlinedIcon aria-hidden="true" sx={{ fontSize: 17 }} />
+              Download original PDF
+            </a>
+            <button
+              type="button"
+              onClick={() => void downloadWatermarkedCopy()}
+              disabled={watermarkedCopyStatus === 'preparing'}
+              className="inline-flex min-h-10 items-center gap-1.5 rounded-full border border-[#D7E4F2] bg-white px-3.5 py-1.5 text-sm font-semibold text-[#0C2B49] hover:bg-[#EAF4FF] disabled:cursor-wait disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3] sm:min-h-9"
+            >
+              <DownloadOutlinedIcon aria-hidden="true" sx={{ fontSize: 17 }} />
+              {watermarkedCopyStatus === 'preparing' ? 'Preparing copy…' : 'Download PDF Copy'}
+            </button>
+          </div>
+          <p aria-live="polite" className="mt-2 text-xs leading-5 text-[#4B6382]">
+            {watermarkedCopyStatus === 'failed'
+              ? 'Could not create the watermarked copy. The signed original is unchanged.'
+              : watermarkedCopyStatus === 'downloaded'
+                ? 'Watermarked PDF copy downloaded. The signed original remains unchanged for integrity checks.'
+                : 'Download original PDF for the unmodified file matching the SHA-256 hash. Download PDF Copy adds the LEXCHAIN COPY watermark across all pages.'}
+          </p>
         </div>
       ) : (
         <p className="mt-4 rounded-lg bg-[#F8FBFF] p-4 text-base leading-7 text-[#4B6382]">No signed PDF is attached to this document yet.</p>
+      )}
+
+      {role === 'user' && document.lifecycle === 'FINALIZED' && (
+        <div className="mt-5 border-t border-[#D7E4F2] pt-4">
+          {document.permissions.can_request_ecopy && (
+            <button
+              type="button"
+              disabled={requestCopy.isPending || requestCopy.isSuccess}
+              onClick={() => requestCopy.mutate()}
+              className="rounded-full bg-[#0067B3] px-4 py-2 text-sm font-bold text-white hover:bg-[#0673C4] disabled:opacity-60"
+            >
+              {requestCopy.isPending ? 'Requesting…' : requestCopy.isSuccess ? 'E-copy requested' : 'Request e-copy'}
+            </button>
+          )}
+          {requestCopy.isError && (
+            <p role="alert" className="mt-2 text-sm text-[#B42318]">
+              {requestCopy.error instanceof Error ? requestCopy.error.message : 'Could not request the e-copy.'}
+            </p>
+          )}
+          <p className="mt-2 text-sm text-[#4B6382]">
+            <Link href="/portal/requests/my" className="font-semibold text-[#0067B3] hover:underline">
+              View e-copy requests and approved downloads
+            </Link>
+          </p>
+        </div>
+      )}
+
+      {document.lifecycle === 'FINALIZED' && (
+        <DocumentEcopyRequestHistory documentId={document.document_id} />
       )}
 
       {signedCopy && <dialog
