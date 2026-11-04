@@ -58,7 +58,7 @@ export function DocumentEcopyRequestHistory({ documentId }: { documentId: string
       <Button variant="secondary" size="sm" disabled={query.isFetching} onClick={() => void query.refetch()}>{query.isFetching ? 'Retrying…' : 'Retry request history'}</Button>
     </div>}
     {query.data && !query.isError && query.data.requests.length === 0 && (
-      <div className="mt-3 flex w-full flex-col items-center justify-center gap-2.5 rounded-xl border border-[#D7E4F2] bg-[#F8FBFF] px-4 py-8 text-center sm:px-6">
+      <div className="mt-3 flex w-full flex-col items-center justify-center gap-2.5 rounded-xl bg-[#F8FBFF] px-4 py-8 text-center sm:px-6">
         <span className="grid h-10 w-10 place-items-center rounded-xl bg-[#EAF4FF] text-[#0067B3]">
           <HistoryOutlinedIcon aria-hidden="true" sx={{ fontSize: 22 }} />
         </span>
