@@ -532,21 +532,8 @@ function SignedPdfPreview({
       {signedCopyForm}
 
       {signedCopy ? (
-        <div className="mt-4 rounded-xl border border-[#D7E4F2] bg-[#F8FBFF] p-4 sm:p-5">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-3">
-              <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-[#EAF4FF] text-[#0067B3]">
-                <PictureAsPdfOutlinedIcon aria-hidden="true" sx={{ fontSize: 24 }} />
-              </span>
-              <div className="min-w-0">
-                <p className="truncate text-sm font-bold text-[#0C2B49]">
-                  {signedCopy.original_filename ?? document.file_name ?? 'Signed PDF'}
-                </p>
-                <p className="text-xs text-[#4B6382]">
-                  {typeof signedCopy.size_bytes === 'number' ? `${formatFileSize(signedCopy.size_bytes)} · ` : ''}Attached {signedCopy.created_at ? formatDate(signedCopy.created_at) : ''}
-                </p>
-              </div>
-            </div>
+        <div className="mt-4 border-t border-[#E8F0F8] pt-4">
+          <div className="flex flex-wrap items-center gap-2.5">
             <button
               type="button"
               aria-haspopup="dialog"
@@ -557,9 +544,6 @@ function SignedPdfPreview({
               <PictureAsPdfOutlinedIcon aria-hidden="true" sx={{ fontSize: 18 }} />
               View PDF
             </button>
-          </div>
-
-          <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-[#E8F0F8] pt-3.5">
             <a
               aria-label="Download original signed PDF"
               href={signedCopyFileUrl(document.document_id, {
