@@ -20,6 +20,9 @@ import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import CommentOutlinedIcon from '@mui/icons-material/CommentOutlined';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutlined';
+import OpenInNewOutlinedIcon from '@mui/icons-material/OpenInNewOutlined';
+import SyncOutlinedIcon from '@mui/icons-material/SyncOutlined';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { toast } from 'sonner';
 import { portalRequest } from '@/shared/api/client';
 import type { ApiSchema } from '@/shared/types/index';
@@ -82,7 +85,12 @@ function formatDate(value: string | null | undefined) {
     : 'Not available';
 }
 
-const draftWorkflowStages = ['Draft and review', 'Mark ready for signature', 'Sign and attach the PDF', 'Finalize'] as const;
+const draftWorkflowStages = [
+  { title: 'Draft and review', subtitle: 'Working Google Doc' },
+  { title: 'Mark ready for signature', subtitle: 'Resolve comments' },
+  { title: 'Sign and attach the PDF', subtitle: 'External signing' },
+  { title: 'Finalize', subtitle: 'Anchor to blockchain' },
+] as const;
 
 function DraftProgress({ lifecycle, readinessPending = false }: {
   lifecycle: 'PREPARING' | 'READY_FOR_SIGNATURE' | 'SIGNED' | 'FINALIZED';
@@ -95,19 +103,81 @@ function DraftProgress({ lifecycle, readinessPending = false }: {
 
   return (
     <nav aria-label="Draft and filing progress" className="border-b border-[#D7E4F2] pb-5">
-      <p className="text-xs font-bold uppercase tracking-[0.08em] text-[#4B6382]">{isFinalized ? 'All four steps complete' : `Step ${currentStage + 1} of ${draftWorkflowStages.length}`}</p>
-      <ol className="mt-3 grid grid-cols-1 gap-x-5 gap-y-3 sm:grid-cols-2 lg:grid-cols-4">
-        {draftWorkflowStages.map((stage, index) => (
-          <li key={stage} aria-current={!isFinalized && index === currentStage ? 'step' : undefined} className="flex min-w-0 items-start gap-2.5">
-            <span aria-hidden="true" className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold ${isFinalized || index < currentStage ? 'bg-[#E7F5EC] text-[#067647]' : index === currentStage ? 'bg-[#0067B3] text-white ring-4 ring-[#EAF4FF]' : 'border border-[#D7E4F2] bg-[#F2F5F8] text-[#4B6382]'}`}>
-              {isFinalized || index < currentStage ? '✓' : index + 1}
-            </span>
-            <span className={`text-base leading-6 ${!isFinalized && index === currentStage ? 'font-bold text-[#0C2B49]' : isFinalized || index < currentStage ? 'font-semibold text-[#0C2B49]' : 'font-medium text-[#4B6382]'}`}>
-              <span className="sr-only">{isFinalized || index < currentStage ? 'Completed: ' : index === currentStage ? 'Current step: ' : 'Upcoming: '}</span>
-              {stage}
-            </span>
-          </li>
-        ))}
+      <div className="mb-2.5 flex items-center justify-between">
+        <p className="text-xs font-bold uppercase tracking-[0.08em] text-[#4B6382]">
+          {isFinalized ? 'All four steps complete' : `Step ${currentStage + 1} of ${draftWorkflowStages.length}`}
+        </p>
+      </div>
+
+      <ol className="grid w-full grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4 lg:gap-1.5">
+        {draftWorkflowStages.map((stage, index) => {
+          const isCompleted = isFinalized || index < currentStage;
+          const isCurrent = !isFinalized && index === currentStage;
+
+          const bgClass = isCompleted
+            ? 'bg-[#00528F] text-white shadow-xs'
+            : isCurrent
+              ? 'bg-[#0067B3]/10 border border-[#0067B3] text-[#0C2B49]'
+              : 'bg-white border border-[#D7E4F2] text-[#4B6382]';
+
+          const titleColor = isCompleted
+            ? 'text-white'
+            : isCurrent
+              ? 'text-[#0C2B49]'
+              : 'text-[#4B6382]';
+
+          const subtitleColor = isCompleted
+            ? 'text-[#D0E6FB]'
+            : isCurrent
+              ? 'text-[#0067B3]'
+              : 'text-[#5B6F8A]';
+
+          const badgeClass = isCompleted
+            ? 'bg-white text-[#00528F]'
+            : isCurrent
+              ? 'bg-[#0067B3] text-white'
+              : 'bg-[#F4F8FC] border border-[#D7E4F2] text-[#4B6382]';
+
+          const chevronClass = index === 0
+            ? 'chevron-step-first'
+            : index === draftWorkflowStages.length - 1
+              ? 'chevron-step-last'
+              : 'chevron-step-middle';
+
+          const paddingClass = index === 0
+            ? 'px-4 py-3 lg:pl-5 lg:pr-8'
+            : index === draftWorkflowStages.length - 1
+              ? 'px-4 py-3 lg:pl-8 lg:pr-5'
+              : 'px-4 py-3 lg:pl-8 lg:pr-8';
+
+          return (
+            <li
+              key={stage.title}
+              aria-current={isCurrent ? 'step' : undefined}
+              className={`relative flex min-h-[58px] items-center gap-2.5 rounded-[14px] lg:rounded-none ${chevronClass} ${bgClass} ${paddingClass} transition-colors`}
+            >
+              <span className="sr-only">
+                {isCompleted ? 'Completed: ' : isCurrent ? 'Current step: ' : 'Upcoming: '}
+              </span>
+
+              <span
+                aria-hidden="true"
+                className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold ${badgeClass}`}
+              >
+                {isCompleted ? '✓' : index + 1}
+              </span>
+
+              <div className="flex min-w-0 flex-col justify-center">
+                <span className={`truncate text-sm font-bold leading-tight ${titleColor}`}>
+                  {stage.title}
+                </span>
+                <span className={`mt-0.5 truncate text-xs font-medium leading-4 ${subtitleColor}`}>
+                  {stage.subtitle}
+                </span>
+              </div>
+            </li>
+          );
+        })}
       </ol>
     </nav>
   );
@@ -312,17 +382,61 @@ function ParticipantsPanel({
   onManage?: () => void;
 }) {
   return (
-    <section aria-labelledby="participants-heading" className="rounded-xl border border-[#D7E4F2] bg-white p-5 sm:p-6">
+    <section aria-labelledby="participants-heading" className="rounded-[18px] border border-[#E8F0F8] bg-white p-5 sm:p-6 shadow-sm">
       <div className="flex items-center justify-between gap-3">
-        <h2 id="participants-heading" className="inline-flex items-center gap-1.5 text-lg font-bold leading-6 text-[#0C2B49]"><GroupsOutlinedIcon aria-hidden="true" sx={{ fontSize: 20, color: '#0067B3' }} />Participants</h2>
-        {canManage && <Link href={`/portal/documents/${documentId}/participants`} onClick={onManage ? (e) => { e.preventDefault(); onManage(); } : undefined} className="inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-full border border-[#D7E4F2] px-2.5 py-1 text-sm font-semibold text-[#0C2B49] hover:bg-[#EAF4FF] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3] sm:min-h-9"><ManageAccountsOutlinedIcon aria-hidden="true" sx={{ fontSize: 17 }} />Manage</Link>}
+        <div className="flex items-center gap-2">
+          <GroupsOutlinedIcon aria-hidden="true" sx={{ fontSize: 20, color: '#0067B3' }} />
+          <h2 id="participants-heading" className="text-lg font-bold leading-6 text-[#0C2B49]">Participants</h2>
+          {people.length > 0 && (
+            <span className="rounded-full bg-[#F4F8FC] border border-[#E8F0F8] px-2.5 py-0.5 text-xs font-semibold text-[#4B6382]">
+              {people.length}
+            </span>
+          )}
+        </div>
+        {canManage && (
+          <Link
+            href={`/portal/documents/${documentId}/participants`}
+            onClick={onManage ? (e) => { e.preventDefault(); onManage(); } : undefined}
+            className="inline-flex min-h-11 shrink-0 items-center justify-center gap-1.5 rounded-full border border-[#D7E4F2] px-4 py-2 text-sm font-bold text-[#0C2B49] hover:bg-[#EAF4FF] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]"
+          >
+            <ManageAccountsOutlinedIcon aria-hidden="true" sx={{ fontSize: 18 }} />
+            Manage
+          </Link>
+        )}
       </div>
-      {isLoading && <p role="status" className="mt-3 text-base leading-7 text-[#4B6382]">Loading participants…</p>}
-      {isError && <div className="mt-3 flex flex-wrap items-center gap-2"><p role="alert" className="text-base leading-7 text-[#B42318]">Unable to load participants.</p><button type="button" onClick={onRetry} className="min-h-11 rounded-full border border-[#D7E4F2] px-4 py-2 text-sm font-bold text-[#0C2B49] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]">Retry participants</button></div>}
-      {!isLoading && !isError && people.length === 0 && <p className="mt-3 text-base leading-7 text-[#4B6382]">No participants are listed yet.</p>}
-      {people.length > 0 && <ul aria-label="Participants" className="mt-3 space-y-3 text-base leading-7 text-[#0C2B49]">
-        {people.map((person) => <li key={person.id} className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5 border-b border-[#E8F0F8] pb-2" title={`${participantName(person)} · ${participantRole(person)}`}><span className="font-medium">{participantName(person)}</span><span className="text-xs text-[#4B6382]">{participantRole(person)}</span></li>)}
-      </ul>}
+      {isLoading && <p role="status" className="mt-3 text-sm leading-6 text-[#4B6382]">Loading participants…</p>}
+      {isError && (
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <p role="alert" className="text-sm font-semibold text-[#B42318]">Unable to load participants.</p>
+          <button type="button" onClick={onRetry} className="min-h-11 rounded-full border border-[#D7E4F2] px-3.5 py-1.5 text-sm font-bold text-[#0C2B49] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]">Retry participants</button>
+        </div>
+      )}
+      {!isLoading && !isError && people.length === 0 && <p className="mt-3 text-sm text-[#4B6382]">No participants are listed yet.</p>}
+      {people.length > 0 && (
+        <ul aria-label="Participants" className="mt-3 divide-y divide-[#E8F0F8]">
+          {people.map((person) => {
+            const name = participantName(person);
+            const initial = name ? name.charAt(0).toUpperCase() : '?';
+            return (
+              <li
+                key={person.id}
+                className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5 py-2.5"
+                title={`${name} · ${participantRole(person)}`}
+              >
+                <div className="flex items-center gap-2.5">
+                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[#EAF4FF] text-xs font-bold text-[#0067B3]">
+                    {initial}
+                  </span>
+                  <span className="text-sm font-medium text-[#0C2B49]">{name}</span>
+                </div>
+                <span className="rounded-full bg-[#F4F8FC] border border-[#E8F0F8] px-2.5 py-0.5 text-xs text-[#4B6382]">
+                  {participantRole(person)}
+                </span>
+              </li>
+            );
+          })}
+        </ul>
+      )}
     </section>
   );
 }
@@ -351,28 +465,77 @@ function DraftCommentsPanel({
   if (!document.draft_url) return null;
 
   return (
-    <section aria-labelledby="draft-comments-heading" className="rounded-xl border border-[#D7E4F2] bg-white p-5 sm:p-6">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h2 id="draft-comments-heading" className="inline-flex items-center gap-2 text-lg font-bold leading-6 text-[#0C2B49]"><CommentOutlinedIcon aria-hidden="true" sx={{ fontSize: 20, color: '#0067B3' }} />Draft comments</h2>
-          <p className="mt-1 text-base leading-7 text-[#4B6382]">{document.lifecycle === 'PREPARING' ? 'Saved comments refresh periodically. Use Refresh comments to check Google Docs now.' : 'Comments are no longer checked automatically after the draft is marked ready for signature.'}</p>
-          {comments && <p className="mt-2 text-base font-bold leading-7 text-[#344054]">{comments.unresolved} unresolved · Last checked {formatDate(comments.synced_at)}</p>}
+    <section aria-labelledby="draft-comments-heading" className="rounded-[18px] border border-[#E8F0F8] bg-white p-5 sm:p-6 shadow-sm">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <CommentOutlinedIcon aria-hidden="true" sx={{ fontSize: 20, color: '#0067B3' }} />
+          <h2 id="draft-comments-heading" className="text-lg font-bold leading-6 text-[#0C2B49]">Draft comments</h2>
+          {comments && (
+            <span className="rounded-full bg-[#F4F8FC] border border-[#E8F0F8] px-2.5 py-0.5 text-xs font-semibold text-[#4B6382]">
+              {comments.unresolved} unresolved · Last checked {formatDate(comments.synced_at)}
+            </span>
+          )}
         </div>
-        {document.lifecycle === 'PREPARING' && document.permissions.can_mark_ready && <button type="button" onClick={onSync} disabled={isSyncing} className="min-h-11 rounded-full border border-[#006BB6] px-4 py-2 text-sm font-bold text-[#006BB6] disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]">{isSyncing ? 'Refreshing comments…' : 'Refresh comments'}</button>}
+        {document.lifecycle === 'PREPARING' && document.permissions.can_mark_ready && (
+          <button
+            type="button"
+            onClick={onSync}
+            disabled={isSyncing}
+            className="inline-flex min-h-11 shrink-0 items-center justify-center gap-1.5 rounded-full border border-[#0067B3] px-4 py-2 text-sm font-bold text-[#0067B3] hover:bg-[#EEF6FF] disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]"
+          >
+            <SyncOutlinedIcon aria-hidden="true" sx={{ fontSize: 18 }} className={isSyncing ? 'animate-spin' : ''} />
+            {isSyncing ? 'Refreshing comments…' : 'Refresh comments'}
+          </button>
+        )}
       </div>
-      {document.lifecycle === 'PREPARING' && role === 'user' && <p className="mt-4 rounded-lg bg-[#F8FBFF] p-4 text-base leading-7 text-[#344054]">Leave feedback with comments (select text, then choose the comment button), not by editing the document. Google Docs suggestions are not shown here.</p>}
-      {document.lifecycle === 'PREPARING' && role === 'lawyer' && document.permissions.can_mark_ready && <p className="mt-4 rounded-lg bg-[#F8FBFF] p-4 text-base leading-7 text-[#344054]">Resolve comments and pending Google Docs suggestions before marking the draft ready. Afterward, clients can read the draft but cannot comment. Reopen it if revisions are needed.</p>}
-      {isLoading && <p role="status" className="mt-4 text-base leading-7 text-[#4B6382]">Loading comments…</p>}
-      {isError && <div className="mt-4 flex flex-wrap items-center gap-2"><p role="alert" className="text-base leading-7 text-[#B42318]">Unable to load draft comments.</p><button type="button" onClick={onRetry} className="min-h-11 rounded-full border border-[#D7E4F2] px-4 py-2 text-sm font-bold text-[#0C2B49] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]">Retry comments</button></div>}
-      {syncError && <p role="alert" className="mt-4 text-base font-bold leading-7 text-[#B42318]">{syncError.message || 'Unable to refresh comments.'}</p>}
-      {comments && <div className="mt-3 space-y-3">
-        {comments.comments.length === 0 ? <p className="text-base leading-7 text-[#4B6382]">No comments found in the draft.</p> : comments.comments.map((comment) => <article key={comment.id} className="max-w-4xl space-y-3 rounded-xl border border-[#D7E4F2] bg-[#F8FBFF] p-5">
-          <div className="flex justify-between gap-3"><p className="text-base font-bold leading-6 text-[#0C2B49]">{comment.author_name || 'Draft commenter'}</p><span className="shrink-0 text-sm font-medium text-[#4B6382]">{comment.resolved ? 'Resolved' : 'Unresolved'}</span></div>
-          {comment.quoted_text && <blockquote className="break-words border-l-2 border-[#0067B3] pl-3 text-base leading-7 text-[#4B6382]">{comment.quoted_text}</blockquote>}
-          <p className="break-words whitespace-pre-wrap text-base leading-7 text-[#0C2B49]">{comment.content}</p>
-          {comment.replies?.map((reply, index) => <div key={`${comment.id}-reply-${index}`} className="ml-4 border-l border-[#D6E3F1] pl-4"><p className="text-sm font-bold leading-6 text-[#4B6382]">{reply.author_name || 'Reply'}{reply.action === 'resolve' ? ' · Resolved thread' : reply.action === 'reopen' ? ' · Reopened thread' : ''}</p><p className="break-words whitespace-pre-wrap text-base leading-7 text-[#0C2B49]">{reply.content}</p></div>)}
-        </article>)}
-      </div>}
+
+      <p className="sr-only">
+        {document.lifecycle === 'PREPARING' ? 'Saved comments refresh periodically. Use Refresh comments to check Google Docs now.' : 'Comments are no longer checked automatically after the draft is marked ready for signature.'}
+      </p>
+      {document.lifecycle === 'PREPARING' && role === 'user' && (
+        <p className="sr-only">
+          Leave feedback with comments (select text, then choose the comment button), not by editing the document. Google Docs suggestions are not shown here.
+        </p>
+      )}
+      {document.lifecycle === 'PREPARING' && role === 'lawyer' && document.permissions.can_mark_ready && (
+        <p className="sr-only">
+          Resolve comments and pending Google Docs suggestions before marking the draft ready. Afterward, clients can read the draft but cannot comment. Reopen it if revisions are needed.
+        </p>
+      )}
+
+      {isLoading && <p role="status" className="mt-3 text-sm leading-6 text-[#4B6382]">Loading comments…</p>}
+      {isError && (
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <p role="alert" className="text-sm font-semibold text-[#B42318]">Unable to load draft comments.</p>
+          <button type="button" onClick={onRetry} className="min-h-11 rounded-full border border-[#D7E4F2] px-3.5 py-1.5 text-sm font-bold text-[#0C2B49] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]">Retry comments</button>
+        </div>
+      )}
+      {syncError && <p role="alert" className="mt-3 text-sm font-semibold text-[#B42318]">{syncError.message || 'Unable to refresh comments.'}</p>}
+
+      {comments && (
+        <div className="mt-3 space-y-3">
+          {comments.comments.length === 0 ? (
+            <p className="text-sm text-[#4B6382]">No comments found in the draft.</p>
+          ) : (
+            comments.comments.map((comment) => (
+              <article key={comment.id} className="max-w-4xl space-y-2 rounded-xl border border-[#E8F0F8] bg-[#F8FBFF] p-4">
+                <div className="flex justify-between gap-3">
+                  <p className="text-sm font-bold text-[#0C2B49]">{comment.author_name || 'Draft commenter'}</p>
+                  <span className="shrink-0 text-xs font-semibold text-[#4B6382]">{comment.resolved ? 'Resolved' : 'Unresolved'}</span>
+                </div>
+                {comment.quoted_text && <blockquote className="break-words border-l-2 border-[#0067B3] pl-2.5 text-xs leading-5 text-[#4B6382]">{comment.quoted_text}</blockquote>}
+                <p className="break-words whitespace-pre-wrap text-sm leading-6 text-[#0C2B49]">{comment.content}</p>
+                {comment.replies?.map((reply, index) => (
+                  <div key={`${comment.id}-reply-${index}`} className="ml-3 border-l border-[#D6E3F1] pl-3">
+                    <p className="text-xs font-bold leading-5 text-[#4B6382]">{reply.author_name || 'Reply'}{reply.action === 'resolve' ? ' · Resolved thread' : reply.action === 'reopen' ? ' · Reopened thread' : ''}</p>
+                    <p className="break-words whitespace-pre-wrap text-sm leading-6 text-[#0C2B49]">{reply.content}</p>
+                  </div>
+                ))}
+              </article>
+            ))
+          )}
+        </div>
+      )}
     </section>
   );
 }
@@ -752,7 +915,9 @@ export function DocumentWorkspace({
   const [internalActiveTab, setInternalActiveTab] = useState<Tab>(requestedTab && visibleTabs.includes(requestedTab) ? requestedTab : 'Overview');
   const activeTab = activeTabProp ?? internalActiveTab;
   const hasGoogleDraft = isGoogleDraftUrl(document.draft_url ?? '');
+  const isInlineAttach = isDrafting && document.lifecycle === 'READY_FOR_SIGNATURE' && Boolean(document.permissions?.can_attach_signed_copy);
   const [signedCopyMode, setSignedCopyMode] = useState<'attach' | 'replace' | null>(null);
+  const activeSignedCopyMode = signedCopyMode ?? (isInlineAttach ? 'attach' : null);
   const signedCopyFileInput = useRef<HTMLInputElement>(null);
   const [signedCopyFile, setSignedCopyFile] = useState<File | null>(null);
   const [signedCopyDragOver, setSignedCopyDragOver] = useState(false);
@@ -772,7 +937,7 @@ export function DocumentWorkspace({
   const registerBooksQuery = useQuery({
     queryKey: ['portal-books'],
     queryFn: listRegisterBooks,
-    enabled: (!isDrafting && activeTab === 'Overview' && role === 'lawyer' && Boolean(document.book_id)) || (correctingEntry && canCorrectEntry) || signedCopyMode === 'attach',
+    enabled: (!isDrafting && activeTab === 'Overview' && role === 'lawyer' && Boolean(document.book_id)) || (correctingEntry && canCorrectEntry) || activeSignedCopyMode === 'attach',
     retry: false,
     refetchInterval: 15_000,
   });
@@ -864,8 +1029,8 @@ export function DocumentWorkspace({
   }
 
   useEffect(() => {
-    if (signedCopyMode === 'attach') signedCopyFileInput.current?.focus({ preventScroll: true });
-  }, [signedCopyMode]);
+    if (activeSignedCopyMode === 'attach') signedCopyFileInput.current?.focus({ preventScroll: true });
+  }, [activeSignedCopyMode]);
   const hasReviewDetails = Boolean(document.labels?.length || document.entities?.length);
   const people = partiesQuery.data
     ? [partiesQuery.data.issuer, ...(partiesQuery.data.parties ?? []).filter((party) => party.status !== 'declined')]
@@ -948,7 +1113,7 @@ export function DocumentWorkspace({
 
   function submitSignedCopy(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const mode = signedCopyMode;
+    const mode = activeSignedCopyMode;
     if (!mode) return;
     if (!signedCopyFile) {
       setSignedCopyError('Choose a signed PDF file.');
@@ -980,10 +1145,62 @@ export function DocumentWorkspace({
     signedCopyMutation.mutate({ mode, file: signedCopyFile, reason: replacementReason });
   }
 
-  const signedCopyForm = signedCopyMode && <form aria-labelledby="signed-copy-form-heading" className="space-y-3 border-t border-[#E8F0F8] py-4" onSubmit={submitSignedCopy}>
+  const signedPdfCard = (
+    <section aria-labelledby="signed-pdf-heading" className="rounded-[18px] border border-[#E8F0F8] bg-white p-5 sm:p-6 shadow-sm">
+      <div className="flex items-center gap-2">
+        <PictureAsPdfOutlinedIcon aria-hidden="true" sx={{ fontSize: 20, color: '#0067B3' }} />
+        <h2 id="signed-pdf-heading" className="text-lg font-bold leading-6 text-[#0C2B49]">Signed PDF</h2>
+      </div>
+      <p className="mt-1 text-sm text-[#5B6F8A]">Upload the signed PDF, including any required notary stamp and register details.</p>
+      <div className="mt-4 border-t border-[#E8F0F8] pt-4 space-y-4">
+        <div className="space-y-2">
+          <label
+            onDragOver={(event) => { event.preventDefault(); if (!signedCopyMutation.isPending) setSignedCopyDragOver(true); }}
+            onDragLeave={() => setSignedCopyDragOver(false)}
+            onDrop={(event) => {
+              event.preventDefault();
+              setSignedCopyDragOver(false);
+              if (!signedCopyMutation.isPending) selectSignedCopyFile(event.dataTransfer.files[0] ?? null);
+            }}
+            aria-disabled={signedCopyMutation.isPending}
+            className={`relative flex min-h-40 cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed p-5 text-center transition focus-within:ring-2 focus-within:ring-[#0067B3] focus-within:ring-offset-2 ${signedCopyDragOver ? 'border-[#0067B3] bg-[#EEF6FF]' : 'border-[#B8C9D9] bg-[#F8FBFF] hover:border-[#0067B3]'} ${signedCopyMutation.isPending ? 'cursor-not-allowed opacity-60' : ''}`}
+          >
+            <input ref={signedCopyFileInput} aria-label="Signed PDF" aria-required="true" type="file" accept="application/pdf,.pdf" disabled={signedCopyMutation.isPending} className="absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0 disabled:cursor-not-allowed" onChange={(event) => selectSignedCopyFile(event.currentTarget.files?.[0] ?? null)} />
+            <UploadFileIcon aria-hidden="true" sx={{ fontSize: 36, color: '#0067B3' }} />
+            <p className="mt-2 text-base font-bold leading-6 text-[#0C2B49]">{signedCopyFile ? 'Signed PDF selected' : 'Drop your signed PDF here'}</p>
+            {signedCopyFile && <p className="mt-1 max-w-full break-all text-sm font-semibold text-[#344054]">{signedCopyFile.name}</p>}
+            <span className="mt-3 inline-flex min-h-11 items-center rounded-full border border-[#0067B3] bg-white px-4 py-2 text-sm font-bold text-[#006BB6]">{signedCopyFile ? 'Choose a different PDF' : 'Choose a PDF'}</span>
+            <p className="mt-2 text-xs font-medium text-[#4B6382]">PDF only · maximum 60 MiB</p>
+          </label>
+        </div>
+        <label className="flex flex-col gap-1.5 text-sm font-bold text-[#0C2B49]">Register book
+          <PortalDropdown
+            ariaLabel="Register book"
+            placeholder="Choose a register book"
+            emptyLabel={registerBooksQuery.isLoading ? 'Loading register books...' : 'No register books available'}
+            options={(registerBooksQuery.data ?? []).map((book) => ({ label: `Register book ${book.book_number} — Series ${book.series_year} · ${book.status === 'CLOSED' ? 'Closed' : 'Open'}`, value: book.id }))}
+            value={signedCopyBookId}
+            onChange={(value) => { setSignedCopyBookId(value); setEntryDocNo(''); setEntryPageNo(''); setEnterPaperNumbers(false); setSignedCopyError(null); }}
+            disabled={registerBooksQuery.isLoading || !registerBooksQuery.data?.length || signedCopyMutation.isPending}
+          />
+        </label>
+        {registerBooksQuery.isError && <div className="flex flex-wrap items-center gap-2"><p role="alert" className="text-sm font-bold text-[#B42318]">Unable to load register books. Retry to attach the signed PDF.</p><button type="button" onClick={() => void registerBooksQuery.refetch()} className="min-h-11 rounded-full border border-[#D7E4F2] px-3 py-1.5 text-sm font-bold text-[#0C2B49] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]">Retry register books</button></div>}
+        {selectedSignedCopyBook?.status === 'OPEN' && <label className="flex min-h-11 items-center gap-2 text-sm font-semibold text-[#0C2B49]"><Checkbox checked={enterPaperNumbers} disabled={signedCopyMutation.isPending} onChange={(event) => { setEnterPaperNumbers(event.target.checked); setSignedCopyError(null); }} />Enter paper register numbers</label>}
+        {selectedSignedCopyBook?.status === 'CLOSED' && <p className="text-sm text-[#4B6382]">Closed books require the Doc. No. and Page No. shown in the paper register.</p>}
+        {signedCopyUsesManualNumbers && selectedSignedCopyBook && <div className="grid gap-3 sm:grid-cols-2">
+          <label className="flex flex-col gap-1.5 text-sm font-bold text-[#0C2B49]">Paper document number<input aria-label="Paper document number" min="1" step="1" inputMode="numeric" type="number" value={entryDocNo} disabled={signedCopyMutation.isPending} onChange={(event) => setEntryDocNo(event.target.value)} className="rounded-xl border border-[#D7E4F2] px-3 py-2.5 text-sm font-medium outline-none focus:border-[#0067B3] disabled:bg-[#F8FBFF]" /></label>
+          <label className="flex flex-col gap-1.5 text-sm font-bold text-[#0C2B49]">Paper page number<input aria-label="Paper page number" min="1" step="1" inputMode="numeric" type="number" value={entryPageNo} disabled={signedCopyMutation.isPending} onChange={(event) => setEntryPageNo(event.target.value)} className="rounded-xl border border-[#D7E4F2] px-3 py-2.5 text-sm font-medium outline-none focus:border-[#0067B3] disabled:bg-[#F8FBFF]" /></label>
+        </div>}
+        {signedCopyError && <p role="alert" className="text-sm font-bold text-[#B42318]">{signedCopyError}</p>}
+        {signedCopyMutation.isError && <p role="alert" className="text-sm font-bold text-[#B42318]">{signedCopyMutation.error instanceof Error ? signedCopyMutation.error.message : 'Upload failed.'} Your selected file and filing details have been kept. Review the error and retry.</p>}
+      </div>
+    </section>
+  );
+
+  const signedCopyForm = activeSignedCopyMode && !isInlineAttach && <form aria-labelledby="signed-copy-form-heading" className="space-y-3 border-t border-[#E8F0F8] py-4" onSubmit={submitSignedCopy}>
     <div>
-      <h3 id="signed-copy-form-heading" className="text-base font-bold text-[#0C2B49]">{signedCopyMode === 'attach' ? 'Attach the signed PDF to this record' : 'Replace the signed PDF'}</h3>
-    {signedCopyMode === 'attach' && <p className="mt-1 max-w-2xl text-sm leading-5 text-[#4B6382]">Upload the signed PDF, including any required notary stamp. It will be added to this same document record with its register details.</p>}
+      <h3 id="signed-copy-form-heading" className="text-base font-bold text-[#0C2B49]">{activeSignedCopyMode === 'attach' ? 'Attach the signed PDF to this record' : 'Replace the signed PDF'}</h3>
+      {activeSignedCopyMode === 'attach' && <p className="mt-1 max-w-2xl text-sm leading-5 text-[#4B6382]">Upload the signed PDF, including any required notary stamp. It will be added to this same document record with its register details.</p>}
     </div>
     <div className="space-y-2">
       <p className="text-sm font-bold text-[#0C2B49]">Signed PDF</p>
@@ -1006,30 +1223,32 @@ export function DocumentWorkspace({
         <p className="mt-2 text-xs font-medium text-[#4B6382]">PDF only · maximum 60 MiB</p>
       </label>
     </div>
-    {signedCopyMode === 'attach' && <>
-      <label className="flex flex-col gap-1.5 text-sm font-bold text-[#0C2B49]">Register book
-        <PortalDropdown
-          ariaLabel="Register book"
-          placeholder="Choose a register book"
-          emptyLabel={registerBooksQuery.isLoading ? 'Loading register books...' : 'No register books available'}
-          options={(registerBooksQuery.data ?? []).map((book) => ({ label: `Register book ${book.book_number} — Series ${book.series_year} · ${book.status === 'CLOSED' ? 'Closed' : 'Open'}`, value: book.id }))}
-          value={signedCopyBookId}
-          onChange={(value) => { setSignedCopyBookId(value); setEntryDocNo(''); setEntryPageNo(''); setEnterPaperNumbers(false); setSignedCopyError(null); }}
-          disabled={registerBooksQuery.isLoading || !registerBooksQuery.data?.length || signedCopyMutation.isPending}
-        />
-      </label>
-      {registerBooksQuery.isError && <div className="flex flex-wrap items-center gap-2"><p role="alert" className="text-sm font-bold text-[#B42318]">Unable to load register books. Retry to attach the signed PDF.</p><button type="button" onClick={() => void registerBooksQuery.refetch()} className="min-h-11 rounded-full border border-[#D7E4F2] px-3 py-1.5 text-sm font-bold text-[#0C2B49] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]">Retry register books</button></div>}
-      {selectedSignedCopyBook?.status === 'OPEN' && <label className="flex min-h-11 items-center gap-2 text-sm font-semibold text-[#0C2B49]"><Checkbox checked={enterPaperNumbers} disabled={signedCopyMutation.isPending} onChange={(event) => { setEnterPaperNumbers(event.target.checked); setSignedCopyError(null); }} />Enter paper register numbers</label>}
-      {selectedSignedCopyBook?.status === 'CLOSED' && <p className="text-sm text-[#4B6382]">Closed books require the Doc. No. and Page No. shown in the paper register.</p>}
-      {signedCopyUsesManualNumbers && selectedSignedCopyBook && <div className="grid gap-3 sm:grid-cols-2">
-        <label className="flex flex-col gap-1.5 text-sm font-bold text-[#0C2B49]">Paper document number<input aria-label="Paper document number" min="1" step="1" inputMode="numeric" type="number" value={entryDocNo} disabled={signedCopyMutation.isPending} onChange={(event) => setEntryDocNo(event.target.value)} className="rounded-xl border border-[#D7E4F2] px-3 py-2.5 text-sm font-medium outline-none focus:border-[#0067B3] disabled:bg-[#F8FBFF]" /></label>
-        <label className="flex flex-col gap-1.5 text-sm font-bold text-[#0C2B49]">Paper page number<input aria-label="Paper page number" min="1" step="1" inputMode="numeric" type="number" value={entryPageNo} disabled={signedCopyMutation.isPending} onChange={(event) => setEntryPageNo(event.target.value)} className="rounded-xl border border-[#D7E4F2] px-3 py-2.5 text-sm font-medium outline-none focus:border-[#0067B3] disabled:bg-[#F8FBFF]" /></label>
-      </div>}
-    </>}
-    {signedCopyMode === 'replace' && <label className="flex flex-col gap-1.5 text-sm font-bold text-[#0C2B49]">Replacement reason<textarea aria-label="Replacement reason" required value={replacementReason} disabled={signedCopyMutation.isPending} onChange={(event) => setReplacementReason(event.target.value)} className="rounded-xl border border-[#D7E4F2] px-3 py-2.5 text-sm font-medium outline-none focus:border-[#0067B3] disabled:bg-[#F8FBFF]" /></label>}
+    {activeSignedCopyMode === 'replace' && <label className="flex flex-col gap-1.5 text-sm font-bold text-[#0C2B49]">Replacement reason<textarea aria-label="Replacement reason" required value={replacementReason} disabled={signedCopyMutation.isPending} onChange={(event) => setReplacementReason(event.target.value)} className="rounded-xl border border-[#D7E4F2] px-3 py-2.5 text-sm font-medium outline-none focus:border-[#0067B3] disabled:bg-[#F8FBFF]" /></label>}
     {signedCopyError && <p role="alert" className="text-sm font-bold text-[#B42318]">{signedCopyError}</p>}
-    {signedCopyMutation.isError && <p role="alert" className="text-sm font-bold text-[#B42318]">{signedCopyMutation.error instanceof Error ? signedCopyMutation.error.message : 'Upload failed.'} Your selected file and {signedCopyMode === 'attach' ? 'filing details' : 'replacement reason'} have been kept. Review the error and retry.</p>}
-    <div className="flex flex-wrap gap-2"><button type="submit" disabled={!signedCopyFile || (signedCopyMode === 'replace' && !replacementReason.trim()) || (signedCopyMode === 'attach' && !selectedSignedCopyBook) || signedCopyMutation.isPending} className="min-h-11 rounded-full bg-[#0673C4] px-4 py-2 text-sm font-bold text-white hover:bg-[#005FA3] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3] disabled:opacity-50">{signedCopyMutation.isPending ? 'Uploading…' : signedCopyMode === 'replace' ? 'Confirm replacement' : 'Confirm attachment'}</button><button type="button" disabled={signedCopyMutation.isPending} onClick={() => { setSignedCopyMode(null); setSignedCopyFile(null); setReplacementReason(''); setSignedCopyError(null); signedCopyMutation.reset(); }} className="min-h-11 rounded-full border border-[#D7E4F2] px-4 py-2 text-sm font-bold text-[#0C2B49] disabled:opacity-50">Cancel</button></div>
+    {signedCopyMutation.isError && <p role="alert" className="text-sm font-bold text-[#B42318]">{signedCopyMutation.error instanceof Error ? signedCopyMutation.error.message : 'Upload failed.'} Your selected file and {activeSignedCopyMode === 'attach' ? 'filing details' : 'replacement reason'} have been kept. Review the error and retry.</p>}
+    <div className="flex flex-wrap gap-2">
+      <button
+        type="submit"
+        disabled={!signedCopyFile || (activeSignedCopyMode === 'replace' && !replacementReason.trim()) || signedCopyMutation.isPending}
+        className="min-h-11 rounded-full bg-[#0673C4] px-4 py-2 text-sm font-bold text-white hover:bg-[#005FA3] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3] disabled:opacity-50"
+      >
+        {signedCopyMutation.isPending ? 'Uploading…' : activeSignedCopyMode === 'replace' ? 'Confirm replacement' : 'Confirm attachment'}
+      </button>
+      <button
+        type="button"
+        disabled={signedCopyMutation.isPending}
+        onClick={() => {
+          if (signedCopyMode) setSignedCopyMode(null);
+          setSignedCopyFile(null);
+          setReplacementReason('');
+          setSignedCopyError(null);
+          signedCopyMutation.reset();
+        }}
+        className="min-h-11 rounded-full border border-[#D7E4F2] px-4 py-2 text-sm font-bold text-[#0C2B49] disabled:opacity-50"
+      >
+        Cancel
+      </button>
+    </div>
   </form>;
 
   const nextStepHeading = document.lifecycle === 'PREPARING'
@@ -1043,53 +1262,101 @@ export function DocumentWorkspace({
       : role === 'lawyer'
         ? 'Review the wording in Google Docs, then confirm below when the draft is ready.'
         : 'Review the Google Doc and leave feedback in its comments. Your lawyer will mark it ready when the text is settled.'
-    : role === 'lawyer' && document.permissions.can_attach_signed_copy
-      ? 'Print the approved text, collect signatures and any required notary stamp, then upload the signed PDF here. It will be attached to this same record with its register details.'
-      : role === 'lawyer'
-        ? 'The document owner will attach the signed PDF to this record after signing.'
-        : 'Your lawyer is arranging signatures outside LexChain and will add the signed PDF to this same record.';
-  const nextStepPanel = <section aria-labelledby="next-step-heading" className="rounded-[18px] border border-[#E8F0F8] bg-white p-5 sm:p-6 shadow-sm">
-    <div className="flex items-center gap-2">
-      <CheckCircleOutlineIcon aria-hidden="true" sx={{ fontSize: 20, color: '#0067B3' }} />
-      <h2 id="next-step-heading" className="text-lg font-bold leading-6 text-[#0C2B49]">{nextStepHeading}</h2>
-    </div>
-    <p className="mt-1 text-sm text-[#5B6F8A]">{nextStepGuidance}</p>
-    {document.lifecycle === 'PREPARING' && readinessError && <div role="alert" className="mt-4 space-y-2 rounded-lg bg-red-50 p-4 text-base font-bold leading-7 text-[#B42318]">
-      <p>{readinessError.message}</p>
-      {readinessError instanceof LifecycleRequestError && readinessError.reason === 'UNRESOLVED_COMMENTS' && <>
-        {typeof readinessError.unresolved === 'number' && Number.isInteger(readinessError.unresolved) && readinessError.unresolved >= 0 && <p>{readinessError.unresolved} unresolved comments remain.</p>}
-        {typeof readinessError.draftUrl === 'string' && isGoogleDraftUrl(readinessError.draftUrl) && <a className="underline" href={readinessError.draftUrl} target="_blank" rel="noreferrer">Open Google draft to resolve comments</a>}
-      </>}
-    </div>}
+    : role === 'lawyer'
+      ? 'The document owner will attach the signed PDF to this record after signing.'
+      : 'Your lawyer is arranging signatures outside LexChain and will add the signed PDF to this same record.';
+  const nextStepPanel = document.lifecycle === 'READY_FOR_SIGNATURE' ? (
+    <section aria-labelledby="next-step-heading" className="rounded-[18px] border border-[#E8F0F8] bg-white p-5 sm:p-6 shadow-sm">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <CheckCircleOutlineIcon aria-hidden="true" sx={{ fontSize: 20, color: '#0067B3' }} />
+          <h2 id="next-step-heading" className="text-lg font-bold leading-6 text-[#0C2B49]">{nextStepHeading}</h2>
+        </div>
+        {!isInlineAttach && nextStepGuidance && (
+          <p className="text-sm text-[#5B6F8A]">{nextStepGuidance}</p>
+        )}
+        <div className="flex flex-wrap items-center gap-3">
+          {document.permissions.can_reopen && (
+            <button
+              type="button"
+              onClick={() => { setReviewedSuggestionsFor(null); onReopen?.(); }}
+              disabled={isChangingReadiness || signedCopyMutation.isPending}
+              className="inline-flex min-h-11 shrink-0 items-center justify-center gap-1.5 rounded-full border border-[#D7E4F2] bg-white px-4 py-2 text-sm font-bold text-[#0C2B49] hover:bg-[#EEF4FB] disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]"
+            >
+              <ArrowBackIcon aria-hidden="true" sx={{ fontSize: 18 }} />
+              Back
+            </button>
+          )}
+          {isInlineAttach && (
+            <button
+              type="submit"
+              disabled={!signedCopyFile || !selectedSignedCopyBook || signedCopyMutation.isPending}
+              className="inline-flex min-h-11 shrink-0 items-center justify-center gap-1.5 rounded-full bg-[#0067B3] px-4 py-2 text-sm font-bold text-white hover:bg-[#00528F] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3] disabled:opacity-50"
+            >
+              <CheckCircleOutlineIcon aria-hidden="true" sx={{ fontSize: 18 }} />
+              {signedCopyMutation.isPending ? 'Uploading…' : 'Confirm attachment'}
+            </button>
+          )}
+        </div>
+      </div>
+    </section>
+  ) : (
+    <section aria-labelledby="next-step-heading" className="rounded-[18px] border border-[#E8F0F8] bg-white p-5 sm:p-6 shadow-sm">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <CheckCircleOutlineIcon aria-hidden="true" sx={{ fontSize: 20, color: '#0067B3' }} />
+          <h2 id="next-step-heading" className="text-lg font-bold leading-6 text-[#0C2B49]">{nextStepHeading}</h2>
+        </div>
+        {document.lifecycle === 'PREPARING' && hasGoogleDraft && unresolvedCommentCount === 0 && !commentsQuery.isLoading && !commentsQuery.isError && !syncComments.isPending && !syncComments.isError && (
+          <span role="status" className="inline-flex items-center gap-1.5 rounded-full border border-[#ABEFC6] bg-[#ECFDF3] px-3 py-1 text-xs font-semibold text-[#067647]">
+            <CheckCircleOutlineIcon aria-hidden="true" sx={{ fontSize: 16, color: '#067647' }} />
+            All comments are resolved.
+          </span>
+        )}
+      </div>
+      <p className="mt-1 text-sm text-[#5B6F8A]">{nextStepGuidance}</p>
+      {document.lifecycle === 'PREPARING' && readinessError && <div role="alert" className="mt-4 space-y-2 rounded-lg bg-red-50 p-4 text-base font-bold leading-7 text-[#B42318]">
+        <p>{readinessError.message}</p>
+        {readinessError instanceof LifecycleRequestError && readinessError.reason === 'UNRESOLVED_COMMENTS' && <>
+          {typeof readinessError.unresolved === 'number' && Number.isInteger(readinessError.unresolved) && readinessError.unresolved >= 0 && <p>{readinessError.unresolved} unresolved comments remain.</p>}
+          {typeof readinessError.draftUrl === 'string' && isGoogleDraftUrl(readinessError.draftUrl) && <a className="underline" href={readinessError.draftUrl} target="_blank" rel="noreferrer">Open Google draft to resolve comments</a>}
+        </>}
+      </div>}
 
-    {document.lifecycle === 'PREPARING' && hasGoogleDraft && document.permissions.can_mark_ready && <div className="mt-4 border-t border-[#E8F0F8] pt-4">
-      {commentsQuery.isLoading && <p role="status" className="text-sm text-[#4B6382]">Checking unresolved comments…</p>}
-      {commentsQuery.isError && <p role="alert" className="text-sm font-semibold text-[#B42318]">Comments could not be checked. Retry comments above before continuing.</p>}
-      {syncComments.isPending && <p role="status" className="text-sm text-[#4B6382]">Refreshing comments…</p>}
-      {syncComments.isError && <p role="alert" className="text-sm font-semibold text-[#B42318]">Comments could not be refreshed. Choose Refresh comments above before continuing.</p>}
-      {typeof unresolvedCommentCount === 'number' && unresolvedCommentCount > 0 && <p role="status" className="text-sm font-semibold text-[#B42318]">Resolve {unresolvedCommentCount} unresolved {unresolvedCommentCount === 1 ? 'comment' : 'comments'} in Google Docs, then refresh comments before marking the draft ready.</p>}
-      {unresolvedCommentCount === 0 && !commentsQuery.isLoading && !commentsQuery.isError && !syncComments.isPending && !syncComments.isError && <>
-        <p role="status" className="text-sm font-semibold text-[#067647]">All comments are resolved.</p>
-        <label className="mt-3 flex min-h-11 items-center gap-2.5 text-sm font-semibold text-[#0C2B49]">
-          <Checkbox checked={suggestionsReviewed} onChange={(event) => setReviewedSuggestionsFor(event.target.checked ? document.document_id : null)} />
-          <span>I checked Google Docs and resolved any pending suggestions.</span>
-        </label>
-      </>}
-      <button type="button" onClick={onMarkReady} disabled={isChangingReadiness || readinessBlocked} className="mt-4 inline-flex min-h-11 items-center justify-center rounded-full bg-[#0067B3] px-5 py-2.5 text-sm font-bold text-white hover:bg-[#00528F] disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]">{isChangingReadiness ? 'Updating…' : 'Mark ready for signature'}</button>
-    </div>}
-
-    {document.lifecycle === 'READY_FOR_SIGNATURE' && <div className="mt-4 flex flex-wrap gap-3 border-t border-[#E8F0F8] pt-4">
-      {document.permissions.can_attach_signed_copy && !signedCopyMode && <button type="button" onClick={openSignedCopyForm} className="min-h-11 rounded-full bg-[#0067B3] px-5 py-2.5 text-sm font-bold text-white hover:bg-[#00528F] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]">Attach signed PDF</button>}
-      {document.permissions.can_reopen && <button type="button" onClick={() => { setReviewedSuggestionsFor(null); onReopen?.(); }} disabled={isChangingReadiness} className="min-h-11 rounded-full border border-[#D7E4F2] bg-white px-5 py-2.5 text-sm font-bold text-[#0C2B49] hover:bg-[#EEF4FB] disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]">Reopen draft</button>}
-    </div>}
-    {document.lifecycle === 'READY_FOR_SIGNATURE' && signedCopyMode === 'attach' && signedCopyForm}
-  </section>;
+      {document.lifecycle === 'PREPARING' && hasGoogleDraft && document.permissions.can_mark_ready && <div className="mt-4 border-t border-[#E8F0F8] pt-4">
+        {commentsQuery.isLoading && <p role="status" className="text-sm text-[#4B6382]">Checking unresolved comments…</p>}
+        {commentsQuery.isError && <p role="alert" className="text-sm font-semibold text-[#B42318]">Comments could not be checked. Retry comments above before continuing.</p>}
+        {syncComments.isPending && <p role="status" className="text-sm text-[#4B6382]">Refreshing comments…</p>}
+        {syncComments.isError && <p role="alert" className="text-sm font-semibold text-[#B42318]">Comments could not be refreshed. Choose Refresh comments above before continuing.</p>}
+        {typeof unresolvedCommentCount === 'number' && unresolvedCommentCount > 0 && <p role="status" className="mb-3 text-sm font-semibold text-[#B42318]">Resolve {unresolvedCommentCount} unresolved {unresolvedCommentCount === 1 ? 'comment' : 'comments'} in Google Docs, then refresh comments before marking the draft ready.</p>}
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          {unresolvedCommentCount === 0 && !commentsQuery.isLoading && !commentsQuery.isError && !syncComments.isPending && !syncComments.isError ? (
+            <label className="flex min-h-11 items-center gap-2.5 text-sm font-semibold text-[#0C2B49]">
+              <Checkbox checked={suggestionsReviewed} onChange={(event) => setReviewedSuggestionsFor(event.target.checked ? document.document_id : null)} />
+              <span>I checked Google Docs and resolved any pending suggestions.</span>
+            </label>
+          ) : (
+            <div />
+          )}
+          <button
+            type="button"
+            onClick={onMarkReady}
+            disabled={isChangingReadiness || readinessBlocked}
+            className="inline-flex min-h-11 shrink-0 items-center justify-center gap-1.5 rounded-full bg-[#0067B3] px-4 py-2 text-sm font-bold text-white hover:bg-[#00528F] disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]"
+          >
+            <CheckCircleOutlineIcon aria-hidden="true" sx={{ fontSize: 18 }} />
+            {isChangingReadiness ? 'Updating…' : 'Mark ready for signature'}
+          </button>
+        </div>
+      </div>}
+    </section>
+  );
 
   return (
     <section className={`mx-auto flex min-h-0 w-full max-w-7xl flex-col bg-transparent ${isDrafting ? 'overflow-hidden' : ''} ${className ?? ''}`}>
       {isDrafting ? (
         <div className="mx-auto min-h-0 w-full max-w-7xl flex-1 overflow-y-auto px-4 py-4 sm:px-6">
-          <header className="mb-4">
+          <header className="sr-only">
             <p className="text-xs font-bold uppercase tracking-[0.08em] text-[#4B6382]">{document.lifecycle === 'PREPARING' ? 'Drafting workspace' : 'Ready for signature'}</p>
             <h2 className="mt-1 text-xl font-bold leading-7 text-[#0C2B49]">{document.lifecycle === 'PREPARING' ? 'Prepare and review the document' : 'Sign the document and return the PDF'}</h2>
             <p className="mt-1 max-w-3xl text-sm leading-6 text-[#5B6F8A]">{document.lifecycle === 'PREPARING' ? 'The Google Doc is the working draft. Comments and participants stay with this record while you agree on the text.' : 'Signing happens outside LexChain. Upload the signed PDF here to keep it attached to this same record.'}</p>
@@ -1105,10 +1372,21 @@ export function DocumentWorkspace({
                   <h2 id="working-draft-heading" className="text-lg font-bold leading-6 text-[#0C2B49]">{document.lifecycle === 'PREPARING' ? 'Working draft' : 'Approved text'}</h2>
                   {hasGoogleDraft && (
                     <span className="rounded-full bg-[#EAF4FF] px-2.5 py-0.5 text-xs font-bold text-[#0067B3]">
-                      Google Docs
+                      Google Docs · Linked
                     </span>
                   )}
                 </div>
+                {document.draft_url && isGoogleDraftUrl(document.draft_url) && (
+                  <a
+                    href={document.draft_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex min-h-11 shrink-0 items-center justify-center gap-1.5 rounded-full border border-[#0067B3] px-4 py-2 text-sm font-bold text-[#0067B3] hover:bg-[#EEF6FF] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]"
+                  >
+                    <OpenInNewOutlinedIcon aria-hidden="true" sx={{ fontSize: 18 }} />
+                    {document.lifecycle === 'READY_FOR_SIGNATURE' ? 'Open approved Google Doc' : 'Open Google draft'}
+                  </a>
+                )}
               </div>
               {(!hasGoogleDraft || !document.draft_url) && (
                 <p className="mt-2 text-sm text-[#5B6F8A]">{document.lifecycle === 'PREPARING'
@@ -1122,10 +1400,19 @@ export function DocumentWorkspace({
               </div>
             </section>
 
-            {document.lifecycle === 'READY_FOR_SIGNATURE' && nextStepPanel}
             {participantsPanel}
-            {draftCommentsPanel}
+            {document.lifecycle === 'PREPARING' && draftCommentsPanel}
             {document.lifecycle === 'PREPARING' && nextStepPanel}
+            {document.lifecycle === 'READY_FOR_SIGNATURE' && (
+              isInlineAttach ? (
+                <form id="signed-copy-form" onSubmit={submitSignedCopy} className="flex flex-col gap-6">
+                  {signedPdfCard}
+                  {nextStepPanel}
+                </form>
+              ) : (
+                nextStepPanel
+              )
+            )}
           </div>
         </div>
       ) : (

@@ -114,3 +114,16 @@ button:not(:disabled),
 .pdf-scroll-area::-webkit-scrollbar-thumb:hover {
   background: #6f879e;
 }
+
+/* Chevron Stepper */
+@media (min-width: 1024px) {
+  .chevron-step-first {
+    clip-path: polygon(0% 0%, calc(100% - 14px) 0%, 100% 50%, calc(100% - 14px) 100%, 0% 100%);
+  }
+  .chevron-step-middle {
+    clip-path: polygon(0% 0%, calc(100% - 14px) 0%, 100% 50%, calc(100% - 14px) 100%, 0% 100%, 14px 50%);
+  }
+  .chevron-step-last {
+    clip-path: polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%, 14px 50%);
+  }
+}

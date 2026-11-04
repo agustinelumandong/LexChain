@@ -84,7 +84,13 @@ vi.mock('@tanstack/react-query', () => ({
   },
 }));
 
-vi.mock('@/features/portal/components', () => ({ PortalChatbot: () => null }));
+vi.mock('@/features/portal/components', async (importOriginal) => {
+  const actual = await importOriginal<Record<string, unknown>>();
+  return {
+    ...actual,
+    PortalChatbot: () => null,
+  };
+});
 
 type DocumentResponse = ApiSchema<'DocumentResponse'>;
 const baseDocument: DocumentResponse = {
@@ -285,7 +291,7 @@ describe('document detail screen', () => {
     await showPage();
 
     expect(screen.getByRole('button', { name: 'Mark ready for signature' })).toBeTruthy();
-    expect(screen.queryByRole('button', { name: 'Reopen draft' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Back' })).toBeNull();
   });
 
   it('publishes returned ready lifecycle and permission flags before refreshing dependent queries', async () => {
@@ -310,7 +316,7 @@ describe('document detail screen', () => {
     state.documentQuery = { data: ready, isLoading: false, isError: false, refetch: vi.fn() };
     state.reopenDocument.mockResolvedValue(reopened);
     await showPage();
-    fireEvent.click(screen.getByRole('button', { name: 'Reopen draft' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Back' }));
 
     await waitFor(() => expect(state.queryClient.setQueryData).toHaveBeenCalledWith(['portal-doc', 'doc-1'], reopened));
     expect(screen.getAllByText('Document reopened for editing.')).toHaveLength(1);
