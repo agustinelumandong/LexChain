@@ -28,7 +28,7 @@ export function CreateDocumentRecordForm({ onClose, onCreated }: { onClose: () =
   }
 
   return <Modal open onClose={close} title="Create document draft">
-    <p className="text-sm leading-6 text-[#4B6382]">This opens a PREPARING record. You can create a working draft from its Files tab.</p>
+    <p className="text-sm leading-6 text-[#4B6382]">Create a document workspace where you can start or link a working draft and attach the signed PDF later.</p>
     <form onSubmit={submit} className="mt-4 grid gap-3">
       <label htmlFor="new-document-name" className="grid gap-1.5 text-sm font-bold text-[#0C2B49]">Document name
         <input id="new-document-name" required maxLength={255} value={name} onChange={(event) => setName(event.target.value)} className="w-full rounded-xl border border-[#D7E4F2] px-3 py-2.5 font-normal outline-none focus:border-[#0067B3]" />

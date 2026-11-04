@@ -8,9 +8,10 @@ type ModalProps = {
   onClose: () => void;
   title: string;
   children: React.ReactNode;
+  size?: "default" | "wide";
 };
 
-export function Modal({ open, onClose, title, children }: ModalProps) {
+export function Modal({ open, onClose, title, children, size = "default" }: ModalProps) {
   const ref = useRef<HTMLDivElement>(null);
   const onCloseRef = useRef(onClose);
 
@@ -70,7 +71,7 @@ export function Modal({ open, onClose, title, children }: ModalProps) {
         ref={ref}
         tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-md rounded-2xl border border-[#E4EEF9] bg-white p-6 shadow-xl"
+        className={`${size === "wide" ? "w-[calc(100%-2rem)] max-w-xl" : "w-full max-w-md"} rounded-2xl border border-[#E4EEF9] bg-white p-6 shadow-xl`}
       >
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-black text-[#0C2B49]">{title}</h2>

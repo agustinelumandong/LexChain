@@ -165,11 +165,29 @@ function renderWorkspace(props: Partial<React.ComponentProps<typeof DocumentWork
 }
 
 describe('DocumentWorkspace', () => {
+  it('keeps the draft workspace visible without tabs before finalization', () => {
+    renderWorkspace({ document: { ...document, lifecycle: 'PREPARING' } });
+    expect(screen.queryByRole('tablist')).toBeNull();
+    expect(screen.getByRole('heading', { name: 'Working draft' })).toBeTruthy();
+  });
+  it('keeps signed PDF replacement accessible without tabs', () => {
+    renderWorkspace({ role: 'lawyer', document: { ...document, lifecycle: 'SIGNED', permissions: { ...document.permissions, can_replace_signed_copy: true } } });
+    expect(screen.queryByRole('tablist')).toBeNull();
+    const preview = screen.getByRole('region', { name: 'Signed PDF' });
+    fireEvent.click(within(preview).getByRole('button', { name: 'Replace signed PDF' }));
+    expect(within(preview).getByLabelText(/replacement reason/i)).toBeTruthy();
+  });
   it('allows switching away from the initial tab', () => {
     renderWorkspace({ initialTab: 'files', document: { ...document, lifecycle: 'FINALIZED' } });
     expect(screen.getByRole('tab', { name: 'Files' }).getAttribute('aria-selected')).toBe('true');
     fireEvent.click(screen.getByRole('tab', { name: 'History' }));
     expect(screen.getByRole('tab', { name: 'History' }).getAttribute('aria-selected')).toBe('true');
+  });
+  it('omits draft content and comments from finalized tabs', () => {
+    renderWorkspace({ initialTab: 'files', role: 'lawyer', document: { ...document, lifecycle: 'FINALIZED' } });
+    expect(screen.queryByRole('tab', { name: 'Comments' })).toBeNull();
+    expect(screen.queryByRole('heading', { name: 'Working draft' })).toBeNull();
+    expect(screen.getByRole('heading', { name: 'Signed PDF' })).toBeTruthy();
   });
   it('does not show requester controls to the lawyer', () => {
     renderWorkspace({ role: 'lawyer', document: { ...document, lifecycle: 'FINALIZED', permissions: { ...document.permissions, can_request_ecopy: true } } });
@@ -213,8 +231,8 @@ describe('DocumentWorkspace', () => {
   });
   it.each([
     ['PREPARING', 'Prepare and review the document', 'Step 1 of 4'],
-    ['READY_FOR_SIGNATURE', 'Sign the document and return the PDF', 'Step 3 of 4'],
-  ])('shows the dedicated drafting workflow without processing or file tabs (%s)', (lifecycle, heading, step) => {
+    ['READY_FOR_SIGNATURE', 'Sign the document and return the PDF', 'Step 2 of 4'],
+  ])('shows the drafting workflow with shared navigation (%s)', (lifecycle, heading, step) => {
     renderWorkspace({ document: { ...document, lifecycle, status: 'FAILED' } });
     expect(screen.getByRole('heading', { name: heading })).toBeTruthy();
     expect(screen.getByText(step)).toBeTruthy();
@@ -229,7 +247,7 @@ describe('DocumentWorkspace', () => {
     const nav = screen.getByRole('navigation', { name: 'Draft and filing progress' });
     const currentStepItem = within(nav).getByRole('listitem', { current: 'step' });
     expect(currentStepItem.textContent).toContain('Current step:');
-    expect(currentStepItem.textContent).toContain('Draft and review');
+    expect(currentStepItem.textContent).toContain('Prepare');
 
     const upcomingLabels = within(nav).getAllByText('Upcoming:');
     expect(upcomingLabels.length).toBe(3);
@@ -287,7 +305,7 @@ describe('DocumentWorkspace', () => {
   });
 
   it('only offers register correction for signed documents allowed by the backend', () => {
-    const signedDocument = { ...document, lifecycle: 'SIGNED' };
+    const signedDocument = { ...document, lifecycle: 'SIGNED', status: 'COMPLETED' };
     const permittedDocument = { ...signedDocument, permissions: { ...document.permissions, can_correct_entry: true } };
 
     renderWorkspace({ document: signedDocument });
@@ -299,16 +317,18 @@ describe('DocumentWorkspace', () => {
     cleanup();
 
     renderWorkspace({ document: permittedDocument });
-    expect(screen.getByRole('button', { name: 'Correct register entry' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Document summary actions' }));
+    expect(screen.getByRole('menuitem', { name: 'Correct register entry' })).toBeTruthy();
   });
 
   it('corrects the register entry with positive numbers and refreshes the document', async () => {
-    const signedDocument = { ...document, lifecycle: 'SIGNED', permissions: { ...document.permissions, can_correct_entry: true } };
+    const signedDocument = { ...document, lifecycle: 'SIGNED', status: 'COMPLETED', permissions: { ...document.permissions, can_correct_entry: true } };
     const updatedDocument = { ...signedDocument, book_id: 'book-102', doc_no: 14, page_no: 9 };
     correctDocumentEntryMock.mockResolvedValue(updatedDocument);
     const { queryClient } = renderWorkspace({ document: signedDocument, role: 'lawyer' });
 
-    fireEvent.click(screen.getByRole('button', { name: 'Correct register entry' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Document summary actions' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Correct register entry' }));
     await waitFor(() => expect(listRegisterBooksMock).toHaveBeenCalled());
     await waitFor(() => {
       expect(screen.getByRole('combobox', { name: 'Register book' }).hasAttribute('disabled')).toBe(false);
@@ -329,10 +349,11 @@ describe('DocumentWorkspace', () => {
   });
 
   it('keeps the document register book as the default correction target', async () => {
-    const signedDocument = { ...document, lifecycle: 'SIGNED', permissions: { ...document.permissions, can_correct_entry: true } };
+    const signedDocument = { ...document, lifecycle: 'SIGNED', status: 'COMPLETED', permissions: { ...document.permissions, can_correct_entry: true } };
     renderWorkspace({ document: signedDocument });
 
-    fireEvent.click(screen.getByRole('button', { name: 'Correct register entry' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Document summary actions' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Correct register entry' }));
     fireEvent.click(screen.getByRole('button', { name: 'Save correction' }));
 
     await waitFor(() => expect(correctDocumentEntryMock).toHaveBeenCalledWith('doc-101', {
@@ -344,10 +365,11 @@ describe('DocumentWorkspace', () => {
 
   it('keeps entered register values when correction fails', async () => {
     correctDocumentEntryMock.mockRejectedValue(new Error('Register update rejected'));
-    const signedDocument = { ...document, lifecycle: 'SIGNED', permissions: { ...document.permissions, can_correct_entry: true } };
+    const signedDocument = { ...document, lifecycle: 'SIGNED', status: 'COMPLETED', permissions: { ...document.permissions, can_correct_entry: true } };
     renderWorkspace({ document: signedDocument, role: 'lawyer' });
 
-    fireEvent.click(screen.getByRole('button', { name: 'Correct register entry' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Document summary actions' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Correct register entry' }));
     fireEvent.change(screen.getByLabelText('Document number'), { target: { value: '18' } });
     fireEvent.click(screen.getByRole('button', { name: 'Save correction' }));
 
@@ -361,9 +383,7 @@ describe('DocumentWorkspace', () => {
       { id: 'copy-old', sha256: 'old-hash', content_type: 'application/pdf', size_bytes: 90, original_filename: 'old.pdf', uploaded_by: null, replaced_reason: 'Corrected scan', is_current: false, created_at: '2026-07-27T00:00:00Z' },
     ] });
     renderWorkspace({ document: { ...document, lifecycle: 'SIGNED' } });
-    expect(listSignedCopiesMock).not.toHaveBeenCalled();
-    fireEvent.click(screen.getByRole('tab', { name: 'Files' }));
-    expect(listSignedCopiesMock).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(listSignedCopiesMock).toHaveBeenCalledTimes(1));
     expect(await screen.findByText('Earlier signed PDFs (1)')).toBeTruthy();
     fireEvent.click(screen.getByText('Earlier signed PDFs (1)'));
     expect(screen.getByText('old.pdf')).toBeTruthy();
@@ -388,8 +408,7 @@ describe('DocumentWorkspace', () => {
 
     await waitFor(() => expect(attachSignedCopyMock).toHaveBeenCalledWith('doc-101', file, { bookId: 'book-101', docNo: null, pageNo: null }));
     expect(await screen.findByText('Signed PDF attached.')).toBeTruthy();
-    expect(screen.getByRole('tablist')).toBeTruthy();
-    fireEvent.click(screen.getByRole('tab', { name: 'Files' }));
+    expect(screen.queryByRole('tablist')).toBeNull();
     expect(within(screen.getByRole('heading', { name: 'Signed PDF' }).closest('section')!).getAllByText('attached.pdf').length).toBeTruthy();
     createWatermarkedSignedPdfMock.mockReturnValue(new Promise(() => {}));
     fireEvent.click(screen.getByRole('button', { name: 'Download options' }));
@@ -479,8 +498,8 @@ describe('DocumentWorkspace', () => {
     replaceSignedCopyMock.mockReturnValue(new Promise((resolve) => { finishMutation = resolve; }));
     renderWorkspace({ document: { ...document, lifecycle: 'SIGNED', permissions: { ...document.permissions, can_replace_signed_copy: true } } });
 
-    fireEvent.click(screen.getByRole('tab', { name: 'Files' }));
     fireEvent.click(screen.getByRole('button', { name: 'Replace signed PDF' }));
+    expect(screen.getByRole('dialog', { name: 'Replace signed PDF' })).toBeTruthy();
     const file = new File(['corrected pdf'], 'corrected.pdf', { type: 'application/pdf' });
     fireEvent.change(screen.getByLabelText('Signed PDF', { selector: 'input' }), { target: { files: [file] } });
     fireEvent.change(screen.getByLabelText('Replacement reason'), { target: { value: 'Corrected scan' } });
@@ -496,7 +515,6 @@ describe('DocumentWorkspace', () => {
     replaceSignedCopyMock.mockRejectedValue(new Error('Storage unavailable'));
     renderWorkspace({ document: { ...document, lifecycle: 'SIGNED', permissions: { ...document.permissions, can_replace_signed_copy: true } } });
 
-    fireEvent.click(screen.getByRole('tab', { name: 'Files' }));
     fireEvent.click(screen.getByRole('button', { name: 'Replace signed PDF' }));
     const file = new File(['corrected pdf'], 'corrected.pdf', { type: 'application/pdf' });
     const input = screen.getByLabelText('Signed PDF', { selector: 'input' }) as HTMLInputElement;
@@ -518,26 +536,100 @@ describe('DocumentWorkspace', () => {
   });
 
   it('keeps the document name and concise register details in Overview', async () => {
-    renderWorkspace({ role: 'lawyer', document: { ...document, lifecycle: 'SIGNED' } });
+    renderWorkspace({ role: 'lawyer', document: { ...document, lifecycle: 'SIGNED', status: 'COMPLETED' } });
 
-    const overview = screen.getByRole('tabpanel');
-    expect(screen.getByRole('tab', { name: 'Overview' })).toBeTruthy();
+    const overview = screen.getByRole('region', { name: 'Document summary' });
     expect(within(overview).getByRole('heading', { name: 'Document summary' })).toBeTruthy();
     await waitFor(() => expect(within(overview).getByText('Register entry').nextElementSibling?.textContent).toContain('Book 101'));
     expect(within(overview).queryByText('Processing status')).toBeNull();
   });
 
   it('keeps signed-copy technical metadata out of the Overview tab', () => {
-    renderWorkspace({ document: { ...document, lifecycle: 'SIGNED', signed_copy: null } });
+    renderWorkspace({ document: { ...document, lifecycle: 'SIGNED', status: 'COMPLETED', signed_copy: null } });
 
-    const overview = screen.getByRole('tabpanel');
+    const overview = screen.getByRole('region', { name: 'Document summary' });
     expect(within(overview).queryByText('Signed copy content type')).toBeNull();
     expect(within(overview).queryByText('Document hash')).toBeNull();
   });
 
-  it('does not show the drafting workflow for a direct signed-PDF upload', () => {
+  it('shows signed PDF review as step 2 without claiming a direct upload was drafted in LexChain', () => {
     renderWorkspace({ document: { ...document, lifecycle: 'SIGNED', draft_url: null } });
-    expect(screen.queryByRole('navigation', { name: 'Draft and filing progress' })).toBeNull();
+    const progress = screen.getByRole('navigation', { name: 'Draft and filing progress' });
+    expect(within(progress).getByRole('listitem', { current: 'step' }).textContent).toContain('Review signed PDF');
+    expect(within(progress).getByText('No LexChain draft linked')).toBeTruthy();
+    expect(within(progress).getByText('Step 2 of 4')).toBeTruthy();
+  });
+
+  it('explains that a queued signed PDF is waiting to start', () => {
+    renderWorkspace({ document: { ...document, lifecycle: 'SIGNED', status: 'QUEUED' } });
+    expect(screen.getByText('Waiting to start')).toBeTruthy();
+    expect(screen.getByText(/waiting for processing to start/i)).toBeTruthy();
+    expect(screen.queryByText('Processing is underway. This page updates automatically.')).toBeNull();
+    expect(screen.queryByRole('heading', { name: 'Potential concerns' })).toBeNull();
+    expect(screen.queryByText('Document details')).toBeNull();
+  });
+
+  it.each(['QUEUED', 'PROCESSING', 'AWAITING_REVIEW', 'ENRICHING', 'FAILED'])('keeps analysis hidden before processing completes (%s)', (status) => {
+    renderWorkspace({ document: { ...document, lifecycle: 'SIGNED', status } });
+    expect(screen.getByRole('navigation', { name: 'Draft and filing progress' }).textContent).toContain('Step 2 of 4');
+    expect(screen.queryByRole('heading', { name: 'Potential concerns' })).toBeNull();
+    expect(screen.queryByText('Document details')).toBeNull();
+    expect(screen.queryByText('Participants and document history')).toBeNull();
+    expect(screen.getByRole('heading', { name: 'Participants' })).toBeTruthy();
+    expect(screen.queryByRole('heading', { name: 'Invite a participant' })).toBeNull();
+    expect(screen.queryByRole('heading', { name: 'Recent history' })).toBeNull();
+  });
+
+  it('shows text review before finalization and warns when analysis is partial', () => {
+    renderWorkspace({ role: 'lawyer', document: { ...document, lifecycle: 'SIGNED', status: 'COMPLETED', analysis_status: 'partial', permissions: { ...document.permissions, can_finalize: true } } });
+    const progress = screen.getByRole('navigation', { name: 'Draft and filing progress' });
+    expect(within(progress).getByRole('listitem', { current: 'step' }).textContent).toContain('Review text and risks');
+    expect(within(progress).getByText('Review text and risks')).toBeTruthy();
+    expect(screen.getByRole('alert').textContent).toContain('Some sections could not be analyzed');
+    expect(screen.queryByText(/Finalization starts processing/)).toBeNull();
+  });
+
+  it('shows completed signed document cards in the requested order', () => {
+    renderWorkspace({ document: { ...document, lifecycle: 'SIGNED', status: 'COMPLETED' } });
+    const headings = ['Signed PDF', 'Document summary', 'Participants', 'Potential concerns', 'Extracted details', 'History'].map((name) => screen.getByRole('heading', { name }));
+    for (let index = 1; index < headings.length; index++) expect(headings[index - 1].compareDocumentPosition(headings[index]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(screen.queryByText('Document details')).toBeNull();
+    expect(screen.queryByText('Working draft in Google Docs')).toBeNull();
+    expect(screen.queryByRole('heading', { name: 'Draft comments' })).toBeNull();
+  });
+
+  it('keeps the completed card layout after finalization while retaining tabs', () => {
+    renderWorkspace({ document: { ...document, lifecycle: 'FINALIZED', status: 'COMPLETED', permissions: { ...document.permissions, can_replace_signed_copy: false } } });
+    const headings = ['Signed PDF', 'Document summary', 'Participants', 'Potential concerns', 'Extracted details', 'History'].map((name) => screen.getByRole('heading', { name }));
+    for (let index = 1; index < headings.length; index++) expect(headings[index - 1].compareDocumentPosition(headings[index]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(screen.getByRole('tab', { name: 'Files' })).toBeTruthy();
+    expect(screen.queryByText('Working draft in Google Docs')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Replace signed PDF' })).toBeNull();
+    expect(screen.queryByRole('heading', { name: 'E-copy request history' })).toBeNull();
+    fireEvent.click(screen.getByRole('tab', { name: 'Files' }));
+    expect(screen.getByRole('heading', { name: 'E-copy request history' })).toBeTruthy();
+  });
+
+  it('groups extracted entities in a collapsed section and keeps participant management separate', () => {
+    renderWorkspace({ role: 'lawyer', document: { ...document, lifecycle: 'SIGNED', status: 'COMPLETED', permissions: { ...document.permissions, can_share: true, can_correct_entry: true }, entities: [{ type: 'PERSON', value: 'Ana Cruz' }, { type: 'ORG', value: 'Acme' }, { name: 'Legacy entity' }] } });
+    const extracted = screen.getByText('Extracted details').closest('details');
+    expect(extracted?.open).toBe(false);
+    fireEvent.click(screen.getByText('Extracted details'));
+    expect(within(extracted!).getByText('Persons')).toBeTruthy();
+    expect(within(extracted!).getByText('Ana Cruz')).toBeTruthy();
+    expect(within(extracted!).getByText('Organizations')).toBeTruthy();
+    expect(within(extracted!).getByText('Acme')).toBeTruthy();
+    expect(within(extracted!).getByText(/Legacy entity/)).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'Manage' })).toBeTruthy();
+    expect(screen.queryByRole('heading', { name: 'Invite a participant' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Document summary actions' }));
+    expect(screen.getByRole('menuitem', { name: 'Correct register entry' })).toBeTruthy();
+  });
+
+  it('shows processing and text review guidance while signed', () => {
+    renderWorkspace({ role: 'lawyer', document: { ...document, lifecycle: 'SIGNED', status: 'AWAITING_REVIEW' } });
+    expect(screen.getByText('Review extracted text')).toBeTruthy();
+    expect(screen.queryByText('The document owner will finalize the signed PDF.')).toBeNull();
   });
 
   it('shows a focused draft workspace, then the filed-document workspace after signing', () => {
@@ -551,14 +643,12 @@ describe('DocumentWorkspace', () => {
 
     cleanup();
     renderWorkspace({ document: { ...document, lifecycle: 'SIGNED' } });
-    expect(screen.getByRole('tab', { name: 'Overview' })).toBeTruthy();
-    fireEvent.click(screen.getByRole('tab', { name: 'Files' }));
+    expect(screen.queryByRole('tablist')).toBeNull();
     expect(screen.getByRole('button', { name: 'Download options' })).toBeTruthy();
-    fireEvent.click(screen.getByRole('tab', { name: 'Blockchain' }));
-    expect(screen.getByText('No blockchain record yet')).toBeTruthy();
+    expect(screen.queryByRole('tab', { name: 'Blockchain' })).toBeNull();
   });
 
-  it('orders drafting sections as a top-to-bottom reading path', async () => {
+  it('puts the next step before the draft and supporting sections', async () => {
     renderWorkspace({ role: 'lawyer' });
 
     const workingDraft = await screen.findByRole('heading', { name: 'Working draft' });
@@ -799,11 +889,13 @@ describe('DocumentWorkspace', () => {
   });
 
   it('does not render a backend-provided draft URL outside Google Docs', () => {
+    renderWorkspace({ document: { ...document, lifecycle: 'PREPARING', draft_url: 'https://example.com/phishing' } });
+    expect(screen.queryByRole('link', { name: 'Open Google draft' })).toBeNull();
+    expect(screen.getByRole('alert').textContent).toContain('invalid Google draft link');
+    cleanup();
     renderWorkspace({ document: { ...document, lifecycle: 'SIGNED', draft_url: 'https://example.com/phishing' } });
 
     expect(screen.queryByRole('link', { name: 'Open Google draft' })).toBeNull();
-    expect(screen.getByRole('alert').textContent).toContain('invalid Google draft link');
-    fireEvent.click(screen.getByRole('tab', { name: 'Files' }));
     expect(screen.getByRole('button', { name: 'Download options' })).toBeTruthy();
   });
 
@@ -974,13 +1066,11 @@ describe('DocumentWorkspace', () => {
   it('explains unavailable data without inventing controls or restricted workflow actions', () => {
     renderWorkspace({ document: { ...document, lifecycle: 'SIGNED', status: 'PROCESSING', signed_copy: null, draft_url: null, summary: null, labels: [], entities: [], risk_flags: [] } });
 
-    fireEvent.click(screen.getByRole('tab', { name: 'Files' }));
-    expect(screen.getByText('No signed PDF is attached to this document yet.')).toBeTruthy();
+    expect(within(screen.getByRole('region', { name: 'Signed PDF' })).getByText('No signed PDF is attached to this document yet.')).toBeTruthy();
     expect(screen.queryByRole('link', { name: /signed PDF/i })).toBeNull();
     expect(screen.queryByText(/AI-generated assistance/i)).toBeNull();
 
-    fireEvent.click(screen.getByRole('tab', { name: 'Blockchain' }));
-    expect(screen.getByText('No blockchain record yet')).toBeTruthy();
+    expect(screen.queryByRole('tab', { name: 'Blockchain' })).toBeNull();
     expect(screen.queryByRole('button', { name: /Anchor|Finalize|Confirm record/i })).toBeNull();
   });
 
@@ -1012,8 +1102,7 @@ describe('DocumentWorkspace', () => {
   it('renders a mismatched integrity record with the warning treatment', () => {
     renderWorkspace({ document: { ...document, lifecycle: 'SIGNED', document_hash: 'a'.repeat(64) } });
 
-    fireEvent.click(screen.getByRole('tab', { name: 'Blockchain' }));
-    expect(screen.getByText('No blockchain record yet')).toBeTruthy();
+    expect(screen.queryByRole('tab', { name: 'Blockchain' })).toBeNull();
   });
 
   it('shows an on-chain anchor only when the backend reports one', () => {
@@ -1027,15 +1116,7 @@ describe('DocumentWorkspace', () => {
   it('groups recording status, fingerprint, network and transaction information without conflating Signed and confirmed on-chain (#171)', () => {
     renderWorkspace({ document: { ...document, lifecycle: 'SIGNED', on_chain: false, document_hash: 'b'.repeat(64) } });
 
-    fireEvent.click(screen.getByRole('tab', { name: 'Blockchain' }));
-    expect(screen.getByText('No blockchain record yet')).toBeTruthy();
-    expect(screen.getByText('Signed copy attached. Blockchain recording requires finalization.')).toBeTruthy();
-    expect(screen.getByText('Base Sepolia')).toBeTruthy();
-    expect(screen.getByText('Testnet')).toBeTruthy();
-    expect(screen.getByText('No transaction ID recorded')).toBeTruthy();
-    expect(screen.getByText('No transaction recorded yet.')).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Copy document hash' })).toBeTruthy();
-    expect(screen.queryByRole('link', { name: /View transaction on Base Sepolia/ })).toBeNull();
+    expect(screen.queryByRole('tab', { name: 'Blockchain' })).toBeNull();
   });
 
   it('displays Base Sepolia explorer link for pending finalized document when transaction URL is available (#171)', async () => {
@@ -1080,7 +1161,7 @@ describe('DocumentWorkspace', () => {
   });
 
   it('renders one-key insight objects as readable key-value details', () => {
-    renderWorkspace({ document: { ...document, lifecycle: 'SIGNED' } });
+    renderWorkspace({ document: { ...document, lifecycle: 'SIGNED', status: 'COMPLETED' } });
 
     expect(screen.getByText('name — Acme Legal')).toBeTruthy();
   });
@@ -1344,43 +1425,23 @@ describe('DocumentWorkspace', () => {
 
     renderWorkspace({ role: 'lawyer', document: signedDoc });
 
-    // Overview tab is active
-    expect(screen.getByRole('tab', { name: 'Overview' }).getAttribute('aria-selected')).toBe('true');
+    expect(screen.queryByRole('tablist')).toBeNull();
 
     // Signed copy section is prominent
-    const signedSection = screen.getByRole('region', { name: 'Current signed copy' });
-    expect(within(signedSection).getByRole('heading', { name: 'Current signed copy' })).toBeTruthy();
-    expect(within(signedSection).getByText('Attached')).toBeTruthy();
-    expect(within(signedSection).getByText('executed_agreement.pdf')).toBeTruthy();
-    expect(within(signedSection).getByText(/200\.0 KB/)).toBeTruthy();
+    const signedSection = screen.getByRole('region', { name: 'Document processing status' });
 
     // Next action guidance is prominent within the section
-    expect(within(signedSection).getByRole('heading', { name: 'Finalize the signed PDF' })).toBeTruthy();
-    expect(within(signedSection).getByText(/Finalize the attached PDF to lock this file/)).toBeTruthy();
+    expect(within(signedSection).getByRole('heading', { name: 'Check the signed PDF' })).toBeTruthy();
+    expect(within(signedSection).getByText(/replace it before finalizing/)).toBeTruthy();
 
-    // Action buttons are present
-    const viewButton = within(signedSection).getByRole('button', { name: 'View signed PDF' });
-    const downloadLink = within(signedSection).getByRole('link', { name: 'Download PDF' });
-    expect(within(signedSection).getByRole('button', { name: 'Replace signed PDF' })).toBeTruthy();
+    const filesSection = screen.getByRole('region', { name: 'Signed PDF' });
+    expect(within(filesSection).getByText('executed_agreement.pdf', { selector: 'span' })).toBeTruthy();
+    expect(within(filesSection).getByText(/200\.0 KB/)).toBeTruthy();
+    expect(within(filesSection).getByRole('button', { name: 'View PDF' })).toBeTruthy();
+    fireEvent.click(within(filesSection).getByRole('button', { name: 'Replace signed PDF' }));
+    expect(within(filesSection).getByLabelText(/Replacement reason/i)).toBeTruthy();
 
-    expect(downloadLink.getAttribute('href')).toContain('copy_id=copy-1');
-
-    // View button switches to Files tab
-    fireEvent.click(viewButton);
-    expect(screen.getByRole('tab', { name: 'Files' }).getAttribute('aria-selected')).toBe('true');
-
-    // Return to Overview tab
-    fireEvent.click(screen.getByRole('tab', { name: 'Overview' }));
-
-    // Replace button switches to Files tab and opens replace mode
-    fireEvent.click(screen.getByRole('button', { name: 'Replace signed PDF' }));
-    expect(screen.getByRole('tab', { name: 'Files' }).getAttribute('aria-selected')).toBe('true');
-    expect(screen.getByLabelText(/Replacement reason/i)).toBeTruthy();
-
-    // Working draft is kept available in details element
-    fireEvent.click(screen.getByRole('tab', { name: 'Overview' }));
-    expect(screen.getByText('Working draft and drafting history')).toBeTruthy();
-    expect(screen.getByRole('link', { name: 'Open Google draft' }).getAttribute('href')).toBe(document.draft_url);
+    expect(screen.queryByText('Working draft and drafting history')).toBeNull();
   });
 
   it('preserves preparing, ready, and signed stage guidance distinctions (#168)', () => {
@@ -1405,17 +1466,16 @@ describe('DocumentWorkspace', () => {
 
     // SIGNED view
     renderWorkspace({ document: { ...document, lifecycle: 'SIGNED' } });
-    expect(screen.getByRole('tablist')).toBeTruthy();
-    expect(screen.getByRole('heading', { name: 'Current signed copy' })).toBeTruthy();
-    expect(screen.getByText('Attached')).toBeTruthy();
+    expect(screen.queryByRole('tablist')).toBeNull();
+    expect(screen.getByRole('heading', { name: 'Signed PDF' })).toBeTruthy();
+    expect(screen.getByText('Current')).toBeTruthy();
   });
 
   it('handles signed document without an attached copy gracefully (#168)', () => {
     renderWorkspace({ document: { ...document, lifecycle: 'SIGNED', signed_copy: null } });
 
-    const signedSection = screen.getByRole('region', { name: 'Current signed copy' });
-    expect(within(signedSection).getByText('Pending attachment')).toBeTruthy();
-    expect(within(signedSection).getByText('No signed PDF is attached to this document yet.')).toBeTruthy();
+    const signedSection = screen.getByRole('region', { name: 'Document processing status' });
+    expect(screen.getByText('No signed PDF is attached to this document yet.')).toBeTruthy();
     expect(within(signedSection).getByRole('heading', { name: 'Waiting for finalization' })).toBeTruthy();
     expect(within(signedSection).queryByRole('button', { name: 'View signed PDF' })).toBeNull();
   });
@@ -1432,7 +1492,6 @@ describe('DocumentWorkspace', () => {
 
     renderWorkspace({ role: 'lawyer', document: signedDoc });
 
-    fireEvent.click(screen.getByRole('tab', { name: 'Files' }));
 
     const filesSection = screen.getByRole('region', { name: 'Signed PDF' });
     expect(within(filesSection).getByRole('heading', { name: 'Signed PDF' })).toBeTruthy();
@@ -1443,7 +1502,7 @@ describe('DocumentWorkspace', () => {
     expect(replaceButton).toBeTruthy();
 
     // Consequence clarification
-    expect(within(filesSection).getByText(/Replacement is available while this document is in the signed stage. A replacement reason is required/i)).toBeTruthy();
+    expect(within(filesSection).queryByText(/Replacement is available while this document is in the signed stage/i)).toBeNull();
 
     // Both original download and watermarked copy download are clearly distinguished
     fireEvent.click(within(filesSection).getByRole('button', { name: 'Download options' }));
@@ -1454,9 +1513,10 @@ describe('DocumentWorkspace', () => {
     expect(within(filesSection).getByText('(SHA-256)')).toBeTruthy();
     expect(within(filesSection).getByText('(Watermarked)')).toBeTruthy();
 
-    // Opening replace form renders inline in the same section
+    // Opening replace form presents the upload in a dialog
     fireEvent.click(replaceButton);
-    expect(within(filesSection).getByRole('heading', { name: 'Replace the signed PDF' })).toBeTruthy();
+    expect(within(filesSection).getByRole('dialog', { name: 'Replace signed PDF' })).toBeTruthy();
+    expect(within(filesSection).getByText('Upload signed document')).toBeTruthy();
     expect(within(filesSection).getByLabelText('Replacement reason')).toBeTruthy();
   });
 

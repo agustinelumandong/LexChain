@@ -50,7 +50,7 @@ describe('UploadPage', () => {
     booksMock.value = [{ id: 'book-1', book_number: 42, series_year: 2026, status: 'OPEN' }];
   });
 
-  it('renders the accepted document ID and signed lifecycle without processing status', async () => {
+  it('renders the accepted document ID, lifecycle and processing status', async () => {
     uploadDocumentMock.mockResolvedValue({ document_id: 'document-202', lifecycle: 'SIGNED', status: 'QUEUED' });
     const { container } = renderUploadPage();
 
@@ -60,8 +60,8 @@ describe('UploadPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'View document' }));
     expect(routerPushMock).toHaveBeenCalledWith('/portal/documents/document-202');
     expect(screen.getByText('Signed')).toBeTruthy();
-    expect(screen.queryByText('Queued')).toBeNull();
-    expect(screen.queryByText('Processing status')).toBeNull();
+    expect(screen.getByText('Queued')).toBeTruthy();
+    expect(screen.getByText('Processing status')).toBeTruthy();
     expect(screen.getByRole('status').textContent).toContain('Signed document filed');
     expect(toast.success).toHaveBeenCalledWith('Signed document filed.');
     expect(uploadDocumentMock).toHaveBeenCalledWith(expect.objectContaining({ title: 'deed', bookId: 'book-1' }));

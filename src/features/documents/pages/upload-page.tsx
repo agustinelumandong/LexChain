@@ -166,12 +166,12 @@ export default function UploadPage() {
           <CheckCircleIcon sx={{ fontSize: 32, color: '#166534' }} />
           <div>
             <p role="status" className="text-lg font-black text-[#0C2B49]">Signed document filed</p>
-            <p className="mt-1 text-sm text-[#5B6F8A]">The signed copy is waiting for the lawyer to finalize it.</p>
+            <p className="mt-1 text-sm text-[#5B6F8A]">Review the signed copy and its processing results before finalizing.</p>
           </div>
         </div>
         <dl className="mt-5 grid gap-3 rounded-xl bg-[#F8FBFF] p-4 text-sm">
           <div><dt className="font-bold text-[#5B6F8A]">Lifecycle</dt><dd className="mt-1 font-black text-[#0C2B49]">{getDocumentLifecycleLabel(outcome.lifecycle)}</dd></div>
-          {outcome.lifecycle === 'FINALIZED' && <div><dt className="font-bold text-[#5B6F8A]">Processing status</dt><dd className="mt-1 font-black text-[#0C2B49]">{getDocumentProcessingStatusLabel(outcome.lifecycle, outcome.status)}</dd></div>}
+          {outcome.status && <div><dt className="font-bold text-[#5B6F8A]">Processing status</dt><dd className="mt-1 font-black text-[#0C2B49]">{getDocumentProcessingStatusLabel(outcome.lifecycle, outcome.status)}</dd></div>}
           {(outcome.doc_no != null || outcome.page_no != null) && <div><dt className="font-bold text-[#5B6F8A]">Paper register</dt><dd className="mt-1 font-black text-[#0C2B49]">{[outcome.doc_no != null ? `Document number ${outcome.doc_no}` : null, outcome.page_no != null ? `Page ${outcome.page_no}` : null].filter(Boolean).join(' · ')}</dd></div>}
         </dl>
         <button type="button" onClick={() => router.push(`/portal/documents/${outcome.document_id}`)} className="mt-5 rounded-full bg-[#0067B3] px-6 py-3 text-sm font-black text-white">

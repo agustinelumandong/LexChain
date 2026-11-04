@@ -135,6 +135,9 @@ export default function DocumentDetailPage({ params, initialTab }: { params: Pro
       await refreshLifecycleQueries();
     },
     onError: (error) => {
+      if (error instanceof PortalApiError && error.status === 409) {
+        void queryClient.invalidateQueries({ queryKey: ['portal-doc', id] });
+      }
       if (error instanceof PortalApiError && error.status >= 400 && error.status < 500 && error.status !== 408) return;
       sessionStorage.setItem(unknownFinalizationKey, '1');
       window.dispatchEvent(new Event('portal-finalization-status'));
@@ -302,8 +305,8 @@ export default function DocumentDetailPage({ params, initialTab }: { params: Pro
           <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
             <h1 title={document.file_name} className="min-w-0 max-w-full break-words text-2xl font-bold leading-8 text-[#0C2B49]">{document.file_name}</h1>
             <div className="flex flex-wrap items-center gap-2">
-              <span className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${getDocumentLifecycleBadgeClasses(document.lifecycle)}`}>{getDocumentLifecycleLabel(document.lifecycle)}</span>
-              {document.lifecycle === 'FINALIZED' && <span className={`${getDocumentProcessingBadgeClasses(document.status)} rounded-full px-2.5 py-0.5 text-xs font-bold`}>{getDocumentProcessingStatusLabel(document.lifecycle, document.status)}</span>}
+              <span className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${getDocumentLifecycleBadgeClasses(document.lifecycle)}`}>{document.lifecycle === 'FINALIZED' && document.on_chain ? 'On-chain' : getDocumentLifecycleLabel(document.lifecycle)}</span>
+              {(document.lifecycle === 'FINALIZED' || (document.lifecycle === 'SIGNED' && document.status)) && <span className={`${getDocumentProcessingBadgeClasses(document.status)} rounded-full px-2.5 py-0.5 text-xs font-bold`}>{getDocumentProcessingStatusLabel(document.lifecycle, document.status)}</span>}
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
@@ -369,7 +372,7 @@ export default function DocumentDetailPage({ params, initialTab }: { params: Pro
 
       {confirmingFinalize && (
         <div role="dialog" aria-modal="true" aria-label="Confirm finalization" className="fixed inset-0 z-50 flex items-center justify-center bg-[#0C2B49]/40 p-4">
-          <div className="w-full max-w-md rounded-2xl border border-[#CFE7FC] bg-white p-6 shadow-[0_16px_40px_rgba(12,43,73,0.25)]">
+          <div className="w-full max-w-xl rounded-2xl border border-[#CFE7FC] bg-white p-6 shadow-[0_16px_40px_rgba(12,43,73,0.25)]">
             <h2 className="text-lg font-black text-[#0C2B49]">Finalize this document?</h2>
             <div className="mt-4 rounded-xl border border-[#D7E4F2] bg-[#F8FBFF] p-3.5 text-sm">
               <div className="min-w-0">
@@ -392,8 +395,8 @@ export default function DocumentDetailPage({ params, initialTab }: { params: Pro
               </div>
             </div>
             <div className="mt-3 space-y-1.5 text-sm leading-6 text-[#4B6382]">
-              <p>{mockMode ? 'Demo mode: this action uses synthetic data. No real PDF digest or blockchain transaction will be produced.' : 'This freezes the signed copy and records its fingerprint on the blockchain. It cannot be undone.'}</p>
-              <p className="text-xs leading-5 text-[#5B6F8A]">The frozen filing copy cannot be replaced or removed after finalization. Text extraction and review will proceed in the background.</p>
+              <p>{mockMode ? 'Demo mode: this action uses synthetic data. No real PDF digest or blockchain transaction will be produced.' : ''}</p>
+              <p className="text-xs leading-5 text-[#5B6F8A]">This freezes the signed copy and records its fingerprint on the blockchain. It cannot be undone..</p>
             </div>
             {finalizeMutation.isPending && (
               <div role="status" className="mt-3 rounded-xl border border-[#CFE7FC] bg-[#F0F7FE] p-3 text-sm font-semibold text-[#0067B3]">
@@ -425,7 +428,7 @@ export default function DocumentDetailPage({ params, initialTab }: { params: Pro
         onMarkReady={() => readinessMutation.mutate('ready')}
         onReopen={() => readinessMutation.mutate('reopen')}
       />
-      <PortalChatbot documentId={id} />
+      {document.lifecycle === 'FINALIZED' && <PortalChatbot documentId={id} />}
     </div>
   );
 }
