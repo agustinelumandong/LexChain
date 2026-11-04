@@ -4,6 +4,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useState, type ReactNode } from "react";
+import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
+import VisibilityOffOutlinedIcon from "@mui/icons-material/VisibilityOffOutlined";
 import { demoResetToken, webResetPasswordSchema } from "@/features/auth/schemas/auth";
 
 
@@ -24,6 +26,8 @@ function ResetPasswordForm() {
   const hasValidToken = isDemoMode ? tokens.length === 1 && tokens[0] === demoResetToken : hashes.length === 1 && hashes[0].length > 0 && types.length === 1 && types[0] === "recovery";
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
   const [isComplete, setIsComplete] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -108,26 +112,56 @@ function ResetPasswordForm() {
   return (
     <ResetPasswordShell description={isDemoMode ? "Try the password reset form in this local demo. Submitting it will not change a real account password." : "Choose a new password for your account."}>
       <form noValidate className="mt-6 space-y-3.5" onSubmit={handleSubmit}>
-        <label className="block">
-          <span className="text-[13px] font-black text-[#0C2B49]">New password</span>
-          <input
-            className="mt-2 min-h-12 w-full rounded-[14px] border border-[#E4EEF9] bg-[#F5FAFF] px-3.5 text-sm font-semibold text-[#0C2B49] outline-none focus:border-[#0067B3]"
-            type="password"
-            autoComplete="new-password"
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-          />
-        </label>
-        <label className="block">
-          <span className="text-[13px] font-black text-[#0C2B49]">Confirm new password</span>
-          <input
-            className="mt-2 min-h-12 w-full rounded-[14px] border border-[#E4EEF9] bg-[#F5FAFF] px-3.5 text-sm font-semibold text-[#0C2B49] outline-none focus:border-[#0067B3]"
-            type="password"
-            autoComplete="new-password"
-            value={confirmPassword}
-            onChange={(event) => setConfirmPassword(event.target.value)}
-          />
-        </label>
+        <div>
+          <label htmlFor="reset-new-password" className="block text-[13px] font-black text-[#0C2B49]">New password</label>
+          <div className="relative mt-2">
+            <input
+              id="reset-new-password"
+              className="min-h-12 w-full rounded-[14px] border border-[#E4EEF9] bg-[#F5FAFF] pl-3.5 pr-11 text-sm font-semibold text-[#0C2B49] outline-none focus:border-[#0067B3]"
+              type={showPassword ? "text" : "password"}
+              autoComplete="new-password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword((prev) => !prev)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center justify-center p-1 text-[#5B6F8A] hover:text-[#0C2B49] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0067B3] rounded-lg transition"
+              aria-label={showPassword ? "Hide new password" : "Show new password"}
+            >
+              {showPassword ? (
+                <VisibilityOffOutlinedIcon sx={{ fontSize: 20 }} aria-hidden="true" />
+              ) : (
+                <VisibilityOutlinedIcon sx={{ fontSize: 20 }} aria-hidden="true" />
+              )}
+            </button>
+          </div>
+        </div>
+        <div>
+          <label htmlFor="reset-confirm-password" className="block text-[13px] font-black text-[#0C2B49]">Confirm new password</label>
+          <div className="relative mt-2">
+            <input
+              id="reset-confirm-password"
+              className="min-h-12 w-full rounded-[14px] border border-[#E4EEF9] bg-[#F5FAFF] pl-3.5 pr-11 text-sm font-semibold text-[#0C2B49] outline-none focus:border-[#0067B3]"
+              type={showConfirmPassword ? "text" : "password"}
+              autoComplete="new-password"
+              value={confirmPassword}
+              onChange={(event) => setConfirmPassword(event.target.value)}
+            />
+            <button
+              type="button"
+              onClick={() => setShowConfirmPassword((prev) => !prev)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center justify-center p-1 text-[#5B6F8A] hover:text-[#0C2B49] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0067B3] rounded-lg transition"
+              aria-label={showConfirmPassword ? "Hide confirm new password" : "Show confirm new password"}
+            >
+              {showConfirmPassword ? (
+                <VisibilityOffOutlinedIcon sx={{ fontSize: 20 }} aria-hidden="true" />
+              ) : (
+                <VisibilityOutlinedIcon sx={{ fontSize: 20 }} aria-hidden="true" />
+              )}
+            </button>
+          </div>
+        </div>
         {errors.length > 0 && (
           <ul role="alert" className="rounded-xl bg-red-50 px-4 py-2.5 text-sm font-semibold text-red-700">
             {errors.map((error) => <li key={error}>{error}</li>)}

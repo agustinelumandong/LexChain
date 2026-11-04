@@ -6,6 +6,8 @@ import Link from "next/link";
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
+import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
+import VisibilityOffOutlinedIcon from "@mui/icons-material/VisibilityOffOutlined";
 import { getPortalLoginRedirect } from "@/features/access";
 import { queueNextNavigationToast } from "@/shared/utils/next-navigation-toast";
 
@@ -46,6 +48,7 @@ export function getRedirectPath(data: Record<string, unknown> | null): string {
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
 
@@ -85,9 +88,10 @@ export default function LoginPage() {
         </div>
 
         <form className="mt-6 space-y-3.5" onSubmit={handleSubmit}>
-          <label className="block">
-            <span className="text-[13px] font-black text-[#0C2B49]">Email</span>
+          <div>
+            <label htmlFor="login-email" className="block text-[13px] font-black text-[#0C2B49]">Email</label>
             <input
+              id="login-email"
               className="mt-2 min-h-12 w-full rounded-[14px] border border-[#E4EEF9] bg-[#F5FAFF] px-3.5 text-sm font-semibold text-[#0C2B49] outline-none focus:border-[#0067B3]"
               type="email"
               required
@@ -95,18 +99,33 @@ export default function LoginPage() {
               value={email}
               onChange={(e) => { setEmail(e.target.value); setValidationError(null); }}
             />
-          </label>
-          <label className="block">
-            <span className="text-[13px] font-black text-[#0C2B49]">Password</span>
-            <input
-              className="mt-2 min-h-12 w-full rounded-[14px] border border-[#E4EEF9] bg-[#F5FAFF] px-3.5 text-sm font-semibold text-[#0C2B49] outline-none focus:border-[#0067B3]"
-              type="password"
-              required
-              autoComplete="current-password"
-              value={password}
-              onChange={(e) => { setPassword(e.target.value); setValidationError(null); }}
-            />
-          </label>
+          </div>
+          <div>
+            <label htmlFor="login-password" className="block text-[13px] font-black text-[#0C2B49]">Password</label>
+            <div className="relative mt-2">
+              <input
+                id="login-password"
+                className="min-h-12 w-full rounded-[14px] border border-[#E4EEF9] bg-[#F5FAFF] pl-3.5 pr-11 text-sm font-semibold text-[#0C2B49] outline-none focus:border-[#0067B3]"
+                type={showPassword ? "text" : "password"}
+                required
+                autoComplete="current-password"
+                value={password}
+                onChange={(e) => { setPassword(e.target.value); setValidationError(null); }}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((v) => !v)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center justify-center p-1 text-[#5B6F8A] hover:text-[#0C2B49] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0067B3] rounded-lg transition"
+                aria-label={showPassword ? "Hide password" : "Show password"}
+              >
+                {showPassword ? (
+                  <VisibilityOffOutlinedIcon sx={{ fontSize: 20 }} aria-hidden="true" />
+                ) : (
+                  <VisibilityOutlinedIcon sx={{ fontSize: 20 }} aria-hidden="true" />
+                )}
+              </button>
+            </div>
+          </div>
 
           <div className="flex items-center justify-between">
             <button

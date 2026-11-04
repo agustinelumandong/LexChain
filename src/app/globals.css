@@ -76,6 +76,12 @@ button:not(:disabled),
   cursor: pointer;
 }
 
+/* Hide native browser password reveal and clear buttons to ensure consistent custom toggle UX */
+input::-ms-reveal,
+input::-ms-clear {
+  display: none;
+}
+
 .scrollbar-hide {
   -ms-overflow-style: none;
   scrollbar-width: none;

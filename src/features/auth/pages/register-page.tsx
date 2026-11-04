@@ -8,6 +8,8 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMutation } from "@tanstack/react-query";
+import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
+import VisibilityOffOutlinedIcon from "@mui/icons-material/VisibilityOffOutlined";
 
 import { getEmailFromInviteToken } from "@/shared/utils/invite-token";
 import { authEmailSchema, signUpNameSchema, signUpPasswordSchema, signUpResponseSchema } from "@/features/auth/schemas/auth";
@@ -62,6 +64,8 @@ function RegisterPageContent() {
   const hasInviteEmail = inviteEmail.length > 0;
   const [createdAccount, setCreatedAccount] = useState<CreatedAccount | null>(null);
   const [submissionError, setSubmissionError] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const { register, handleSubmit, setValue, formState: { errors } } = useForm<RegisterForm>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
@@ -200,18 +204,60 @@ function RegisterPageContent() {
             ) : null}
           </div>
 
-          <label className="block">
-            <span className="text-[13px] font-black text-[#0C2B49]">Password</span>
+          <div>
+            <label htmlFor="register-password" className="block text-[13px] font-black text-[#0C2B49]">Password</label>
             <span id="password-help" className="block text-xs font-medium text-[#5B6F8A]">At least 8 characters, with uppercase, lowercase, and a number.</span>
-            <input {...register("password")} type="password" className={inputClass} aria-invalid={errors.password ? "true" : undefined} aria-describedby={errors.password ? "password-help password-error" : "password-help"} />
+            <div className="relative mt-2">
+              <input
+                id="register-password"
+                {...register("password")}
+                type={showPassword ? "text" : "password"}
+                className={`${inputClass} mt-0 pr-11`}
+                aria-invalid={errors.password ? "true" : undefined}
+                aria-describedby={errors.password ? "password-help password-error" : "password-help"}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((prev) => !prev)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center justify-center p-1 text-[#5B6F8A] hover:text-[#0C2B49] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0067B3] rounded-lg transition"
+                aria-label={showPassword ? "Hide password" : "Show password"}
+              >
+                {showPassword ? (
+                  <VisibilityOffOutlinedIcon sx={{ fontSize: 20 }} aria-hidden="true" />
+                ) : (
+                  <VisibilityOutlinedIcon sx={{ fontSize: 20 }} aria-hidden="true" />
+                )}
+              </button>
+            </div>
             {errors.password && <p id="password-error" className="text-xs text-red-700 mt-1">{errors.password.message}</p>}
-          </label>
+          </div>
 
-          <label className="block">
-            <span className="text-[13px] font-black text-[#0C2B49]">Confirm Password</span>
-            <input {...register("confirmPassword")} type="password" className={inputClass} aria-invalid={errors.confirmPassword ? "true" : undefined} aria-describedby={errors.confirmPassword ? "confirm-password-error" : undefined} />
+          <div>
+            <label htmlFor="register-confirm-password" className="block text-[13px] font-black text-[#0C2B49]">Confirm Password</label>
+            <div className="relative mt-2">
+              <input
+                id="register-confirm-password"
+                {...register("confirmPassword")}
+                type={showConfirmPassword ? "text" : "password"}
+                className={`${inputClass} mt-0 pr-11`}
+                aria-invalid={errors.confirmPassword ? "true" : undefined}
+                aria-describedby={errors.confirmPassword ? "confirm-password-error" : undefined}
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword((prev) => !prev)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center justify-center p-1 text-[#5B6F8A] hover:text-[#0C2B49] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0067B3] rounded-lg transition"
+                aria-label={showConfirmPassword ? "Hide confirm password" : "Show confirm password"}
+              >
+                {showConfirmPassword ? (
+                  <VisibilityOffOutlinedIcon sx={{ fontSize: 20 }} aria-hidden="true" />
+                ) : (
+                  <VisibilityOutlinedIcon sx={{ fontSize: 20 }} aria-hidden="true" />
+                )}
+              </button>
+            </div>
             {errors.confirmPassword && <p id="confirm-password-error" className="text-xs text-red-700 mt-1">{errors.confirmPassword.message}</p>}
-          </label>
+          </div>
 
           {submissionError ? <p role="alert" className="text-sm font-semibold text-red-700">{submissionError}</p> : null}
 

@@ -76,4 +76,31 @@ describe("ResetPasswordPage", () => {
     expect(await screen.findByText("Demo complete — no real password was changed.")).toBeTruthy();
     expect(screen.getByRole("link", { name: "Back to sign in" }).getAttribute("href")).toBe("/login");
   });
+
+  it("toggles new password and confirm new password visibility", async () => {
+    renderResetPage("lexchain-web-demo-reset");
+
+    const newPasswordInput = (await screen.findByLabelText("New password")) as HTMLInputElement;
+    const confirmPasswordInput = screen.getByLabelText("Confirm new password") as HTMLInputElement;
+
+    expect(newPasswordInput.type).toBe("password");
+    expect(confirmPasswordInput.type).toBe("password");
+
+    const showNewPasswordBtn = screen.getByRole("button", { name: "Show new password" });
+    const showConfirmPasswordBtn = screen.getByRole("button", { name: "Show confirm new password" });
+
+    fireEvent.click(showNewPasswordBtn);
+    expect(newPasswordInput.type).toBe("text");
+    expect(screen.getByRole("button", { name: "Hide new password" })).toBeTruthy();
+
+    fireEvent.click(showConfirmPasswordBtn);
+    expect(confirmPasswordInput.type).toBe("text");
+    expect(screen.getByRole("button", { name: "Hide confirm new password" })).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "Hide new password" }));
+    expect(newPasswordInput.type).toBe("password");
+
+    fireEvent.click(screen.getByRole("button", { name: "Hide confirm new password" }));
+    expect(confirmPasswordInput.type).toBe("password");
+  });
 });
