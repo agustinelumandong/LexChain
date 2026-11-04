@@ -147,9 +147,9 @@ function VerificationDetails({
         {result.current_hash && <HashRow label="Current document hash" hash={result.current_hash} />}
         {result.tx_hash && <HashRow label="Transaction hash" hash={result.tx_hash} />}
       </div>
-      {result.tx_hash && (
+      {result.tx_hash && getBaseSepoliaTransactionUrl(result.tx_hash) && (
         <a
-          href={getBaseSepoliaTransactionUrl(result.tx_hash) ?? '#'}
+          href={getBaseSepoliaTransactionUrl(result.tx_hash)!}
           target="_blank"
           rel="noreferrer"
           aria-label="View transaction on Base Sepolia"
