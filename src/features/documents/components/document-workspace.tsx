@@ -489,9 +489,15 @@ function SignedPdfPreview({
     <section aria-labelledby="signed-pdf-preview-heading" className="flex min-w-0 flex-col rounded-xl border border-[#D7E4F2] bg-white p-4 sm:p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <h2 id="signed-pdf-preview-heading" className="inline-flex items-center gap-2 text-lg font-bold leading-6 text-[#0C2B49]"><PictureAsPdfOutlinedIcon aria-hidden="true" sx={{ fontSize: 20, color: '#0067B3' }} />Signed PDF</h2>
             {signedCopy && <span className="rounded-full bg-[#E7F5EC] px-2.5 py-0.5 text-xs font-bold text-[#067647]">Current</span>}
+            {document.lifecycle === 'FINALIZED' && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-[#F0F4F8] px-2.5 py-0.5 text-xs font-bold text-[#344054]">
+                <LockOutlinedIcon aria-hidden="true" sx={{ fontSize: 13, color: '#0067B3' }} />
+                Finalized on blockchain (Locked)
+              </span>
+            )}
           </div>
           {signedCopy && <p className="mt-1 break-words text-sm leading-5 text-[#4B6382]">{signedCopy.original_filename ?? document.file_name}{typeof signedCopy.size_bytes === 'number' ? ` · ${formatFileSize(signedCopy.size_bytes)}` : ''}{signedCopy.created_at ? ` · Attached ${formatDate(signedCopy.created_at)}` : ''}</p>}
         </div>
@@ -522,12 +528,6 @@ function SignedPdfPreview({
           Replacement is available while this document is in the signed stage. A replacement reason is required, and the current file is preserved in earlier signed PDFs below.
         </p>
       )}
-      {document.lifecycle === 'FINALIZED' && (
-        <div className="mt-2.5 flex items-center gap-2 rounded-lg border border-[#D7E4F2] bg-[#F8FBFF] px-3 py-2 text-xs leading-5 text-[#4B6382]">
-          <LockOutlinedIcon aria-hidden="true" sx={{ fontSize: 16, color: '#0067B3', flexShrink: 0 }} />
-          <p>This document is finalized on the blockchain. The signed PDF is permanently locked and cannot be replaced.</p>
-        </div>
-      )}
 
       {signedCopyForm}
 
@@ -543,7 +543,7 @@ function SignedPdfPreview({
                   {signedCopy.original_filename ?? document.file_name ?? 'Signed PDF'}
                 </p>
                 <p className="text-xs text-[#4B6382]">
-                  Interactive full-screen viewer with zoom and page navigation
+                  {typeof signedCopy.size_bytes === 'number' ? `${formatFileSize(signedCopy.size_bytes)} · ` : ''}Attached {signedCopy.created_at ? formatDate(signedCopy.created_at) : ''}
                 </p>
               </div>
             </div>
@@ -571,24 +571,33 @@ function SignedPdfPreview({
             >
               <DownloadOutlinedIcon aria-hidden="true" sx={{ fontSize: 17 }} />
               Download original PDF
+              <span className="text-xs font-normal text-[#4B6382]">(SHA-256)</span>
             </a>
             <button
               type="button"
+              aria-label={watermarkedCopyStatus === 'preparing' ? 'Preparing copy…' : 'Download PDF Copy'}
               onClick={() => void downloadWatermarkedCopy()}
               disabled={watermarkedCopyStatus === 'preparing'}
               className="inline-flex min-h-10 items-center gap-1.5 rounded-full border border-[#D7E4F2] bg-white px-3.5 py-1.5 text-sm font-semibold text-[#0C2B49] hover:bg-[#EAF4FF] disabled:cursor-wait disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3] sm:min-h-9"
             >
               <DownloadOutlinedIcon aria-hidden="true" sx={{ fontSize: 17 }} />
-              {watermarkedCopyStatus === 'preparing' ? 'Preparing copy…' : 'Download PDF Copy'}
+              {watermarkedCopyStatus === 'preparing' ? (
+                'Preparing copy…'
+              ) : (
+                <>
+                  Download PDF Copy
+                  <span className="text-xs font-normal text-[#4B6382]">(Watermarked)</span>
+                </>
+              )}
             </button>
           </div>
-          <p aria-live="polite" className="mt-2 text-xs leading-5 text-[#4B6382]">
-            {watermarkedCopyStatus === 'failed'
-              ? 'Could not create the watermarked copy. The signed original is unchanged.'
-              : watermarkedCopyStatus === 'downloaded'
-                ? 'Watermarked PDF copy downloaded. The signed original remains unchanged for integrity checks.'
-                : 'Download original PDF for the unmodified file matching the SHA-256 hash. Download PDF Copy adds the LEXCHAIN COPY watermark across all pages.'}
-          </p>
+          {(watermarkedCopyStatus === 'failed' || watermarkedCopyStatus === 'downloaded') && (
+            <p aria-live="polite" className="mt-2 text-xs leading-5 text-[#4B6382]">
+              {watermarkedCopyStatus === 'failed'
+                ? 'Could not create the watermarked copy. The signed original is unchanged.'
+                : 'Watermarked PDF copy downloaded. The signed original remains unchanged for integrity checks.'}
+            </p>
+          )}
         </div>
       ) : (
         <p className="mt-4 rounded-lg bg-[#F8FBFF] p-4 text-base leading-7 text-[#4B6382]">No signed PDF is attached to this document yet.</p>

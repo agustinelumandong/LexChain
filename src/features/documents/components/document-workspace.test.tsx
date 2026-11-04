@@ -1435,7 +1435,8 @@ describe('DocumentWorkspace', () => {
     const downloadWatermarked = within(filesSection).getByRole('button', { name: 'Download PDF Copy' });
     expect(downloadOriginal.getAttribute('href')).toContain('/api/portal/documents/doc-101/file?');
     expect(downloadWatermarked).toBeTruthy();
-    expect(within(filesSection).getByText(/Download original PDF for the unmodified file matching the SHA-256 hash. Download PDF Copy adds the LEXCHAIN COPY watermark across all pages/i)).toBeTruthy();
+    expect(within(filesSection).getByText('(SHA-256)')).toBeTruthy();
+    expect(within(filesSection).getByText('(Watermarked)')).toBeTruthy();
 
     // Opening replace form renders inline in the same section
     fireEvent.click(replaceButton);
@@ -1459,7 +1460,7 @@ describe('DocumentWorkspace', () => {
 
     const filesSection = screen.getByRole('region', { name: 'Signed PDF' });
     expect(within(filesSection).queryByRole('button', { name: 'Replace signed PDF' })).toBeNull();
-    expect(within(filesSection).getByText(/This document is finalized on the blockchain. The signed PDF is permanently locked and cannot be replaced/i)).toBeTruthy();
+    expect(within(filesSection).getByText(/Finalized on blockchain \(Locked\)/i)).toBeTruthy();
   });
 
   it('renders scanable multi-event history with timestamps, transitions, and actor disclosures (#172)', async () => {
