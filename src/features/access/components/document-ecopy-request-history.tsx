@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { portalFetch } from '@/shared/api/client';
 import type { ApiSchema } from '@/shared/types';
 import { Badge, Button, Card, type BadgeVariant } from '@/shared/components/ui';
+import HistoryOutlinedIcon from '@mui/icons-material/HistoryOutlined';
 
 import { formatEcopyDeliveryStatus, formatEcopyRequestStatus } from '@/features/access/ecopy-status';
 
@@ -56,7 +57,19 @@ export function DocumentEcopyRequestHistory({ documentId }: { documentId: string
       <p>Could not load e-copy request history.</p>
       <Button variant="secondary" size="sm" disabled={query.isFetching} onClick={() => void query.refetch()}>{query.isFetching ? 'Retrying…' : 'Retry request history'}</Button>
     </div>}
-    {query.data && !query.isError && query.data.requests.length === 0 && <p className="mt-2 text-sm text-[#4B6382]">No e-copy requests for this document yet.</p>}
+    {query.data && !query.isError && query.data.requests.length === 0 && (
+      <div className="mt-3 flex w-full flex-col items-center justify-center gap-2.5 rounded-xl border border-[#D7E4F2] bg-[#F8FBFF] px-4 py-8 text-center sm:px-6">
+        <span className="grid h-10 w-10 place-items-center rounded-xl bg-[#EAF4FF] text-[#0067B3]">
+          <HistoryOutlinedIcon aria-hidden="true" sx={{ fontSize: 22 }} />
+        </span>
+        <div>
+          <p className="text-sm font-bold text-[#0C2B49]">No e-copy requests for this document yet.</p>
+          <p className="mt-1 text-xs text-[#4B6382]">
+            When parties request an electronic copy, request decisions and delivery records will appear here.
+          </p>
+        </div>
+      </div>
+    )}
     {query.data && !query.isError && query.data.requests.length > 0 && <ul className="mt-3 space-y-2">
       {query.data.requests.map((request) => <li key={request.id}><RequestEntry request={request} /></li>)}
     </ul>}
