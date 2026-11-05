@@ -10,8 +10,10 @@ import VerifiedUserIcon from '@mui/icons-material/VerifiedUser';
 import EmailOutlinedIcon from '@mui/icons-material/EmailOutlined';
 import { NewDocumentAction } from '@/features/documents/components/new-document-action';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
+import CircleIcon from '@mui/icons-material/Circle';
+import LinkIcon from '@mui/icons-material/Link';
 import { MetricCard } from '@/features/portal/components/portal-metric-card';
-import { getDocumentLifecycleLabel, getDocumentProcessingStatusLabel, getDocumentsByOwnership } from "@/features/documents";
+import { getDocumentLifecycleBadgeClasses, getDocumentLifecycleLabel, getDocumentProcessingBadgeClasses, getDocumentProcessingStatusLabel, getDocumentsByOwnership, isDocumentOnChain } from "@/features/documents";
 import { getProcessingDocuments } from '@/features/portal/portal-dashboard';
 import type { ApiSchema } from '@/shared/types';
 import { dashboardResponseSchema, type DashboardResponse } from '@/features/admin';
@@ -206,9 +208,30 @@ export default function DashboardPage() {
 }
 
 function DocumentLink({ document }: { document: Document }) {
+  const badgeClasses = 'inline-flex shrink-0 items-center gap-1.5 rounded-full border border-current/15 px-2.5 py-0.5 text-xs font-bold';
+
   return <Link href={`/portal/documents/${document.id}`} className="flex items-center gap-4 py-4 first:pt-0 last:pb-0 transition hover:bg-[#F8FBFF]">
     <div className="flex h-[44px] w-[44px] shrink-0 items-center justify-center rounded-xl bg-[#EEF6FF]"><DescriptionIcon sx={{ fontSize: 20, color: '#0067B3' }} /></div>
-    <div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><span className="truncate text-sm font-bold text-[#0C2B49]">{document.file_name}</span><span className="shrink-0 rounded-full bg-[#EAF4FF] px-2.5 py-0.5 text-[11px] font-bold text-[#0067B3]">{getDocumentLifecycleLabel(document.lifecycle)}</span>{document.lifecycle === 'FINALIZED' && <span className={`${getStatusTone(document.status)} shrink-0 rounded-full px-2.5 py-0.5 text-[11px] font-bold`}>{getDocumentProcessingStatusLabel(document.lifecycle, document.status)}</span>}</div><p className="mt-1 text-[11px] font-bold text-[#5B6F8A]">{formatDate(document.created_at)}</p></div>
+    <div className="min-w-0 flex-1">
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="truncate text-sm font-bold text-[#0C2B49]">{document.file_name}</span>
+        <span className={`${badgeClasses} ${getDocumentLifecycleBadgeClasses(document.lifecycle)}`}>
+          {isDocumentOnChain(document.lifecycle) ? (
+            <LinkIcon aria-hidden="true" sx={{ fontSize: 14 }} />
+          ) : (
+            <CircleIcon aria-hidden="true" sx={{ fontSize: 8 }} />
+          )}
+          {getDocumentLifecycleLabel(document.lifecycle)}
+        </span>
+        {document.lifecycle === 'FINALIZED' && (
+          <span className={`${badgeClasses} ${getDocumentProcessingBadgeClasses(document.status)}`}>
+            <CircleIcon aria-hidden="true" sx={{ fontSize: 8 }} />
+            {getDocumentProcessingStatusLabel(document.lifecycle, document.status)}
+          </span>
+        )}
+      </div>
+      <p className="mt-1 text-[11px] font-bold text-[#5B6F8A]">{formatDate(document.created_at)}</p>
+    </div>
     <ChevronRightIcon sx={{ fontSize: 20, color: '#5B6F8A' }} />
   </Link>;
 }

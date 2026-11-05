@@ -17,7 +17,7 @@ import LinkOffIcon from '@mui/icons-material/LinkOff';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import { Dropdown } from "@/features/admin/components";
-import { getDocumentLifecycleBadgeClasses, getDocumentLifecycleLabel, getDocumentProcessingBadgeClasses, getDocumentProcessingStatusLabel } from '@/features/documents/document-ui';
+import { getDocumentLifecycleBadgeClasses, getDocumentLifecycleLabel, getDocumentProcessingBadgeClasses, getDocumentProcessingStatusLabel, isDocumentOnChain } from '@/features/documents/document-ui';
 import { getPortalUiRole } from "@/features/access";
 import { NewDocumentAction } from '@/features/documents/components/new-document-action';
 import {
@@ -89,11 +89,24 @@ function DocumentIconBadge() {
 
 function DocumentBadges({ document }: { document: Document }) {
   const badgeClasses = 'inline-flex items-center gap-1.5 rounded-full border border-current/15 px-2.5 py-0.5 text-xs font-bold';
+  const isOnChain = isDocumentOnChain(document.lifecycle);
 
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <span className={`${badgeClasses} ${getDocumentLifecycleBadgeClasses(document.lifecycle)}`}><CircleIcon aria-hidden="true" sx={{ fontSize: 8 }} />{getDocumentLifecycleLabel(document.lifecycle)}</span>
-      {(document.lifecycle === 'FINALIZED' || (document.lifecycle === 'SIGNED' && document.status)) && <span className={`${badgeClasses} ${getDocumentProcessingBadgeClasses(document.status)}`}><CircleIcon aria-hidden="true" sx={{ fontSize: 8 }} />{getDocumentProcessingStatusLabel(document.lifecycle, document.status)}</span>}
+      <span className={`${badgeClasses} ${getDocumentLifecycleBadgeClasses(document.lifecycle)}`}>
+        {isOnChain ? (
+          <LinkIcon aria-hidden="true" sx={{ fontSize: 14 }} />
+        ) : (
+          <CircleIcon aria-hidden="true" sx={{ fontSize: 8 }} />
+        )}
+        {getDocumentLifecycleLabel(document.lifecycle)}
+      </span>
+      {(document.lifecycle === 'FINALIZED' || (document.lifecycle === 'SIGNED' && document.status)) && (
+        <span className={`${badgeClasses} ${getDocumentProcessingBadgeClasses(document.status)}`}>
+          <CircleIcon aria-hidden="true" sx={{ fontSize: 8 }} />
+          {getDocumentProcessingStatusLabel(document.lifecycle, document.status)}
+        </span>
+      )}
     </div>
   );
 }
@@ -229,7 +242,10 @@ function StatusDistribution({ docs }: { docs: Document[] }) {
           <ul className="space-y-2">
             {processingGroups.map(([label, group]) => (
               <li key={label} className="flex min-w-0 items-center justify-between gap-3 text-sm">
-                <span className={`min-w-0 truncate rounded-full px-2.5 py-0.5 text-xs font-bold ${getDocumentProcessingBadgeClasses(group.status)}`}>{label}</span>
+                <span className={`inline-flex items-center gap-1.5 rounded-full border border-current/15 px-2.5 py-0.5 text-xs font-bold ${getDocumentProcessingBadgeClasses(group.status)}`}>
+                  <CircleIcon aria-hidden="true" sx={{ fontSize: 8 }} />
+                  {label}
+                </span>
                 <strong className="shrink-0 tabular-nums text-[#071B33]">{group.count}</strong>
               </li>
             ))}

@@ -1715,6 +1715,9 @@ export function DocumentWorkspace({
         )}
 
         {(activeTab === 'Files' || (!showTabs && document.lifecycle === 'SIGNED' && !isCompletedSigned)) && signedFilesPanel}
+        {!showTabs && document.lifecycle === 'SIGNED' && !isCompletedSigned && document.draft_url && (
+          <GoogleDraftPanel key={document.document_id} document={document} onDocumentUpdated={onDocumentUpdated} />
+        )}
         {!showTabs && document.lifecycle === 'SIGNED' && !isCompletedSigned && participantsPanel}
 
 

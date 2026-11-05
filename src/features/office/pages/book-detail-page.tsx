@@ -7,7 +7,9 @@ import { useRouter } from 'next/navigation';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
+import CircleIcon from '@mui/icons-material/Circle';
 import DescriptionIcon from '@mui/icons-material/Description';
+import LinkIcon from '@mui/icons-material/Link';
 import MenuBookIcon from '@mui/icons-material/MenuBook';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import RefreshIcon from '@mui/icons-material/Refresh';
@@ -15,18 +17,12 @@ import { toast } from 'sonner';
 import { Dropdown } from '@/features/admin/components';
 import { canAccessPortalFeature } from '@/features/access';
 import { usePortalRole } from '@/features/access/components';
-import { getDocumentLifecycleLabel, getDocumentProcessingStatusLabel } from '@/features/documents/document-ui';
+import { getDocumentLifecycleBadgeClasses, getDocumentLifecycleLabel, getDocumentProcessingBadgeClasses, getDocumentProcessingStatusLabel, isDocumentOnChain } from '@/features/documents/document-ui';
 import { BOOK_ENTRIES_PAGE_SIZE, closeRegisterBook, deleteRegisterBook, listRegisterBookEntries } from '@/features/office/books-api';
 import type { BookEntriesResponse, RegisterBook } from '@/features/office/books-api';
 
 const cardClass = 'rounded-[18px] border border-[#E8F0F8] bg-white';
 
-function processingStatusStyle(status?: string | null) {
-  const value = status?.toLowerCase();
-  if (value === 'anchored' || value === 'completed') return 'bg-[#EAF8F0] text-[#166534]';
-  if (value === 'processing' || value === 'pending') return 'bg-[#FFF4DD] text-[#8A5B00]';
-  return 'bg-[#EAF4FF] text-[#0067B3]';
-}
 
 export default function BookDetailPage({ bookId }: { bookId: string }) {
   const queryClient = useQueryClient();
@@ -187,8 +183,20 @@ export default function BookDetailPage({ bookId }: { bookId: string }) {
                             </span>
                           </span>
                           <span className="flex flex-wrap items-center gap-2 px-5 py-3">
-                            <span className="rounded-full bg-[#EAF4FF] px-2.5 py-0.5 text-[11px] font-bold text-[#0067B3]">{getDocumentLifecycleLabel(entry.lifecycle)}</span>
-                            {entry.lifecycle === 'FINALIZED' && <span className={`${processingStatusStyle(entry.status)} rounded-full px-2.5 py-0.5 text-[11px] font-bold`}>{getDocumentProcessingStatusLabel(entry.lifecycle, entry.status)}</span>}
+                            <span className={`inline-flex items-center gap-1.5 rounded-full border border-current/15 px-2.5 py-0.5 text-xs font-bold ${getDocumentLifecycleBadgeClasses(entry.lifecycle)}`}>
+                              {isDocumentOnChain(entry.lifecycle) ? (
+                                <LinkIcon aria-hidden="true" sx={{ fontSize: 14 }} />
+                              ) : (
+                                <CircleIcon aria-hidden="true" sx={{ fontSize: 8 }} />
+                              )}
+                              {getDocumentLifecycleLabel(entry.lifecycle)}
+                            </span>
+                            {entry.lifecycle === 'FINALIZED' && (
+                              <span className={`inline-flex items-center gap-1.5 rounded-full border border-current/15 px-2.5 py-0.5 text-xs font-bold ${getDocumentProcessingBadgeClasses(entry.status)}`}>
+                                <CircleIcon aria-hidden="true" sx={{ fontSize: 8 }} />
+                                {getDocumentProcessingStatusLabel(entry.lifecycle, entry.status)}
+                              </span>
+                            )}
                           </span>
                           <span aria-hidden="true" className="px-5 py-3 text-[#5B6F8A]"><OpenInNewIcon sx={{ fontSize: 18 }} /></span>
                         </Link>

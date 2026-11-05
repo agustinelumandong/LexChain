@@ -54,7 +54,7 @@ describe('ProcessingPage', () => {
     expect(screen.queryByText('Processing failed')).toBeNull();
     expect(screen.queryByRole('link')).toBeNull();
     expect(await screen.findByRole('link', { name: 'Review extracted text' }, { timeout: 3_000 })).toBeTruthy();
-    expect(screen.getByText('Lifecycle: Finalized')).toBeTruthy();
+    expect(screen.getByText('Lifecycle: On-Chain')).toBeTruthy();
   });
 
   it.each([
@@ -142,7 +142,7 @@ describe('ProcessingPage', () => {
     renderPage();
 
     expect(await screen.findByText('Processing failed')).toBeTruthy();
-    expect(screen.getByText('Lifecycle: Finalized')).toBeTruthy();
+    expect(screen.getByText('Lifecycle: On-Chain')).toBeTruthy();
     expect(screen.getByRole('link', { name: 'View document' }).getAttribute('href')).toBe('/portal/documents/doc-1');
     expect(screen.queryByText(/try uploading again/i)).toBeNull();
     expect(document.querySelector('a[href="/portal/upload"]')).toBeNull();

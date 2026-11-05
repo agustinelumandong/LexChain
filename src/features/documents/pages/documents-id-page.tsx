@@ -4,6 +4,8 @@ import { use, useState, useSyncExternalStore } from 'react';
 import { useMutation, useQueries, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import CircleIcon from '@mui/icons-material/Circle';
+import LinkIcon from '@mui/icons-material/Link';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import ShieldOutlinedIcon from '@mui/icons-material/ShieldOutlined';
 import { toast } from 'sonner';
@@ -11,7 +13,7 @@ import { z } from 'zod';
 import type { ApiSchema } from '@/shared/types/index';
 import { PortalChatbot as PortalChatbot } from "@/features/portal/components";
 import { CopyableIdentifier, DocumentWorkspace, type Tab } from '@/features/documents/components/document-workspace';
-import { getDocumentActions, getDocumentLifecycleBadgeClasses, getDocumentLifecycleLabel, getDocumentProcessingBadgeClasses, getDocumentProcessingStatusLabel } from '@/features/documents/document-ui';
+import { getDocumentActions, getDocumentLifecycleBadgeClasses, getDocumentLifecycleLabel, getDocumentProcessingBadgeClasses, getDocumentProcessingStatusLabel, isDocumentOnChain } from '@/features/documents/document-ui';
 import { renameDocument, finalizeDocument, markDocumentReady, reopenDocument, cancelDocument } from '@/features/documents/document-lifecycle-api';
 import { getPortalUiRole } from "@/features/access";
 import { Modal } from '@/features/admin/components/modal';
@@ -306,8 +308,20 @@ export default function DocumentDetailPage({ params, initialTab }: { params: Pro
           <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
             <h1 title={document.file_name} className="min-w-0 max-w-full break-words text-2xl font-bold leading-8 text-[#0C2B49]">{document.file_name}</h1>
             <div className="flex flex-wrap items-center gap-2">
-              <span className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${getDocumentLifecycleBadgeClasses(document.lifecycle)}`}>{document.lifecycle === 'FINALIZED' && document.on_chain ? 'On-chain' : getDocumentLifecycleLabel(document.lifecycle)}</span>
-              {(document.lifecycle === 'FINALIZED' || (document.lifecycle === 'SIGNED' && document.status)) && <span className={`${getDocumentProcessingBadgeClasses(document.status)} rounded-full px-2.5 py-0.5 text-xs font-bold`}>{getDocumentProcessingStatusLabel(document.lifecycle, document.status)}</span>}
+              <span className={`inline-flex items-center gap-1.5 rounded-full border border-current/15 px-2.5 py-0.5 text-xs font-bold ${getDocumentLifecycleBadgeClasses(document.lifecycle)}`}>
+                {isDocumentOnChain(document.lifecycle) ? (
+                  <LinkIcon aria-hidden="true" sx={{ fontSize: 14 }} />
+                ) : (
+                  <CircleIcon aria-hidden="true" sx={{ fontSize: 8 }} />
+                )}
+                {getDocumentLifecycleLabel(document.lifecycle)}
+              </span>
+              {(document.lifecycle === 'FINALIZED' || (document.lifecycle === 'SIGNED' && document.status)) && (
+                <span className={`inline-flex items-center gap-1.5 rounded-full border border-current/15 px-2.5 py-0.5 text-xs font-bold ${getDocumentProcessingBadgeClasses(document.status)}`}>
+                  <CircleIcon aria-hidden="true" sx={{ fontSize: 8 }} />
+                  {getDocumentProcessingStatusLabel(document.lifecycle, document.status)}
+                </span>
+              )}
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
@@ -397,8 +411,8 @@ export default function DocumentDetailPage({ params, initialTab }: { params: Pro
               </div>
             </div>
             <div className="mt-3 space-y-1.5 text-sm leading-6 text-[#4B6382]">
-              <p>{mockMode ? 'Demo mode: this action uses synthetic data. No real PDF digest or blockchain transaction will be produced.' : ''}</p>
-              <p className="text-xs leading-5 text-[#5B6F8A]">This freezes the signed copy and records its fingerprint on the blockchain. It cannot be undone..</p>
+              <p>{mockMode ? 'Demo mode: this action uses synthetic data. No real PDF digest or blockchain transaction will be produced.' : 'This freezes the signed copy and records its fingerprint on the blockchain. It cannot be undone.'}</p>
+              <p className="text-xs leading-5 text-[#5B6F8A]">The frozen filing copy cannot be replaced or removed after finalization. Text extraction and review will proceed in the background.</p>
             </div>
             {finalizeMutation.isPending && (
               <div role="status" className="mt-3 rounded-xl border border-[#CFE7FC] bg-[#F0F7FE] p-3 text-sm font-semibold text-[#0067B3]">
