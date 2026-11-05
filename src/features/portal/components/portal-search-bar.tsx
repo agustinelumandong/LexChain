@@ -1,9 +1,9 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import SearchIcon from '@mui/icons-material/Search';
-import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile';
+import DescriptionIcon from '@mui/icons-material/Description';
 import type { PortalSearchHit } from "@/features/access";
 import { searchPortalDocuments } from '@/features/documents/search-api';
 
@@ -11,6 +11,7 @@ const recordDateFormat = new Intl.DateTimeFormat('en-US', { dateStyle: 'medium',
 
 export function PortalSearchBar() {
   const router = useRouter();
+  const isSearchPage = usePathname() === '/portal/search';
   const [input, setInput] = useState('');
   const [results, setResults] = useState<PortalSearchHit[]>([]);
   const [open, setOpen] = useState(false);
@@ -45,8 +46,9 @@ export function PortalSearchBar() {
 
   const onChange = (value: string) => {
     setInput(value);
+    setSelectedIndex(-1);
     clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => doSearch(value), 300);
+    if (!isSearchPage) debounceRef.current = setTimeout(() => doSearch(value), 300);
   };
 
   useEffect(() => {
@@ -64,6 +66,7 @@ export function PortalSearchBar() {
   }, []);
 
   const navigateToSearch = (query: string) => {
+    clearTimeout(debounceRef.current);
     router.push(`/portal/search?q=${encodeURIComponent(query)}`);
     setOpen(false);
     setInput('');
@@ -76,11 +79,14 @@ export function PortalSearchBar() {
   };
 
   const onKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'ArrowDown') {
+    if (isSearchPage && e.key === 'Enter') {
+      e.preventDefault();
+      if (input.trim()) navigateToSearch(input.trim());
+    } else if (!isSearchPage && e.key === 'ArrowDown') {
       e.preventDefault();
       if (!open) { setOpen(true); return; }
       setSelectedIndex((prev) => (prev < results.length - 1 ? prev + 1 : 0));
-    } else if (e.key === 'ArrowUp') {
+    } else if (!isSearchPage && e.key === 'ArrowUp') {
       e.preventDefault();
       setSelectedIndex((prev) => (prev > 0 ? prev - 1 : results.length - 1));
     } else if (e.key === 'Enter') {
@@ -104,16 +110,16 @@ export function PortalSearchBar() {
           value={input}
           onChange={(e) => onChange(e.target.value)}
           onKeyDown={onKeyDown}
-          onFocus={() => { if (results.length > 0) setOpen(true); }}
+          onFocus={() => { if (!isSearchPage && results.length > 0) setOpen(true); }}
           placeholder="Search document contents…"
           aria-label="Search document contents"
           role="combobox"
-          aria-expanded={open}
+          aria-expanded={!isSearchPage && open}
           aria-controls="search-results"
-          aria-activedescendant={selectedIndex >= 0 ? `search-result-${selectedIndex}` : undefined}
+          aria-activedescendant={!isSearchPage && open && selectedIndex >= 0 ? `search-result-${selectedIndex}` : undefined}
           className="min-w-0 flex-1 bg-transparent text-[var(--portal-navy)] outline-none placeholder:text-[var(--portal-text-muted)]"
         />
-        {loading && <span className="h-4 w-4 animate-spin rounded-full border-2 border-[var(--portal-border-soft)] border-t-[#0067B3]" />}
+        {!isSearchPage && loading && <span className="h-4 w-4 animate-spin rounded-full border-2 border-[var(--portal-border-soft)] border-t-[#0067B3]" />}
         <button
           type="button"
           onClick={() => { if (input.trim()) navigateToSearch(input.trim()); }}
@@ -123,7 +129,7 @@ export function PortalSearchBar() {
         </button>
       </div>
 
-      {open && (
+      {!isSearchPage && open && (
         <ul
           id="search-results"
           role="listbox"
@@ -146,16 +152,22 @@ export function PortalSearchBar() {
                 onMouseEnter={() => setSelectedIndex(i)}
                 className={`cursor-pointer px-3 py-2.5 text-sm ${i === selectedIndex ? 'bg-[#EAF4FF]' : 'hover:bg-[#F5F8FA]'}`}
               >
-                <div className="flex min-w-0 items-start gap-2">
-                  <InsertDriveFileIcon sx={{ fontSize: 16, color: '#0067B3' }} />
-                  <p className="min-w-0 break-words font-semibold text-[var(--portal-navy)]">{hit.file_name}</p>
+                <div className="flex flex-col gap-2 sm:flex-row sm:justify-between sm:gap-5">
+                  <div className="flex min-w-0 items-center gap-2">
+                    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#EEF6FF]">
+                      <DescriptionIcon sx={{ fontSize: 20, color: '#0067B3' }} aria-hidden="true" />
+                    </span>
+                    <div className="min-w-0">
+                      <p className="break-words font-semibold text-[var(--portal-navy)]">{hit.file_name}</p>
+                      {hit.register_reference && (
+                        <p className="mt-0.5 break-words text-xs text-[var(--portal-text-muted)]">Register reference: {hit.register_reference.label}</p>
+                      )}
+                    </div>
+                  </div>
+                  <p className="shrink-0 text-xs text-[var(--portal-text-muted)]">
+                    Document created: <time dateTime={hit.created_at}>{recordDateFormat.format(new Date(hit.created_at))}</time>
+                  </p>
                 </div>
-                <p className="mt-0.5 text-xs text-[var(--portal-text-muted)]">
-                  Document created: <time dateTime={hit.created_at}>{recordDateFormat.format(new Date(hit.created_at))}</time>
-                </p>
-                {hit.register_reference && (
-                  <p className="mt-0.5 break-words text-xs text-[var(--portal-text-muted)]">Register reference: {hit.register_reference.label}</p>
-                )}
                 {hit.text?.trim() && <p className="mt-0.5 line-clamp-2 text-xs text-[var(--portal-text-muted)]">{hit.text}</p>}
               </li>
             ))

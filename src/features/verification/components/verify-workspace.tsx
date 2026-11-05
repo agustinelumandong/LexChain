@@ -4,7 +4,7 @@ import type { ApiSchema } from '@/shared/types/index';
 import type { PortalUiRole } from '@/features/access';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import DownloadOutlinedIcon from '@mui/icons-material/DownloadOutlined';
-import ErrorIcon from '@mui/icons-material/Error';
+import ErrorOutlineIcon from '@mui/icons-material/ErrorOutlined';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import LaunchIcon from '@mui/icons-material/Launch';
 import { toast } from 'sonner';
@@ -216,24 +216,24 @@ export default function VerifyWorkspace({
   const showPdfWorkspace = authentic || showTamperComparison;
 
   return <section className="flex flex-col gap-5 md:min-h-0 md:flex-1">
-    <div className={`rounded-[18px] border p-5 ${authentic ? 'border-green-200 bg-green-50' : neutral ? 'border-amber-200 bg-amber-50' : 'border-red-200 bg-red-50'}`}>
-      <div className="flex items-start gap-3">
-        {authentic ? <CheckCircleIcon className="text-[#166534]" sx={{ fontSize: 38 }} /> : neutral ? <InfoOutlinedIcon className="text-[#8A5B00]" sx={{ fontSize: 38 }} /> : <ErrorIcon className="text-[#B42318]" sx={{ fontSize: 38 }} />}
-        <div>
-          <h2 className={`text-xl font-extrabold ${authentic ? 'text-[#166534]' : neutral ? 'text-[#8A5B00]' : 'text-[#B42318]'}`}>
+    <div className={`flex flex-wrap items-start gap-3 rounded-xl border-2 p-4 ${authentic ? 'border-green-700 bg-green-50' : neutral ? 'border-amber-700 bg-amber-50' : 'border-red-700 bg-red-50'}`}>
+      <div className="flex min-w-0 flex-1 items-start gap-2">
+        {authentic ? <CheckCircleIcon className="mt-0.5 shrink-0 text-[#166534]" sx={{ fontSize: 20 }} aria-hidden="true" /> : neutral ? <InfoOutlinedIcon className="mt-0.5 shrink-0 text-[#8A5B00]" sx={{ fontSize: 20 }} aria-hidden="true" /> : <ErrorOutlineIcon className="mt-0.5 shrink-0 text-[#B42318]" sx={{ fontSize: 20 }} aria-hidden="true" />}
+        <div className="min-w-0">
+          <h2 className="text-base font-bold text-[#0C2B49]">
             {statusHeading(result)}
           </h2>
-          <p className="mt-1 text-sm text-[#475467]">
+          <p className="text-sm leading-5 text-[#344054]">
             {plainLanguageExplanation(result, contradictoryVerdict)}
           </p>
           {role === 'user' && !authentic && !unavailable && (
-            <p className="mt-1.5 text-xs text-[#5B6F8A]">
+            <p className="mt-1 text-sm text-[#475467]">
               Contact your lawyer or the document owner if you have questions regarding this document&apos;s integrity.
             </p>
           )}
         </div>
       </div>
-      {(unavailable || notAnchored) && <button type="button" onClick={onRetry} className="mt-4 inline-flex min-h-11 items-center justify-center rounded-full border border-[#0067B3] bg-white px-5 py-2 text-sm font-black text-[#0067B3] hover:bg-[#EEF6FF] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]">Try again</button>}
+      {(unavailable || notAnchored) && <button type="button" onClick={onRetry} className="inline-flex min-h-11 items-center justify-center rounded-full border border-[#0067B3] bg-white px-5 py-2 text-sm font-bold text-[#0067B3] hover:bg-[#EEF6FF] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]">Try again</button>}
     </div>
 
     {showPdfWorkspace ? (

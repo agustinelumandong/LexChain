@@ -20,6 +20,7 @@ import { PortalApiError } from '@/shared/api/portal-error';
 import { isMockMode } from '@/lib/mocks/mode';
 import { retryDocumentProcessing } from '@/features/documents/document-lifecycle-api';
 import { usePopup } from '@/shared/components/ui/use-popup';
+import { DocumentIntegrityStatus } from '@/features/verification/components/document-integrity-status';
 
 type DocumentResponse = ApiSchema<'DocumentResponse'>;
 type UserProfile = ApiSchema<'UserProfileResponse'>;
@@ -326,6 +327,7 @@ export default function DocumentDetailPage({ params, initialTab }: { params: Pro
           </div>
         </div>
         {retryProcessingMutation.error instanceof Error && <p role="alert" className="text-sm font-bold text-[#B42318]">{retryProcessingMutation.error.message || "Unable to retry document processing."}</p>}
+        {document.lifecycle === 'FINALIZED' && <DocumentIntegrityStatus documentId={id} mockMode={mockMode} />}
       </header>
 
       <Modal open={renameOpen} onClose={() => { if (!renamePending) setRenameOpen(false); }} title="Rename document">

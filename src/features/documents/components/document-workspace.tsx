@@ -1496,7 +1496,7 @@ export function DocumentWorkspace({
               </div>
               {(!hasGoogleDraft || !document.draft_url) && (
                 <p className="mt-2 text-sm text-[#5B6F8A]">{document.lifecycle === 'PREPARING'
-                  ? document.draft_url ? 'The linked Google Doc needs attention before this draft can be reviewed.' : 'Create or link a Google Doc to start drafting. Comments and participants will stay with this record.'
+                  ? document.draft_url ? 'The linked Google Doc needs attention before this draft can be reviewed.' : 'Comments and participants stay with this record.'
                   : 'No Google Doc is linked to this record. Continue with the external signing instructions below.'}</p>
               )}
               <div className={hasGoogleDraft && document.draft_url ? 'mt-1' : 'mt-4'}>
@@ -1724,13 +1724,13 @@ export function DocumentWorkspace({
             <div className="flex items-start gap-3">
               <div>
                 <h2 className="inline-flex items-center gap-2 text-lg font-extrabold text-[#0C2B49]"><AccountTreeIcon aria-hidden="true" sx={{ fontSize: 20, color: '#0067B3' }} />Blockchain record</h2>
-                <p className="mt-1 text-sm leading-6 text-[#4B6382]">When this document is finalized, its digital fingerprint is saved to the blockchain. A signed document is not recorded on-chain until it is finalized. Comparing fingerprints can show whether the saved PDF has changed.</p>
+                <p className="mt-1 max-w-3xl text-sm leading-6 text-[#4B6382]">Finalizing saves the PDF’s fingerprint to the blockchain. Compare fingerprints to check if the PDF has changed.</p>
               </div>
             </div>
             {(finalizationResult || document.on_chain) && isMockMode() && (
               <p role="note" className="rounded-xl border border-[#F1D29A] bg-[#FFF8E8] px-4 py-3 text-sm font-bold text-[#785000]">Synthetic demo record. No real PDF digest or blockchain transaction was produced.</p>
             )}
-            <dl className="grid gap-3 text-sm sm:grid-cols-2">
+            <dl className="grid gap-x-8 gap-y-4 text-sm sm:grid-cols-2">
               <div>
                 <dt className="font-bold text-[#4B6382]">Record status</dt>
                 <dd className="mt-1 text-[#0C2B49]">
@@ -1739,7 +1739,7 @@ export function DocumentWorkspace({
                     <p className="mt-0.5 text-xs text-[#5B6F8A]">Signed copy attached. Blockchain recording requires finalization.</p>
                   )}
                   {document.lifecycle === 'FINALIZED' && !document.on_chain && (
-                    <p className="mt-0.5 text-xs text-[#5B6F8A]">Finalized and submitted. Awaiting block confirmation on the network.</p>
+                    <p className="mt-0.5 text-sm text-[#5B6F8A]">Submitted; waiting for network confirmation.</p>
                   )}
                 </dd>
               </div>
