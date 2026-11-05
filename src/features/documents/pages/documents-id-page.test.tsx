@@ -17,6 +17,7 @@ const { state } = vi.hoisted(() => ({
     signedCopiesQuery: {} as Record<string, unknown>,
     partiesQuery: {} as Record<string, unknown>,
     commentsQuery: {} as Record<string, unknown>,
+    integrityQuery: {} as Record<string, unknown>,
     queryKeys: [] as string[][],
     mutations: [] as { options: unknown }[],
     renameDocument: vi.fn(),
@@ -52,6 +53,7 @@ vi.mock('@tanstack/react-query', () => ({
     return [state.documentQuery, state.profileQuery];
   },
   useQuery: ({ queryKey }: { queryKey: readonly unknown[] }) => {
+    if (queryKey[0] === 'portal-doc-chain') return state.integrityQuery;
     if (queryKey[0] === 'portal-document-comments') return state.commentsQuery;
     if (queryKey[0] === 'portal-document-parties') return state.partiesQuery;
     if (queryKey[0] === 'ecopy-requests') return { data: { requests: [], total: 0 }, isLoading: false, isError: false, refetch: vi.fn() };
@@ -162,6 +164,7 @@ beforeEach(() => {
   state.signedCopiesQuery = { data: { document_id: 'doc-1', copies: [] }, isLoading: false, isError: false };
   state.partiesQuery = { data: { document_id: 'doc-1', issuer: { id: 'owner-1', user_id: 'owner-1', email: 'lawyer@example.com', f_name: 'Jordan', l_name: 'Lawyer', role: 'owner', status: 'accepted', responded_at: null, created_at: '2026-10-20T00:00:00Z' }, parties: [] }, isLoading: false, isError: false };
   state.commentsQuery = { data: { document_id: 'doc-1', unresolved: 0, synced_at: null, comments: [] }, isLoading: false, isError: false };
+  state.integrityQuery = { data: { status: 'AUTHENTIC', is_authentic: true }, isFetching: false, isError: false, refetch: vi.fn() };
   state.queryClient.setQueryData.mockReset();
   state.queryClient.setQueryData.mockImplementation((queryKey, document) => {
     if (queryKey[0] === 'portal-doc') state.documentQuery = { ...state.documentQuery, data: document };
@@ -180,6 +183,12 @@ afterEach(() => {
 });
 
 describe('document detail screen', () => {
+  it('shows integrity status on the document page for a finalized document', async () => {
+    state.documentQuery = { ...state.documentQuery, data: { ...baseDocument, lifecycle: 'FINALIZED', on_chain: true } };
+    await showPage();
+    expect(screen.getByText('Integrity verified')).toBeTruthy();
+  });
+
   it('labels a finalized document on-chain only when confirmed', async () => {
     state.documentQuery = { data: { ...baseDocument, lifecycle: 'FINALIZED', on_chain: true }, isLoading: false, isError: false, refetch: vi.fn() };
     await showPage();
