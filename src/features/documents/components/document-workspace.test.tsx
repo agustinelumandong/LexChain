@@ -683,7 +683,9 @@ describe('DocumentWorkspace', () => {
     } });
 
     expect(screen.getByRole('button', { name: 'Create blank Google draft' })).toBeTruthy();
-    expect(screen.getByText(/Create or link a Google Doc to start drafting/)).toBeTruthy();
+    expect(screen.getByText('Comments and participants stay with this record.')).toBeTruthy();
+    expect(screen.getByText('After signing outside LexChain, upload the signed PDF to this record.')).toBeTruthy();
+    expect(screen.getByLabelText('Choose a starting point')).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Mark ready for signature' })).toBeNull();
   });
 
@@ -1110,6 +1112,7 @@ describe('DocumentWorkspace', () => {
 
     fireEvent.click(screen.getByRole('tab', { name: 'Blockchain' }));
     expect(screen.getByText('Saved to the blockchain')).toBeTruthy();
+    expect(screen.getByText('Finalizing saves the PDF’s fingerprint to the blockchain. Compare fingerprints to check if the PDF has changed.')).toBeTruthy();
     expect(screen.getByText('chain-hash')).toBeTruthy();
   });
 
@@ -1126,7 +1129,7 @@ describe('DocumentWorkspace', () => {
 
     fireEvent.click(screen.getByRole('tab', { name: 'Blockchain' }));
     expect(screen.getByText('Waiting for confirmation')).toBeTruthy();
-    expect(screen.getByText('Finalized and submitted. Awaiting block confirmation on the network.')).toBeTruthy();
+    expect(screen.getByText('Submitted; waiting for network confirmation.')).toBeTruthy();
     expect(screen.getByText('Base Sepolia')).toBeTruthy();
     expect(screen.getByText('Testnet')).toBeTruthy();
     const link = await screen.findByRole('link', { name: /View transaction on Base Sepolia/ });

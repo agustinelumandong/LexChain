@@ -8,6 +8,7 @@ import { createGoogleDraft, getGoogleDraftUploadFileError, getGooglePickerToken,
 import { clearGoogleDraftReturnContext, readGoogleDraftReturnContext, saveGoogleDraftReturnContext } from '@/shared/utils/google-draft-return-context';
 import { Dropdown } from '@/shared/components/ui';
 import OpenInNewOutlinedIcon from '@mui/icons-material/OpenInNewOutlined';
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 
 type Source = import('@/features/documents/document-draft-api').GoogleDraftSource;
 type PickedFile = { id: string; name: string };
@@ -169,8 +170,7 @@ function DraftCreationForm({ source, picked, uploadFile, uploadError, error, nee
   onCreate: () => void;
   onConnectGoogle: (event: React.MouseEvent<HTMLAnchorElement>) => void;
 }) {
-  return <section aria-labelledby="google-draft-title" className="space-y-4 rounded-xl border border-[#D7E4F2] bg-white p-5 sm:p-6">
-    <div><h3 id="google-draft-title" className="text-lg font-bold leading-6 text-[#0C2B49]">Start a working draft in Google Docs</h3><p className="mt-2 max-w-3xl text-base leading-7 text-[#344054]">Use a blank Doc, copy a template, choose a Google Doc you already started, or upload a Word document. After signing outside LexChain, upload the signed PDF to this same record.</p></div>
+  return <section aria-label="Draft starting point" className="space-y-4">
     <label className="grid max-w-sm gap-2 text-base font-bold text-[#0C2B49]">Choose a starting point
       <Dropdown ariaLabel="Choose a starting point" fullWidth value={source} onChange={(value) => onSourceChange(value as Source)} options={[{ label: 'Blank Google Doc', value: 'blank' }, { label: 'Copy a template', value: 'template' }, { label: 'Use an existing Google Doc', value: 'existing' }, { label: 'Upload a document', value: 'upload' }]} />
     </label>
@@ -178,6 +178,10 @@ function DraftCreationForm({ source, picked, uploadFile, uploadError, error, nee
     {source === 'upload' && <DraftUploadField uploadError={uploadError} error={error} pending={pending} onUploadFile={onUploadFile} />}
     {error && <div id="google-draft-error" role="alert" className="space-y-2 text-base font-bold leading-7 text-[#B42318]"><p>{error}</p>{needsGoogleConnection && <Link href="/portal/profile/account?google_draft_return=1" onClick={onConnectGoogle} className="inline-flex min-h-11 items-center rounded-full border border-[#006BB6] px-4 py-2 text-base text-[#006BB6]">Connect Google in account settings</Link>}</div>}
     <button type="button" disabled={pending || !canCreateDraft(source, picked, uploadFile, uploadError)} onClick={onCreate} className="min-h-12 rounded-full bg-[#0673C4] px-5 py-3 text-base font-bold text-white hover:bg-[#005FA3] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3] disabled:opacity-60">{pending ? PENDING_LABELS[source] : ACTION_LABELS[source]}</button>
+    <div role="note" className="flex w-fit max-w-full items-start gap-2 rounded-lg border border-[#B8D7EE] bg-[#EEF6FF] px-3 py-2 text-sm leading-5 text-[#0C2B49]">
+      <InfoOutlinedIcon aria-hidden="true" className="mt-0.5 shrink-0 text-[#0067B3]" fontSize="small" />
+      <p>After signing outside LexChain, upload the signed PDF to this record.</p>
+    </div>
   </section>;
 }
 
