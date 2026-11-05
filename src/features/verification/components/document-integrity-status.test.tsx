@@ -20,6 +20,7 @@ it('checks the document when opened and displays the result', async () => {
   resolveResponse(Response.json({ status: 'AUTHENTIC', is_authentic: true }));
   expect(await screen.findByText('Integrity verified')).toBeTruthy();
   expect(fetchMock).toHaveBeenCalledTimes(1);
+  expect(fetchMock).toHaveBeenCalledWith('/api/portal/proxy?path=%2Fdocuments%2Fdoc-1%2Fverify%3Freport%3Dfalse', expect.anything());
 });
 
 it('does not treat conflicting results as verified and labels demo results', async () => {
@@ -35,6 +36,13 @@ it('warns about a mismatch without calling it a verified file', async () => {
   showStatus();
   expect(await screen.findByText('Document integrity warning')).toBeTruthy();
   expect(screen.queryByText('Integrity verified')).toBeNull();
+});
+
+it('warns that a missing file was deleted', async () => {
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json({ status: 'FILE_MISSING', is_authentic: false })));
+  showStatus();
+  expect(await screen.findByText('Document integrity warning')).toBeTruthy();
+  expect(screen.getByText(/stored document file is missing/i)).toBeTruthy();
 });
 
 it('offers retry when the check fails', async () => {

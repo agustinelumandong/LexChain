@@ -7,7 +7,7 @@ type IntegrityRecord = {
   is_authentic?: boolean;
 } | null | undefined;
 
-export type IntegrityUiState = 'recorded' | 'not_recorded' | 'unavailable' | 'match' | 'mismatch' | 'snapshot_compromised' | 'not_anchored' | 'not_found_or_unanchored';
+export type IntegrityUiState = 'recorded' | 'not_recorded' | 'unavailable' | 'match' | 'match_untrusted_snapshot' | 'mismatch' | 'file_missing' | 'snapshot_compromised' | 'not_anchored' | 'not_found_or_unanchored';
 
 export type IntegrityUiInput = {
   record: IntegrityRecord;
@@ -19,7 +19,8 @@ export function getIntegrityUiState({ record, requestFailed, notFoundOrUnanchore
   if (requestFailed) return 'unavailable';
   if (notFoundOrUnanchored) return 'not_found_or_unanchored';
   if (!record) return 'not_recorded';
-  if (record.status === 'AUTHENTIC') return record.is_authentic ? 'match' : 'unavailable';
+  if (record.status === 'AUTHENTIC') return record.is_authentic ? (record.baseline_trusted === false ? 'match_untrusted_snapshot' : 'match') : 'unavailable';
+  if (record.status === 'FILE_MISSING') return record.is_authentic === false ? 'file_missing' : 'unavailable';
   if (record.status === 'TAMPERED') return record.is_authentic === false ? 'mismatch' : 'unavailable';
   if (record.status === 'SNAPSHOT_COMPROMISED') return 'snapshot_compromised';
   if (record.status === 'NOT_ANCHORED') return 'not_anchored';
@@ -33,7 +34,7 @@ export function getIntegrityUiState({ record, requestFailed, notFoundOrUnanchore
 export function getDemoIntegrityState(state: IntegrityUiState): DemoIntegrityState {
   if (state === 'recorded' || state === 'match') return 'match';
   if (state === 'not_recorded' || state === 'not_anchored' || state === 'not_found_or_unanchored') return 'not-recorded';
-  if (state === 'snapshot_compromised') return 'mismatch';
+  if (state === 'snapshot_compromised' || state === 'match_untrusted_snapshot' || state === 'file_missing') return 'mismatch';
   return state === 'mismatch' ? 'mismatch' : 'unavailable';
 }
 
@@ -78,7 +79,17 @@ const integrityUiCopy: Record<IntegrityUiState, IntegrityUiCopy> = {
   },
   snapshot_compromised: {
     label: 'Trusted snapshot is compromised',
-    description: 'The stored original could not be trusted as a baseline, so this result does not claim the current file was tampered with.',
+    description: 'The current file differs from the blockchain record or is missing, and the stored reference is compromised.',
+    tone: 'warning',
+  },
+  match_untrusted_snapshot: {
+    label: 'File matches, but saved reference needs attention',
+    description: 'The current file matches the blockchain record, but the stored snapshot is not trusted.',
+    tone: 'warning',
+  },
+  file_missing: {
+    label: 'Document file is missing',
+    description: 'The stored document file was deleted and is no longer available for comparison.',
     tone: 'warning',
   },
   not_anchored: {

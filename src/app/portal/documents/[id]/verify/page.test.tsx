@@ -140,7 +140,6 @@ describe('DocumentVerifyPage', () => {
   it.each([
     ['AUTHENTIC', true, true, 'This PDF matches the saved version'],
     ['TAMPERED', false, false, 'This PDF differs from the saved version'],
-    ['SNAPSHOT_COMPROMISED', false, false, 'The saved reference needs attention'],
     ['VERIFICATION_UNAVAILABLE', false, true, 'We could not check this document'],
     ['NOT_ANCHORED', false, false, 'No blockchain record is saved'],
   ])('does not offer restore for %s verification', async (status, authentic, trusted, heading) => {
@@ -149,6 +148,12 @@ describe('DocumentVerifyPage', () => {
 
     expect(await screen.findByText(heading)).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Restore from backup' })).toBeNull();
+  });
+
+  it.each(['FILE_MISSING', 'SNAPSHOT_COMPROMISED'])('offers a lawyer restore for %s', async (status) => {
+    stubPageApi([verification(status, false, status === 'FILE_MISSING')]);
+    renderPage();
+    expect(await screen.findByRole('button', { name: 'Restore from backup' })).toBeTruthy();
   });
 
   it('explains when restore permission cannot be checked and retries the document request', async () => {
@@ -198,7 +203,7 @@ describe('DocumentVerifyPage', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Restore from backup' }));
 
     expect(screen.getByRole('dialog', { name: 'Restore archived original' })).toBeTruthy();
-    expect(screen.getByText(/replaces the current PDF with the trusted archived original/i)).toBeTruthy();
+    expect(screen.getByText(/archived original will be checked against the blockchain and restored/i)).toBeTruthy();
     expect(screen.getByText(/kept in signed-copy history if the backend can read it/i)).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
 
@@ -224,7 +229,7 @@ describe('DocumentVerifyPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Restore archived original' }));
 
     expect(await screen.findByText('This PDF matches the saved version')).toBeTruthy();
-    expect(await screen.findByText('Archived original restored. The replaced PDF could not be preserved in signed-copy history.')).toBeTruthy();
+    expect(await screen.findByText('Archived original restored. No previous PDF was preserved in signed-copy history.')).toBeTruthy();
     expect(queryClient.getQueryData(['portal-doc-chain', 'doc-1'])).toEqual(authentic);
     expect(fetchMock.mock.calls.some(([url, init]) => String(url).includes(encodeURIComponent('/documents/doc-1/restore')) && init?.method === 'POST')).toBe(true);
     for (const queryKey of [

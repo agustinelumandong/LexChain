@@ -679,7 +679,7 @@ export function mockPortalGet(path: string, token?: string): Response {
   }
 
 
-  const documentMatch = documentPaths(path);
+  const documentMatch = documentPaths(requestPathname);
   if (documentMatch) {
     const [, id, detail] = documentMatch;
     const document = documentFor(id);

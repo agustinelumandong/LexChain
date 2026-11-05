@@ -10,18 +10,18 @@ import { getIntegrityUiState } from '@/features/verification/integrity-ui';
 
 export function DocumentIntegrityStatus({ documentId, mockMode }: { documentId: string; mockMode: boolean }) {
   const query = useQuery({
-    queryKey: ['portal-doc-chain', documentId],
-    queryFn: () => verifyRepositoryDocument(documentId),
+    queryKey: ['portal-doc-chain', documentId, 'quick'],
+    queryFn: () => verifyRepositoryDocument(documentId, false),
     retry: false,
     refetchOnMount: 'always',
     refetchOnWindowFocus: false,
   });
   const state = getIntegrityUiState({ record: query.data, requestFailed: query.isError });
   const isMatch = state === 'match';
-  const isMismatch = state === 'mismatch';
+  const isMismatch = state === 'mismatch' || state === 'file_missing' || state === 'match_untrusted_snapshot';
   const noRecord = state === 'not_anchored' || state === 'not_recorded';
   const title = query.isFetching ? 'Checking document integrity…' : isMatch ? 'Integrity verified' : isMismatch ? 'Document integrity warning' : noRecord ? 'No integrity record' : 'Unable to check integrity';
-  const description = query.isFetching ? 'Comparing the file with its recorded version.' : isMatch ? 'This file matches the recorded version.' : isMismatch ? 'This file differs from the recorded version. Contact your lawyer or the document owner before relying on it.' : noRecord ? 'This file cannot be compared with a recorded version yet.' : state === 'snapshot_compromised' ? 'The recorded reference could not be trusted, so the file could not be compared.' : 'The check could not be completed. Please try again.';
+  const description = query.isFetching ? 'Comparing the file with its recorded version.' : isMatch ? 'This file matches the recorded version.' : state === 'file_missing' ? 'The stored document file is missing. Contact your lawyer or the document owner.' : state === 'match_untrusted_snapshot' ? 'The file matches the blockchain record, but its saved reference is not trusted.' : isMismatch ? 'This file differs from the recorded version. Contact your lawyer or the document owner before relying on it.' : noRecord ? 'This file cannot be compared with a recorded version yet.' : state === 'snapshot_compromised' ? 'The file differs from the blockchain record or is missing, and its saved reference is compromised.' : 'The check could not be completed. Please try again.';
   const tone = query.isFetching ? 'border-[#0067B3] bg-[#F0F8FF] text-[#0067B3]' : isMatch ? 'border-[#0C7A3B] bg-[#F1FBF5] text-[#0C7A3B]' : 'border-[#9A5D00] bg-[#FFF8E8] text-[#9A5D00]';
   const checkedAt = query.data?.verified_at ? new Date(query.data.verified_at) : null;
   const Icon = query.isFetching ? InfoOutlinedIcon : isMatch ? CheckCircleOutlineIcon : WarningAmberOutlinedIcon;

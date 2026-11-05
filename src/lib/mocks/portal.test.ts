@@ -1,6 +1,10 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { isMockPortalToken, mockPortalGet, mockPortalMutate } from '@/lib/mocks/portal';
 
+it('supports quick verification in mock mode', () => {
+  expect(mockPortalGet('/documents/mock-document-3/verify?report=false', 'mock-token:mock-document-issuer').status).toBe(200);
+});
+
 afterEach(() => vi.restoreAllMocks());
 
 describe('portal mock extraction contract', () => {

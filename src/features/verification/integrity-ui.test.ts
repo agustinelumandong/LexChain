@@ -44,6 +44,11 @@ describe('getIntegrityUiState', () => {
     expect(getIntegrityUiState({ record: { onchain_hash: '0xabc', is_authentic: false }, requestFailed: false })).toBe('mismatch');
   });
 
+  it('distinguishes a missing file and an untrusted snapshot from unavailable results', () => {
+    expect(getIntegrityUiState({ record: { status: 'FILE_MISSING', is_authentic: false }, requestFailed: false })).toBe('file_missing');
+    expect(getIntegrityUiState({ record: { status: 'AUTHENTIC', is_authentic: true, baseline_trusted: false }, requestFailed: false })).toBe('match_untrusted_snapshot');
+  });
+
   it('reports a missing record as not recorded', () => {
     expect(getIntegrityUiState({ record: undefined, requestFailed: false })).toBe('not_recorded');
   });
