@@ -13,6 +13,7 @@ import { getProcessingDocuments, getPortalNavigation } from "@/features/portal/p
 import { getPortalNavigationIcon, isPortalRouteActive, usePortalRole } from "@/features/access/components";
 import { PortalBottomNav } from "@/features/portal/components/portal-bottom-nav";
 import { PortalTopBar } from "@/features/portal/components/portal-topbar";
+import { NotificationToasts } from "@/features/portal/components/notification-toasts";
 import { RegisterReferenceSearchDialog } from "@/features/documents/components/register-reference-search-dialog";
 import { fetchNotifications, fetchUnreadNotificationCount, invalidateNotificationQueries, markNotificationRead, notificationQueryKeys } from "@/features/portal/notifications-api";
 import { portalRequest } from '@/shared/api/client';
@@ -89,6 +90,7 @@ export default function PortalLayout({ children, demoMode }: { children: React.R
 
   return (
     <main className={`${isDocumentWorkspace ? 'h-dvh overflow-hidden' : 'min-h-screen'} bg-[var(--portal-bg)] text-[#111827]`}>
+      <NotificationToasts notifications={notificationsQuery.data?.notifications} />
       <div className={`flex ${isDocumentWorkspace ? 'h-dvh min-h-0 overflow-hidden' : 'min-h-screen'}`}>
         <a
           href="#portal-content"

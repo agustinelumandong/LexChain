@@ -17,6 +17,24 @@ describe('getNotificationDestination', () => {
     });
   });
 
+  it('links live-file warnings and missing snapshots to existing documents', () => {
+    for (const [type, metadata] of [
+      ['live_file_tampered', { document_id: 'doc-123', status: 'FILE_MISSING' }],
+      ['anchored_record_missing', { document_id: 'doc-123', finding: 'snapshot_missing' }],
+    ] as const) {
+      expect(getNotificationDestination(destinationInput(type, metadata))).toEqual({
+        href: '/portal/documents/doc-123', external: false,
+      });
+      expect(getNotificationDestination(destinationInput(type, { ...metadata, document_id: '../admin' }))).toBeNull();
+    }
+  });
+
+  it('does not link to an anchored document whose row is missing or unknown', () => {
+    expect(getNotificationDestination(destinationInput('anchored_record_missing', { document_id: 'doc-123', finding: 'document_missing' }))).toBeNull();
+    expect(getNotificationDestination(destinationInput('anchored_record_missing', { document_id: 'doc-123' }))).toBeNull();
+    expect(getNotificationDestination(destinationInput('live_file_tampered'))).toBeNull();
+  });
+
   it.each(draftTypes)('prefers a valid Google draft URL for %s notifications', (type) => {
     expect(getNotificationDestination(destinationInput(type, {
       draft_url: 'https://docs.google.com/document/d/draft-123',

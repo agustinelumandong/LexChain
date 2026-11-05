@@ -8,6 +8,7 @@ const documentNotificationTypes = new Set([
   'document_recorded',
   'document_processed',
   'document_failed',
+  'live_file_tampered',
 ]);
 const draftNotificationTypes = new Set(['draft_comment', 'draft_reply', 'draft_resolved', 'draft_reopened']);
 
@@ -27,6 +28,9 @@ export function getNotificationDestination(
   if (type === 'ecopy_approved' || type === 'ecopy_declined') return { href: '/portal/requests/my', external: false };
   if (typeof metadata !== 'object' || metadata === null) return null;
 
+  if (type === 'anchored_record_missing') {
+    return metadata.finding === 'snapshot_missing' ? getDocumentDestination(metadata.document_id) : null;
+  }
   if (documentNotificationTypes.has(type)) return getDocumentDestination(metadata.document_id);
   if (!draftNotificationTypes.has(type)) return null;
 
