@@ -3,13 +3,14 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { PortalSearchBar } from './portal-search-bar';
 
-const { pushMock } = vi.hoisted(() => ({ pushMock: vi.fn() }));
-vi.mock('next/navigation', () => ({ useRouter: () => ({ push: pushMock }) }));
+const { pushMock, pathnameMock } = vi.hoisted(() => ({ pushMock: vi.fn(), pathnameMock: vi.fn() }));
+vi.mock('next/navigation', () => ({ useRouter: () => ({ push: pushMock }), usePathname: pathnameMock }));
 
 const fetchMock = vi.fn();
 
 beforeEach(() => {
   pushMock.mockReset();
+  pathnameMock.mockReturnValue('/portal');
   fetchMock.mockReset();
   vi.stubGlobal('fetch', fetchMock);
 });
@@ -20,6 +21,17 @@ afterEach(() => {
 });
 
 describe('PortalSearchBar', () => {
+  it('submits without showing suggestions on the search results page', async () => {
+    pathnameMock.mockReturnValue('/portal/search');
+    render(<PortalSearchBar />);
+    const input = screen.getByRole('combobox', { name: 'Search document contents' });
+    fireEvent.change(input, { target: { value: ' maria ' } });
+    await new Promise((resolve) => setTimeout(resolve, 350));
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(screen.queryByRole('listbox')).toBeNull();
+    fireEvent.keyDown(input, { key: 'Enter' });
+    expect(pushMock).toHaveBeenCalledWith('/portal/search?q=maria');
+  });
   it('opens the text search page when Search is clicked', () => {
     render(<PortalSearchBar />);
     fireEvent.change(screen.getByRole('combobox', { name: 'Search document contents' }), { target: { value: ' maria ' } });

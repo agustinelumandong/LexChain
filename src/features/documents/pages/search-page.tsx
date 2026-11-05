@@ -3,9 +3,9 @@
 import { use, useState, type FormEvent } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import SearchIcon from '@mui/icons-material/Search';
 import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile';
+import DescriptionIcon from '@mui/icons-material/Description';
 import { Button } from '@/shared/components/ui/button';
 import { Card } from '@/shared/components/ui/card';
 import { Input } from '@/shared/components/ui/input';
@@ -27,11 +27,9 @@ export default function SearchPage({
 }: {
   searchParams: Promise<{ q?: string; mode?: string }>;
 }) {
-  const router = useRouter();
   const params = use(searchParams);
   const query = params.q ?? '';
   const mode = params.mode === 'register' ? 'register' : 'text';
-  const [input, setInput] = useState(query);
   const [registerReference, setRegisterReference] = useState({
     doc_no: '',
     page_no: '',
@@ -46,12 +44,6 @@ export default function SearchPage({
   });
   const registerLookup = useMutation({ mutationFn: searchDocumentsByRegisterReference });
 
-  function submitTextSearch(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const nextQuery = input.trim();
-    if (nextQuery) router.push(`/portal/search?q=${encodeURIComponent(nextQuery)}`);
-  }
-
   function submitRegisterSearch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     registerLookup.mutate({
@@ -62,12 +54,8 @@ export default function SearchPage({
     });
   }
 
-  const textSearchHref = input.trim()
-    ? `/portal/search?q=${encodeURIComponent(input.trim())}`
-    : '/portal/search';
-
   return (
-    <div className={`flex flex-col gap-5 ${mode === 'register' ? 'max-w-5xl' : 'max-w-3xl'}`}>
+    <div className={`flex flex-col gap-5 ${mode === 'register' ? 'max-w-5xl' : 'w-full'}`}>
       <div>
         <h1 className="text-2xl font-black text-[#0C2B49]">
           {mode === 'register' ? 'Find a document by register reference' : 'Search'}
@@ -75,15 +63,14 @@ export default function SearchPage({
         <p className="mt-1 text-sm text-[#5B6F8A]">
           {mode === 'register'
             ? 'Use the exact details from a notarial register entry.'
-            : 'Find a document by its text or exact notarial register reference.'}
+            : 'Find a document by its text using the search bar above.'}
         </p>
       </div>
 
-      <nav aria-label="Search mode" className="flex w-fit gap-1 rounded-xl bg-[#F2F7FC] p-1">
+      {mode === 'register' && <nav aria-label="Search mode" className="flex w-fit gap-1 rounded-xl bg-[#F2F7FC] p-1">
         <Link
-          href={textSearchHref}
-          aria-current={mode === 'text' ? 'page' : undefined}
-          className={`rounded-lg px-3 py-2 text-sm font-bold transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3] ${mode === 'text' ? 'bg-white text-[#0C2B49] shadow-sm' : 'text-[#5B6F8A] hover:text-[#0C2B49]'}`}
+          href="/portal/search"
+          className="rounded-lg px-3 py-2 text-sm font-bold text-[#5B6F8A] transition hover:text-[#0C2B49] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]"
         >
           Document text
         </Link>
@@ -94,27 +81,10 @@ export default function SearchPage({
         >
           Register reference
         </Link>
-      </nav>
+      </nav>}
 
       {mode === 'text' ? (
         <>
-          <form onSubmit={submitTextSearch} className="flex gap-2 rounded-[18px] border border-[#E8F0F8] bg-white p-2">
-            <SearchIcon sx={{ color: '#5B6F8A', ml: 1, alignSelf: 'center' }} aria-hidden="true" />
-            <input
-              type="search"
-              name="q"
-              autoComplete="off"
-              value={input}
-              onChange={(event) => setInput(event.currentTarget.value)}
-              placeholder="Search document text…"
-              aria-label="Search document text"
-              className="min-w-0 flex-1 bg-transparent px-2 text-sm text-[#0C2B49] outline-none placeholder:text-[#5B6F8A]"
-            />
-            <button type="submit" className="rounded-[12px] bg-[#0067B3] px-4 py-2 text-xs font-black text-white hover:bg-[#005F9E] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]">
-              Search
-            </button>
-          </form>
-
           {!query && (
             <div className="rounded-[18px] border border-[#E8F0F8] bg-white p-8 text-center">
               <p className="text-sm font-bold text-[#0C2B49]">Search your documents</p>
@@ -123,7 +93,7 @@ export default function SearchPage({
           )}
 
           {(isLoading || isFetching) && (
-            <div role="status" className="flex flex-col gap-2" aria-label="Searching document text">
+            <div role="status" className="flex flex-col gap-3" aria-label="Searching document text">
               {[0, 1, 2].map((index) => <div key={index} className="h-20 animate-pulse rounded-[18px] border border-[#E8F0F8] bg-white" />)}
               <span className="sr-only">Searching document text…</span>
             </div>
@@ -147,21 +117,27 @@ export default function SearchPage({
                   <Link
                     key={result.chunk_id}
                     href={`/portal/documents/${result.document_id}`}
-                    className="block rounded-[18px] border border-[#E8F0F8] bg-white p-4 transition hover:border-[#0067B3] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]"
+                    className="block min-w-0 rounded-[18px] border border-[#E8F0F8] bg-white p-4 transition hover:border-[#0067B3] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]"
                   >
-                    <div className="flex min-w-0 items-start gap-2">
-                      <InsertDriveFileIcon sx={{ fontSize: 16, color: '#0067B3' }} aria-hidden="true" />
-                      <h2 className="min-w-0 break-words text-sm font-black text-[#0C2B49]">{result.file_name}</h2>
-                    </div>
-                    <p className="mt-1 text-xs font-semibold text-[#5B6F8A]">
-                      Document created: <time dateTime={result.created_at}>{recordDateFormat.format(new Date(result.created_at))}</time>
-                    </p>
-                    {result.register_reference && (
-                      <p className="mt-1 break-words text-xs font-semibold text-[#5B6F8A]">
-                        Register reference: <span className="font-bold text-[#0C2B49]">{result.register_reference.label}</span>
+                    <div className="flex flex-col gap-3 sm:flex-row sm:justify-between sm:gap-5">
+                      <div className="flex min-w-0 items-center gap-2">
+                        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#EEF6FF]">
+                          <DescriptionIcon sx={{ fontSize: 20, color: '#0067B3' }} aria-hidden="true" />
+                        </span>
+                        <div className="min-w-0">
+                          <h2 className="min-w-0 break-words text-sm font-black text-[#0C2B49]">{result.file_name}</h2>
+                          {result.register_reference && (
+                            <p className="mt-1 break-words text-xs font-semibold text-[#5B6F8A]">
+                              Register reference: <span className="font-bold text-[#0C2B49]">{result.register_reference.label}</span>
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      <p className="shrink-0 text-xs font-semibold text-[#5B6F8A]">
+                        Document created: <time dateTime={result.created_at}>{recordDateFormat.format(new Date(result.created_at))}</time>
                       </p>
-                    )}
-                    {result.text?.trim() && <p className="line-clamp-3 text-sm text-[#0C2B49]">{result.text}</p>}
+                    </div>
+                    {result.text?.trim() && <p className="mt-3 line-clamp-3 break-words text-sm text-[#0C2B49]">{result.text}</p>}
                   </Link>
                 ))}
               </div>

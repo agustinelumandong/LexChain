@@ -34,6 +34,13 @@ afterEach(() => {
 });
 
 describe('SearchPage', () => {
+  it('shows text results without a duplicate search field or mode selector', async () => {
+    fetchMock.mockResolvedValue(Response.json({ query: 'maria', results: [] }));
+    await renderSearch('maria');
+    expect(await screen.findByText('No results found')).toBeTruthy();
+    expect(screen.queryByRole('searchbox', { name: 'Search document text' })).toBeNull();
+    expect(screen.queryByRole('navigation', { name: 'Search mode' })).toBeNull();
+  });
   it('shows human-readable record details alongside match data and opens the document', async () => {
     fetchMock.mockResolvedValue(Response.json({
       query: 'lease',

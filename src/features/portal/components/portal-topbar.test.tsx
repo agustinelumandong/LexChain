@@ -4,7 +4,7 @@ import type React from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { PortalTopBar } from "@/features/portal/components/portal-topbar";
 
-vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }));
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }), usePathname: () => '/portal' }));
 vi.mock('next/link', () => ({ default: ({ href, onClick, ...props }: React.AnchorHTMLAttributes<HTMLAnchorElement> & { href: string }) => <a href={href} onClick={(event) => { event.preventDefault(); onClick?.(event); }} {...props} /> }));
 
 afterEach(cleanup);
