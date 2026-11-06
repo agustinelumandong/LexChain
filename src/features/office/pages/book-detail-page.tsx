@@ -158,8 +158,6 @@ export default function BookDetailPage({ bookId }: { bookId: string }) {
               </div>
               <p className="text-xs font-medium text-[#5B6F8A]">Ordered by document number, then page number</p>
             </div>
-            <p className="border-b border-[#E8F0F8] bg-[#F8FBFF] px-5 py-3 text-xs leading-5 text-[#5B6F8A] sm:px-6">Only documents recorded in LexChain appear here. Paper-only register lines are outside this list.</p>
-
             <p className="px-5 pb-3 text-xs font-semibold text-[#5B6F8A] md:hidden">Swipe horizontally to view all table columns.</p>
             <div role="region" aria-label={`Book ${book.book_number} entries. Scroll horizontally to view all columns.`} tabIndex={0} className="admin-table-scroll min-h-0 overflow-auto focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[#0067B3]">
               <div className="min-w-[760px]">
