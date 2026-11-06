@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { PortalNotification } from './notifications-api';
 import { getNotificationDestination } from './notification-destination';
 
-const documentTypes = ['party_added', 'party_removed', 'document_recorded', 'document_processed', 'document_failed'] as const;
+const documentTypes = ['party_removed', 'document_recorded', 'document_processed', 'document_failed'] as const;
 const draftTypes = ['draft_comment', 'draft_reply', 'draft_resolved', 'draft_reopened'] as const;
 
 function destinationInput(type: string, event_metadata?: Record<string, unknown>): Pick<PortalNotification, 'type' | 'event_metadata'> {
@@ -10,6 +10,15 @@ function destinationInput(type: string, event_metadata?: Record<string, unknown>
 }
 
 describe('getNotificationDestination', () => {
+  it('opens invitations when a user is invited to a document', () => {
+    expect(getNotificationDestination(destinationInput('party_added', { document_id: 'doc-123' }))).toEqual({
+      href: '/portal/invitations', external: false,
+    });
+    expect(getNotificationDestination(destinationInput('party_added'))).toEqual({
+      href: '/portal/invitations', external: false,
+    });
+  });
+
   it.each(documentTypes)('resolves %s notifications through a validated document ID', (type) => {
     expect(getNotificationDestination(destinationInput(type, { document_id: 'doc_123-ABC' }))).toEqual({
       href: '/portal/documents/doc_123-ABC',
