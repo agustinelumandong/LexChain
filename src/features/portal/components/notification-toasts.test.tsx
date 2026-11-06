@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, render } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, expect, it, vi } from 'vitest';
 import { NotificationToasts } from './notification-toasts';
 
@@ -8,6 +8,21 @@ vi.mock('sonner', () => ({ toast: { info: notify, error: notifyError } }));
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push }) }));
 
 afterEach(() => { cleanup(); vi.clearAllMocks(); });
+
+it('collapses lengthy notification details while keeping the full message available', () => {
+  const { rerender } = render(<NotificationToasts notifications={[]} />);
+  const body = 'Technical details '.repeat(30);
+  const notice = { id: 'long', type: 'document_recorded' as const, title: 'Anchor replaced', body, is_read: false, event_metadata: {}, created_at: '2026-01-01' };
+  rerender(<NotificationToasts notifications={[notice]} />);
+  const options = notify.mock.calls[0][1];
+  render(options.description);
+  const summary = screen.getByText('Show details');
+  expect(summary.closest('details')?.open).toBe(false);
+  expect(screen.getByText(body.trim())).toBeTruthy();
+  fireEvent.click(summary);
+  expect(summary.closest('details')?.open).toBe(true);
+  expect(options.duration).toBe(Infinity);
+});
 
 it('only announces newly arrived unread notifications and opens safe destinations', () => {
   const old = { id: 'old', type: 'document_recorded' as const, title: 'Old', body: 'Earlier', is_read: false, event_metadata: { document_id: 'doc-1' }, created_at: '2026-01-01' };

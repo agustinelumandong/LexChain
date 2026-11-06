@@ -25,8 +25,15 @@ export function NotificationToasts({ notifications }: { notifications: PortalNot
       const showToast = notification.type === 'document_failed' || notification.type === 'ecopy_delivery_failed'
         ? toast.error
         : toast.info;
+      const hasLongDetails = notification.body.length > 180;
       showToast(notification.title, {
-        description: notification.body,
+        description: hasLongDetails ? (
+          <details>
+            <summary className="cursor-pointer font-semibold focus-visible:outline-2 focus-visible:outline-offset-2">Show details</summary>
+            <p className="mt-2 max-h-48 overflow-y-auto break-words">{notification.body}</p>
+          </details>
+        ) : notification.body,
+        duration: hasLongDetails ? Infinity : undefined,
         action: destination ? {
           label: 'View',
           onClick: () => {
