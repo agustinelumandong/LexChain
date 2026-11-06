@@ -19,7 +19,11 @@ async function signIn(data: { email: string; password: string; rememberMe: boole
     credentials: "same-origin",
   });
   const payload = await res.json().catch(() => null);
-  if (!res.ok) throw new Error(payload?.message ?? "Login failed. Check your credentials.");
+  if (!res.ok) {
+    const error = new Error(payload?.message ?? "Login failed. Check your credentials.");
+    if (res.status === 401 && /^invalid credentials\.?$/i.test(error.message)) error.name = "InvalidCredentials";
+    throw error;
+  }
   return payload;
 }
 
@@ -59,7 +63,8 @@ export default function LoginPage() {
       window.location.href = getRedirectPath(data);
     },
     onError: (error: Error) => {
-      toast.error(error.message, { duration: Infinity });
+      if (error.name === "InvalidCredentials") setValidationError("Incorrect email or password. Please try again.");
+      else toast.error(error.message, { duration: Infinity });
     },
   });
 
@@ -92,10 +97,12 @@ export default function LoginPage() {
             <label htmlFor="login-email" className="block text-[13px] font-black text-[#0C2B49]">Email</label>
             <input
               id="login-email"
-              className="mt-2 min-h-12 w-full rounded-[14px] border border-[#E4EEF9] bg-[#F5FAFF] px-3.5 text-sm font-semibold text-[#0C2B49] outline-none focus:border-[#0067B3]"
+              className={`mt-2 min-h-12 w-full rounded-[14px] border bg-[#F5FAFF] px-3.5 text-sm font-semibold text-[#0C2B49] outline-none ${validationError ? "border-red-700 focus:border-red-700" : "border-[#E4EEF9] focus:border-[#0067B3]"}`}
               type="email"
               required
               autoComplete="email"
+              aria-invalid={validationError ? "true" : undefined}
+              aria-describedby={validationError ? "login-error" : undefined}
               value={email}
               onChange={(e) => { setEmail(e.target.value); setValidationError(null); }}
             />
@@ -105,10 +112,12 @@ export default function LoginPage() {
             <div className="relative mt-2">
               <input
                 id="login-password"
-                className="min-h-12 w-full rounded-[14px] border border-[#E4EEF9] bg-[#F5FAFF] pl-3.5 pr-11 text-sm font-semibold text-[#0C2B49] outline-none focus:border-[#0067B3]"
+                className={`min-h-12 w-full rounded-[14px] border bg-[#F5FAFF] pl-3.5 pr-11 text-sm font-semibold text-[#0C2B49] outline-none ${validationError ? "border-red-700 focus:border-red-700" : "border-[#E4EEF9] focus:border-[#0067B3]"}`}
                 type={showPassword ? "text" : "password"}
                 required
                 autoComplete="current-password"
+                aria-invalid={validationError ? "true" : undefined}
+                aria-describedby={validationError ? "login-error" : undefined}
                 value={password}
                 onChange={(e) => { setPassword(e.target.value); setValidationError(null); }}
               />
@@ -125,6 +134,7 @@ export default function LoginPage() {
                 )}
               </button>
             </div>
+            {validationError && <p id="login-error" role="alert" className="mt-2 text-sm font-semibold text-red-700">{validationError}</p>}
           </div>
 
           <div className="flex items-center justify-between">
@@ -143,8 +153,6 @@ export default function LoginPage() {
               Forgot password?
             </Link>
           </div>
-
-          {validationError && <p role="alert" className="rounded-xl bg-red-50 px-4 py-2.5 text-sm font-semibold text-red-700">{validationError}</p>}
 
           <button
             type="submit"

@@ -51,6 +51,23 @@ afterEach(() => {
 });
 
 describe("RegisterPage", () => {
+  it("marks an invalid email and mismatched confirmation with inline errors", async () => {
+    renderRegister();
+    fillRegistrationForm();
+    fireEvent.change(screen.getByLabelText("Email"), { target: { value: "invalid-email" } });
+    fireEvent.change(screen.getByLabelText("Confirm Password"), { target: { value: "Different1" } });
+    fireEvent.click(screen.getByRole("button", { name: "Create account" }));
+
+    expect(await screen.findByText("Passwords do not match.")).toBeTruthy();
+    for (const label of [/Email/, /Confirm Password/]) {
+      const input = screen.getByLabelText(label);
+      expect(input.getAttribute("aria-invalid")).toBe("true");
+      expect(input.className).toContain("aria-invalid:border-red-700");
+      expect(document.getElementById(input.getAttribute("aria-describedby")!)).toBeTruthy();
+    }
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
   it("associates each validation message with its invalid field", async () => {
     renderRegister();
     fireEvent.click(screen.getByRole("button", { name: "Create account" }));

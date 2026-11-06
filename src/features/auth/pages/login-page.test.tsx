@@ -20,6 +20,25 @@ afterEach(() => {
 });
 
 describe("LoginPage", () => {
+  it("shows rejected credentials beside both fields and clears the error on edit", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({ message: "Invalid credentials." }), { status: 401 })));
+    const queryClient = new QueryClient({ defaultOptions: { mutations: { retry: false } } });
+    render(<QueryClientProvider client={queryClient}><LoginPage /></QueryClientProvider>);
+
+    const email = screen.getByLabelText("Email");
+    const password = screen.getByLabelText("Password");
+    fireEvent.change(email, { target: { value: "issuer@example.com" } });
+    fireEvent.change(password, { target: { value: "wrong-password" } });
+    fireEvent.click(screen.getByRole("button", { name: "Sign in" }));
+
+    expect((await screen.findByRole("alert")).textContent).toContain("Incorrect email or password");
+    expect(email.getAttribute("aria-invalid")).toBe("true");
+    expect(password.getAttribute("aria-describedby")).toBe("login-error");
+    fireEvent.change(password, { target: { value: "another-password" } });
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(email.hasAttribute("aria-invalid")).toBe(false);
+  });
+
   it("sends the remember-me choice without storing credentials in the browser", async () => {
     const fetchMock = vi.fn<(...args: Parameters<typeof fetch>) => Promise<Response>>(
       () => new Promise<Response>(() => {}),
