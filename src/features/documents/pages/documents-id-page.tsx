@@ -298,6 +298,20 @@ export default function DocumentDetailPage({ params, initialTab }: { params: Pro
     }
   }
 
+  const canReviewText = actions.includes('Review extracted text');
+  const canFinalize = actions.includes('Finalize') && !finalizationResult && !hasUnknownFinalization;
+  const canRetry = actions.includes('Retry processing');
+  const workflowActions = (canReviewText || canFinalize || canRetry || retryProcessingMutation.error instanceof Error) ? (
+    <div className="flex flex-wrap items-center gap-2">
+      {retryProcessingMutation.error instanceof Error && <p role="alert" className="text-sm font-bold text-[#B42318]">{retryProcessingMutation.error.message || 'Unable to retry document processing.'}</p>}
+      <div className="flex flex-wrap gap-2">
+        {canReviewText && <Link href={`/portal/documents/${id}/review`} aria-label="Review extracted text" className="inline-flex min-h-11 items-center rounded-full bg-[#0067B3] px-5 py-2 text-sm font-extrabold text-white hover:bg-[#00528F] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]">Review text</Link>}
+        {canFinalize && <button type="button" onClick={openFinalizeConfirmation} className="min-h-11 rounded-full bg-[#0673C4] px-5 py-2 text-sm font-extrabold text-white hover:bg-[#005FA3] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]">Finalize</button>}
+        {canRetry && <button type="button" onClick={() => retryProcessingMutation.mutate()} disabled={retryProcessingMutation.isPending} className="min-h-11 rounded-full border border-[#0067B3] px-5 py-2 text-sm font-extrabold text-[#0067B3] hover:bg-[#EEF6FF] disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]">{retryProcessingMutation.isPending ? 'Retrying…' : 'Retry processing'}</button>}
+      </div>
+    </div>
+  ) : null;
+
   return (
     <div className="flex min-h-0 w-full min-w-0 flex-1 flex-col gap-3 overflow-hidden">
       <header className="mx-auto flex w-full max-w-7xl flex-col gap-2 px-4 sm:px-6">
@@ -334,13 +348,9 @@ export default function DocumentDetailPage({ params, initialTab }: { params: Pro
                 {document.permissions.can_cancel && <button type="button" onClick={() => { setDocumentActionsOpen(false); openCancelConfirmation(); }} className="block min-h-11 w-full rounded-lg px-3 py-2 text-left text-sm font-bold text-[#B42318] hover:bg-red-50">Cancel document</button>}
               </div>}
             </div>}
-            {actions.includes('Review extracted text') && <Link href={`/portal/documents/${id}/review`} aria-label="Review extracted text" className="inline-flex min-h-11 items-center rounded-full bg-[#0067B3] px-3 py-2 text-sm font-extrabold text-white hover:bg-[#00528F] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]">Review text</Link>}
-            {actions.includes('Finalize') && !finalizationResult && !hasUnknownFinalization && <button type="button" onClick={openFinalizeConfirmation} className="min-h-11 rounded-full bg-[#0673C4] px-3 py-2 text-sm font-extrabold text-white hover:bg-[#005FA3] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]">Finalize</button>}
-            {actions.includes('Retry processing') && <button type="button" onClick={() => retryProcessingMutation.mutate()} disabled={retryProcessingMutation.isPending} className="min-h-11 rounded-full border border-[#0067B3] px-3 py-2 text-sm font-extrabold text-[#0067B3] hover:bg-[#EEF6FF] disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]">{retryProcessingMutation.isPending ? 'Retrying…' : 'Retry processing'}</button>}
             {actions.includes('Check document') && <Link href={`/portal/documents/${id}/verify`} className="group inline-flex min-h-11 items-center gap-1.5 rounded-full border border-[#0067B3] bg-[#EAF4FF] px-3 py-2 text-sm font-extrabold text-[#0C2B49] transition-colors hover:border-[#0067B3] hover:bg-[#0067B3] hover:text-white active:bg-[#0067B3] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]"><ShieldOutlinedIcon aria-hidden="true" className="text-[#0067B3] transition-colors group-hover:text-white group-focus-visible:text-white" sx={{ fontSize: 18 }} />Verify integrity</Link>}
           </div>
         </div>
-        {retryProcessingMutation.error instanceof Error && <p role="alert" className="text-sm font-bold text-[#B42318]">{retryProcessingMutation.error.message || "Unable to retry document processing."}</p>}
         {document.lifecycle === 'FINALIZED' && <DocumentIntegrityStatus documentId={id} mockMode={mockMode} />}
       </header>
 
@@ -412,7 +422,7 @@ export default function DocumentDetailPage({ params, initialTab }: { params: Pro
             </div>
             <div className="mt-3 space-y-1.5 text-sm leading-6 text-[#4B6382]">
               <p>{mockMode ? 'Demo mode: this action uses synthetic data. No real PDF digest or blockchain transaction will be produced.' : 'This freezes the signed copy and records its fingerprint on the blockchain. It cannot be undone.'}</p>
-              <p className="text-xs leading-5 text-[#5B6F8A]">The frozen filing copy cannot be replaced or removed after finalization. Text extraction and review will proceed in the background.</p>
+              <p className="text-xs leading-5 text-[#5B6F8A]">The frozen filing copy cannot be replaced or removed after finalization.</p>
             </div>
             {finalizeMutation.isPending && (
               <div role="status" className="mt-3 rounded-xl border border-[#CFE7FC] bg-[#F0F7FE] p-3 text-sm font-semibold text-[#0067B3]">
@@ -441,6 +451,8 @@ export default function DocumentDetailPage({ params, initialTab }: { params: Pro
         readinessError={readinessMutation.error instanceof Error ? readinessMutation.error : null}
         isChangingReadiness={readinessMutation.isPending}
         finalizationOutcomeUnknown={hasUnknownFinalization}
+        isConfirmingFinalization={confirmingFinalize}
+        workflowActions={workflowActions}
         onMarkReady={() => readinessMutation.mutate('ready')}
         onReopen={() => readinessMutation.mutate('reopen')}
       />

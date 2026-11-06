@@ -243,6 +243,46 @@ describe('document detail screen', () => {
     expect(screen.queryByRole('button', { name: 'Finalize' })).toBeNull();
   });
 
+  it.each([
+    ['QUEUED', 'Waiting to start'],
+    ['PROCESSING', 'Extracting text'],
+    ['ENRICHING', 'Analyzing document'],
+  ])('shows indeterminate %s progress in the bottom action card', async (status, heading) => {
+    state.documentQuery = { ...state.documentQuery, data: { ...baseDocument, lifecycle: 'SIGNED', status } };
+    await showPage();
+    const card = screen.getByRole('region', { name: 'Next action' });
+    expect(within(card).getByRole('heading', { name: heading })).toBeTruthy();
+    expect(within(card).getByRole('progressbar').hasAttribute('aria-valuenow')).toBe(false);
+    expect(screen.queryByRole('region', { name: 'Document processing status' })).toBeNull();
+  });
+
+  it('shows processing failure and retry together without an active progress bar', async () => {
+    state.documentQuery = { ...state.documentQuery, data: { ...baseDocument, lifecycle: 'SIGNED', status: 'FAILED', permissions: { ...baseDocument.permissions, can_retry_processing: true } } };
+    await showPage();
+    const card = screen.getByRole('region', { name: 'Next action' });
+    expect(within(card).getByRole('heading', { name: 'Processing failed' })).toBeTruthy();
+    expect(within(card).getByRole('button', { name: 'Retry processing' })).toBeTruthy();
+    expect(within(card).queryByRole('progressbar')).toBeNull();
+  });
+
+  it.each(['AWAITING_REVIEW', 'READY_FOR_REVIEW'])('shows review guidance without an active progress bar for %s', async (status) => {
+    state.documentQuery = { ...state.documentQuery, data: { ...baseDocument, lifecycle: 'SIGNED', status } };
+    await showPage();
+    const card = screen.getByRole('region', { name: 'Next action' });
+    expect(within(card).getByRole('heading', { name: 'Review extracted text' })).toBeTruthy();
+    expect(within(card).getByRole('link', { name: 'Review extracted text' })).toBeTruthy();
+    expect(within(card).queryByRole('progressbar')).toBeNull();
+  });
+
+  it('explains failure without offering retry when permission is denied', async () => {
+    state.documentQuery = { ...state.documentQuery, data: { ...baseDocument, lifecycle: 'SIGNED', status: 'FAILED', permissions: { ...baseDocument.permissions, can_retry_processing: false } } };
+    await showPage();
+    const card = screen.getByRole('region', { name: 'Next action' });
+    expect(within(card).getByText('The document owner can retry processing.')).toBeTruthy();
+    expect(within(card).queryByRole('button', { name: 'Retry processing' })).toBeNull();
+    expect(within(card).queryByRole('progressbar')).toBeNull();
+  });
+
   it('shows an accessible loading state while the document is being read', async () => {
     state.documentQuery = { isLoading: true, isError: false, refetch: vi.fn() };
     await showPage();
@@ -250,7 +290,7 @@ describe('document detail screen', () => {
     expect(screen.getByRole('status', { name: 'Loading document' })).toBeTruthy();
   });
 
-  it('shows live lifecycle, separate draft and signed PDF, and hides actions the backend disallows', async () => {
+  it('shows the signed PDF without the draft card or disallowed actions', async () => {
     await showPage();
 
     expect(await screen.findByRole('heading', { name: 'Signed agreement.pdf' })).toBeTruthy();
@@ -261,8 +301,7 @@ describe('document detail screen', () => {
     expect(screen.queryByRole('button', { name: 'Cancel document' })).toBeNull();
     expect(state.queryKeys.some(([key]) => key === 'portal-doc-chain')).toBe(false);
 
-    expect(screen.getByRole('link', { name: /Open (approved Google Doc|Google draft)/ }).getAttribute('href'))
-      .toBe('https://docs.google.com/document/d/draft-1');
+    expect(screen.queryByRole('link', { name: /Open (approved Google Doc|Google draft)/ })).toBeNull();
     expect(screen.getByRole('button', { name: 'Download options' })).toBeTruthy();
   });
 
@@ -375,6 +414,18 @@ describe('document detail screen', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'More document actions' }));
     expect(await screen.findByRole('button', { name: 'Rename' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Finalize' })).toBeTruthy();
+  });
+
+  it.each([
+    ['SIGNED', 'AWAITING_REVIEW', 'can_finalize', false, 'link', 'Review extracted text'],
+    ['SIGNED', 'COMPLETED', 'can_finalize', true, 'button', 'Finalize'],
+    ['FINALIZED', 'FAILED', 'can_retry_processing', true, 'button', 'Retry processing'],
+  ] as const)('places the %s %s workflow action in the bottom action card', async (lifecycle, status, permission, allowed, role, name) => {
+    state.documentQuery = { ...state.documentQuery, data: { ...baseDocument, lifecycle, status, permissions: { ...baseDocument.permissions, [permission]: allowed } } };
+    await showPage();
+    const card = screen.getByRole('region', { name: 'Next action' });
+    expect(within(card).getByRole(role, { name })).toBeTruthy();
+    expect(screen.getByRole('banner').contains(card)).toBe(false);
   });
 
   it('keeps finalization confirmation accessible before tabs appear', async () => {

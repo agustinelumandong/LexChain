@@ -37,6 +37,7 @@ describe('ProcessingPage', () => {
     renderPage();
     expect(await screen.findByRole('progressbar', { name: 'Checking document status…' })).toBeTruthy();
     expect(screen.getByRole('status').textContent).toContain('Checking status');
+    expect(screen.getByRole('link', { name: 'Back to document' }).getAttribute('href')).toBe('/portal/documents/doc-1');
   });
 
   it.each([
@@ -52,7 +53,7 @@ describe('ProcessingPage', () => {
     expect(screen.getByRole('status').textContent).toContain(`Current status: ${label}`);
     expect(screen.getByText(/Processing starts when a signed PDF is attached/)).toBeTruthy();
     expect(screen.queryByText('Processing failed')).toBeNull();
-    expect(screen.queryByRole('link')).toBeNull();
+    expect(screen.getByRole('link', { name: 'Back to document' }).getAttribute('href')).toBe('/portal/documents/doc-1');
     expect(await screen.findByRole('link', { name: 'Review extracted text' }, { timeout: 3_000 })).toBeTruthy();
     expect(screen.getByText('Lifecycle: On-Chain')).toBeTruthy();
   });
@@ -65,6 +66,7 @@ describe('ProcessingPage', () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(documentResponse(status, 'SIGNED')));
     renderPage();
     expect(await screen.findByText(`Current status: ${label}`)).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'Back to document' }).getAttribute('href')).toBe('/portal/documents/doc-1');
     expect(screen.queryByText('Waiting for signed PDF')).toBeNull();
   });
 

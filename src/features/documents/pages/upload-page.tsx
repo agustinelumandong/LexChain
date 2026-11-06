@@ -20,10 +20,12 @@ import { attachSignedCopy } from '@/features/documents/document-lifecycle-api';
 import { canAccessPortalFeature, getPortalUiRole } from "@/features/access";
 import { PortalDropdown } from "@/features/portal/components";
 import { DocumentProcessingStatus } from '@/features/documents/components/document-processing-status';
+import { DocumentProgress } from '@/features/documents/components/document-progress';
 import { Modal } from '@/features/admin/components/modal';
 import { Checkbox } from '@/shared/components/ui';
 import type { ApiSchema } from '@/shared/types/index';
 import { listRegisterBooks } from '@/features/office/books-api';
+import { latestRegisterBook } from '@/features/office/latest-register-book';
 import { getDocumentLifecycleLabel, getDocumentProcessingStatusLabel } from '@/features/documents/document-ui';
 import { portalRequest } from '@/shared/api/client';
 type UserProfile = ApiSchema<'UserProfileResponse'>;
@@ -42,13 +44,13 @@ function formatFileSize(size: number) {
   return `${(size / (1024 * 1024)).toFixed(1)} MiB`;
 }
 
-export default function UploadPage() {
+export default function UploadPage({ embedded = false, onFiledDocument, onPendingChange }: { embedded?: boolean; onFiledDocument?: (documentId: string) => void; onPendingChange?: (pending: boolean) => void } = {}) {
   const router = useRouter();
   const queryClient = useQueryClient();
   const inputRef = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
   const [title, setTitle] = useState('');
-  const [bookId, setBookId] = useState('');
+  const [chosenBookId, setBookId] = useState('');
   const [enterPaperNumbers, setEnterPaperNumbers] = useState(false);
   const [docNo, setDocNo] = useState('');
   const [pageNo, setPageNo] = useState('');
@@ -66,6 +68,7 @@ export default function UploadPage() {
   const isIssuer = canAccessPortalFeature(getPortalUiRole(profileQuery.data?.role), 'upload');
   const booksQuery = useQuery({ queryKey: ['portal-books'], queryFn: listRegisterBooks, enabled: isIssuer });
   const availableBooks = booksQuery.data ?? [];
+  const bookId = chosenBookId || latestRegisterBook(availableBooks)?.id || '';
   const selectedBook = availableBooks.find((book) => book.id === bookId);
   const isClosedBook = selectedBook?.status === 'CLOSED';
   const manualNumbers = Boolean(isClosedBook || enterPaperNumbers);
@@ -79,10 +82,13 @@ export default function UploadPage() {
       queryClient.invalidateQueries({ queryKey: ['portal-documents'] }),
       queryClient.invalidateQueries({ queryKey: ['portal-books'] }),
     ]);
-    router.push(`/portal/documents/${data.document_id}`);
+    if (embedded && onFiledDocument) onFiledDocument(data.document_id);
+    else router.push(`/portal/documents/${data.document_id}`);
   }
 
   const mutation = useMutation({
+    onMutate: () => onPendingChange?.(true),
+    onSettled: () => onPendingChange?.(false),
     mutationFn: (confirmNewRecord: boolean) => {
       if (!file) throw new Error('Choose a PDF first.');
       const metadataError = getRequiredUploadMetadataError(uploadMetadata);
@@ -98,6 +104,8 @@ export default function UploadPage() {
     onSuccess: onFiled,
   });
   const attachMutation = useMutation({
+    onMutate: () => onPendingChange?.(true),
+    onSettled: () => onPendingChange?.(false),
     mutationFn: (documentId: string) => {
       if (!file) throw new Error('Choose a PDF first.');
       const filingError = getRequiredUploadMetadataError(uploadMetadata);
@@ -184,26 +192,33 @@ export default function UploadPage() {
   if (isSubmissionPending) {
     const isAttachingSignedCopy = attachMutation.isPending;
     return (
-      <DocumentProcessingStatus
-        heading={isAttachingSignedCopy ? 'Attaching your signed PDF…' : 'Uploading your document…'}
-        currentStatus={isAttachingSignedCopy ? 'Attaching signed PDF' : 'Uploading PDF'}
-        description="Please keep this page open. The document will open automatically when the request completes."
-      />
+      <div className="flex min-h-[calc(100dvh-8rem)] items-center">
+        <DocumentProcessingStatus
+          heading={isAttachingSignedCopy ? 'Attaching your signed PDF…' : 'Uploading your document…'}
+          currentStatus={isAttachingSignedCopy ? 'Attaching signed PDF' : 'Uploading PDF'}
+          description="Please keep this page open. The document will open automatically when the request completes."
+        />
+      </div>
     );
   }
 
   return (
     <div className="flex w-full max-w-none flex-1 flex-col gap-5">
-      <div>
+      {!embedded && <div>
         <Link href="/portal/documents" className="text-sm font-bold text-[#0067B3]">← Back to documents</Link>
         <h1 className="mt-3 text-[28px] font-black text-[#0C2B49]">Upload Document</h1>
         <p className="mt-1 text-sm text-[#5B6F8A]">A guided upload using the fields LexChain currently accepts.</p>
-      </div>
+      </div>}
+
+      {!embedded && <><nav aria-label="Document starting point" className="flex w-full rounded-full bg-[#F2F4F7] p-1">
+        <Link href="/portal/documents/new" className="flex min-h-11 flex-1 items-center justify-center rounded-full px-3 py-2 text-center text-sm font-bold text-[#4B6382] hover:text-[#0067B3] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3] sm:px-5">Prepare with Google Docs</Link>
+        <Link href="/portal/upload" aria-current="page" className="flex min-h-11 flex-1 items-center justify-center rounded-full bg-white px-3 py-2 text-center text-sm font-bold text-[#0067B3] shadow-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3] sm:px-5">Upload a signed PDF</Link>
+      </nav>
+      <DocumentProgress path="pdf" currentStep={1} /></>}
 
       <div className="flex flex-1 flex-col gap-5">
         <section aria-labelledby="document-information-heading" className="flex flex-col rounded-[18px] border border-[#E8F0F8] bg-white p-5">
           <h2 id="document-information-heading" className="font-black text-[#0C2B49]">Document information</h2>
-          <p className="mt-1 text-sm text-[#5B6F8A]">Provide the title and register book for this document.</p>
           <div className="mt-4 grid gap-4">
             <label className="flex flex-col gap-1.5 text-sm font-bold text-[#0C2B49]">Document title<input id="upload-title" aria-invalid={uploadFieldErrors('title').length > 0} aria-describedby={uploadFieldErrors('title').length ? 'upload-title-error' : undefined} disabled={requiresConfirmation || isSubmissionPending} value={title} onChange={(event) => setTitle(event.target.value)} placeholder="e.g. Deed of Sale" className="rounded-xl border border-[#D7E4F2] px-3 py-2.5 text-sm font-medium outline-none focus:border-[#0067B3] disabled:bg-[#F8FBFF]" />{uploadFieldErrors('title').length > 0 && <div id="upload-title-error">{uploadFieldErrors('title').map((item, index) => <p key={`${index}-${item.message}`} className="text-sm font-medium text-red-700">{item.message}</p>)}</div>}</label>
             <label className="flex flex-col gap-1.5 text-sm font-bold text-[#0C2B49]">Register book

@@ -22,7 +22,7 @@ type PortalDocument = { lifecycle: string; status?: string | null };
 
 export default function PortalLayout({ children, demoMode }: { children: React.ReactNode; demoMode: boolean }) {
   const pathname = usePathname();
-  const isDocumentWorkspace = pathname === '/portal/documents' || /^\/portal\/documents\/[^/]+$/.test(pathname);
+  const isDocumentWorkspace = pathname === '/portal/documents' || (pathname !== '/portal/documents/new' && /^\/portal\/documents\/[^/]+$/.test(pathname));
   const queryClient = useQueryClient();
   const [collapsed, setCollapsed] = useState(false);
   const [registerSearchOpen, setRegisterSearchOpen] = useState(false);

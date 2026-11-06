@@ -14,9 +14,10 @@ const queryState = vi.hoisted(() => ({
   adminDashboardRefetch: vi.fn(),
 }));
 const useQuery = vi.hoisted(() => vi.fn());
+const push = vi.hoisted(() => vi.fn());
 
 vi.mock('@tanstack/react-query', () => ({ useQuery }));
-vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn() }) }));
+vi.mock('next/navigation', () => ({ useRouter: () => ({ push }) }));
 
 function renderDashboard() {
   return render(<PortalRoleProvider roleHint={queryState.role}><DashboardPage /></PortalRoleProvider>);
@@ -64,9 +65,7 @@ describe('DashboardPage', () => {
   it('opens the shared new document choices from the dashboard', () => {
     renderDashboard();
     fireEvent.click(screen.getByRole('button', { name: 'New Document' }));
-    const dialog = screen.getByRole('dialog', { name: 'New Document' });
-    expect(within(dialog).getByRole('button', { name: /Prepare a document/ })).toBeTruthy();
-    expect(within(dialog).getByRole('link', { name: /File a signed PDF/ }).getAttribute('href')).toBe('/portal/upload');
+    expect(push).toHaveBeenCalledWith('/portal/documents/new');
   });
   it('refreshes aggregate dashboard metrics while the page stays open', () => {
     renderDashboard();
@@ -152,7 +151,7 @@ describe('DashboardPage', () => {
     renderDashboard();
 
     expect(screen.getByText('Total Failed').parentElement?.textContent).toContain('5');
-    expect(screen.getByText('System-wide failed processing')).toBeTruthy();
+    expect(screen.queryByText('System-wide failed processing')).toBeNull();
     expect(screen.getByText('No action required on your documents. (System-wide failures are tracked above.)')).toBeTruthy();
   });
 

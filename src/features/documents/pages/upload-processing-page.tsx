@@ -48,6 +48,7 @@ export default function ProcessingPage({
   const failed = (hasSignedCopy && FAILED.has(status)) || !id;
   const normalizedStatus = getDocumentProcessingStatusLabel(data?.lifecycle ?? '', data?.status ?? (failed ? 'FAILED' : 'PROCESSING'));
   const processingTerminal = hasSignedCopy && (done || reviewReady || FAILED.has(status));
+  const backToDocument = <Link href={`/portal/documents/${encodeURIComponent(id)}`} className="rounded-full bg-[#0067B3] px-6 py-3 text-sm font-black text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]">Back to document</Link>;
 
   useEffect(() => {
     if (!id || !processingTerminal) return;
@@ -59,7 +60,7 @@ export default function ProcessingPage({
   }, [id, processingTerminal, queryClient]);
 
   if (isLoading && id) {
-    return <DocumentProcessingStatus heading="Checking document status…" currentStatus="Checking status" description="Fetching the latest status from the document service." />;
+    return <DocumentProcessingStatus heading="Checking document status…" currentStatus="Checking status" description="Fetching the latest status from the document service.">{backToDocument}</DocumentProcessingStatus>;
   }
 
   if (data && !hasSignedCopy && !lookupError) {
@@ -68,7 +69,7 @@ export default function ProcessingPage({
         heading="Waiting for signed PDF"
         currentStatus={getDocumentLifecycleLabel(data.lifecycle)}
         description="Processing starts when a signed PDF is attached. This page will update as processing progresses."
-      />
+      >{backToDocument}</DocumentProcessingStatus>
     );
   }
 
@@ -78,7 +79,7 @@ export default function ProcessingPage({
         heading="Processing your document…"
         currentStatus={normalizedStatus}
         description="This page will update as processing progresses."
-      />
+      >{backToDocument}</DocumentProcessingStatus>
     );
   }
 

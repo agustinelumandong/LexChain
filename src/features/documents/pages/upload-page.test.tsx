@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import UploadPage from '@/features/documents/pages/upload-page';
 
@@ -37,7 +37,7 @@ const signedDocument = {
 
 function setupFetch(
   uploadResponses: Response[],
-  books = [{ id: 'closed-book', book_number: 4, series_year: 2026, status: 'CLOSED' }],
+  books: Array<{ id: string; book_number: number; series_year: number; status: string; created_at?: string }> = [{ id: 'closed-book', book_number: 4, series_year: 2026, status: 'CLOSED' }],
   attachResponses: Array<Response | Promise<Response>> = [],
 ) {
   const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
@@ -56,9 +56,9 @@ function setupFetch(
   return fetchMock;
 }
 
-function renderPage() {
+function renderPage(props: React.ComponentProps<typeof UploadPage> = {}) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
-  render(<QueryClientProvider client={queryClient}><UploadPage /></QueryClientProvider>);
+  render(<QueryClientProvider client={queryClient}><UploadPage {...props} /></QueryClientProvider>);
 }
 
 async function fillClosedBookUpload() {
@@ -82,6 +82,82 @@ afterEach(() => {
 });
 
 describe('signed document upload screen', () => {
+  it('defaults to the most recently created book and allows choosing another', async () => {
+    setupFetch([], [
+      { id: 'older', book_number: 4, series_year: 2026, status: 'OPEN', created_at: '2026-01-01T00:00:00Z' },
+      { id: 'newer', book_number: 5, series_year: 2026, status: 'OPEN', created_at: '2026-02-01T00:00:00Z' },
+    ]);
+    renderPage();
+    const dropdown = await screen.findByRole('combobox', { name: 'Register book' });
+    await waitFor(() => expect(dropdown.textContent).toContain('Register book 5'));
+    fireEvent.click(dropdown);
+    fireEvent.click(screen.getByRole('option', { name: /Register book 4/ }));
+    expect(dropdown.textContent).toContain('Register book 4');
+  });
+  it('embeds the form without duplicate navigation and returns the filed record without navigating', async () => {
+    setupFetch([Response.json(signedDocument, { status: 201 })]);
+    const onFiledDocument = vi.fn();
+    renderPage({ embedded: true, onFiledDocument });
+    await fillClosedBookUpload();
+    expect(screen.queryByRole('navigation', { name: 'Document starting point' })).toBeNull();
+    expect(screen.queryByRole('navigation', { name: 'Draft and filing progress' })).toBeNull();
+    expect(screen.queryByRole('heading', { name: 'Upload Document' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm and file' }));
+    await waitFor(() => expect(onFiledDocument).toHaveBeenCalledWith('signed-doc-42'));
+    expect(push).not.toHaveBeenCalled();
+  });
+
+  it('reports pending upload state so the parent can prevent switching paths', async () => {
+    let finishUpload!: (response: Response) => void;
+    const pendingUpload = new Promise<Response>((resolve) => { finishUpload = resolve; });
+    const fetchMock = setupFetch([]);
+    fetchMock.mockImplementation(async (input, init) => {
+      const path = new URL(String(input), window.location.origin).searchParams.get('path');
+      if (path === '/users/') return Response.json({ role: 'document_issuer' });
+      if (path === '/books/?limit=50&offset=0') return Response.json([{ id: 'closed-book', book_number: 4, series_year: 2026, status: 'CLOSED' }]);
+      if (init?.method === 'POST') return pendingUpload;
+      throw new Error('Unexpected request');
+    });
+    const onPendingChange = vi.fn();
+    renderPage({ embedded: true, onFiledDocument: vi.fn(), onPendingChange });
+    await fillClosedBookUpload();
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm and file' }));
+    await waitFor(() => expect(onPendingChange).toHaveBeenCalledWith(true));
+    finishUpload(Response.json(signedDocument, { status: 201 }));
+    await waitFor(() => expect(onPendingChange).toHaveBeenLastCalledWith(false));
+  });
+
+  it('returns the existing record when an embedded upload attaches to a waiting document', async () => {
+    const conflict = { message: 'A signed copy is expected.', details: { reason: 'READY_FOR_SIGNATURE_EXISTS', related_documents: [{ document_id: 'waiting-doc', file_name: 'Prepared deed' }] } };
+    setupFetch([Response.json(conflict, { status: 409 })]);
+    const onFiledDocument = vi.fn();
+    renderPage({ embedded: true, onFiledDocument });
+    await fillClosedBookUpload();
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm and file' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Attach signed PDF to Prepared deed' }));
+    await waitFor(() => expect(onFiledDocument).toHaveBeenCalledWith('waiting-doc'));
+    expect(push).not.toHaveBeenCalled();
+  });
+
+  it('offers the Google Docs preparation path from upload', async () => {
+    setupFetch([]);
+    renderPage();
+    const chooser = await screen.findByRole('navigation', { name: 'Document starting point' });
+    expect(within(chooser).getByRole('link', { name: 'Prepare with Google Docs' }).getAttribute('href')).toBe('/portal/documents/new');
+    expect(within(chooser).getByRole('link', { name: 'Upload a signed PDF' }).getAttribute('aria-current')).toBe('page');
+  });
+
+  it('shows upload as the first step of the signed PDF workflow', async () => {
+    setupFetch([]);
+    renderPage();
+    const progress = await screen.findByRole('navigation', { name: 'Draft and filing progress' });
+    expect(within(progress).getByText('Step 1 of 4')).toBeTruthy();
+    expect(within(progress).getByRole('listitem', { current: 'step' }).textContent).toContain('Upload document');
+    expect(within(progress).getAllByRole('listitem').map((step) => step.textContent)).toEqual([
+      expect.stringContaining('Upload document'), expect.stringContaining('Review signed PDF'),
+      expect.stringContaining('Review text and risks'), expect.stringContaining('Finalize'),
+    ]);
+  });
   it('shows processing status from a SIGNED upload result', async () => {
     setupFetch([Response.json({ ...signedDocument, status: 'FAILED' }, { status: 201 })]);
     renderPage();
@@ -274,11 +350,13 @@ describe('signed document upload screen', () => {
       [{ id: 'closed-book', book_number: 4, series_year: 2026, status: 'CLOSED' }],
       [pendingAttachment],
     );
-    renderPage();
+    const onPendingChange = vi.fn();
+    renderPage({ onPendingChange });
     await fillClosedBookUpload();
     fireEvent.click(screen.getByRole('button', { name: 'Confirm and file' }));
     fireEvent.click(await screen.findByRole('button', { name: 'Attach signed PDF to Prepared deed' }));
     await waitFor(() => expect(fetchMock.mock.calls.some(([url]) => (new URL(String(url), window.location.origin).searchParams.get('path') ?? '').includes('/signed-copy'))).toBe(true));
+    expect(onPendingChange).toHaveBeenLastCalledWith(true);
 
     expect(await screen.findByRole('heading', { name: 'Attaching your signed PDF…' })).toBeTruthy();
     expect(screen.getByRole('progressbar', { name: 'Attaching your signed PDF…' })).toBeTruthy();
@@ -286,6 +364,7 @@ describe('signed document upload screen', () => {
     expect(screen.queryByRole('button', { name: 'Remove uploaded file' })).toBeNull();
     finishAttachment(Response.json({ ...signedDocument, document_id: 'waiting-doc' }, { status: 200 }));
     await waitFor(() => expect(push).toHaveBeenCalledWith('/portal/documents/waiting-doc'));
+    await waitFor(() => expect(onPendingChange).toHaveBeenLastCalledWith(false));
   });
 
   it('only creates a separate record after explicit choice and preserves the selected PDF', async () => {

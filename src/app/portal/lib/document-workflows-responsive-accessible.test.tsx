@@ -225,7 +225,7 @@ describe('Responsive and Accessible Document Workflows (#175)', () => {
       const list = within(nav).getByRole('list');
       expect(list.className).toContain('grid-cols-1');
       expect(list.className).toContain('sm:grid-cols-2');
-      expect(list.className).toContain('lg:grid-cols-4');
+      expect(list.className).toContain('lg:grid-cols-5');
 
       const currentStep = within(nav).getByRole('listitem', { current: 'step' });
       expect(currentStep.textContent).toContain('Current step:');

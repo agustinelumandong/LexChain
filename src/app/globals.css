@@ -163,6 +163,19 @@ input::-ms-clear {
   background: #6f879e;
 }
 
+@keyframes document-processing-progress {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(250%); }
+}
+
+.document-processing-indeterminate {
+  animation: document-processing-progress 1.5s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .document-processing-indeterminate { animation: none; }
+}
+
 /* Chevron Stepper */
 @media (min-width: 1024px) {
   .chevron-step-first {

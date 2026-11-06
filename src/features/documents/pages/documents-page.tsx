@@ -13,7 +13,6 @@ import FilterListIcon from '@mui/icons-material/FilterList';
 import CircleIcon from '@mui/icons-material/Circle';
 import DescriptionIcon from '@mui/icons-material/Description';
 import LinkIcon from '@mui/icons-material/Link';
-import LinkOffIcon from '@mui/icons-material/LinkOff';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import { Dropdown } from "@/features/admin/components";
@@ -108,17 +107,6 @@ function DocumentBadges({ document }: { document: Document }) {
         </span>
       )}
     </div>
-  );
-}
-
-function OnChainBadge({ onChain, label }: { onChain: boolean; label: string }) {
-  const Icon = onChain ? LinkIcon : LinkOffIcon;
-
-  return (
-    <span className={`inline-flex items-center gap-1.5 rounded-full border border-current/15 px-2.5 py-0.5 text-xs font-bold ${onChain ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-700'}`}>
-      <Icon aria-hidden="true" sx={{ fontSize: 14 }} />
-      {label}
-    </span>
   );
 }
 
@@ -265,7 +253,7 @@ export default function DocumentsPage() {
   const [createdFrom, setCreatedFrom] = useState('');
   const [createdThrough, setCreatedThrough] = useState('');
   const [page, setPage] = useState(0);
-  const [pageSize, setPageSize] = useState("5");
+  const [pageSize, setPageSize] = useState("10");
   const documentsQuery = useQuery<Document[]>({ queryKey: ['portal-documents'], queryFn: fetchDocuments });
   const profileQuery = useQuery<UserProfile | null>({
     queryKey: ['portal-profile'],
@@ -359,7 +347,6 @@ export default function DocumentsPage() {
                     <tr className="border-b border-[#D9E5F0] bg-[#F8FBFF] text-left text-xs font-black uppercase tracking-[0.08em] text-[#4B6382]">
                       <th className="px-5 py-3">Document</th>
                       <th className="px-5 py-3">Lifecycle / processing</th>
-                      <th className="px-5 py-3">On-chain</th>
                       <th className="px-5 py-3">Created</th>
                     </tr>
                   </thead>
@@ -376,7 +363,6 @@ export default function DocumentsPage() {
                           </div>
                         </td>
                         <td className="px-5 py-3"><DocumentBadges document={doc} /></td>
-                        <td className="px-5 py-3"><OnChainBadge onChain={doc.on_chain} label={doc.on_chain ? 'Recorded' : 'Not recorded'} /></td>
                         <td className="px-5 py-3 font-semibold text-[#5B6F8A]">{formatDate(doc.created_at)}</td>
                       </tr>
                     ))}
@@ -391,7 +377,6 @@ export default function DocumentsPage() {
                       <div className="min-w-0 flex-1">
                         <Link href={`/portal/documents/${document.id}`} className="inline-flex min-h-11 max-w-full items-center truncate rounded-sm text-sm font-bold text-[#071B33] after:absolute after:inset-0 after:content-[''] focus-visible:after:ring-2 focus-visible:after:ring-inset focus-visible:after:ring-[#0067B3]">{document.file_name}</Link>
                         <p className="mt-1 text-xs text-[#5B6F8A]">{document.doc_no != null ? `Register ${document.doc_no}${document.page_no != null ? ` · page ${document.page_no}` : ''}` : 'Register entry unavailable'} · Created {formatDate(document.created_at)}</p>
-                        <div className="mt-1"><OnChainBadge onChain={document.on_chain} label={document.on_chain ? 'Recorded on-chain' : 'Not recorded on-chain'} /></div>
                         <div className="mt-2"><DocumentBadges document={document} /></div>
                       </div>
                     </div>
