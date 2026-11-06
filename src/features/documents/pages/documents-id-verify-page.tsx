@@ -40,7 +40,7 @@ export default function DocumentVerifyPage() {
       toast.success(result.restored
         ? result.preserved_copy_id
           ? 'Archived original restored. The replaced PDF is available in signed-copy history.'
-          : 'Archived original restored. The replaced PDF could not be preserved in signed-copy history.'
+          : 'Archived original restored. No previous PDF was preserved in signed-copy history.'
         : 'The document was already authentic. Verification has been refreshed.');
       await Promise.all([
         ['portal-doc', id],
@@ -60,10 +60,11 @@ export default function DocumentVerifyPage() {
       || verifyQuery.data.tamper_report_unavailable_reason?.toLowerCase().includes('archived original does not match')
     )
   );
-  const verificationAllowsRestore = verifyQuery.data?.status === 'TAMPERED'
-    && !verifyQuery.data.is_authentic
-    && verifyQuery.data.baseline_trusted
-    && !hasNoArchivedBackup;
+  const verificationAllowsRestore = !verifyQuery.data?.is_authentic && (
+    (verifyQuery.data?.status === 'TAMPERED' && verifyQuery.data.baseline_trusted && !hasNoArchivedBackup)
+    || verifyQuery.data?.status === 'FILE_MISSING'
+    || verifyQuery.data?.status === 'SNAPSHOT_COMPROMISED'
+  );
   const documentAllowsRestore = role === 'lawyer'
     && !documentQuery.isFetching
     && !documentQuery.isError
@@ -138,7 +139,7 @@ export default function DocumentVerifyPage() {
       <Modal open={restoreDialogOpen} onClose={closeRestoreDialog} title="Restore archived original">
         <div className="space-y-4">
           <p className="text-sm leading-6 text-[#4B6382]">
-            This replaces the current PDF with the trusted archived original. The current tampered PDF will be kept in signed-copy history if the backend can read it.
+            The archived original will be checked against the blockchain and restored. If a current PDF exists, it will be kept in signed-copy history if the backend can read it. A compromised reference record must still be recovered from a database backup.
           </p>
           {restoreMutation.isError && <p role="alert" className="text-sm font-semibold text-[#B42318]">
             {restoreMutation.error instanceof Error ? restoreMutation.error.message : 'The document could not be restored. Please try again.'}

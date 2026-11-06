@@ -22,7 +22,8 @@ const PdfDocumentViewer = dynamic(() => import('@/features/documents/components/
 type VerificationResult = ApiSchema<'DocumentVerificationResponse'>;
 
 function statusHeading(result: VerificationResult) {
-  if (result.status === 'AUTHENTIC') return result.is_authentic ? 'This PDF matches the saved version' : 'We could not check this document';
+  if (result.status === 'AUTHENTIC') return result.is_authentic ? (result.baseline_trusted ? 'This PDF matches the saved version' : 'This PDF matches, but the saved reference needs attention') : 'We could not check this document';
+  if (result.status === 'FILE_MISSING') return result.is_authentic ? 'We could not check this document' : 'The document file is missing';
   if (result.status === 'VERIFICATION_UNAVAILABLE' || (result.status === 'TAMPERED' && result.is_authentic)) return 'We could not check this document';
   if (result.status === 'NOT_ANCHORED') return 'No blockchain record is saved';
   if (result.status === 'SNAPSHOT_COMPROMISED') return 'The saved reference needs attention';
@@ -75,6 +76,12 @@ function plainLanguageExplanation(result: VerificationResult, contradictoryVerdi
   if (contradictoryVerdict) {
     return 'The backend returned conflicting verification fields, so integrity could not be confirmed.';
   }
+  if (result.status === 'AUTHENTIC' && result.is_authentic && !result.baseline_trusted) {
+    return 'The current PDF matches the blockchain record, but the stored snapshot is not trusted and still needs attention.';
+  }
+  if (result.status === 'FILE_MISSING' && !result.is_authentic) {
+    return 'The stored document file was deleted and is no longer available for comparison.';
+  }
   if (result.status === 'AUTHENTIC' && result.is_authentic) {
     return 'This PDF file matches the cryptographic fingerprint recorded on the blockchain at finalization. The file content is authentic and unaltered.';
   }
@@ -82,7 +89,7 @@ function plainLanguageExplanation(result: VerificationResult, contradictoryVerdi
     return 'This PDF file differs from the cryptographic fingerprint recorded on the blockchain. Changes have been detected in the current copy.';
   }
   if (result.status === 'SNAPSHOT_COMPROMISED') {
-    return 'The stored baseline copy could not be verified against the blockchain record. Because the reference baseline is untrusted, no comparison can be made.';
+    return 'The current file differs from the blockchain record or is missing, and the stored reference is compromised. A detailed comparison is unavailable.';
   }
   if (result.status === 'NOT_ANCHORED') {
     return 'This document has not been anchored on the blockchain. Finalize the document first to record its fingerprint.';
@@ -135,7 +142,7 @@ function VerificationDetails({
           </dd>
         </div>
       </dl>
-      {authentic && result.onchain_hash && result.snapshot_hash && result.current_hash && (
+      {authentic && result.baseline_trusted && result.onchain_hash && result.snapshot_hash && result.current_hash && (
         <div role="status" aria-label="Cryptographic hash match" className="flex items-center gap-2 rounded-xl border border-green-200 bg-green-50 px-3 py-2 text-xs font-bold text-green-800">
           <CheckCircleIcon sx={{ fontSize: 16 }} className="text-green-600" aria-hidden="true" />
           <span>All 3 cryptographic fingerprints match</span>
@@ -183,11 +190,12 @@ export default function VerifyWorkspace({
 }) {
   const [currentPage, setCurrentPage] = useState(0);
   const authentic = result.status === 'AUTHENTIC' && result.is_authentic;
-  const contradictoryVerdict = (result.status === 'AUTHENTIC' && !result.is_authentic) || (result.status === 'TAMPERED' && result.is_authentic);
+  const untrustedSnapshot = authentic && !result.baseline_trusted;
+  const contradictoryVerdict = (result.status === 'AUTHENTIC' && !result.is_authentic) || ((result.status === 'TAMPERED' || result.status === 'FILE_MISSING') && result.is_authentic);
   const unavailable = result.status === 'VERIFICATION_UNAVAILABLE' || contradictoryVerdict;
   const notAnchored = result.status === 'NOT_ANCHORED';
   const compromised = result.status === 'SNAPSHOT_COMPROMISED';
-  const neutral = unavailable || notAnchored || compromised;
+  const neutral = unavailable || notAnchored || compromised || untrustedSnapshot;
   const tamperReport = result.status === 'TAMPERED'
     && !result.is_authentic
     && result.baseline_trusted
@@ -216,9 +224,9 @@ export default function VerifyWorkspace({
   const showPdfWorkspace = authentic || showTamperComparison;
 
   return <section className="flex flex-col gap-5 md:min-h-0 md:flex-1">
-    <div className={`flex flex-wrap items-start gap-3 rounded-xl border-2 p-4 ${authentic ? 'border-green-700 bg-green-50' : neutral ? 'border-amber-700 bg-amber-50' : 'border-red-700 bg-red-50'}`}>
+    <div className={`flex flex-wrap items-start gap-3 rounded-xl border-2 p-4 ${authentic && !untrustedSnapshot ? 'border-green-700 bg-green-50' : neutral ? 'border-amber-700 bg-amber-50' : 'border-red-700 bg-red-50'}`}>
       <div className="flex min-w-0 flex-1 items-start gap-2">
-        {authentic ? <CheckCircleIcon className="mt-0.5 shrink-0 text-[#166534]" sx={{ fontSize: 20 }} aria-hidden="true" /> : neutral ? <InfoOutlinedIcon className="mt-0.5 shrink-0 text-[#8A5B00]" sx={{ fontSize: 20 }} aria-hidden="true" /> : <ErrorOutlineIcon className="mt-0.5 shrink-0 text-[#B42318]" sx={{ fontSize: 20 }} aria-hidden="true" />}
+        {authentic && !untrustedSnapshot ? <CheckCircleIcon className="mt-0.5 shrink-0 text-[#166534]" sx={{ fontSize: 20 }} aria-hidden="true" /> : neutral ? <InfoOutlinedIcon className="mt-0.5 shrink-0 text-[#8A5B00]" sx={{ fontSize: 20 }} aria-hidden="true" /> : <ErrorOutlineIcon className="mt-0.5 shrink-0 text-[#B42318]" sx={{ fontSize: 20 }} aria-hidden="true" />}
         <div className="min-w-0">
           <h2 className="text-base font-bold text-[#0C2B49]">
             {statusHeading(result)}

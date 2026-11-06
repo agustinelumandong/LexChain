@@ -92,7 +92,7 @@ function RegisterPageContent() {
     setSubmissionError(null);
     mutation.mutate(values);
   });
-  const inputClass = "mt-2 min-h-12 w-full rounded-[14px] border border-[#E4EEF9] bg-[#F5FAFF] px-3.5 text-sm font-semibold text-[#0C2B49] outline-none focus:border-[#0067B3]";
+  const inputClass = "mt-2 min-h-12 w-full rounded-[14px] border border-[#E4EEF9] bg-[#F5FAFF] px-3.5 text-sm font-semibold text-[#0C2B49] outline-none focus:border-[#0067B3] aria-invalid:border-red-700 aria-invalid:focus:border-red-700";
   const emailInputClass = isTokenInvite && hasInviteEmail
     ? `${inputClass} cursor-default bg-[#EEF4FB] text-[#4B6382]`
     : inputClass;

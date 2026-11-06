@@ -1,10 +1,13 @@
+import type { ReactNode } from 'react';
+
 type DocumentProcessingStatusProps = {
   heading: string;
   currentStatus: string;
   description: string;
+  children?: ReactNode;
 };
 
-export function DocumentProcessingStatus({ heading, currentStatus, description }: DocumentProcessingStatusProps) {
+export function DocumentProcessingStatus({ heading, currentStatus, description, children }: DocumentProcessingStatusProps) {
   return (
     <div className="flex min-h-[60vh] w-full flex-col items-center justify-center gap-6 text-center">
       <div role="progressbar" aria-label={heading} aria-valuetext={currentStatus} className="h-16 w-16 animate-spin rounded-full border-4 border-[#0067B3] border-t-transparent motion-reduce:animate-none" />
@@ -13,6 +16,7 @@ export function DocumentProcessingStatus({ heading, currentStatus, description }
         <p className="mt-1 text-sm text-[#5B6F8A]">Current status: {currentStatus}</p>
         <p className="mt-3 text-sm text-[#5B6F8A]">{description}</p>
       </div>
+      {children}
     </div>
   );
 }

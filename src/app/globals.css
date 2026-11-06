@@ -70,6 +70,48 @@ body {
   font-family: var(--font-sans);
 }
 
+[data-sonner-toaster][data-sonner-theme="light"] {
+  --normal-bg: var(--surface-card);
+  --normal-border: var(--border-medium);
+  --normal-text: var(--text-primary);
+  --success-bg: var(--status-success-bg);
+  --success-border: var(--status-success-border);
+  --success-text: var(--status-success);
+  --error-bg: var(--status-error-bg);
+  --error-border: var(--status-error-border);
+  --error-text: var(--status-error);
+  --info-bg: var(--status-info-bg);
+  --info-border: var(--status-info-border);
+  --info-text: var(--status-info-text);
+  --warning-bg: var(--status-warning-bg);
+  --warning-text: var(--status-warning);
+}
+
+[data-sonner-toaster] [data-sonner-toast][data-styled="true"] {
+  border-radius: var(--radius-card);
+  box-shadow: 0 12px 32px rgb(12 43 73 / 12%);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  gap: 12px;
+}
+
+[data-sonner-toaster] [data-sonner-toast][data-styled="true"] [data-title] {
+  font-weight: 600;
+}
+
+[data-sonner-toaster] [data-sonner-toast][data-styled="true"] [data-button] {
+  background: var(--brand-blue);
+  border-radius: var(--radius-control);
+  color: var(--surface-card);
+  min-height: 36px;
+  padding-inline: 12px;
+}
+
+[data-sonner-toaster] [data-sonner-toast][data-styled="true"] :is([data-button], [data-close-button]):focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 2px;
+}
+
 a[href],
 button:not(:disabled),
 [role="button"] {
@@ -119,6 +161,19 @@ input::-ms-clear {
 }
 .pdf-scroll-area::-webkit-scrollbar-thumb:hover {
   background: #6f879e;
+}
+
+@keyframes document-processing-progress {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(250%); }
+}
+
+.document-processing-indeterminate {
+  animation: document-processing-progress 1.5s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .document-processing-indeterminate { animation: none; }
 }
 
 /* Chevron Stepper */

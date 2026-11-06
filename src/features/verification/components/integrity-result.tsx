@@ -42,7 +42,7 @@ export function IntegrityResult({
 }) {
   const state = getIntegrityUiState({ record, requestFailed, notFoundOrUnanchored });
   const result = getIntegrityUiCopy(state);
-  const role = state === 'unavailable' || state === 'mismatch' || state === 'snapshot_compromised' ? 'alert' : 'status';
+  const role = state === 'unavailable' || state === 'mismatch' || state === 'snapshot_compromised' || state === 'file_missing' || state === 'match_untrusted_snapshot' ? 'alert' : 'status';
 
   return (
     <section role={role} className={`rounded-[18px] border p-5 ${toneClasses[result.tone]}`}>

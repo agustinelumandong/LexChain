@@ -6,6 +6,7 @@ import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogContentText from '@mui/material/DialogContentText';
 import DialogTitle from '@mui/material/DialogTitle';
+import CircleIcon from '@mui/icons-material/Circle';
 import { Button, Card, Table } from '@/shared/components/ui';
 import type { components } from '@/shared/types/index';
 import { formatRelativeExpiry } from '@/features/access/participant-access';
@@ -89,7 +90,8 @@ export function ParticipantAccessTable({ parties, canRevoke, onRevoke, onResend 
               if (party.user_id === null) {
                 if (party.status === 'expired') {
                   return (
-                    <span className="inline-flex w-fit items-center rounded-full bg-[#FEF3F2] px-2.5 py-0.5 text-xs font-bold text-[#B42318]">
+                    <span className="inline-flex w-fit items-center gap-1.5 rounded-full border border-current/15 bg-red-50 px-2.5 py-0.5 text-xs font-bold text-red-700">
+                      <CircleIcon aria-hidden="true" sx={{ fontSize: 8 }} />
                       Invitation expired
                     </span>
                   );
@@ -97,7 +99,8 @@ export function ParticipantAccessTable({ parties, canRevoke, onRevoke, onResend 
                 const relativeExpiry = formatRelativeExpiry(party.expires_at);
                 return (
                   <div className="flex flex-col gap-0.5">
-                    <span className="inline-flex w-fit items-center rounded-full bg-[#EFF8FF] px-2.5 py-0.5 text-xs font-bold text-[#175CD3]">
+                    <span className="inline-flex w-fit items-center gap-1.5 rounded-full border border-current/15 bg-blue-50 px-2.5 py-0.5 text-xs font-bold text-blue-700">
+                      <CircleIcon aria-hidden="true" sx={{ fontSize: 8 }} />
                       Waiting for sign-up
                     </span>
                     {relativeExpiry && (

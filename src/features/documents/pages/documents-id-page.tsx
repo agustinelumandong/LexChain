@@ -4,6 +4,8 @@ import { use, useState, useSyncExternalStore } from 'react';
 import { useMutation, useQueries, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import CircleIcon from '@mui/icons-material/Circle';
+import LinkIcon from '@mui/icons-material/Link';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import ShieldOutlinedIcon from '@mui/icons-material/ShieldOutlined';
 import { toast } from 'sonner';
@@ -11,7 +13,7 @@ import { z } from 'zod';
 import type { ApiSchema } from '@/shared/types/index';
 import { PortalChatbot as PortalChatbot } from "@/features/portal/components";
 import { CopyableIdentifier, DocumentWorkspace, type Tab } from '@/features/documents/components/document-workspace';
-import { getDocumentActions, getDocumentLifecycleBadgeClasses, getDocumentLifecycleLabel, getDocumentProcessingBadgeClasses, getDocumentProcessingStatusLabel } from '@/features/documents/document-ui';
+import { getDocumentActions, getDocumentLifecycleBadgeClasses, getDocumentLifecycleLabel, getDocumentProcessingBadgeClasses, getDocumentProcessingStatusLabel, isDocumentOnChain } from '@/features/documents/document-ui';
 import { renameDocument, finalizeDocument, markDocumentReady, reopenDocument, cancelDocument } from '@/features/documents/document-lifecycle-api';
 import { getPortalUiRole } from "@/features/access";
 import { Modal } from '@/features/admin/components/modal';
@@ -296,6 +298,20 @@ export default function DocumentDetailPage({ params, initialTab }: { params: Pro
     }
   }
 
+  const canReviewText = actions.includes('Review extracted text');
+  const canFinalize = actions.includes('Finalize') && !finalizationResult && !hasUnknownFinalization;
+  const canRetry = actions.includes('Retry processing');
+  const workflowActions = (canReviewText || canFinalize || canRetry || retryProcessingMutation.error instanceof Error) ? (
+    <div className="flex flex-wrap items-center gap-2">
+      {retryProcessingMutation.error instanceof Error && <p role="alert" className="text-sm font-bold text-[#B42318]">{retryProcessingMutation.error.message || 'Unable to retry document processing.'}</p>}
+      <div className="flex flex-wrap gap-2">
+        {canReviewText && <Link href={`/portal/documents/${id}/review`} aria-label="Review extracted text" className="inline-flex min-h-11 items-center rounded-full bg-[#0067B3] px-5 py-2 text-sm font-extrabold text-white hover:bg-[#00528F] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]">Review text</Link>}
+        {canFinalize && <button type="button" onClick={openFinalizeConfirmation} className="min-h-11 rounded-full bg-[#0673C4] px-5 py-2 text-sm font-extrabold text-white hover:bg-[#005FA3] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]">Finalize</button>}
+        {canRetry && <button type="button" onClick={() => retryProcessingMutation.mutate()} disabled={retryProcessingMutation.isPending} className="min-h-11 rounded-full border border-[#0067B3] px-5 py-2 text-sm font-extrabold text-[#0067B3] hover:bg-[#EEF6FF] disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]">{retryProcessingMutation.isPending ? 'Retrying…' : 'Retry processing'}</button>}
+      </div>
+    </div>
+  ) : null;
+
   return (
     <div className="flex min-h-0 w-full min-w-0 flex-1 flex-col gap-3 overflow-hidden">
       <header className="mx-auto flex w-full max-w-7xl flex-col gap-2 px-4 sm:px-6">
@@ -306,8 +322,20 @@ export default function DocumentDetailPage({ params, initialTab }: { params: Pro
           <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
             <h1 title={document.file_name} className="min-w-0 max-w-full break-words text-2xl font-bold leading-8 text-[#0C2B49]">{document.file_name}</h1>
             <div className="flex flex-wrap items-center gap-2">
-              <span className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${getDocumentLifecycleBadgeClasses(document.lifecycle)}`}>{document.lifecycle === 'FINALIZED' && document.on_chain ? 'On-chain' : getDocumentLifecycleLabel(document.lifecycle)}</span>
-              {(document.lifecycle === 'FINALIZED' || (document.lifecycle === 'SIGNED' && document.status)) && <span className={`${getDocumentProcessingBadgeClasses(document.status)} rounded-full px-2.5 py-0.5 text-xs font-bold`}>{getDocumentProcessingStatusLabel(document.lifecycle, document.status)}</span>}
+              <span className={`inline-flex items-center gap-1.5 rounded-full border border-current/15 px-2.5 py-0.5 text-xs font-bold ${getDocumentLifecycleBadgeClasses(document.lifecycle)}`}>
+                {isDocumentOnChain(document.lifecycle) ? (
+                  <LinkIcon aria-hidden="true" sx={{ fontSize: 14 }} />
+                ) : (
+                  <CircleIcon aria-hidden="true" sx={{ fontSize: 8 }} />
+                )}
+                {getDocumentLifecycleLabel(document.lifecycle)}
+              </span>
+              {(document.lifecycle === 'FINALIZED' || (document.lifecycle === 'SIGNED' && document.status)) && (
+                <span className={`inline-flex items-center gap-1.5 rounded-full border border-current/15 px-2.5 py-0.5 text-xs font-bold ${getDocumentProcessingBadgeClasses(document.status)}`}>
+                  <CircleIcon aria-hidden="true" sx={{ fontSize: 8 }} />
+                  {getDocumentProcessingStatusLabel(document.lifecycle, document.status)}
+                </span>
+              )}
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
@@ -320,13 +348,9 @@ export default function DocumentDetailPage({ params, initialTab }: { params: Pro
                 {document.permissions.can_cancel && <button type="button" onClick={() => { setDocumentActionsOpen(false); openCancelConfirmation(); }} className="block min-h-11 w-full rounded-lg px-3 py-2 text-left text-sm font-bold text-[#B42318] hover:bg-red-50">Cancel document</button>}
               </div>}
             </div>}
-            {actions.includes('Review extracted text') && <Link href={`/portal/documents/${id}/review`} aria-label="Review extracted text" className="inline-flex min-h-11 items-center rounded-full bg-[#0067B3] px-3 py-2 text-sm font-extrabold text-white hover:bg-[#00528F] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]">Review text</Link>}
-            {actions.includes('Finalize') && !finalizationResult && !hasUnknownFinalization && <button type="button" onClick={openFinalizeConfirmation} className="min-h-11 rounded-full bg-[#0673C4] px-3 py-2 text-sm font-extrabold text-white hover:bg-[#005FA3] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]">Finalize</button>}
-            {actions.includes('Retry processing') && <button type="button" onClick={() => retryProcessingMutation.mutate()} disabled={retryProcessingMutation.isPending} className="min-h-11 rounded-full border border-[#0067B3] px-3 py-2 text-sm font-extrabold text-[#0067B3] hover:bg-[#EEF6FF] disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]">{retryProcessingMutation.isPending ? 'Retrying…' : 'Retry processing'}</button>}
             {actions.includes('Check document') && <Link href={`/portal/documents/${id}/verify`} className="group inline-flex min-h-11 items-center gap-1.5 rounded-full border border-[#0067B3] bg-[#EAF4FF] px-3 py-2 text-sm font-extrabold text-[#0C2B49] transition-colors hover:border-[#0067B3] hover:bg-[#0067B3] hover:text-white active:bg-[#0067B3] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]"><ShieldOutlinedIcon aria-hidden="true" className="text-[#0067B3] transition-colors group-hover:text-white group-focus-visible:text-white" sx={{ fontSize: 18 }} />Verify integrity</Link>}
           </div>
         </div>
-        {retryProcessingMutation.error instanceof Error && <p role="alert" className="text-sm font-bold text-[#B42318]">{retryProcessingMutation.error.message || "Unable to retry document processing."}</p>}
         {document.lifecycle === 'FINALIZED' && <DocumentIntegrityStatus documentId={id} mockMode={mockMode} />}
       </header>
 
@@ -397,8 +421,8 @@ export default function DocumentDetailPage({ params, initialTab }: { params: Pro
               </div>
             </div>
             <div className="mt-3 space-y-1.5 text-sm leading-6 text-[#4B6382]">
-              <p>{mockMode ? 'Demo mode: this action uses synthetic data. No real PDF digest or blockchain transaction will be produced.' : ''}</p>
-              <p className="text-xs leading-5 text-[#5B6F8A]">This freezes the signed copy and records its fingerprint on the blockchain. It cannot be undone..</p>
+              <p>{mockMode ? 'Demo mode: this action uses synthetic data. No real PDF digest or blockchain transaction will be produced.' : 'This freezes the signed copy and records its fingerprint on the blockchain. It cannot be undone.'}</p>
+              <p className="text-xs leading-5 text-[#5B6F8A]">The frozen filing copy cannot be replaced or removed after finalization.</p>
             </div>
             {finalizeMutation.isPending && (
               <div role="status" className="mt-3 rounded-xl border border-[#CFE7FC] bg-[#F0F7FE] p-3 text-sm font-semibold text-[#0067B3]">
@@ -427,6 +451,8 @@ export default function DocumentDetailPage({ params, initialTab }: { params: Pro
         readinessError={readinessMutation.error instanceof Error ? readinessMutation.error : null}
         isChangingReadiness={readinessMutation.isPending}
         finalizationOutcomeUnknown={hasUnknownFinalization}
+        isConfirmingFinalization={confirmingFinalize}
+        workflowActions={workflowActions}
         onMarkReady={() => readinessMutation.mutate('ready')}
         onReopen={() => readinessMutation.mutate('reopen')}
       />

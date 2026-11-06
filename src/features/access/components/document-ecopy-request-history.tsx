@@ -29,7 +29,7 @@ function RequestEntry({ request }: { request: EcopyRequest }) {
   return <Card className="space-y-2 p-3">
     <div className="flex flex-wrap items-start justify-between gap-2">
       <p className="min-w-0 break-words text-sm font-semibold text-[#0C2B49]">Requested by {request.client_name || 'document party'}</p>
-      <Badge variant={statusVariant(request.status)}><span className="sr-only">Status: </span>{formatEcopyRequestStatus(request.status)}</Badge>
+      <Badge variant={statusVariant(request.status)} dot><span className="sr-only">Status: </span>{formatEcopyRequestStatus(request.status)}</Badge>
     </div>
     <p className="text-sm text-[#4B6382]">Requested <time dateTime={request.requested_at}>{formatDateTime(request.requested_at)}</time></p>
     {request.decided_at && <p className="text-sm text-[#4B6382]">Decision recorded <time dateTime={request.decided_at}>{formatDateTime(request.decided_at)}</time></p>}

@@ -28,3 +28,12 @@ it('keeps failed verification requests available for the UI to map to unavailabl
 
   await expect(verifyRepositoryDocument('document-123')).rejects.toThrow('API error: 503');
 });
+
+it('requests a quick check without an OCR report when opening a document', async () => {
+  const fetchMock = vi.fn().mockResolvedValue(Response.json({ status: 'AUTHENTIC' }));
+  vi.stubGlobal('fetch', fetchMock);
+
+  await verifyRepositoryDocument('document-123', false);
+
+  expect(fetchMock).toHaveBeenCalledWith('/api/portal/proxy?path=%2Fdocuments%2Fdocument-123%2Fverify%3Freport%3Dfalse', expect.anything());
+});

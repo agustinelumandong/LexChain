@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import DocumentsPage from './documents-page';
+import NewDocumentPage from './new-document-page';
 import type { DocumentListItem } from '../document-library';
 
 const { push } = vi.hoisted(() => ({ push: vi.fn() }));
@@ -36,12 +37,9 @@ afterEach(() => {
 describe('document directory draft creation', () => {
   it('opens a named PREPARING record and navigates to its document workspace', async () => {
     const fetchMock = setupFetch();
-    renderPage();
-
-    fireEvent.click(await screen.findByRole('button', { name: 'New Document' }));
-    fireEvent.click(screen.getByRole('button', { name: /Prepare a document/ }));
+    render(<NewDocumentPage />);
     fireEvent.change(screen.getByRole('textbox', { name: 'Document name' }), { target: { value: 'Client agreement' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Open document record' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue to starting point' }));
 
     await waitFor(() => expect(push).toHaveBeenCalledWith('/portal/documents/new-document'));
     expect(fetchMock).toHaveBeenCalledWith(
@@ -56,17 +54,14 @@ describe('document directory draft creation', () => {
 
   it('keeps the entered name available when the backend rejects the new record', async () => {
     setupFetch(Response.json({ detail: 'The document name is not available.' }, { status: 503 }));
-    renderPage();
-
-    fireEvent.click(await screen.findByRole('button', { name: 'New Document' }));
-    fireEvent.click(screen.getByRole('button', { name: /Prepare a document/ }));
+    render(<NewDocumentPage />);
     const nameField = screen.getByRole('textbox', { name: 'Document name' });
     fireEvent.change(nameField, { target: { value: 'Client agreement' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Open document record' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue to starting point' }));
 
     expect(await screen.findByRole('alert')).toBeTruthy();
     expect((screen.getByRole('textbox', { name: 'Document name' }) as HTMLInputElement).value).toBe('Client agreement');
-    await waitFor(() => expect((screen.getByRole('button', { name: 'Open document record' }) as HTMLButtonElement).disabled).toBe(false));
+    await waitFor(() => expect((screen.getByRole('button', { name: 'Continue to starting point' }) as HTMLButtonElement).disabled).toBe(false));
   });
 
   it('shows the backend message when the document list request fails', async () => {
@@ -81,11 +76,7 @@ describe('document directory draft creation', () => {
     renderPage();
 
     fireEvent.click(await screen.findByRole('button', { name: 'New Document' }));
-    const dialog = screen.getByRole('dialog', { name: 'New Document' });
-    expect(within(dialog).getByRole('link', { name: /File a signed PDF/ }).getAttribute('href')).toBe('/portal/upload');
-    expect(within(dialog).getByText(/Open it from your documents to attach its signed PDF/)).toBeTruthy();
-    fireEvent.keyDown(document, { key: 'Escape' });
-    expect(screen.queryByRole('dialog', { name: 'New Document' })).toBeNull();
+    expect(push).toHaveBeenCalledWith('/portal/documents/new');
   });
 });
 
@@ -156,13 +147,12 @@ describe('document ownership directory', () => {
     const rows = [true, false].flatMap((isOwner) => Array.from({ length: 7 }, (_, index) => documentFixture(`${isOwner ? 'Owned' : 'Shared'} match ${index}`, isOwner)));
     setupFetch(undefined, Response.json(rows), 'document_participant');
     renderPage();
-    expect(await screen.findByText('Showing 1–5 of 14 documents')).toBeTruthy();
+    expect(await screen.findByText('Showing 1–10 of 14 documents')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Next page' }));
-    expect(screen.getByText('Showing 6–10 of 14 documents')).toBeTruthy();
+    expect(screen.getByText('Showing 11–14 of 14 documents')).toBeTruthy();
     fireEvent.change(screen.getByRole('textbox', { name: 'Filter by filename or reference' }), { target: { value: 'Shared' } });
-    expect(screen.getByText('Showing 6–7 of 7 documents')).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: 'Previous page' }));
-    expect(screen.getByText('Showing 1–5 of 7 documents')).toBeTruthy();
+    expect(screen.getByText('Showing 1–7 of 7 documents')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Previous page' }).hasAttribute('disabled')).toBe(true);
     expect(within(screen.getByRole('table')).getByText('Shared match 0.pdf')).toBeTruthy();
   });
   it('counts processing statuses across all document lifecycle states', async () => {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
@@ -35,9 +35,11 @@ import { shortenIntegrityHash, verifyRepositoryDocument } from '@/features/verif
 import { getBaseSepoliaTransactionUrl } from '@/features/verification/integrity-ui';
 import { isMockMode } from '@/lib/mocks/mode';
 import { GoogleDraftPanel } from '@/features/documents/components/google-draft-panel';
+import { DocumentProgress } from '@/features/documents/components/document-progress';
 import { listDocumentParties, type PortalUiRole } from '@/features/access';
 import { DocumentEcopyRequestHistory } from '@/features/access/components/document-ecopy-request-history';
 import { listRegisterBooks } from '@/features/office/books-api';
+import { latestRegisterBook } from '@/features/office/latest-register-book';
 import { PortalDropdown } from '@/features/portal/components';
 import { Checkbox } from '@/shared/components/ui';
 import { usePopup } from '@/shared/components/ui/use-popup';
@@ -88,103 +90,6 @@ function formatDate(value: string | null | undefined) {
     : 'Not available';
 }
 
-const draftWorkflowStages = [
-  { title: 'Prepare', subtitle: 'Draft and review' },
-  { title: 'Review signed PDF', subtitle: 'Sign and check the PDF' },
-  { title: 'Review text and risks', subtitle: 'Check the analysis' },
-  { title: 'Finalize', subtitle: 'Freeze the signed PDF' },
-] as const;
-
-function DraftProgress({ lifecycle, hasDraft = true, status }: {
-  lifecycle: 'PREPARING' | 'READY_FOR_SIGNATURE' | 'SIGNED';
-  hasDraft?: boolean;
-  status?: string | null;
-}) {
-  const currentStage = lifecycle === 'PREPARING' ? 0 : lifecycle === 'SIGNED' && status?.trim().toUpperCase() === 'COMPLETED' ? 2 : 1;
-
-  return (
-    <nav aria-label="Draft and filing progress" className="border-b border-[#D7E4F2] pb-5">
-      <div className="mb-2.5 flex items-center justify-between">
-        <p className="text-xs font-bold uppercase tracking-[0.08em] text-[#4B6382]">
-          {`Step ${currentStage + 1} of ${draftWorkflowStages.length}`}
-        </p>
-      </div>
-
-      <ol className="grid w-full grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4 lg:gap-1.5">
-        {draftWorkflowStages.map((stage, index) => {
-          const isOutsideLexChain = index === 0 && lifecycle === 'SIGNED' && !hasDraft;
-          const isCompleted = index < currentStage && !isOutsideLexChain;
-          const isCurrent = index === currentStage;
-
-          const bgClass = isCompleted
-            ? 'bg-[#00528F] text-white shadow-xs'
-            : isCurrent
-              ? 'bg-[#0067B3]/10 border border-[#0067B3] text-[#0C2B49]'
-              : 'bg-white border border-[#D7E4F2] text-[#4B6382]';
-
-          const titleColor = isCompleted
-            ? 'text-white'
-            : isCurrent
-              ? 'text-[#0C2B49]'
-              : 'text-[#4B6382]';
-
-          const subtitleColor = isCompleted
-            ? 'text-[#D0E6FB]'
-            : isCurrent
-              ? 'text-[#0067B3]'
-              : 'text-[#5B6F8A]';
-
-          const badgeClass = isCompleted
-            ? 'bg-white text-[#00528F]'
-            : isCurrent
-              ? 'bg-[#0067B3] text-white'
-              : 'bg-[#F4F8FC] border border-[#D7E4F2] text-[#4B6382]';
-
-          const chevronClass = index === 0
-            ? 'chevron-step-first'
-            : index === draftWorkflowStages.length - 1
-              ? 'chevron-step-last'
-              : 'chevron-step-middle';
-
-          const paddingClass = index === 0
-            ? 'px-4 py-3 lg:pl-5 lg:pr-8'
-            : index === draftWorkflowStages.length - 1
-              ? 'px-4 py-3 lg:pl-8 lg:pr-5'
-              : 'px-4 py-3 lg:pl-8 lg:pr-8';
-
-          return (
-            <li
-              key={stage.title}
-              aria-current={isCurrent ? 'step' : undefined}
-              className={`relative flex min-h-[58px] items-center gap-2.5 rounded-[14px] lg:rounded-none ${chevronClass} ${bgClass} ${paddingClass} transition-colors`}
-            >
-              <span className="sr-only">
-                {isOutsideLexChain ? 'Not used: ' : isCompleted ? 'Completed: ' : isCurrent ? 'Current step: ' : 'Upcoming: '}
-              </span>
-
-              <span
-                aria-hidden="true"
-                className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold ${badgeClass}`}
-              >
-                {isCompleted ? '✓' : index + 1}
-              </span>
-
-              <div className="flex min-w-0 flex-col justify-center">
-                <span className={`truncate text-sm font-bold leading-tight ${titleColor}`}>
-                  {stage.title}
-                </span>
-                <span className={`mt-0.5 truncate text-xs font-medium leading-4 ${subtitleColor}`}>
-                  {isOutsideLexChain ? 'No LexChain draft linked' : stage.subtitle}
-                </span>
-              </div>
-            </li>
-          );
-        })}
-      </ol>
-    </nav>
-  );
-}
-
 function formatFileSize(bytes: number) {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
@@ -199,7 +104,7 @@ function FinalizationNextStep({ document, role, outcomeUnknown }: {
   const status = document.status?.trim().toUpperCase();
   const heading = outcomeUnknown
     ? 'Check finalization status'
-    : status === 'AWAITING_REVIEW'
+    : status === 'AWAITING_REVIEW' || status === 'READY_FOR_REVIEW'
       ? role === 'lawyer' ? 'Review extracted text' : 'Waiting for text review'
       : status === 'FAILED'
         ? 'Processing failed'
@@ -211,7 +116,7 @@ function FinalizationNextStep({ document, role, outcomeUnknown }: {
       : 'Waiting for finalization';
   const guidance = outcomeUnknown
     ? 'The result is not confirmed. Check the status message above before trying again.'
-    : status === 'AWAITING_REVIEW'
+    : status === 'AWAITING_REVIEW' || status === 'READY_FOR_REVIEW'
       ? role === 'lawyer' ? 'Review and approve the extracted text before analysis.' : 'Your lawyer will review the extracted text.'
       : status === 'FAILED'
         ? document.permissions.can_retry_processing ? 'Retry processing to continue.' : 'The document owner can retry processing.'
@@ -228,96 +133,10 @@ function FinalizationNextStep({ document, role, outcomeUnknown }: {
         : 'Your lawyer will finalize the signed PDF.';
 
   return (
-    <div aria-labelledby="finalization-next-step-heading">
-      <p className="text-xs font-bold uppercase tracking-[0.08em] text-[#4B6382]">Next step</p>
-      <h3 id="finalization-next-step-heading" className="mt-1 text-sm font-bold text-[#0C2B49]">{heading}</h3>
+    <div role="status" aria-live="polite" aria-labelledby="finalization-next-step-heading">
+      <h3 id="finalization-next-step-heading" className="text-sm font-bold text-[#0C2B49]">{heading}</h3>
       <p className="mt-1 text-sm leading-5 text-[#4B6382]">{guidance}</p>
     </div>
-  );
-}
-
-function SignedCopyOverview({
-  document,
-  role,
-  outcomeUnknown,
-  onViewInFiles,
-  onReplace,
-  showActions = true,
-}: {
-  document: WorkspaceDocument;
-  role: PortalUiRole;
-  outcomeUnknown: boolean;
-  onViewInFiles: () => void;
-  onReplace?: () => void;
-  showActions?: boolean;
-}) {
-  const signedCopy = document.signed_copy;
-
-  return (
-    <section aria-label={showActions ? undefined : 'Document processing status'} aria-labelledby={showActions ? 'signed-copy-overview-heading' : undefined} className="rounded-[18px] border border-[#E8F0F8] bg-white p-5 shadow-sm sm:p-6">
-      {showActions && <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2">
-            <h2 id="signed-copy-overview-heading" className={overviewSectionHeadingClassName}>
-              <PictureAsPdfOutlinedIcon aria-hidden="true" sx={{ fontSize: 20, color: '#0067B3' }} />
-              Current signed copy
-            </h2>
-            <span className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${signedCopy ? 'bg-[#E7F5EC] text-[#067647]' : 'bg-[#FFF8E8] text-[#785000]'}`}>
-              {signedCopy ? 'Attached' : 'Pending attachment'}
-            </span>
-          </div>
-          {signedCopy ? (
-            <>
-              <p className="mt-1.5 break-words text-base font-semibold text-[#0C2B49]">
-                {signedCopy.original_filename ?? document.file_name ?? 'Signed PDF'}
-              </p>
-              <p className="mt-0.5 text-xs text-[#4B6382]">
-                Attached {formatDate(signedCopy.created_at)}
-                {typeof signedCopy.size_bytes === 'number' ? ` · ${formatFileSize(signedCopy.size_bytes)}` : ''}
-              </p>
-            </>
-          ) : (
-            <p className="mt-1 text-sm text-[#4B6382]">No signed PDF is attached to this document yet.</p>
-          )}
-        </div>
-        {signedCopy && showActions && (
-          <div className="flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              onClick={onViewInFiles}
-              className="inline-flex min-h-11 items-center gap-1.5 rounded-full bg-[#0067B3] px-3.5 py-2 text-sm font-bold text-white hover:bg-[#0673C4] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3] sm:min-h-9"
-            >
-              <PictureAsPdfOutlinedIcon aria-hidden="true" sx={{ fontSize: 17 }} />
-              View signed PDF
-            </button>
-            <a
-              href={signedCopyFileUrl(document.document_id, {
-                copyId: signedCopy.id,
-                download: true,
-                filename: signedCopy.original_filename ?? document.file_name ?? undefined,
-              })}
-              className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-[#D7E4F2] px-3 py-1.5 text-sm font-semibold text-[#0C2B49] hover:bg-[#EAF4FF] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3] sm:min-h-9"
-            >
-              <DownloadOutlinedIcon aria-hidden="true" sx={{ fontSize: 17 }} />
-              Download PDF
-            </a>
-            {onReplace && (
-              <button
-                type="button"
-                onClick={onReplace}
-                className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-[#0067B3] px-3 py-1.5 text-sm font-semibold text-[#0067B3] hover:bg-[#EAF4FF] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3] sm:min-h-9"
-              >
-                Replace signed PDF
-              </button>
-            )}
-          </div>
-        )}
-      </div>}
-
-      <div className={showActions ? 'mt-4 border-t border-[#E8F0F8] pt-3' : ''}>
-        <FinalizationNextStep document={document} role={role} outcomeUnknown={outcomeUnknown} />
-      </div>
-    </section>
   );
 }
 
@@ -921,6 +740,8 @@ type DocumentWorkspaceProps = {
   readinessError?: Error | null;
   isChangingReadiness?: boolean;
   finalizationOutcomeUnknown?: boolean;
+  isConfirmingFinalization?: boolean;
+  workflowActions?: ReactNode;
   onMarkReady?: () => void;
   onReopen?: () => void;
   onDocumentUpdated?: (document: WorkspaceDocument) => void;
@@ -937,12 +758,20 @@ export function DocumentWorkspace({
   readinessError,
   isChangingReadiness = false,
   finalizationOutcomeUnknown = false,
+  isConfirmingFinalization = false,
+  workflowActions,
   onMarkReady,
   onReopen,
   onDocumentUpdated = () => undefined,
 }: DocumentWorkspaceProps) {
   const requestedTab = tabs.find((tab) => tab.toLowerCase() === initialTab?.toLowerCase());
   const isDrafting = document.lifecycle === 'PREPARING' || document.lifecycle === 'READY_FOR_SIGNATURE';
+  const progressPath = document.draft_url ? 'google' : 'pdf';
+  const status = document.status?.trim().toUpperCase();
+  const isReviewingText = ['AWAITING_REVIEW', 'READY_FOR_REVIEW', 'ENRICHING', 'COMPLETED'].includes(status ?? '');
+  const isProcessing = ['QUEUED', 'PROCESSING', 'ENRICHING'].includes(status ?? '');
+  const showWorkflowStatus = document.lifecycle === 'SIGNED' || (document.lifecycle === 'FINALIZED' && (isProcessing || ['FAILED', 'AWAITING_REVIEW', 'READY_FOR_REVIEW'].includes(status ?? '')));
+  const signedProgressStep = (progressPath === 'google' ? 3 : 2) + (document.lifecycle === 'FINALIZED' || isConfirmingFinalization ? 2 : isReviewingText ? 1 : 0);
   const showAnalysis = document.lifecycle !== 'SIGNED' || document.status?.trim().toUpperCase() === 'COMPLETED';
   const canManageParticipants = role === 'lawyer' && (document.permissions.can_share || document.permissions.can_revoke);
   const visibleTabs = tabs.filter((tab) => (tab !== 'Comments' || (document.lifecycle !== 'FINALIZED' && Boolean(document.draft_url))) && (tab !== 'Participants' || isDrafting || canManageParticipants) && (tab !== 'Blockchain' || !isDrafting));
@@ -958,7 +787,7 @@ export function DocumentWorkspace({
   const [signedCopyFile, setSignedCopyFile] = useState<File | null>(null);
   const [signedCopyDragOver, setSignedCopyDragOver] = useState(false);
   const [replacementReason, setReplacementReason] = useState('');
-  const [signedCopyBookId, setSignedCopyBookId] = useState(document.book_id ?? '');
+  const [chosenSignedCopyBookId, setSignedCopyBookId] = useState(document.book_id ?? '');
   const [enterPaperNumbers, setEnterPaperNumbers] = useState(false);
   const [signedCopyError, setSignedCopyError] = useState<string | null>(null);
   const [reviewedSuggestionsFor, setReviewedSuggestionsFor] = useState<string | null>(null);
@@ -978,6 +807,7 @@ export function DocumentWorkspace({
     retry: false,
     refetchInterval: 15_000,
   });
+  const signedCopyBookId = chosenSignedCopyBookId || latestRegisterBook(registerBooksQuery.data ?? [])?.id || '';
   const selectedSignedCopyBook = registerBooksQuery.data?.find((book) => book.id === signedCopyBookId);
   const signedCopyUsesManualNumbers = selectedSignedCopyBook?.status === 'CLOSED' || enterPaperNumbers;
   const signedCopyMutation = useMutation({
@@ -1300,7 +1130,7 @@ export function DocumentWorkspace({
         ? 'Create or link the Google Doc in Working draft above. Once it is linked, review and resolve comments before marking it ready.'
         : 'Your lawyer is preparing the Google Doc. It will appear above when it is linked to this record.'
       : role === 'lawyer'
-        ? 'Review the wording in Google Docs, then confirm below when the draft is ready.'
+        ? null
         : 'Review the Google Doc and leave feedback in its comments. Your lawyer will mark it ready when the text is settled.'
     : role === 'lawyer'
       ? 'The document owner will attach the signed PDF to this record after signing.'
@@ -1354,7 +1184,7 @@ export function DocumentWorkspace({
           </span>
         )}
       </div>
-      <p className="mt-1 text-sm text-[#5B6F8A]">{nextStepGuidance}</p>
+      {nextStepGuidance && <p className="mt-1 text-sm text-[#5B6F8A]">{nextStepGuidance}</p>}
       {document.lifecycle === 'PREPARING' && readinessError && <div role="alert" className="mt-4 space-y-2 rounded-lg bg-red-50 p-4 text-base font-bold leading-7 text-[#B42318]">
         <p>{readinessError.message}</p>
         {readinessError instanceof LifecycleRequestError && readinessError.reason === 'UNRESOLVED_COMMENTS' && <>
@@ -1468,14 +1298,14 @@ export function DocumentWorkspace({
             <p className="mt-1 max-w-3xl text-sm leading-6 text-[#5B6F8A]">{document.lifecycle === 'PREPARING' ? 'The Google Doc is the working draft. Comments and participants stay with this record while you agree on the text.' : 'Signing happens outside LexChain. Upload the signed PDF here to keep it attached to this same record.'}</p>
           </header>
 
-          {activeTab === 'Overview' && <DraftProgress lifecycle={document.lifecycle === 'PREPARING' ? 'PREPARING' : 'READY_FOR_SIGNATURE'} />}
+          {activeTab === 'Overview' && <DocumentProgress path="google" currentStep={document.lifecycle === 'READY_FOR_SIGNATURE' ? 3 : document.draft_url ? 2 : 1} />}
 
           <div className="mt-6 grid gap-6 pb-6">
             {(activeTab === 'Overview' || activeTab === 'Files') && <section aria-labelledby="working-draft-heading" className="rounded-[18px] border border-[#E8F0F8] bg-white p-5 sm:p-6 shadow-sm">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
                   <DescriptionOutlinedIcon aria-hidden="true" sx={{ fontSize: 20, color: '#0067B3' }} />
-                  <h2 id="working-draft-heading" className="text-lg font-bold leading-6 text-[#0C2B49]">{document.lifecycle === 'PREPARING' ? 'Working draft' : 'Approved text'}</h2>
+                  <h2 id="working-draft-heading" className="text-lg font-bold leading-6 text-[#0C2B49]">{document.lifecycle === 'PREPARING' ? document.draft_url ? 'Working draft' : 'Set up document' : 'Approved text'}</h2>
                   {hasGoogleDraft && (
                     <span className="rounded-full bg-[#EAF4FF] px-2.5 py-0.5 text-xs font-bold text-[#0067B3]">
                       Google Docs · Linked
@@ -1530,7 +1360,7 @@ export function DocumentWorkspace({
       <div role={showTabs ? 'tabpanel' : undefined} className="relative min-h-0 w-full flex-1 space-y-6 overflow-y-auto px-4 py-5 sm:px-6 sm:py-6">
         {activeTab === 'Overview' && isCompletedOverview && (
           <div className="space-y-6">
-            {isCompletedSigned && <DraftProgress lifecycle="SIGNED" hasDraft={Boolean(document.draft_url)} status={document.status} />}
+            {document.lifecycle === 'SIGNED' && <DocumentProgress path={progressPath} currentStep={signedProgressStep} />}
             {signedFilesPanel}
             <section aria-labelledby="completed-summary-heading" className="rounded-[18px] border border-[#E8F0F8] bg-white p-5 shadow-sm sm:p-6">
               <div className="flex items-center justify-between gap-3">
@@ -1586,22 +1416,8 @@ export function DocumentWorkspace({
         {activeTab === 'Overview' && !isCompletedOverview && (
           <div className="min-w-0">
             <div className="space-y-6">
-              {document.lifecycle === 'SIGNED' && <DraftProgress lifecycle="SIGNED" hasDraft={Boolean(document.draft_url)} status={document.status} />}
-              {document.lifecycle === 'SIGNED' && (
-                <SignedCopyOverview
-                  document={document}
-                  role={role}
-                  outcomeUnknown={finalizationOutcomeUnknown}
-                  showActions={showTabs}
-                  onViewInFiles={() => { if (showTabs) selectTab('Files'); else window.document.getElementById('open-signed-pdf')?.click(); }}
-                  onReplace={document.permissions?.can_replace_signed_copy ? () => {
-                    if (showTabs) selectTab('Files');
-                    setSignedCopyMode('replace');
-                    setSignedCopyError(null);
-                    signedCopyMutation.reset();
-                  } : undefined}
-                />
-              )}
+              {document.lifecycle === 'SIGNED' && <DocumentProgress path={progressPath} currentStep={signedProgressStep} />}
+
                 {showAnalysis && <section aria-labelledby="potential-concerns-heading" className="space-y-3 rounded-[18px] border border-[#E8F0F8] bg-white p-5 shadow-sm sm:p-6">
                   <div className="flex min-h-11 flex-wrap items-center justify-between gap-x-2 gap-y-1">
                     <h2 id="potential-concerns-heading" className={overviewSectionHeadingClassName}><WarningAmberOutlinedIcon aria-hidden="true" sx={{ fontSize: 20, color: '#B77900' }} />Potential concerns</h2>
@@ -1805,6 +1621,17 @@ export function DocumentWorkspace({
       </div>
         </>
       )}
+      {(showWorkflowStatus || workflowActions) && <div className="mx-auto w-full max-w-7xl px-4 pb-4 sm:px-6">
+        <section aria-label="Next action" className="rounded-[18px] border border-[#E8F0F8] bg-white p-5 shadow-sm sm:p-6">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            {showWorkflowStatus && <FinalizationNextStep document={document} role={role} outcomeUnknown={finalizationOutcomeUnknown} />}
+            {workflowActions}
+          </div>
+          {showWorkflowStatus && isProcessing && !finalizationOutcomeUnknown && <div role="progressbar" aria-label="Document processing" aria-valuetext={status === 'QUEUED' ? 'Waiting to start' : status === 'ENRICHING' ? 'Analyzing document' : 'Extracting text'} className="mt-4 h-2 overflow-hidden rounded-full bg-[#E8F0F8]">
+            <div className="document-processing-indeterminate h-full w-2/5 rounded-full bg-[#0067B3] motion-reduce:animate-none" />
+          </div>}
+        </section>
+      </div>}
     </section>
   );
 }

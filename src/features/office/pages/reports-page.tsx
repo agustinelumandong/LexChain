@@ -267,7 +267,7 @@ export default function OfficeReportsPage() {
             </button>
           </div>
 
-          {report.reportType === 'office-integrity' && summary ? <p className="mx-5 mt-5 text-sm font-bold text-[#5B6F8A]">Total: {summary.total} · Authentic: {summary.authentic} · Tampered: {summary.tampered} · Snapshot compromised: {summary.snapshot_compromised} · Not anchored: {summary.not_anchored} · Unavailable: {summary.verification_unavailable}</p> : <div className="mx-5 mt-5 rounded-xl border border-[#E4EEF9] bg-[#F8FBFF] px-3 py-2.5 text-sm font-bold text-[#5B6F8A] sm:mx-6"><p>Scope: documents owned by you. Total documents: {report.rows.length}.</p>{Array.from(lifecycleCounts, ([lifecycle, count]) => <p key={lifecycle}>{lifecycle}: {count}</p>)}</div>}
+          {report.reportType === 'office-integrity' && summary ? <p className="mx-5 mt-5 text-sm font-bold text-[#5B6F8A]">Total: {summary.total} · Authentic: {summary.authentic} · Tampered: {summary.tampered} {summary.file_missing !== undefined && <>· Missing files: {summary.file_missing} </>}· Snapshot compromised: {summary.snapshot_compromised} · Not anchored: {summary.not_anchored} · Unavailable: {summary.verification_unavailable}</p> : <div className="mx-5 mt-5 rounded-xl border border-[#E4EEF9] bg-[#F8FBFF] px-3 py-2.5 text-sm font-bold text-[#5B6F8A] sm:mx-6"><p>Scope: documents owned by you. Total documents: {report.rows.length}.</p>{Array.from(lifecycleCounts, ([lifecycle, count]) => <p key={lifecycle}>{lifecycle}: {count}</p>)}</div>}
 
           {report.rows.length ? (
             <div className="mt-5 overflow-x-auto px-5 pb-5 sm:px-6">

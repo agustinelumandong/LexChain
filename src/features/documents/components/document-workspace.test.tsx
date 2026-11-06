@@ -230,8 +230,8 @@ describe('DocumentWorkspace', () => {
     expect(fetchMock).toHaveBeenCalledWith('/api/portal/proxy-post?path=%2Fdocuments%2Fdoc-101%2Fecopy-requests', expect.objectContaining({ method: 'POST' }));
   });
   it.each([
-    ['PREPARING', 'Prepare and review the document', 'Step 1 of 4'],
-    ['READY_FOR_SIGNATURE', 'Sign the document and return the PDF', 'Step 2 of 4'],
+    ['PREPARING', 'Prepare and review the document', 'Step 2 of 5'],
+    ['READY_FOR_SIGNATURE', 'Sign the document and return the PDF', 'Step 3 of 5'],
   ])('shows the drafting workflow with shared navigation (%s)', (lifecycle, heading, step) => {
     renderWorkspace({ document: { ...document, lifecycle, status: 'FAILED' } });
     expect(screen.getByRole('heading', { name: heading })).toBeTruthy();
@@ -247,7 +247,7 @@ describe('DocumentWorkspace', () => {
     const nav = screen.getByRole('navigation', { name: 'Draft and filing progress' });
     const currentStepItem = within(nav).getByRole('listitem', { current: 'step' });
     expect(currentStepItem.textContent).toContain('Current step:');
-    expect(currentStepItem.textContent).toContain('Prepare');
+    expect(currentStepItem.textContent).toContain('Working draft');
 
     const upcomingLabels = within(nav).getAllByText('Upcoming:');
     expect(upcomingLabels.length).toBe(3);
@@ -417,6 +417,19 @@ describe('DocumentWorkspace', () => {
     expect(screen.getByRole('menuitem', { name: /Preparing copy/ }).hasAttribute('disabled')).toBe(true);
   });
 
+  it('defaults to the newest book when attaching a signed copy without an assigned book', async () => {
+    listRegisterBooksMock.mockResolvedValue([
+      { id: 'older', book_number: 4, series_year: 2026, status: 'OPEN', created_at: '2026-01-01T00:00:00Z' },
+      { id: 'newer', book_number: 5, series_year: 2026, status: 'OPEN', created_at: '2026-02-01T00:00:00Z' },
+    ]);
+    renderWorkspace({ document: { ...document, lifecycle: 'READY_FOR_SIGNATURE', book_id: null, signed_copy: null, permissions: { ...document.permissions, can_attach_signed_copy: true } } });
+    const dropdown = screen.getByRole('combobox', { name: 'Register book' });
+    await waitFor(() => expect(dropdown.textContent).toContain('Register book 5'));
+    fireEvent.click(dropdown);
+    fireEvent.click(screen.getByRole('option', { name: /Register book 4/ }));
+    expect(dropdown.textContent).toContain('Register book 4');
+  });
+
   it('attaches a prepared document without a book using automatic open-book numbering', async () => {
     attachSignedCopyMock.mockResolvedValue({ ...document, lifecycle: 'SIGNED', book_id: 'book-101' });
     renderWorkspace({ document: {
@@ -556,8 +569,27 @@ describe('DocumentWorkspace', () => {
     renderWorkspace({ document: { ...document, lifecycle: 'SIGNED', draft_url: null } });
     const progress = screen.getByRole('navigation', { name: 'Draft and filing progress' });
     expect(within(progress).getByRole('listitem', { current: 'step' }).textContent).toContain('Review signed PDF');
-    expect(within(progress).getByText('No LexChain draft linked')).toBeTruthy();
+    expect(within(progress).getByText('Upload document')).toBeTruthy();
     expect(within(progress).getByText('Step 2 of 4')).toBeTruthy();
+  });
+
+  it('shows setup and working draft as separate steps for Google documents', () => {
+    renderWorkspace({ document: { ...document, lifecycle: 'PREPARING', draft_url: null, permissions: { ...document.permissions, can_create_draft: true } } });
+    const progress = screen.getByRole('navigation', { name: 'Draft and filing progress' });
+    expect(within(progress).getByText('Step 1 of 5')).toBeTruthy();
+  });
+
+  it.each(['AWAITING_REVIEW', 'COMPLETED'])('hides progress for a finalized PDF with status %s', (status) => {
+    renderWorkspace({ document: { ...document, lifecycle: 'FINALIZED', draft_url: null, status, on_chain: true } });
+    expect(screen.queryByRole('navigation', { name: 'Draft and filing progress' })).toBeNull();
+    expect(screen.getByRole('tab', { name: 'Overview' })).toBeTruthy();
+  });
+
+  it('shows the finalization step while confirming finalization', () => {
+    renderWorkspace({ isConfirmingFinalization: true, document: { ...document, lifecycle: 'SIGNED', draft_url: null } });
+    const progress = screen.getByRole('navigation', { name: 'Draft and filing progress' });
+    expect(within(progress).getByText('Step 4 of 4')).toBeTruthy();
+    expect(within(progress).getByRole('listitem', { current: 'step' }).textContent).toContain('Finalize');
   });
 
   it('explains that a queued signed PDF is waiting to start', () => {
@@ -569,15 +601,42 @@ describe('DocumentWorkspace', () => {
     expect(screen.queryByText('Document details')).toBeNull();
   });
 
-  it.each(['QUEUED', 'PROCESSING', 'AWAITING_REVIEW', 'ENRICHING', 'FAILED'])('keeps analysis hidden before processing completes (%s)', (status) => {
+  it.each(['QUEUED', 'PROCESSING', 'FAILED', 'AWAITING_REVIEW', 'READY_FOR_REVIEW', 'ENRICHING'])('hides the Google draft reference card on the signed document overview (%s)', (status) => {
+    renderWorkspace({ role: 'lawyer', document: { ...document, lifecycle: 'SIGNED', status } });
+    expect(screen.getByText(`Step ${['QUEUED', 'PROCESSING', 'FAILED'].includes(status) ? 3 : 4} of 5`)).toBeTruthy();
+    expect(screen.queryByText('Working draft in Google Docs')).toBeNull();
+    expect(screen.getByRole('heading', { name: 'Signed PDF' })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Participants' })).toBeTruthy();
+  });
+
+  it.each(['QUEUED', 'PROCESSING', 'FAILED'])('keeps analysis hidden before processing completes (%s)', (status) => {
     renderWorkspace({ document: { ...document, lifecycle: 'SIGNED', status } });
-    expect(screen.getByRole('navigation', { name: 'Draft and filing progress' }).textContent).toContain('Step 2 of 4');
+    expect(screen.getByRole('navigation', { name: 'Draft and filing progress' }).textContent).toContain('Step 3 of 5');
     expect(screen.queryByRole('heading', { name: 'Potential concerns' })).toBeNull();
     expect(screen.queryByText('Document details')).toBeNull();
     expect(screen.queryByText('Participants and document history')).toBeNull();
     expect(screen.getByRole('heading', { name: 'Participants' })).toBeTruthy();
     expect(screen.queryByRole('heading', { name: 'Invite a participant' })).toBeNull();
     expect(screen.queryByRole('heading', { name: 'Recent history' })).toBeNull();
+  });
+
+  it.each(['AWAITING_REVIEW', 'READY_FOR_REVIEW', 'ENRICHING', 'COMPLETED'])('shows text and risk review before finalization when processing is %s', (status) => {
+    renderWorkspace({ role: 'lawyer', document: { ...document, lifecycle: 'SIGNED', draft_url: null, status } });
+    const progress = screen.getByRole('navigation', { name: 'Draft and filing progress' });
+    expect(within(progress).getByText('Step 3 of 4')).toBeTruthy();
+    expect(within(progress).getByRole('listitem', { current: 'step' }).textContent).toContain('Review text and risks');
+  });
+
+  it('shows Google draft text review as step 4 before finalization', () => {
+    renderWorkspace({ role: 'lawyer', document: { ...document, lifecycle: 'SIGNED', status: 'AWAITING_REVIEW' } });
+    const progress = screen.getByRole('navigation', { name: 'Draft and filing progress' });
+    expect(within(progress).getByText('Step 4 of 5')).toBeTruthy();
+    expect(within(progress).getByRole('listitem', { current: 'step' }).textContent).toContain('Review text and risks');
+    expect(within(progress).getAllByRole('listitem').map((item) => item.textContent)).toEqual([
+      expect.stringContaining('Set up document'), expect.stringContaining('Working draft'),
+      expect.stringContaining('Review signed PDF'), expect.stringContaining('Review text and risks'),
+      expect.stringContaining('Finalize'),
+    ]);
   });
 
   it('shows text review before finalization and warns when analysis is partial', () => {
@@ -1431,7 +1490,7 @@ describe('DocumentWorkspace', () => {
     expect(screen.queryByRole('tablist')).toBeNull();
 
     // Signed copy section is prominent
-    const signedSection = screen.getByRole('region', { name: 'Document processing status' });
+    const signedSection = screen.getByRole('region', { name: 'Next action' });
 
     // Next action guidance is prominent within the section
     expect(within(signedSection).getByRole('heading', { name: 'Check the signed PDF' })).toBeTruthy();
@@ -1477,7 +1536,7 @@ describe('DocumentWorkspace', () => {
   it('handles signed document without an attached copy gracefully (#168)', () => {
     renderWorkspace({ document: { ...document, lifecycle: 'SIGNED', signed_copy: null } });
 
-    const signedSection = screen.getByRole('region', { name: 'Document processing status' });
+    const signedSection = screen.getByRole('region', { name: 'Next action' });
     expect(screen.getByText('No signed PDF is attached to this document yet.')).toBeTruthy();
     expect(within(signedSection).getByRole('heading', { name: 'Waiting for finalization' })).toBeTruthy();
     expect(within(signedSection).queryByRole('button', { name: 'View signed PDF' })).toBeNull();

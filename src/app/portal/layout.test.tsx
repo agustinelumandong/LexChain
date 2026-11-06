@@ -62,8 +62,8 @@ describe("portal layout role hint", () => {
     },
   );
 
-  it('leaves nested document review routes with normal page scrolling', async () => {
-    routePathname.value = '/portal/documents/doc-123/verify';
+  it.each(['/portal/documents/new', '/portal/documents/doc-123/verify'])('leaves %s with normal page scrolling', async (pathname) => {
+    routePathname.value = pathname;
     await renderPortal('lawyer');
 
     expect(document.querySelector('main')?.className).toContain('min-h-screen');

@@ -246,6 +246,20 @@ describe('VerifyWorkspace', () => {
     });
   });
 
+  it('explains a missing file without offering a PDF preview', () => {
+    render(<VerifyWorkspace result={{ ...result, status: 'FILE_MISSING', is_authentic: false, current_hash: null }} onRetry={vi.fn()} role="user" />);
+    expect(screen.getByText('The document file is missing')).toBeTruthy();
+    expect(screen.getByText(/stored document file was deleted/i)).toBeTruthy();
+    expect(screen.queryByRole('region', { name: 'Current document' })).toBeNull();
+  });
+
+  it('warns when an authentic file has an untrusted snapshot', () => {
+    render(<VerifyWorkspace result={{ ...result, status: 'AUTHENTIC', is_authentic: true, baseline_trusted: false }} onRetry={vi.fn()} />);
+    expect(screen.getByText('This PDF matches, but the saved reference needs attention')).toBeTruthy();
+    expect(screen.getByText(/stored snapshot is not trusted and still needs attention/i)).toBeTruthy();
+    expect(screen.queryByRole('status', { name: 'Cryptographic hash match' })).toBeNull();
+  });
+
   it('explains unavailable, compromised, and unconfirmed states in plain language (#160)', () => {
     vi.stubEnv('NEXT_PUBLIC_USE_MOCK_API', 'false');
     vi.stubEnv('USE_MOCK_API', 'false');
@@ -269,7 +283,7 @@ describe('VerifyWorkspace', () => {
       tamper_report: null,
     };
     rerender(<VerifyWorkspace result={compromisedResult} onRetry={vi.fn()} role="user" />);
-    expect(screen.getByText('The stored baseline copy could not be verified against the blockchain record. Because the reference baseline is untrusted, no comparison can be made.')).toBeTruthy();
+    expect(screen.getByText('The current file differs from the blockchain record or is missing, and the stored reference is compromised. A detailed comparison is unavailable.')).toBeTruthy();
     expect(screen.getByText("Contact your lawyer or the document owner if you have questions regarding this document's integrity.")).toBeTruthy();
   });
 });

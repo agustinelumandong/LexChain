@@ -29,7 +29,7 @@ vi.mock('@/shared/api/client', () => ({
   portalFetch: vi.fn(async () => [{ id: 'mock-document-1', file_name: 'Lease Agreement.pdf', lifecycle: 'FINALIZED', status: 'anchored', is_owner: true, created_at: '2026-07-10T09:00:00.000Z' }]),
 }));
 vi.mock('@/features/office/integrity-report', () => ({
-  fetchIntegrityReport: vi.fn(async () => ({ summary: { total: 1, authentic: 1, tampered: 0, snapshot_compromised: 0, not_anchored: 0, verification_unavailable: 0 }, rows: [{ file_name: 'Lease Agreement.pdf', status: 'AUTHENTIC', verified_at: '2026-07-10T09:00:00Z' }] })),
+  fetchIntegrityReport: vi.fn(async () => ({ summary: { total: 1, authentic: 1, tampered: 0, file_missing: 2, snapshot_compromised: 0, not_anchored: 0, verification_unavailable: 0 }, rows: [{ file_name: 'Lease Agreement.pdf', status: 'AUTHENTIC', verified_at: '2026-07-10T09:00:00Z' }] })),
 }));
 
 afterEach(() => {
@@ -133,6 +133,7 @@ describe('ReportsPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Generate' }));
     expect(await screen.findByRole('region', { name: 'Integrity report' })).toBeTruthy();
     expect(screen.getByText(/Total: 1 · Authentic: 1/)).toBeTruthy();
+    expect(screen.getByText(/Missing files: 2/)).toBeTruthy();
   });
 
   it('requires both report dates before generating', async () => {

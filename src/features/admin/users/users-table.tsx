@@ -133,7 +133,7 @@ export function UsersTable({ users }: { users: AdminUser[] }) {
           { key: "name", label: "Name", render: (user) => <span className="font-semibold text-[#0C2B49]">{`${user.f_name ?? ""} ${user.l_name ?? ""}`.trim() || user.email}</span> },
           { key: "email", label: "Email", render: (user) => <span className="text-[#5B6F8A]">{user.email}</span> },
           { key: "role", label: "Role", render: (user) => <Badge>{formatRole(user.role)}</Badge> },
-          { key: "status", label: "Status", render: (user) => <Badge variant={getUserStatus(user) ? "success" : "danger"}>{getUserStatus(user) ? "Active" : "Inactive"}</Badge> },
+          { key: "status", label: "Status", render: (user) => <Badge variant={getUserStatus(user) ? "success" : "danger"} dot>{getUserStatus(user) ? "Active" : "Inactive"}</Badge> },
           { key: "joined", label: "Joined", render: (user) => <span className="text-[#5B6F8A] tabular-nums">{new Date(user.created_at).toLocaleDateString()}</span> },
           { key: "actions", label: "", render: (user) => <ActionsMenu userId={user.id} /> },
         ]}

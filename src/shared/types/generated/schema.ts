@@ -765,7 +765,7 @@ export interface paths {
         };
         /**
          * Verify a document against the chain
-         * @description Hashes the stored signed copy as it is now and compares it with the hash anchored on-chain. The verdict is computed server-side. When the status is TAMPERED, the archived original (re-hashed against the chain) and the current file are both extracted and diffed: `tamper_report` lists the changed segments with page and bbox where the OCR engine reports layout. If that diff cannot be produced, `tamper_report_status` is UNAVAILABLE and the TAMPERED verdict still stands. Every check that reaches a verdict is kept for the integrity report.
+         * @description Hashes the stored signed copy as it is now and compares it with the hash anchored on-chain. The verdict is computed server-side. When the status is TAMPERED, the archived original (re-hashed against the chain) and the current file are both extracted and diffed: `tamper_report` lists the changed segments with page and bbox where the OCR engine reports layout. If that diff cannot be produced, `tamper_report_status` is UNAVAILABLE and the TAMPERED verdict still stands. A deleted file is FILE_MISSING, a tamper finding; VERIFICATION_UNAVAILABLE means storage or the chain could not be read. The chain is read first, so an anchored document is checked whatever its `lifecycle` says. Every check that reaches a verdict is kept for the integrity report. With `report=false` this is the quick check made when a document is opened: hashes only, no OCR and no `tamper_report`, and an AUTHENTIC or NOT_ANCHORED verdict is not kept.
          */
         get: operations["verify_document_documents__document_id__verify_get"];
         put?: never;
@@ -786,8 +786,8 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Restore a tampered document from its archive
-         * @description For a FINALIZED document whose verification is TAMPERED. The archived original is re-hashed against the on-chain hash, then becomes the current signed copy; the tampered file is kept in /signed-copies and the restore is recorded in /history with both hashes. The lifecycle and the on-chain record are unchanged. If the document is already AUTHENTIC nothing changes and `restored` is false, so a retry is safe. `verification` is a fresh check of the result.
+         * Restore a tampered or deleted document from its archive
+         * @description For a FINALIZED document whose verification is TAMPERED, FILE_MISSING or SNAPSHOT_COMPROMISED. The archive is found from the on-chain hash, so an altered snapshot row doesn't block it, and it stays altered until restored from a database backup. The archived original is re-hashed against the on-chain hash, then becomes the current signed copy; a tampered file is kept in /signed-copies and the restore is recorded in /history with both hashes. For a deleted file nothing is preserved, and `preserved_copy_id`, `previous_hash` and the history row's `from_hash` are null. The lifecycle and the on-chain record are unchanged. If the document is already AUTHENTIC nothing changes and `restored` is false, so a retry is safe. `verification` is a fresh check of the result.
          */
         post: operations["restore_document_documents__document_id__restore_post"];
         delete?: never;
@@ -1098,9 +1098,29 @@ export interface paths {
         put?: never;
         /**
          * Verify document backups
-         * @description Downloads every finalized document's archive and checks it against the hash anchored on-chain. With `repair=true`, a missing archive is written from the live signed copy, if the snapshot matches the on-chain hash and the live copy still matches it. A bad archive is reported, never overwritten. Also runs daily without repair.
+         * @description Downloads every finalized document's archive and checks it against the hash anchored on-chain. With `repair=true`, a missing archive is written from the live signed copy, if the snapshot matches the on-chain hash and the live copy still matches it. A bad archive is reported, never overwritten. Each document's current signed copy is also checked against the chain and reported under `live`; a mismatch is recorded and the lawyer who finalized the document is notified once per tampered file. Also runs daily without repair.
          */
         post: operations["verify_backups_admin_backups_verify_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/chain/reconcile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reconcile the database against the chain
+         * @description Lists every document ID anchored on-chain and checks that its document and snapshot rows still exist. Checks presence only, and repairs nothing: a missing row is restored by hand from a database dump. Lawyers are notified once per finding. `skipped` is true when CHAIN_SCAN_FROM_BLOCK isn't set. Also runs on a schedule, weekly by default.
+         */
+        post: operations["reconcile_chain_admin_chain_reconcile_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1484,10 +1504,10 @@ export interface components {
             document_id: string;
             /**
              * Status
-             * @description ok: archive present and matches the anchored hash. missing: no archive. mismatch: the archive's bytes differ from the anchored hash. repaired: re-archived from the live copy. unrecoverable: no good archive and the live copy no longer matches either.
+             * @description ok: archive present and matches the anchored hash. missing: no archive. mismatch: the archive's bytes, the snapshot and the anchored hash do not all agree. unverified: the chain had no record or could not be read, so integrity is unknown. repaired: re-archived from the live copy. unrecoverable: no good archive and the live copy no longer matches either.
              * @enum {string}
              */
-            status: "ok" | "missing" | "mismatch" | "repaired" | "unrecoverable";
+            status: "ok" | "missing" | "mismatch" | "unverified" | "repaired" | "unrecoverable";
             /** Backup Key */
             backup_key?: string | null;
         };
@@ -1504,6 +1524,8 @@ export interface components {
             missing: number;
             /** Mismatch */
             mismatch: number;
+            /** Unverified */
+            unverified: number;
             /** Repaired */
             repaired: number;
             /** Unrecoverable */
@@ -1513,6 +1535,8 @@ export interface components {
              * @description Every snapshot whose status is not ok
              */
             problems?: components["schemas"]["BackupCheck"][];
+            /** @description Each document's current signed copy against the chain */
+            live: components["schemas"]["LiveFileReport"];
         };
         /**
          * BlockEdit
@@ -1671,6 +1695,60 @@ export interface components {
             created_at: string;
             /** Updated At */
             updated_at?: string | null;
+        };
+        /** ChainReconcileCheck */
+        ChainReconcileCheck: {
+            /**
+             * Document Id
+             * @description The ID as anchored; no database row may exist for it
+             */
+            document_id: string;
+            /**
+             * Status
+             * @description snapshot_missing: the document is FINALIZED but its snapshot row is gone. orphaned_anchor: the document isn't FINALIZED, so finalize failed after anchoring or the lifecycle was edited; not reported as tampering. document_missing: the document row is gone.
+             * @enum {string}
+             */
+            status: "ok" | "snapshot_missing" | "orphaned_anchor" | "document_missing";
+        };
+        /** ChainReconcileResponse */
+        ChainReconcileResponse: {
+            /**
+             * Skipped
+             * @description True when CHAIN_SCAN_FROM_BLOCK isn't set: nothing was checked
+             * @default false
+             */
+            skipped: boolean;
+            /**
+             * Checked
+             * @description Document IDs anchored on-chain
+             * @default 0
+             */
+            checked: number;
+            /**
+             * Ok
+             * @default 0
+             */
+            ok: number;
+            /**
+             * Snapshot Missing
+             * @default 0
+             */
+            snapshot_missing: number;
+            /**
+             * Orphaned Anchor
+             * @default 0
+             */
+            orphaned_anchor: number;
+            /**
+             * Document Missing
+             * @default 0
+             */
+            document_missing: number;
+            /**
+             * Problems
+             * @description Every anchored ID whose status is not ok
+             */
+            problems?: components["schemas"]["ChainReconcileCheck"][];
         };
         /** ChatTurn */
         ChatTurn: {
@@ -2165,7 +2243,7 @@ export interface components {
             file_name?: string | null;
             /**
              * Status
-             * @description AUTHENTIC — the stored file matches the chain; TAMPERED — it does not; SNAPSHOT_COMPROMISED — the stored original was altered too, so no trustworthy baseline exists to diff against; NOT_ANCHORED — the document was never finalized; VERIFICATION_UNAVAILABLE — the document could not be re-read, so integrity is unknown (this is not a tamper result)
+             * @description AUTHENTIC — the stored file matches the chain; TAMPERED — it does not; FILE_MISSING — the stored file was deleted (a tamper finding; `current_hash` is null and there is no diff); SNAPSHOT_COMPROMISED — the file was changed or deleted and the stored original was altered too, so no trustworthy baseline exists to diff against; NOT_ANCHORED — the document was never finalized and the chain has no record of it; VERIFICATION_UNAVAILABLE — storage or the chain could not be read, or an anchor exists with no finalized state or frozen record to check it against, so integrity is unknown (not a tamper finding by itself)
              */
             status: string;
             /** Is Authentic */
@@ -2210,7 +2288,7 @@ export interface components {
             message: string;
             /**
              * Tamper Report Status
-             * @description AVAILABLE — `tamper_report` holds a diff against a trusted baseline; UNAVAILABLE — the document is TAMPERED but no trustworthy diff could be produced (the verdict still stands); NOT_APPLICABLE — any status other than TAMPERED
+             * @description AVAILABLE — `tamper_report` holds a diff against a trusted baseline; UNAVAILABLE — the document is TAMPERED but no trustworthy diff could be produced (the verdict still stands); NOT_APPLICABLE — any status other than TAMPERED, or the quick check, which makes no diff
              * @default NOT_APPLICABLE
              * @enum {string}
              */
@@ -2679,6 +2757,11 @@ export interface components {
              */
             tampered: number;
             /**
+             * File Missing
+             * @default 0
+             */
+            file_missing: number;
+            /**
              * Snapshot Compromised
              * @default 0
              */
@@ -2724,6 +2807,39 @@ export interface components {
             created_at: string;
             /** Magic Link */
             magic_link?: string | null;
+        };
+        /** LiveFileCheck */
+        LiveFileCheck: {
+            /**
+             * Document Id
+             * Format: uuid
+             */
+            document_id: string;
+            /**
+             * Status
+             * @description TAMPERED: the live file differs from the anchored hash. FILE_MISSING: the live file was deleted. SNAPSHOT_COMPROMISED: either of those, and the snapshot row differs from the chain too. VERIFICATION_UNAVAILABLE: storage or the chain could not be read, so integrity is unknown.
+             */
+            status: string;
+        };
+        /** LiveFileReport */
+        LiveFileReport: {
+            /** Checked */
+            checked: number;
+            /** Ok */
+            ok: number;
+            /** Tampered */
+            tampered: number;
+            /** File Missing */
+            file_missing: number;
+            /** Snapshot Compromised */
+            snapshot_compromised: number;
+            /** Unavailable */
+            unavailable: number;
+            /**
+             * Problems
+             * @description Every live file that is not ok
+             */
+            problems?: components["schemas"]["LiveFileCheck"][];
         };
         /** MarkAllReadResponse */
         MarkAllReadResponse: {
@@ -2773,7 +2889,7 @@ export interface components {
          * NotificationType
          * @enum {string}
          */
-        NotificationType: "party_added" | "party_removed" | "document_recorded" | "document_processed" | "document_failed" | "draft_comment" | "draft_reply" | "draft_resolved" | "draft_reopened" | "ecopy_requested" | "ecopy_approved" | "ecopy_declined" | "ecopy_delivery_failed";
+        NotificationType: "party_added" | "party_removed" | "document_recorded" | "document_processed" | "document_failed" | "draft_comment" | "draft_reply" | "draft_resolved" | "draft_reopened" | "ecopy_requested" | "ecopy_approved" | "ecopy_declined" | "ecopy_delivery_failed" | "anchored_record_missing" | "live_file_tampered";
         /**
          * OpenDocumentRequest
          * @description Path 1 — open a document record before anything is signed.
@@ -3482,7 +3598,7 @@ export interface components {
             verified_by?: string | null;
             /**
              * Status
-             * @description AUTHENTIC | TAMPERED | SNAPSHOT_COMPROMISED | NOT_ANCHORED | VERIFICATION_UNAVAILABLE — as on DocumentVerificationResponse. VERIFICATION_UNAVAILABLE means integrity was unknown, not tampered
+             * @description AUTHENTIC | TAMPERED | FILE_MISSING | SNAPSHOT_COMPROMISED | NOT_ANCHORED | VERIFICATION_UNAVAILABLE — as on DocumentVerificationResponse. VERIFICATION_UNAVAILABLE means integrity was unknown, not tampered
              */
             status: string;
             /** Is Authentic */
@@ -5312,7 +5428,10 @@ export interface operations {
     };
     verify_document_documents__document_id__verify_get: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Run the OCR diff; false makes this the quick check */
+                report?: boolean;
+            };
             header?: never;
             path: {
                 document_id: string;
@@ -5337,7 +5456,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Document not found, or it has no on-chain record */
+            /** @description Document not found, or a FINALIZED document has no on-chain record or no stored original */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -5396,7 +5515,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Not FINALIZED, SNAPSHOT_COMPROMISED, no archived original, or the archive does not match the chain */
+            /** @description Not FINALIZED, no signed copy record, no archived original, or the archive does not match the chain */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -5412,7 +5531,7 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
-            /** @description Storage or the archive is unavailable; nothing changed */
+            /** @description Storage, the chain or the archive is unavailable; nothing changed */
             503: {
                 headers: {
                     [name: string]: unknown;
@@ -6322,6 +6441,40 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
+            };
+        };
+    };
+    reconcile_chain_admin_chain_reconcile_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Reconciliation summary */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChainReconcileResponse"];
+                };
+            };
+            /** @description Not a lawyer */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The chain could not be read in full; nothing is reported */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

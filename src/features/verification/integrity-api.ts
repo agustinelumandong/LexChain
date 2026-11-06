@@ -13,6 +13,6 @@ async function integrityFetch<T>(path: string, method: 'GET' | 'POST' = 'GET'): 
   return response.json() as Promise<T>;
 }
 
-export function verifyRepositoryDocument(documentId: string) {
-  return integrityFetch<DocumentVerification>(`/api/portal/proxy?path=${encodeURIComponent(`/documents/${documentId}/verify`)}`);
+export function verifyRepositoryDocument(documentId: string, report = true) {
+  return integrityFetch<DocumentVerification>(`/api/portal/proxy?path=${encodeURIComponent(`/documents/${documentId}/verify${report ? '' : '?report=false'}`)}`);
 }

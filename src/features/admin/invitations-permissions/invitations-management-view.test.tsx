@@ -72,7 +72,7 @@ it("renders a coherent zero state in the chart center when invitations are empty
   const chartCenter = within(statusSection).getByText("Total Invites").closest("div")!;
   expect(within(chartCenter).getByText("0")).toBeTruthy();
 
-  const totalInvitesMetric = screen.getByText("All invitation records").closest("article")!;
+  const totalInvitesMetric = screen.getByText("Total Invites", { selector: "p" }).closest("article")!;
   expect(within(totalInvitesMetric).getByText("0")).toBeTruthy();
 });
 
@@ -93,7 +93,7 @@ it("renders matching counts and percentages when invitations are populated (#164
   const chartCenter = within(statusSection).getByText("Total Invites").closest("div")!;
   expect(within(chartCenter).getByText("2")).toBeTruthy();
 
-  const totalInvitesMetric = screen.getByText("All invitation records").closest("article")!;
+  const totalInvitesMetric = screen.getByText("Total Invites", { selector: "p" }).closest("article")!;
   expect(within(totalInvitesMetric).getByText("2")).toBeTruthy();
   expect(within(statusSection).getAllByText("(50%)")).toHaveLength(2);
 });

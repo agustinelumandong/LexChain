@@ -44,7 +44,7 @@ type PickerBuilder = {
 type PickerWindow = Window & {
   gapi?: { load: (name: string, callback: () => void) => void };
   google?: { picker: {
-    Action: { PICKED: string };
+    Action: { PICKED: string; CANCEL: string };
     ViewId: { DOCS: string };
     DocsView: new (view: string) => { setMimeTypes: (types: string) => unknown };
     PickerBuilder: new () => PickerBuilder;
@@ -76,9 +76,16 @@ async function openGooglePicker(onPicked: (file: PickedFile) => void): Promise<v
   if (!picker) throw new Error('Google Picker did not initialize. Try again.');
   const view = new picker.DocsView(picker.ViewId.DOCS);
   view.setMimeTypes('application/vnd.google-apps.document');
-  new picker.PickerBuilder().addView(view).setOAuthToken(token.access_token).setDeveloperKey(apiKey).setAppId(appId).setTitle('Choose a Google Doc').setCallback((data) => {
-    if (data.action === picker.Action.PICKED && data.docs?.[0]?.id) onPicked({ id: data.docs[0].id, name: data.docs[0].name ?? 'Google Doc' });
-  }).build().setVisible(true);
+  await new Promise<void>((resolve) => {
+    new picker.PickerBuilder().addView(view).setOAuthToken(token.access_token).setDeveloperKey(apiKey).setAppId(appId).setTitle('Choose a Google Doc').setCallback((data) => {
+      if (data.action === picker.Action.PICKED) {
+        if (data.docs?.[0]?.id) onPicked({ id: data.docs[0].id, name: data.docs[0].name ?? 'Google Doc' });
+        resolve();
+      } else if (data.action === picker.Action.CANCEL) {
+        resolve();
+      }
+    }).build().setVisible(true);
+  });
 }
 
 function errorMessage(cause: unknown, source: Source): { message: string; needsGoogleConnection: boolean } {
@@ -185,9 +192,10 @@ function DraftCreationForm({ source, picked, uploadFile, uploadError, error, nee
   </section>;
 }
 
-export function GoogleDraftPanel({ document, onDocumentUpdated }: {
+export function GoogleDraftPanel({ document, onDocumentUpdated, onBusyChange }: {
   document: ApiSchema<'DocumentResponse'>;
   onDocumentUpdated: (document: ApiSchema<'DocumentResponse'>) => void;
+  onBusyChange?: (busy: boolean) => void;
 }) {
   const [source, setSource] = useState<Source>('blank');
   const [picked, setPicked] = useState<PickedFile | null>(null);
@@ -211,6 +219,7 @@ export function GoogleDraftPanel({ document, onDocumentUpdated }: {
 
   async function chooseFile() {
     setPicking(true);
+    onBusyChange?.(true);
     setError('');
     setNeedsGoogleConnection(false);
     try {
@@ -221,11 +230,13 @@ export function GoogleDraftPanel({ document, onDocumentUpdated }: {
       setNeedsGoogleConnection(failure.needsGoogleConnection);
     } finally {
       setPicking(false);
+      onBusyChange?.(false);
     }
   }
 
   async function createDraft() {
     setPending(true);
+    onBusyChange?.(true);
     setError('');
     setNeedsGoogleConnection(false);
     try {
@@ -240,6 +251,7 @@ export function GoogleDraftPanel({ document, onDocumentUpdated }: {
       if (source !== 'blank' && source !== 'upload' && (status === 400 || status === 404)) setPicked(null);
     } finally {
       setPending(false);
+      onBusyChange?.(false);
     }
   }
 
