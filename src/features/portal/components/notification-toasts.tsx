@@ -22,7 +22,10 @@ export function NotificationToasts({ notifications }: { notifications: PortalNot
       seenIds.current.add(notification.id);
       if (notification.is_read) continue;
       const destination = getNotificationDestination(notification);
-      toast.info(notification.title, {
+      const showToast = notification.type === 'document_failed' || notification.type === 'ecopy_delivery_failed'
+        ? toast.error
+        : toast.info;
+      showToast(notification.title, {
         description: notification.body,
         action: destination ? {
           label: 'View',

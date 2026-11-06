@@ -3,8 +3,8 @@ import { cleanup, render } from '@testing-library/react';
 import { afterEach, expect, it, vi } from 'vitest';
 import { NotificationToasts } from './notification-toasts';
 
-const { notify, push } = vi.hoisted(() => ({ notify: vi.fn(), push: vi.fn() }));
-vi.mock('sonner', () => ({ toast: { info: notify } }));
+const { notify, notifyError, push } = vi.hoisted(() => ({ notify: vi.fn(), notifyError: vi.fn(), push: vi.fn() }));
+vi.mock('sonner', () => ({ toast: { info: notify, error: notifyError } }));
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push }) }));
 
 afterEach(() => { cleanup(); vi.clearAllMocks(); });
@@ -31,4 +31,12 @@ it('does not offer an action for an unsafe destination or announce already-read 
   rerender(<NotificationToasts notifications={[notice, { ...notice, id: 'read', is_read: true }]} />);
   expect(notify).toHaveBeenCalledOnce();
   expect(notify.mock.calls[0][1].action).toBeUndefined();
+});
+
+it.each(['document_failed', 'ecopy_delivery_failed'] as const)('uses an error toast for %s', (type) => {
+  const { rerender } = render(<NotificationToasts notifications={[]} />);
+  const notice = { id: 'failed', type, title: 'Processing failed', body: 'Please review', is_read: false, event_metadata: { document_id: 'doc-1' }, created_at: '2026-01-01' };
+  rerender(<NotificationToasts notifications={[notice]} />);
+  expect(notifyError).toHaveBeenCalledWith('Processing failed', expect.objectContaining({ description: 'Please review' }));
+  expect(notify).not.toHaveBeenCalled();
 });
