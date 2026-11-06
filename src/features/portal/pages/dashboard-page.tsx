@@ -66,16 +66,6 @@ function getMetricColor(label: string) {
   return 'bg-[#EAF3FF] text-[#0067B3]';
 }
 
-function getMetricDetail(label: string) {
-  if (label === 'Total Users') return 'Registered accounts';
-  if (label === 'Total Documents') return 'System-wide documents';
-  if (label === 'Total Processed') return 'System-wide processed';
-  if (label === 'Total Failed') return 'System-wide failed processing';
-  if (label === 'Total On Chain') return 'System-wide recorded on chain';
-  if (label === 'Pending Invitations') return 'awaiting acceptance';
-  return '—';
-}
-
 export default function DashboardPage() {
   const role = usePortalRole();
   const isIssuer = role === 'lawyer';
@@ -163,7 +153,7 @@ export default function DashboardPage() {
           <div className="shrink-0 grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3">
           {metrics.map(([label, value]) => {
             const Icon = getMetricIcon(label);
-            return <MetricCard key={label} icon={<Icon fontSize="small" />} label={label} value={value ?? 'Unavailable'} detail={getMetricDetail(label)} color={getMetricColor(label)} />;
+            return <MetricCard key={label} icon={<Icon fontSize="small" />} label={label} value={value ?? 'Unavailable'} color={getMetricColor(label)} />;
           })}
           </div>
         </>

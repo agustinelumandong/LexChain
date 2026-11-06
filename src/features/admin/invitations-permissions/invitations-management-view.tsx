@@ -106,7 +106,7 @@ function enrichInvitation(invitation: Invitation): DirectoryInvitation {
   };
 }
 
-function MetricCard({ label, value, detail, icon, tone }: { label: string; value: number; detail: string; icon: React.ReactNode; tone: "blue" | "yellow" | "green" | "orange" | "red" | "purple" }) {
+function MetricCard({ label, value, icon, tone }: { label: string; value: number; icon: React.ReactNode; tone: "blue" | "yellow" | "green" | "orange" | "red" | "purple" }) {
   const tones = {
     blue: "bg-[#EAF3FF] text-[#0067B3]",
     yellow: "bg-[#FFF7E6] text-[#8A5B00]",
@@ -122,7 +122,6 @@ function MetricCard({ label, value, detail, icon, tone }: { label: string; value
       <div className="min-w-0">
         <p className="truncate text-xs font-black text-[#4B6382]">{label}</p>
         <p className="mt-1 text-2xl font-black leading-none text-[#071B33]">{value.toLocaleString()}</p>
-        <p className="mt-2 truncate text-xs font-semibold text-[#5B6F8A]">{detail}</p>
       </div>
     </article>
   );
@@ -321,11 +320,11 @@ export function InvitationsManagementView({ invitations, mockMode = false }: { i
   }
 
   const metrics = [
-    { label: "Total Invites", value: directoryInvites.length, detail: "All invitation records", icon: <EmailIcon fontSize="small" />, tone: "blue" as const },
-    { label: "Pending", value: pendingCount, detail: "Awaiting acceptance", icon: <AccessTimeIcon fontSize="small" />, tone: "yellow" as const },
-    { label: "Accepted", value: directoryInvites.filter((invite) => invite.statusLabel === "Accepted").length, detail: "Activated accounts", icon: <CheckCircleIcon fontSize="small" />, tone: "green" as const },
-    { label: "Expired", value: directoryInvites.filter((invite) => invite.statusLabel === "Expired").length, detail: "Resend required", icon: <HourglassTopIcon fontSize="small" />, tone: "orange" as const },
-    { label: "Revoked", value: directoryInvites.filter((invite) => invite.statusLabel === "Revoked").length, detail: "Access withdrawn", icon: <GppBadIcon fontSize="small" />, tone: "red" as const },
+    { label: "Total Invites", value: directoryInvites.length, icon: <EmailIcon fontSize="small" />, tone: "blue" as const },
+    { label: "Pending", value: pendingCount, icon: <AccessTimeIcon fontSize="small" />, tone: "yellow" as const },
+    { label: "Accepted", value: directoryInvites.filter((invite) => invite.statusLabel === "Accepted").length, icon: <CheckCircleIcon fontSize="small" />, tone: "green" as const },
+    { label: "Expired", value: directoryInvites.filter((invite) => invite.statusLabel === "Expired").length, icon: <HourglassTopIcon fontSize="small" />, tone: "orange" as const },
+    { label: "Revoked", value: directoryInvites.filter((invite) => invite.statusLabel === "Revoked").length, icon: <GppBadIcon fontSize="small" />, tone: "red" as const },
   ];
 
   return (

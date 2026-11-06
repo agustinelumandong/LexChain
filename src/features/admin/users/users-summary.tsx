@@ -13,13 +13,11 @@ function UserMetricCard({
   icon,
   label,
   value,
-  detail,
   tone,
 }: {
   icon: React.ReactNode;
   label: string;
   value: number;
-  detail: string;
   tone: "blue" | "green" | "purple" | "orange" | "red" | "cyan";
 }) {
   const tones = {
@@ -37,7 +35,6 @@ function UserMetricCard({
       <div className="min-w-0">
         <p className="truncate text-xs font-black text-[#0C2B49]">{label}</p>
         <p className="mt-1 text-2xl font-black leading-none text-[#071B33]">{value.toLocaleString()}</p>
-        <p className="mt-2 truncate text-xs font-semibold text-[#5B6F8A]">{detail}</p>
       </div>
     </article>
   );
@@ -141,10 +138,10 @@ export function RecentlyCreatedAccounts({ users }: { users: DirectoryUser[] }) {
 export function UsersMetrics({ users: directoryUsers, total }: { users: DirectoryUser[]; total: number }) {
   const lawyerRoleLabel = getPortalRoleLabel("document_issuer");
   const metrics = [
-    { label: "Total Users", value: total || directoryUsers.length, detail: "Registered accounts", icon: <GroupsIcon fontSize="small" />, tone: "blue" as const },
-    { label: "Active Users", value: directoryUsers.filter((user) => user.statusLabel === "Active").length, detail: "is_active true", icon: <CheckCircleIcon fontSize="small" />, tone: "green" as const },
-    { label: "Suspended Users", value: directoryUsers.filter((user) => user.statusLabel === "Suspended").length, detail: "is_active false", icon: <PersonOffIcon fontSize="small" />, tone: "red" as const },
-    { label: "Lawyers", value: directoryUsers.filter((user) => user.roleLabel === lawyerRoleLabel).length, detail: "role field", icon: <WorkIcon fontSize="small" />, tone: "blue" as const },
+    { label: "Total Users", value: total || directoryUsers.length, icon: <GroupsIcon fontSize="small" />, tone: "blue" as const },
+    { label: "Active Users", value: directoryUsers.filter((user) => user.statusLabel === "Active").length, icon: <CheckCircleIcon fontSize="small" />, tone: "green" as const },
+    { label: "Suspended Users", value: directoryUsers.filter((user) => user.statusLabel === "Suspended").length, icon: <PersonOffIcon fontSize="small" />, tone: "red" as const },
+    { label: "Lawyers", value: directoryUsers.filter((user) => user.roleLabel === lawyerRoleLabel).length, icon: <WorkIcon fontSize="small" />, tone: "blue" as const },
   ];
 
   return (
