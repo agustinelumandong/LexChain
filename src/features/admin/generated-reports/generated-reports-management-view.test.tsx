@@ -74,7 +74,7 @@ describe('GeneratedReportsManagementView', () => {
     expect(await screen.findByRole('table', { name: 'System Users preview' })).toBeTruthy();
     expect(screen.getByText('Maria Santos')).toBeTruthy();
     expect(screen.getByText('juan@example.com')).toBeTruthy();
-    expect(screen.getByText('Live report from the current system user directory; generated on request and not stored.')).toBeTruthy();
+    expect(screen.queryByText('Live report from the current system user directory; generated on request and not stored.')).toBeNull();
     expect(screen.queryByText(/generated locally from seeded data/i)).toBeNull();
     expect(fetchSystemUsersReportMock).toHaveBeenCalledWith('2026-03-01', '2026-05-31');
   });

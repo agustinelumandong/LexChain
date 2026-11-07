@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import dayjs from "dayjs";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
@@ -11,6 +12,7 @@ import { toast } from "sonner";
 import { createDemoReport, downloadReport, type Report, type ReportType } from "@/features/office/reports";
 import { fetchSystemUsersReport } from "@/features/office/system-users-report";
 import { PortalDropdown } from "@/features/portal/components";
+import { EmptyState } from "@/shared/components/ui";
 
 const reportOptions: ReadonlyArray<{
   type: ReportType;
@@ -36,7 +38,7 @@ const reportDatePickerSlotProps = {
   desktopPaper: { sx: { borderRadius: 3, border: "1px solid #E4EEF9" } },
 };
 
-export function GeneratedReportsManagementView({ embedded = false }: { embedded?: boolean }) {
+export function GeneratedReportsManagementView({ embedded = false, controlsTarget, onGenerated, onPendingChange, onBack, step }: { embedded?: boolean; controlsTarget?: HTMLElement | null; onGenerated?: () => void; onPendingChange?: (pending: boolean) => void; onBack?: () => void; step?: 'type' | 'dates' }) {
   const [reportType, setReportType] = useState<ReportType>("system-users");
   const [from, setFrom] = useState("2026-03-01");
   const [to, setTo] = useState("2026-05-31");
@@ -48,18 +50,21 @@ export function GeneratedReportsManagementView({ embedded = false }: { embedded?
 
   async function generate() {
     setPending(true);
-    setReport(undefined);
+    onPendingChange?.(true);
+    if (!step) setReport(undefined);
     setError("");
     try {
       const nextReport = reportType === "system-users"
         ? await fetchSystemUsersReport(from, to)
         : createDemoReport(reportType, from, to);
       setReport(nextReport);
+      onGenerated?.();
     } catch (cause) {
-      setReport(undefined);
+      if (!step) setReport(undefined);
       setError(cause instanceof Error ? cause.message : "Report generation failed.");
     } finally {
       setPending(false);
+      onPendingChange?.(false);
     }
   }
 
@@ -74,21 +79,13 @@ export function GeneratedReportsManagementView({ embedded = false }: { embedded?
     }
   }
 
-  return (
-    <div className={`flex flex-col gap-5 ${embedded ? '' : 'min-h-[calc(100vh-48px)] w-full'}`}>
-      {!embedded ? <header>
-        <p className="text-xs font-black uppercase tracking-[0.22em] text-[#0067B3]">LexChain Operations</p>
-        <h1 className="mt-1 text-3xl font-black leading-tight text-[#071B33]">Generated Reports</h1>
-        <p className="mt-1 text-sm font-semibold text-[#4B6382]">Generate a live user report or a demo system audit report.</p>
-      </header> : null}
-
-      {embedded ? (
-        <div className="grid gap-4 lg:grid-cols-2">
-          <div className="rounded-2xl border border-[#E4EEF9] bg-[#F8FBFF] p-4">
+  const embeddedControls = (
+        <div className="grid gap-4">
+          {step !== 'dates' && <div className={step ? undefined : "rounded-2xl border border-[#E4EEF9] bg-[#F8FBFF] p-4"}>
             <div className="flex items-start gap-3">
-              <span className="flex size-7 shrink-0 items-center justify-center rounded-full border border-[#B9DDF9] bg-white text-xs font-black text-[#0067B3]">2</span>
+              {!step && <span className="flex size-7 shrink-0 items-center justify-center rounded-full border border-[#B9DDF9] bg-white text-xs font-black text-[#0067B3]">2</span>}
               <div>
-                <h3 className="text-sm font-black text-[#071B33]">Choose a system report</h3>
+                {!step && <h3 className="text-sm font-black text-[#071B33]">Choose a system report</h3>}
                 <p className="mt-1 text-sm font-semibold leading-5 text-[#5B6F8A]">{selected.description}</p>
               </div>
             </div>
@@ -98,21 +95,21 @@ export function GeneratedReportsManagementView({ embedded = false }: { embedded?
                 ariaLabel="Report type"
                 disabled={pending}
                 value={reportType}
-                onChange={(value) => { setReportType(value as ReportType); setReport(undefined); setError(""); }}
+                onChange={(value) => { setReportType(value as ReportType); if (!step) setReport(undefined); setError(""); }}
                 options={reportOptions.map((option) => ({ label: option.title, value: option.type }))}
               />
             </label>
-          </div>
+          </div>}
 
-          <section aria-label="Report dates" className="rounded-2xl border border-[#E4EEF9] bg-[#F8FBFF] p-4">
+          {step !== 'type' && <section aria-label="Report dates" className={step ? undefined : "rounded-2xl border border-[#E4EEF9] bg-[#F8FBFF] p-4"}>
             <div className="flex items-start gap-3">
-              <span className="flex size-7 shrink-0 items-center justify-center rounded-full border border-[#B9DDF9] bg-white text-xs font-black text-[#0067B3]">3</span>
+              {!step && <span className="flex size-7 shrink-0 items-center justify-center rounded-full border border-[#B9DDF9] bg-white text-xs font-black text-[#0067B3]">3</span>}
               <div>
                 <h3 className="text-sm font-black text-[#071B33]">Choose a date range</h3>
                 <p className="mt-1 text-sm font-semibold leading-5 text-[#5B6F8A]">System Users includes the selected UTC calendar days in full.</p>
               </div>
             </div>
-            <div className="mt-4 grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
+            <div className="mt-4 grid gap-3">
               <LocalizationProvider dateAdapter={AdapterDayjs}>
                 <DatePicker
                   label="From"
@@ -120,7 +117,7 @@ export function GeneratedReportsManagementView({ embedded = false }: { embedded?
                   value={from ? dayjs(from) : null}
                   maxDate={to ? dayjs(to) : undefined}
                   disabled={pending}
-                  onChange={(value, context) => { if (context.validationError) return; setFrom(value?.format("YYYY-MM-DD") ?? ""); setReport(undefined); setError(""); }}
+                  onChange={(value, context) => { if (context.validationError) return; setFrom(value?.format("YYYY-MM-DD") ?? ""); if (!step) setReport(undefined); setError(""); }}
                   slotProps={reportDatePickerSlotProps}
                 />
                 <DatePicker
@@ -129,18 +126,32 @@ export function GeneratedReportsManagementView({ embedded = false }: { embedded?
                   value={to ? dayjs(to) : null}
                   minDate={from ? dayjs(from) : undefined}
                   disabled={pending}
-                  onChange={(value, context) => { if (context.validationError) return; setTo(value?.format("YYYY-MM-DD") ?? ""); setReport(undefined); setError(""); }}
+                  onChange={(value, context) => { if (context.validationError) return; setTo(value?.format("YYYY-MM-DD") ?? ""); if (!step) setReport(undefined); setError(""); }}
                   slotProps={reportDatePickerSlotProps}
                 />
               </LocalizationProvider>
+              <div className="flex items-center justify-between gap-3">
+              {step === 'dates' && onBack ? <button type="button" disabled={pending} onClick={onBack} className="rounded-xl border border-[#B9D6ED] px-5 py-3 text-sm font-black text-[#0067B3] disabled:opacity-60">Back</button> : null}
               <button type="button" disabled={pending} onClick={() => void generate()} className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#0067B3] px-5 py-3 text-sm font-black text-white transition hover:bg-[#005F9E] disabled:cursor-wait disabled:opacity-60 active:translate-y-px">
                 <AssessmentOutlinedIcon fontSize="small" />
                 {pending ? "Generating…" : "Generate"}
               </button>
+              </div>
             </div>
-          </section>
+          </section>}
+          {step !== 'type' && error ? <p role="alert" className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700">{error}</p> : null}
         </div>
-      ) : <fieldset className="grid gap-4 md:grid-cols-2">
+  );
+
+  return (
+    <div className={`flex flex-col gap-5 ${embedded ? '' : 'min-h-[calc(100vh-48px)] w-full'}`}>
+      {!embedded ? <header>
+        <p className="text-xs font-black uppercase tracking-[0.22em] text-[#0067B3]">LexChain Operations</p>
+        <h1 className="mt-1 text-3xl font-black leading-tight text-[#071B33]">Generated Reports</h1>
+        <p className="mt-1 text-sm font-semibold text-[#4B6382]">Generate a live user report or a demo system audit report.</p>
+      </header> : null}
+
+      {embedded ? (controlsTarget ? createPortal(embeddedControls, controlsTarget) : controlsTarget === undefined ? embeddedControls : null) : <fieldset className="grid gap-4 md:grid-cols-2">
         <legend className="sr-only">Report type</legend>
         {reportOptions.map((option) => (
           <label
@@ -183,14 +194,28 @@ export function GeneratedReportsManagementView({ embedded = false }: { embedded?
         </button>
       </section> : null}
 
-      {error ? <p role="alert" className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700">{error}</p> : null}
+      {!embedded && error ? <p role="alert" className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700">{error}</p> : null}
 
-      {pending ? <p role="status" className="rounded-2xl border border-dashed border-[#CFE1F2] bg-white p-6 text-center text-sm font-semibold text-[#5B6F8A]">Loading {selected.title}…</p> : null}
+      {pending ? (
+        <section role="status" className="flex flex-col items-center justify-center gap-4 rounded-2xl border border-dashed border-[#CFE1F2] bg-white px-6 py-10 text-center shadow-sm shadow-[#DDEAF7]/25">
+          <span className="flex size-14 items-center justify-center rounded-2xl bg-[#EAF4FF] text-[#0067B3]"><AssessmentOutlinedIcon /></span>
+          <div>
+            <h2 className="text-lg font-black text-[#071B33]">Generating preview…</h2>
+            <p className="mt-2 text-sm font-semibold leading-6 text-[#5B6F8A]">Loading {selected.title}…</p>
+          </div>
+        </section>
+      ) : null}
 
       {!pending && !report && !error ? (
-        <p role="status" className="rounded-2xl border border-dashed border-[#CFE1F2] bg-white p-6 text-center text-sm font-semibold text-[#5B6F8A]">
-          Choose a date range and generate {selected.title}.
-        </p>
+        <section role="status" className="flex flex-col items-center justify-center gap-4 rounded-2xl border border-dashed border-[#CFE1F2] bg-white px-6 py-10 text-center shadow-sm shadow-[#DDEAF7]/25">
+          <span className="flex size-14 items-center justify-center rounded-2xl bg-[#EAF4FF] text-[#0067B3]"><AssessmentOutlinedIcon /></span>
+          <div>
+            <h2 className="text-lg font-black text-[#071B33]">Your preview will appear here</h2>
+            <p className="mt-2 text-sm font-semibold leading-6 text-[#5B6F8A]">
+              Choose a date range and generate {selected.title}.
+            </p>
+          </div>
+        </section>
       ) : null}
 
       {report ? (
@@ -203,7 +228,7 @@ export function GeneratedReportsManagementView({ embedded = false }: { embedded?
                   <span className="text-xs font-black uppercase tracking-[0.14em] text-[#0067B3]">CSV preview</span>
                   <span className="rounded-full bg-[#EAF8F0] px-2.5 py-1 text-xs font-black text-[#166534]">Ready</span>
                 </div>
-                <h2 className="mt-1 text-lg font-black text-[#071B33]">{generated?.title}</h2>
+                <h2 className="mt-1 text-xl font-black text-[#071B33]">{generated?.title}</h2>
                 <p className="mt-1 text-sm font-semibold text-[#5B6F8A]">{report.rows.length} {report.rows.length === 1 ? "row" : "rows"} in this preview <span aria-hidden="true">·</span> {report.from} to {report.to}</p>
               </div>
             </div>
@@ -212,7 +237,7 @@ export function GeneratedReportsManagementView({ embedded = false }: { embedded?
               Download CSV
             </button>
           </div>
-          <p className="mx-5 mt-5 rounded-xl border border-[#E4EEF9] bg-[#F8FBFF] px-3 py-2.5 text-sm font-bold text-[#5B6F8A] sm:mx-6">{report.reportType === "system-users" ? "Live report from the current system user directory; generated on request and not stored." : "System audit reporting is not available from the backend yet; these are seeded demo records."}</p>
+          {report.reportType === "system-audit" ? <p className="mx-5 mt-5 rounded-xl border border-[#E4EEF9] bg-[#F8FBFF] px-3 py-2.5 text-sm font-bold text-[#5B6F8A] sm:mx-6">System audit reporting is not available from the backend yet; these are seeded demo records.</p> : null}
           <div className="mt-5 overflow-x-auto px-5 pb-5 sm:px-6">
             {report.rows.length ? (
               <table aria-label={`${generated?.title} preview`} className="w-full min-w-[720px] text-left text-sm">
@@ -227,7 +252,15 @@ export function GeneratedReportsManagementView({ embedded = false }: { embedded?
                   ))}
                 </tbody>
               </table>
-            ) : <p className="py-1 text-sm font-semibold text-[#5B6F8A]">{report.reportType === "system-users" ? "No users were created during this date range." : "No seeded rows fall within this date range."}</p>}
+            ) : (
+              <div className="p-5 sm:p-6">
+                <EmptyState
+                  icon={<AssessmentOutlinedIcon aria-hidden="true" sx={{ fontSize: 22 }} />}
+                  title="No rows in this report"
+                  description={report.reportType === "system-users" ? "No users were created during this date range." : "No seeded rows fall within this date range."}
+                />
+              </div>
+            )}
           </div>
         </section>
       ) : null}
