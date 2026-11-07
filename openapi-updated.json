@@ -649,6 +649,133 @@
         }
       }
     },
+    "/documents/tamper-reports": {
+      "get": {
+        "tags": [
+          "Documents · Finalize & verify"
+        ],
+        "summary": "Documents with a tamper problem still open",
+        "description": "The lawyer's own documents that a check flagged and that haven't been fixed, newest first. Each is checked again now, so a fixed document drops off and `changes` is current: the PDF, the metadata, the snapshot row or the lifecycle. A document with no on-chain record isn't listed.",
+        "operationId": "list_tamper_reports_documents_tamper_reports_get",
+        "responses": {
+          "200": {
+            "description": "The open reports",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TamperReportListResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated — missing or invalid bearer token"
+          },
+          "403": {
+            "description": "Forbidden — only lawyers have tamper reports"
+          }
+        },
+        "security": [
+          {
+            "Bearer Token": []
+          }
+        ]
+      }
+    },
+    "/documents/tamper-reports/restore-all": {
+      "post": {
+        "tags": [
+          "Documents · Finalize & verify"
+        ],
+        "summary": "Restore every open tamper report",
+        "description": "Runs POST /documents/{document_id}/restore on each open report, one document at a time. A document that can't be restored goes in `failed` and the rest carry on.",
+        "operationId": "restore_all_tamper_reports_documents_tamper_reports_restore_all_post",
+        "responses": {
+          "200": {
+            "description": "What was restored, and what failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RestoreAllResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated — missing or invalid bearer token"
+          },
+          "403": {
+            "description": "Forbidden — only lawyers have tamper reports"
+          }
+        },
+        "security": [
+          {
+            "Bearer Token": []
+          }
+        ]
+      }
+    },
+    "/documents/tamper-reports/{document_id}/recover": {
+      "post": {
+        "tags": [
+          "Documents · Finalize & verify"
+        ],
+        "summary": "Bring back a deleted document",
+        "description": "Puts back a document listed with status `DELETED` and `restorable` true, with its related rows, from the copy saved when it was deleted.",
+        "operationId": "recover_deleted_document_documents_tamper_reports__document_id__recover_post",
+        "security": [
+          {
+            "Bearer Token": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "document_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Document Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The document is back",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecoverResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated — missing or invalid bearer token"
+          },
+          "403": {
+            "description": "Forbidden — only lawyers have tamper reports"
+          },
+          "404": {
+            "description": "No deleted document of yours with this ID"
+          },
+          "409": {
+            "description": "No saved copy, or the copy no longer fits; use a backup"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/documents/ecopy-requests": {
       "get": {
         "tags": [
@@ -2408,8 +2535,8 @@
         "tags": [
           "Documents · Finalize & verify"
         ],
-        "summary": "Restore a tampered or deleted document from its archive",
-        "description": "For a FINALIZED document whose verification is TAMPERED, FILE_MISSING or SNAPSHOT_COMPROMISED. The archive is found from the on-chain hash, so an altered snapshot row doesn't block it, and it stays altered until restored from a database backup. The archived original is re-hashed against the on-chain hash, then becomes the current signed copy; a tampered file is kept in /signed-copies and the restore is recorded in /history with both hashes. For a deleted file nothing is preserved, and `preserved_copy_id`, `previous_hash` and the history row's `from_hash` are null. The lifecycle and the on-chain record are unchanged. If the document is already AUTHENTIC nothing changes and `restored` is false, so a retry is safe. `verification` is a fresh check of the result.",
+        "summary": "Repair a tampered document from the chain and its archive",
+        "description": "Repairs everything found wrong, in one transaction: the lifecycle, the snapshot row, the file and the metadata. Offer it when the verdict's `needs_restore` and `permissions.can_restore` are both true. Every value comes from the chain and the archive, which is found from the on-chain hash, so an altered row can't block it. The archived original is re-hashed against the on-chain hash, then becomes the current signed copy; a tampered file is kept in /signed-copies and the restore is recorded in /history with both hashes and, in `changes`, every record value's old and new form. For a deleted file nothing is preserved, and `preserved_copy_id`, `previous_hash` and the history row's `from_hash` are null. `repaired` lists what was put back; `unrepaired` lists what needs a database backup. The on-chain records are unchanged. If nothing is wrong nothing changes and `restored` is false, so a retry is safe. `verification` is a fresh check of the result.",
         "operationId": "restore_document_documents__document_id__restore_post",
         "security": [
           {
@@ -2430,7 +2557,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Restored, or already authentic",
+            "description": "Repaired, or nothing was wrong",
             "content": {
               "application/json": {
                 "schema": {
@@ -4538,11 +4665,12 @@
               "missing",
               "mismatch",
               "unverified",
+              "unavailable",
               "repaired",
               "unrecoverable"
             ],
             "title": "Status",
-            "description": "ok: archive present and matches the anchored hash. missing: no archive. mismatch: the archive's bytes, the snapshot and the anchored hash do not all agree. unverified: the chain had no record or could not be read, so integrity is unknown. repaired: re-archived from the live copy. unrecoverable: no good archive and the live copy no longer matches either."
+            "description": "ok: archive present and matches the anchored hash. missing: no archive. mismatch: the archive's bytes, the snapshot and the anchored hash do not all agree. unverified: the chain had no record or could not be read, so integrity is unknown. unavailable: the archive could not be read, so its state is unknown. repaired: re-archived from the live copy. unrecoverable: no good archive and the live copy no longer matches either."
           },
           "backup_key": {
             "anyOf": [
@@ -4586,6 +4714,10 @@
             "type": "integer",
             "title": "Unverified"
           },
+          "unavailable": {
+            "type": "integer",
+            "title": "Unavailable"
+          },
           "repaired": {
             "type": "integer",
             "title": "Repaired"
@@ -4605,6 +4737,10 @@
           "live": {
             "$ref": "#/components/schemas/LiveFileReport",
             "description": "Each document's current signed copy against the chain"
+          },
+          "records": {
+            "$ref": "#/components/schemas/RecordReport",
+            "description": "Each document's metadata, snapshot and lifecycle against the chain"
           }
         },
         "type": "object",
@@ -4614,9 +4750,11 @@
           "missing",
           "mismatch",
           "unverified",
+          "unavailable",
           "repaired",
           "unrecoverable",
-          "live"
+          "live",
+          "records"
         ],
         "title": "BackupVerificationResponse"
       },
@@ -5428,6 +5566,12 @@
             "description": "May ask the owner for the unwatermarked signed copy",
             "default": false
           },
+          "can_restore": {
+            "type": "boolean",
+            "title": "Can Restore",
+            "description": "May restore. Offer it when this and the verdict's `needs_restore` are both true",
+            "default": false
+          },
           "can_review_ecopy": {
             "type": "boolean",
             "title": "Can Review Ecopy",
@@ -5920,6 +6064,44 @@
             "type": "string",
             "title": "Message",
             "description": "Human-readable verdict"
+          },
+          "metadata_status": {
+            "type": "string",
+            "enum": [
+              "MATCH",
+              "ALTERED",
+              "NOT_ANCHORED",
+              "UNAVAILABLE"
+            ],
+            "title": "Metadata Status",
+            "description": "MATCH — the record agrees with its anchor; ALTERED — it does not, and `metadata_changes` names the fields; NOT_ANCHORED — the document has no metadata anchor; UNAVAILABLE — the chain or archive could not be read, so it is unknown. Independent of `status`, which is about the PDF",
+            "default": "NOT_ANCHORED"
+          },
+          "metadata_changes": {
+            "items": {
+              "$ref": "#/components/schemas/RecordChange"
+            },
+            "type": "array",
+            "title": "Metadata Changes",
+            "description": "Present only when `metadata_status` is ALTERED"
+          },
+          "anchor_corrected": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Anchor Corrected",
+            "description": "True if the contract owner replaced this document's anchor, so `onchain_hash` isn't the hash from finalize. Null if unknown: the events could not be read"
+          },
+          "needs_restore": {
+            "type": "boolean",
+            "title": "Needs Restore",
+            "description": "Whether something is wrong that POST /restore repairs: the file, the metadata, the snapshot row or the lifecycle",
+            "default": false
           },
           "tamper_report_status": {
             "type": "string",
@@ -6898,6 +7080,11 @@
             "type": "integer",
             "title": "Verification Unavailable",
             "default": 0
+          },
+          "record_altered": {
+            "type": "integer",
+            "title": "Record Altered",
+            "default": 0
           }
         },
         "type": "object",
@@ -7151,7 +7338,11 @@
           "ecopy_declined",
           "ecopy_delivery_failed",
           "anchored_record_missing",
-          "live_file_tampered"
+          "live_file_tampered",
+          "record_altered",
+          "archive_problem",
+          "anchor_corrected",
+          "document_deleted"
         ],
         "title": "NotificationType"
       },
@@ -7207,6 +7398,152 @@
         ],
         "title": "PasswordResetRequest"
       },
+      "RecordChange": {
+        "properties": {
+          "field": {
+            "type": "string",
+            "title": "Field"
+          },
+          "anchored": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Anchored",
+            "description": "The genuine value; null if nothing proves one"
+          },
+          "current": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current",
+            "description": "The value in the database now"
+          }
+        },
+        "type": "object",
+        "required": [
+          "field"
+        ],
+        "title": "RecordChange",
+        "description": "One database value that differs from what the chain and archive support."
+      },
+      "RecordFinding": {
+        "properties": {
+          "field": {
+            "type": "string",
+            "title": "Field"
+          },
+          "anchored": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Anchored",
+            "description": "The genuine value; null if nothing proves one"
+          },
+          "current": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current",
+            "description": "The value in the database now"
+          },
+          "document_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Document Id"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "metadata",
+              "snapshot",
+              "lifecycle"
+            ],
+            "title": "Kind"
+          }
+        },
+        "type": "object",
+        "required": [
+          "field",
+          "document_id",
+          "kind"
+        ],
+        "title": "RecordFinding"
+      },
+      "RecordReport": {
+        "properties": {
+          "checked": {
+            "type": "integer",
+            "title": "Checked"
+          },
+          "ok": {
+            "type": "integer",
+            "title": "Ok"
+          },
+          "altered": {
+            "type": "integer",
+            "title": "Altered"
+          },
+          "not_anchored": {
+            "type": "integer",
+            "title": "Not Anchored",
+            "description": "Finalized with no metadata anchor"
+          },
+          "unavailable": {
+            "type": "integer",
+            "title": "Unavailable",
+            "description": "Unknown: the chain or archive wasn't read"
+          },
+          "problems": {
+            "items": {
+              "$ref": "#/components/schemas/RecordFinding"
+            },
+            "type": "array",
+            "title": "Problems",
+            "description": "Every altered value"
+          }
+        },
+        "type": "object",
+        "required": [
+          "checked",
+          "ok",
+          "altered",
+          "not_anchored",
+          "unavailable"
+        ],
+        "title": "RecordReport"
+      },
       "RecordResponse": {
         "properties": {
           "document_id": {
@@ -7240,6 +7577,51 @@
         ],
         "title": "RecordResponse",
         "description": "Response returned after recording a document on-chain."
+      },
+      "RecoverResponse": {
+        "properties": {
+          "document_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Document Id"
+          },
+          "file_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "File Name"
+          },
+          "file_present": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "File Present",
+            "description": "Whether the PDF is still in storage; false if the row came back without it, null if there's no PDF on record or storage couldn't be read"
+          },
+          "recovered_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Recovered At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "document_id",
+          "file_present",
+          "recovered_at"
+        ],
+        "title": "RecoverResponse",
+        "description": "A deleted document put back from the copy its delete left behind."
       },
       "RegisterLookupHit": {
         "properties": {
@@ -7372,6 +7754,64 @@
         ],
         "title": "ResendVerificationRequest"
       },
+      "RestoreAllResponse": {
+        "properties": {
+          "restored": {
+            "items": {
+              "$ref": "#/components/schemas/RestoreResponse"
+            },
+            "type": "array",
+            "title": "Restored"
+          },
+          "recovered": {
+            "items": {
+              "$ref": "#/components/schemas/RecoverResponse"
+            },
+            "type": "array",
+            "title": "Recovered"
+          },
+          "failed": {
+            "items": {
+              "$ref": "#/components/schemas/RestoreFailure"
+            },
+            "type": "array",
+            "title": "Failed"
+          }
+        },
+        "type": "object",
+        "title": "RestoreAllResponse",
+        "description": "One document failing doesn't stop the rest."
+      },
+      "RestoreFailure": {
+        "properties": {
+          "document_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Document Id"
+          },
+          "file_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "File Name"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          }
+        },
+        "type": "object",
+        "required": [
+          "document_id",
+          "message"
+        ],
+        "title": "RestoreFailure"
+      },
       "RestoreResponse": {
         "properties": {
           "document_id": {
@@ -7382,7 +7822,7 @@
           "restored": {
             "type": "boolean",
             "title": "Restored",
-            "description": "False if it was already authentic"
+            "description": "False if nothing needed repair"
           },
           "previous_hash": {
             "anyOf": [
@@ -7444,6 +7884,22 @@
             ],
             "title": "Restored At"
           },
+          "repaired": {
+            "items": {
+              "$ref": "#/components/schemas/RestoredValue"
+            },
+            "type": "array",
+            "title": "Repaired",
+            "description": "Every record value put back"
+          },
+          "unrepaired": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Unrepaired",
+            "description": "Values with nothing to rebuild them from, which need a database backup"
+          },
           "verification": {
             "$ref": "#/components/schemas/DocumentVerificationResponse"
           }
@@ -7457,7 +7913,61 @@
           "verification"
         ],
         "title": "RestoreResponse",
-        "description": "The outcome of restoring a finalized document from its archive.\n\n`restored` is false when the document was already authentic: nothing was\nchanged, so a retry is safe. Either way `verification` is a fresh check of\nthe current copy against the chain, to show the resulting integrity status."
+        "description": "The outcome of restoring a finalized document from its archive.\n\n`restored` is false only when nothing at all was wrong: nothing was changed,\nso a retry is safe. Either way `verification` is a fresh check of the current\ncopy against the chain, to show the resulting integrity status."
+      },
+      "RestoredValue": {
+        "properties": {
+          "record": {
+            "type": "string",
+            "enum": [
+              "lifecycle",
+              "snapshot",
+              "metadata"
+            ],
+            "title": "Record"
+          },
+          "field": {
+            "type": "string",
+            "title": "Field"
+          },
+          "old": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Old"
+          },
+          "new": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "New"
+          }
+        },
+        "type": "object",
+        "required": [
+          "record",
+          "field",
+          "old",
+          "new"
+        ],
+        "title": "RestoredValue",
+        "description": "One database value a restore put back."
       },
       "RetryProcessingResponse": {
         "properties": {
@@ -7924,6 +8434,21 @@
             "title": "To Hash",
             "description": "Restore only: SHA-256 of the archived bytes restored"
           },
+          "changes": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/RestoredValue"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Changes",
+            "description": "Restore only: every record value put back"
+          },
           "created_at": {
             "type": "string",
             "format": "date-time",
@@ -7940,6 +8465,63 @@
         ],
         "title": "StageChangeResponse",
         "description": "One lifecycle action on a document."
+      },
+      "TamperChange": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "file",
+              "metadata",
+              "snapshot",
+              "lifecycle",
+              "deleted"
+            ],
+            "title": "Kind"
+          },
+          "field": {
+            "type": "string",
+            "title": "Field",
+            "description": "`file` for the PDF, `document` for a deleted one, else the changed value"
+          },
+          "genuine": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Genuine",
+            "description": "What it should be; null if nothing proves it"
+          },
+          "current": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current",
+            "description": "What it is now; null for a deleted file"
+          }
+        },
+        "type": "object",
+        "required": [
+          "kind",
+          "field"
+        ],
+        "title": "TamperChange",
+        "description": "One thing found wrong with a document."
       },
       "TamperReport": {
         "properties": {
@@ -8002,6 +8584,96 @@
         ],
         "title": "TamperReport",
         "description": "Where the current file differs from the finalized original.\n\nThe baseline is the archived original, re-hashed against the chain before\nuse; both sides are extracted fresh from their bytes by the same engine.\nSegments are ordered most severe first."
+      },
+      "TamperReportItem": {
+        "properties": {
+          "document_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Document Id"
+          },
+          "file_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "File Name"
+          },
+          "detected_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Detected At",
+            "description": "When it was first seen"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "description": "The PDF's verdict, as on /verify, or `DELETED`"
+          },
+          "changes": {
+            "items": {
+              "$ref": "#/components/schemas/TamperChange"
+            },
+            "type": "array",
+            "title": "Changes"
+          },
+          "restorable": {
+            "type": "boolean",
+            "title": "Restorable",
+            "description": "Whether Restore can fix it now"
+          },
+          "blocked_reason": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "archive_missing",
+                  "metadata_unreadable",
+                  "check_unavailable",
+                  "backup_needed"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Blocked Reason",
+            "description": "Why not, when `restorable` is false"
+          }
+        },
+        "type": "object",
+        "required": [
+          "document_id",
+          "detected_at",
+          "status",
+          "restorable"
+        ],
+        "title": "TamperReportItem",
+        "description": "A document with a problem still open, as checked just now."
+      },
+      "TamperReportListResponse": {
+        "properties": {
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "reports": {
+            "items": {
+              "$ref": "#/components/schemas/TamperReportItem"
+            },
+            "type": "array",
+            "title": "Reports"
+          }
+        },
+        "type": "object",
+        "required": [
+          "total"
+        ],
+        "title": "TamperReportListResponse"
       },
       "TamperSegment": {
         "properties": {
@@ -8347,7 +9019,7 @@
           "status": {
             "type": "string",
             "title": "Status",
-            "description": "AUTHENTIC | TAMPERED | FILE_MISSING | SNAPSHOT_COMPROMISED | NOT_ANCHORED | VERIFICATION_UNAVAILABLE — as on DocumentVerificationResponse. VERIFICATION_UNAVAILABLE means integrity was unknown, not tampered"
+            "description": "AUTHENTIC | TAMPERED | FILE_MISSING | SNAPSHOT_COMPROMISED | NOT_ANCHORED | VERIFICATION_UNAVAILABLE — as on DocumentVerificationResponse. VERIFICATION_UNAVAILABLE means integrity was unknown, not tampered. RECORD_ALTERED — the scheduled check found a metadata, snapshot or lifecycle value that differs from the chain; `is_authentic` is still about the file"
           },
           "is_authentic": {
             "type": "boolean",

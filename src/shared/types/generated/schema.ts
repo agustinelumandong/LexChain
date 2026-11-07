@@ -255,6 +255,66 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/documents/tamper-reports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Documents with a tamper problem still open
+         * @description The lawyer's own documents that a check flagged and that haven't been fixed, newest first. Each is checked again now, so a fixed document drops off and `changes` is current: the PDF, the metadata, the snapshot row or the lifecycle. A document with no on-chain record isn't listed.
+         */
+        get: operations["list_tamper_reports_documents_tamper_reports_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/documents/tamper-reports/restore-all": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Restore every open tamper report
+         * @description Runs POST /documents/{document_id}/restore on each open report, one document at a time. A document that can't be restored goes in `failed` and the rest carry on.
+         */
+        post: operations["restore_all_tamper_reports_documents_tamper_reports_restore_all_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/documents/tamper-reports/{document_id}/recover": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Bring back a deleted document
+         * @description Puts back a document listed with status `DELETED` and `restorable` true, with its related rows, from the copy saved when it was deleted.
+         */
+        post: operations["recover_deleted_document_documents_tamper_reports__document_id__recover_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/documents/ecopy-requests": {
         parameters: {
             query?: never;
@@ -786,8 +846,8 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Restore a tampered or deleted document from its archive
-         * @description For a FINALIZED document whose verification is TAMPERED, FILE_MISSING or SNAPSHOT_COMPROMISED. The archive is found from the on-chain hash, so an altered snapshot row doesn't block it, and it stays altered until restored from a database backup. The archived original is re-hashed against the on-chain hash, then becomes the current signed copy; a tampered file is kept in /signed-copies and the restore is recorded in /history with both hashes. For a deleted file nothing is preserved, and `preserved_copy_id`, `previous_hash` and the history row's `from_hash` are null. The lifecycle and the on-chain record are unchanged. If the document is already AUTHENTIC nothing changes and `restored` is false, so a retry is safe. `verification` is a fresh check of the result.
+         * Repair a tampered document from the chain and its archive
+         * @description Repairs everything found wrong, in one transaction: the lifecycle, the snapshot row, the file and the metadata. Offer it when the verdict's `needs_restore` and `permissions.can_restore` are both true. Every value comes from the chain and the archive, which is found from the on-chain hash, so an altered row can't block it. The archived original is re-hashed against the on-chain hash, then becomes the current signed copy; a tampered file is kept in /signed-copies and the restore is recorded in /history with both hashes and, in `changes`, every record value's old and new form. For a deleted file nothing is preserved, and `preserved_copy_id`, `previous_hash` and the history row's `from_hash` are null. `repaired` lists what was put back; `unrepaired` lists what needs a database backup. The on-chain records are unchanged. If nothing is wrong nothing changes and `restored` is false, so a retry is safe. `verification` is a fresh check of the result.
          */
         post: operations["restore_document_documents__document_id__restore_post"];
         delete?: never;
@@ -1504,10 +1564,10 @@ export interface components {
             document_id: string;
             /**
              * Status
-             * @description ok: archive present and matches the anchored hash. missing: no archive. mismatch: the archive's bytes, the snapshot and the anchored hash do not all agree. unverified: the chain had no record or could not be read, so integrity is unknown. repaired: re-archived from the live copy. unrecoverable: no good archive and the live copy no longer matches either.
+             * @description ok: archive present and matches the anchored hash. missing: no archive. mismatch: the archive's bytes, the snapshot and the anchored hash do not all agree. unverified: the chain had no record or could not be read, so integrity is unknown. unavailable: the archive could not be read, so its state is unknown. repaired: re-archived from the live copy. unrecoverable: no good archive and the live copy no longer matches either.
              * @enum {string}
              */
-            status: "ok" | "missing" | "mismatch" | "unverified" | "repaired" | "unrecoverable";
+            status: "ok" | "missing" | "mismatch" | "unverified" | "unavailable" | "repaired" | "unrecoverable";
             /** Backup Key */
             backup_key?: string | null;
         };
@@ -1526,6 +1586,8 @@ export interface components {
             mismatch: number;
             /** Unverified */
             unverified: number;
+            /** Unavailable */
+            unavailable: number;
             /** Repaired */
             repaired: number;
             /** Unrecoverable */
@@ -1537,6 +1599,8 @@ export interface components {
             problems?: components["schemas"]["BackupCheck"][];
             /** @description Each document's current signed copy against the chain */
             live: components["schemas"]["LiveFileReport"];
+            /** @description Each document's metadata, snapshot and lifecycle against the chain */
+            records: components["schemas"]["RecordReport"];
         };
         /**
          * BlockEdit
@@ -2037,6 +2101,12 @@ export interface components {
              */
             can_request_ecopy: boolean;
             /**
+             * Can Restore
+             * @description May restore. Offer it when this and the verdict's `needs_restore` are both true
+             * @default false
+             */
+            can_restore: boolean;
+            /**
              * Can Review Ecopy
              * @description May approve or decline e-copy requests
              * @default false
@@ -2286,6 +2356,29 @@ export interface components {
              * @description Human-readable verdict
              */
             message: string;
+            /**
+             * Metadata Status
+             * @description MATCH — the record agrees with its anchor; ALTERED — it does not, and `metadata_changes` names the fields; NOT_ANCHORED — the document has no metadata anchor; UNAVAILABLE — the chain or archive could not be read, so it is unknown. Independent of `status`, which is about the PDF
+             * @default NOT_ANCHORED
+             * @enum {string}
+             */
+            metadata_status: "MATCH" | "ALTERED" | "NOT_ANCHORED" | "UNAVAILABLE";
+            /**
+             * Metadata Changes
+             * @description Present only when `metadata_status` is ALTERED
+             */
+            metadata_changes?: components["schemas"]["RecordChange"][];
+            /**
+             * Anchor Corrected
+             * @description True if the contract owner replaced this document's anchor, so `onchain_hash` isn't the hash from finalize. Null if unknown: the events could not be read
+             */
+            anchor_corrected?: boolean | null;
+            /**
+             * Needs Restore
+             * @description Whether something is wrong that POST /restore repairs: the file, the metadata, the snapshot row or the lifecycle
+             * @default false
+             */
+            needs_restore: boolean;
             /**
              * Tamper Report Status
              * @description AVAILABLE — `tamper_report` holds a diff against a trusted baseline; UNAVAILABLE — the document is TAMPERED but no trustworthy diff could be produced (the verdict still stands); NOT_APPLICABLE — any status other than TAMPERED, or the quick check, which makes no diff
@@ -2776,6 +2869,11 @@ export interface components {
              * @default 0
              */
             verification_unavailable: number;
+            /**
+             * Record Altered
+             * @default 0
+             */
+            record_altered: number;
         };
         /** InvitationListResponse */
         InvitationListResponse: {
@@ -2889,7 +2987,7 @@ export interface components {
          * NotificationType
          * @enum {string}
          */
-        NotificationType: "party_added" | "party_removed" | "document_recorded" | "document_processed" | "document_failed" | "draft_comment" | "draft_reply" | "draft_resolved" | "draft_reopened" | "ecopy_requested" | "ecopy_approved" | "ecopy_declined" | "ecopy_delivery_failed" | "anchored_record_missing" | "live_file_tampered";
+        NotificationType: "party_added" | "party_removed" | "document_recorded" | "document_processed" | "document_failed" | "draft_comment" | "draft_reply" | "draft_resolved" | "draft_reopened" | "ecopy_requested" | "ecopy_approved" | "ecopy_declined" | "ecopy_delivery_failed" | "anchored_record_missing" | "live_file_tampered" | "record_altered" | "archive_problem" | "anchor_corrected" | "document_deleted";
         /**
          * OpenDocumentRequest
          * @description Path 1 — open a document record before anything is signed.
@@ -2921,6 +3019,73 @@ export interface components {
             new_password: string;
         };
         /**
+         * RecordChange
+         * @description One database value that differs from what the chain and archive support.
+         */
+        RecordChange: {
+            /** Field */
+            field: string;
+            /**
+             * Anchored
+             * @description The genuine value; null if nothing proves one
+             */
+            anchored?: string | number | null;
+            /**
+             * Current
+             * @description The value in the database now
+             */
+            current?: string | number | null;
+        };
+        /** RecordFinding */
+        RecordFinding: {
+            /** Field */
+            field: string;
+            /**
+             * Anchored
+             * @description The genuine value; null if nothing proves one
+             */
+            anchored?: string | number | null;
+            /**
+             * Current
+             * @description The value in the database now
+             */
+            current?: string | number | null;
+            /**
+             * Document Id
+             * Format: uuid
+             */
+            document_id: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "metadata" | "snapshot" | "lifecycle";
+        };
+        /** RecordReport */
+        RecordReport: {
+            /** Checked */
+            checked: number;
+            /** Ok */
+            ok: number;
+            /** Altered */
+            altered: number;
+            /**
+             * Not Anchored
+             * @description Finalized with no metadata anchor
+             */
+            not_anchored: number;
+            /**
+             * Unavailable
+             * @description Unknown: the chain or archive wasn't read
+             */
+            unavailable: number;
+            /**
+             * Problems
+             * @description Every altered value
+             */
+            problems?: components["schemas"]["RecordFinding"][];
+        };
+        /**
          * RecordResponse
          * @description Response returned after recording a document on-chain.
          */
@@ -2946,6 +3111,29 @@ export interface components {
              * @description SHA256 hash stored on-chain.
              */
             data_hash: string;
+        };
+        /**
+         * RecoverResponse
+         * @description A deleted document put back from the copy its delete left behind.
+         */
+        RecoverResponse: {
+            /**
+             * Document Id
+             * Format: uuid
+             */
+            document_id: string;
+            /** File Name */
+            file_name?: string | null;
+            /**
+             * File Present
+             * @description Whether the PDF is still in storage; false if the row came back without it, null if there's no PDF on record or storage couldn't be read
+             */
+            file_present: boolean | null;
+            /**
+             * Recovered At
+             * Format: date-time
+             */
+            recovered_at: string;
         };
         /**
          * RegisterLookupHit
@@ -3038,12 +3226,36 @@ export interface components {
             email: string;
         };
         /**
+         * RestoreAllResponse
+         * @description One document failing doesn't stop the rest.
+         */
+        RestoreAllResponse: {
+            /** Restored */
+            restored?: components["schemas"]["RestoreResponse"][];
+            /** Recovered */
+            recovered?: components["schemas"]["RecoverResponse"][];
+            /** Failed */
+            failed?: components["schemas"]["RestoreFailure"][];
+        };
+        /** RestoreFailure */
+        RestoreFailure: {
+            /**
+             * Document Id
+             * Format: uuid
+             */
+            document_id: string;
+            /** File Name */
+            file_name?: string | null;
+            /** Message */
+            message: string;
+        };
+        /**
          * RestoreResponse
          * @description The outcome of restoring a finalized document from its archive.
          *
-         *     `restored` is false when the document was already authentic: nothing was
-         *     changed, so a retry is safe. Either way `verification` is a fresh check of
-         *     the current copy against the chain, to show the resulting integrity status.
+         *     `restored` is false only when nothing at all was wrong: nothing was changed,
+         *     so a retry is safe. Either way `verification` is a fresh check of the current
+         *     copy against the chain, to show the resulting integrity status.
          */
         RestoreResponse: {
             /**
@@ -3053,7 +3265,7 @@ export interface components {
             document_id: string;
             /**
              * Restored
-             * @description False if it was already authentic
+             * @description False if nothing needed repair
              */
             restored: boolean;
             /**
@@ -3081,7 +3293,34 @@ export interface components {
             restored_by?: string | null;
             /** Restored At */
             restored_at?: string | null;
+            /**
+             * Repaired
+             * @description Every record value put back
+             */
+            repaired?: components["schemas"]["RestoredValue"][];
+            /**
+             * Unrepaired
+             * @description Values with nothing to rebuild them from, which need a database backup
+             */
+            unrepaired?: string[];
             verification: components["schemas"]["DocumentVerificationResponse"];
+        };
+        /**
+         * RestoredValue
+         * @description One database value a restore put back.
+         */
+        RestoredValue: {
+            /**
+             * Record
+             * @enum {string}
+             */
+            record: "lifecycle" | "snapshot" | "metadata";
+            /** Field */
+            field: string;
+            /** Old */
+            old: string | number | null;
+            /** New */
+            new: string | number | null;
         };
         /**
          * RetryProcessingResponse
@@ -3363,10 +3602,41 @@ export interface components {
              */
             to_hash?: string | null;
             /**
+             * Changes
+             * @description Restore only: every record value put back
+             */
+            changes?: components["schemas"]["RestoredValue"][] | null;
+            /**
              * Created At
              * Format: date-time
              */
             created_at: string;
+        };
+        /**
+         * TamperChange
+         * @description One thing found wrong with a document.
+         */
+        TamperChange: {
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "file" | "metadata" | "snapshot" | "lifecycle" | "deleted";
+            /**
+             * Field
+             * @description `file` for the PDF, `document` for a deleted one, else the changed value
+             */
+            field: string;
+            /**
+             * Genuine
+             * @description What it should be; null if nothing proves it
+             */
+            genuine?: string | number | null;
+            /**
+             * Current
+             * @description What it is now; null for a deleted file
+             */
+            current?: string | number | null;
         };
         /**
          * TamperReport
@@ -3410,6 +3680,49 @@ export interface components {
             truncated: boolean;
             /** Segments */
             segments: components["schemas"]["TamperSegment"][];
+        };
+        /**
+         * TamperReportItem
+         * @description A document with a problem still open, as checked just now.
+         */
+        TamperReportItem: {
+            /**
+             * Document Id
+             * Format: uuid
+             */
+            document_id: string;
+            /** File Name */
+            file_name?: string | null;
+            /**
+             * Detected At
+             * Format: date-time
+             * @description When it was first seen
+             */
+            detected_at: string;
+            /**
+             * Status
+             * @description The PDF's verdict, as on /verify, or `DELETED`
+             */
+            status: string;
+            /** Changes */
+            changes?: components["schemas"]["TamperChange"][];
+            /**
+             * Restorable
+             * @description Whether Restore can fix it now
+             */
+            restorable: boolean;
+            /**
+             * Blocked Reason
+             * @description Why not, when `restorable` is false
+             */
+            blocked_reason?: ("archive_missing" | "metadata_unreadable" | "check_unavailable" | "backup_needed") | null;
+        };
+        /** TamperReportListResponse */
+        TamperReportListResponse: {
+            /** Total */
+            total: number;
+            /** Reports */
+            reports?: components["schemas"]["TamperReportItem"][];
         };
         /**
          * TamperSegment
@@ -3598,7 +3911,7 @@ export interface components {
             verified_by?: string | null;
             /**
              * Status
-             * @description AUTHENTIC | TAMPERED | FILE_MISSING | SNAPSHOT_COMPROMISED | NOT_ANCHORED | VERIFICATION_UNAVAILABLE — as on DocumentVerificationResponse. VERIFICATION_UNAVAILABLE means integrity was unknown, not tampered
+             * @description AUTHENTIC | TAMPERED | FILE_MISSING | SNAPSHOT_COMPROMISED | NOT_ANCHORED | VERIFICATION_UNAVAILABLE — as on DocumentVerificationResponse. VERIFICATION_UNAVAILABLE means integrity was unknown, not tampered. RECORD_ALTERED — the scheduled check found a metadata, snapshot or lifecycle value that differs from the chain; `is_authentic` is still about the file
              */
             status: string;
             /** Is Authentic */
@@ -4187,6 +4500,133 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    list_tamper_reports_documents_tamper_reports_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The open reports */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TamperReportListResponse"];
+                };
+            };
+            /** @description Not authenticated — missing or invalid bearer token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden — only lawyers have tamper reports */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    restore_all_tamper_reports_documents_tamper_reports_restore_all_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description What was restored, and what failed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RestoreAllResponse"];
+                };
+            };
+            /** @description Not authenticated — missing or invalid bearer token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden — only lawyers have tamper reports */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    recover_deleted_document_documents_tamper_reports__document_id__recover_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                document_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The document is back */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecoverResponse"];
+                };
+            };
+            /** @description Not authenticated — missing or invalid bearer token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden — only lawyers have tamper reports */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description No deleted document of yours with this ID */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description No saved copy, or the copy no longer fits; use a backup */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
             };
         };
     };
@@ -5485,7 +5925,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Restored, or already authentic */
+            /** @description Repaired, or nothing was wrong */
             200: {
                 headers: {
                     [name: string]: unknown;
