@@ -31,19 +31,23 @@ export function TamperReports({ generateRequest = 0 }: { generateRequest?: numbe
   const [recoveryResult, setRecoveryResult] = useState<RecoverResult | null>(null);
   const lock = useRef(false);
   const lastGenerateRequest = useRef(0);
+  const latestRequest = useRef(0);
 
   const loadReports = useCallback(async () => {
+    const request = ++latestRequest.current;
     setLoading(true);
+    setError('');
     try {
       const response = await portalFetch<Reports>('/documents/tamper-reports');
       if (!Array.isArray(response.reports)) throw new Error('Invalid report response.');
+      if (request !== latestRequest.current) return;
       setReports(response);
-      setError('');
     } catch (caught) {
+      if (request !== latestRequest.current) return;
       setReports(null);
       setError(caught instanceof Error ? caught.message : 'Could not load reports.');
     } finally {
-      setLoading(false);
+      if (request === latestRequest.current) setLoading(false);
     }
   }, []);
 
@@ -109,7 +113,10 @@ export function TamperReports({ generateRequest = 0 }: { generateRequest?: numbe
       </div>
       <button type="button" disabled={loading || restoring} onClick={() => void loadReports()} className="inline-flex items-center gap-2 rounded-xl border border-[#B9D6ED] bg-white px-4 py-2.5 text-sm font-black text-[#0067B3] transition hover:border-[#0067B3] hover:bg-[#F0F7FF] disabled:opacity-60"><RefreshIcon fontSize="small" aria-hidden="true" />{loading ? 'Checking…' : reports ? 'Refresh reports' : 'Check reports'}</button>
     </div>
-    {loading && <p role="status" className="mx-5 mt-5 text-sm font-semibold text-[#5B6F8A] sm:mx-6">Loading open integrity reports…</p>}
+    {loading && <div role="status" className="m-5 flex min-h-32 items-center justify-center gap-3 rounded-xl bg-[#F6FAFE] p-5 text-sm text-[#0C2B49] sm:m-6">
+      <span aria-hidden="true" className="size-6 shrink-0 rounded-full border-2 border-[#B9D6ED] border-t-[#0067B3] motion-safe:animate-spin" />
+      <div><p className="font-bold">Checking integrity reports…</p><p className="mt-1 text-[#5B6F8A]">Looking for unresolved problems in your documents.</p></div>
+    </div>}
     {error && <p role="alert" className="mx-5 mt-5 rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700 sm:mx-6">{error}</p>}
     {recoveryResult && <p role="status" className="mx-5 mt-5 text-sm font-bold text-[#0C2B49] sm:mx-6">{recoveryMessage(recoveryResult)}</p>}
     {result && <div aria-label="Restore all result" className="mx-5 mt-5 space-y-2 text-sm sm:mx-6" role="region">
@@ -119,7 +126,7 @@ export function TamperReports({ generateRequest = 0 }: { generateRequest?: numbe
       {result.recovered?.map((item) => <p key={item.document_id}>{recoveryMessage(item)}</p>)}
       {result.failed?.map((item) => <p key={item.document_id} className="text-red-700">{item.file_name || item.document_id}: {item.message}</p>)}
     </div>}
-    {reports && <div className="space-y-3 p-5 sm:p-6">
+    {!loading && reports && <div className="space-y-3 p-5 sm:p-6">
       {reports.reports?.length ? <>
         <button type="button" disabled={loading || restoring} onClick={() => setConfirming(true)} className="rounded-xl bg-[#0067B3] px-5 py-2.5 text-sm font-black text-white transition hover:bg-[#005F9E] disabled:opacity-60">Restore all</button>
         <ul className="space-y-3">{reports.reports.map((report) => {
