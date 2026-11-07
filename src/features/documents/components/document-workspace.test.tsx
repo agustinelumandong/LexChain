@@ -117,6 +117,7 @@ const document: ApiSchema<'DocumentResponse'> = {
     can_finalize: false,
     can_retry_processing: false,
     can_share: false,
+    can_restore: false,
     can_revoke: false,
     can_request_ecopy: false,
     can_review_ecopy: false,

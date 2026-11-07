@@ -71,6 +71,8 @@ const result: ApiSchema<'DocumentVerificationResponse'> = {
   onchain_hash: '0xmockdatahash',
   verified_at: '2026-07-20T12:00:00.000Z',
   message: 'Document content differs from the anchored hash.',
+  metadata_status: 'NOT_ANCHORED',
+  needs_restore: false,
   tamper_report_status: 'AVAILABLE',
   tamper_report: report,
 };
@@ -82,6 +84,21 @@ afterEach(() => {
 });
 
 describe('VerifyWorkspace', () => {
+  it('shows altered record fields separately from a matching PDF', () => {
+    render(<VerifyWorkspace result={{ ...result, status: 'AUTHENTIC', is_authentic: true, metadata_status: 'ALTERED', metadata_changes: [{ field: 'document_number', anchored: 12, current: 15 }] }} onRetry={vi.fn()} />);
+
+    expect(screen.getByRole('heading', { name: 'This PDF matches the saved version' })).toBeTruthy();
+    expect(screen.getByText('Document record has changed')).toBeTruthy();
+    expect(screen.getByText('document number')).toBeTruthy();
+    expect(screen.getByText('12')).toBeTruthy();
+    expect(screen.getByText('15')).toBeTruthy();
+  });
+
+  it('explains when record integrity cannot be checked', () => {
+    render(<VerifyWorkspace result={{ ...result, metadata_status: 'UNAVAILABLE' }} onRetry={vi.fn()} />);
+    expect(screen.getByText('Document record could not be checked')).toBeTruthy();
+  });
+
   it('renders backend comparison details and overlays only current-PDF coordinates', () => {
     vi.stubEnv('NEXT_PUBLIC_USE_MOCK_API', 'false');
     vi.stubEnv('USE_MOCK_API', 'false');

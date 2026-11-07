@@ -244,6 +244,26 @@ export default function VerifyWorkspace({
       {(unavailable || notAnchored) && <button type="button" onClick={onRetry} className="inline-flex min-h-11 items-center justify-center rounded-full border border-[#0067B3] bg-white px-5 py-2 text-sm font-bold text-[#0067B3] hover:bg-[#EEF6FF] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]">Try again</button>}
     </div>
 
+    <section aria-label="Document record integrity" className={`rounded-xl border p-4 ${result.metadata_status === 'ALTERED' ? 'border-red-700 bg-red-50' : result.metadata_status === 'MATCH' ? 'border-green-700 bg-green-50' : 'border-amber-700 bg-amber-50'}`}>
+      <h2 className="text-base font-bold text-[#0C2B49]">
+        {result.metadata_status === 'ALTERED' ? 'Document record has changed' : result.metadata_status === 'MATCH' ? 'Document record matches its saved reference' : result.metadata_status === 'NOT_ANCHORED' ? 'Document record has no saved reference' : 'Document record could not be checked'}
+      </h2>
+      <p className="mt-1 text-sm text-[#344054]">
+        {result.metadata_status === 'ALTERED' ? 'The document record differs from its saved reference.' : result.metadata_status === 'MATCH' ? 'The document record agrees with its saved reference.' : result.metadata_status === 'NOT_ANCHORED' ? 'There is no record reference to compare with.' : 'The record integrity result is unavailable. This does not mean it was changed.'}
+      </p>
+      {result.metadata_status === 'ALTERED' && result.metadata_changes && result.metadata_changes.length > 0 && (
+        <dl className="mt-3 space-y-3 text-sm">
+          {result.metadata_changes.map((change, index) => (
+            <div key={`${change.field}-${index}`} className="rounded-lg bg-white p-3">
+              <dt className="font-bold text-[#0C2B49]">{change.field.replaceAll('_', ' ')}</dt>
+              <dd className="mt-1 text-[#344054]">Saved: <span className="font-semibold">{change.anchored ?? 'Not available'}</span></dd>
+              <dd className="text-[#344054]">Current: <span className="font-semibold">{change.current === null ? 'None' : change.current ?? 'Not available'}</span></dd>
+            </div>
+          ))}
+        </dl>
+      )}
+    </section>
+
     {showPdfWorkspace ? (
       <div className="grid min-w-0 gap-5 md:min-h-0 md:flex-1 md:grid-cols-[minmax(0,1.25fr)_minmax(18rem,0.9fr)]">
         <section aria-label="Current document" className="flex min-h-[30rem] min-w-0 flex-col overflow-hidden rounded-[18px] border border-[#E8F0F8] bg-white p-4 md:min-h-0">

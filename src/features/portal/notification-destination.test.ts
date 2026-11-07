@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { PortalNotification } from './notifications-api';
 import { getNotificationDestination } from './notification-destination';
 
-const documentTypes = ['party_removed', 'document_recorded', 'document_processed', 'document_failed'] as const;
+const documentTypes = ['party_removed', 'document_recorded', 'document_processed', 'document_failed', 'record_altered', 'archive_problem'] as const;
 const draftTypes = ['draft_comment', 'draft_reply', 'draft_resolved', 'draft_reopened'] as const;
 
 function destinationInput(type: string, event_metadata?: Record<string, unknown>): Pick<PortalNotification, 'type' | 'event_metadata'> {
@@ -76,5 +76,6 @@ describe('getNotificationDestination', () => {
   it('returns null when metadata is absent or the runtime notification type is unknown', () => {
     expect(getNotificationDestination(destinationInput('document_failed'))).toBeNull();
     expect(getNotificationDestination(destinationInput('other_event', { document_id: 'doc-123' }))).toBeNull();
+    expect(getNotificationDestination(destinationInput('anchor_corrected', { kind: 'hash_corrected', document_id: 'doc-123' }))).toBeNull();
   });
 });

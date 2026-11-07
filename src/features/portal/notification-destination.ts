@@ -8,6 +8,8 @@ const documentNotificationTypes = new Set([
   'document_processed',
   'document_failed',
   'live_file_tampered',
+  'record_altered',
+  'archive_problem',
 ]);
 const draftNotificationTypes = new Set(['draft_comment', 'draft_reply', 'draft_resolved', 'draft_reopened']);
 

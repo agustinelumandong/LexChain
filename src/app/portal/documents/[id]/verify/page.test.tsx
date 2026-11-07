@@ -44,11 +44,18 @@ afterEach(() => {
 });
 
 describe('DocumentVerifyPage', () => {
+  it('offers restore for an altered record even when the PDF matches', async () => {
+    stubPageApi([{ ...verification('AUTHENTIC', true, true), needs_restore: true, metadata_status: 'ALTERED' }], { permissions: { can_restore: true, can_share: false }, lifecycle: 'SIGNED', on_chain: false });
+    renderPage();
+    expect(await screen.findByRole('button', { name: 'Restore from backup' })).toBeTruthy();
+  });
+
   const verification = (status: string, isAuthentic: boolean, baselineTrusted: boolean, txHash: string | null = '0x' + 'a'.repeat(64)) => ({
     document_id: 'doc-1',
     status,
     is_authentic: isAuthentic,
     baseline_trusted: baselineTrusted,
+    needs_restore: (status === 'TAMPERED' && baselineTrusted && !isAuthentic) || status === 'FILE_MISSING' || status === 'SNAPSHOT_COMPROMISED',
     onchain_hash: 'on-chain-hash',
     snapshot_hash: 'snapshot-hash',
     current_hash: 'current-hash',
@@ -66,7 +73,7 @@ describe('DocumentVerifyPage', () => {
       document_id: 'doc-1',
       lifecycle: 'FINALIZED',
       on_chain: true,
-      permissions: { can_share: true },
+      permissions: { can_restore: true },
       ...documentOverrides,
     };
     const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
@@ -110,9 +117,10 @@ describe('DocumentVerifyPage', () => {
     expect(screen.getByRole('button', { name: 'Restore from backup' })).toBeTruthy();
   });
 
-  it('does not offer restore when the backend indicates no archived backup is available', async () => {
+  it('does not offer restore when the backend says no repair is needed', async () => {
     const tamperedNoBackup = {
       ...verification('TAMPERED', false, true),
+      needs_restore: false,
       tamper_report_status: 'UNAVAILABLE',
       tamper_report_unavailable_reason: 'No archived original to compare against.',
     };
@@ -121,14 +129,12 @@ describe('DocumentVerifyPage', () => {
 
     expect(await screen.findByText('This PDF differs from the saved version')).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Restore from backup' })).toBeNull();
-    expect(screen.getByRole('status', { name: 'Restoration unavailable' })).toBeTruthy();
-    expect(screen.getByText('This document differs from its anchored record, but no archived backup is available to restore it from.')).toBeTruthy();
   });
 
   it.each([
     ['user', {}],
-    ['lawyer', { permissions: { can_share: false } }],
-    ['lawyer', { lifecycle: 'SIGNED', on_chain: false }],
+    ['lawyer', { permissions: { can_restore: false } }],
+    ['lawyer', { permissions: {} }],
   ])('hides restore for role or document state without restore permission', async (role, documentOverrides) => {
     stubPageApi([verification('TAMPERED', false, true)], documentOverrides);
     renderPage(role);
@@ -166,7 +172,7 @@ describe('DocumentVerifyPage', () => {
         return documentRequests === 1
           ? Promise.resolve(Response.json({ message: 'Temporary failure' }, { status: 503 }))
           : Promise.resolve(Response.json({
-              document_id: 'doc-1', lifecycle: 'FINALIZED', on_chain: true, permissions: { can_share: true },
+              document_id: 'doc-1', lifecycle: 'FINALIZED', on_chain: true, permissions: { can_restore: true },
             }));
       }
       return Promise.resolve(Response.json({ detail: 'Unexpected request' }, { status: 404 }));
@@ -190,7 +196,7 @@ describe('DocumentVerifyPage', () => {
       return Promise.resolve(Response.json({ detail: 'Unexpected request' }, { status: 404 }));
     }));
     renderPage('lawyer', {
-      document_id: 'doc-1', lifecycle: 'FINALIZED', on_chain: true, permissions: { can_share: true },
+      document_id: 'doc-1', lifecycle: 'FINALIZED', on_chain: true, permissions: { can_restore: true },
     });
 
     expect(await screen.findByText('We could not confirm your permission to restore this document, so restore is unavailable.')).toBeTruthy();
@@ -203,7 +209,7 @@ describe('DocumentVerifyPage', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Restore from backup' }));
 
     expect(screen.getByRole('dialog', { name: 'Restore archived original' })).toBeTruthy();
-    expect(screen.getByText(/archived original will be checked against the blockchain and restored/i)).toBeTruthy();
+    expect(screen.getByText(/check and repair the file and record/i)).toBeTruthy();
     expect(screen.getByText(/kept in signed-copy history if the backend can read it/i)).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
 
@@ -229,7 +235,7 @@ describe('DocumentVerifyPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Restore archived original' }));
 
     expect(await screen.findByText('This PDF matches the saved version')).toBeTruthy();
-    expect(await screen.findByText('Archived original restored. No previous PDF was preserved in signed-copy history.')).toBeTruthy();
+    expect(await screen.findByText('Document repair completed.')).toBeTruthy();
     expect(queryClient.getQueryData(['portal-doc-chain', 'doc-1'])).toEqual(authentic);
     expect(fetchMock.mock.calls.some(([url, init]) => String(url).includes(encodeURIComponent('/documents/doc-1/restore')) && init?.method === 'POST')).toBe(true);
     for (const queryKey of [
@@ -252,7 +258,23 @@ describe('DocumentVerifyPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Restore archived original' }));
 
     expect(await screen.findByText('This PDF matches the saved version')).toBeTruthy();
-    expect(await screen.findByText('The document was already authentic. Verification has been refreshed.')).toBeTruthy();
+    expect(await screen.findByText('Nothing needed repair. Verification has been refreshed.')).toBeTruthy();
+  });
+
+  it('shows repaired and unrepaired values after a partial repair', async () => {
+    const authentic = verification('AUTHENTIC', true, true);
+    stubPageApi([verification('TAMPERED', false, true), authentic], {}, () => Promise.resolve(Response.json({
+      document_id: 'doc-1', restored: true, verification: authentic,
+      repaired: [{ record: 'metadata', field: 'document_number', old: 15, new: 12 }],
+      unrepaired: ['snapshot.signed_copy_id'],
+    })));
+    renderPage();
+    fireEvent.click(await screen.findByRole('button', { name: 'Restore from backup' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Restore archived original' }));
+
+    const result = await screen.findByRole('region', { name: 'Restore result' });
+    expect(within(result).getByText('Repaired: metadata.document_number')).toBeTruthy();
+    expect(within(result).getByRole('alert').textContent).toContain('snapshot.signed_copy_id');
   });
 
   it('prevents duplicate restore requests while the backend request is pending', async () => {

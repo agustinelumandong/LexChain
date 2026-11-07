@@ -19,6 +19,7 @@ export default function DocumentVerifyPage() {
   const queryClient = useQueryClient();
   const role = usePortalRole();
   const [restoreDialogOpen, setRestoreDialogOpen] = useState(false);
+  const [restoreResult, setRestoreResult] = useState<ApiSchema<'RestoreResponse'> | null>(null);
   const restoreSubmissionLock = useRef(false);
   const documentQuery = useQuery({
     queryKey: ['portal-doc', id],
@@ -37,11 +38,9 @@ export default function DocumentVerifyPage() {
     onSuccess: async (result) => {
       queryClient.setQueryData(['portal-doc-chain', id], result.verification);
       setRestoreDialogOpen(false);
-      toast.success(result.restored
-        ? result.preserved_copy_id
-          ? 'Archived original restored. The replaced PDF is available in signed-copy history.'
-          : 'Archived original restored. No previous PDF was preserved in signed-copy history.'
-        : 'The document was already authentic. Verification has been refreshed.');
+      setRestoreResult(result);
+      if (result.unrepaired?.length) toast.warning('Some record values still need a database backup.');
+      else toast.success(result.restored ? 'Document repair completed.' : 'Nothing needed repair. Verification has been refreshed.');
       await Promise.all([
         ['portal-doc', id],
         ['portal-documents'],
@@ -52,25 +51,11 @@ export default function DocumentVerifyPage() {
     },
     onSettled: () => { restoreSubmissionLock.current = false; },
   });
-  const hasNoArchivedBackup = Boolean(
-    verifyQuery.data?.tamper_report_status === 'UNAVAILABLE'
-    && (
-      verifyQuery.data.tamper_report_unavailable_reason?.toLowerCase().includes('no archived original')
-      || verifyQuery.data.tamper_report_unavailable_reason?.toLowerCase().includes('archived original is missing')
-      || verifyQuery.data.tamper_report_unavailable_reason?.toLowerCase().includes('archived original does not match')
-    )
-  );
-  const verificationAllowsRestore = !verifyQuery.data?.is_authentic && (
-    (verifyQuery.data?.status === 'TAMPERED' && verifyQuery.data.baseline_trusted && !hasNoArchivedBackup)
-    || verifyQuery.data?.status === 'FILE_MISSING'
-    || verifyQuery.data?.status === 'SNAPSHOT_COMPROMISED'
-  );
+  const verificationAllowsRestore = !verifyQuery.isFetching && !verifyQuery.isError && verifyQuery.data?.needs_restore === true;
   const documentAllowsRestore = role === 'lawyer'
     && !documentQuery.isFetching
     && !documentQuery.isError
-    && documentQuery.data?.lifecycle?.toUpperCase() === 'FINALIZED'
-    && documentQuery.data.on_chain === true
-    && documentQuery.data.permissions?.can_share === true;
+    && documentQuery.data?.permissions?.can_restore === true;
   const canOfferRestore = verificationAllowsRestore && documentAllowsRestore;
   const isNotFoundOrUnanchored = verifyQuery.error instanceof Error && 'status' in verifyQuery.error && verifyQuery.error.status === 404;
 
@@ -105,10 +90,13 @@ export default function DocumentVerifyPage() {
         <p className="mt-1 text-sm text-[#4B6382]">We compare this PDF with the version saved when the document was finalized to help show whether it has changed.</p>
       </header>
 
-      {role === 'lawyer' && verifyQuery.data?.status === 'TAMPERED' && !verifyQuery.data.is_authentic && verifyQuery.data.baseline_trusted && hasNoArchivedBackup && (
-        <div role="status" aria-label="Restoration unavailable" className="flex items-center gap-3 rounded-[18px] border border-amber-200 bg-amber-50 p-4 text-sm text-[#6B4E00]">
-          <p>This document differs from its anchored record, but no archived backup is available to restore it from.</p>
-        </div>
+      {restoreResult && (
+        <section aria-label="Restore result" className="rounded-[18px] border border-[#D7E4F2] bg-white p-4 text-sm text-[#344054]">
+          <h2 className="font-bold text-[#0C2B49]">Restore result</h2>
+          <p>{restoreResult.unrepaired?.length ? 'Some values could not be repaired.' : restoreResult.restored ? 'The backend completed the repair.' : 'Nothing needed repair.'}</p>
+          {restoreResult.repaired && restoreResult.repaired.length > 0 && <p className="mt-2">Repaired: {restoreResult.repaired.map((value) => `${value.record}.${value.field}`).join(', ')}</p>}
+          {restoreResult.unrepaired && restoreResult.unrepaired.length > 0 && <p role="alert" className="mt-2 font-bold text-[#8A5B00]">Needs a database backup: {restoreResult.unrepaired.join(', ')}</p>}
+        </section>
       )}
 
       {role === 'lawyer' && verificationAllowsRestore && documentQuery.isError && (
@@ -139,7 +127,7 @@ export default function DocumentVerifyPage() {
       <Modal open={restoreDialogOpen} onClose={closeRestoreDialog} title="Restore archived original">
         <div className="space-y-4">
           <p className="text-sm leading-6 text-[#4B6382]">
-            The archived original will be checked against the blockchain and restored. If a current PDF exists, it will be kept in signed-copy history if the backend can read it. A compromised reference record must still be recovered from a database backup.
+            The backend will check and repair the file and record using the blockchain and archived original. If a current PDF is replaced, it will be kept in signed-copy history if the backend can read it. Any values that cannot be repaired will need a database backup.
           </p>
           {restoreMutation.isError && <p role="alert" className="text-sm font-semibold text-[#B42318]">
             {restoreMutation.error instanceof Error ? restoreMutation.error.message : 'The document could not be restored. Please try again.'}
