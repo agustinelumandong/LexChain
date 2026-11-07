@@ -158,6 +158,8 @@ async function showPage() {
 }
 
 beforeEach(() => {
+  Object.defineProperty(HTMLDialogElement.prototype, 'showModal', { configurable: true, value(this: HTMLDialogElement) { this.setAttribute('open', ''); } });
+  Object.defineProperty(HTMLDialogElement.prototype, 'close', { configurable: true, value(this: HTMLDialogElement) { this.removeAttribute('open'); } });
   vi.stubGlobal('ResizeObserver', ResizeObserverStub);
   sessionStorage.clear();
   state.documentQuery = { data: baseDocument, isLoading: false, isError: false, refetch: vi.fn() };
@@ -165,7 +167,7 @@ beforeEach(() => {
   state.signedCopiesQuery = { data: { document_id: 'doc-1', copies: [] }, isLoading: false, isError: false };
   state.partiesQuery = { data: { document_id: 'doc-1', issuer: { id: 'owner-1', user_id: 'owner-1', email: 'lawyer@example.com', f_name: 'Jordan', l_name: 'Lawyer', role: 'owner', status: 'accepted', responded_at: null, created_at: '2026-10-20T00:00:00Z' }, parties: [] }, isLoading: false, isError: false };
   state.commentsQuery = { data: { document_id: 'doc-1', unresolved: 0, synced_at: null, comments: [] }, isLoading: false, isError: false };
-  state.integrityQuery = { data: { status: 'AUTHENTIC', is_authentic: true }, isFetching: false, isError: false, refetch: vi.fn() };
+  state.integrityQuery = { data: { status: 'AUTHENTIC', is_authentic: true, metadata_status: 'MATCH', needs_restore: false }, isFetching: false, isError: false, refetch: vi.fn() };
   state.queryClient.setQueryData.mockReset();
   state.queryClient.setQueryData.mockImplementation((queryKey, document) => {
     if (queryKey[0] === 'portal-doc') state.documentQuery = { ...state.documentQuery, data: document };
@@ -187,7 +189,15 @@ describe('document detail screen', () => {
   it('shows integrity status on the document page for a finalized document', async () => {
     state.documentQuery = { ...state.documentQuery, data: { ...baseDocument, lifecycle: 'FINALIZED', on_chain: true } };
     await showPage();
-    expect(screen.getByText('Integrity verified')).toBeTruthy();
+    expect(screen.getByText('PDF and document details unchanged')).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'View verification details' }).getAttribute('href')).toBe('/portal/documents/doc-1/verify');
+    expect(screen.queryByRole('link', { name: 'Verify integrity' })).toBeNull();
+  });
+
+  it('keeps verification available for an on-chain document that is not finalized', async () => {
+    state.documentQuery = { ...state.documentQuery, data: { ...baseDocument, on_chain: true } };
+    await showPage();
+    expect(screen.getByRole('link', { name: 'Verify integrity' }).getAttribute('href')).toBe('/portal/documents/doc-1/verify');
   });
 
   it('labels a finalized document on-chain only when confirmed', async () => {
@@ -435,6 +445,8 @@ describe('document detail screen', () => {
     expect(screen.queryByRole('tablist')).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Finalize' }));
     const dialog = screen.getByRole('dialog', { name: 'Confirm finalization' });
+    expect((dialog as HTMLDialogElement).open).toBe(true);
+    expect(document.activeElement).toBe(within(dialog).getByRole('button', { name: 'Open PDF' }));
     expect(within(dialog).queryByText(/This freezes the signed copy/)).toBeNull();
     fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
     expect(screen.queryByRole('dialog')).toBeNull();
@@ -447,6 +459,8 @@ describe('document detail screen', () => {
       data: {
         ...baseDocument,
         file_name: 'Property Purchase Agreement.pdf',
+        doc_no: 12,
+        page_no: 34,
         signed_copy: {
           id: 'copy-123',
           sha256: '9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08',
@@ -464,6 +478,8 @@ describe('document detail screen', () => {
     const dialog = screen.getByRole('dialog', { name: 'Confirm finalization' });
     expect(within(dialog).getByText('Property Purchase Agreement.pdf')).toBeTruthy();
     expect(within(dialog).getByText(/Executed_Agreement_Signed\.pdf · 2\.0 MB/)).toBeTruthy();
+    expect(within(dialog).getByText('Document 12 · Page 34')).toBeTruthy();
+    expect(within(dialog).getByText(/Attached/)).toBeTruthy();
     fireEvent.click(within(dialog).getByRole('button', { name: /open pdf/i }));
     const preview = await screen.findByTestId('pdf-preview');
     expect(preview.getAttribute('data-source')).toBe('/api/portal/documents/doc-1/file?copy_id=copy-123');
@@ -486,6 +502,9 @@ describe('document detail screen', () => {
     expect(confirm.hasAttribute('disabled')).toBe(true);
     expect(screen.getByRole('button', { name: 'Cancel' }).hasAttribute('disabled')).toBe(true);
     expect(screen.getByText('Waiting for blockchain confirmation…')).toBeTruthy();
+    expect(screen.getByRole('progressbar', { name: 'Finalization in progress' })).toBeTruthy();
+    fireEvent(screen.getByRole('dialog', { name: 'Confirm finalization' }), new Event('cancel', { bubbles: false, cancelable: true }));
+    expect(screen.getByRole('dialog', { name: 'Confirm finalization' })).toBeTruthy();
     fireEvent.click(confirm);
     expect(state.finalizeDocument).toHaveBeenCalledExactlyOnceWith('doc-1');
     await act(async () => finish?.({ document_id: 'doc-1', onchain_document_id: 'onchain-doc-101', data_hash: 'datahash101', tx_hash: '0xtxhash101' }));

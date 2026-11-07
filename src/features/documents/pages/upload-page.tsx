@@ -8,7 +8,6 @@ import { toast } from 'sonner';
 import UploadFileIcon from '@mui/icons-material/UploadFile';
 import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile';
 import CloseIcon from '@mui/icons-material/Close';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import {
   getRequiredUploadMetadataError,
   getUploadFileError,
@@ -26,7 +25,6 @@ import { Checkbox } from '@/shared/components/ui';
 import type { ApiSchema } from '@/shared/types/index';
 import { listRegisterBooks } from '@/features/office/books-api';
 import { latestRegisterBook } from '@/features/office/latest-register-book';
-import { getDocumentLifecycleLabel, getDocumentProcessingStatusLabel } from '@/features/documents/document-ui';
 import { portalRequest } from '@/shared/api/client';
 type UserProfile = ApiSchema<'UserProfileResponse'>;
 type UploadedDocument = ApiSchema<'DocumentResponse'>;
@@ -57,7 +55,6 @@ export default function UploadPage({ embedded = false, onFiledDocument, onPendin
   const [drag, setDrag] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
   const [duplicateDismissed, setDuplicateDismissed] = useState(false);
-  const [outcome, setOutcome] = useState<UploadedDocument | null>(null);
   const profileQuery = useQuery<UserProfile | null>({
     queryKey: ['portal-profile'],
     queryFn: async () => {
@@ -76,12 +73,11 @@ export default function UploadPage({ embedded = false, onFiledDocument, onPendin
   const bookFiling = manualNumbers ? { docNo: Number(docNo), pageNo: Number(pageNo) } : undefined;
 
   async function onFiled(data: UploadedDocument) {
-    setOutcome(data);
-    toast.success('Signed document filed.');
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ['portal-documents'] }),
       queryClient.invalidateQueries({ queryKey: ['portal-books'] }),
     ]);
+    toast.success('Signed document filed.');
     if (embedded && onFiledDocument) onFiledDocument(data.document_id);
     else router.push(`/portal/documents/${data.document_id}`);
   }
@@ -138,7 +134,7 @@ export default function UploadPage({ embedded = false, onFiledDocument, onPendin
     }
     setFile(candidate);
     setValidationError(null);
-    setTitle((current) => current || candidate.name.replace(/\.pdf$/i, ''));
+    setTitle((current) => current || candidate.name.replace(/\.pdf$/i, '').replaceAll('_', ' '));
   }
 
   function submit() {
@@ -165,28 +161,6 @@ export default function UploadPage({ embedded = false, onFiledDocument, onPendin
   if (profileQuery.isPending) return <p className="text-sm font-semibold text-[#5B6F8A]">Loading your upload access…</p>;
   if (!isIssuer) {
     return <section className="max-w-xl rounded-[18px] border border-[#E8F0F8] bg-white p-6"><h1 className="text-xl font-black text-[#0C2B49]">Upload unavailable</h1><p className="mt-2 text-sm text-[#5B6F8A]">Only Document Issuers can upload documents.</p></section>;
-  }
-
-  if (outcome) {
-    return (
-      <section className="max-w-xl rounded-[18px] border border-[#D7EDE0] bg-white p-6">
-        <div className="flex items-start gap-3">
-          <CheckCircleIcon sx={{ fontSize: 32, color: '#166534' }} />
-          <div>
-            <p role="status" className="text-lg font-black text-[#0C2B49]">Signed document filed</p>
-            <p className="mt-1 text-sm text-[#5B6F8A]">Review the signed copy and its processing results before finalizing.</p>
-          </div>
-        </div>
-        <dl className="mt-5 grid gap-3 rounded-xl bg-[#F8FBFF] p-4 text-sm">
-          <div><dt className="font-bold text-[#5B6F8A]">Lifecycle</dt><dd className="mt-1 font-black text-[#0C2B49]">{getDocumentLifecycleLabel(outcome.lifecycle)}</dd></div>
-          {outcome.status && <div><dt className="font-bold text-[#5B6F8A]">Processing status</dt><dd className="mt-1 font-black text-[#0C2B49]">{getDocumentProcessingStatusLabel(outcome.lifecycle, outcome.status)}</dd></div>}
-          {(outcome.doc_no != null || outcome.page_no != null) && <div><dt className="font-bold text-[#5B6F8A]">Paper register</dt><dd className="mt-1 font-black text-[#0C2B49]">{[outcome.doc_no != null ? `Document number ${outcome.doc_no}` : null, outcome.page_no != null ? `Page ${outcome.page_no}` : null].filter(Boolean).join(' · ')}</dd></div>}
-        </dl>
-        <button type="button" onClick={() => router.push(`/portal/documents/${outcome.document_id}`)} className="mt-5 rounded-full bg-[#0067B3] px-6 py-3 text-sm font-black text-white">
-          View document
-        </button>
-      </section>
-    );
   }
 
   if (isSubmissionPending) {
@@ -254,7 +228,7 @@ export default function UploadPage({ embedded = false, onFiledDocument, onPendin
         </section>
 
         <section aria-labelledby="select-pdf-heading" className="flex flex-col rounded-[18px] border border-[#E8F0F8] bg-white p-5">
-          <h2 id="select-pdf-heading" className="font-black text-[#0C2B49]">Select PDF</h2>
+          <h2 id="select-pdf-heading" className="font-black text-[#0C2B49]">Upload File</h2>
           <p className="mt-1 text-sm text-[#5B6F8A]">PDF only · maximum {MAX_SIGNED_PDF_BYTES / (1024 * 1024)} MiB</p>
           <div
             onDragOver={(event) => { event.preventDefault(); setDrag(true); }}
@@ -263,11 +237,10 @@ export default function UploadPage({ embedded = false, onFiledDocument, onPendin
             className={`mt-4 flex flex-1 flex-col items-center justify-center rounded-[18px] border-2 border-dashed p-6 text-center transition sm:p-8 ${drag ? 'border-[#0067B3] bg-[#EEF6FF]' : 'border-[#E8F0F8] bg-[#F8FBFF] hover:border-[#0067B3]'}`}
           >
             <UploadFileIcon sx={{ fontSize: 44, color: '#0067B3' }} />
-            <p className="mt-2 text-sm font-bold text-[#0C2B49]">Drop your PDF here</p>
-            <button type="button" disabled={requiresConfirmation || isSubmissionPending} onClick={() => inputRef.current?.click()} className="mt-3 rounded-full border border-[#0067B3] px-4 py-2 text-sm font-bold text-[#0067B3] focus:outline-none focus:ring-2 focus:ring-[#0067B3] focus:ring-offset-2 disabled:opacity-40">Choose a PDF</button>
+            {file ? <div className="mt-2 flex max-w-full items-center gap-3"><InsertDriveFileIcon sx={{ color: '#0067B3' }} /><span className="min-w-0 truncate text-sm font-bold text-[#0C2B49]">{file.name} · {formatFileSize(file.size)}</span><button aria-label="Remove uploaded file" disabled={requiresConfirmation || isSubmissionPending} onClick={() => { setFile(null); setValidationError(null); if (inputRef.current) inputRef.current.value = ''; }} type="button"><CloseIcon sx={{ fontSize: 18, color: '#5B6F8A' }} /></button></div> : <p className="mt-2 text-sm font-bold text-[#0C2B49]">Drop your PDF here</p>}
+            <button type="button" disabled={requiresConfirmation || isSubmissionPending} onClick={() => inputRef.current?.click()} className="mt-3 rounded-full border border-[#0067B3] px-4 py-2 text-sm font-bold text-[#0067B3] focus:outline-none focus:ring-2 focus:ring-[#0067B3] focus:ring-offset-2 disabled:opacity-40">{file ? 'Replace File' : 'Choose a File'}</button>
             <input ref={inputRef} type="file" accept="application/pdf,.pdf" disabled={requiresConfirmation || isSubmissionPending} className="hidden" onChange={(event) => pick(event.target.files?.[0] ?? null)} />
           </div>
-          {file && <div className="mt-4 flex items-center gap-3 rounded-[14px] border border-[#E8F0F8] p-4"><InsertDriveFileIcon sx={{ color: '#0067B3' }} /><span className="flex-1 truncate text-sm font-bold text-[#0C2B49]">{file.name} · {formatFileSize(file.size)}</span><button aria-label="Remove uploaded file" disabled={requiresConfirmation || mutation.isPending} onClick={() => { setFile(null); setValidationError(null); }} type="button"><CloseIcon sx={{ fontSize: 18, color: '#5B6F8A' }} /></button></div>}
         </section>
       </div>
 

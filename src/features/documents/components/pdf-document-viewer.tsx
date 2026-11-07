@@ -204,6 +204,7 @@ export default function PdfDocumentViewer({
   }>({ sourceUrl, pdf: null, failed: false });
   const renderKey = `${sourceUrl}:${currentPage}:${zoom}`;
   const [failedRenderKey, setFailedRenderKey] = useState<string | null>(null);
+  const [renderedKey, setRenderedKey] = useState<string | null>(null);
   const pdf = loadResult.sourceUrl === sourceUrl ? loadResult.pdf : null;
   const displayedPageCount = pageCount ?? pdf?.numPages ?? 1;
   const renderFailed = loadResult.sourceUrl === sourceUrl && loadResult.failed
@@ -311,6 +312,7 @@ export default function PdfDocumentViewer({
           transform: outputScale === 1 ? undefined : [outputScale, 0, 0, outputScale, 0, 0],
         });
         await renderTask.promise;
+        if (!disposed) setRenderedKey(renderKey);
       } catch {
         if (!disposed) setFailedRenderKey(renderKey);
       }
@@ -355,6 +357,8 @@ export default function PdfDocumentViewer({
           <span className="border-l border-[#D7E4F2] pl-3 text-xs font-semibold text-[#4B6382]">
             {pdf ? `${pdf.numPages} ${pdf.numPages === 1 ? 'page' : 'pages'}` : 'Loading pages…'}
           </span>
+        ) : !pdf && pageCount == null ? (
+          <span className="border-l border-[#D7E4F2] pl-3 text-xs font-semibold text-[#4B6382]">{renderFailed ? 'Pages unavailable' : 'Loading pages…'}</span>
         ) : (
           <div className="flex items-center gap-1 border-l border-[#D7E4F2] pl-2">
             <button
@@ -432,6 +436,12 @@ export default function PdfDocumentViewer({
             onPointerUp={stopPan}
             onPointerCancel={stopPan}
           >
+            {!renderFailed && renderedKey !== renderKey && (
+              <div role="status" className="flex min-h-48 flex-col items-center justify-center gap-3 text-sm font-semibold text-[#4B6382]">
+                <span aria-hidden="true" className="size-7 animate-spin rounded-full border-2 border-[#CFE7FC] border-t-[#0067B3] motion-reduce:animate-none" />
+                Loading PDF…
+              </div>
+            )}
             {pdf && pageCount != null && pdf.numPages !== pageCount ? (
               <p role="status">
                 PDF page count ({pdf.numPages}) differs from the review record ({pageCount}).

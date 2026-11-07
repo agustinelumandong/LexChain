@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore, type FormEvent, type ReactNode } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
@@ -779,10 +779,24 @@ export function DocumentWorkspace({
   const isDrafting = document.lifecycle === 'PREPARING' || document.lifecycle === 'READY_FOR_SIGNATURE';
   const progressPath = document.draft_url ? 'google' : 'pdf';
   const status = document.status?.trim().toUpperCase();
+  const signedPdfReviewIdentity = `${document.document_id}:${document.signed_copy?.id ?? 'missing'}`;
+  const signedPdfReviewKey = document.signed_copy?.id ? `lexchain:reviewed-signed-pdf:${signedPdfReviewIdentity}` : null;
+  const [reviewedSignedPdfKey, setReviewedSignedPdfKey] = useState<string | null>(null);
+  const storedSignedPdfReview = useSyncExternalStore(
+    (notify) => { window.addEventListener('storage', notify); return () => window.removeEventListener('storage', notify); },
+    () => { try { return signedPdfReviewKey !== null && localStorage.getItem(signedPdfReviewKey) === '1'; } catch { return false; } },
+    () => false,
+  );
+  const hasReviewedSignedPdf = storedSignedPdfReview || reviewedSignedPdfKey === signedPdfReviewIdentity;
+  const continueToTextReview = () => {
+    setReviewedSignedPdfKey(signedPdfReviewIdentity);
+    try { if (signedPdfReviewKey) localStorage.setItem(signedPdfReviewKey, '1'); } catch { /* Storage may be unavailable. */ }
+  };
   const isReviewingText = ['AWAITING_REVIEW', 'READY_FOR_REVIEW', 'ENRICHING', 'COMPLETED'].includes(status ?? '');
+  const needsSignedPdfReview = role === 'lawyer' && document.lifecycle === 'SIGNED' && progressPath === 'pdf' && ['AWAITING_REVIEW', 'READY_FOR_REVIEW'].includes(status ?? '') && !hasReviewedSignedPdf && !isConfirmingFinalization && !finalizationOutcomeUnknown;
   const isProcessing = ['QUEUED', 'PROCESSING', 'ENRICHING'].includes(status ?? '');
   const showWorkflowStatus = document.lifecycle === 'SIGNED' || (document.lifecycle === 'FINALIZED' && (isProcessing || ['FAILED', 'AWAITING_REVIEW', 'READY_FOR_REVIEW'].includes(status ?? '')));
-  const signedProgressStep = (progressPath === 'google' ? 3 : 2) + (document.lifecycle === 'FINALIZED' || isConfirmingFinalization ? 2 : isReviewingText ? 1 : 0);
+  const signedProgressStep = (progressPath === 'google' ? 3 : 2) + (document.lifecycle === 'FINALIZED' || isConfirmingFinalization ? 2 : isReviewingText && !needsSignedPdfReview ? 1 : 0);
   const showAnalysis = document.lifecycle !== 'SIGNED' || document.status?.trim().toUpperCase() === 'COMPLETED';
   const canManageParticipants = role === 'lawyer' && (document.permissions.can_share || document.permissions.can_revoke);
   const visibleTabs = tabs.filter((tab) => (tab !== 'Comments' || (document.lifecycle !== 'FINALIZED' && Boolean(document.draft_url))) && (tab !== 'Participants' || isDrafting || canManageParticipants) && (tab !== 'Blockchain' || !isDrafting));
@@ -867,7 +881,7 @@ export function DocumentWorkspace({
   });
   const txHash = chainQuery.data?.tx_hash || finalizationResult?.tx_hash;
   const transactionUrl = txHash ? getBaseSepoliaTransactionUrl(txHash) : null;
-  const signedCopiesQuery = useQuery({ queryKey: ['portal-doc-signed-copies', document.document_id], queryFn: () => listSignedCopies(document.document_id), enabled: !isDrafting && (activeTab === 'Files' || !showTabs || (activeTab === 'Overview' && document.lifecycle === 'FINALIZED' && document.status?.trim().toUpperCase() === 'COMPLETED')), refetchInterval: 15_000 });
+  const signedCopiesQuery = useQuery({ queryKey: ['portal-doc-signed-copies', document.document_id], queryFn: () => listSignedCopies(document.document_id), enabled: !isDrafting && (activeTab === 'Files' || !showTabs), refetchInterval: 15_000 });
   const partiesQuery = useQuery({
     queryKey: ['portal-document-parties', document.document_id],
     queryFn: () => listDocumentParties(document.document_id),
@@ -1240,6 +1254,18 @@ export function DocumentWorkspace({
     </section>
   );
 
+  const historyPanel = (
+    <section aria-labelledby="completed-history-heading" className="rounded-[18px] border border-[#E8F0F8] bg-white p-5 shadow-sm sm:p-6">
+      <h2 id="completed-history-heading" className={overviewSectionHeadingClassName}><HistoryOutlinedIcon aria-hidden="true" sx={{ fontSize: 20, color: '#0067B3' }} />History</h2>
+      <div className="mt-4 text-base leading-7 text-[#344054] [&_time]:text-sm [&_li_p]:text-sm">
+        {historyQuery.isLoading && <p role="status">Loading history…</p>}
+        {historyQuery.isError && <p role="alert">Unable to load history.</p>}
+        {historyQuery.data && historyChanges.length === 0 && <EmptyState className="mt-3" icon={<HistoryOutlinedIcon aria-hidden="true" sx={{ fontSize: 22 }} />} title="No history recorded" description="No history has been recorded for this document yet." />}
+        {historyChanges.length > 0 && <HistoryTimeline changes={[...historyChanges].reverse()} ariaLabel="Document history" showActor />}
+      </div>
+    </section>
+  );
+
   const isCompletedSigned = document.lifecycle === 'SIGNED' && document.status?.trim().toUpperCase() === 'COMPLETED';
   const isCompletedOverview = isCompletedSigned || (document.lifecycle === 'FINALIZED' && document.status?.trim().toUpperCase() === 'COMPLETED');
   const signedFilesPanel = (
@@ -1257,6 +1283,7 @@ export function DocumentWorkspace({
               onOpenAttach={openSignedCopyForm}
               signedCopyForm={activeSignedCopyMode === 'replace' ? <Modal open onClose={closeSignedCopyForm} title="Replace signed PDF" size="wide"><div className="max-h-[70dvh] overflow-y-auto">{signedCopyForm}</div></Modal> : signedCopyForm}
             />
+            {(!showTabs || activeTab === 'Files') && <>
             {signedCopiesQuery.isLoading && <p role="status" className="text-sm text-[#4B6382]">Loading earlier signed PDFs…</p>}
             {signedCopiesQuery.isError && <p role="alert" className="text-sm font-bold text-[#B42318]">Unable to load earlier signed PDFs.</p>}
             {earlierSignedCopies.length > 0 && <details className="rounded-xl border border-[#D7E4F2] bg-white p-4 sm:p-5">
@@ -1282,6 +1309,7 @@ export function DocumentWorkspace({
                 </article>)}
               </div>
             </details>}
+            </>}
           </div>
   );
 
@@ -1402,15 +1430,7 @@ export function DocumentWorkspace({
               <summary className="min-h-11 cursor-pointer text-lg font-bold text-[#0C2B49] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]"><span role="heading" aria-level={2}>Extracted details</span></summary>
               <div className="mt-3 space-y-3">{hasReviewDetails ? <><InsightGroup title="Labels" items={document.labels} /><EntityGroups entities={document.entities} /></> : <p className="text-base text-[#4B6382]">No extracted details are available yet.</p>}</div>
             </details>
-            <section aria-labelledby="completed-history-heading" className="rounded-[18px] border border-[#E8F0F8] bg-white p-5 shadow-sm sm:p-6">
-              <h2 id="completed-history-heading" className={overviewSectionHeadingClassName}><HistoryOutlinedIcon aria-hidden="true" sx={{ fontSize: 20, color: '#0067B3' }} />History</h2>
-              <div className="mt-4 text-base leading-7 text-[#344054] [&_time]:text-sm [&_li_p]:text-sm">
-                {historyQuery.isLoading && <p role="status">Loading history…</p>}
-                {historyQuery.isError && <p role="alert">Unable to load history.</p>}
-                {historyQuery.data && historyChanges.length === 0 && <EmptyState className="mt-3" icon={<HistoryOutlinedIcon aria-hidden="true" sx={{ fontSize: 22 }} />} title="No history recorded" description="No history has been recorded for this document yet." />}
-                {historyChanges.length > 0 && <HistoryTimeline changes={[...historyChanges].reverse()} ariaLabel="Document history" showActor />}
-              </div>
-            </section>
+            {historyPanel}
           </div>
         )}
 
@@ -1519,6 +1539,7 @@ export function DocumentWorkspace({
 
         {(activeTab === 'Files' || (!showTabs && document.lifecycle === 'SIGNED' && !isCompletedSigned)) && signedFilesPanel}
         {!showTabs && document.lifecycle === 'SIGNED' && !isCompletedSigned && participantsPanel}
+        {!showTabs && document.lifecycle === 'SIGNED' && !isCompletedSigned && historyPanel}
 
 
 
@@ -1629,8 +1650,8 @@ export function DocumentWorkspace({
       {(showWorkflowStatus || workflowActions) && <div className="mx-auto w-full max-w-7xl px-4 pb-4 sm:px-6">
         <section aria-label="Next action" className="rounded-[18px] border border-[#E8F0F8] bg-white p-5 shadow-sm sm:p-6">
           <div className="flex flex-wrap items-center justify-between gap-4">
-            {showWorkflowStatus && <FinalizationNextStep document={document} role={role} outcomeUnknown={finalizationOutcomeUnknown} />}
-            {workflowActions}
+            {needsSignedPdfReview ? <div><h3 className="text-sm font-bold text-[#0C2B49]">Review signed PDF</h3><p className="mt-1 text-sm leading-5 text-[#4B6382]">Check the signed PDF before continuing to text and risk review.</p></div> : showWorkflowStatus && <FinalizationNextStep document={document} role={role} outcomeUnknown={finalizationOutcomeUnknown} />}
+            {needsSignedPdfReview ? <button type="button" onClick={continueToTextReview} className="min-h-11 rounded-full bg-[#0067B3] px-5 py-2 text-sm font-extrabold text-white hover:bg-[#00528F] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]">Continue to text review</button> : workflowActions}
           </div>
           {showWorkflowStatus && isProcessing && !finalizationOutcomeUnknown && <div role="progressbar" aria-label="Document processing" aria-valuetext={status === 'QUEUED' ? 'Waiting to start' : status === 'ENRICHING' ? 'Analyzing document' : 'Extracting text'} className="mt-4 h-2 overflow-hidden rounded-full bg-[#E8F0F8]">
             <div className="document-processing-indeterminate h-full w-2/5 rounded-full bg-[#0067B3] motion-reduce:animate-none" />

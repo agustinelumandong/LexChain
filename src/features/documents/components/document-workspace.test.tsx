@@ -138,7 +138,7 @@ class ResizeObserverStub {
   unobserve() {}
 }
 
-function renderWorkspace(props: Partial<React.ComponentProps<typeof DocumentWorkspace>> = {}) {
+function renderWorkspace(props: Partial<React.ComponentProps<typeof DocumentWorkspace>> = {}, signedCopies?: unknown) {
   const initialDocument = props.document ?? document;
   const queryClient = new QueryClient({
     defaultOptions: {
@@ -146,6 +146,7 @@ function renderWorkspace(props: Partial<React.ComponentProps<typeof DocumentWork
       mutations: { retry: false },
     },
   });
+  if (signedCopies) queryClient.setQueryData(['portal-doc-signed-copies', initialDocument.document_id], signedCopies);
   const invalidateQueries = vi.spyOn(queryClient, 'invalidateQueries').mockResolvedValue();
   function WorkspaceFromQuery({ document: initialData, ...workspaceProps }: Partial<React.ComponentProps<typeof DocumentWorkspace>>) {
     const queryClient = useQueryClient();
@@ -302,6 +303,7 @@ describe('DocumentWorkspace', () => {
     vi.unstubAllEnvs();
     vi.clearAllMocks();
     sessionStorage.clear();
+    localStorage.clear();
     window.history.replaceState(null, '', '/');
   });
 
@@ -391,7 +393,7 @@ describe('DocumentWorkspace', () => {
     expect((screen.getByLabelText('Document number') as HTMLInputElement).value).toBe('18');
   });
 
-  it('keeps earlier signed PDF versions in the Files tab', async () => {
+  it('keeps earlier signed PDF versions available before finalization', async () => {
     listSignedCopiesMock.mockResolvedValue({ document_id: 'doc-101', copies: [
       { id: 'copy-current', sha256: 'current-hash', content_type: 'application/pdf', size_bytes: 100, original_filename: 'current.pdf', uploaded_by: null, replaced_reason: null, is_current: true, created_at: '2026-07-28T00:00:00Z' },
       { id: 'copy-old', sha256: 'old-hash', content_type: 'application/pdf', size_bytes: 90, original_filename: 'old.pdf', uploaded_by: null, replaced_reason: 'Corrected scan', is_current: false, created_at: '2026-07-27T00:00:00Z' },
@@ -404,6 +406,19 @@ describe('DocumentWorkspace', () => {
     expect(screen.getByText('Reason replaced: Corrected scan')).toBeTruthy();
     fireEvent.click(screen.getByText('File details'));
     expect(screen.getByText('old-hash')).toBeTruthy();
+  });
+
+  it('shows earlier signed PDFs in Files but not the finalized overview', async () => {
+    const copies = { document_id: 'doc-101', copies: [
+      { id: 'copy-old', sha256: 'old-hash', content_type: 'application/pdf', size_bytes: 90, original_filename: 'old.pdf', uploaded_by: null, replaced_reason: 'Corrected scan', is_current: false, created_at: '2026-07-27T00:00:00Z' },
+    ] };
+    listSignedCopiesMock.mockResolvedValue(copies);
+    renderWorkspace({ document: { ...document, lifecycle: 'FINALIZED', status: 'COMPLETED' } }, copies);
+    expect(screen.queryByText('Earlier signed PDFs (1)')).toBeNull();
+    fireEvent.click(screen.getByRole('tab', { name: 'Files' }));
+    fireEvent.click(await screen.findByText('Earlier signed PDFs (1)'));
+    expect(screen.getByText('old.pdf')).toBeTruthy();
+    expect(screen.getByText('Reason replaced: Corrected scan')).toBeTruthy();
   });
 
   it('attaches a signed PDF, submits the register details, and renders the returned current copy', async () => {
@@ -587,6 +602,45 @@ describe('DocumentWorkspace', () => {
     expect(within(progress).getByText('Step 2 of 4')).toBeTruthy();
   });
 
+  it('keeps a newly uploaded PDF at review until the lawyer continues', () => {
+    renderWorkspace({ role: 'lawyer', workflowActions: <button>Review text</button>, document: { ...document, lifecycle: 'SIGNED', draft_url: null, status: 'AWAITING_REVIEW' } });
+    const progress = screen.getByRole('navigation', { name: 'Draft and filing progress' });
+    expect(within(progress).getByRole('listitem', { current: 'step' }).textContent).toContain('Review signed PDF');
+    expect(screen.queryByRole('button', { name: 'Review text' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Continue to text review' }));
+    expect(within(progress).getByRole('listitem', { current: 'step' }).textContent).toContain('Review text and risks');
+    expect(screen.getByRole('button', { name: 'Review text' })).toBeTruthy();
+  });
+
+  it('keeps text review current after leaving and reopening the document', () => {
+    const signedDocument = { ...document, lifecycle: 'SIGNED', draft_url: null, status: 'AWAITING_REVIEW' };
+    const view = renderWorkspace({ role: 'lawyer', document: signedDocument });
+    fireEvent.click(screen.getByRole('button', { name: 'Continue to text review' }));
+    view.unmount();
+    renderWorkspace({ role: 'lawyer', document: signedDocument });
+    expect(within(screen.getByRole('navigation', { name: 'Draft and filing progress' })).getByRole('listitem', { current: 'step' }).textContent).toContain('Review text and risks');
+  });
+
+  it('asks for PDF review again when a different signed copy is attached', () => {
+    const signedDocument = { ...document, lifecycle: 'SIGNED', draft_url: null, status: 'AWAITING_REVIEW' };
+    const view = renderWorkspace({ role: 'lawyer', document: signedDocument });
+    fireEvent.click(screen.getByRole('button', { name: 'Continue to text review' }));
+    view.unmount();
+    renderWorkspace({ role: 'lawyer', document: { ...signedDocument, signed_copy: { ...document.signed_copy!, id: 'replacement-copy' } } });
+    expect(within(screen.getByRole('navigation', { name: 'Draft and filing progress' })).getByRole('listitem', { current: 'step' }).textContent).toContain('Review signed PDF');
+  });
+
+  it.each(['ENRICHING', 'COMPLETED'])('does not return to PDF review after text approval when status is %s', (status) => {
+    renderWorkspace({ role: 'lawyer', document: { ...document, lifecycle: 'SIGNED', draft_url: null, status } });
+    expect(within(screen.getByRole('navigation', { name: 'Draft and filing progress' })).getByRole('listitem', { current: 'step' }).textContent).toContain('Review text and risks');
+  });
+
+  it('shows document history while reviewing the signed PDF', async () => {
+    renderWorkspace({ role: 'lawyer', document: { ...document, lifecycle: 'SIGNED', draft_url: null, status: 'AWAITING_REVIEW' } });
+    expect(screen.getByRole('heading', { name: 'History' })).toBeTruthy();
+    expect(await screen.findByText('No history recorded')).toBeTruthy();
+  });
+
   it('shows setup and working draft as separate steps for Google documents', () => {
     renderWorkspace({ document: { ...document, lifecycle: 'PREPARING', draft_url: null, permissions: { ...document.permissions, can_create_draft: true } } });
     const progress = screen.getByRole('navigation', { name: 'Draft and filing progress' });
@@ -636,6 +690,7 @@ describe('DocumentWorkspace', () => {
 
   it.each(['AWAITING_REVIEW', 'READY_FOR_REVIEW', 'ENRICHING', 'COMPLETED'])('shows text and risk review before finalization when processing is %s', (status) => {
     renderWorkspace({ role: 'lawyer', document: { ...document, lifecycle: 'SIGNED', draft_url: null, status } });
+    if (['AWAITING_REVIEW', 'READY_FOR_REVIEW'].includes(status)) fireEvent.click(screen.getByRole('button', { name: 'Continue to text review' }));
     const progress = screen.getByRole('navigation', { name: 'Draft and filing progress' });
     expect(within(progress).getByText('Step 3 of 4')).toBeTruthy();
     expect(within(progress).getByRole('listitem', { current: 'step' }).textContent).toContain('Review text and risks');

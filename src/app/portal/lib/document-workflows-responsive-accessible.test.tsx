@@ -301,8 +301,8 @@ describe('Responsive and Accessible Document Workflows (#175)', () => {
     it('renders authentic outcome with high-contrast text and plain-language explanation', () => {
       render(createElement(VerifyWorkspace, { result: baseVerification, onRetry: vi.fn(), role: 'lawyer' }));
 
-      expect(screen.getByRole('heading', { level: 2, name: 'This PDF matches the saved version' })).toBeTruthy();
-      expect(screen.getByText(/matches the cryptographic fingerprint recorded on the blockchain/i)).toBeTruthy();
+      expect(screen.getByRole('heading', { level: 2, name: 'PDF unchanged' })).toBeTruthy();
+      expect(screen.getByText('Its fingerprint matches the blockchain record.')).toBeTruthy();
 
       const copyBtn = screen.getByRole('button', { name: 'Copy On-chain hash' });
       expect(copyBtn.className).toContain('focus-visible:outline-2');

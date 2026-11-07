@@ -82,6 +82,21 @@ afterEach(() => {
 });
 
 describe('signed document upload screen', () => {
+  it('suggests a readable title from the PDF filename without overwriting an entered title', async () => {
+    setupFetch([]);
+    renderPage();
+    await screen.findByLabelText('Document title');
+    expect(screen.getByRole('button', { name: 'Choose a File' })).toBeTruthy();
+    const fileInput = document.querySelector('input[type="file"]')!;
+    fireEvent.change(fileInput, { target: { files: [new File(['pdf'], '03_deed_of_sale.PDF', { type: 'application/pdf' })] } });
+    expect((screen.getByLabelText('Document title') as HTMLInputElement).value).toBe('03 deed of sale');
+    expect(screen.getByRole('button', { name: 'Replace File' })).toBeTruthy();
+    expect(screen.getByText(/03_deed_of_sale\.PDF/).closest('[aria-labelledby="select-pdf-heading"]')).toBeTruthy();
+    fireEvent.change(screen.getByLabelText('Document title'), { target: { value: 'My title' } });
+    fireEvent.change(fileInput, { target: { files: [new File(['pdf'], 'another_file.pdf', { type: 'application/pdf' })] } });
+    expect((screen.getByLabelText('Document title') as HTMLInputElement).value).toBe('My title');
+  });
+
   it('defaults to the most recently created book and allows choosing another', async () => {
     setupFetch([], [
       { id: 'older', book_number: 4, series_year: 2026, status: 'OPEN', created_at: '2026-01-01T00:00:00Z' },
@@ -158,24 +173,14 @@ describe('signed document upload screen', () => {
       expect.stringContaining('Review text and risks'), expect.stringContaining('Finalize'),
     ]);
   });
-  it('shows processing status from a SIGNED upload result', async () => {
-    setupFetch([Response.json({ ...signedDocument, status: 'FAILED' }, { status: 201 })]);
-    renderPage();
-    await fillClosedBookUpload();
-    fireEvent.click(screen.getByRole('button', { name: 'Confirm and file' }));
-    expect(await screen.findByText('Signed document filed')).toBeTruthy();
-    expect(screen.getByText('Signed')).toBeTruthy();
-    expect(screen.getByText('Processing status')).toBeTruthy();
-    expect(screen.getByText('Failed')).toBeTruthy();
-  });
-
-  it('navigates to the created signed document instead of processing poll', async () => {
+  it('opens the filed document without a separate confirmation screen', async () => {
     setupFetch([Response.json(signedDocument, { status: 201 })]);
     renderPage();
     await fillClosedBookUpload();
     fireEvent.click(screen.getByRole('button', { name: 'Confirm and file' }));
 
     await waitFor(() => expect(push).toHaveBeenCalledWith('/portal/documents/signed-doc-42'));
+    expect(screen.queryByRole('button', { name: 'View document' })).toBeNull();
   });
 
   it('omits numbers for open-book automatic filing and sends both when manually entered', async () => {
@@ -247,7 +252,7 @@ describe('signed document upload screen', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Confirm and file' }));
     fireEvent.click(await screen.findByRole('button', { name: 'No, this is a new document' }));
 
-    expect(await screen.findByText('Signed')).toBeTruthy();
+    await waitFor(() => expect(push).toHaveBeenCalledWith('/portal/documents/signed-doc-42'));
     const uploadCalls = fetchMock.mock.calls.filter(([, init]) => init?.method === 'POST');
     expect(uploadCalls).toHaveLength(2);
     const uploadPaths = uploadCalls.map(([url]) => new URL(String(url), window.location.origin).searchParams.get('path') ?? '');
@@ -468,7 +473,7 @@ describe('signed document upload screen', () => {
 
     // Workflow step section headings (h2)
     expect(screen.getByRole('heading', { level: 2, name: 'Document information' })).toBeTruthy();
-    expect(screen.getByRole('heading', { level: 2, name: 'Select PDF' })).toBeTruthy();
+    expect(screen.getByRole('heading', { level: 2, name: 'Upload File' })).toBeTruthy();
     expect(screen.getByRole('heading', { level: 2, name: 'Confirm and file signed document' })).toBeTruthy();
 
     // Field labels remain clear and accessible

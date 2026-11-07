@@ -106,6 +106,20 @@ describe('normalizedBoxStyle', () => {
 });
 
 describe('PdfDocumentViewer', () => {
+  it('shows loading until the PDF page has rendered and does not invent a page count', async () => {
+    let finishRender!: () => void;
+    pdfMocks.render.mockReturnValue({ promise: new Promise<void>((resolve) => { finishRender = resolve; }), cancel: vi.fn() });
+    renderViewer({ pageCount: undefined });
+
+    expect(screen.getByRole('status').textContent).toContain('Loading PDF');
+    expect(screen.queryByText('of')).toBeNull();
+    await waitFor(() => expect(pdfMocks.render).toHaveBeenCalled());
+    expect(screen.getByRole('status').textContent).toContain('Loading PDF');
+    finishRender();
+    await waitFor(() => expect(screen.queryByRole('status')).toBeNull());
+    expect(screen.getByText('of')).toBeTruthy();
+  });
+
   it('keeps page and zoom controls in a toolbar above the scrollable PDF content', () => {
     renderViewer();
 
