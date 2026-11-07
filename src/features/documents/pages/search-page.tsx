@@ -9,6 +9,9 @@ import DescriptionIcon from '@mui/icons-material/Description';
 import { Button } from '@/shared/components/ui/button';
 import { Card } from '@/shared/components/ui/card';
 import { Input } from '@/shared/components/ui/input';
+import { EmptyState } from '@/shared/components/ui';
+import SearchOffOutlinedIcon from '@mui/icons-material/SearchOffOutlined';
+import MenuBookOutlinedIcon from '@mui/icons-material/MenuBookOutlined';
 import {
   searchDocumentsByRegisterReference,
   searchPortalDocuments,
@@ -107,10 +110,11 @@ export default function SearchPage({
                 {data.results.length} result{data.results.length !== 1 ? 's' : ''} for &ldquo;{data.query}&rdquo;
               </p>
               {data.results.length === 0 && (
-                <div className="rounded-[18px] border border-[#E8F0F8] bg-white p-8 text-center">
-                  <p className="text-sm font-bold text-[#0C2B49]">No results found</p>
-                  <p className="mt-1 text-xs text-[#5B6F8A]">Try different keywords.</p>
-                </div>
+                <EmptyState
+                  icon={<SearchOffOutlinedIcon aria-hidden="true" sx={{ fontSize: 22 }} />}
+                  title="No results found"
+                  description="Try different keywords."
+                />
               )}
               <div className="flex flex-col gap-3">
                 {data.results.map((result) => (
@@ -243,12 +247,11 @@ export default function SearchPage({
                 </p>
               </div>
               {registerLookup.data.results.length === 0 ? (
-                <div className="rounded-[18px] border border-[#E8F0F8] bg-white p-8 text-center">
-                  <p className="text-sm font-bold text-[#0C2B49]">No record found for this reference</p>
-                  <p className="mt-1 text-sm text-[#5B6F8A]">
-                    Check Doc. No., Page No., Book No., and Series year against the register. All 4 values must match exactly.
-                  </p>
-                </div>
+                <EmptyState
+                  icon={<MenuBookOutlinedIcon aria-hidden="true" sx={{ fontSize: 22 }} />}
+                  title="No record found for this reference"
+                  description="Check Doc. No., Page No., Book No., and Series year against the register. All 4 values must match exactly."
+                />
               ) : (
                 <ul className="flex flex-col gap-3" aria-label="Register lookup results">
                   {registerLookup.data.results.map((result) => (

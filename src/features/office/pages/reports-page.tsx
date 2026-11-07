@@ -8,6 +8,7 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import AssessmentOutlinedIcon from '@mui/icons-material/AssessmentOutlined';
 import DownloadOutlinedIcon from '@mui/icons-material/DownloadOutlined';
+import { EmptyState } from '@/shared/components/ui';
 import type { ApiSchema } from '@/shared/types/index';
 import { GeneratedReportsManagementView } from "@/features/admin/generated-reports";
 import { PortalDropdown } from "@/features/portal/components";
@@ -286,7 +287,15 @@ export default function OfficeReportsPage() {
                 </tbody>
               </table>
             </div>
-          ) : <p className="px-5 py-5 text-sm font-semibold text-[#5B6F8A] sm:px-6">{report.reportType === 'office-document-activity' ? 'No owned documents were created in this date range.' : 'No rows fall within this date range.'}</p>}
+          ) : (
+            <div className="p-5 sm:p-6">
+              <EmptyState
+                icon={<AssessmentOutlinedIcon aria-hidden="true" sx={{ fontSize: 22 }} />}
+                title="No rows in this report"
+                description={report.reportType === 'office-document-activity' ? 'No owned documents were created in this date range.' : 'No rows fall within this date range.'}
+              />
+            </div>
+          )}
         </section>
       ) : scope === 'document' && !error && !pending ? (
         <section role="status" className="flex flex-col items-center justify-center gap-4 rounded-2xl border border-dashed border-[#CFE1F2] bg-white px-6 py-10 text-center shadow-sm shadow-[#DDEAF7]/25">

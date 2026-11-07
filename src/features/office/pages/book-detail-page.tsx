@@ -15,6 +15,7 @@ import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import { toast } from 'sonner';
 import { Dropdown } from '@/features/admin/components';
+import { EmptyState } from '@/shared/components/ui';
 import { canAccessPortalFeature } from '@/features/access';
 import { usePortalRole } from '@/features/access/components';
 import { getDocumentLifecycleBadgeClasses, getDocumentLifecycleLabel, getDocumentProcessingBadgeClasses, getDocumentProcessingStatusLabel, isDocumentOnChain } from '@/features/documents/document-ui';
@@ -137,6 +138,11 @@ export default function BookDetailPage({ bookId }: { bookId: string }) {
                   <span className={`rounded-full px-3 py-1.5 text-xs font-black ${book.status === 'CLOSED' ? 'bg-[#EEF4FB] text-[#4B6382]' : book.status === 'OPEN' ? 'bg-[#EAF8F0] text-[#166534]' : 'bg-[#F1F5F9] text-[#5B6F8A]'}`}>
                     {book.status === 'OPEN' ? 'Open' : book.status === 'CLOSED' ? 'Closed' : book.status}
                   </span>
+                  {bookEntriesQuery.isSuccess && book.status === 'OPEN' && (
+                    <button type="button" onClick={handleClose} disabled={closeBookMutation.isPending} className="min-h-11 rounded-full border border-[#D7E4F2] bg-white px-4 py-2 text-sm font-bold text-[#0C2B49] transition hover:bg-[#EEF6FF] disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]">
+                      {closeBookMutation.isPending ? `Closing Book ${book.book_number}…` : `Close Book ${book.book_number}`}
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
@@ -202,13 +208,21 @@ export default function BookDetailPage({ bookId }: { bookId: string }) {
                     ))}
                   </ol>
                 ) : totalEntries === 0 ? (
-                  <div className="px-5 py-10 text-center">
-                    <MenuBookIcon sx={{ fontSize: 36, color: '#8EBCE5' }} />
-                    <h3 className="mt-2 text-sm font-black text-[#0C2B49]">This book is ready for its first entry</h3>
-                    <p className="mt-1 text-sm text-[#5B6F8A]">Documents filed in this register will appear here in order.</p>
+                  <div className="p-4 sm:p-6">
+                    <EmptyState
+                      icon={<MenuBookIcon aria-hidden="true" sx={{ fontSize: 22 }} />}
+                      title="This book is ready for its first entry"
+                      description="Documents filed in this register will appear here in order."
+                    />
                   </div>
                 ) : (
-                  <p className="px-5 py-8 text-center text-sm text-[#5B6F8A]">No entries on this page.</p>
+                  <div className="p-4 sm:p-6">
+                    <EmptyState
+                      icon={<MenuBookIcon aria-hidden="true" sx={{ fontSize: 22 }} />}
+                      title="No entries on this page"
+                      description="No entries were found for this page number."
+                    />
+                  </div>
                 )}
               </div>
             </div>
@@ -238,18 +252,11 @@ export default function BookDetailPage({ bookId }: { bookId: string }) {
             )}
           </section>
 
-          {bookEntriesQuery.isSuccess && (book.status === 'OPEN' || (book.entry_count === 0 && entries.length === 0)) && (
+          {bookEntriesQuery.isSuccess && book.entry_count === 0 && entries.length === 0 && (
             <div className="flex flex-wrap items-center justify-end gap-2">
-              {book.status === 'OPEN' && (
-                <button type="button" onClick={handleClose} disabled={closeBookMutation.isPending} className="min-h-11 rounded-full border border-[#D7E4F2] bg-white px-4 py-2 text-sm font-bold text-[#0C2B49] transition hover:bg-[#EEF6FF] disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]">
-                  {closeBookMutation.isPending ? `Closing Book ${book.book_number}…` : `Close Book ${book.book_number}`}
-                </button>
-              )}
-              {book.entry_count === 0 && entries.length === 0 && (
-                <button type="button" onClick={handleDelete} disabled={deleteBookMutation.isPending} className="min-h-11 rounded-full border border-red-200 bg-white px-4 py-2 text-sm font-bold text-red-700 transition hover:bg-red-50 disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]">
-                  {deleteBookMutation.isPending ? `Deleting Book ${book.book_number}…` : `Delete Book ${book.book_number}`}
-                </button>
-              )}
+              <button type="button" onClick={handleDelete} disabled={deleteBookMutation.isPending} className="min-h-11 rounded-full border border-red-200 bg-white px-4 py-2 text-sm font-bold text-red-700 transition hover:bg-red-50 disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]">
+                {deleteBookMutation.isPending ? `Deleting Book ${book.book_number}…` : `Delete Book ${book.book_number}`}
+              </button>
             </div>
           )}
         </>

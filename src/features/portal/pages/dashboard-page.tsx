@@ -20,6 +20,10 @@ import { dashboardResponseSchema, type DashboardResponse } from '@/features/admi
 import { usePortalRole } from "@/features/access/components";
 import { portalRequest } from '@/shared/api/client';
 import { PortalApiError } from '@/shared/api/portal-error';
+import { EmptyState } from '@/shared/components/ui';
+import TaskAltOutlinedIcon from '@mui/icons-material/TaskAltOutlined';
+import SyncOutlinedIcon from '@mui/icons-material/SyncOutlined';
+import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined';
 
 type Document = ApiSchema<'DocumentUploadResponse'>;
 
@@ -29,14 +33,6 @@ async function fetchJson<T>(path: string): Promise<T> {
 }
 
 const cardClass = 'rounded-[18px] border border-[#E8F0F8] bg-white shadow-[0_4px_12px_rgba(19,59,115,0.05)]';
-
-function getStatusTone(status?: string | null) {
-  const value = status?.trim().toUpperCase();
-  if (value === 'COMPLETED' || value === 'ANCHORED') return 'bg-[#EAF8F0] text-[#166534]';
-  if (value === 'PROCESSING' || value === 'PENDING') return 'bg-[#FFF4DD] text-[#8A5B00]';
-  if (value === 'FAILED') return 'bg-[#FFF0F0] text-[#C24141]';
-  return 'bg-[#EAF4FF] text-[#0067B3]';
-}
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
@@ -162,7 +158,7 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 min-h-0 flex-1 gap-5 overflow-hidden lg:grid-cols-[minmax(0,1fr)_360px]">
         <section className={`${cardClass} flex min-h-0 flex-col p-5`}>
           <div className="mb-4 flex shrink-0 items-center justify-between"><h2 className="text-base font-black text-[#0C2B49]">Recent documents</h2><Link href="/portal/documents" className="text-xs font-black text-[#0067B3]">View Documents</Link></div>
-          {documentsQuery.isLoading ? <p className="py-4 text-center text-sm text-[#5B6F8A]">Loading recent documents…</p> : documentsQuery.isError ? <p className="py-4 text-center text-sm text-[#5B6F8A]">Recent documents will be available once the repository loads.</p> : recentDocuments.length === 0 ? <div className="py-4 text-center"><p className="text-sm font-bold text-[#0C2B49]">No documents yet</p><p className="mt-1 text-xs text-[#5B6F8A]">Select New Document to get started.</p></div> : <div className="admin-table-scroll min-h-0 flex-1 overflow-y-auto"><div className="flex flex-col divide-y divide-[#E8F0F8]">{recentDocuments.map((document) => <DocumentLink key={document.id} document={document} />)}</div></div>}
+          {documentsQuery.isLoading ? <p className="py-4 text-center text-sm text-[#5B6F8A]">Loading recent documents…</p> : documentsQuery.isError ? <p className="py-4 text-center text-sm text-[#5B6F8A]">Recent documents will be available once the repository loads.</p> : recentDocuments.length === 0 ? <EmptyState icon={<DescriptionOutlinedIcon aria-hidden="true" sx={{ fontSize: 22 }} />} title="No documents yet" description="Select New Document to get started." /> : <div className="admin-table-scroll min-h-0 flex-1 overflow-y-auto"><div className="flex flex-col divide-y divide-[#E8F0F8]">{recentDocuments.map((document) => <DocumentLink key={document.id} document={document} />)}</div></div>}
         </section>
 
         <div className="flex min-h-0 flex-col gap-5">
@@ -173,11 +169,15 @@ export default function DashboardPage() {
             ) : documentsQuery.isError ? (
               <p className="text-sm text-[#5B6F8A]">Attention status is unavailable.</p>
             ) : attentionDocuments.length === 0 ? (
-              <p className="text-sm text-[#5B6F8A]">
-                {adminMetrics?.total_failed && adminMetrics.total_failed > 0
-                  ? 'No action required on your documents. (System-wide failures are tracked above.)'
-                  : 'No action required. All documents are progressing normally.'}
-              </p>
+              <EmptyState
+                icon={<TaskAltOutlinedIcon aria-hidden="true" sx={{ fontSize: 22 }} />}
+                title="No action required"
+                description={
+                  adminMetrics?.total_failed && adminMetrics.total_failed > 0
+                    ? 'No action required on your documents. (System-wide failures are tracked above.)'
+                    : 'No action required. All documents are progressing normally.'
+                }
+              />
             ) : (
               <div className="table-scroll-thin min-h-0 flex-1 overflow-y-auto">
                 <div className="flex flex-col divide-y divide-[#E8F0F8]">
@@ -189,7 +189,19 @@ export default function DashboardPage() {
 
           <section className={`${cardClass} flex min-h-0 flex-1 flex-col p-5`}>
             <h2 className="mb-3 shrink-0 text-base font-black text-[#0C2B49]">Processing</h2>
-            {documentsQuery.isLoading ? <p className="text-sm text-[#5B6F8A]">Checking processing documents…</p> : documentsQuery.isError ? <p className="text-sm text-[#5B6F8A]">Processing status is unavailable.</p> : processingDocuments.length === 0 ? <p className="text-sm text-[#5B6F8A]">No documents are processing right now.</p> : <div className="admin-table-scroll min-h-0 flex-1 overflow-y-auto"><div className="flex flex-col divide-y divide-[#E8F0F8]">{processingDocuments.slice(0, 3).map((document) => <DocumentLink document={document} key={document.id} />)}</div></div>}
+            {documentsQuery.isLoading ? (
+              <p className="text-sm text-[#5B6F8A]">Checking processing documents…</p>
+            ) : documentsQuery.isError ? (
+              <p className="text-sm text-[#5B6F8A]">Processing status is unavailable.</p>
+            ) : processingDocuments.length === 0 ? (
+              <EmptyState
+                icon={<SyncOutlinedIcon aria-hidden="true" sx={{ fontSize: 22 }} />}
+                title="No active processing"
+                description="No documents are processing right now."
+              />
+            ) : (
+              <div className="admin-table-scroll min-h-0 flex-1 overflow-y-auto"><div className="flex flex-col divide-y divide-[#E8F0F8]">{processingDocuments.slice(0, 3).map((document) => <DocumentLink document={document} key={document.id} />)}</div></div>
+            )}
           </section>
         </div>
       </div>

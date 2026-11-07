@@ -2,6 +2,8 @@ import GroupsIcon from "@mui/icons-material/Groups";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import WorkIcon from "@mui/icons-material/Work";
 import PersonOffIcon from "@mui/icons-material/PersonOff";
+import PeopleOutlinedIcon from "@mui/icons-material/PeopleOutlined";
+import { EmptyState } from "@/shared/components/ui";
 import { getPortalRoleLabel } from "@/features/access";
 import type { DirectoryUser } from "./users-types";
 
@@ -128,7 +130,11 @@ export function RecentlyCreatedAccounts({ users }: { users: DirectoryUser[] }) {
           </div>
         ))}
         {recentUsers.length === 0 ? (
-          <p className="text-sm font-semibold text-[#5B6F8A]">No accounts returned by the API.</p>
+          <EmptyState
+            icon={<PeopleOutlinedIcon aria-hidden="true" sx={{ fontSize: 22 }} />}
+            title="No recent accounts"
+            description="No accounts returned by the API."
+          />
         ) : null}
       </div>
     </article>

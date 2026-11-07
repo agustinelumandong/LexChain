@@ -9,6 +9,8 @@ import { Badge } from '@/shared/components/ui/badge';
 import { Card } from '@/shared/components/ui/card';
 import { Button } from '@/shared/components/ui/button';
 import { Input } from '@/shared/components/ui/input';
+import { EmptyState } from '@/shared/components/ui';
+import HistoryOutlinedIcon from '@mui/icons-material/HistoryOutlined';
 
 import { formatEcopyDeliveryStatus, formatEcopyRequestStatus } from '@/features/access/ecopy-status';
 
@@ -50,7 +52,17 @@ export function EcopyRequests({ mode }: { mode: 'mine' | 'review' }) {
   if (query.isError) return <div role="alert">Could not load requests. <button type="button" onClick={() => void query.refetch()}>Retry</button></div>;
   return <div className="space-y-4">
     {mutation.isError && <p role="alert">{mutation.error instanceof Error ? mutation.error.message : 'Could not update the request.'}</p>}
-    {query.data.requests.length === 0 && <Card className="py-8 text-center text-sm text-[#5B6F8A]">No e-copy requests yet.</Card>}
+    {query.data.requests.length === 0 && (
+      <EmptyState
+        icon={<HistoryOutlinedIcon aria-hidden="true" sx={{ fontSize: 22 }} />}
+        title="No e-copy requests yet."
+        description={
+          mode === 'mine'
+            ? 'When you request an electronic copy of a document, your request will appear here.'
+            : 'When parties request an electronic copy, request decisions and delivery records will appear here.'
+        }
+      />
+    )}
     {query.data.requests.map((request) => mode === 'mine' ? <PersonalRequestCard key={request.id} request={request} /> : <Card key={request.id} className="space-y-4 text-[#0C2B49] shadow-[0_4px_12px_rgba(19,59,115,0.05)]">
       <div className="flex flex-wrap items-start justify-between gap-3"><div className="min-w-0"><h2 className="break-words text-base font-bold"><Link className="hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]" href={`/portal/documents/${encodeURIComponent(request.document_id)}`}>{request.file_name}</Link></h2><p className="mt-1 break-words text-sm text-[#5B6F8A]">{request.client_name} ({request.client_email})</p></div><Badge variant={statusVariant(request.status)} dot><span className="sr-only">Status: </span>{formatEcopyRequestStatus(request.status)}</Badge></div>
       {request.delivery_status && <p className="text-sm text-[#4B6382]">Email delivery: {formatEcopyDeliveryStatus(request.delivery_status)}{request.delivery_error ? ` (${request.delivery_error})` : ''}</p>}

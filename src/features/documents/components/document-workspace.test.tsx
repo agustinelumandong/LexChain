@@ -321,6 +321,19 @@ describe('DocumentWorkspace', () => {
     expect(screen.getByRole('menuitem', { name: 'Correct register entry' })).toBeTruthy();
   });
 
+  it('opens register correction in a dialog and returns focus when cancelled', () => {
+    const signedDocument = { ...document, lifecycle: 'SIGNED', status: 'COMPLETED', permissions: { ...document.permissions, can_correct_entry: true } };
+    renderWorkspace({ document: signedDocument });
+
+    const actions = screen.getByRole('button', { name: 'Document summary actions' });
+    fireEvent.click(actions);
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Correct register entry' }));
+    expect(screen.getByRole('dialog', { name: 'Correct document register entry' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(screen.queryByRole('dialog', { name: 'Correct document register entry' })).toBeNull();
+    expect(window.document.activeElement).toBe(actions);
+  });
+
   it('corrects the register entry with positive numbers and refreshes the document', async () => {
     const signedDocument = { ...document, lifecycle: 'SIGNED', status: 'COMPLETED', permissions: { ...document.permissions, can_correct_entry: true } };
     const updatedDocument = { ...signedDocument, book_id: 'book-102', doc_no: 14, page_no: 9 };
