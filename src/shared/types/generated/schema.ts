@@ -3059,7 +3059,7 @@ export interface components {
              * Kind
              * @enum {string}
              */
-            kind: "metadata" | "snapshot" | "lifecycle";
+            kind: "metadata" | "snapshot" | "lifecycle" | "document";
         };
         /** RecordReport */
         RecordReport: {
@@ -3314,7 +3314,7 @@ export interface components {
              * Record
              * @enum {string}
              */
-            record: "lifecycle" | "snapshot" | "metadata";
+            record: "lifecycle" | "document" | "snapshot" | "metadata";
             /** Field */
             field: string;
             /** Old */
@@ -3621,7 +3621,7 @@ export interface components {
              * Kind
              * @enum {string}
              */
-            kind: "file" | "metadata" | "snapshot" | "lifecycle" | "deleted";
+            kind: "file" | "metadata" | "snapshot" | "lifecycle" | "document" | "deleted";
             /**
              * Field
              * @description `file` for the PDF, `document` for a deleted one, else the changed value

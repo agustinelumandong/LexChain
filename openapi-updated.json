@@ -7488,7 +7488,8 @@
             "enum": [
               "metadata",
               "snapshot",
-              "lifecycle"
+              "lifecycle",
+              "document"
             ],
             "title": "Kind"
           }
@@ -7921,6 +7922,7 @@
             "type": "string",
             "enum": [
               "lifecycle",
+              "document",
               "snapshot",
               "metadata"
             ],
@@ -8475,6 +8477,7 @@
               "metadata",
               "snapshot",
               "lifecycle",
+              "document",
               "deleted"
             ],
             "title": "Kind"
