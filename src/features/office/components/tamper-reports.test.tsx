@@ -42,3 +42,46 @@ it('refreshes the list and warns that a failed request may have changed document
   expect(portalFetch).toHaveBeenCalledTimes(2);
   expect(portalRequest).toHaveBeenCalledTimes(1);
 });
+
+it('recovers a deleted document after confirmation and reports a missing PDF', async () => {
+  vi.mocked(portalFetch).mockResolvedValueOnce({ total: 1, reports: [{ document_id: 'doc-1', file_name: 'Deed.pdf', status: 'DELETED', restorable: true }] }).mockResolvedValue({ total: 0, reports: [] });
+  vi.mocked(portalRequest).mockResolvedValue(Response.json({ document_id: 'doc-1', file_name: 'Deed.pdf', file_present: false, recovered_at: '2026-11-07T00:00:00Z' }));
+  render(<TamperReports />);
+  fireEvent.click(screen.getByRole('button', { name: 'Check reports' }));
+  fireEvent.click(await screen.findByRole('button', { name: 'Recover Deed.pdf' }));
+  expect(portalRequest).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole('button', { name: 'Confirm recovery' }));
+  expect(await screen.findByText(/Deed.pdf.*PDF is missing/)).toBeTruthy();
+  expect(portalRequest).toHaveBeenCalledWith(expect.stringContaining(encodeURIComponent('/documents/tamper-reports/doc-1/recover')), { method: 'POST' });
+});
+
+it('shows recovered documents from restore all, including unknown PDF availability', async () => {
+  vi.mocked(portalFetch).mockResolvedValue({ total: 1, reports: [{ document_id: 'doc-1', status: 'DELETED', restorable: true }] });
+  vi.mocked(portalRequest).mockResolvedValue(Response.json({ restored: [], failed: [], recovered: [{ document_id: 'doc-1', file_present: null, recovered_at: '2026-11-07T00:00:00Z' }] }));
+  render(<TamperReports />);
+  fireEvent.click(screen.getByRole('button', { name: 'Check reports' }));
+  fireEvent.click(await screen.findByRole('button', { name: 'Restore all' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Confirm restore all' }));
+  expect(await screen.findByText(/doc-1.*PDF availability could not be confirmed/)).toBeTruthy();
+  expect(screen.queryByText('No documents needed an attempt.')).toBeNull();
+});
+
+it('explains when a deleted document needs a backup and does not offer recovery', async () => {
+  vi.mocked(portalFetch).mockResolvedValue({ total: 1, reports: [{ document_id: 'doc-1', status: 'DELETED', restorable: false, blocked_reason: 'backup_needed' }] });
+  render(<TamperReports />);
+  fireEvent.click(screen.getByRole('button', { name: 'Check reports' }));
+  expect(await screen.findByText('A database backup is needed to recover this document.')).toBeTruthy();
+  expect(screen.queryByRole('button', { name: /Recover doc-1/ })).toBeNull();
+});
+
+it('shows a recovery failure and refreshes the report without retrying', async () => {
+  vi.mocked(portalFetch).mockResolvedValue({ total: 1, reports: [{ document_id: 'doc-1', status: 'DELETED', restorable: true }] });
+  vi.mocked(portalRequest).mockRejectedValue(new Error('No saved copy; use a backup.'));
+  render(<TamperReports />);
+  fireEvent.click(screen.getByRole('button', { name: 'Check reports' }));
+  fireEvent.click(await screen.findByRole('button', { name: 'Recover doc-1' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Confirm recovery' }));
+  expect((await screen.findByRole('alert')).textContent).toContain('No saved copy; use a backup.');
+  expect(portalFetch).toHaveBeenCalledTimes(2);
+  expect(portalRequest).toHaveBeenCalledTimes(1);
+});
