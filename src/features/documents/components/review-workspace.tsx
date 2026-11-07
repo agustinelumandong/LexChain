@@ -12,7 +12,9 @@ import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from 're
 import { getDocumentStatusLabel } from '@/features/documents/document-ui';
 import type { ExtractionReview } from '@/features/documents/extraction-api';
 import { signedCopyFileUrl } from '@/features/documents/document-lifecycle-api';
-import { ToggleButton } from '@/shared/components/ui';
+import { EmptyState, ToggleButton } from '@/shared/components/ui';
+import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined';
+import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutlined';
 
 const PdfDocumentViewer = dynamic(() => import('@/features/documents/components/pdf-document-viewer'), {
   ssr: false,
@@ -388,7 +390,13 @@ export default function ReviewWorkspace({
                     </section>
                   );
                 })}
-                {compareBlocks.length === 0 && <p className="text-sm text-[#5B6F8A]">No extracted text is available for this page.</p>}
+                {compareBlocks.length === 0 && (
+                  <EmptyState
+                    icon={<DescriptionOutlinedIcon aria-hidden="true" sx={{ fontSize: 22 }} />}
+                    title="No extracted text"
+                    description="No extracted text is available for this page."
+                  />
+                )}
               </section>
             </div>
           </div>
@@ -535,7 +543,13 @@ export default function ReviewWorkspace({
                 </button>
               );
             })}
-            {orderedFlags.length === 0 && <p className="text-sm text-[#5B6F8A]">No issues reported.</p>}
+            {orderedFlags.length === 0 && (
+              <EmptyState
+                icon={<CheckCircleOutlineIcon aria-hidden="true" sx={{ fontSize: 22 }} />}
+                title="No issues reported"
+                description="No warnings or flags were detected for this document."
+              />
+            )}
           </div>
         </aside>
       </Drawer>

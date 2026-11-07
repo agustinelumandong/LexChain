@@ -16,7 +16,8 @@ import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import { toast } from "sonner";
 import { Dropdown } from "@/features/admin/components/dropdown";
 import { FilterDetails } from "@/shared/components/ui/filter-details";
-import { SearchInput } from "@/shared/components/ui";
+import { EmptyState, SearchInput } from "@/shared/components/ui";
+import PeopleOutlinedIcon from "@mui/icons-material/PeopleOutlined";
 import { usePopup } from "@/shared/components/ui/use-popup";
 import { getPortalRoleLabel } from "@/features/access";
 import { UsersMetrics, RoleDistribution, RecentlyCreatedAccounts, StatusPill } from "./users-summary";
@@ -326,7 +327,13 @@ export function UsersManagementView({ users, total, loadError }: { users: AdminU
                 ))}
                 {visibleUsers.length === 0 && (
                   <tr>
-                    <td colSpan={5} className="px-5 py-10 text-center text-sm font-semibold text-[#5B6F8A]">No users match the current filters.</td>
+                    <td colSpan={5} className="p-6">
+                      <EmptyState
+                        icon={<PeopleOutlinedIcon aria-hidden="true" sx={{ fontSize: 22 }} />}
+                        title="No users match the current filters."
+                        description="Try adjusting your search terms or filter criteria to view users."
+                      />
+                    </td>
                   </tr>
                 )}
               </tbody>

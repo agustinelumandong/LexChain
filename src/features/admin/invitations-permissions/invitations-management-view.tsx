@@ -18,7 +18,8 @@ import { Dropdown } from "@/features/admin/components/dropdown";
 import { MockModal, exportMockRows } from "@/features/admin/components/mock-ui";
 import { CreateInvitationModal } from "@/features/admin/invitations-permissions/create-invitation-modal";
 import { getPortalRoleLabel } from "@/features/access";
-import { SearchInput } from "@/shared/components/ui";
+import { EmptyState, SearchInput } from "@/shared/components/ui";
+import HistoryOutlinedIcon from "@mui/icons-material/HistoryOutlined";
 
 type Invitation = {
   id: string;
@@ -246,7 +247,13 @@ function ActivityPanel({ invitations, mockMode }: { invitations: DirectoryInvita
             <span className="text-xs font-semibold text-[#5B6F8A]">{item.time}</span>
           </div>
         ))}
-        {activity.length === 0 ? <p className="text-sm font-semibold text-[#5B6F8A]">{mockMode ? "No mock invitation activity." : "No invitation activity returned by the API."}</p> : null}
+        {activity.length === 0 ? (
+          <EmptyState
+            icon={<HistoryOutlinedIcon aria-hidden="true" sx={{ fontSize: 22 }} />}
+            title={mockMode ? "No mock invitation activity." : "No invitation activity."}
+            description="Recent status updates and invitation actions will appear here."
+          />
+        ) : null}
       </div>
     </article>
   );
@@ -412,7 +419,13 @@ export function InvitationsManagementView({ invitations, mockMode = false }: { i
                 ))}
                 {visibleInvites.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-5 py-10 text-center text-sm font-semibold text-[#5B6F8A]">No invitations match the current filters.</td>
+                    <td colSpan={6} className="p-6">
+                      <EmptyState
+                        icon={<EmailIcon aria-hidden="true" sx={{ fontSize: 22 }} />}
+                        title="No invitations match the current filters."
+                        description="Try adjusting your search terms or filter criteria to view invitations."
+                      />
+                    </td>
                   </tr>
                 ) : null}
               </tbody>

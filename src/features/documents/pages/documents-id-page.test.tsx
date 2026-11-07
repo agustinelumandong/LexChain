@@ -7,7 +7,7 @@ import type { ApiSchema } from '@/shared/types';
 import DocumentDetailPage from '@/features/documents/pages/documents-id-page';
 import { PortalApiError } from '@/shared/api/portal-error';
 
-vi.mock('@/features/documents/components/pdf-document-viewer', () => ({ default: () => null }));
+vi.mock('@/features/documents/components/pdf-document-viewer', () => ({ default: ({ sourceUrl }: { sourceUrl: string }) => createElement('div', { 'data-testid': 'pdf-preview', 'data-source': sourceUrl }) }));
 
 const { state } = vi.hoisted(() => ({
   state: {
@@ -125,6 +125,7 @@ const baseDocument: DocumentResponse = {
     can_finalize: false,
     can_retry_processing: false,
     can_share: false,
+    can_restore: false,
     can_revoke: false,
     can_request_ecopy: false,
     can_review_ecopy: false,
@@ -434,7 +435,7 @@ describe('document detail screen', () => {
     expect(screen.queryByRole('tablist')).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Finalize' }));
     const dialog = screen.getByRole('dialog', { name: 'Confirm finalization' });
-    expect(within(dialog).getByText('This freezes the signed copy and records its fingerprint on the blockchain. It cannot be undone.')).toBeTruthy();
+    expect(within(dialog).queryByText(/This freezes the signed copy/)).toBeNull();
     fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
     expect(screen.queryByRole('dialog')).toBeNull();
     expect(state.finalizeDocument).not.toHaveBeenCalled();
@@ -463,8 +464,14 @@ describe('document detail screen', () => {
     const dialog = screen.getByRole('dialog', { name: 'Confirm finalization' });
     expect(within(dialog).getByText('Property Purchase Agreement.pdf')).toBeTruthy();
     expect(within(dialog).getByText(/Executed_Agreement_Signed\.pdf · 2\.0 MB/)).toBeTruthy();
+    fireEvent.click(within(dialog).getByRole('button', { name: /open pdf/i }));
+    const preview = await screen.findByTestId('pdf-preview');
+    expect(preview.getAttribute('data-source')).toBe('/api/portal/documents/doc-1/file?copy_id=copy-123');
+    expect(preview.parentElement?.classList.contains('flex')).toBe(true);
+    fireEvent.click(screen.getByRole('button', { name: /back to confirmation/i }));
+    expect(within(dialog).getByRole('button', { name: 'Confirm finalization' })).toBeTruthy();
+    expect(state.finalizeDocument).not.toHaveBeenCalled();
     expect(within(dialog).getByText(/SHA-256: 9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08/)).toBeTruthy();
-    expect(within(dialog).getByText('This freezes the signed copy and records its fingerprint on the blockchain. It cannot be undone.')).toBeTruthy();
     expect(within(dialog).getByText(/The frozen filing copy cannot be replaced or removed after finalization/)).toBeTruthy();
   });
 

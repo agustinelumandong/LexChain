@@ -1,8 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { getPortalNavigation } from "@/features/portal/portal-dashboard";
-import { isPortalRouteActive } from "@/features/access/components/portal-role-navigation";
+import { getPortalNavigationIcon, isPortalRouteActive } from "@/features/access/components/portal-role-navigation";
 
 describe("portal navigation", () => {
+  it.each(["lawyer", "user"] as const)("uses distinct icons for %s navigation", (role) => {
+    const icons = getPortalNavigation(role).flatMap((group) => group.items).map(getPortalNavigationIcon);
+    expect(new Set(icons).size).toBe(icons.length);
+  });
   it('does not mark the review queue active on the personal requests page', () => {
     expect(isPortalRouteActive('/portal/requests/my', { label: 'Document Requests', href: '/portal/requests' })).toBe(false);
   });

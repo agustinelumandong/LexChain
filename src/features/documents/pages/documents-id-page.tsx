@@ -3,6 +3,7 @@
 import { use, useState, useSyncExternalStore } from 'react';
 import { useMutation, useQueries, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import CircleIcon from '@mui/icons-material/Circle';
 import LinkIcon from '@mui/icons-material/Link';
@@ -14,7 +15,7 @@ import type { ApiSchema } from '@/shared/types/index';
 import { PortalChatbot as PortalChatbot } from "@/features/portal/components";
 import { CopyableIdentifier, DocumentWorkspace, type Tab } from '@/features/documents/components/document-workspace';
 import { getDocumentActions, getDocumentLifecycleBadgeClasses, getDocumentLifecycleLabel, getDocumentProcessingBadgeClasses, getDocumentProcessingStatusLabel, isDocumentOnChain } from '@/features/documents/document-ui';
-import { renameDocument, finalizeDocument, markDocumentReady, reopenDocument, cancelDocument } from '@/features/documents/document-lifecycle-api';
+import { renameDocument, finalizeDocument, markDocumentReady, reopenDocument, cancelDocument, signedCopyFileUrl } from '@/features/documents/document-lifecycle-api';
 import { getPortalUiRole } from "@/features/access";
 import { Modal } from '@/features/admin/components/modal';
 import { portalRequest } from '@/shared/api/client';
@@ -26,6 +27,7 @@ import { DocumentIntegrityStatus } from '@/features/verification/components/docu
 
 type DocumentResponse = ApiSchema<'DocumentResponse'>;
 type UserProfile = ApiSchema<'UserProfileResponse'>;
+const PdfDocumentViewer = dynamic(() => import('@/features/documents/components/pdf-document-viewer'), { ssr: false });
 
 const finalizationStatusDocumentSchema = z.object({
   document_id: z.string(),
@@ -79,6 +81,7 @@ export default function DocumentDetailPage({ params, initialTab }: { params: Pro
   const [renameError, setRenameError] = useState<string>();
   const { open: documentActionsOpen, setOpen: setDocumentActionsOpen, ref: documentActionsRef } = usePopup();
   const [confirmingFinalize, setConfirmingFinalize] = useState(false);
+  const [reviewingFinalizationPdf, setReviewingFinalizationPdf] = useState(false);
   const [cancelConfirmationOpen, setCancelConfirmationOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<Tab>();
   const [finalizationResult, setFinalizationResult] = useState<ApiSchema<'RecordResponse'>>();
@@ -219,6 +222,7 @@ export default function DocumentDetailPage({ params, initialTab }: { params: Pro
   });
 
   function openFinalizeConfirmation() {
+    setReviewingFinalizationPdf(false);
     finalizeMutation.reset();
     setFinalizationResult(undefined);
     setConfirmingFinalize(true);
@@ -398,8 +402,19 @@ export default function DocumentDetailPage({ params, initialTab }: { params: Pro
 
       {confirmingFinalize && (
         <div role="dialog" aria-modal="true" aria-label="Confirm finalization" className="fixed inset-0 z-50 flex items-center justify-center bg-[#0C2B49]/40 p-4">
-          <div className="w-full max-w-xl rounded-2xl border border-[#CFE7FC] bg-white p-6 shadow-[0_16px_40px_rgba(12,43,73,0.25)]">
+          {reviewingFinalizationPdf && document.signed_copy ? (
+            <div className="flex h-[90dvh] w-full max-w-5xl flex-col rounded-2xl bg-white p-4 shadow-xl">
+              <div className="flex shrink-0 items-center justify-between gap-4 pb-3">
+                <h2 className="truncate text-lg font-bold text-[#0C2B49]">{document.signed_copy.original_filename ?? document.file_name}</h2>
+                <button type="button" autoFocus onClick={() => setReviewingFinalizationPdf(false)} className="min-h-11 shrink-0 rounded-full border border-[#D6E3F1] px-4 text-sm font-bold text-[#0C2B49] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]">Back to confirmation</button>
+              </div>
+              <div className="flex min-h-0 flex-1 flex-col">
+                <PdfDocumentViewer sourceUrl={signedCopyFileUrl(document.document_id, { copyId: document.signed_copy.id })} watermarkText="LEXCHAIN COPY" continuous currentPage={0} blocks={[]} selectedBlockIndex={null} hoveredBlockIndex={null} onPageChange={() => undefined} onSelectBlock={() => undefined} onHoverBlockChange={() => undefined} />
+              </div>
+            </div>
+          ) : <div className="w-full max-w-xl rounded-2xl border border-[#CFE7FC] bg-white p-6 shadow-[0_16px_40px_rgba(12,43,73,0.25)]">
             <h2 className="text-lg font-black text-[#0C2B49]">Finalize this document?</h2>
+            <p className="mt-2 text-sm text-[#4B6382]">Review the signed document before finalizing.</p>
             <div className="mt-4 rounded-xl border border-[#D7E4F2] bg-[#F8FBFF] p-3.5 text-sm">
               <div className="min-w-0">
                 <span className="text-[11px] font-bold uppercase tracking-wider text-[#4B6382]">Document</span>
@@ -413,6 +428,7 @@ export default function DocumentDetailPage({ params, initialTab }: { params: Pro
                     ? ` · ${(document.signed_copy.size_bytes / (1024 * 1024)).toFixed(1)} MB`
                     : ''}
                 </p>
+                {document.signed_copy && <button type="button" onClick={() => setReviewingFinalizationPdf(true)} className="mt-2 inline-flex min-h-10 items-center text-sm font-bold text-[#0067B3] underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]">Open PDF</button>}
                 {document.signed_copy?.sha256 && (
                   <p className="mt-1 font-mono text-xs text-[#5B6F8A] break-all">
                     SHA-256: {document.signed_copy.sha256}
@@ -421,7 +437,7 @@ export default function DocumentDetailPage({ params, initialTab }: { params: Pro
               </div>
             </div>
             <div className="mt-3 space-y-1.5 text-sm leading-6 text-[#4B6382]">
-              <p>{mockMode ? 'Demo mode: this action uses synthetic data. No real PDF digest or blockchain transaction will be produced.' : 'This freezes the signed copy and records its fingerprint on the blockchain. It cannot be undone.'}</p>
+              {mockMode && <p>Demo mode: this action uses synthetic data. No real PDF digest or blockchain transaction will be produced.</p>}
               <p className="text-xs leading-5 text-[#5B6F8A]">The frozen filing copy cannot be replaced or removed after finalization.</p>
             </div>
             {finalizeMutation.isPending && (
@@ -435,7 +451,7 @@ export default function DocumentDetailPage({ params, initialTab }: { params: Pro
               <button type="button" onClick={() => setConfirmingFinalize(false)} disabled={finalizeMutation.isPending} className="rounded-full border border-[#D6E3F1] px-4 py-2 text-sm font-bold text-[#0C2B49] hover:bg-[#F4F8FC] disabled:opacity-60">Cancel</button>
               <button type="button" onClick={() => finalizeMutation.mutate()} disabled={finalizeMutation.isPending} className="rounded-full bg-[#0673C4] px-4 py-2 text-sm font-bold text-white hover:bg-[#005FA3] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3] disabled:opacity-60">{finalizeMutation.isPending ? 'Finalizing…' : 'Confirm finalization'}</button>
             </div>
-          </div>
+          </div>}
         </div>
       )}
 

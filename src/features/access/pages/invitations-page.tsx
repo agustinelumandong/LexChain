@@ -8,6 +8,8 @@ import type { components } from "@/shared/types/index";
 import { portalFetch, portalRequest } from "@/shared/api/client";
 import { canAccessPortalFeature } from "@/features/access/portal-access";
 import { getPortalUiRole } from "@/features/access/portal-role";
+import { EmptyState } from "@/shared/components/ui";
+import EmailOutlinedIcon from "@mui/icons-material/EmailOutlined";
 
 type Invitation = components["schemas"]["DocumentInvitationResponse"];
 type InvitationList = components["schemas"]["DocumentInvitationListResponse"];
@@ -70,7 +72,13 @@ export default function InvitationsPage() {
       {isLoading ? <p className="text-sm font-semibold text-[#5B6F8A]">Loading invitations…</p> : null}
       {error ? <p className="rounded-xl bg-red-50 p-4 text-sm font-semibold text-red-700" role="alert">{error.message}</p> : null}
       {actionError ? <p role="alert" className="rounded-xl bg-red-50 p-4 text-sm font-semibold text-red-700">{actionError}</p> : null}
-      {!isLoading && !error && invitations.length === 0 ? <div className="rounded-[18px] border border-[#E8F0F8] bg-white p-8 text-center text-sm font-bold text-[#0C2B49]">No pending invitations</div> : null}
+      {!isLoading && !error && invitations.length === 0 ? (
+        <EmptyState
+          icon={<EmailOutlinedIcon aria-hidden="true" sx={{ fontSize: 22 }} />}
+          title="No pending invitations"
+          description="When you receive invitations to review or collaborate on documents, they will appear here."
+        />
+      ) : null}
       {invitations.map((invitation) => {
         const isBusy = busyId === invitation.invitation_id;
         return <article key={invitation.invitation_id} className="rounded-[18px] border border-[#E8F0F8] bg-white p-5 shadow-[0_4px_12px_rgba(19,59,115,0.05)]">

@@ -12,6 +12,7 @@ import { canAccessPortalFeature } from '@/features/access';
 import { usePortalRole } from '@/features/access/components';
 import { Modal } from '@/features/admin/components/modal';
 import { PortalDropdown } from '@/features/portal/components';
+import { EmptyState } from '@/shared/components/ui';
 import { createRegisterBook, listRegisterBooks } from '@/features/office/books-api';
 import type { BookCreateRequest, RegisterBook } from '@/features/office/books-api';
 
@@ -124,12 +125,14 @@ export default function BooksPage() {
           <button type="button" onClick={() => void booksQuery.refetch()} className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-full border border-[#D7E4F2] px-4 py-2 text-sm font-black text-[#0067B3] hover:bg-[#EEF6FF] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]"><RefreshIcon sx={{ fontSize: 17 }} />Retry</button>
         </div>
       ) : books.length === 0 ? (
-        <div className={`${cardClass} p-10 text-center`}>
-          <MenuBookIcon sx={{ fontSize: 42, color: '#0067B3' }} />
-          <h2 className="mt-3 text-lg font-black text-[#0C2B49]">No register books yet</h2>
-          <p className="mx-auto mt-2 max-w-md text-sm text-[#5B6F8A]">Register a book before uploading a document, so it can be recorded in the correct physical volume.</p>
-          <button type="button" onClick={() => setIsRegistering(true)} className="mt-5 min-h-11 rounded-full bg-[#0067B3] px-5 py-2.5 text-sm font-black text-white transition hover:bg-[#005F9E]">Register book</button>
-        </div>
+        <EmptyState
+          icon={<MenuBookIcon aria-hidden="true" sx={{ fontSize: 22 }} />}
+          title="No register books yet"
+          description="Register a book before uploading a document, so it can be recorded in the correct physical volume."
+          action={
+            <button type="button" onClick={() => setIsRegistering(true)} className="min-h-11 rounded-full bg-[#0067B3] px-5 py-2.5 text-sm font-black text-white transition hover:bg-[#005F9E]">Register book</button>
+          }
+        />
       ) : (
         <section aria-label="Register book shelf">
           <div className="mb-3 flex items-center justify-between gap-3">

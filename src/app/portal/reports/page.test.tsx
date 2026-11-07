@@ -26,10 +26,10 @@ vi.mock('@tanstack/react-query', () => ({
     : { data: queryState.documents, isLoading: false, isError: false },
 }));
 vi.mock('@/shared/api/client', () => ({
-  portalFetch: vi.fn(async () => [{ id: 'mock-document-1', file_name: 'Lease Agreement.pdf', lifecycle: 'FINALIZED', status: 'anchored', is_owner: true, created_at: '2026-07-10T09:00:00.000Z' }]),
+  portalFetch: vi.fn(async (path: string) => path === '/documents/tamper-reports' ? { total: 0, reports: [] } : [{ id: 'mock-document-1', file_name: 'Lease Agreement.pdf', lifecycle: 'FINALIZED', status: 'anchored', is_owner: true, created_at: '2026-07-10T09:00:00.000Z' }]),
 }));
 vi.mock('@/features/office/integrity-report', () => ({
-  fetchIntegrityReport: vi.fn(async () => ({ summary: { total: 1, authentic: 1, tampered: 0, file_missing: 2, snapshot_compromised: 0, not_anchored: 0, verification_unavailable: 0 }, rows: [{ file_name: 'Lease Agreement.pdf', status: 'AUTHENTIC', verified_at: '2026-07-10T09:00:00Z' }] })),
+  fetchIntegrityReport: vi.fn(async () => ({ summary: { total: 2, authentic: 1, tampered: 0, file_missing: 2, snapshot_compromised: 0, not_anchored: 0, verification_unavailable: 0, record_altered: 1 }, rows: [{ file_name: 'Lease Agreement.pdf', status: 'AUTHENTIC', verified_at: '2026-07-10T09:00:00Z' }, { file_name: 'Changed record.pdf', status: 'RECORD_ALTERED', verified_at: '2026-07-10T09:00:00Z' }] })),
 }));
 
 afterEach(() => {
@@ -41,77 +41,118 @@ afterEach(() => {
 beforeEach(() => { queryState.role = 'document_issuer'; });
 
 describe('ReportsPage', () => {
-  it('lets an issuer choose document or system reports from a dropdown', () => {
+  it('opens report setup in a dialog and closes it after generation', async () => {
     render(<OfficeReportsPage />);
-
-    const scopePicker = screen.getByRole('combobox', { name: 'Report scope' });
-    expect(scopePicker.textContent).toContain('Document reports');
-    const documentReportPicker = screen.getByRole('combobox', { name: 'Report type' });
-    expect(documentReportPicker.textContent).toContain('Document Activity');
-    fireEvent.click(documentReportPicker);
-    fireEvent.click(screen.getByRole('option', { name: 'Integrity' }));
-    expect(documentReportPicker.textContent).toContain('Integrity');
-    fireEvent.click(scopePicker);
-    fireEvent.click(screen.getByRole('option', { name: 'System reports' }));
-    const reportPicker = screen.getByRole('combobox', { name: 'Report type' });
-    expect(reportPicker.textContent).toContain('System Users');
-    fireEvent.click(reportPicker);
-    fireEvent.click(screen.getByRole('option', { name: 'System Audit' }));
-    expect(screen.getByRole('status').textContent).toContain('System Audit');
-    expect(screen.getByRole('group', { name: 'From' })).toBeTruthy();
-    expect(screen.getByRole('group', { name: 'To' })).toBeTruthy();
-    expect(screen.getAllByRole('button', { name: /Choose date/ })).toHaveLength(2);
+    expect(screen.queryByRole('dialog')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Generate report' }));
+    expect(screen.getByRole('dialog', { name: 'Generate report' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Generate' }));
+    expect(await screen.findByRole('region', { name: 'Document Activity report' })).toBeTruthy();
+    expect(screen.queryByRole('dialog')).toBeNull();
   });
 
-  it('keeps system report dates in the same three-column range layout', () => {
+  it('keeps a system report preview visible after closing the dialog', async () => {
     render(<OfficeReportsPage />);
-
+    fireEvent.click(screen.getByRole('button', { name: 'Generate report' }));
     fireEvent.click(screen.getByRole('combobox', { name: 'Report scope' }));
     fireEvent.click(screen.getByRole('option', { name: 'System reports' }));
-
-    const dateRegion = screen.getByRole('region', { name: 'Report dates' });
-    expect([...dateRegion.querySelectorAll<HTMLElement>('[class]')].some((element) => element.className.includes('sm:grid-cols-[1fr_1fr_auto]'))).toBe(true);
+    fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+    fireEvent.click(screen.getByRole('combobox', { name: 'Report type' }));
+    fireEvent.click(screen.getByRole('option', { name: 'System Audit' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Generate' }));
+    expect(await screen.findByRole('region', { name: 'System Audit report' })).toBeTruthy();
+    expect(screen.queryByRole('dialog')).toBeNull();
   });
 
-  it('groups scope, type, and dates in one report controls card for both scopes', () => {
+  it('closes with Escape and restores focus to the report button', () => {
     render(<OfficeReportsPage />);
+    const trigger = screen.getByRole('button', { name: 'Generate report' });
+    trigger.focus();
+    fireEvent.click(trigger);
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(document.activeElement).toBe(trigger);
+  });
+  it('walks through scope, type and dates and lets the user go back', () => {
+    render(<OfficeReportsPage />);
+    fireEvent.click(screen.getByRole('button', { name: 'Generate report' }));
+    expect(screen.getByRole('combobox', { name: 'Report scope' })).toBeTruthy();
+    expect(screen.queryByRole('combobox', { name: 'Report type' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+    fireEvent.click(screen.getByRole('combobox', { name: 'Report type' }));
+    fireEvent.click(screen.getByRole('option', { name: 'Integrity' }));
+    expect(screen.queryByRole('group', { name: 'From' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+    expect(screen.getByRole('group', { name: 'From' })).toBeTruthy();
+    expect(screen.getByRole('group', { name: 'To' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Back' }));
+    expect(screen.getByRole('combobox', { name: 'Report type' }).textContent).toContain('Integrity');
+    fireEvent.click(screen.getByRole('button', { name: 'Back' }));
+    expect(screen.getByRole('combobox', { name: 'Report scope' }).textContent).toContain('Document reports');
+  });
 
-    const scopePicker = screen.getByRole('combobox', { name: 'Report scope' });
-    let controls = screen.getByRole('region', { name: 'Report controls' });
-    expect(controls.contains(scopePicker)).toBe(true);
-    expect(controls.contains(screen.getByRole('combobox', { name: 'Report type' }))).toBe(true);
-    expect(controls.contains(screen.getByRole('group', { name: 'From' }))).toBe(true);
-    expect(controls.contains(screen.getByRole('group', { name: 'To' }))).toBe(true);
-    expect(controls.contains(screen.getByRole('button', { name: 'Generate' }))).toBe(true);
+  it('shows only open integrity reports without asking for dates', async () => {
+    render(<OfficeReportsPage />);
+    fireEvent.click(screen.getByRole('button', { name: 'Generate report' }));
+    fireEvent.click(screen.getByRole('combobox', { name: 'Report scope' }));
+    fireEvent.click(screen.getByRole('option', { name: 'Open integrity reports' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Generate integrity reports' }));
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(screen.getByRole('region', { name: 'Open integrity reports' })).toBeTruthy();
+    expect(await screen.findByText('No open integrity reports')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Refresh reports' })).toBeTruthy();
+    expect(screen.queryByRole('group', { name: 'From' })).toBeNull();
+    expect(screen.queryByText('Your preview will appear here')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Generate report' }));
+    fireEvent.click(screen.getByRole('combobox', { name: 'Report scope' }));
+    fireEvent.click(screen.getByRole('option', { name: 'Document reports' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Generate' }));
+    expect(await screen.findByRole('region', { name: 'Document Activity report' })).toBeTruthy();
+    expect(screen.queryByRole('region', { name: 'Open integrity reports' })).toBeNull();
+  });
 
-    fireEvent.click(scopePicker);
-    fireEvent.click(screen.getByRole('option', { name: 'System reports' }));
-    controls = screen.getByRole('region', { name: 'Report controls' });
-    expect(controls.contains(screen.getByRole('combobox', { name: 'Report scope' }))).toBe(true);
-    expect(controls.contains(screen.getByRole('combobox', { name: 'Report type' }))).toBe(true);
-    expect(controls.contains(screen.getByRole('group', { name: 'From' }))).toBe(true);
-    expect(controls.contains(screen.getByRole('group', { name: 'To' }))).toBe(true);
-    expect(controls.contains(screen.getByRole('button', { name: 'Generate' }))).toBe(true);
+  it('keeps the current preview when report setup is cancelled', async () => {
+    render(<OfficeReportsPage />);
+    fireEvent.click(screen.getByRole('button', { name: 'Generate report' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Generate' }));
+    expect(await screen.findByRole('region', { name: 'Document Activity report' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Generate report' }));
+    fireEvent.click(screen.getByRole('combobox', { name: 'Report scope' }));
+    fireEvent.click(screen.getByRole('option', { name: 'Open integrity reports' }));
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(screen.getByRole('region', { name: 'Document Activity report' })).toBeTruthy();
+    expect(screen.queryByRole('region', { name: 'Open integrity reports' })).toBeNull();
   });
 
   it('uses the portal report shell and elevated cards', () => {
     render(<OfficeReportsPage />);
+    fireEvent.click(screen.getByRole('button', { name: 'Generate report' }));
 
     const heading = screen.getByRole('heading', { name: 'Reports', level: 1 });
     const view = heading.closest('header')?.parentElement;
-    const controls = screen.getByRole('region', { name: 'Report controls' });
+    const controls = screen.getByRole('dialog', { name: 'Generate report' });
 
     expect(view?.className).toContain('xl:min-h-[calc(100dvh-113px)]');
     expect(controls.className).toContain('rounded-2xl');
-    expect(controls.className).toContain('shadow-sm');
+    expect(controls.getAttribute('aria-modal')).toBe('true');
   });
 
   it('guides the user from report setup into a finished preview state', async () => {
     render(<OfficeReportsPage />);
+    fireEvent.click(screen.getByRole('button', { name: 'Generate report' }));
 
-    expect(screen.getByRole('heading', { name: 'Build a report', level: 2 })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Generate report', level: 2 })).toBeTruthy();
     expect(screen.getByRole('status').textContent).toContain('Your preview will appear here');
 
+    fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Next' }));
     fireEvent.click(screen.getByRole('button', { name: 'Generate' }));
 
     expect(await screen.findByText('CSV preview')).toBeTruthy();
@@ -120,7 +161,10 @@ describe('ReportsPage', () => {
 
   it('shows the owned document report and the live integrity summary', async () => {
     render(<OfficeReportsPage />);
+    fireEvent.click(screen.getByRole('button', { name: 'Generate report' }));
 
+    fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Next' }));
     fireEvent.click(screen.getByRole('button', { name: 'Generate' }));
     expect(await screen.findByRole('region', { name: 'Document Activity report' })).toBeTruthy();
     expect(screen.getByRole('table', { name: 'Document Activity preview' })).toBeTruthy();
@@ -128,17 +172,25 @@ describe('ReportsPage', () => {
     expect(screen.queryByText('Deed of Sale - Lot 18.pdf')).toBeNull();
     expect(screen.getByText(/Scope: documents owned by you/)).toBeTruthy();
 
+    fireEvent.click(screen.getByRole('button', { name: 'Generate report' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Next' }));
     fireEvent.click(screen.getByRole('combobox', { name: 'Report type' }));
     fireEvent.click(screen.getByRole('option', { name: 'Integrity' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Next' }));
     fireEvent.click(screen.getByRole('button', { name: 'Generate' }));
     expect(await screen.findByRole('region', { name: 'Integrity report' })).toBeTruthy();
-    expect(screen.getByText(/Total: 1 · Authentic: 1/)).toBeTruthy();
+    expect(screen.getByText(/Total: 2 · Authentic: 1/)).toBeTruthy();
     expect(screen.getByText(/Missing files: 2/)).toBeTruthy();
+    expect(screen.getByText(/Altered records: 1/)).toBeTruthy();
+    expect(within(screen.getByRole('table', { name: 'Integrity preview' })).getByText('Record altered')).toBeTruthy();
   });
 
   it('requires both report dates before generating', async () => {
     render(<OfficeReportsPage />);
+    fireEvent.click(screen.getByRole('button', { name: 'Generate report' }));
 
+    fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Next' }));
     fireEvent.click(within(screen.getByRole('group', { name: 'From' })).getByTitle('Clear'));
     fireEvent.click(screen.getByRole('button', { name: 'Generate' }));
 
@@ -154,7 +206,10 @@ describe('ReportsPage', () => {
       downloadedFilename = this.download;
     });
     render(<OfficeReportsPage />);
+    fireEvent.click(screen.getByRole('button', { name: 'Generate report' }));
 
+    fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Next' }));
     fireEvent.click(screen.getByRole('button', { name: 'Generate' }));
     fireEvent.click(await screen.findByRole('button', { name: 'Download CSV' }));
 

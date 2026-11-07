@@ -19,6 +19,8 @@ import { Dropdown } from "@/features/admin/components";
 import { getDocumentLifecycleBadgeClasses, getDocumentLifecycleLabel, getDocumentProcessingBadgeClasses, getDocumentProcessingStatusLabel, isDocumentOnChain } from '@/features/documents/document-ui';
 import { getPortalUiRole } from "@/features/access";
 import { NewDocumentAction } from '@/features/documents/components/new-document-action';
+import { EmptyState } from '@/shared/components/ui';
+import TaskAltOutlinedIcon from '@mui/icons-material/TaskAltOutlined';
 import {
   getDocumentLifecycles,
   getVisibleDocuments,
@@ -164,7 +166,11 @@ function NeedsAttention({ docs }: { docs: Document[] }) {
           })}
         </ul>
       ) : (
-        <p className="text-sm font-semibold text-[#5B6F8A]">No documents need attention.</p>
+        <EmptyState
+          icon={<TaskAltOutlinedIcon aria-hidden="true" sx={{ fontSize: 22 }} />}
+          title="No documents need attention."
+          description="All documents are progressing normally."
+        />
       )}
     </article>
   );
@@ -299,10 +305,11 @@ export default function DocumentsPage() {
       ) : documentsQuery.isError ? (
         <div role="alert" className="rounded-[18px] border border-[#E8F0F8] bg-white p-8 text-center"><p className="text-sm font-bold text-[#0C2B49]">{documentsErrorMessage(documentsQuery.error)}</p><p className="mt-1 text-xs text-[#5B6F8A]">Check your connection and try again.</p><button type="button" onClick={() => void documentsQuery.refetch()} className="mt-4 rounded-full border border-[#D7E4F2] px-4 py-2 text-sm font-black text-[#0067B3]">Retry</button></div>
       ) : allDocuments.length === 0 ? (
-        <div className="rounded-[18px] border border-[#E8F0F8] bg-white p-8 text-center">
-          <p className="text-sm font-bold text-[#0C2B49]">{search || lifecycle !== 'all' ? 'No documents match your search or filter' : 'No documents yet'}</p>
-          <p className="mt-1 text-xs text-[#5B6F8A]">{isIssuer ? 'Select New Document to get started.' : 'No documents are available yet.'}</p>
-        </div>
+        <EmptyState
+          icon={<DescriptionIcon aria-hidden="true" sx={{ fontSize: 22 }} />}
+          title={search || lifecycle !== 'all' ? 'No documents match your search or filter' : 'No documents yet'}
+          description={isIssuer ? 'Select New Document to get started.' : 'No documents are available yet.'}
+        />
       ) : (
         <>
           <section className="grid gap-4 min-[1680px]:min-h-0 min-[1680px]:flex-1 min-[1680px]:grid-cols-[minmax(0,1fr)_340px] min-[1680px]:overflow-hidden">
@@ -384,9 +391,15 @@ export default function DocumentsPage() {
                 ))}
               </div>
               {pagedDocs.length === 0 && (
-                <div className="px-5 py-6 text-center text-sm font-semibold text-[#5B6F8A]">
-                  <p>{documents.length === 0 ? `No documents in ${ownershipLabel} yet` : `No matching documents in ${ownershipLabel}`}</p>
-                  {search.trim() && <button type="button" onClick={() => { setSearch(''); setPage(0); }} className="mt-4 min-h-11 rounded-full border border-[#D7E4F2] px-4 text-sm font-black text-[#0067B3] hover:bg-[#EEF4FB] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]">Clear search</button>}
+                <div className="p-4">
+                  <EmptyState
+                    icon={<DescriptionIcon aria-hidden="true" sx={{ fontSize: 22 }} />}
+                    title={documents.length === 0 ? `No documents in ${ownershipLabel} yet` : `No matching documents in ${ownershipLabel}`}
+                    description="Try adjusting your search terms or filter criteria."
+                    action={search.trim() ? (
+                      <button type="button" onClick={() => { setSearch(''); setPage(0); }} className="min-h-11 rounded-full border border-[#D7E4F2] px-4 text-sm font-black text-[#0067B3] hover:bg-[#EEF4FB] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]">Clear search</button>
+                    ) : undefined}
+                  />
                 </div>
               )}
               <div className="flex shrink-0 flex-col gap-3 border-t border-[#E4EEF9] px-5 py-4 sm:flex-row sm:items-center sm:justify-between">

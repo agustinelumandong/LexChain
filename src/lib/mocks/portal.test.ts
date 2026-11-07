@@ -704,8 +704,9 @@ describe('portal mock participant invitations and requests', () => {
   it('restores a tampered document through the restore endpoint', async () => {
     vi.resetModules();
     const freshMock = await import('@/lib/mocks/portal');
-    const before = await freshMock.mockPortalGet('/documents/mock-document-3/verify', 'mock-token:mock-document-issuer').json() as { status: string };
-    expect(before.status).toBe('TAMPERED');
+    const before = await freshMock.mockPortalGet('/documents/mock-document-3/verify', 'mock-token:mock-document-issuer').json();
+    expect(before).toMatchObject({ status: 'TAMPERED', metadata_status: 'NOT_ANCHORED', needs_restore: true });
+    await expect(freshMock.mockPortalGet('/documents/mock-document-3', 'mock-token:mock-document-issuer').json()).resolves.toMatchObject({ permissions: { can_restore: true } });
 
     const response = await freshMock.mockPortalMutate(
       'POST',
@@ -719,7 +720,7 @@ describe('portal mock participant invitations and requests', () => {
       document_id: 'mock-document-3',
       restored: true,
       preserved_copy_id: null,
-      verification: { status: 'AUTHENTIC', is_authentic: true },
+      verification: { status: 'AUTHENTIC', is_authentic: true, needs_restore: false },
     });
 
     const repeated = await freshMock.mockPortalMutate(

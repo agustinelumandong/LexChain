@@ -4,6 +4,7 @@ import { useState, type ReactNode } from "react";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import { IconButton } from "./button";
+import { EmptyState } from "./empty-state";
 
 export type TableColumn<Row> = {
   key: string;
@@ -17,6 +18,8 @@ export type TableProps<Row> = {
   data: Row[];
   keyExtractor: (row: Row) => string;
   emptyMessage?: string;
+  emptyIcon?: ReactNode;
+  emptyDescription?: ReactNode;
 };
 
 type TablePresentationProps<Row> = TableProps<Row> & {
@@ -30,6 +33,8 @@ function TablePresentation<Row>({
   data,
   keyExtractor,
   emptyMessage = "No data found.",
+  emptyIcon,
+  emptyDescription,
   minWidthClass,
   rowIndexOffset = 0,
 }: TablePresentationProps<Row>) {
@@ -57,8 +62,12 @@ function TablePresentation<Row>({
           ))}
           {data.length === 0 && (
             <tr>
-              <td colSpan={columns.length} className="px-6 py-8 text-center text-[var(--text-secondary)]">
-                {emptyMessage}
+              <td colSpan={columns.length} className="p-4 sm:p-6">
+                <EmptyState
+                  icon={emptyIcon}
+                  title={emptyMessage}
+                  description={emptyDescription}
+                />
               </td>
             </tr>
           )}

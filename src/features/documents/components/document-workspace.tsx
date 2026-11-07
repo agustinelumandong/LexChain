@@ -41,7 +41,7 @@ import { DocumentEcopyRequestHistory } from '@/features/access/components/docume
 import { listRegisterBooks } from '@/features/office/books-api';
 import { latestRegisterBook } from '@/features/office/latest-register-book';
 import { PortalDropdown } from '@/features/portal/components';
-import { Checkbox } from '@/shared/components/ui';
+import { Checkbox, EmptyState } from '@/shared/components/ui';
 import { usePopup } from '@/shared/components/ui/use-popup';
 import { getRegisterEntryError, getUploadFileError } from '@/features/documents/portal-upload';
 import { createWatermarkedSignedPdf } from '@/features/documents/watermark-signed-pdf';
@@ -252,7 +252,14 @@ function ParticipantsPanel({
           <button type="button" onClick={onRetry} className="min-h-11 rounded-full border border-[#D7E4F2] px-3.5 py-1.5 text-sm font-bold text-[#0C2B49] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]">Retry participants</button>
         </div>
       )}
-      {!isLoading && !isError && people.length === 0 && <p className="mt-3 text-sm text-[#4B6382]">No participants are listed yet.</p>}
+      {!isLoading && !isError && people.length === 0 && (
+        <EmptyState
+          className="mt-3"
+          icon={<GroupsOutlinedIcon aria-hidden="true" sx={{ fontSize: 22 }} />}
+          title="No participants listed yet"
+          description="When parties are added to this document, their roles and details will appear here."
+        />
+      )}
       {people.length > 0 && (
         <ul aria-label="Participants" className="mt-3 divide-y divide-[#E8F0F8]">
           {people.map((person) => {
@@ -356,7 +363,11 @@ function DraftCommentsPanel({
       {comments && (
         <div className="mt-3 space-y-3">
           {comments.comments.length === 0 ? (
-            <p className="text-sm text-[#4B6382]">No comments found in the draft.</p>
+            <EmptyState
+              icon={<CommentOutlinedIcon aria-hidden="true" sx={{ fontSize: 22 }} />}
+              title="No comments found in the draft."
+              description="Comments and suggestions added in the draft will appear here."
+            />
           ) : (
             comments.comments.map((comment) => (
               <article key={comment.id} className="max-w-4xl space-y-2 rounded-xl border border-[#E8F0F8] bg-[#F8FBFF] p-4">
@@ -943,6 +954,13 @@ export function DocumentWorkspace({
     setCorrectingEntry(true);
   }
 
+  function closeEntryCorrection() {
+    if (correctEntryMutation.isPending) return;
+    setCorrectingEntry(false);
+    setEntryCorrectionValidationError(null);
+    correctEntryMutation.reset();
+  }
+
   function submitEntryCorrection(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const docNo = Number(entryDocNo);
@@ -1350,7 +1368,7 @@ export function DocumentWorkspace({
                 nextStepPanel
               )
             )}
-            {activeTab === 'History' && <section className="rounded-[18px] border border-[#E8F0F8] bg-white p-5 sm:p-6"><h2 className="text-lg font-bold text-[#0C2B49]">History</h2>{historyQuery.isLoading && <p role="status">Loading history…</p>}{historyQuery.isError && <p role="alert">Unable to load history.</p>}{historyQuery.data && historyChanges.length === 0 && <p>No history has been recorded for this document yet.</p>}{historyChanges.length > 0 && <HistoryTimeline changes={historyChanges} ariaLabel="Document history" showActor />}</section>}
+            {activeTab === 'History' && <section className="rounded-[18px] border border-[#E8F0F8] bg-white p-5 sm:p-6"><h2 className="text-lg font-bold text-[#0C2B49]">History</h2>{historyQuery.isLoading && <p role="status">Loading history…</p>}{historyQuery.isError && <p role="alert">Unable to load history.</p>}{historyQuery.data && historyChanges.length === 0 && <EmptyState className="mt-3" icon={<HistoryOutlinedIcon aria-hidden="true" sx={{ fontSize: 22 }} />} title="No history recorded" description="No history has been recorded for this document yet." />}{historyChanges.length > 0 && <HistoryTimeline changes={historyChanges} ariaLabel="Document history" showActor />}</section>}
           </div>
         </div>
       ) : (
@@ -1365,30 +1383,13 @@ export function DocumentWorkspace({
             <section aria-labelledby="completed-summary-heading" className="rounded-[18px] border border-[#E8F0F8] bg-white p-5 shadow-sm sm:p-6">
               <div className="flex items-center justify-between gap-3">
                 <h2 id="completed-summary-heading" className={overviewSectionHeadingClassName}><DescriptionOutlinedIcon aria-hidden="true" sx={{ fontSize: 20, color: '#0067B3' }} />Document summary</h2>
-                {canCorrectEntry && !correctingEntry && <div ref={summaryActionsRef} className="relative">
+                {canCorrectEntry && <div ref={summaryActionsRef} className="relative">
                   <button type="button" aria-label="Document summary actions" aria-expanded={summaryActionsOpen} aria-haspopup="menu" onClick={() => setSummaryActionsOpen(!summaryActionsOpen)} className="grid min-h-11 min-w-11 place-items-center rounded-full border border-[#D7E4F2] text-[#0C2B49] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]"><MoreVertIcon aria-hidden="true" /></button>
-                  {summaryActionsOpen && <div role="menu" className="absolute right-0 z-10 mt-1 min-w-56 rounded-xl border border-[#D7E4F2] bg-white p-1 shadow-lg"><button type="button" role="menuitem" onClick={() => { setSummaryActionsOpen(false); openEntryCorrection(); }} className="min-h-11 w-full rounded-lg px-3 text-left text-sm font-bold text-[#0C2B49] hover:bg-[#EAF4FF]">Correct register entry</button></div>}
+                  {summaryActionsOpen && <div role="menu" className="absolute right-0 z-10 mt-1 min-w-56 rounded-xl border border-[#D7E4F2] bg-white p-1 shadow-lg"><button type="button" role="menuitem" onClick={() => { setSummaryActionsOpen(false); summaryActionsRef.current?.querySelector('button')?.focus(); openEntryCorrection(); }} className="min-h-11 w-full rounded-lg px-3 text-left text-sm font-bold text-[#0C2B49] hover:bg-[#EAF4FF]">Correct register entry</button></div>}
                 </div>}
               </div>
               <p className="mt-2 break-words text-base leading-7 text-[#344054]">{document.summary || 'No summary is available for this document yet.'}</p>
               <dl className="mt-3 text-sm text-[#4B6382]"><dt className="font-semibold">Register entry</dt><dd>{registerEntry}</dd></dl>
-              {canCorrectEntry && correctingEntry && <div className="space-y-3 border-t border-[#E8F0F8] py-3">
-                <form aria-labelledby="correct-entry-heading" className="space-y-3 rounded-xl border border-[#D7E4F2] bg-[#F8FBFF] p-4" onSubmit={submitEntryCorrection}>
-                  <h3 id="correct-entry-heading" className="inline-flex items-center gap-1.5 text-sm font-black text-[#0C2B49]"><EditOutlinedIcon aria-hidden="true" sx={{ fontSize: 17, color: '#0067B3' }} />Correct document register entry</h3>
-                  <label className="flex flex-col gap-1.5 text-sm font-bold text-[#0C2B49]">Register book
-                    <PortalDropdown ariaLabel="Register book" placeholder="Choose a register book" emptyLabel={registerBooksQuery.isLoading ? 'Loading register books…' : 'No register books available'} options={registerBookOptions} value={entryBookId} onChange={setEntryBookId} disabled={registerBooksQuery.isLoading || correctEntryMutation.isPending} />
-                  </label>
-                  {registerBooksQuery.isLoading && <p role="status" className="text-sm text-[#4B6382]">Loading register books…</p>}
-                  {registerBooksQuery.isError && <div className="flex flex-wrap items-center gap-2"><p role="alert" className="text-sm font-bold text-[#B42318]">Unable to load register books. You can keep the current book or retry to choose another.</p><button type="button" onClick={() => void registerBooksQuery.refetch()} className="rounded-full border border-[#D7E4F2] px-3 py-1.5 text-xs font-bold text-[#0C2B49]">Retry books</button></div>}
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <label className="flex flex-col gap-1.5 text-sm font-bold text-[#0C2B49]">Document number<input aria-label="Document number" required min="1" step="1" inputMode="numeric" type="number" value={entryDocNo} disabled={correctEntryMutation.isPending} onChange={(event) => { setEntryDocNo(event.target.value); setEntryCorrectionValidationError(null); }} className="rounded-xl border border-[#D7E4F2] px-3 py-2.5 text-sm font-medium outline-none focus:border-[#0067B3] disabled:bg-[#F8FBFF]" /></label>
-                    <label className="flex flex-col gap-1.5 text-sm font-bold text-[#0C2B49]">Page number<input aria-label="Page number" required min="1" step="1" inputMode="numeric" type="number" value={entryPageNo} disabled={correctEntryMutation.isPending} onChange={(event) => { setEntryPageNo(event.target.value); setEntryCorrectionValidationError(null); }} className="rounded-xl border border-[#D7E4F2] px-3 py-2.5 text-sm font-medium outline-none focus:border-[#0067B3] disabled:bg-[#F8FBFF]" /></label>
-                  </div>
-                  {entryCorrectionValidationError && <p role="alert" className="text-sm font-bold text-[#B42318]">{entryCorrectionValidationError}</p>}
-                  {correctEntryMutation.isError && <p role="alert" className="text-sm font-bold text-[#B42318]">{correctEntryMutation.error instanceof Error ? correctEntryMutation.error.message : 'Unable to correct the register entry.'} Your entered values have been kept.</p>}
-                  <div className="flex flex-wrap gap-2"><button type="submit" disabled={correctEntryMutation.isPending} className="rounded-full bg-[#0067B3] px-4 py-2 text-sm font-bold text-white disabled:opacity-50">{correctEntryMutation.isPending ? 'Saving…' : 'Save correction'}</button><button type="button" disabled={correctEntryMutation.isPending} onClick={() => { setCorrectingEntry(false); setEntryCorrectionValidationError(null); correctEntryMutation.reset(); }} className="rounded-full border border-[#D7E4F2] px-4 py-2 text-sm font-bold text-[#0C2B49] disabled:opacity-50">Cancel</button></div>
-                </form>
-              </div>}
             </section>
             {participantsPanel}
             <section aria-labelledby="completed-concerns-heading" className="space-y-3 rounded-[18px] border border-[#E8F0F8] bg-white p-5 shadow-sm sm:p-6">
@@ -1406,7 +1407,7 @@ export function DocumentWorkspace({
               <div className="mt-4 text-base leading-7 text-[#344054] [&_time]:text-sm [&_li_p]:text-sm">
                 {historyQuery.isLoading && <p role="status">Loading history…</p>}
                 {historyQuery.isError && <p role="alert">Unable to load history.</p>}
-                {historyQuery.data && historyChanges.length === 0 && <p>No history has been recorded for this document yet.</p>}
+                {historyQuery.data && historyChanges.length === 0 && <EmptyState className="mt-3" icon={<HistoryOutlinedIcon aria-hidden="true" sx={{ fontSize: 22 }} />} title="No history recorded" description="No history has been recorded for this document yet." />}
                 {historyChanges.length > 0 && <HistoryTimeline changes={[...historyChanges].reverse()} ariaLabel="Document history" showActor />}
               </div>
             </section>
@@ -1460,21 +1461,7 @@ export function DocumentWorkspace({
               )}
 
               {canCorrectEntry && <div className="space-y-3 border-t border-[#E8F0F8] py-3">
-                {!correctingEntry ? <button type="button" onClick={openEntryCorrection} className="inline-flex items-center gap-1.5 rounded-full border border-[#0067B3] px-4 py-2 text-sm font-extrabold text-[#0067B3]"><EditOutlinedIcon aria-hidden="true" sx={{ fontSize: 17 }} />Correct register entry</button> : <form aria-labelledby="correct-entry-heading" className="space-y-3 rounded-xl border border-[#D7E4F2] bg-[#F8FBFF] p-4" onSubmit={submitEntryCorrection}>
-                  <h3 id="correct-entry-heading" className="inline-flex items-center gap-1.5 text-sm font-black text-[#0C2B49]"><EditOutlinedIcon aria-hidden="true" sx={{ fontSize: 17, color: '#0067B3' }} />Correct document register entry</h3>
-                  <label className="flex flex-col gap-1.5 text-sm font-bold text-[#0C2B49]">Register book
-                    <PortalDropdown ariaLabel="Register book" placeholder="Choose a register book" emptyLabel={registerBooksQuery.isLoading ? 'Loading register books…' : 'No register books available'} options={registerBookOptions} value={entryBookId} onChange={setEntryBookId} disabled={registerBooksQuery.isLoading || correctEntryMutation.isPending} />
-                  </label>
-                  {registerBooksQuery.isLoading && <p role="status" className="text-sm text-[#4B6382]">Loading register books…</p>}
-                  {registerBooksQuery.isError && <div className="flex flex-wrap items-center gap-2"><p role="alert" className="text-sm font-bold text-[#B42318]">Unable to load register books. You can keep the current book or retry to choose another.</p><button type="button" onClick={() => void registerBooksQuery.refetch()} className="rounded-full border border-[#D7E4F2] px-3 py-1.5 text-xs font-bold text-[#0C2B49]">Retry books</button></div>}
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <label className="flex flex-col gap-1.5 text-sm font-bold text-[#0C2B49]">Document number<input aria-label="Document number" required min="1" step="1" inputMode="numeric" type="number" value={entryDocNo} disabled={correctEntryMutation.isPending} onChange={(event) => { setEntryDocNo(event.target.value); setEntryCorrectionValidationError(null); }} className="rounded-xl border border-[#D7E4F2] px-3 py-2.5 text-sm font-medium outline-none focus:border-[#0067B3] disabled:bg-[#F8FBFF]" /></label>
-                    <label className="flex flex-col gap-1.5 text-sm font-bold text-[#0C2B49]">Page number<input aria-label="Page number" required min="1" step="1" inputMode="numeric" type="number" value={entryPageNo} disabled={correctEntryMutation.isPending} onChange={(event) => { setEntryPageNo(event.target.value); setEntryCorrectionValidationError(null); }} className="rounded-xl border border-[#D7E4F2] px-3 py-2.5 text-sm font-medium outline-none focus:border-[#0067B3] disabled:bg-[#F8FBFF]" /></label>
-                  </div>
-                  {entryCorrectionValidationError && <p role="alert" className="text-sm font-bold text-[#B42318]">{entryCorrectionValidationError}</p>}
-                  {correctEntryMutation.isError && <p role="alert" className="text-sm font-bold text-[#B42318]">{correctEntryMutation.error instanceof Error ? correctEntryMutation.error.message : 'Unable to correct the register entry.'} Your entered values have been kept.</p>}
-                  <div className="flex flex-wrap gap-2"><button type="submit" disabled={correctEntryMutation.isPending} className="rounded-full bg-[#0067B3] px-4 py-2 text-sm font-bold text-white disabled:opacity-50">{correctEntryMutation.isPending ? 'Saving…' : 'Save correction'}</button><button type="button" disabled={correctEntryMutation.isPending} onClick={() => { setCorrectingEntry(false); setEntryCorrectionValidationError(null); correctEntryMutation.reset(); }} className="rounded-full border border-[#D7E4F2] px-4 py-2 text-sm font-bold text-[#0C2B49] disabled:opacity-50">Cancel</button></div>
-                </form>}
+                <button type="button" onClick={openEntryCorrection} className="inline-flex items-center gap-1.5 rounded-full border border-[#0067B3] px-4 py-2 text-sm font-extrabold text-[#0067B3]"><EditOutlinedIcon aria-hidden="true" sx={{ fontSize: 17 }} />Correct register entry</button>
               </div>}
 
               <div className="grid gap-4">
@@ -1498,7 +1485,7 @@ export function DocumentWorkspace({
                   </div>
                   {historyQuery.isLoading && <p role="status" className="text-base leading-7 text-[#4B6382]">Loading history…</p>}
                   {historyQuery.isError && <p role="alert" className="text-base font-semibold leading-7 text-[#B42318]">Unable to load recent history.</p>}
-                  {historyQuery.data && historyChanges.length === 0 && <p className="text-base leading-7 text-[#4B6382]">No history has been recorded for this document yet.</p>}
+                  {historyQuery.data && historyChanges.length === 0 && <EmptyState className="mt-3" icon={<HistoryOutlinedIcon aria-hidden="true" sx={{ fontSize: 22 }} />} title="No history recorded" description="No history has been recorded for this document yet." />}
                   {historyChanges.length > 0 && <div id="signed-document-history"><HistoryTimeline changes={(showTabs ? historyChanges.slice(-2) : [...historyChanges]).reverse()} ariaLabel="Recent document history" /></div>}
                 </section>
               </div>
@@ -1613,7 +1600,7 @@ export function DocumentWorkspace({
             <div><h2 id="document-history-heading" className={overviewSectionHeadingClassName}><HistoryOutlinedIcon aria-hidden="true" sx={{ fontSize: 20, color: '#0067B3' }} />Document history</h2><p className="mt-1 text-sm leading-5 text-[#4B6382]">Lifecycle changes to this document, from oldest to newest.</p></div>
             {historyQuery.isLoading && <p role="status" className="text-base leading-7 text-[#4B6382]">Loading history…</p>}
             {historyQuery.isError && <p role="alert" className="text-base font-semibold leading-7 text-[#B42318]">Unable to load document history.</p>}
-            {historyQuery.data && historyChanges.length === 0 && <p className="text-base leading-7 text-[#4B6382]">No history has been recorded for this document yet.</p>}
+            {historyQuery.data && historyChanges.length === 0 && <EmptyState className="mt-3" icon={<HistoryOutlinedIcon aria-hidden="true" sx={{ fontSize: 22 }} />} title="No history recorded" description="No history has been recorded for this document yet." />}
             {historyChanges.length > 0 && <HistoryTimeline changes={historyChanges} ariaLabel="Document history" showActor />}
           </section>
         )}
@@ -1621,6 +1608,24 @@ export function DocumentWorkspace({
       </div>
         </>
       )}
+      <Modal open={canCorrectEntry && correctingEntry} onClose={closeEntryCorrection} title="Correct document register entry" size="wide">
+        <div className="max-h-[70dvh] overflow-y-auto">
+          <form className="space-y-3" onSubmit={submitEntryCorrection}>
+            <label className="flex flex-col gap-1.5 text-sm font-bold text-[#0C2B49]">Register book
+              <PortalDropdown ariaLabel="Register book" placeholder="Choose a register book" emptyLabel={registerBooksQuery.isLoading ? 'Loading register books…' : 'No register books available'} options={registerBookOptions} value={entryBookId} onChange={setEntryBookId} disabled={registerBooksQuery.isLoading || correctEntryMutation.isPending} />
+            </label>
+            {registerBooksQuery.isLoading && <p role="status" className="text-sm text-[#4B6382]">Loading register books…</p>}
+            {registerBooksQuery.isError && <div className="flex flex-wrap items-center gap-2"><p role="alert" className="text-sm font-bold text-[#B42318]">Unable to load register books. You can keep the current book or retry to choose another.</p><button type="button" onClick={() => void registerBooksQuery.refetch()} className="rounded-full border border-[#D7E4F2] px-3 py-1.5 text-xs font-bold text-[#0C2B49]">Retry books</button></div>}
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label className="flex flex-col gap-1.5 text-sm font-bold text-[#0C2B49]">Document number<input aria-label="Document number" required min="1" step="1" inputMode="numeric" type="number" value={entryDocNo} disabled={correctEntryMutation.isPending} onChange={(event) => { setEntryDocNo(event.target.value); setEntryCorrectionValidationError(null); }} className="rounded-xl border border-[#D7E4F2] px-3 py-2.5 text-sm font-medium outline-none focus:border-[#0067B3] disabled:bg-[#F8FBFF]" /></label>
+              <label className="flex flex-col gap-1.5 text-sm font-bold text-[#0C2B49]">Page number<input aria-label="Page number" required min="1" step="1" inputMode="numeric" type="number" value={entryPageNo} disabled={correctEntryMutation.isPending} onChange={(event) => { setEntryPageNo(event.target.value); setEntryCorrectionValidationError(null); }} className="rounded-xl border border-[#D7E4F2] px-3 py-2.5 text-sm font-medium outline-none focus:border-[#0067B3] disabled:bg-[#F8FBFF]" /></label>
+            </div>
+            {entryCorrectionValidationError && <p role="alert" className="text-sm font-bold text-[#B42318]">{entryCorrectionValidationError}</p>}
+            {correctEntryMutation.isError && <p role="alert" className="text-sm font-bold text-[#B42318]">{correctEntryMutation.error instanceof Error ? correctEntryMutation.error.message : 'Unable to correct the register entry.'} Your entered values have been kept.</p>}
+            <div className="flex flex-wrap gap-2"><button type="submit" disabled={correctEntryMutation.isPending} className="rounded-full bg-[#0067B3] px-4 py-2 text-sm font-bold text-white disabled:opacity-50">{correctEntryMutation.isPending ? 'Saving…' : 'Save correction'}</button><button type="button" disabled={correctEntryMutation.isPending} onClick={closeEntryCorrection} className="rounded-full border border-[#D7E4F2] px-4 py-2 text-sm font-bold text-[#0C2B49] disabled:opacity-50">Cancel</button></div>
+          </form>
+        </div>
+      </Modal>
       {(showWorkflowStatus || workflowActions) && <div className="mx-auto w-full max-w-7xl px-4 pb-4 sm:px-6">
         <section aria-label="Next action" className="rounded-[18px] border border-[#E8F0F8] bg-white p-5 shadow-sm sm:p-6">
           <div className="flex flex-wrap items-center justify-between gap-4">

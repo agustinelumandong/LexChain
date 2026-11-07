@@ -16,6 +16,7 @@ afterEach(cleanup);
 describe('Document Activity report', () => {
   it('does not display a successful report when fetching fails', async () => {
     render(<OfficeReportsPage />);
+    fireEvent.click(screen.getByRole('button', { name: 'Generate report' }));
     fireEvent.click(screen.getByRole('button', { name: 'Generate' }));
     expect(await screen.findByRole('alert')).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Download CSV' })).toBeNull();

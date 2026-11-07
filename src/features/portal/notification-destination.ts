@@ -3,12 +3,13 @@ import { googleDraftReturnPath } from '@/shared/utils/google-draft-return-contex
 import type { PortalNotification } from './notifications-api';
 
 const documentNotificationTypes = new Set([
-  'party_added',
   'party_removed',
   'document_recorded',
   'document_processed',
   'document_failed',
   'live_file_tampered',
+  'record_altered',
+  'archive_problem',
 ]);
 const draftNotificationTypes = new Set(['draft_comment', 'draft_reply', 'draft_resolved', 'draft_reopened']);
 
@@ -24,6 +25,7 @@ export function getNotificationDestination(
   notification: Pick<PortalNotification, 'type' | 'event_metadata'>,
 ): NotificationDestination | null {
   const { type, event_metadata: metadata } = notification;
+  if (type === 'party_added') return { href: '/portal/invitations', external: false };
   if (type === 'ecopy_requested' || type === 'ecopy_delivery_failed') return { href: '/portal/requests', external: false };
   if (type === 'ecopy_approved' || type === 'ecopy_declined') return { href: '/portal/requests/my', external: false };
   if (typeof metadata !== 'object' || metadata === null) return null;
