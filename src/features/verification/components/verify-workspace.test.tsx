@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, render, screen, within } from '@testing-library/react';
 import type { ApiSchema } from '@/shared/types/index';
 import VerifyWorkspace from '@/features/verification/components/verify-workspace';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -84,19 +84,53 @@ afterEach(() => {
 });
 
 describe('VerifyWorkspace', () => {
-  it('shows altered record fields separately from a matching PDF', () => {
+  it('combines matching PDF and record results without a second success banner', () => {
+    render(<VerifyWorkspace result={{ ...result, status: 'AUTHENTIC', is_authentic: true, metadata_status: 'MATCH' }} onRetry={vi.fn()} />);
+    const panel = screen.getByRole('region', { name: 'Verification results' });
+    expect(within(panel).getByRole('heading', { name: 'PDF unchanged' })).toBeTruthy();
+    expect(within(panel).getByRole('heading', { name: 'Document details unchanged' })).toBeTruthy();
+    expect(panel.className).toContain('bg-green-50');
+    expect(panel.className).toContain('border-green-700');
+  });
+
+  it('does not claim authenticity when the returned fingerprints conflict', () => {
+    render(<VerifyWorkspace result={{ ...result, status: 'AUTHENTIC', is_authentic: true, onchain_hash: 'abc', snapshot_hash: 'abc', current_hash: 'def' }} onRetry={vi.fn()} />);
+    expect(screen.getByRole('heading', { name: 'We could not check this document' })).toBeTruthy();
+    expect(screen.getByText(/conflicting verification fields/)).toBeTruthy();
+    expect(screen.queryByText('All 3 cryptographic fingerprints match')).toBeNull();
+    expect(screen.queryByText(/Verified authentic document/)).toBeNull();
+  });
+  it('shows altered record fields alongside a matching PDF without a green success panel', () => {
     render(<VerifyWorkspace result={{ ...result, status: 'AUTHENTIC', is_authentic: true, metadata_status: 'ALTERED', metadata_changes: [{ field: 'document_number', anchored: 12, current: 15 }] }} onRetry={vi.fn()} />);
 
-    expect(screen.getByRole('heading', { name: 'This PDF matches the saved version' })).toBeTruthy();
-    expect(screen.getByText('Document record has changed')).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'PDF unchanged' })).toBeTruthy();
+    expect(screen.getByText('Document details changed')).toBeTruthy();
     expect(screen.getByText('document number')).toBeTruthy();
     expect(screen.getByText('12')).toBeTruthy();
     expect(screen.getByText('15')).toBeTruthy();
+    const panel = screen.getByRole('region', { name: 'Verification results' });
+    expect(within(panel).getByText('Document details changed')).toBeTruthy();
+    expect(panel.className).toContain('bg-red-50');
+    expect(panel.className).toContain('border-red-700');
+  });
+
+  it('names a file name change and shows the original and current values', () => {
+    render(<VerifyWorkspace result={{ ...result, status: 'AUTHENTIC', is_authentic: true, metadata_status: 'ALTERED', metadata_changes: [{ field: 'file_name', anchored: 'Old name', current: 'New name' }] }} onRetry={vi.fn()} />);
+    expect(screen.getByRole('heading', { name: 'File name changed' })).toBeTruthy();
+    expect(screen.getByRole('region', { name: 'Verification results' }).className).toContain('bg-red-50');
+    expect(screen.getByText('At finalization:')).toBeTruthy();
+    expect(screen.getByText('Old name')).toBeTruthy();
+    expect(screen.getByText('New name')).toBeTruthy();
   });
 
   it('explains when record integrity cannot be checked', () => {
     render(<VerifyWorkspace result={{ ...result, metadata_status: 'UNAVAILABLE' }} onRetry={vi.fn()} />);
-    expect(screen.getByText('Document record could not be checked')).toBeTruthy();
+    expect(screen.getByText('Document details could not be checked')).toBeTruthy();
+  });
+
+  it('uses a warning color when a matching PDF has an unavailable record check', () => {
+    render(<VerifyWorkspace result={{ ...result, status: 'AUTHENTIC', is_authentic: true, metadata_status: 'UNAVAILABLE' }} onRetry={vi.fn()} />);
+    expect(screen.getByRole('region', { name: 'Verification results' }).className).toContain('bg-amber-50');
   });
 
   it('renders backend comparison details and overlays only current-PDF coordinates', () => {
@@ -232,7 +266,7 @@ describe('VerifyWorkspace', () => {
 
     expect(screen.getByRole('complementary', { name: 'Legal validity notice' })).toBeTruthy();
     expect(screen.getByText(/A match alone does not prove legal validity, notarization, authority, or contract enforceability\./)).toBeTruthy();
-    expect(screen.getByText('This PDF file matches the cryptographic fingerprint recorded on the blockchain at finalization. The file content is authentic and unaltered.')).toBeTruthy();
+    expect(screen.getByText('Its fingerprint matches the blockchain record.')).toBeTruthy();
     expect(screen.getByRole('link', { name: 'View transaction on Base Sepolia' })).toBeTruthy();
   });
 
