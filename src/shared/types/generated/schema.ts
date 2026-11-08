@@ -1698,7 +1698,7 @@ export interface components {
             problems?: components["schemas"]["BackupCheck"][];
             /** @description Each document's current signed copy against the chain */
             live: components["schemas"]["LiveFileReport"];
-            /** @description Each document's metadata, snapshot and lifecycle against the chain */
+            /** @description Each document's metadata, analysis, snapshot and lifecycle against the chain */
             records: components["schemas"]["RecordReport"];
         };
         /**
@@ -2468,13 +2468,25 @@ export interface components {
              */
             metadata_changes?: components["schemas"]["RecordChange"][];
             /**
+             * Analysis Status
+             * @description The same as `metadata_status`, for the approved text, chunks and insight frozen at finalize
+             * @default NOT_ANCHORED
+             * @enum {string}
+             */
+            analysis_status: "MATCH" | "ALTERED" | "NOT_ANCHORED" | "UNAVAILABLE";
+            /**
+             * Analysis Changes
+             * @description Present only when `analysis_status` is ALTERED. Fields name the part, such as `approved_text`, `chunks[3].text` or `insight.risk_flags`; long text is an excerpt around the change
+             */
+            analysis_changes?: components["schemas"]["RecordChange"][];
+            /**
              * Anchor Corrected
              * @description True if the contract owner replaced this document's anchor, so `onchain_hash` isn't the hash from finalize. Null if unknown: the events could not be read
              */
             anchor_corrected?: boolean | null;
             /**
              * Needs Restore
-             * @description Whether something is wrong that POST /restore repairs: the file, the metadata, the snapshot row or the lifecycle
+             * @description Whether something is wrong that POST /restore repairs: the file, the metadata, the analysis, the snapshot row or the lifecycle
              * @default false
              */
             needs_restore: boolean;
@@ -3231,9 +3243,13 @@ export interface components {
              * Kind
              * @enum {string}
              */
-            kind: "metadata" | "snapshot" | "lifecycle" | "document";
+            kind: "metadata" | "analysis" | "snapshot" | "lifecycle" | "document";
         };
-        /** RecordReport */
+        /**
+         * RecordReport
+         * @description Counted per record: each document has its metadata record (with the
+         *     snapshot and lifecycle) and its analysis record.
+         */
         RecordReport: {
             /** Checked */
             checked: number;
@@ -3243,7 +3259,7 @@ export interface components {
             altered: number;
             /**
              * Not Anchored
-             * @description Finalized with no metadata anchor
+             * @description Finalized with no anchor for the record
              */
             not_anchored: number;
             /**
@@ -3486,7 +3502,7 @@ export interface components {
              * Record
              * @enum {string}
              */
-            record: "lifecycle" | "document" | "snapshot" | "metadata";
+            record: "lifecycle" | "document" | "snapshot" | "metadata" | "analysis";
             /** Field */
             field: string;
             /** Old */
@@ -3803,7 +3819,7 @@ export interface components {
              * Kind
              * @enum {string}
              */
-            kind: "file" | "metadata" | "snapshot" | "lifecycle" | "document" | "deleted";
+            kind: "file" | "metadata" | "analysis" | "snapshot" | "lifecycle" | "document" | "deleted";
             /**
              * Field
              * @description `file` for the PDF, `document` for a deleted one, else the changed value
@@ -3897,7 +3913,7 @@ export interface components {
              * Blocked Reason
              * @description Why not, when `restorable` is false
              */
-            blocked_reason?: ("archive_missing" | "metadata_unreadable" | "check_unavailable" | "backup_needed") | null;
+            blocked_reason?: ("archive_missing" | "metadata_unreadable" | "analysis_unreadable" | "check_unavailable" | "backup_needed") | null;
         };
         /** TamperReportListResponse */
         TamperReportListResponse: {

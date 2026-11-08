@@ -4925,7 +4925,7 @@
           },
           "records": {
             "$ref": "#/components/schemas/RecordReport",
-            "description": "Each document's metadata, snapshot and lifecycle against the chain"
+            "description": "Each document's metadata, analysis, snapshot and lifecycle against the chain"
           }
         },
         "type": "object",
@@ -6270,6 +6270,26 @@
             "title": "Metadata Changes",
             "description": "Present only when `metadata_status` is ALTERED"
           },
+          "analysis_status": {
+            "type": "string",
+            "enum": [
+              "MATCH",
+              "ALTERED",
+              "NOT_ANCHORED",
+              "UNAVAILABLE"
+            ],
+            "title": "Analysis Status",
+            "description": "The same as `metadata_status`, for the approved text, chunks and insight frozen at finalize",
+            "default": "NOT_ANCHORED"
+          },
+          "analysis_changes": {
+            "items": {
+              "$ref": "#/components/schemas/RecordChange"
+            },
+            "type": "array",
+            "title": "Analysis Changes",
+            "description": "Present only when `analysis_status` is ALTERED. Fields name the part, such as `approved_text`, `chunks[3].text` or `insight.risk_flags`; long text is an excerpt around the change"
+          },
           "anchor_corrected": {
             "anyOf": [
               {
@@ -6285,7 +6305,7 @@
           "needs_restore": {
             "type": "boolean",
             "title": "Needs Restore",
-            "description": "Whether something is wrong that POST /restore repairs: the file, the metadata, the snapshot row or the lifecycle",
+            "description": "Whether something is wrong that POST /restore repairs: the file, the metadata, the analysis, the snapshot row or the lifecycle",
             "default": false
           },
           "tamper_report_status": {
@@ -7788,6 +7808,7 @@
             "type": "string",
             "enum": [
               "metadata",
+              "analysis",
               "snapshot",
               "lifecycle",
               "document"
@@ -7820,7 +7841,7 @@
           "not_anchored": {
             "type": "integer",
             "title": "Not Anchored",
-            "description": "Finalized with no metadata anchor"
+            "description": "Finalized with no anchor for the record"
           },
           "unavailable": {
             "type": "integer",
@@ -7844,7 +7865,8 @@
           "not_anchored",
           "unavailable"
         ],
-        "title": "RecordReport"
+        "title": "RecordReport",
+        "description": "Counted per record: each document has its metadata record (with the\nsnapshot and lifecycle) and its analysis record."
       },
       "RecordResponse": {
         "properties": {
@@ -8225,7 +8247,8 @@
               "lifecycle",
               "document",
               "snapshot",
-              "metadata"
+              "metadata",
+              "analysis"
             ],
             "title": "Record"
           },
@@ -8794,6 +8817,7 @@
             "enum": [
               "file",
               "metadata",
+              "analysis",
               "snapshot",
               "lifecycle",
               "document",
@@ -8955,6 +8979,7 @@
                 "enum": [
                   "archive_missing",
                   "metadata_unreadable",
+                  "analysis_unreadable",
                   "check_unavailable",
                   "backup_needed"
                 ]
