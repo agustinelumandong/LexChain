@@ -135,10 +135,14 @@ export function TamperReports({ generateRequest = 0, actionTarget }: { generateR
       {reports.reports?.length ? <>
         <ul className="space-y-3">{reports.reports.map((report) => {
           const path = googleDraftReturnPath(report.document_id);
-          return <li key={report.document_id} className="rounded-xl border border-[#E4EEF9] p-3 text-sm">
-            <p className="font-bold">{path && report.status !== 'DELETED' ? <Link className="text-[#0067B3] underline" href={`${path}/verify`}>{report.file_name || report.document_id}</Link> : report.file_name || report.document_id}</p>
-            <p className="mt-1">{report.status === 'DELETED' ? report.restorable ? 'Deleted document can be recovered.' : report.blocked_reason === 'backup_needed' ? 'A database backup is needed to recover this document.' : `Recovery unavailable: ${report.blocked_reason?.replaceAll('_', ' ') || 'reason unavailable'}` : report.restorable ? 'Available to restore' : `Restore unavailable: ${report.blocked_reason?.replaceAll('_', ' ') || 'reason unavailable'}`}</p>
-            {report.changes?.length ? <p className="mt-1">Affected: {report.changes.map((change) => `${change.kind}: ${change.field.replaceAll('_', ' ')}`).join(', ')}</p> : <p className="mt-1">No change details available.</p>}
+          const analysisChanges = report.changes?.filter((change) => change.kind === 'analysis') ?? [];
+          const otherChanges = report.changes?.filter((change) => change.kind !== 'analysis') ?? [];
+          return <li key={report.document_id} className="relative rounded-xl border border-[#E4EEF9] p-3 text-sm">
+            <p className="font-bold">{path && report.status !== 'DELETED' ? <Link className="text-[#0067B3] underline after:absolute after:inset-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]" href={`${path}/verify`}>{report.file_name || report.document_id}</Link> : report.file_name || report.document_id}</p>
+            <p className="mt-1">{report.status === 'DELETED' ? report.restorable ? 'Deleted document can be recovered.' : report.blocked_reason === 'backup_needed' ? 'A database backup is needed to recover this document.' : `Recovery unavailable: ${report.blocked_reason?.replaceAll('_', ' ') || 'reason unavailable'}` : report.restorable ? 'Available to restore' : report.blocked_reason === 'analysis_unreadable' ? 'Analysis could not be checked, so restoration is unavailable.' : `Restore unavailable: ${report.blocked_reason?.replaceAll('_', ' ') || 'reason unavailable'}`}</p>
+            {analysisChanges.length > 0 && <p className="mt-1">Analysis changed: {analysisChanges.map((change) => change.field.replaceAll('_', ' ')).join(', ')}</p>}
+            {otherChanges.length > 0 && <p className="mt-1">Affected: {otherChanges.map((change) => `${change.kind}: ${change.field.replaceAll('_', ' ')}`).join(', ')}</p>}
+            {!report.changes?.length && <p className="mt-1">No change details available.</p>}
             {report.status === 'DELETED' && report.restorable && path && <button type="button" disabled={loading || restoring} aria-label={`Recover ${report.file_name || report.document_id}`} onClick={() => setSelectedRecovery(report)} className="mt-3 rounded-xl border border-[#B9D6ED] px-4 py-2 font-bold text-[#0067B3] disabled:opacity-60">Recover document</button>}
           </li>;
         })}</ul>

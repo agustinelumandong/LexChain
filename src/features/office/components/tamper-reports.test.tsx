@@ -7,6 +7,28 @@ import { portalFetch, portalRequest } from '@/shared/api/client';
 vi.mock('@/shared/api/client', () => ({ portalFetch: vi.fn(), portalRequest: vi.fn() }));
 afterEach(() => { cleanup(); vi.resetAllMocks(); });
 
+it('makes the entire active report card a link to verification', async () => {
+  vi.mocked(portalFetch).mockResolvedValue({ total: 1, reports: [{ document_id: 'doc-1', file_name: 'Deed.pdf', status: 'TAMPERED', restorable: true, changes: [{ kind: 'metadata', field: 'file_name' }] }] });
+  render(<TamperReports generateRequest={1} />);
+  const link = await screen.findByRole('link', { name: 'Deed.pdf' });
+  expect(link.getAttribute('href')).toBe('/portal/documents/doc-1/verify');
+  expect(link.className).toContain('after:absolute');
+  expect(link.className).toContain('after:inset-0');
+  expect(link.closest('li')?.className).toContain('relative');
+});
+
+it('identifies changed analysis and its affected fields', async () => {
+  vi.mocked(portalFetch).mockResolvedValue({ total: 1, reports: [{ document_id: 'doc-1', file_name: 'Deed.pdf', status: 'AUTHENTIC', restorable: true, changes: [{ kind: 'analysis', field: 'approved_text' }, { kind: 'analysis', field: 'insight.risk_flags' }] }] });
+  render(<TamperReports generateRequest={1} />);
+  expect(await screen.findByText('Analysis changed: approved text, insight.risk flags')).toBeTruthy();
+});
+
+it('explains when analysis could not be checked', async () => {
+  vi.mocked(portalFetch).mockResolvedValue({ total: 1, reports: [{ document_id: 'doc-1', status: 'AUTHENTIC', restorable: false, blocked_reason: 'analysis_unreadable', changes: [] }] });
+  render(<TamperReports generateRequest={1} />);
+  expect(await screen.findByText('Analysis could not be checked, so restoration is unavailable.')).toBeTruthy();
+});
+
 it('places the restore action in the supplied header after reports load', async () => {
   vi.mocked(portalFetch).mockResolvedValue({ total: 1, reports: [{ document_id: 'doc-1', status: 'TAMPERED', restorable: true }] });
   const target = document.createElement('div');
