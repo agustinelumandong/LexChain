@@ -164,7 +164,6 @@ export default function PortalLayout({ children, demoMode }: { children: React.R
         {/* Main content */}
         <section id="portal-content" tabIndex={-1} className={`flex min-w-0 flex-1 flex-col overflow-x-clip px-6 pb-32 pt-0 md:pb-6 ${isDocumentWorkspace ? 'h-dvh min-h-0 overflow-y-hidden' : ''}`}>
           <PortalTopBar
-            initials="?"
             roleLabel={roleLabel}
             role={uiRole}
             processingCount={processingCount}

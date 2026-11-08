@@ -11,7 +11,6 @@ afterEach(cleanup);
 
 const sharedProps = {
   fullName: "Ada Lovelace",
-  initials: "AL",
   roleLabel: "User",
   processingCount: 2,
   registerSearchOpen: false,
@@ -30,6 +29,14 @@ const actionableNotification = {
 };
 
 describe("PortalTopBar", () => {
+  it("shows notifications and the account menu without a help link", () => {
+    render(<PortalTopBar {...sharedProps} role="user" />);
+
+    expect(screen.getByRole("button", { name: "View notifications" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Open account menu" })).toBeTruthy();
+    expect(screen.queryByRole("link", { name: "Get help" })).toBeNull();
+  });
+
   it("opens register reference search from the top bar", () => {
     render(<PortalTopBar {...sharedProps} role="user" />);
 
