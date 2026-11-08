@@ -69,7 +69,7 @@
           "Authentication"
         ],
         "summary": "Sign in a user",
-        "description": "Authenticate a user with email and password.\n\n    - **Returns**: Access token, refresh token, and token expiration time.\n    - **Email Verification**: User must have verified their email to sign in.\n    - **Rate Limit**: 5 requests per minute.",
+        "description": "Authenticate a user with email and password.\n\n    - **Returns**: Access token, refresh token, and token expiration time.\n    - **MFA**: The tokens are aal1 and only reach the `/auth/mfa` endpoints and\n      sign-out (`mfa_required` is always true). Send the authenticator code to\n      `POST /auth/mfa/verify` with `mfa_factor_id`; if that is null, enrol first\n      at `POST /auth/mfa/enroll`.\n    - **Email Verification**: User must have verified their email to sign in.\n    - **Rate Limit**: 5 requests per minute.",
         "operationId": "sign_in_auth_signin_post",
         "requestBody": {
           "content": {
@@ -299,6 +299,191 @@
               "application/json": {
                 "example": {
                   "error": "Rate limit exceeded"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Failed to connect to Supabase"
+          }
+        }
+      }
+    },
+    "/auth/mfa/enroll": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Start authenticator-app enrolment",
+        "description": "Create a TOTP factor and return the QR code to scan.\n\n    - **Session**: The aal1 token from sign-in is enough while the user has no\n      verified authenticator. Adding a second one needs an aal2 session.\n    - **Confirm**: The factor stays unverified until a code from it is sent to\n      `POST /auth/mfa/verify`, which also returns the aal2 tokens.\n    - **Retry**: A previous unconfirmed enrolment is discarded.\n    - **Secret**: `secret` and `qr_code` are shown once; never log or store them.",
+        "operationId": "enroll_mfa_auth_mfa_enroll_post",
+        "responses": {
+          "201": {
+            "description": "Factor created, awaiting its first code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MfaEnrollResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated — missing or invalid bearer token"
+          },
+          "403": {
+            "description": "An authenticator is already enrolled; verify it first"
+          },
+          "502": {
+            "description": "Failed to connect to Supabase"
+          }
+        },
+        "security": [
+          {
+            "Bearer Token": []
+          }
+        ]
+      }
+    },
+    "/auth/mfa/verify": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Verify an authenticator code",
+        "description": "Check a 6-digit code and return aal2 tokens that reach every route.\n\n    - **Use**: After every sign-in, and once to confirm a new enrolment.\n    - **Tokens**: Replace the aal1 tokens with the ones returned here.\n    - **Rate Limit**: 5 requests per minute.",
+        "operationId": "verify_mfa_auth_mfa_verify_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MfaVerifyRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Code accepted; aal2 session issued",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SignInResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid code, or missing/invalid bearer token"
+          },
+          "422": {
+            "description": "Code is not 6 digits"
+          },
+          "429": {
+            "description": "Too Many Requests - Rate limit exceeded",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": "Rate limit exceeded"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Failed to connect to Supabase"
+          }
+        },
+        "security": [
+          {
+            "Bearer Token": []
+          }
+        ]
+      }
+    },
+    "/auth/mfa/factors": {
+      "get": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "List authenticators",
+        "description": "The caller's TOTP factors, verified or not. An aal1 session is enough.",
+        "operationId": "list_mfa_factors_auth_mfa_factors_get",
+        "responses": {
+          "200": {
+            "description": "The caller's factors",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MfaFactorsResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated — missing or invalid bearer token"
+          },
+          "502": {
+            "description": "Failed to connect to Supabase"
+          }
+        },
+        "security": [
+          {
+            "Bearer Token": []
+          }
+        ]
+      }
+    },
+    "/auth/mfa/factors/{factor_id}": {
+      "delete": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Remove an authenticator",
+        "description": "Remove one of the caller's factors.\n\n    - **Session**: Requires aal2 — a password alone cannot remove MFA.\n    - **Last factor**: MFA stays mandatory; the next sign-in goes through\n      enrolment again.",
+        "operationId": "remove_mfa_factor_auth_mfa_factors__factor_id__delete",
+        "security": [
+          {
+            "Bearer Token": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "factor_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Factor Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Factor removed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The factor could not be removed"
+          },
+          "401": {
+            "description": "Not authenticated — missing or invalid bearer token"
+          },
+          "403": {
+            "description": "Session has not passed MFA"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -7255,6 +7440,122 @@
         ],
         "title": "MessageResponse"
       },
+      "MfaEnrollResponse": {
+        "properties": {
+          "factor_id": {
+            "type": "string",
+            "title": "Factor Id",
+            "description": "Pass to POST /auth/mfa/verify"
+          },
+          "qr_code": {
+            "type": "string",
+            "title": "Qr Code",
+            "description": "SVG data URI of the QR code to scan; usable as an <img> src"
+          },
+          "secret": {
+            "type": "string",
+            "title": "Secret",
+            "description": "The TOTP secret, for typing in when the QR cannot be scanned"
+          },
+          "uri": {
+            "type": "string",
+            "title": "Uri",
+            "description": "The otpauth:// URI the QR code encodes"
+          }
+        },
+        "type": "object",
+        "required": [
+          "factor_id",
+          "qr_code",
+          "secret",
+          "uri"
+        ],
+        "title": "MfaEnrollResponse"
+      },
+      "MfaFactor": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id",
+            "description": "Factor ID"
+          },
+          "factor_type": {
+            "type": "string",
+            "title": "Factor Type",
+            "description": "Always 'totp' here"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "description": "verified, or unverified while enrolment is unconfirmed"
+          },
+          "friendly_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Friendly Name",
+            "description": "Display name"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At",
+            "description": "When the factor was enrolled"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "factor_type",
+          "status",
+          "created_at"
+        ],
+        "title": "MfaFactor"
+      },
+      "MfaFactorsResponse": {
+        "properties": {
+          "factors": {
+            "items": {
+              "$ref": "#/components/schemas/MfaFactor"
+            },
+            "type": "array",
+            "title": "Factors",
+            "description": "The caller's factors"
+          }
+        },
+        "type": "object",
+        "required": [
+          "factors"
+        ],
+        "title": "MfaFactorsResponse"
+      },
+      "MfaVerifyRequest": {
+        "properties": {
+          "factor_id": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Factor Id",
+            "description": "The factor to verify"
+          },
+          "code": {
+            "type": "string",
+            "pattern": "^\\d{6}$",
+            "title": "Code",
+            "description": "The 6-digit code from the authenticator app"
+          }
+        },
+        "type": "object",
+        "required": [
+          "factor_id",
+          "code"
+        ],
+        "title": "MfaVerifyRequest"
+      },
       "NotificationListResponse": {
         "properties": {
           "notifications": {
@@ -8134,6 +8435,23 @@
           "user": {
             "$ref": "#/components/schemas/SignInUser",
             "description": "The signed-in user"
+          },
+          "mfa_required": {
+            "type": "boolean",
+            "title": "Mfa Required",
+            "description": "True after a password sign-in: the tokens only reach the /auth/mfa endpoints until a code is verified."
+          },
+          "mfa_factor_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mfa Factor Id",
+            "description": "The verified authenticator to send the code for. Null while mfa_required means the user has none yet and must enrol first (POST /auth/mfa/enroll)."
           }
         },
         "type": "object",
@@ -8141,7 +8459,8 @@
           "access_token",
           "refresh_token",
           "expires_in",
-          "user"
+          "user",
+          "mfa_required"
         ],
         "title": "SignInResponse"
       },

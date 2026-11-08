@@ -43,6 +43,10 @@ export interface paths {
          * @description Authenticate a user with email and password.
          *
          *         - **Returns**: Access token, refresh token, and token expiration time.
+         *         - **MFA**: The tokens are aal1 and only reach the `/auth/mfa` endpoints and
+         *           sign-out (`mfa_required` is always true). Send the authenticator code to
+         *           `POST /auth/mfa/verify` with `mfa_factor_id`; if that is null, enrol first
+         *           at `POST /auth/mfa/enroll`.
          *         - **Email Verification**: User must have verified their email to sign in.
          *         - **Rate Limit**: 5 requests per minute.
          */
@@ -150,6 +154,101 @@ export interface paths {
          */
         post: operations["reset_password_auth_password_reset_post"];
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/mfa/enroll": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Start authenticator-app enrolment
+         * @description Create a TOTP factor and return the QR code to scan.
+         *
+         *         - **Session**: The aal1 token from sign-in is enough while the user has no
+         *           verified authenticator. Adding a second one needs an aal2 session.
+         *         - **Confirm**: The factor stays unverified until a code from it is sent to
+         *           `POST /auth/mfa/verify`, which also returns the aal2 tokens.
+         *         - **Retry**: A previous unconfirmed enrolment is discarded.
+         *         - **Secret**: `secret` and `qr_code` are shown once; never log or store them.
+         */
+        post: operations["enroll_mfa_auth_mfa_enroll_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/mfa/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Verify an authenticator code
+         * @description Check a 6-digit code and return aal2 tokens that reach every route.
+         *
+         *         - **Use**: After every sign-in, and once to confirm a new enrolment.
+         *         - **Tokens**: Replace the aal1 tokens with the ones returned here.
+         *         - **Rate Limit**: 5 requests per minute.
+         */
+        post: operations["verify_mfa_auth_mfa_verify_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/mfa/factors": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List authenticators
+         * @description The caller's TOTP factors, verified or not. An aal1 session is enough.
+         */
+        get: operations["list_mfa_factors_auth_mfa_factors_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/mfa/factors/{factor_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Remove an authenticator
+         * @description Remove one of the caller's factors.
+         *
+         *         - **Session**: Requires aal2 — a password alone cannot remove MFA.
+         *         - **Last factor**: MFA stays mandatory; the next sign-in goes through
+         *           enrolment again.
+         */
+        delete: operations["remove_mfa_factor_auth_mfa_factors__factor_id__delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -2952,6 +3051,79 @@ export interface components {
              */
             message: string;
         };
+        /** MfaEnrollResponse */
+        MfaEnrollResponse: {
+            /**
+             * Factor Id
+             * @description Pass to POST /auth/mfa/verify
+             */
+            factor_id: string;
+            /**
+             * Qr Code
+             * @description SVG data URI of the QR code to scan; usable as an <img> src
+             */
+            qr_code: string;
+            /**
+             * Secret
+             * @description The TOTP secret, for typing in when the QR cannot be scanned
+             */
+            secret: string;
+            /**
+             * Uri
+             * @description The otpauth:// URI the QR code encodes
+             */
+            uri: string;
+        };
+        /** MfaFactor */
+        MfaFactor: {
+            /**
+             * Id
+             * @description Factor ID
+             */
+            id: string;
+            /**
+             * Factor Type
+             * @description Always 'totp' here
+             */
+            factor_type: string;
+            /**
+             * Status
+             * @description verified, or unverified while enrolment is unconfirmed
+             */
+            status: string;
+            /**
+             * Friendly Name
+             * @description Display name
+             */
+            friendly_name?: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             * @description When the factor was enrolled
+             */
+            created_at: string;
+        };
+        /** MfaFactorsResponse */
+        MfaFactorsResponse: {
+            /**
+             * Factors
+             * @description The caller's factors
+             */
+            factors: components["schemas"]["MfaFactor"][];
+        };
+        /** MfaVerifyRequest */
+        MfaVerifyRequest: {
+            /**
+             * Factor Id
+             * @description The factor to verify
+             */
+            factor_id: string;
+            /**
+             * Code
+             * @description The 6-digit code from the authenticator app
+             */
+            code: string;
+        };
         /** NotificationListResponse */
         NotificationListResponse: {
             /** Notifications */
@@ -3423,6 +3595,16 @@ export interface components {
             expires_in: number;
             /** @description The signed-in user */
             user: components["schemas"]["SignInUser"];
+            /**
+             * Mfa Required
+             * @description True after a password sign-in: the tokens only reach the /auth/mfa endpoints until a code is verified.
+             */
+            mfa_required: boolean;
+            /**
+             * Mfa Factor Id
+             * @description The verified authenticator to send the code for. Null while mfa_required means the user has none yet and must enrol first (POST /auth/mfa/enroll).
+             */
+            mfa_factor_id?: string | null;
         };
         /**
          * SignInUser
@@ -4255,6 +4437,199 @@ export interface operations {
                      *     }
                      */
                     "application/json": unknown;
+                };
+            };
+            /** @description Failed to connect to Supabase */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    enroll_mfa_auth_mfa_enroll_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Factor created, awaiting its first code */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MfaEnrollResponse"];
+                };
+            };
+            /** @description Not authenticated — missing or invalid bearer token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description An authenticator is already enrolled; verify it first */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Failed to connect to Supabase */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    verify_mfa_auth_mfa_verify_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MfaVerifyRequest"];
+            };
+        };
+        responses: {
+            /** @description Code accepted; aal2 session issued */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SignInResponse"];
+                };
+            };
+            /** @description Invalid code, or missing/invalid bearer token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Code is not 6 digits */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Too Many Requests - Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "error": "Rate limit exceeded"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Failed to connect to Supabase */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    list_mfa_factors_auth_mfa_factors_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The caller's factors */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MfaFactorsResponse"];
+                };
+            };
+            /** @description Not authenticated — missing or invalid bearer token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Failed to connect to Supabase */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    remove_mfa_factor_auth_mfa_factors__factor_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                factor_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Factor removed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessageResponse"];
+                };
+            };
+            /** @description The factor could not be removed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not authenticated — missing or invalid bearer token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Session has not passed MFA */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
             /** @description Failed to connect to Supabase */
