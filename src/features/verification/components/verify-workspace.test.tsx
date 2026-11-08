@@ -72,6 +72,7 @@ const result: ApiSchema<'DocumentVerificationResponse'> = {
   verified_at: '2026-07-20T12:00:00.000Z',
   message: 'Document content differs from the anchored hash.',
   metadata_status: 'NOT_ANCHORED',
+  analysis_status: 'MATCH',
   needs_restore: false,
   tamper_report_status: 'AVAILABLE',
   tamper_report: report,
@@ -84,6 +85,26 @@ afterEach(() => {
 });
 
 describe('VerifyWorkspace', () => {
+  it('shows altered analysis and its recorded and current values without a green result', () => {
+    render(<VerifyWorkspace result={{ ...result, status: 'AUTHENTIC', is_authentic: true, metadata_status: 'MATCH', analysis_status: 'ALTERED', analysis_changes: [{ field: 'insight.risk_flags', anchored: 'Missing signature', current: 'None' }] }} onRetry={vi.fn()} />);
+    const panel = screen.getByRole('region', { name: 'Verification results' });
+    expect(within(panel).getByRole('heading', { name: 'Analysis changed' })).toBeTruthy();
+    expect(within(panel).getByText('Missing signature')).toBeTruthy();
+    expect(within(panel).getByText('None')).toBeTruthy();
+    expect(panel.className).toContain('bg-red-50');
+  });
+
+  it.each([
+    ['MATCH', 'Analysis unchanged', 'bg-green-50'],
+    ['NOT_ANCHORED', 'No saved analysis record', 'bg-amber-50'],
+    ['UNAVAILABLE', 'Analysis could not be checked', 'bg-amber-50'],
+  ] as const)('shows analysis status %s without overstating the result', (analysis_status, heading, tone) => {
+    render(<VerifyWorkspace result={{ ...result, status: 'AUTHENTIC', is_authentic: true, metadata_status: 'MATCH', analysis_status }} onRetry={vi.fn()} />);
+    const panel = screen.getByRole('region', { name: 'Verification results' });
+    expect(within(panel).getByRole('heading', { name: heading })).toBeTruthy();
+    expect(panel.className).toContain(tone);
+  });
+
   it('combines matching PDF and record results without a second success banner', () => {
     render(<VerifyWorkspace result={{ ...result, status: 'AUTHENTIC', is_authentic: true, metadata_status: 'MATCH' }} onRetry={vi.fn()} />);
     const panel = screen.getByRole('region', { name: 'Verification results' });

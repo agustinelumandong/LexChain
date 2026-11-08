@@ -286,6 +286,7 @@ describe('Responsive and Accessible Document Workflows (#175)', () => {
       is_authentic: true,
       baseline_trusted: true,
       metadata_status: 'NOT_ANCHORED',
+      analysis_status: 'NOT_ANCHORED',
       needs_restore: false,
       onchain_hash: '0xabc1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcd',
       snapshot_hash: '0xabc1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcd',

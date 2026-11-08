@@ -230,7 +230,7 @@ export default function VerifyWorkspace({
   const fileNameChanged = result.metadata_status === 'ALTERED' && result.metadata_changes?.length === 1 && result.metadata_changes[0].field === 'file_name';
 
   return <section className="flex flex-col gap-5 md:min-h-0 md:flex-1">
-    <section aria-label="Verification results" className={`flex flex-wrap items-start gap-3 rounded-xl border-2 p-4 ${result.metadata_status === 'ALTERED' || (!authentic && !neutral) ? 'border-red-700 bg-red-50' : neutral || result.metadata_status !== 'MATCH' ? 'border-amber-700 bg-amber-50' : 'border-green-700 bg-green-50'}`}>
+    <section aria-label="Verification results" className={`flex flex-wrap items-start gap-3 rounded-xl border-2 p-4 ${result.metadata_status === 'ALTERED' || result.analysis_status === 'ALTERED' || (!authentic && !neutral) ? 'border-red-700 bg-red-50' : neutral || result.metadata_status !== 'MATCH' || result.analysis_status !== 'MATCH' ? 'border-amber-700 bg-amber-50' : 'border-green-700 bg-green-50'}`}>
       <div className="flex min-w-0 flex-1 items-start gap-2">
         {authentic && !untrustedSnapshot ? <CheckCircleIcon className="mt-0.5 shrink-0 text-[#166534]" sx={{ fontSize: 20 }} aria-hidden="true" /> : neutral ? <InfoOutlinedIcon className="mt-0.5 shrink-0 text-[#8A5B00]" sx={{ fontSize: 20 }} aria-hidden="true" /> : <ErrorOutlineIcon className="mt-0.5 shrink-0 text-[#B42318]" sx={{ fontSize: 20 }} aria-hidden="true" />}
         <div className="min-w-0">
@@ -268,6 +268,22 @@ export default function VerifyWorkspace({
         </dl>
       )}
       </div>
+      </div>
+    </section>
+    <section aria-label="Analysis integrity" className="basis-full border-t border-[#B9D6ED] pt-3">
+      <div className="flex items-start gap-2">
+        {result.analysis_status === 'MATCH' ? <CheckCircleIcon className="mt-0.5 shrink-0 text-[#166534]" sx={{ fontSize: 20 }} aria-hidden="true" /> : <InfoOutlinedIcon className="mt-0.5 shrink-0 text-[#8A5B00]" sx={{ fontSize: 20 }} aria-hidden="true" />}
+        <div className="min-w-0 flex-1">
+          <h3 className="text-base font-bold text-[#0C2B49]">{result.analysis_status === 'MATCH' ? 'Analysis unchanged' : result.analysis_status === 'ALTERED' ? 'Analysis changed' : result.analysis_status === 'NOT_ANCHORED' ? 'No saved analysis record' : 'Analysis could not be checked'}</h3>
+          {result.analysis_status !== 'MATCH' && result.analysis_status !== 'ALTERED' && result.analysis_status !== 'NOT_ANCHORED' && <p className="mt-1 text-sm text-[#344054]">This does not mean the analysis was changed.</p>}
+          {result.analysis_status === 'ALTERED' && result.analysis_changes && result.analysis_changes.length > 0 && <dl className="mt-3 space-y-3 text-sm">
+            {result.analysis_changes.map((change) => <div key={change.field} className="break-words">
+              <dt className="font-bold text-[#0C2B49]">{change.field.replaceAll('_', ' ')}</dt>
+              <dd className="mt-1 text-[#344054]">At finalization: <span className="font-semibold">{change.anchored ?? 'Not available'}</span></dd>
+              <dd className="text-[#344054]">Current: <span className="font-semibold">{change.current === null ? 'None' : change.current ?? 'Not available'}</span></dd>
+            </div>)}
+          </dl>}
+        </div>
       </div>
     </section>
     </section>

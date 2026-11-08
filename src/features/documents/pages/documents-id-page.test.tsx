@@ -173,7 +173,7 @@ beforeEach(() => {
   state.signedCopiesQuery = { data: { document_id: 'doc-1', copies: [] }, isLoading: false, isError: false };
   state.partiesQuery = { data: { document_id: 'doc-1', issuer: { id: 'owner-1', user_id: 'owner-1', email: 'lawyer@example.com', f_name: 'Jordan', l_name: 'Lawyer', role: 'owner', status: 'accepted', responded_at: null, created_at: '2026-10-20T00:00:00Z' }, parties: [] }, isLoading: false, isError: false };
   state.commentsQuery = { data: { document_id: 'doc-1', unresolved: 0, synced_at: null, comments: [] }, isLoading: false, isError: false };
-  state.integrityQuery = { data: { status: 'AUTHENTIC', is_authentic: true, metadata_status: 'MATCH', needs_restore: false }, isFetching: false, isError: false, refetch: vi.fn() };
+  state.integrityQuery = { data: { status: 'AUTHENTIC', is_authentic: true, metadata_status: 'MATCH', analysis_status: 'MATCH', needs_restore: false }, isFetching: false, isError: false, refetch: vi.fn() };
   state.queryClient.setQueryData.mockReset();
   state.queryClient.setQueryData.mockImplementation((queryKey, document) => {
     if (queryKey[0] === 'portal-doc') state.documentQuery = { ...state.documentQuery, data: document };

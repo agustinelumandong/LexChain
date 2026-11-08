@@ -18,6 +18,7 @@ const matchingRecord = {
   is_authentic: true,
   baseline_trusted: true,
   metadata_status: 'NOT_ANCHORED' as const,
+  analysis_status: 'NOT_ANCHORED' as const,
   needs_restore: false,
   onchain_hash: 'data-hash',
   snapshot_hash: 'data-hash',
