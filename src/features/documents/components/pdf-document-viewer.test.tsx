@@ -9,6 +9,7 @@ const pdfMocks = vi.hoisted(() => ({
   getDocument: vi.fn(),
   getPage: vi.fn(),
   render: vi.fn(),
+  getTextContent: vi.fn(),
   destroyLoadingTask: vi.fn(),
 }));
 
@@ -71,9 +72,11 @@ beforeEach(() => {
   vi.stubGlobal('devicePixelRatio', 2);
   vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue({} as CanvasRenderingContext2D);
   pdfMocks.render.mockReturnValue({ promise: Promise.resolve(), cancel: vi.fn() });
+  pdfMocks.getTextContent.mockResolvedValue({ items: [{ str: 'Accessible document text' }] });
   pdfMocks.getPage.mockResolvedValue({
     getViewport: ({ scale }: { scale: number }) => ({ width: 1000 * scale, height: 1400 * scale }),
     render: pdfMocks.render,
+    getTextContent: pdfMocks.getTextContent,
   });
   pdfMocks.getDocument.mockReturnValue({
     promise: Promise.resolve({
@@ -238,6 +241,55 @@ describe('PdfDocumentViewer', () => {
 
     expect(await screen.findByRole('button', { name: 'Select block 4' })).toBeTruthy();
     expect(screen.queryByLabelText('Non-editable block 4')).toBeNull();
+  });
+
+  it('exposes each continuous PDF page text to screen readers', async () => {
+    renderViewer({ continuous: true });
+    const firstPage = await screen.findByRole('group', { name: 'PDF page 1' });
+    await waitFor(() => expect(firstPage.textContent).toContain('Accessible document text'));
+  });
+
+  it('explains when a PDF page has no extractable text', async () => {
+    pdfMocks.getTextContent.mockResolvedValue({ items: [] });
+    renderViewer({ continuous: true });
+    expect((await screen.findAllByText(/No extractable text is available on this page/)).length).toBe(2);
+  });
+
+  it('reports when extracting text for a screen reader fails', async () => {
+    pdfMocks.getTextContent.mockRejectedValue(new Error('text extraction failed'));
+    renderViewer({ continuous: true });
+    expect((await screen.findAllByText('Text could not be extracted from this page for screen readers.')).length).toBe(2);
+  });
+
+  it('reports reaching the end only after all pages render and the user scrolls there', async () => {
+    const onReachedEnd = vi.fn();
+    renderViewer({ continuous: true, onReachedEnd });
+    const pages = screen.getByLabelText('PDF pages');
+    Object.defineProperties(pages, { clientHeight: { value: 500 }, scrollHeight: { value: 1500 }, scrollTop: { value: 0, writable: true } });
+    await waitFor(() => expect(pdfMocks.render).toHaveBeenCalledTimes(2));
+    expect(onReachedEnd).not.toHaveBeenCalled();
+    pages.scrollTop = 1000;
+    fireEvent.scroll(pages);
+    await waitFor(() => expect(onReachedEnd).toHaveBeenCalledTimes(1));
+  });
+
+  it('reports a fully rendered short PDF that fits without scrolling', async () => {
+    const onReachedEnd = vi.fn();
+    renderViewer({ continuous: true, onReachedEnd });
+    const pages = screen.getByLabelText('PDF pages');
+    Object.defineProperties(pages, { clientHeight: { value: 800 }, scrollHeight: { value: 600 } });
+    await waitFor(() => expect(onReachedEnd).toHaveBeenCalledTimes(1));
+  });
+
+  it('does not report the end when a page fails to render', async () => {
+    const onReachedEnd = vi.fn();
+    pdfMocks.render.mockImplementation(() => ({ promise: Promise.reject(new Error('render failed')), cancel: vi.fn() }));
+    renderViewer({ continuous: true, onReachedEnd });
+    const pages = screen.getByLabelText('PDF pages');
+    Object.defineProperties(pages, { clientHeight: { value: 800 }, scrollHeight: { value: 600 } });
+    expect(await screen.findAllByRole('alert')).toHaveLength(2);
+    fireEvent.scroll(pages);
+    expect(onReachedEnd).not.toHaveBeenCalled();
   });
 
   it('shows a source link when the PDF cannot load', async () => {

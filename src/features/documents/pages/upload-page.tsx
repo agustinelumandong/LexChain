@@ -20,6 +20,7 @@ import { canAccessPortalFeature, getPortalUiRole } from "@/features/access";
 import { PortalDropdown } from "@/features/portal/components";
 import { DocumentProcessingStatus } from '@/features/documents/components/document-processing-status';
 import { DocumentProgress } from '@/features/documents/components/document-progress';
+import { UploadPolicyNotice } from '@/features/documents/components/upload-policy-notice';
 import { Modal } from '@/features/admin/components/modal';
 import { Checkbox } from '@/shared/components/ui';
 import type { ApiSchema } from '@/shared/types/index';
@@ -248,6 +249,7 @@ export default function UploadPage({ embedded = false, onFiledDocument, onPendin
         <div>
           <h2 id="confirm-process-heading" className="font-black text-[#0C2B49]">Confirm and file signed document</h2>
           <p className="mt-1 text-sm text-[#5B6F8A]">Review the selected signed PDF, title, and book before filing it.</p>
+          <UploadPolicyNotice />
           {error && activeUploadError?.reason !== 'DUPLICATE_FILE' && <div role="alert" className="mt-3 rounded-xl bg-red-50 p-3 text-sm font-bold text-red-700"><p>{error}</p>{uploadSummaryErrors.map((validationError, index) => <p key={`${index}-${validationError.field ?? 'upload'}-${validationError.message}`} className="mt-1">{validationError.field ? `${validationError.field}: ` : ''}{validationError.message}</p>)}</div>}
         </div>
         {!requiresConfirmation && <button disabled={!file || !title.trim() || !bookId} onClick={submit} className="mt-4 shrink-0 rounded-full bg-[#0067B3] px-8 py-3 text-sm font-black text-white transition hover:bg-[#005F9E] disabled:opacity-40 sm:mt-0">Confirm and file</button>}

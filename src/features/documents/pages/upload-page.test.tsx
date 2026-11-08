@@ -82,6 +82,28 @@ afterEach(() => {
 });
 
 describe('signed document upload screen', () => {
+  it.each([false, true])('shows privacy and terms links before filing (embedded: %s)', async (embedded) => {
+    setupFetch([]);
+    renderPage({ embedded });
+    await screen.findByRole('button', { name: 'Confirm and file' });
+    expect(screen.getByRole('link', { name: 'Privacy Notice' }).getAttribute('href')).toBe('/privacy');
+    expect(screen.getByRole('link', { name: 'Terms of Use' }).getAttribute('href')).toBe('/terms');
+  });
+
+  it('opens the privacy notice in a scrollable dialog without leaving the upload', async () => {
+    Object.defineProperty(HTMLDialogElement.prototype, 'showModal', { configurable: true, value(this: HTMLDialogElement) { this.setAttribute('open', ''); } });
+    setupFetch([]);
+    renderPage();
+    await screen.findByRole('button', { name: 'Confirm and file' });
+    fireEvent.click(screen.getByRole('link', { name: 'Privacy Notice' }));
+    const dialog = screen.getByRole('dialog', { name: 'Privacy Notice' });
+    expect(within(dialog).getByText('Information we handle')).toBeTruthy();
+    expect(within(dialog).queryByRole('main')).toBeNull();
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Close' }));
+    expect(screen.queryByRole('dialog', { name: 'Privacy Notice' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Confirm and file' })).toBeTruthy();
+  });
+
   it('suggests a readable title from the PDF filename without overwriting an entered title', async () => {
     setupFetch([]);
     renderPage();

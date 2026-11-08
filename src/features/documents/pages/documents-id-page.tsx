@@ -1,7 +1,7 @@
 'use client';
 
 import { use, useEffect, useRef, useState, useSyncExternalStore } from 'react';
-import { useMutation, useQueries, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
@@ -16,7 +16,8 @@ import { PortalChatbot as PortalChatbot } from "@/features/portal/components";
 import { CopyableIdentifier, DocumentWorkspace, type Tab } from '@/features/documents/components/document-workspace';
 import { getDocumentActions, getDocumentLifecycleBadgeClasses, getDocumentLifecycleLabel, getDocumentProcessingBadgeClasses, getDocumentProcessingStatusLabel, isDocumentOnChain } from '@/features/documents/document-ui';
 import { renameDocument, finalizeDocument, markDocumentReady, reopenDocument, cancelDocument, signedCopyFileUrl } from '@/features/documents/document-lifecycle-api';
-import { getPortalUiRole } from "@/features/access";
+import { getPortalUiRole, listDocumentParties } from "@/features/access";
+import { listRegisterBooks } from '@/features/office/books-api';
 import { Modal } from '@/features/admin/components/modal';
 import { portalRequest } from '@/shared/api/client';
 import { PortalApiError } from '@/shared/api/portal-error';
@@ -82,8 +83,11 @@ export default function DocumentDetailPage({ params, initialTab }: { params: Pro
   const { open: documentActionsOpen, setOpen: setDocumentActionsOpen, ref: documentActionsRef } = usePopup();
   const [confirmingFinalize, setConfirmingFinalize] = useState(false);
   const finalizationDialogRef = useRef<HTMLDialogElement>(null);
-  const finalizationPdfButtonRef = useRef<HTMLButtonElement>(null);
-  const [reviewingFinalizationPdf, setReviewingFinalizationPdf] = useState(false);
+  const finalizationHeadingRef = useRef<HTMLHeadingElement>(null);
+  const finalizationTriggerRef = useRef<HTMLElement | null>(null);
+  const [finalizationStep, setFinalizationStep] = useState<1 | 2 | 3>(1);
+  const [reviewedCopyId, setReviewedCopyId] = useState<string | null>(null);
+  const [reviewedDetails, setReviewedDetails] = useState<string | null>(null);
   const [cancelConfirmationOpen, setCancelConfirmationOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<Tab>();
   const [finalizationResult, setFinalizationResult] = useState<ApiSchema<'RecordResponse'>>();
@@ -100,6 +104,9 @@ export default function DocumentDetailPage({ params, initialTab }: { params: Pro
       { queryKey: ['portal-profile'], queryFn: () => getJson<UserProfile | null>('/users/') },
     ],
   });
+
+  const finalizationBooks = useQuery({ queryKey: ['portal-books'], queryFn: listRegisterBooks, enabled: confirmingFinalize && Boolean(docQ.data?.book_id), retry: false });
+  const finalizationParties = useQuery({ queryKey: ['portal-document-parties', id], queryFn: () => listDocumentParties(id), enabled: confirmingFinalize, retry: false });
 
   function publishUpdatedDocument(updatedDocument: DocumentResponse) {
     queryClient.setQueryData(['portal-doc', id], updatedDocument);
@@ -224,7 +231,10 @@ export default function DocumentDetailPage({ params, initialTab }: { params: Pro
   });
 
   function openFinalizeConfirmation() {
-    setReviewingFinalizationPdf(false);
+    finalizationTriggerRef.current = window.document.activeElement instanceof HTMLElement ? window.document.activeElement : null;
+    setFinalizationStep(1);
+    setReviewedCopyId(null);
+    setReviewedDetails(null);
     finalizeMutation.reset();
     setFinalizationResult(undefined);
     setConfirmingFinalize(true);
@@ -240,10 +250,14 @@ export default function DocumentDetailPage({ params, initialTab }: { params: Pro
     if (!dialog) return;
     if (confirmingFinalize && !dialog.open) {
       dialog.showModal();
-      (finalizationPdfButtonRef.current ?? dialog).focus();
+      dialog.focus();
     }
-    else if (!confirmingFinalize && dialog.open) dialog.close();
+    else if (!confirmingFinalize && dialog.open) { dialog.close(); finalizationTriggerRef.current?.focus(); }
   }, [confirmingFinalize, docQ.data]);
+
+  useEffect(() => {
+    if (confirmingFinalize) finalizationHeadingRef.current?.focus();
+  }, [confirmingFinalize, finalizationStep]);
 
   if (docQ.isLoading) return <div role="status" aria-label="Loading document" className="h-40 animate-pulse rounded-[18px] border border-[#E8F0F8] bg-white" />;
   if (docQ.isError && (!docQ.data || !finalizationResult)) {
@@ -290,6 +304,9 @@ export default function DocumentDetailPage({ params, initialTab }: { params: Pro
   const document = docQ.data;
   const role = getPortalUiRole(profileQ.data?.role);
   const actions = getDocumentActions(role, document);
+  const finalizationBook = finalizationBooks.data?.find((book) => book.id === document.book_id);
+  const finalizationDetails = JSON.stringify([document.file_name, document.book_id, document.doc_no, document.page_no, document.signed_copy, finalizationBook, finalizationParties.data]);
+  const finalizationDetailsUnavailable = finalizationParties.isLoading || finalizationParties.isError || !finalizationParties.data || (Boolean(document.book_id) && (finalizationBooks.isLoading || finalizationBooks.isError || !finalizationBook));
 
   function requestRename() {
     setRenameName(document.file_name ?? '');
@@ -412,60 +429,47 @@ export default function DocumentDetailPage({ params, initialTab }: { params: Pro
         </details>
       </>}
 
-      <dialog ref={finalizationDialogRef} tabIndex={-1} aria-modal="true" aria-label="Confirm finalization" onCancel={(event) => { event.preventDefault(); if (!finalizeMutation.isPending) setConfirmingFinalize(false); }} className={`fixed inset-0 m-auto max-h-[90dvh] w-[calc(100%-2rem)] overflow-auto rounded-2xl bg-transparent p-0 backdrop:bg-[#0C2B49]/40 ${reviewingFinalizationPdf ? 'max-w-5xl' : 'max-w-xl'}`}>
-          {confirmingFinalize && reviewingFinalizationPdf && document.signed_copy ? (
-            <div className="flex h-[90dvh] w-full max-w-5xl flex-col rounded-2xl bg-white p-4 shadow-xl">
-              <div className="flex shrink-0 items-center justify-between gap-4 pb-3">
-                <h2 className="truncate text-lg font-bold text-[#0C2B49]">{document.signed_copy.original_filename ?? document.file_name}</h2>
-                <button type="button" autoFocus onClick={() => setReviewingFinalizationPdf(false)} className="min-h-11 shrink-0 rounded-full border border-[#D6E3F1] px-4 text-sm font-bold text-[#0C2B49] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]">Back to confirmation</button>
-              </div>
-              <div className="flex min-h-0 flex-1 flex-col">
-                <PdfDocumentViewer sourceUrl={signedCopyFileUrl(document.document_id, { copyId: document.signed_copy.id })} watermarkText="LEXCHAIN COPY" continuous currentPage={0} blocks={[]} selectedBlockIndex={null} hoveredBlockIndex={null} onPageChange={() => undefined} onSelectBlock={() => undefined} onHoverBlockChange={() => undefined} />
-              </div>
-            </div>
-          ) : <div className="w-full max-w-xl rounded-2xl border border-[#CFE7FC] bg-white p-6 shadow-[0_16px_40px_rgba(12,43,73,0.25)]">
-            <h2 className="text-lg font-black text-[#0C2B49]">Finalize this document?</h2>
-            <p className="mt-2 text-sm text-[#4B6382]">Review the signed document before finalizing.</p>
-            <div className="mt-4 rounded-xl border border-[#D7E4F2] bg-[#F8FBFF] p-3.5 text-sm">
-              <div className="min-w-0">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-[#4B6382]">Document</span>
-                <p className="mt-0.5 truncate font-bold text-[#0C2B49]">{document.file_name}</p>
-                {(document.doc_no != null || document.page_no != null) && <p className="mt-1 text-[#4B6382]">{[document.doc_no != null ? `Document ${document.doc_no}` : null, document.page_no != null ? `Page ${document.page_no}` : null].filter(Boolean).join(' · ')}</p>}
-              </div>
-              <div className="mt-2.5 min-w-0 border-t border-[#E8F0F8] pt-2.5">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-[#4B6382]">Signed filing copy</span>
-                <p className="mt-0.5 truncate font-semibold text-[#0C2B49]">
-                  {document.signed_copy?.original_filename ?? document.file_name ?? 'Current signed PDF'}
-                  {typeof document.signed_copy?.size_bytes === 'number'
-                    ? ` · ${(document.signed_copy.size_bytes / (1024 * 1024)).toFixed(1)} MB`
-                    : ''}
-                </p>
-                {document.signed_copy?.created_at && !Number.isNaN(Date.parse(document.signed_copy.created_at)) && <p className="mt-1 text-[#4B6382]">Attached <time dateTime={document.signed_copy.created_at}>{new Date(document.signed_copy.created_at).toISOString().slice(0, 10)} UTC</time></p>}
-                {document.signed_copy && <button ref={finalizationPdfButtonRef} type="button" disabled={finalizeMutation.isPending} onClick={() => setReviewingFinalizationPdf(true)} className="mt-2 inline-flex min-h-10 items-center text-sm font-bold text-[#0067B3] underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3] disabled:opacity-60">Open PDF</button>}
-                {document.signed_copy?.sha256 && (
-                  <p className="mt-1 font-mono text-xs text-[#5B6F8A] break-all">
-                    SHA-256: {document.signed_copy.sha256}
-                  </p>
-                )}
-              </div>
-            </div>
-            <div className="mt-3 space-y-1.5 text-sm leading-6 text-[#4B6382]">
+      <dialog ref={finalizationDialogRef} tabIndex={-1} aria-modal="true" aria-label="Confirm finalization" onCancel={(event) => { event.preventDefault(); if (!finalizeMutation.isPending) setConfirmingFinalize(false); }} className={`fixed inset-0 m-auto max-h-[90dvh] w-[calc(100%-2rem)] overflow-hidden rounded-2xl bg-transparent p-0 backdrop:bg-[#0C2B49]/40 ${finalizationStep === 1 ? 'max-w-5xl' : finalizationStep === 2 ? 'max-w-3xl' : 'max-w-xl'}`}>
+        {confirmingFinalize && <div className={`flex max-h-[90dvh] w-full flex-col rounded-2xl bg-white p-4 shadow-xl sm:p-6 ${finalizationStep === 1 ? 'h-[90dvh]' : ''}`}>
+          <header className="shrink-0 pb-3">
+            <p className="text-xs font-bold uppercase tracking-wide text-[#4B6382]">Step {finalizationStep} of 3</p>
+            <h2 ref={finalizationHeadingRef} tabIndex={-1} className="mt-1 text-lg font-black text-[#0C2B49]">{finalizationStep === 1 ? 'Review the signed PDF' : finalizationStep === 2 ? 'Check document details' : 'Confirm finalization'}</h2>
+            {finalizationStep === 1 && <p className="mt-1 text-sm text-[#4B6382]">Scroll through the entire signed PDF before continuing.</p>}
+          </header>
+          <div className="min-h-0 flex-1 overflow-y-auto">
+            {finalizationStep === 1 && (document.signed_copy ? <div className="flex h-full min-h-0 flex-col">
+              <PdfDocumentViewer key={document.signed_copy.id} sourceUrl={signedCopyFileUrl(document.document_id, { copyId: document.signed_copy.id })} watermarkText="LEXCHAIN COPY" continuous currentPage={0} blocks={[]} selectedBlockIndex={null} hoveredBlockIndex={null} onPageChange={() => undefined} onSelectBlock={() => undefined} onHoverBlockChange={() => undefined} onReachedEnd={() => setReviewedCopyId(document.signed_copy?.id ?? null)} />
+            </div> : <p role="alert" className="text-sm text-[#B42318]">The signed PDF is unavailable. Attach a signed PDF before finalizing.</p>)}
+            {finalizationStep === 2 && <div className="space-y-4 text-sm text-[#0C2B49]">
+              <p>Check these details before finalizing. Go back and correct the document if anything is wrong.</p>
+              <dl className="grid gap-4 rounded-xl border border-[#D7E4F2] bg-[#F8FBFF] p-4 sm:grid-cols-2">
+                <div><dt className="font-bold text-[#4B6382]">Document</dt><dd className="mt-1 break-words">{document.file_name}</dd></div>
+                <div><dt className="font-bold text-[#4B6382]">Signed PDF</dt><dd className="mt-1 break-words">{document.signed_copy?.original_filename ?? document.file_name}{typeof document.signed_copy?.size_bytes === 'number' ? ` · ${(document.signed_copy.size_bytes / (1024 * 1024)).toFixed(1)} MB` : ''}</dd></div>
+                <div><dt className="font-bold text-[#4B6382]">Register book</dt><dd className="mt-1">{!document.book_id ? 'Not assigned' : finalizationBooks.isLoading ? 'Loading…' : finalizationBooks.isError ? 'Unable to load book' : finalizationBook ? `Book ${finalizationBook.book_number} · Series ${finalizationBook.series_year}` : 'Book unavailable'}</dd></div>
+                <div><dt className="font-bold text-[#4B6382]">Register entry</dt><dd className="mt-1">{document.doc_no != null ? `Document ${document.doc_no}` : 'Document number unavailable'} · {document.page_no != null ? `Page ${document.page_no}` : 'Page number unavailable'}</dd></div>
+                <div><dt className="font-bold text-[#4B6382]">Created</dt><dd className="mt-1">{!Number.isNaN(Date.parse(document.created_at)) ? `${new Date(document.created_at).toISOString().slice(0, 10)} UTC` : 'Unavailable'}</dd></div>
+                <div><dt className="font-bold text-[#4B6382]">Attached</dt><dd className="mt-1">{document.signed_copy?.created_at && !Number.isNaN(Date.parse(document.signed_copy.created_at)) ? `${new Date(document.signed_copy.created_at).toISOString().slice(0, 10)} UTC` : 'Unavailable'}</dd></div>
+                <div><dt className="font-bold text-[#4B6382]">Participants</dt><dd className="mt-1">{finalizationParties.isLoading ? 'Loading…' : finalizationParties.isError || !finalizationParties.data ? 'Unavailable' : [finalizationParties.data.issuer, ...(finalizationParties.data.parties ?? [])].map((party) => `${[party.f_name, party.l_name].filter(Boolean).join(' ') || party.email} (${party.role}, ${party.status})`).join(', ')}</dd></div>
+                {document.signed_copy?.sha256 && <div className="sm:col-span-2"><dt className="font-bold text-[#4B6382]">Signed PDF fingerprint</dt><dd className="mt-1 break-all font-mono text-xs">SHA-256: {document.signed_copy.sha256}</dd></div>}
+              </dl>
+              {(finalizationParties.isError || (document.book_id && (finalizationBooks.isError || (!finalizationBooks.isLoading && !finalizationBook)))) && <div role="alert" className="text-sm text-[#B42318]">Unable to load all document details. <button type="button" onClick={() => { if (finalizationParties.isError) void finalizationParties.refetch(); if (document.book_id) void finalizationBooks.refetch(); }} className="font-bold underline">Retry</button></div>}
+            </div>}
+            {finalizationStep === 3 && <div className="space-y-3 text-sm leading-6 text-[#4B6382]">
+              <p>Are the signed PDF and document details correct?</p>
+              <p>The frozen filing copy cannot be replaced or removed after finalization.</p>
               {mockMode && <p>Demo mode: this action uses synthetic data. No real PDF digest or blockchain transaction will be produced.</p>}
-              <p className="text-xs leading-5 text-[#5B6F8A]">The frozen filing copy cannot be replaced or removed after finalization.</p>
-            </div>
-            {finalizeMutation.isPending && (
-              <div role="status" className="mt-3 rounded-xl border border-[#CFE7FC] bg-[#F0F7FE] p-3 text-sm font-semibold text-[#0067B3]">
-                <p>{mockMode ? 'Completing demo finalization…' : 'Waiting for blockchain confirmation…'}</p>
-                <p className="mt-0.5 text-xs font-normal text-[#4B6382]">Please keep this window open while the transaction is recorded.</p>
-                <div role="progressbar" aria-label="Finalization in progress" className="mt-3 h-1.5 overflow-hidden rounded-full bg-[#CFE7FC]"><div className="document-processing-indeterminate h-full w-2/5 rounded-full bg-[#0067B3] motion-reduce:animate-none" /></div>
-              </div>
-            )}
+            </div>}
+            {finalizeMutation.isPending && <div role="status" className="mt-3 rounded-xl border border-[#CFE7FC] bg-[#F0F7FE] p-3 text-sm font-semibold text-[#0067B3]"><p>{mockMode ? 'Completing demo finalization…' : 'Waiting for blockchain confirmation…'}</p><p className="mt-0.5 text-xs font-normal text-[#4B6382]">Please keep this window open while the transaction is recorded.</p><div role="progressbar" aria-label="Finalization in progress" className="mt-3 h-1.5 overflow-hidden rounded-full bg-[#CFE7FC]"><div className="document-processing-indeterminate h-full w-2/5 rounded-full bg-[#0067B3] motion-reduce:animate-none" /></div></div>}
             {finalizeMutation.error instanceof Error && <p role="alert" className="mt-3 rounded-xl bg-red-50 p-3 text-sm font-bold text-[#B42318]">{finalizeMutation.error.message}</p>}
-            <div className="mt-5 flex flex-wrap justify-end gap-2">
-              <button type="button" onClick={() => setConfirmingFinalize(false)} disabled={finalizeMutation.isPending} className="rounded-full border border-[#D6E3F1] px-4 py-2 text-sm font-bold text-[#0C2B49] hover:bg-[#F4F8FC] disabled:opacity-60">Cancel</button>
-              <button type="button" onClick={() => finalizeMutation.mutate()} disabled={finalizeMutation.isPending} className="rounded-full bg-[#0673C4] px-4 py-2 text-sm font-bold text-white hover:bg-[#005FA3] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3] disabled:opacity-60">{finalizeMutation.isPending ? 'Finalizing…' : 'Confirm finalization'}</button>
-            </div>
-          </div>}
+            {finalizationStep === 3 && reviewedDetails !== finalizationDetails && <p role="alert" className="mt-3 text-sm font-bold text-[#B42318]">Document details changed. Go back and review them again.</p>}
+            {finalizationStep > 1 && reviewedCopyId !== document.signed_copy?.id && <p role="alert" className="mt-3 text-sm font-bold text-[#B42318]">The signed PDF changed. Go back and review the current copy.</p>}
+          </div>
+          <footer className="flex shrink-0 flex-wrap justify-end gap-2 pt-4">
+            <button type="button" onClick={() => setConfirmingFinalize(false)} disabled={finalizeMutation.isPending} className="min-h-11 rounded-full border border-[#D6E3F1] px-4 text-sm font-bold text-[#0C2B49] disabled:opacity-60">Cancel</button>
+            {finalizationStep > 1 && <button type="button" onClick={() => setFinalizationStep(finalizationStep === 3 ? 2 : 1)} disabled={finalizeMutation.isPending} className="min-h-11 rounded-full border border-[#D6E3F1] px-4 text-sm font-bold text-[#0C2B49] disabled:opacity-60">Back</button>}
+            {finalizationStep < 3 ? <button type="button" onClick={() => { if (finalizationStep === 2) setReviewedDetails(finalizationDetails); setFinalizationStep(finalizationStep === 1 ? 2 : 3); }} disabled={!document.signed_copy || reviewedCopyId !== document.signed_copy.id || (finalizationStep === 2 && finalizationDetailsUnavailable)} className="min-h-11 rounded-full bg-[#0673C4] px-5 text-sm font-bold text-white disabled:opacity-50">Next</button> : <button type="button" onClick={() => finalizeMutation.mutate()} disabled={finalizeMutation.isPending || !document.signed_copy || reviewedCopyId !== document.signed_copy.id || finalizationDetailsUnavailable || reviewedDetails !== finalizationDetails} className="min-h-11 rounded-full bg-[#0673C4] px-5 text-sm font-bold text-white disabled:opacity-50">{finalizeMutation.isPending ? 'Finalizing…' : 'Confirm finalization'}</button>}
+          </footer>
+        </div>}
       </dialog>
 
       <DocumentWorkspace

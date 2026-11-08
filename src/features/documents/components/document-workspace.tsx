@@ -36,6 +36,7 @@ import { getBaseSepoliaTransactionUrl } from '@/features/verification/integrity-
 import { isMockMode } from '@/lib/mocks/mode';
 import { GoogleDraftPanel } from '@/features/documents/components/google-draft-panel';
 import { DocumentProgress } from '@/features/documents/components/document-progress';
+import { UploadPolicyNotice } from '@/features/documents/components/upload-policy-notice';
 import { listDocumentParties, type PortalUiRole } from '@/features/access';
 import { DocumentEcopyRequestHistory } from '@/features/access/components/document-ecopy-request-history';
 import { listRegisterBooks } from '@/features/office/books-api';
@@ -1132,6 +1133,7 @@ export function DocumentWorkspace({
       </label>
     </div>
     {activeSignedCopyMode === 'replace' && <label className="flex flex-col gap-1.5 text-sm font-bold text-[#0C2B49]">Replacement reason<textarea aria-label="Replacement reason" required value={replacementReason} disabled={signedCopyMutation.isPending} onChange={(event) => setReplacementReason(event.target.value)} className="rounded-xl border border-[#D7E4F2] px-3 py-2.5 text-sm font-medium outline-none focus:border-[#0067B3] disabled:bg-[#F8FBFF]" /></label>}
+    <UploadPolicyNotice />
     {signedCopyError && <p role="alert" className="text-sm font-bold text-[#B42318]">{signedCopyError}</p>}
     {signedCopyMutation.isError && <p role="alert" className="text-sm font-bold text-[#B42318]">{signedCopyMutation.error instanceof Error ? signedCopyMutation.error.message : 'Upload failed.'} Your selected file and {activeSignedCopyMode === 'attach' ? 'filing details' : 'replacement reason'} have been kept. Review the error and retry.</p>}
     <div className="flex flex-wrap gap-2">
@@ -1169,6 +1171,7 @@ export function DocumentWorkspace({
       : 'Your lawyer is arranging signatures outside LexChain and will add the signed PDF to this same record.';
   const nextStepPanel = document.lifecycle === 'READY_FOR_SIGNATURE' ? (
     <section aria-labelledby="next-step-heading" className="rounded-[18px] border border-[#E8F0F8] bg-white p-5 sm:p-6 shadow-sm">
+      {isInlineAttach && <UploadPolicyNotice />}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <CheckCircleOutlineIcon aria-hidden="true" sx={{ fontSize: 20, color: '#0067B3' }} />

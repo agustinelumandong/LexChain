@@ -172,6 +172,33 @@ describe('DocumentWorkspace', () => {
     expect(screen.queryByRole('tablist')).toBeNull();
     expect(screen.getByRole('heading', { name: 'Working draft' })).toBeTruthy();
   });
+  it('shows privacy and terms links when attaching or replacing a signed PDF', () => {
+    const { unmount } = renderWorkspace({ role: 'lawyer', document: { ...document, lifecycle: 'READY_FOR_SIGNATURE', permissions: { ...document.permissions, can_attach_signed_copy: true } } });
+    expect(screen.getByRole('link', { name: 'Privacy Notice' }).getAttribute('href')).toBe('/privacy');
+    expect(screen.getByRole('link', { name: 'Terms of Use' }).getAttribute('href')).toBe('/terms');
+    unmount();
+    renderWorkspace({ role: 'lawyer', document: { ...document, lifecycle: 'SIGNED', permissions: { ...document.permissions, can_replace_signed_copy: true } } });
+    fireEvent.click(screen.getByRole('button', { name: 'Replace signed PDF' }));
+    const dialog = screen.getByRole('dialog', { name: 'Replace signed PDF' });
+    expect(within(dialog).getByRole('link', { name: 'Privacy Notice' }).getAttribute('href')).toBe('/privacy');
+    expect(within(dialog).getByRole('link', { name: 'Terms of Use' }).getAttribute('href')).toBe('/terms');
+  });
+
+  it('keeps the replacement dialog open when closing its terms dialog', () => {
+    Object.defineProperty(HTMLDialogElement.prototype, 'showModal', { configurable: true, value(this: HTMLDialogElement) { this.setAttribute('open', ''); } });
+    renderWorkspace({ role: 'lawyer', document: { ...document, lifecycle: 'SIGNED', permissions: { ...document.permissions, can_replace_signed_copy: true } } });
+    fireEvent.click(screen.getByRole('button', { name: 'Replace signed PDF' }));
+    const replacement = screen.getByRole('dialog', { name: 'Replace signed PDF' });
+    fireEvent.click(within(replacement).getByRole('link', { name: 'Terms of Use' }));
+    const terms = screen.getByRole('dialog', { name: 'Terms of Use' });
+    expect(within(terms).getByText('Documents and access')).toBeTruthy();
+    expect(within(terms).queryByRole('main')).toBeNull();
+    fireEvent.keyDown(terms, { key: 'Escape' });
+    fireEvent(terms, new Event('cancel', { bubbles: false, cancelable: true }));
+    expect(screen.queryByRole('dialog', { name: 'Terms of Use' })).toBeNull();
+    expect(screen.getByRole('dialog', { name: 'Replace signed PDF' })).toBeTruthy();
+  });
+
   it('keeps signed PDF replacement accessible without tabs', () => {
     renderWorkspace({ role: 'lawyer', document: { ...document, lifecycle: 'SIGNED', permissions: { ...document.permissions, can_replace_signed_copy: true } } });
     expect(screen.queryByRole('tablist')).toBeNull();

@@ -6,7 +6,7 @@ import ZoomInOutlinedIcon from '@mui/icons-material/ZoomInOutlined';
 import ZoomOutOutlinedIcon from '@mui/icons-material/ZoomOutOutlined';
 import type { ApiSchema } from '@/shared/types/index';
 import type { PDFDocumentLoadingTask, PDFDocumentProxy, PDFPageProxy, RenderTask } from 'pdfjs-dist';
-import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
+import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
 import type { CSSProperties } from 'react';
 
 export type PdfDocumentViewerProps = {
@@ -23,6 +23,7 @@ export type PdfDocumentViewerProps = {
   onSelectBlock: (blockIndex: number) => void;
   onHoverBlockChange: (blockIndex: number | null) => void;
   onLoadChange?: (loading: boolean) => void;
+  onReachedEnd?: () => void;
 };
 
 const DEFAULT_ZOOM = 0.85;
@@ -37,6 +38,7 @@ function ContinuousPdfPage({
   zoom,
   watermarkText,
   scrollRootRef,
+  onPageRender,
 }: {
   pdf: PDFDocumentProxy;
   pageNumber: number;
@@ -44,6 +46,7 @@ function ContinuousPdfPage({
   zoom: number;
   watermarkText?: string;
   scrollRootRef: { current: HTMLDivElement | null };
+  onPageRender: (pdf: PDFDocumentProxy, pageNumber: number, success: boolean) => void;
 }) {
   const pageContainerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -53,6 +56,7 @@ function ContinuousPdfPage({
     width: number;
     height: number;
   } | null>(null);
+  const [pageText, setPageText] = useState<string | null | undefined>(undefined);
   const [nearViewport, setNearViewport] = useState(false);
   const [pageLoadFailed, setPageLoadFailed] = useState(false);
   const [failedRenderKey, setFailedRenderKey] = useState<string | null>(null);
@@ -66,14 +70,17 @@ function ContinuousPdfPage({
       if (disposed) return;
       const viewport = loadedPage.getViewport({ scale: 1 });
       setPageResult({ pdf, page: loadedPage, width: viewport.width, height: viewport.height });
+      void loadedPage.getTextContent().then((content) => {
+        if (!disposed) setPageText(content.items.map((item) => 'str' in item ? `${item.str}${item.hasEOL ? '\n' : ' '}` : '').join('').trim());
+      }).catch(() => { if (!disposed) setPageText(null); });
     }).catch(() => {
-      if (!disposed) setPageLoadFailed(true);
+      if (!disposed) { setPageLoadFailed(true); onPageRender(pdf, pageNumber, false); }
     });
 
     return () => {
       disposed = true;
     };
-  }, [pageNumber, pdf]);
+  }, [pageNumber, pdf, onPageRender]);
 
   useEffect(() => {
     const pageContainer = pageContainerRef.current;
@@ -114,8 +121,9 @@ function ContinuousPdfPage({
           transform: outputScale === 1 ? undefined : [outputScale, 0, 0, outputScale, 0, 0],
         });
         await renderTask.promise;
+        if (!disposed) onPageRender(pdf, pageNumber, true);
       } catch {
-        if (!disposed) setFailedRenderKey(renderKey);
+        if (!disposed) { setFailedRenderKey(renderKey); onPageRender(pdf, pageNumber, false); }
       }
     })();
 
@@ -123,7 +131,7 @@ function ContinuousPdfPage({
       disposed = true;
       renderTask?.cancel();
     };
-  }, [availableWidth, nearViewport, page, renderKey, zoom]);
+  }, [availableWidth, nearViewport, page, renderKey, zoom, onPageRender, pdf, pageNumber]);
 
   return (
     <div
@@ -141,8 +149,9 @@ function ContinuousPdfPage({
       ) : failedRenderKey === renderKey ? (
         <p role="alert" className="p-4 text-sm text-[#B42318]">Page {pageNumber} could not be rendered.</p>
       ) : nearViewport ? (
-        <canvas ref={canvasRef} className="block" />
+        <canvas ref={canvasRef} aria-hidden="true" className="block" />
       ) : null}
+      {pageText ? <p className="sr-only whitespace-pre-wrap">{pageText}</p> : pageText === '' ? <p className="p-2 text-sm text-[#4B6382]">No extractable text is available on this page. Scanned images cannot be read by a screen reader.</p> : pageText === null ? <p className="p-2 text-sm text-[#B42318]">Text could not be extracted from this page for screen readers.</p> : null}
       {watermarkText && nearViewport && !pageLoadFailed && failedRenderKey !== renderKey && <div aria-hidden="true" className="pointer-events-none absolute inset-0 grid place-items-center overflow-hidden">
         <span className="select-none -rotate-[35deg] whitespace-nowrap text-[clamp(1.75rem,7vw,4.5rem)] font-black tracking-[0.12em] text-[#0C2B49]/15">{watermarkText}</span>
       </div>}
@@ -190,6 +199,7 @@ export default function PdfDocumentViewer({
   onSelectBlock,
   onHoverBlockChange,
   onLoadChange,
+  onReachedEnd,
 }: PdfDocumentViewerProps) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -210,6 +220,26 @@ export default function PdfDocumentViewer({
   const renderFailed = loadResult.sourceUrl === sourceUrl && loadResult.failed
     || failedRenderKey === renderKey;
   const canPan = !continuous && zoom > DEFAULT_ZOOM;
+  const [renderedPages, setRenderedPages] = useState<{ pdf: PDFDocumentProxy; pages: Set<number> } | null>(null);
+  const reportedEnd = useRef<PDFDocumentProxy | null>(null);
+  const recordPageRender = useCallback((renderedPdf: PDFDocumentProxy, pageNumber: number, success: boolean) => {
+    setRenderedPages((previous) => {
+      const pages = previous?.pdf === renderedPdf ? new Set(previous.pages) : new Set<number>();
+      if (pages.has(pageNumber) === success) return previous?.pdf === renderedPdf ? previous : { pdf: renderedPdf, pages };
+      if (success) pages.add(pageNumber); else pages.delete(pageNumber);
+      return { pdf: renderedPdf, pages };
+    });
+  }, []);
+  const checkReachedEnd = useCallback(() => {
+    const wrapper = wrapperRef.current;
+    if (!continuous || !onReachedEnd || !pdf || reportedEnd.current === pdf || renderedPages?.pdf !== pdf || renderedPages.pages.size !== pdf.numPages || !wrapper || wrapper.clientHeight <= 0 || wrapper.scrollHeight <= 0) return;
+    if (wrapper.scrollTop + wrapper.clientHeight >= wrapper.scrollHeight - 1) {
+      reportedEnd.current = pdf;
+      onReachedEnd();
+    }
+  }, [continuous, onReachedEnd, pdf, renderedPages]);
+  useEffect(() => { checkReachedEnd(); }, [checkReachedEnd]);
+
 
   function startPan(event: ReactPointerEvent<HTMLDivElement>) {
     if (!canPan || event.pointerType === 'touch' || event.button !== 0) return;
@@ -398,6 +428,8 @@ export default function PdfDocumentViewer({
           <div
             ref={wrapperRef}
             aria-label="PDF pages"
+            tabIndex={0}
+            onScroll={checkReachedEnd}
             aria-hidden={renderFailed || undefined}
             className={`pdf-scroll-area min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain ${renderFailed ? 'hidden' : ''}`}
           >
@@ -412,6 +444,7 @@ export default function PdfDocumentViewer({
                     zoom={zoom}
                     watermarkText={watermarkText}
                     scrollRootRef={wrapperRef}
+                    onPageRender={recordPageRender}
                   />
                 ))}
               </div>
