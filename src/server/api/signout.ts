@@ -3,10 +3,10 @@ import { getApiBaseUrl } from "@/config/api";
 import { isMockMode } from "@/lib/mocks/mode";
 import { backendUrl } from "@/server/api/backend";
 
-const sessionCookies = ["portal_token", "issuer_token", "admin_token", "user_role"] as const;
+const sessionCookies = ["portal_token", "issuer_token", "admin_token", "user_role", "mfa_token", "mfa_remember"] as const;
 
 export async function signOut(request?: NextRequest) {
-  const token = ["issuer_token", "portal_token", "admin_token"]
+  const token = ["issuer_token", "portal_token", "admin_token", "mfa_token"]
     .map((name) => request?.cookies.get(name)?.value)
     .find(Boolean);
 
