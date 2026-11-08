@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import { Modal } from '@/features/admin/components/modal';
 import { portalFetch, portalRequest } from '@/shared/api/client';
@@ -10,6 +11,7 @@ import { EmptyState } from '@/shared/components/ui';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutlined';
 import AssessmentOutlinedIcon from '@mui/icons-material/AssessmentOutlined';
 import RefreshIcon from '@mui/icons-material/Refresh';
+import RestoreIcon from '@mui/icons-material/Restore';
 
 type Reports = ApiSchema<'TamperReportListResponse'>;
 type RestoreResult = ApiSchema<'RestoreAllResponse'>;
@@ -20,7 +22,7 @@ function recoveryMessage(item: RecoverResult) {
   return `${item.file_name || item.document_id}: Document recovered. ${file}`;
 }
 
-export function TamperReports({ generateRequest = 0 }: { generateRequest?: number }) {
+export function TamperReports({ generateRequest = 0, actionTarget }: { generateRequest?: number; actionTarget?: HTMLElement | null }) {
   const [reports, setReports] = useState<Reports | null>(null);
   const [result, setResult] = useState<RestoreResult | null>(null);
   const [error, setError] = useState('');
@@ -105,7 +107,10 @@ export function TamperReports({ generateRequest = 0 }: { generateRequest?: numbe
     }
   }
 
+  const restoreButton = !loading && !!reports?.reports?.length && <button type="button" disabled={restoring} onClick={() => setConfirming(true)} className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#0067B3] px-5 py-3 text-sm font-black text-white transition hover:bg-[#005F9E] disabled:opacity-60"><RestoreIcon fontSize="small" aria-hidden="true" />Restore all</button>;
+
   return <section aria-label="Open integrity reports" className="overflow-hidden rounded-2xl border border-[#E4EEF9] bg-white shadow-sm shadow-[#DDEAF7]/35">
+    {actionTarget ? createPortal(restoreButton, actionTarget) : restoreButton}
     <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[#E4EEF9] bg-[#FBFDFF] p-5 sm:p-6">
       <div className="flex items-start gap-3">
         <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-[#EAF4FF] text-[#0067B3]"><AssessmentOutlinedIcon fontSize="small" aria-hidden="true" /></span>
@@ -128,7 +133,6 @@ export function TamperReports({ generateRequest = 0 }: { generateRequest?: numbe
     </div>}
     {!loading && reports && <div className="space-y-3 p-5 sm:p-6">
       {reports.reports?.length ? <>
-        <button type="button" disabled={loading || restoring} onClick={() => setConfirming(true)} className="rounded-xl bg-[#0067B3] px-5 py-2.5 text-sm font-black text-white transition hover:bg-[#005F9E] disabled:opacity-60">Restore all</button>
         <ul className="space-y-3">{reports.reports.map((report) => {
           const path = googleDraftReturnPath(report.document_id);
           return <li key={report.document_id} className="rounded-xl border border-[#E4EEF9] p-3 text-sm">

@@ -7,6 +7,16 @@ import { portalFetch, portalRequest } from '@/shared/api/client';
 vi.mock('@/shared/api/client', () => ({ portalFetch: vi.fn(), portalRequest: vi.fn() }));
 afterEach(() => { cleanup(); vi.resetAllMocks(); });
 
+it('places the restore action in the supplied header after reports load', async () => {
+  vi.mocked(portalFetch).mockResolvedValue({ total: 1, reports: [{ document_id: 'doc-1', status: 'TAMPERED', restorable: true }] });
+  const target = document.createElement('div');
+  document.body.appendChild(target);
+  render(<TamperReports generateRequest={1} actionTarget={target} />);
+  await screen.findByRole('button', { name: 'Restore all' });
+  expect(within(target).getByRole('button', { name: 'Restore all' })).toBeTruthy();
+  target.remove();
+});
+
 it('loads again when a new report is generated', async () => {
   vi.mocked(portalFetch).mockResolvedValue({ total: 0, reports: [] });
   const { rerender } = render(<TamperReports generateRequest={1} />);
