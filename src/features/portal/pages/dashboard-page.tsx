@@ -232,7 +232,7 @@ function DocumentLink({ document }: { document: Document }) {
           </span>
         )}
       </div>
-      <p className="mt-1 text-[11px] font-bold text-[#5B6F8A]">{formatDate(document.created_at)}</p>
+      <p className="mt-1 text-xs font-bold text-[#5B6F8A]">{formatDate(document.created_at)}</p>
     </div>
     <ChevronRightIcon sx={{ fontSize: 20, color: '#5B6F8A' }} />
   </Link>;

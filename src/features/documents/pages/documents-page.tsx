@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { FilterDetails } from '@/shared/components/ui/filter-details';
 import Link from 'next/link';
 import dayjs from 'dayjs';
@@ -24,6 +25,7 @@ import TaskAltOutlinedIcon from '@mui/icons-material/TaskAltOutlined';
 import {
   getDocumentLifecycles,
   getVisibleDocuments,
+  getVisiblePageNumbers,
   type DocumentListItem,
   type DocumentListFilters,
 } from '@/features/documents/document-library';
@@ -69,6 +71,20 @@ function documentsErrorMessage(error: unknown) {
   return status === 401 || status === 403
     ? 'You do not have permission to view these documents.'
     : error instanceof PortalApiError ? error.message : 'Unable to load documents.';
+}
+
+const DEFAULT_PAGE_SIZE = '10';
+const PAGE_SIZES = ['5', DEFAULT_PAGE_SIZE, '20'];
+const DOCUMENT_SORTS: Array<DocumentListFilters['sort']> = ['newest', 'oldest', 'title'];
+
+function readDateParam(params: URLSearchParams, key: string) {
+  const value = params.get(key) ?? '';
+  return /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : '';
+}
+
+function readPageParam(params: URLSearchParams) {
+  const page = Number(params.get('page'));
+  return Number.isInteger(page) && page > 1 ? page - 1 : 0;
 }
 
 function cn(...classes: Array<string | false | undefined>) {
@@ -253,13 +269,28 @@ function StatusDistribution({ docs }: { docs: Document[] }) {
 }
 
 export default function DocumentsPage() {
-  const [search, setSearch] = useState('');
-  const [lifecycle, setLifecycle] = useState('all');
-  const [sort, setSort] = useState<DocumentListFilters['sort']>('newest');
-  const [createdFrom, setCreatedFrom] = useState('');
-  const [createdThrough, setCreatedThrough] = useState('');
-  const [page, setPage] = useState(0);
-  const [pageSize, setPageSize] = useState("10");
+  const searchParams = useSearchParams();
+  const [search, setSearch] = useState(searchParams.get('q') ?? '');
+  const [lifecycle, setLifecycle] = useState(searchParams.get('lifecycle') ?? 'all');
+  const [sort, setSort] = useState<DocumentListFilters['sort']>(DOCUMENT_SORTS.find((value) => value === searchParams.get('sort')) ?? 'newest');
+  const [createdFrom, setCreatedFrom] = useState(readDateParam(searchParams, 'from'));
+  const [createdThrough, setCreatedThrough] = useState(readDateParam(searchParams, 'through'));
+  const [page, setPage] = useState(readPageParam(searchParams));
+  const [pageSize, setPageSize] = useState(PAGE_SIZES.find((value) => value === searchParams.get('size')) ?? DEFAULT_PAGE_SIZE);
+
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (search) params.set('q', search);
+    if (lifecycle !== 'all') params.set('lifecycle', lifecycle);
+    if (sort !== 'newest') params.set('sort', sort);
+    if (createdFrom) params.set('from', createdFrom);
+    if (createdThrough) params.set('through', createdThrough);
+    if (page > 0) params.set('page', String(page + 1));
+    if (pageSize !== DEFAULT_PAGE_SIZE) params.set('size', pageSize);
+    const query = params.toString();
+    window.history.replaceState(null, '', `${window.location.pathname}${query ? `?${query}` : ''}`);
+  }, [search, lifecycle, sort, createdFrom, createdThrough, page, pageSize]);
+
   const documentsQuery = useQuery<Document[]>({ queryKey: ['portal-documents'], queryFn: fetchDocuments });
   const profileQuery = useQuery<UserProfile | null>({
     queryKey: ['portal-profile'],
@@ -321,7 +352,7 @@ export default function DocumentsPage() {
                   <label className="flex min-w-0 flex-1 items-center gap-2 rounded-xl border border-[#B8C9D9] bg-white px-4 py-2.5 focus-within:border-[#0067B3] sm:min-w-[280px]">
                     <SearchIcon fontSize="small" className="text-[#4B6382]" />
                     <span className="sr-only">Filter by filename or reference</span>
-                    <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Filter by filename or reference…" className="w-full bg-transparent text-sm font-semibold text-[#0C2B49] outline-none placeholder:text-[#5B6F8A]" />
+                    <input value={search} onChange={(event) => { setSearch(event.target.value); setPage(0); }} placeholder="Filter by filename or reference…" className="w-full bg-transparent text-sm font-semibold text-[#0C2B49] outline-none placeholder:text-[#5B6F8A]" />
                   </label>
                   <div className="[&>div>button]:border-[#B8C9D9] [&>div>button]:py-2.5">
                     <Dropdown description="Sort documents" value={sort} onChange={(value) => { setSort(value as DocumentListFilters['sort']); setPage(0); }} options={[{ label: "Newest first", value: "newest" }, { label: "Oldest first", value: "oldest" }, { label: "Name A–Z", value: "title" }]} />
@@ -407,14 +438,16 @@ export default function DocumentsPage() {
               <div className="flex shrink-0 flex-col gap-3 border-t border-[#E4EEF9] px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
                 <p className="text-sm font-semibold text-[#5B6F8A]">Showing {visibleDocuments.length === 0 ? 0 : safePage * perPage + 1}–{Math.min((safePage + 1) * perPage, visibleDocuments.length)} of {visibleDocuments.length} documents</p>
                 <div className="flex flex-wrap items-center gap-2">
-                  <button type="button" onClick={() => setPage((value) => Math.max(0, value - 1))} disabled={safePage === 0} aria-label="Previous page" className="rounded-lg border border-[#E4EEF9] p-2 text-[#4B6382] transition hover:bg-[#EEF4FB] disabled:opacity-35">
+                  <button type="button" onClick={() => setPage((value) => Math.max(0, value - 1))} disabled={safePage === 0} aria-label="Previous page" className="grid size-11 place-items-center rounded-lg border border-[#E4EEF9] text-[#4B6382] transition hover:bg-[#EEF4FB] disabled:opacity-35">
                     <ChevronLeftIcon fontSize="small" />
                   </button>
-                  {[...Array(Math.min(3, totalPages))].map((_, index) => (
-                    <button key={index} type="button" onClick={() => setPage(index)} className={cn("size-9 rounded-lg border text-sm font-black transition", safePage === index ? "border-[#0067B3] bg-[#EAF3FF] text-[#0067B3]" : "border-[#E4EEF9] text-[#0C2B49] hover:bg-[#EEF4FB]")}>{index + 1}</button>
+                  {getVisiblePageNumbers(totalPages, safePage).map((pageNumber, index, pageNumbers) => (
+                    <Fragment key={pageNumber}>
+                      {index > 0 && pageNumber - pageNumbers[index - 1] > 1 && <span aria-hidden="true" className="px-1 text-sm font-black text-[#5B6F8A]">…</span>}
+                      <button type="button" onClick={() => setPage(pageNumber)} aria-current={safePage === pageNumber ? 'page' : undefined} className={cn("size-11 rounded-lg border text-sm font-black transition", safePage === pageNumber ? "border-[#0067B3] bg-[#EAF3FF] text-[#0067B3]" : "border-[#E4EEF9] text-[#0C2B49] hover:bg-[#EEF4FB]")}>{pageNumber + 1}</button>
+                    </Fragment>
                   ))}
-                  {totalPages > 3 && <span className="px-2 text-sm font-black text-[#5B6F8A]">...</span>}
-                  <button type="button" onClick={() => setPage((value) => Math.min(totalPages - 1, value + 1))} disabled={safePage >= totalPages - 1} aria-label="Next page" className="rounded-lg border border-[#E4EEF9] p-2 text-[#4B6382] transition hover:bg-[#EEF4FB] disabled:opacity-35">
+                  <button type="button" onClick={() => setPage((value) => Math.min(totalPages - 1, value + 1))} disabled={safePage >= totalPages - 1} aria-label="Next page" className="grid size-11 place-items-center rounded-lg border border-[#E4EEF9] text-[#4B6382] transition hover:bg-[#EEF4FB] disabled:opacity-35">
                     <ChevronRightIcon fontSize="small" />
                   </button>
                   <Dropdown description="Documents per page" openUp value={pageSize} onChange={setPageSize} options={[{ label: "5 / page", value: "5" }, { label: "10 / page", value: "10" }, { label: "20 / page", value: "20" }]} />

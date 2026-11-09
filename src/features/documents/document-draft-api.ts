@@ -73,6 +73,6 @@ export async function createGoogleDraft(documentId: string, source: GoogleDraftS
   else if (source !== 'blank' && fileId) form.set('file_id', fileId);
   const document = await request<ApiSchema<'DocumentResponse'>>(`/documents/${encodeURIComponent(documentId)}/draft`, 'POST', form);
   if (!document.draft_url) throw new Error('The backend did not return a Google draft link.');
-  if (!isGoogleDraftUrl(document.draft_url)) throw new Error('The backend returned an invalid Google draft link.');
+  if (!isGoogleDraftUrl(document.draft_url)) throw new Error('LexChain received an invalid Google draft link.');
   return document;
 }

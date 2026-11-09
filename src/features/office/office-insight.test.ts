@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  getCurrentMonthDateRange,
   createDemoReport,
   getOfficeDateRanges,
   getOfficeInsightMetrics,
@@ -8,6 +9,12 @@ import {
   type ReportType,
   type PortalReportDocument,
 } from '@/features/office/office-insight';
+
+describe('getCurrentMonthDateRange', () => {
+  it('covers the first of the month through today in UTC days', () => {
+    expect(getCurrentMonthDateRange(new Date('2026-11-09T12:00:00Z'))).toEqual({ from: '2026-11-01', to: '2026-11-09' });
+  });
+});
 
 describe('office insights', () => {
   it('provides clear date-range labels for the local office views', () => {

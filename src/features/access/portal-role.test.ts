@@ -9,14 +9,14 @@ describe("portal UI roles", () => {
 
   it("maps the canonical Document Participant role", () => {
     expect(getPortalUiRole("document_participant")).toBe("user");
-    expect(getPortalRoleLabel("document_participant")).toBe("User");
+    expect(getPortalRoleLabel("document_participant")).toBe("Client");
   });
 
   it("maps backend account roles to the corresponding portal roles", () => {
     expect(getPortalUiRole("lawyer")).toBe("lawyer");
     expect(getPortalRoleLabel("lawyer")).toBe("Lawyer");
     expect(getPortalUiRole("user")).toBe("user");
-    expect(getPortalRoleLabel("user")).toBe("User");
+    expect(getPortalRoleLabel("user")).toBe("Client");
   });
 
   it("accepts only the exact lawyer role from the sign-in hint", () => {

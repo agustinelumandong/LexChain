@@ -210,7 +210,7 @@ describe('DocumentVerifyPage', () => {
 
     expect(screen.getByRole('dialog', { name: 'Restore archived original' })).toBeTruthy();
     expect(screen.getByText(/check and repair the file and record/i)).toBeTruthy();
-    expect(screen.getByText(/kept in signed-copy history if the backend can read it/i)).toBeTruthy();
+    expect(screen.getByText(/kept in signed-copy history if it can still be read/i)).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
 
     expect(screen.queryByRole('dialog', { name: 'Restore archived original' })).toBeNull();

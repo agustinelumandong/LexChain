@@ -21,6 +21,12 @@ afterEach(() => {
 });
 
 describe('PortalSearchBar', () => {
+  it('focuses search with the keyboard shortcut', () => {
+    render(<PortalSearchBar />);
+    fireEvent.keyDown(document, { key: 'k', ctrlKey: true });
+    expect(document.activeElement).toBe(screen.getByRole('combobox', { name: 'Search document contents' }));
+  });
+
   it('submits without showing suggestions on the search results page', async () => {
     pathnameMock.mockReturnValue('/portal/search');
     render(<PortalSearchBar />);

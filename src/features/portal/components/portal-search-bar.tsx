@@ -19,6 +19,7 @@ export function PortalSearchBar() {
   const [searchError, setSearchError] = useState<string | null>(null);
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const containerRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   const doSearch = useCallback(async (query: string) => {
@@ -65,6 +66,17 @@ export function PortalSearchBar() {
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
+  useEffect(() => {
+    const focusSearch = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        inputRef.current?.focus();
+      }
+    };
+    document.addEventListener('keydown', focusSearch);
+    return () => document.removeEventListener('keydown', focusSearch);
+  }, []);
+
   const navigateToSearch = (query: string) => {
     clearTimeout(debounceRef.current);
     router.push(`/portal/search?q=${encodeURIComponent(query)}`);
@@ -106,7 +118,10 @@ export function PortalSearchBar() {
       <div className="flex min-h-11 w-full items-center gap-2 rounded-xl border border-[#B8C9D9] bg-white px-3 py-2 text-sm transition focus-within:border-[#0067B3] focus-within:ring-2 focus-within:ring-[#0067B3]">
         <SearchIcon fontSize="small" sx={{ color: 'var(--portal-text-muted)' }} />
         <input
+          ref={inputRef}
           type="text"
+          title="Shortcut: Ctrl+K or Cmd+K"
+          aria-keyshortcuts="Control+K Meta+K"
           value={input}
           onChange={(e) => onChange(e.target.value)}
           onKeyDown={onKeyDown}

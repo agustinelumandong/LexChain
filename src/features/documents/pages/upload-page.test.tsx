@@ -61,6 +61,21 @@ function renderPage(props: React.ComponentProps<typeof UploadPage> = {}) {
   render(<QueryClientProvider client={queryClient}><UploadPage {...props} /></QueryClientProvider>);
 }
 
+describe('upload guidance', () => {
+  it('says what is still needed before filing', async () => {
+    setupFetch([]);
+    renderPage();
+    const hint = await screen.findByText('Still needed: a PDF, a document title.');
+    expect(screen.getByRole('button', { name: 'Confirm and file' }).getAttribute('aria-describedby')).toBe(hint.id);
+  });
+
+  it('links to Books when no register book exists', async () => {
+    setupFetch([], []);
+    renderPage();
+    expect((await screen.findByRole('link', { name: 'Register a book' })).getAttribute('href')).toBe('/portal/books');
+  });
+});
+
 describe('upload access check', () => {
   it('offers a retry instead of denying access when the profile check fails', async () => {
     let profileAttempts = 0;
@@ -280,7 +295,7 @@ describe('signed document upload screen', () => {
     await screen.findByText(/Signed deed\.pdf/);
     fireEvent.click(screen.getByRole('button', { name: 'Confirm and file' }));
 
-    expect(await screen.findByText('doc_no: Document number is unavailable.')).toBeTruthy();
+    expect(await screen.findByText('Document number is unavailable.')).toBeTruthy();
     expect(document.getElementById('upload-doc-no')).toBeNull();
   });
 
@@ -325,7 +340,7 @@ describe('signed document upload screen', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Confirm and file' }));
     await screen.findByRole('button', { name: 'No, this is a new document' });
     expect(screen.getByRole('dialog', { name: 'Documents awaiting a signed copy' })).toBeTruthy();
-    expect(screen.getAllByText('file_name: Please review this upload.')).toHaveLength(2);
+    expect(screen.getAllByText('Please review this upload.')).toHaveLength(2);
     expect(duplicateKeyWarnings).toEqual([]);
     consoleError.mockRestore();
     expect((document.getElementById('upload-title') as HTMLInputElement).disabled).toBe(true);
@@ -464,9 +479,9 @@ describe('signed document upload screen', () => {
     expect(screen.getByRole('dialog', { name: 'Document already filed' })).toBeTruthy();
     expect(screen.getByText('Document number is already used.')).toBeTruthy();
     expect(screen.getAllByText('Use a positive number.')).toHaveLength(2);
-    expect(screen.getByText('unknown_column: This field is not available in the form.')).toBeTruthy();
+    expect(screen.getByText('This field is not available in the form.')).toBeTruthy();
     expect(screen.getByText('The backend returned an unassociated validation message.')).toBeTruthy();
-    expect(screen.getAllByText('The backend returned an unreadable validation error.')).toHaveLength(2);
+    expect(screen.getAllByText('LexChain received an unreadable validation error.')).toHaveLength(2);
     expect(duplicateKeyWarnings).toEqual([]);
     consoleError.mockRestore();
     expect(document.getElementById('upload-doc-no')!.getAttribute('aria-invalid')).toBe('true');
@@ -501,9 +516,9 @@ describe('signed document upload screen', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Confirm and file' }));
     fireEvent.click(await screen.findByRole('button', { name: 'Attach signed PDF to Prepared deed' }));
 
-    expect(await screen.findByText('attachment_field: Attachment validation.')).toBeTruthy();
-    expect(screen.getByRole('group', { name: 'Upload recovery' }).textContent).toContain('initial_field: Initial upload validation.');
-    expect(screen.queryByText('initial_field: Initial upload validation.', { selector: '[role="alert"] p' })).toBeNull();
+    expect(await screen.findByText('Attachment validation.')).toBeTruthy();
+    expect(screen.getByRole('group', { name: 'Upload recovery' }).textContent).toContain('Initial upload validation.');
+    expect(screen.queryByText('Initial upload validation.', { selector: '[role="alert"] p' })).toBeNull();
   });
 
   it('provides distinct, concise headings distinguishing page, workflow steps, and fields (#173)', async () => {

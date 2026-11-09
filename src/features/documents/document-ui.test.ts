@@ -37,6 +37,10 @@ describe('getDocumentStatusLabel', () => {
     expect(getDocumentStatusLabel('FAILED')).toBe('Failed');
   });
 
+  it.each([['PENDING', 'Pending'], ['ACCEPTED', 'Queued'], ['PROCESSED', 'Completed']])('names known status %s instead of Unknown', (status, label) => {
+    expect(getDocumentStatusLabel(status)).toBe(label);
+  });
+
   it('names an OCR review-ready document instead of treating it as unknown', () => {
     expect(getDocumentStatusLabel('AWAITING_REVIEW')).toBe('Ready for review');
   });

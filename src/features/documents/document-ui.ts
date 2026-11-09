@@ -4,12 +4,13 @@ import type { ApiSchema } from "@/shared/types";
 export function getDocumentStatusLabel(status?: string | null): string {
   if (status == null) return 'No processing status yet';
   const value = status?.trim().toUpperCase();
-  if (value === 'QUEUED') return 'Queued';
+  if (value === 'QUEUED' || value === 'ACCEPTED') return 'Queued';
+  if (value === 'PENDING') return 'Pending';
   if (value === 'PROCESSING') return 'Processing';
   if (value === 'AWAITING_REVIEW' || value === 'READY_FOR_REVIEW') return 'Ready for review';
   if (value === 'ENRICHING') return 'Preparing document';
   if (value === 'COMPLETED') return 'Completed';
-  if (value === 'ANCHORED') return 'Completed';
+  if (value === 'ANCHORED' || value === 'PROCESSED') return 'Completed';
   if (value === 'FAILED') return 'Failed';
   return 'Unknown';
 }

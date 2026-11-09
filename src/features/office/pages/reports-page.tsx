@@ -14,6 +14,7 @@ import { GeneratedReportsManagementView } from "@/features/admin/generated-repor
 import { PortalDropdown } from "@/features/portal/components";
 import {
   downloadReport,
+  getCurrentMonthDateRange,
   type Report,
   type ReportType,
 } from '@/features/office/office-insight';
@@ -78,8 +79,8 @@ export default function OfficeReportsPage() {
   });
   const isIssuer = getPortalUiRole(profileQuery.data?.role) === 'lawyer';
   const [reportType, setReportType] = useState<ReportType>('office-document-activity');
-  const [from, setFrom] = useState('2026-07-01');
-  const [to, setTo] = useState('2026-07-31');
+  const [from, setFrom] = useState(() => getCurrentMonthDateRange(new Date()).from);
+  const [to, setTo] = useState(() => getCurrentMonthDateRange(new Date()).to);
   const [report, setReport] = useState<Report | null>(null);
   const [error, setError] = useState('');
   const [pending, setPending] = useState(false);
@@ -111,7 +112,7 @@ export default function OfficeReportsPage() {
       setDisplayedReport('document');
       setIsBuilderOpen(false);
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : 'Could not generate this demo report.');
+      setError(caught instanceof Error ? caught.message : 'Could not generate this report.');
     } finally {
       setPending(false);
     }
@@ -156,7 +157,7 @@ export default function OfficeReportsPage() {
         <div>
           <p className="text-xs font-black uppercase tracking-[0.22em] text-[#0067B3]">LexChain Operations</p>
           <h1 className="mt-1 text-3xl font-black leading-tight tracking-[-0.02em] text-[#071B33]">Reports</h1>
-          <p className="mt-1 max-w-2xl text-sm font-semibold leading-6 text-[#4B6382]">Choose a report, set a date range, and create a local CSV preview for your office.</p>
+          <p className="mt-1 max-w-2xl text-sm font-semibold leading-6 text-[#4B6382]">Choose a report, set a date range, and create a CSV preview for your office.</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
         <div ref={setReportActions} />
@@ -293,7 +294,7 @@ export default function OfficeReportsPage() {
           <span className="flex size-14 items-center justify-center rounded-2xl bg-[#EAF4FF] text-[#0067B3]"><AssessmentOutlinedIcon /></span>
           <div>
             <h2 className="text-lg font-black text-[#071B33]">Your preview will appear here</h2>
-            <p className="mt-2 text-sm font-semibold leading-6 text-[#5B6F8A]">Choose a date range to create a local CSV preview.</p>
+            <p className="mt-2 text-sm font-semibold leading-6 text-[#5B6F8A]">Choose a date range to create a CSV preview.</p>
           </div>
         </section>
       ) : null}

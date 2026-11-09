@@ -70,6 +70,19 @@ describe("portal layout role hint", () => {
     expect(document.getElementById('portal-content')?.className).not.toContain('overflow-y-hidden');
   });
 
+  it("shows the signed-in name in the account menu", async () => {
+    fetchMock.mockImplementation((input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes("%2Fusers%2F")) return Promise.resolve(Response.json({ f_name: "Ada", l_name: "Lovelace", role: "lawyer" }));
+      if (url.includes("unread-count")) return Promise.resolve(Response.json({ unread: 0 }));
+      if (url.includes("%2Fnotifications%2F")) return Promise.resolve(Response.json({ notifications: [] }));
+      return Promise.resolve(Response.json([]));
+    });
+    await renderPortal("lawyer");
+
+    await waitFor(() => expect(screen.getAllByText("Ada Lovelace").length).toBeGreaterThan(0));
+  });
+
   it("renders lawyer navigation and Books without a successful profile request", async () => {
     await renderPortal("lawyer");
 
@@ -79,7 +92,6 @@ describe("portal layout role hint", () => {
     expect(screen.getByText("Lawyer")).toBeTruthy();
     expect(screen.queryByText("undefined undefined")).toBeNull();
     expect(screen.queryByText("...")).toBeNull();
-    expect(fetchMock).not.toHaveBeenCalledWith(expect.stringContaining("%2Fusers%2F"), expect.anything());
   });
 
   it("renders participant navigation without lawyer-only Books", async () => {
@@ -89,7 +101,6 @@ describe("portal layout role hint", () => {
     expect(screen.getAllByRole("link", { name: "Invitations" }).length).toBeGreaterThan(0);
     expect(screen.getAllByRole("link", { name: "My E-copy Requests" }).length).toBeGreaterThan(0);
     expect(screen.queryByRole("link", { name: "Books" })).toBeNull();
-    expect(fetchMock).not.toHaveBeenCalledWith(expect.stringContaining("%2Fusers%2F"), expect.anything());
   });
 
   it.each(["lawyer", "document_participant"])("shows profile navigation for %s and marks security pages active", async (role) => {

@@ -15,6 +15,13 @@ describe('DevToolsGuard', () => {
     vi.restoreAllMocks();
   });
 
+  it('leaves right-click available by default', () => {
+    render(<DevToolsGuard />);
+    const event = new MouseEvent('contextmenu', { cancelable: true });
+    window.dispatchEvent(event);
+    expect(event.defaultPrevented).toBe(false);
+  });
+
   it('prevents F12 key press', () => {
     render(<DevToolsGuard />);
 

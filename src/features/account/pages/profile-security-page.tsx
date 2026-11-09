@@ -66,9 +66,9 @@ function SecurityItem({
       </div>
       <div className="min-w-0 flex-1">
         <span className="block text-sm font-bold text-[#0C2B49]">{title}</span>
-        <span className="text-[11px] text-[#5B6F8A]">{description}</span>
+        <span className="text-xs text-[#5B6F8A]">{description}</span>
       </div>
-      {status ? <span className="shrink-0 rounded-full bg-[#EEF4FB] px-3 py-1 text-[11px] font-bold text-[#0067B3]">{status}</span> : null}
+      {status ? <span className="shrink-0 rounded-full bg-[#EEF4FB] px-3 py-1 text-xs font-bold text-[#0067B3]">{status}</span> : null}
       {action}
     </div>
   );

@@ -20,7 +20,7 @@ function formatRole(role: string) {
   switch (role) {
     case "admin": return "Admin";
     case "lawyer": return "Lawyer";
-    case "user": return "User";
+    case "user": return "Client";
     default: return role;
   }
 }

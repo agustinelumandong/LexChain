@@ -33,8 +33,8 @@ it("maps canonical and backend invitation roles while marking unknown values uns
   );
 
   expect(rowFor("issuer@example.com").getByText("Lawyer")).toBeTruthy();
-  expect(rowFor("participant@example.com").getByText("User")).toBeTruthy();
-  expect(rowFor("legacy-user@example.com").getByText("User")).toBeTruthy();
+  expect(rowFor("participant@example.com").getByText("Client")).toBeTruthy();
+  expect(rowFor("legacy-user@example.com").getByText("Client")).toBeTruthy();
   expect(rowFor("legacy-admin@example.com").getByText("Unsupported role")).toBeTruthy();
   expect(rowFor("unknown@example.com").getByText("Unsupported role")).toBeTruthy();
 });
@@ -70,7 +70,7 @@ it("matches the portal management layout without duplicate header controls", () 
     </MockToastProvider>,
   );
 
-  const view = screen.getByRole("heading", { name: "Issuer Invitations" }).closest("header")?.parentElement;
+  const view = screen.getByRole("heading", { name: "Lawyer Invitations" }).closest("header")?.parentElement;
   const directory = screen.getByRole("heading", { name: "Invitation Directory" }).closest("article");
   const activityList = screen.getByRole("heading", { name: "Recent Invitation Activity" }).closest("article")?.querySelector(".admin-table-scroll");
 

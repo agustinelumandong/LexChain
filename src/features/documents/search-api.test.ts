@@ -57,5 +57,5 @@ it('shares one logout and login navigation across unauthorized document helpers'
   expect(fetchMock.mock.calls.filter(([url]) => url === '/api/portal/logout')).toEqual([
     ['/api/portal/logout', { method: 'POST', credentials: 'same-origin' }],
   ]);
-  expect(replace).toHaveBeenCalledExactlyOnceWith('/login');
+  expect(replace).toHaveBeenCalledExactlyOnceWith('/login?reason=session-expired');
 });

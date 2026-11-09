@@ -648,7 +648,7 @@ function SignedPdfPreview({
               type="button"
               disabled={requestCopy.isPending || requestCopy.isSuccess}
               onClick={() => requestCopy.mutate()}
-              className="rounded-full bg-[#0067B3] px-4 py-2 text-sm font-bold text-white hover:bg-[#0673C4] disabled:opacity-60"
+              className="min-h-11 rounded-full bg-[#0067B3] px-4 py-2 text-sm font-bold text-white hover:bg-[#0673C4] disabled:opacity-60"
             >
               {requestCopy.isPending ? 'Requesting…' : requestCopy.isSuccess ? 'E-copy requested' : 'Request e-copy'}
             </button>

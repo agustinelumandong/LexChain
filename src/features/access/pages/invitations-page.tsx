@@ -98,7 +98,7 @@ export default function InvitationsPage() {
           <p className="mt-1 text-sm font-semibold text-[#5B6F8A]">Sent {formatDate(invitation.invited_at)}</p>
           <p className="mt-3 text-sm font-semibold text-[#0C2B49]">{describeInvitationPermission(invitation.role)}</p>
           <p className="mt-1 text-sm text-[#5B6F8A]">Only accept if you expected this from your lawyer.</p>
-          <div className="mt-4 flex gap-3"><button type="button" disabled={isBusy} onClick={() => void handleInvitation(invitation, "decline")} className="rounded-full border border-red-200 px-4 py-2 text-sm font-black text-red-700 disabled:opacity-60">{isBusy ? "Working…" : "Decline"}</button><button type="button" disabled={isBusy} onClick={() => void handleInvitation(invitation, "accept")} className="rounded-full bg-[#0067B3] px-4 py-2 text-sm font-black text-white disabled:opacity-60">{isBusy ? "Working…" : "Accept"}</button></div>
+          <div className="mt-4 flex gap-3"><button type="button" disabled={isBusy} onClick={() => void handleInvitation(invitation, "decline")} className="min-h-11 rounded-full border border-red-200 px-4 py-2 text-sm font-black text-red-700 disabled:opacity-60">{isBusy ? "Working…" : "Decline"}</button><button type="button" disabled={isBusy} onClick={() => void handleInvitation(invitation, "accept")} className="min-h-11 rounded-full bg-[#0067B3] px-4 py-2 text-sm font-black text-white disabled:opacity-60">{isBusy ? "Working…" : "Accept"}</button></div>
         </article>;
       })}
     </div>

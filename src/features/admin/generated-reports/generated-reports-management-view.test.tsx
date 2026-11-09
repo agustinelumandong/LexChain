@@ -140,7 +140,7 @@ describe('GeneratedReportsManagementView', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Generate' }));
 
     expect(screen.getByRole('table', { name: 'System Audit preview' })).toBeTruthy();
-    expect(screen.getByText('System audit reporting is not available from the backend yet; these are seeded demo records.')).toBeTruthy();
+    expect(screen.getByText('System audit reporting is not available yet; these are seeded demo records.')).toBeTruthy();
     expect(fetchSystemUsersReportMock).not.toHaveBeenCalled();
   });
 

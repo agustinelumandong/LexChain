@@ -164,15 +164,15 @@ export default function AskPage({ params }: { params: Promise<{ id: string }> })
               >
                 {msg.from === 'bot' && (
                   <div className="mb-1 flex items-center justify-between gap-4 border-b border-[#F0F5FA] pb-1">
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-[#0067B3]">
+                    <span className="text-xs font-bold uppercase tracking-wider text-[#0067B3]">
                       LexChain Assistant
                     </span>
-                    <span className="text-[10px] text-[#879BB0]">{msg.timestamp}</span>
+                    <span className="text-xs text-[#879BB0]">{msg.timestamp}</span>
                   </div>
                 )}
                 <p className="whitespace-pre-wrap leading-relaxed">{msg.text}</p>
                 {msg.from === 'user' && (
-                  <div className="mt-1 flex items-center justify-end text-[10px] text-blue-100">
+                  <div className="mt-1 flex items-center justify-end text-xs text-blue-100">
                     <span>{msg.timestamp}</span>
                   </div>
                 )}
@@ -254,7 +254,7 @@ export default function AskPage({ params }: { params: Promise<{ id: string }> })
               <SendIcon sx={{ fontSize: 18 }} />
             </button>
           </div>
-          <p className="mt-2 text-center text-[11px] text-[#879BB0]">
+          <p className="mt-2 text-center text-xs text-[#879BB0]">
             AI-generated assistance. Check the original PDF before relying on an answer for legal decisions.
           </p>
         </div>

@@ -79,7 +79,7 @@ export default function ForgotPasswordPage() {
         ) : (
           <form noValidate className="mt-6 space-y-3.5" onSubmit={handleSubmit}>
             <label className="block">
-              <span className="text-[13px] font-black text-[#0C2B49]">Email</span>
+              <span className="text-sm font-black text-[#0C2B49]">Email</span>
               <input
                 className="mt-2 min-h-12 w-full rounded-[14px] border border-[#E4EEF9] bg-[#F5FAFF] px-3.5 text-sm font-semibold text-[#0C2B49] outline-none focus:border-[#0067B3]"
                 type="email"

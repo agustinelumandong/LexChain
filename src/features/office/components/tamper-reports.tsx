@@ -155,7 +155,7 @@ export function TamperReports({ generateRequest = 0, actionTarget }: { generateR
       )}
     </div>}
     <Modal open={confirming} onClose={() => { if (!restoring) setConfirming(false); }} title="Restore all documents">
-      <p className="text-sm">The backend will recheck and attempt to restore every open report and recover deleted documents, including reports currently marked unavailable. Some may fail or need a database backup.</p>
+      <p className="text-sm">LexChain will recheck and attempt to restore every open report and recover deleted documents, including reports currently marked unavailable. Some may fail or need a database backup.</p>
       <div className="mt-4 flex gap-3"><button type="button" disabled={restoring} onClick={() => setConfirming(false)} className="rounded-xl border px-4 py-2">Cancel</button><button type="button" disabled={restoring} onClick={() => void restoreAll()} className="rounded-xl bg-[#0067B3] px-4 py-2 font-bold text-white disabled:opacity-60">{restoring ? 'Restoring…' : 'Confirm restore all'}</button></div>
     </Modal>
     <Modal open={selectedRecovery !== null} onClose={() => { if (!restoring) setSelectedRecovery(null); }} title="Recover deleted document">

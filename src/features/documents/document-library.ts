@@ -10,6 +10,11 @@ export type DocumentListFilters = {
   createdThrough?: string;
 };
 
+export function getVisiblePageNumbers(totalPages: number, currentPage: number): number[] {
+  const candidates = [0, currentPage - 1, currentPage, currentPage + 1, totalPages - 1];
+  return [...new Set(candidates.filter((page) => page >= 0 && page < totalPages))].sort((left, right) => left - right);
+}
+
 function searchableReference(document: DocumentListItem) {
   return [document.doc_no, document.page_no, document.id]
     .filter((value): value is string | number => value !== undefined && value !== null)

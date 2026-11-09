@@ -8,7 +8,7 @@ import type { DocumentListItem } from '../document-library';
 
 const { push } = vi.hoisted(() => ({ push: vi.fn() }));
 
-vi.mock('next/navigation', () => ({ useRouter: () => ({ push }) }));
+vi.mock('next/navigation', () => ({ useRouter: () => ({ push }), useSearchParams: () => new URLSearchParams() }));
 
 function setupFetch(openResponse = Response.json({ document_id: 'new-document', file_name: 'Client agreement', lifecycle: 'PREPARING' }, { status: 201 }), documentsResponse: Response = Response.json([]), role = 'lawyer') {
   const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {

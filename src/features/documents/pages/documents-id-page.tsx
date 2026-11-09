@@ -63,6 +63,11 @@ function readErrorStatus(error: unknown) {
     : undefined;
 }
 
+function formatFinalizationDate(value?: string | null) {
+  const date = value ? new Date(value) : null;
+  return date && !Number.isNaN(date.getTime()) ? date.toLocaleDateString('en-US', { dateStyle: 'medium' }) : 'Unavailable';
+}
+
 function subscribeToFinalizationStatus(onStoreChange: () => void) {
   window.addEventListener('portal-finalization-status', onStoreChange);
   window.addEventListener('storage', onStoreChange);
@@ -447,8 +452,8 @@ export default function DocumentDetailPage({ params, initialTab }: { params: Pro
                 <div><dt className="font-bold text-[#4B6382]">Signed PDF</dt><dd className="mt-1 break-words">{document.signed_copy?.original_filename ?? document.file_name}{typeof document.signed_copy?.size_bytes === 'number' ? ` · ${(document.signed_copy.size_bytes / (1024 * 1024)).toFixed(1)} MB` : ''}</dd></div>
                 <div><dt className="font-bold text-[#4B6382]">Register book</dt><dd className="mt-1">{!document.book_id ? 'Not assigned' : finalizationBooks.isLoading ? 'Loading…' : finalizationBooks.isError ? 'Unable to load book' : finalizationBook ? `Book ${finalizationBook.book_number} · Series ${finalizationBook.series_year}` : 'Book unavailable'}</dd></div>
                 <div><dt className="font-bold text-[#4B6382]">Register entry</dt><dd className="mt-1">{document.doc_no != null ? `Document ${document.doc_no}` : 'Document number unavailable'} · {document.page_no != null ? `Page ${document.page_no}` : 'Page number unavailable'}</dd></div>
-                <div><dt className="font-bold text-[#4B6382]">Created</dt><dd className="mt-1">{!Number.isNaN(Date.parse(document.created_at)) ? `${new Date(document.created_at).toISOString().slice(0, 10)} UTC` : 'Unavailable'}</dd></div>
-                <div><dt className="font-bold text-[#4B6382]">Attached</dt><dd className="mt-1">{document.signed_copy?.created_at && !Number.isNaN(Date.parse(document.signed_copy.created_at)) ? `${new Date(document.signed_copy.created_at).toISOString().slice(0, 10)} UTC` : 'Unavailable'}</dd></div>
+                <div><dt className="font-bold text-[#4B6382]">Created</dt><dd className="mt-1">{formatFinalizationDate(document.created_at)}</dd></div>
+                <div><dt className="font-bold text-[#4B6382]">Attached</dt><dd className="mt-1">{formatFinalizationDate(document.signed_copy?.created_at)}</dd></div>
                 <div><dt className="font-bold text-[#4B6382]">Participants</dt><dd className="mt-1">{finalizationParties.isLoading ? 'Loading…' : finalizationParties.isError || !finalizationParties.data ? 'Unavailable' : [finalizationParties.data.issuer, ...(finalizationParties.data.parties ?? [])].map((party) => `${[party.f_name, party.l_name].filter(Boolean).join(' ') || party.email} (${party.role}, ${party.status})`).join(', ')}</dd></div>
                 {document.signed_copy?.sha256 && <div className="sm:col-span-2"><dt className="font-bold text-[#4B6382]">Signed PDF fingerprint</dt><dd className="mt-1 break-all font-mono text-xs">SHA-256: {document.signed_copy.sha256}</dd></div>}
               </dl>

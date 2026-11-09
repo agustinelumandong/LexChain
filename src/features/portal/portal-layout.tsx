@@ -16,7 +16,8 @@ import { PortalTopBar } from "@/features/portal/components/portal-topbar";
 import { NotificationToasts } from "@/features/portal/components/notification-toasts";
 import { RegisterReferenceSearchDialog } from "@/features/documents/components/register-reference-search-dialog";
 import { fetchNotifications, fetchUnreadNotificationCount, invalidateNotificationQueries, markNotificationRead, notificationQueryKeys } from "@/features/portal/notifications-api";
-import { portalRequest } from '@/shared/api/client';
+import { portalFetch, portalRequest } from '@/shared/api/client';
+import type { ApiSchema } from '@/shared/types/index';
 
 type PortalDocument = { lifecycle: string; status?: string | null };
 
@@ -37,6 +38,12 @@ export default function PortalLayout({ children, demoMode }: { children: React.R
     refetchInterval: 10_000,
     refetchOnWindowFocus: 'always',
   });
+  const profileQuery = useQuery<ApiSchema<'UserProfileResponse'> | null>({
+    queryKey: ['portal-profile'],
+    queryFn: () => portalFetch<ApiSchema<'UserProfileResponse'> | null>('/users/'),
+    enabled: isSupportedPortalUiRole(uiRole),
+  });
+  const fullName = [profileQuery.data?.f_name, profileQuery.data?.l_name].filter(Boolean).join(' ') || undefined;
   const unreadCountQuery = useQuery({
     queryKey: notificationQueryKeys.unreadCount,
     queryFn: fetchUnreadNotificationCount,
@@ -104,7 +111,7 @@ export default function PortalLayout({ children, demoMode }: { children: React.R
             type="button"
             onClick={() => setCollapsed(!collapsed)}
             aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-            className="absolute -right-3 top-7 z-10 flex h-6 w-6 cursor-pointer items-center justify-center rounded-full border border-[#E8F0F8] bg-white text-[#5B6F8A] shadow-sm transition hover:bg-[#EEF4FB] hover:text-[#0C2B49]"
+            className="absolute -right-3 top-7 z-10 flex h-6 w-6 cursor-pointer after:absolute after:-inset-2.5 after:content-[''] items-center justify-center rounded-full border border-[#E8F0F8] bg-white text-[#5B6F8A] shadow-sm transition hover:bg-[#EEF4FB] hover:text-[#0C2B49]"
           >
             {collapsed ? <MenuIcon style={{ fontSize: 14 }} /> : <ChevronLeftIcon style={{ fontSize: 14 }} />}
           </button>
@@ -125,7 +132,7 @@ export default function PortalLayout({ children, demoMode }: { children: React.R
           <nav className="flex flex-1 flex-col gap-4 overflow-y-auto">
             {portalNavigationGroups.map((group) => (
               <section key={group.label} aria-label={group.label}>
-                {!collapsed && <p className="px-3 pb-1 text-[10px] font-black uppercase tracking-[0.12em] text-[#5B6F8A]">{group.label}</p>}
+                {!collapsed && <p className="px-3 pb-1 text-xs font-black uppercase tracking-[0.12em] text-[#5B6F8A]">{group.label}</p>}
                 <div className="flex flex-col gap-0.5">
                   {group.items.map((link) => {
                     const isActive = isPortalRouteActive(pathname, link);
@@ -133,7 +140,7 @@ export default function PortalLayout({ children, demoMode }: { children: React.R
                     return (
                       <Link
                         className={[
-                          "flex min-h-11 items-center gap-3.5 rounded-xl py-2 text-[13px] font-black leading-4",
+                          "flex min-h-11 items-center gap-3.5 rounded-xl py-2 text-sm font-black leading-4",
                           collapsed ? "justify-center px-2" : "pl-[22px] pr-3",
                           isActive
                             ? "bg-[#0067B3]/15 text-[#0C2B49]"
@@ -164,6 +171,7 @@ export default function PortalLayout({ children, demoMode }: { children: React.R
         {/* Main content */}
         <section id="portal-content" tabIndex={-1} className={`flex min-w-0 flex-1 flex-col overflow-x-clip px-6 pb-32 pt-0 md:pb-6 ${isDocumentWorkspace ? 'h-dvh min-h-0 overflow-y-hidden' : ''}`}>
           <PortalTopBar
+            fullName={fullName}
             roleLabel={roleLabel}
             role={uiRole}
             processingCount={processingCount}
@@ -184,7 +192,7 @@ export default function PortalLayout({ children, demoMode }: { children: React.R
           <RegisterReferenceSearchDialog open={registerSearchOpen} onClose={() => setRegisterSearchOpen(false)} />
           {demoMode && (
             <p role="status" className="mb-4 flex flex-wrap items-center gap-2 rounded-xl border border-[#D9E7F5] bg-white px-4 py-2.5 text-xs font-medium text-[#526579]">
-              <span className="rounded-full bg-[#EAF4FF] px-2 py-1 text-[10px] font-black uppercase tracking-wide text-[#0A67B1]">Prototype</span>
+              <span className="rounded-full bg-[#EAF4FF] px-2 py-1 text-xs font-black uppercase tracking-wide text-[#0A67B1]">Prototype</span>
               Document processing and blockchain results are simulated; no live transaction was sent.
             </p>
           )}

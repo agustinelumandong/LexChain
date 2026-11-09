@@ -531,7 +531,7 @@ describe('document detail screen', () => {
     expect(within(dialog).getByText('Property Purchase Agreement.pdf')).toBeTruthy();
     expect(within(dialog).getByText(/Executed_Agreement_Signed\.pdf · 2\.0 MB/)).toBeTruthy();
     expect(within(dialog).getByText('Document 12 · Page 34')).toBeTruthy();
-    expect(within(dialog).getByText('2026-10-10 UTC')).toBeTruthy();
+    expect(within(dialog).getByText(/^Oct (9|10|11), 2026$/)).toBeTruthy();
     expect(within(dialog).getByText(/SHA-256: 9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08/)).toBeTruthy();
     fireEvent.click(within(dialog).getByRole('button', { name: 'Next' }));
     expect(within(dialog).getByRole('button', { name: 'Confirm finalization' })).toBeTruthy();
