@@ -945,13 +945,22 @@ describe('DocumentWorkspace', () => {
   });
 
   it('restores source and selected file for the matching document, then consumes the context', async () => {
-    saveGoogleDraftReturnContext({ documentId: 'doc-101', source: 'template', picked: { id: 'file-88', name: 'Restored template' } });
+    saveGoogleDraftReturnContext({ documentId: 'doc-101', source: 'existing', picked: { id: 'file-88', name: 'Restored draft' } });
     renderWorkspace({ document: { ...document, draft_url: null, permissions: { ...document.permissions, can_create_draft: true } } });
 
     await waitFor(() => expect(readGoogleDraftReturnContext()).toBeNull());
-    await waitFor(() => expect(screen.getByRole('combobox', { name: 'Choose a starting point' }).textContent).toContain('Copy a template'));
-    expect(screen.getByText('Selected: Restored template')).toBeTruthy();
+    await waitFor(() => expect(screen.getByRole('combobox', { name: 'Choose a starting point' }).textContent).toContain('Use an existing Google Doc'));
+    expect(screen.getByText('Selected: Restored draft')).toBeTruthy();
     expect(readGoogleDraftReturnContext()).toBeNull();
+  });
+
+  it('restores a chosen template after returning from the Google connection', async () => {
+    saveGoogleDraftReturnContext({ documentId: 'doc-101', source: 'template', picked: { id: 'deed-of-absolute-sale', name: 'Deed of Absolute Sale' } });
+    renderWorkspace({ document: { ...document, draft_url: null, permissions: { ...document.permissions, can_create_draft: true } } });
+
+    const template = await screen.findByRole('combobox', { name: 'Choose a template' });
+    expect(template.textContent).toContain('Deed of Absolute Sale');
+    expect((screen.getByRole('button', { name: 'Copy selected template' }) as HTMLButtonElement).disabled).toBe(false);
   });
 
   it('clears a return context belonging to a different document without restoring it', async () => {
@@ -989,11 +998,11 @@ describe('DocumentWorkspace', () => {
     renderWorkspace({ document: { ...document, draft_url: null, permissions: { ...document.permissions, can_create_draft: true } } });
 
     fireEvent.click(screen.getByRole('combobox', { name: 'Choose a starting point' }));
-    fireEvent.click(screen.getByRole('option', { name: 'Copy a template' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Choose template' }));
+    fireEvent.click(screen.getByRole('option', { name: 'Use an existing Google Doc' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Choose existing Google Doc' }));
     expect(await screen.findByText('Selected: First choice')).toBeTruthy();
     action = 'cancel';
-    fireEvent.click(screen.getByRole('button', { name: 'Choose template' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Choose existing Google Doc' }));
 
     expect(await screen.findByText('Selected: First choice')).toBeTruthy();
   });
@@ -1057,35 +1066,12 @@ describe('DocumentWorkspace', () => {
   });
 
   it.each(['GOOGLE_NOT_CONNECTED', 'GOOGLE_RECONNECT_REQUIRED'])(
-    'keeps a picked template after %s and allows retry', async (reason) => {
-    vi.stubEnv('NEXT_PUBLIC_GOOGLE_PICKER_API_KEY', 'browser-key');
-    vi.stubEnv('NEXT_PUBLIC_GOOGLE_PICKER_APP_ID', 'cloud-project-number');
-    let pickerCallback: (data: unknown) => void = () => undefined;
-    class PickerBuilder {
-      addView() { return this; }
-      setOAuthToken() { return this; }
-      setDeveloperKey() { return this; }
-      setAppId() { return this; }
-      setTitle() { return this; }
-      setCallback(callback: (data: unknown) => void) { pickerCallback = callback; return this; }
-      build() {
-        return { setVisible: (visible: boolean) => {
-          if (visible) pickerCallback({ action: 'picked', docs: [{ id: 'template-77', name: 'Client template', mimeType: 'application/vnd.google-apps.document' }] });
-        } };
-      }
-    }
-    class DocsView {
-      setMimeTypes() { return this; }
-    }
-    Object.assign(window, {
-      gapi: { load: (_library: string, callback: () => void) => callback() },
-      google: { picker: { Action: { PICKED: 'picked', CANCEL: 'cancel' }, ViewId: { DOCS: 'docs' }, DocsView, PickerBuilder } },
-    });
+    'keeps a chosen template after %s and allows retry without Picker settings', async (reason) => {
     let createCount = 0;
     const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       const url = new URL(String(input), window.location.origin);
       const path = url.searchParams.get('path');
-      if (path === '/google/picker-token') return Response.json({ access_token: 'short-lived-picker-token', expires_at: '2099-01-01T00:00:00Z' });
+      if (url.pathname === '/templates/deed-of-absolute-sale.docx') return new Response('template-bytes');
       if (path === '/documents/doc-101/draft' && init?.method === 'POST') {
         createCount += 1;
         if (createCount === 1) return Response.json({ message: 'Reconnect Google Drive.', details: { reason } }, { status: 409 });
@@ -1098,21 +1084,22 @@ describe('DocumentWorkspace', () => {
 
     fireEvent.click(await screen.findByRole('combobox', { name: 'Choose a starting point' }));
     fireEvent.click(screen.getByRole('option', { name: 'Copy a template' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Choose template' }));
-    expect(await screen.findByText(/Client template/)).toBeTruthy();
+    fireEvent.click(screen.getByRole('combobox', { name: 'Choose a template' }));
+    fireEvent.click(screen.getByRole('option', { name: 'Deed of Absolute Sale' }));
     fireEvent.click(screen.getByRole('button', { name: 'Copy selected template' }));
 
     expect(await screen.findByRole('link', { name: 'Connect Google in account settings' })).toBeTruthy();
-    expect(screen.getByText(/Client template/)).toBeTruthy();
+    expect(screen.getByRole('combobox', { name: 'Choose a template' }).textContent).toContain('Deed of Absolute Sale');
     expect(screen.getByRole('combobox', { name: 'Choose a starting point' }).textContent).toContain('Copy a template');
     fireEvent.click(screen.getByRole('button', { name: 'Copy selected template' }));
     expect(await screen.findByRole('link', { name: 'Open Google draft' })).toBeTruthy();
 
-    expect(fetchMock).toHaveBeenCalledWith('/api/portal/proxy?path=%2Fgoogle%2Fpicker-token', expect.any(Object));
-    expect(fetchMock).toHaveBeenCalledWith(
-      '/api/portal/proxy-post?path=%2Fdocuments%2Fdoc-101%2Fdraft',
-      expect.objectContaining({ method: 'POST', body: expect.any(FormData) }),
-    );
+    expect(fetchMock).not.toHaveBeenCalledWith('/api/portal/proxy?path=%2Fgoogle%2Fpicker-token', expect.any(Object));
+    const draftCall = fetchMock.mock.calls.find(([input]) => String(input) === '/api/portal/proxy-post?path=%2Fdocuments%2Fdoc-101%2Fdraft');
+    const body = draftCall?.[1]?.body as FormData;
+    expect(body.get('source')).toBe('upload');
+    expect(body.get('file_id')).toBeNull();
+    expect((body.get('file') as File).name).toBe('deed-of-absolute-sale.docx');
     await waitFor(() => expect(createCount).toBe(2));
   });
 
@@ -1127,11 +1114,11 @@ describe('DocumentWorkspace', () => {
     renderWorkspace({ document: { ...document, draft_url: null, permissions: { ...document.permissions, can_create_draft: true } } });
 
     fireEvent.click(screen.getByRole('combobox', { name: 'Choose a starting point' }));
-    fireEvent.click(screen.getByRole('option', { name: 'Copy a template' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Choose template' }));
+    fireEvent.click(screen.getByRole('option', { name: 'Use an existing Google Doc' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Choose existing Google Doc' }));
 
     expect(await screen.findByRole('link', { name: 'Connect Google in account settings' })).toBeTruthy();
-    expect(screen.getByRole('combobox', { name: 'Choose a starting point' }).textContent).toContain('Copy a template');
+    expect(screen.getByRole('combobox', { name: 'Choose a starting point' }).textContent).toContain('Use an existing Google Doc');
     fireEvent.click(screen.getByRole('combobox', { name: 'Choose a starting point' }));
     fireEvent.click(screen.getByRole('option', { name: 'Blank Google Doc' }));
     expect(screen.queryByRole('link', { name: 'Connect Google in account settings' })).toBeNull();
