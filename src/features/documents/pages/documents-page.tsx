@@ -76,6 +76,7 @@ function documentsErrorMessage(error: unknown) {
 const DEFAULT_PAGE_SIZE = '10';
 const PAGE_SIZES = ['5', DEFAULT_PAGE_SIZE, '20'];
 const DOCUMENT_SORTS: Array<DocumentListFilters['sort']> = ['newest', 'oldest', 'title'];
+const DOCUMENT_LIFECYCLES = ['PREPARING', 'READY_FOR_SIGNATURE', 'SIGNED', 'FINALIZED', 'CANCELLED'];
 
 function readDateParam(params: URLSearchParams, key: string) {
   const value = params.get(key) ?? '';
@@ -271,7 +272,7 @@ function StatusDistribution({ docs }: { docs: Document[] }) {
 export default function DocumentsPage() {
   const searchParams = useSearchParams();
   const [search, setSearch] = useState(searchParams.get('q') ?? '');
-  const [lifecycle, setLifecycle] = useState(searchParams.get('lifecycle') ?? 'all');
+  const [lifecycle, setLifecycle] = useState(DOCUMENT_LIFECYCLES.find((value) => value === searchParams.get('lifecycle')) ?? 'all');
   const [sort, setSort] = useState<DocumentListFilters['sort']>(DOCUMENT_SORTS.find((value) => value === searchParams.get('sort')) ?? 'newest');
   const [createdFrom, setCreatedFrom] = useState(readDateParam(searchParams, 'from'));
   const [createdThrough, setCreatedThrough] = useState(readDateParam(searchParams, 'through'));
@@ -450,7 +451,7 @@ export default function DocumentsPage() {
                   <button type="button" onClick={() => setPage((value) => Math.min(totalPages - 1, value + 1))} disabled={safePage >= totalPages - 1} aria-label="Next page" className="grid size-11 place-items-center rounded-lg border border-[#E4EEF9] text-[#4B6382] transition hover:bg-[#EEF4FB] disabled:opacity-35">
                     <ChevronRightIcon fontSize="small" />
                   </button>
-                  <Dropdown description="Documents per page" openUp value={pageSize} onChange={setPageSize} options={[{ label: "5 / page", value: "5" }, { label: "10 / page", value: "10" }, { label: "20 / page", value: "20" }]} />
+                  <Dropdown description="Documents per page" openUp value={pageSize} onChange={(value) => { setPageSize(value); setPage(0); }} options={PAGE_SIZES.map((value) => ({ label: `${value} / page`, value }))} />
                 </div>
               </div>
             </article>

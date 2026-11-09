@@ -667,7 +667,7 @@ function SignedPdfPreview({
       )}
 
       {document.lifecycle === 'FINALIZED' && showEcopyHistory && (
-        <DocumentEcopyRequestHistory documentId={document.document_id} />
+        <DocumentEcopyRequestHistory documentId={document.document_id} showDeliveryError={role === 'lawyer'} />
       )}
 
       {signedCopy && <dialog

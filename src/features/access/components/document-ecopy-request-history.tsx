@@ -25,7 +25,7 @@ function statusVariant(status: string): BadgeVariant {
   return 'default';
 }
 
-function RequestEntry({ request }: { request: EcopyRequest }) {
+function RequestEntry({ request, showDeliveryError }: { request: EcopyRequest; showDeliveryError: boolean }) {
   return <Card className="space-y-2 p-3">
     <div className="flex flex-wrap items-start justify-between gap-2">
       <p className="min-w-0 break-words text-sm font-semibold text-[#0C2B49]">Requested by {request.client_name || 'document party'}</p>
@@ -35,12 +35,12 @@ function RequestEntry({ request }: { request: EcopyRequest }) {
     {request.decided_at && <p className="text-sm text-[#4B6382]">Decision recorded <time dateTime={request.decided_at}>{formatDateTime(request.decided_at)}</time></p>}
     {request.decline_reason && <p className="break-words text-sm text-[#4B6382]">Decline reason: {request.decline_reason}</p>}
     {request.delivery_status && <p className="text-sm text-[#4B6382]">Email delivery: {formatEcopyDeliveryStatus(request.delivery_status)}</p>}
-    {request.delivery_error && <p className="break-words text-sm text-[#4B6382]">Delivery error: {request.delivery_error}</p>}
+    {showDeliveryError && request.delivery_error && <p className="break-words text-sm text-[#4B6382]">Delivery error: {request.delivery_error}</p>}
     {request.delivered_at && <p className="text-sm text-[#4B6382]">Delivered <time dateTime={request.delivered_at}>{formatDateTime(request.delivered_at)}</time></p>}
   </Card>;
 }
 
-export function DocumentEcopyRequestHistory({ documentId }: { documentId: string }) {
+export function DocumentEcopyRequestHistory({ documentId, showDeliveryError = false }: { documentId: string; showDeliveryError?: boolean }) {
   const query = useQuery({
     queryKey: ['ecopy-requests', documentId],
     queryFn: async () => {
@@ -66,7 +66,7 @@ export function DocumentEcopyRequestHistory({ documentId }: { documentId: string
       />
     )}
     {query.data && !query.isError && query.data.requests.length > 0 && <ul className="mt-3 space-y-2">
-      {query.data.requests.map((request) => <li key={request.id}><RequestEntry request={request} /></li>)}
+      {query.data.requests.map((request) => <li key={request.id}><RequestEntry request={request} showDeliveryError={showDeliveryError} /></li>)}
     </ul>}
   </section>;
 }

@@ -42,6 +42,7 @@ export default function PortalLayout({ children, demoMode }: { children: React.R
     queryKey: ['portal-profile'],
     queryFn: () => portalFetch<ApiSchema<'UserProfileResponse'> | null>('/users/'),
     enabled: isSupportedPortalUiRole(uiRole),
+    retry: false,
   });
   const fullName = [profileQuery.data?.f_name, profileQuery.data?.l_name].filter(Boolean).join(' ') || undefined;
   const unreadCountQuery = useQuery({

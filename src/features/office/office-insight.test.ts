@@ -106,7 +106,7 @@ describe('office insights', () => {
     const audit = createDemoReport('system-audit', '2026-05-01', '2026-05-31');
 
     expect(() => createDemoReport('system-users', '2026-03-01', '2026-05-31'))
-      .toThrow('System Users reports require live backend data.');
+      .toThrow('System Users reports require live data.');
     expect(audit.rows).toHaveLength(4);
     expect(audit.rows[0]).toEqual({
       Actor: 'owner@lexchain.local',

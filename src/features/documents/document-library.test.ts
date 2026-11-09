@@ -65,6 +65,12 @@ describe('document library list', () => {
     expect(new URLSearchParams(window.location.search).get('lifecycle')).toBe('SIGNED');
   });
 
+  it('ignores an unrecognized lifecycle in the address', () => {
+    window.history.replaceState(null, '', '/portal/documents?lifecycle=NOT_REAL');
+    render(createElement(DocumentsPage));
+    expect(new URLSearchParams(window.location.search).get('lifecycle')).toBeNull();
+  });
+
   it('returns to the first page when the search changes', () => {
     window.history.replaceState(null, '', '/portal/documents?page=2');
     render(createElement(DocumentsPage));

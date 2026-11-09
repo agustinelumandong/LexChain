@@ -141,7 +141,7 @@ export function createDemoReport(
           })),
       };
     case 'system-users':
-      throw new Error('System Users reports require live backend data.');
+      throw new Error('System Users reports require live data.');
     case 'system-audit':
       return {
         reportType: type,
