@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
 import VisibilityOffOutlinedIcon from "@mui/icons-material/VisibilityOffOutlined";
 import { getPortalLoginRedirect } from "@/features/access";
+import { AuthenticatorCodeInput } from "@/features/auth/components/authenticator-code-input";
 import { queueNextNavigationToast } from "@/shared/utils/next-navigation-toast";
 
 async function signIn(data: { email: string; password: string; rememberMe: boolean }) {
@@ -61,7 +62,12 @@ export function getRedirectPath(data: Record<string, unknown> | null): string {
   return getPortalLoginRedirect(role) ?? "/login";
 }
 
-export default function LoginPage() {
+export function getPostLoginPath(data: Record<string, unknown> | null, returnPath?: string): string {
+  const destination = getRedirectPath(data);
+  return returnPath && destination !== "/login" ? returnPath : destination;
+}
+
+export default function LoginPage({ sessionExpired = false, returnPath }: { sessionExpired?: boolean; returnPath?: string } = {}) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -86,7 +92,7 @@ export default function LoginPage() {
 
   function completeSignIn(data: Record<string, unknown>) {
     queueNextNavigationToast("Signed in successfully");
-    window.location.href = getRedirectPath(data);
+    window.location.href = getPostLoginPath(data, returnPath);
   }
 
   const enroll = useMutation({
@@ -160,13 +166,14 @@ export default function LoginPage() {
           </div>
           <h1 className="text-2xl font-black leading-9 text-[#0C2B49]">{step === "password" ? "Sign in" : step === "enroll" ? "Set up your authenticator" : "Verify your identity"}</h1>
           <p className="text-sm font-semibold leading-5 text-[#5B6F8A]">
-            {step === "password" ? "For Document Issuers and invited participants. Sign in with your credentials." : step === "enroll" ? "Download Google Authenticator or Microsoft Authenticator from your phone’s app store, then scan the QR code or enter the setup key." : "Enter the code from your authenticator app to continue."}
+            {step === "password" ? "For lawyers and their clients. Sign in with your credentials." : step === "enroll" ? "Download Google Authenticator or Microsoft Authenticator from your phone’s app store, then scan the QR code or enter the setup key." : "Enter the code from your authenticator app to continue."}
           </p>
         </div>
+        {sessionExpired && step === "password" && <p role="status" className="mt-4 rounded-[14px] border border-[#D7EBFF] bg-[#EAF4FF] p-3 text-sm font-semibold leading-5 text-[#0C2B49]">Your session ended. Sign in to return to where you were. Unsaved changes were not kept.</p>}
 
         {step === "password" ? <form className="mt-6 space-y-3.5" onSubmit={handleSubmit}>
           <div>
-            <label htmlFor="login-email" className="block text-[13px] font-black text-[#0C2B49]">Email</label>
+            <label htmlFor="login-email" className="block text-sm font-black text-[#0C2B49]">Email</label>
             <input
               id="login-email"
               className={`mt-2 min-h-12 w-full rounded-[14px] border bg-[#F5FAFF] px-3.5 text-sm font-semibold text-[#0C2B49] outline-none ${validationError ? "border-red-700 focus:border-red-700" : "border-[#E4EEF9] focus:border-[#0067B3]"}`}
@@ -180,7 +187,7 @@ export default function LoginPage() {
             />
           </div>
           <div>
-            <label htmlFor="login-password" className="block text-[13px] font-black text-[#0C2B49]">Password</label>
+            <label htmlFor="login-password" className="block text-sm font-black text-[#0C2B49]">Password</label>
             <div className="relative mt-2">
               <input
                 id="login-password"
@@ -214,14 +221,14 @@ export default function LoginPage() {
               type="button"
               aria-pressed={rememberMe}
               onClick={() => setRememberMe((v) => !v)}
-              className={`flex items-center gap-2 rounded-full px-3.5 py-2 text-[11px] font-black uppercase tracking-wide transition ${rememberMe ? "bg-[#EAF4FF]/60 border border-[#D7EBFF] text-[#0C2B49]" : "text-[#5B6F8A]"}`}
+              className={`flex min-h-11 items-center gap-2 rounded-full px-3.5 py-2 text-xs font-black uppercase tracking-wide transition ${rememberMe ? "bg-[#EAF4FF]/60 border border-[#D7EBFF] text-[#0C2B49]" : "text-[#5B6F8A]"}`}
             >
               <span className={`inline-flex items-center justify-center w-4 h-4 rounded border-2 ${rememberMe ? "border-[#0067B3] bg-[#0067B3]" : "border-[#D7EBFF] bg-white"}`}>
                 {rememberMe && <svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
               </span>
               Remember me
             </button>
-            <Link href="/forgot-password" className="text-[12px] font-black text-[#0067B3]">
+            <Link href="/forgot-password" className="text-xs font-black text-[#0067B3]">
               Forgot password?
             </Link>
           </div>
@@ -252,7 +259,7 @@ export default function LoginPage() {
           </div> : <button type="button" onClick={() => enroll.mutate()} className="min-h-11 text-sm font-semibold text-[#0067B3] focus-visible:ring-2 focus-visible:ring-[#0067B3]">Try setup again</button>)}
           {(step === "verify" || enrollment) && <form className="space-y-3" onSubmit={(event) => { event.preventDefault(); if (!/^\d{6}$/.test(code)) { setMfaError("Enter the 6-digit code from your authenticator app."); return; } setMfaError(null); verify.mutate(); }}>
             <label htmlFor="authenticator-code" className="block text-sm font-semibold text-[#0C2B49]">Authenticator code</label>
-            <input id="authenticator-code" name="authenticator-code" spellCheck={false} value={code} onChange={(event) => { setCode(event.target.value); setMfaError(null); }} autoComplete="one-time-code" inputMode="numeric" maxLength={6} required aria-invalid={mfaError ? true : undefined} aria-describedby={mfaError ? "mfa-error" : undefined} className={`min-h-12 w-full rounded-[14px] border bg-[#F5FAFF] px-3.5 text-base outline-none focus-visible:ring-2 focus-visible:ring-[#0067B3] ${mfaError ? "border-red-700" : "border-[#E4EEF9]"}`} />
+            <AuthenticatorCodeInput id="authenticator-code" value={code} invalid={Boolean(mfaError)} describedBy={mfaError ? "mfa-error" : undefined} onChange={(nextCode) => { setCode(nextCode); setMfaError(null); }} />
             {mfaError && <p id="mfa-error" role="alert" className="text-sm font-semibold text-red-700">{mfaError}</p>}
             <button type="submit" disabled={verify.isPending || cancel.isPending} className="flex min-h-[52px] w-full items-center justify-center rounded-full bg-[#0067B3] px-5 py-3 text-base font-bold text-white hover:bg-[#005F9E] focus-visible:ring-2 focus-visible:ring-[#0067B3] disabled:opacity-60">{verify.isPending ? "Verifying…" : "Verify and sign in"}</button>
           </form>}
@@ -260,7 +267,7 @@ export default function LoginPage() {
           <button type="button" disabled={cancel.isPending || enroll.isPending || verify.isPending} onClick={() => cancel.mutate()} className="min-h-11 w-full rounded-full border-2 border-[#E4EEF9] px-5 text-sm font-bold text-[#0C2B49] focus-visible:ring-2 focus-visible:ring-[#0067B3] disabled:opacity-60">{cancel.isPending ? "Starting over…" : "Start over"}</button>
         </div>}
 
-        <Link className="mt-5 block text-center text-[13px] font-black text-[#0067B3]" href="/">
+        <Link className="mt-5 block text-center text-sm font-black text-[#0067B3]" href="/">
           Return to LexChain
         </Link>
       </section>

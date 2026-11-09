@@ -337,7 +337,7 @@ export default function ReviewWorkspace({
                       onMouseLeave={() => hoverBlock(null)}
                       className={`group rounded-lg border px-2 py-1.5 transition-colors ${selected ? 'border-[#0067B3] bg-[#F5FAFF]' : hovered ? 'border-[#98C9F3] bg-[#F8FBFF]' : 'border-[#E8F0F8]'}`}
                     >
-                      <span className="mb-1 block text-[10px] font-black uppercase tracking-wide text-[#5B6F8A]">
+                      <span className="mb-1 block text-xs font-black uppercase tracking-wide text-[#5B6F8A]">
                         {block.type.replace(/[_-]/g, ' ')}
                       </span>
                       {block.is_html ? (

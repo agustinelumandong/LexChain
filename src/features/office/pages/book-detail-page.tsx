@@ -129,7 +129,7 @@ export default function BookDetailPage({ bookId }: { bookId: string }) {
                     <MenuBookIcon sx={{ fontSize: 26 }} />
                   </span>
                   <div>
-                    <p className="text-[10px] font-black uppercase tracking-[0.17em] text-[#0067B3]">Office register · Series {book.series_year}</p>
+                    <p className="text-xs font-black uppercase tracking-[0.17em] text-[#0067B3]">Office register · Series {book.series_year}</p>
                     <h1 className="mt-1 text-[26px] font-black leading-tight">Book {book.book_number}</h1>
                     <p className="mt-1 text-sm font-medium text-[#4B6382]">{totalEntries} {totalEntries === 1 ? 'recorded entry' : 'recorded entries'}</p>
                   </div>
@@ -159,7 +159,7 @@ export default function BookDetailPage({ bookId }: { bookId: string }) {
           <section aria-labelledby="book-entries-heading" className={`${cardClass} overflow-hidden`}>
             <div className="flex flex-wrap items-end justify-between gap-3 border-b border-[#E8F0F8] px-5 py-4 sm:px-6">
               <div>
-                <p className="text-[10px] font-black uppercase tracking-[0.15em] text-[#0067B3]">Register ledger</p>
+                <p className="text-xs font-black uppercase tracking-[0.15em] text-[#0067B3]">Register ledger</p>
                 <h2 id="book-entries-heading" className="mt-1 text-lg font-black text-[#0C2B49]">Entries</h2>
               </div>
               <p className="text-xs font-medium text-[#5B6F8A]">Ordered by document number, then page number</p>

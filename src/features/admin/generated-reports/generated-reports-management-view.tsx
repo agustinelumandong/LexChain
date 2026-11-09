@@ -237,7 +237,7 @@ export function GeneratedReportsManagementView({ embedded = false, controlsTarge
               Download CSV
             </button>
           </div>
-          {report.reportType === "system-audit" ? <p className="mx-5 mt-5 rounded-xl border border-[#E4EEF9] bg-[#F8FBFF] px-3 py-2.5 text-sm font-bold text-[#5B6F8A] sm:mx-6">System audit reporting is not available from the backend yet; these are seeded demo records.</p> : null}
+          {report.reportType === "system-audit" ? <p className="mx-5 mt-5 rounded-xl border border-[#E4EEF9] bg-[#F8FBFF] px-3 py-2.5 text-sm font-bold text-[#5B6F8A] sm:mx-6">System audit reporting is not available yet; these are seeded demo records.</p> : null}
           <div className="mt-5 overflow-x-auto px-5 pb-5 sm:px-6">
             {report.rows.length ? (
               <table aria-label={`${generated?.title} preview`} className="w-full min-w-[720px] text-left text-sm">

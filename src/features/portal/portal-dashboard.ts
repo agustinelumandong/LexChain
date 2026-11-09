@@ -56,7 +56,7 @@ export function getPortalNavigation(role: PortalUiRole): PortalNavigationGroup[]
         label: "System Management",
         items: [
           { label: "User Accounts", href: "/portal/users" },
-          { label: "Issuer Invitations", href: "/portal/issuer-invitations" },
+          { label: "Lawyer Invitations", href: "/portal/issuer-invitations" },
         ],
       },
       {

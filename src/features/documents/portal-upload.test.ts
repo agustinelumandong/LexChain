@@ -32,9 +32,9 @@ describe('portal document upload', () => {
     }, 422);
 
     expect(error.validationErrors).toEqual([
-      { message: 'The backend returned an unreadable validation error.' },
-      { field: 'doc_no', message: 'The backend returned an unreadable validation error.' },
-      { field: 'page_no', message: 'The backend returned an unreadable validation error.' },
+      { message: 'LexChain received an unreadable validation error.' },
+      { field: 'doc_no', message: 'LexChain received an unreadable validation error.' },
+      { field: 'page_no', message: 'LexChain received an unreadable validation error.' },
     ]);
   });
 

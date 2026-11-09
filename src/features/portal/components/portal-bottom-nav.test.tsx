@@ -1,46 +1,49 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import { PortalBottomNav } from "@/features/portal/components/portal-bottom-nav";
 
 afterEach(cleanup);
 
-const systemManagementTools = [
-  "User Accounts",
-  "Issuer Invitations",
-];
-
 describe("PortalBottomNav", () => {
-  it("exposes available system management tools for every issuer", () => {
+  it("keeps every lawyer destination reachable through a More menu", () => {
     render(<PortalBottomNav pathname="/portal/dashboard" role="lawyer" />);
 
-    for (const label of systemManagementTools) {
+    for (const label of ["Dashboard", "Documents", "Document Requests", "Books"]) {
       expect(screen.getByRole("link", { name: label })).toBeTruthy();
     }
+    expect(screen.queryByRole("link", { name: "User Accounts" })).toBeNull();
 
-    expect(screen.getByRole("navigation", { name: "Mobile portal navigation" }).className)
-      .toContain("overflow-x-auto");
-    expect(screen.getByRole("link", { name: "User Accounts" }).className)
-      .toContain("shrink-0");
-    expect(screen.getByText("Issuer Invitations")).toBeTruthy();
-    expect(screen.queryByRole("link", { name: "Processing Monitor" })).toBeNull();
-    expect(screen.queryByRole("link", { name: "Blockchain Records" })).toBeNull();
-    expect(screen.queryByRole("link", { name: "Analytics" })).toBeNull();
-    expect(screen.queryByRole("link", { name: "System Statistics" })).toBeNull();
-    expect(screen.queryByRole("link", { name: "System Reports" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "More" }));
+
+    for (const label of ["Reports", "User Accounts", "Lawyer Invitations", "Profile & Security"]) {
+      expect(screen.getByRole("link", { name: label })).toBeTruthy();
+    }
     expect(screen.queryByRole("link", { name: "Audit Logs" })).toBeNull();
     expect(screen.queryByRole("link", { name: "Office Settings" })).toBeNull();
+    expect(screen.getByRole("navigation", { name: "Mobile portal navigation" }).className).not.toContain("overflow-x-auto");
   });
 
-  it("exposes visible participant navigation labels on mobile", () => {
+  it("marks More as current when the active page is inside it", () => {
+    render(<PortalBottomNav pathname="/portal/reports" role="lawyer" />);
+    expect(screen.getByRole("button", { name: "More" }).getAttribute("aria-current")).toBe("page");
+  });
+
+  it("closes the More menu after choosing a destination", () => {
+    render(<PortalBottomNav pathname="/portal/dashboard" role="lawyer" />);
+    fireEvent.click(screen.getByRole("button", { name: "More" }));
+    fireEvent.click(screen.getByRole("link", { name: "Reports" }));
+    expect(screen.queryByRole("link", { name: "Reports" })).toBeNull();
+  });
+
+  it("shows clients every destination without a More menu", () => {
     render(<PortalBottomNav pathname="/portal/documents" role="user" />);
 
     for (const label of ["Shared Documents", "Invitations"]) {
       expect(screen.getByRole("link", { name: label })).toBeTruthy();
-      const visibleLabel = screen.getByText(label);
-      expect(visibleLabel).toBeTruthy();
-      expect(visibleLabel.className).toContain("text-xs");
+      expect(screen.getByText(label).className).toContain("text-xs");
     }
     expect(screen.getByRole("link", { name: "My E-copy Requests" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "More" })).toBeNull();
   });
 });

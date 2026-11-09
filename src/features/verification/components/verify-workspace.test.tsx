@@ -85,6 +85,37 @@ afterEach(() => {
 });
 
 describe('VerifyWorkspace', () => {
+  const authenticResult = { ...result, status: 'AUTHENTIC', is_authentic: true, metadata_status: 'MATCH', onchain_hash: '0xabc', snapshot_hash: '0xabc', current_hash: '0xabc', tx_hash: `0x${'a'.repeat(64)}` } as const;
+
+  it('keeps technical proof collapsed for clients behind a plain verdict', () => {
+    render(<VerifyWorkspace result={authenticResult} onRetry={vi.fn()} role="user" />);
+    expect(screen.getByRole('heading', { name: 'PDF unchanged' })).toBeTruthy();
+    const summary = screen.getByText('Technical details');
+    const details = summary.closest('details');
+    expect(details?.open).toBe(false);
+    expect(within(details as HTMLElement).getByText('On-chain hash')).toBeTruthy();
+    expect(within(details as HTMLElement).getByText('Trusted baseline')).toBeTruthy();
+    expect(within(details as HTMLElement).getByRole('link', { name: 'View transaction on Base Sepolia', hidden: true })).toBeTruthy();
+  });
+
+  it('keeps technical proof open for lawyers', () => {
+    render(<VerifyWorkspace result={authenticResult} onRetry={vi.fn()} role="lawyer" />);
+    expect(screen.queryByText('Technical details')).toBeNull();
+    expect(screen.getByText('On-chain hash').closest('details')).toBeNull();
+  });
+
+  it('does not tell clients to finalize a document with no saved record', () => {
+    render(<VerifyWorkspace result={{ ...result, status: 'NOT_ANCHORED', onchain_hash: null }} onRetry={vi.fn()} role="user" />);
+    expect(screen.getByRole('heading', { name: 'No saved record yet' })).toBeTruthy();
+    expect(screen.getByText(/Your lawyer may still be finalizing it/)).toBeTruthy();
+    expect(screen.queryByText(/Finalize the document first/)).toBeNull();
+  });
+
+  it('still tells lawyers to finalize a document with no saved record', () => {
+    render(<VerifyWorkspace result={{ ...result, status: 'NOT_ANCHORED', onchain_hash: null }} onRetry={vi.fn()} role="lawyer" />);
+    expect(screen.getByText(/Finalize the document first/)).toBeTruthy();
+  });
+
   it('shows altered analysis and its recorded and current values without a green result', () => {
     render(<VerifyWorkspace result={{ ...result, status: 'AUTHENTIC', is_authentic: true, metadata_status: 'MATCH', analysis_status: 'ALTERED', analysis_changes: [{ field: 'insight.risk_flags', anchored: 'Missing signature', current: 'None' }] }} onRetry={vi.fn()} />);
     const panel = screen.getByRole('region', { name: 'Verification results' });

@@ -132,7 +132,7 @@ export default function DocumentVerifyPage() {
       <Modal open={restoreDialogOpen} onClose={closeRestoreDialog} title="Restore archived original">
         <div className="space-y-4">
           <p className="text-sm leading-6 text-[#4B6382]">
-            The backend will check and repair the file and record using the blockchain and archived original. If a current PDF is replaced, it will be kept in signed-copy history if the backend can read it. Any values that cannot be repaired will need a database backup.
+            LexChain will check and repair the file and record using the blockchain and archived original. If a current PDF is replaced, it will be kept in signed-copy history if it can still be read. Any values that cannot be repaired will need a database backup.
           </p>
           {restoreMutation.isError && <p role="alert" className="text-sm font-semibold text-[#B42318]">
             {restoreMutation.error instanceof Error ? restoreMutation.error.message : 'The document could not be restored. Please try again.'}

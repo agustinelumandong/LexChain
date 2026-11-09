@@ -46,7 +46,7 @@ export async function openDocumentRecord(fileName: string): Promise<ApiSchema<'D
   const name = fileName.trim();
   if (!name) throw new Error('Enter a document name.');
   const document = await request<ApiSchema<'DocumentResponse'>>('/documents/', 'POST', { file_name: name });
-  if (!document.document_id || document.lifecycle !== 'PREPARING') throw new Error('The backend did not return a preparing document record.');
+  if (!document.document_id || document.lifecycle !== 'PREPARING') throw new Error('LexChain did not receive a preparing document record.');
   return document;
 }
 
@@ -72,7 +72,7 @@ export async function createGoogleDraft(documentId: string, source: GoogleDraftS
   if (source === 'upload' && file) form.set('file', file);
   else if (source !== 'blank' && fileId) form.set('file_id', fileId);
   const document = await request<ApiSchema<'DocumentResponse'>>(`/documents/${encodeURIComponent(documentId)}/draft`, 'POST', form);
-  if (!document.draft_url) throw new Error('The backend did not return a Google draft link.');
-  if (!isGoogleDraftUrl(document.draft_url)) throw new Error('The backend returned an invalid Google draft link.');
+  if (!document.draft_url) throw new Error('LexChain did not receive a Google draft link.');
+  if (!isGoogleDraftUrl(document.draft_url)) throw new Error('LexChain received an invalid Google draft link.');
   return document;
 }

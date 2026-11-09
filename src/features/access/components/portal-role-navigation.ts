@@ -30,7 +30,7 @@ const iconsByLabel: Record<string, PortalNavigationIcon> = {
   Notifications: NotificationsNoneOutlinedIcon,
   "Office Settings": SettingsIcon,
   "User Accounts": PeopleIcon,
-  "Issuer Invitations": EmailOutlinedIcon,
+  "Lawyer Invitations": EmailOutlinedIcon,
   "Audit Logs": ScheduleIcon,
 };
 

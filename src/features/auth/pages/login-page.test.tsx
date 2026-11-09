@@ -3,7 +3,7 @@ import React from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import LoginPage from "./login-page";
+import LoginPage, { getPostLoginPath } from "./login-page";
 
 vi.mock("next/image", () => ({
   default: ({ unoptimized, ...props }: React.ComponentProps<"img"> & { unoptimized?: boolean }) => {
@@ -23,6 +23,24 @@ afterEach(() => {
 });
 
 describe("LoginPage", () => {
+  it("explains an ended session and promises a return", () => {
+    const queryClient = new QueryClient();
+    render(<QueryClientProvider client={queryClient}><LoginPage sessionExpired /></QueryClientProvider>);
+    expect(screen.getByRole("status").textContent).toContain("Your session ended");
+  });
+
+  it("returns a signed-in person to their page but never for an unsupported role", () => {
+    expect(getPostLoginPath({ role: "lawyer" }, "/portal/books")).toBe("/portal/books");
+    expect(getPostLoginPath({ role: "lawyer" }, undefined)).toBe("/portal/dashboard");
+    expect(getPostLoginPath({ role: "unknown" }, "/portal/books")).toBe("/login");
+  });
+
+  it("describes who can sign in using lawyer and client", () => {
+    const queryClient = new QueryClient();
+    render(<QueryClientProvider client={queryClient}><LoginPage /></QueryClientProvider>);
+    expect(screen.getByText(/For lawyers and their clients/)).toBeTruthy();
+  });
+
   it("asks for an authenticator code before completing sign-in", async () => {
     const fetchMock = vi.fn().mockResolvedValueOnce(Response.json({ mfa_required: true, mfa_factor_id: "factor-1" }))
       .mockResolvedValueOnce(Response.json({ message: "Invalid code." }, { status: 401 }));

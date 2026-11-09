@@ -113,7 +113,7 @@ function ResetPasswordForm() {
     <ResetPasswordShell description={isDemoMode ? "Try the password reset form in this local demo. Submitting it will not change a real account password." : "Choose a new password for your account."}>
       <form noValidate className="mt-6 space-y-3.5" onSubmit={handleSubmit}>
         <div>
-          <label htmlFor="reset-new-password" className="block text-[13px] font-black text-[#0C2B49]">New password</label>
+          <label htmlFor="reset-new-password" className="block text-sm font-black text-[#0C2B49]">New password</label>
           <div className="relative mt-2">
             <input
               id="reset-new-password"
@@ -138,7 +138,7 @@ function ResetPasswordForm() {
           </div>
         </div>
         <div>
-          <label htmlFor="reset-confirm-password" className="block text-[13px] font-black text-[#0C2B49]">Confirm new password</label>
+          <label htmlFor="reset-confirm-password" className="block text-sm font-black text-[#0C2B49]">Confirm new password</label>
           <div className="relative mt-2">
             <input
               id="reset-confirm-password"

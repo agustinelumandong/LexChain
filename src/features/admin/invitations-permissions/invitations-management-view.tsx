@@ -342,8 +342,8 @@ export function InvitationsManagementView({ invitations, mockMode = false }: { i
       <header className="flex shrink-0 flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
         <div>
           <p className="text-xs font-black uppercase tracking-[0.22em] text-[#0067B3]">LexChain Operations</p>
-          <h1 className="mt-1 text-3xl font-black leading-tight text-[#071B33]">Issuer Invitations</h1>
-          <p className="mt-1 text-sm font-semibold text-[#4B6382]">Manage Lawyer invitations from the backend invitation response.</p>
+          <h1 className="mt-1 text-3xl font-black leading-tight text-[#071B33]">Lawyer Invitations</h1>
+          <p className="mt-1 text-sm font-semibold text-[#4B6382]">Invite lawyers and manage their invitations.</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <CreateInvitationModal
@@ -456,10 +456,10 @@ export function InvitationsManagementView({ invitations, mockMode = false }: { i
           <ActivityPanel invitations={directoryInvites} mockMode={mockMode} />
         </aside>
       </section>
-      <MockModal open={modalMode === "view"} onClose={() => setModalMode(null)} title={selectedInvite?.invitee ?? "Invitation details"} description="Invitation details from the backend response." footer={<button type="button" onClick={() => setModalMode(null)} className="w-full rounded-xl bg-[#0067B3] px-5 py-3 text-sm font-black text-white">Done</button>}>
+      <MockModal open={modalMode === "view"} onClose={() => setModalMode(null)} title={selectedInvite?.invitee ?? "Invitation details"} description="Details for this invitation." footer={<button type="button" onClick={() => setModalMode(null)} className="w-full rounded-xl bg-[#0067B3] px-5 py-3 text-sm font-black text-white">Done</button>}>
         {selectedInvite ? <div className="space-y-3 text-sm font-semibold text-[#4B6382]"><p><strong className="text-[#071B33]">Email:</strong> {selectedInvite.email}</p><p><strong className="text-[#071B33]">Role:</strong> {selectedInvite.roleLabel}</p><p><strong className="text-[#071B33]">Status:</strong> {selectedInvite.statusLabel}</p><p><strong className="text-[#071B33]">Magic link:</strong> {selectedInvite.magic_link ?? "Not returned"}</p></div> : null}
       </MockModal>
-      <MockModal open={modalMode === "revoke"} onClose={() => setModalMode(null)} title={`Revoke ${selectedInvite?.email ?? "invitation"}?`} description="This sends a revoke request to the invitations backend." footer={<div className="flex gap-3"><button type="button" onClick={() => setModalMode(null)} disabled={isRevoking} className="flex-1 rounded-xl border border-[#E4EEF9] px-5 py-3 text-sm font-black text-[#0C2B49] disabled:opacity-50">Cancel</button><button type="button" onClick={() => { void revokeInvitation(); }} disabled={isRevoking} className="flex-1 rounded-xl bg-red-600 px-5 py-3 text-sm font-black text-white disabled:cursor-wait disabled:opacity-60">{isRevoking ? "Revoking…" : "Revoke"}</button></div>}>
+      <MockModal open={modalMode === "revoke"} onClose={() => setModalMode(null)} title={`Revoke ${selectedInvite?.email ?? "invitation"}?`} description="This cancels the invitation." footer={<div className="flex gap-3"><button type="button" onClick={() => setModalMode(null)} disabled={isRevoking} className="flex-1 rounded-xl border border-[#E4EEF9] px-5 py-3 text-sm font-black text-[#0C2B49] disabled:opacity-50">Cancel</button><button type="button" onClick={() => { void revokeInvitation(); }} disabled={isRevoking} className="flex-1 rounded-xl bg-red-600 px-5 py-3 text-sm font-black text-white disabled:cursor-wait disabled:opacity-60">{isRevoking ? "Revoking…" : "Revoke"}</button></div>}>
         <p className="text-sm font-semibold text-[#5B6F8A]">After revoke succeeds, the invitation is removed from this list.</p>
       </MockModal>
     </div>

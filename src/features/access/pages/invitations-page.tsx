@@ -8,12 +8,23 @@ import type { components } from "@/shared/types/index";
 import { portalFetch, portalRequest } from "@/shared/api/client";
 import { canAccessPortalFeature } from "@/features/access/portal-access";
 import { getPortalUiRole } from "@/features/access/portal-role";
+import { PortalAccessError } from "@/features/access/components/portal-access-error";
 import { EmptyState } from "@/shared/components/ui";
 import EmailOutlinedIcon from "@mui/icons-material/EmailOutlined";
 
 type Invitation = components["schemas"]["DocumentInvitationResponse"];
 type InvitationList = components["schemas"]["DocumentInvitationListResponse"];
 type UserProfile = components["schemas"]["UserProfileResponse"];
+
+const invitationPermissionDescriptions: Record<string, string> = {
+  viewer: "Viewer: you can read this document.",
+  signer: "Signer: you are named as a signer on this document.",
+  editor: "Editor: you can help prepare this document.",
+};
+
+function describeInvitationPermission(role: string) {
+  return invitationPermissionDescriptions[role.trim().toLowerCase()] ?? `Permission: ${role}`;
+}
 
 function formatDate(value: string) {
   const date = new Date(value);
@@ -60,6 +71,7 @@ export default function InvitationsPage() {
   }
 
   if (profileQuery.isPending) return <p className="text-sm font-semibold text-[#5B6F8A]">Loading your invitation access…</p>;
+  if (profileQuery.isError && !profileQuery.data) return <PortalAccessError error={profileQuery.error} isRetrying={profileQuery.isFetching} onRetry={() => void profileQuery.refetch()} />;
   if (!isParticipant) return <section className="rounded-[18px] border border-[#E8F0F8] bg-white p-6"><h1 className="text-xl font-black text-[#0C2B49]">Invitations unavailable</h1><p className="mt-2 text-sm text-[#5B6F8A]">Users can manage shared document invitations.</p></section>;
 
   return (
@@ -82,8 +94,11 @@ export default function InvitationsPage() {
       {invitations.map((invitation) => {
         const isBusy = busyId === invitation.invitation_id;
         return <article key={invitation.invitation_id} className="rounded-[18px] border border-[#E8F0F8] bg-white p-5 shadow-[0_4px_12px_rgba(19,59,115,0.05)]">
-          <div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="text-base font-black text-[#0C2B49]">{invitation.file_name}</h2><p className="mt-1 text-sm font-semibold text-[#5B6F8A]">Sent {formatDate(invitation.invited_at)}</p></div><span className="rounded-full bg-[#EEF4FB] px-2.5 py-1 text-xs font-black text-[#0067B3]">{invitation.role}</span></div>
-          <div className="mt-4 flex gap-3"><button type="button" disabled={isBusy} onClick={() => void handleInvitation(invitation, "decline")} className="rounded-full border border-red-200 px-4 py-2 text-sm font-black text-red-700 disabled:opacity-60">{isBusy ? "Working…" : "Decline"}</button><button type="button" disabled={isBusy} onClick={() => void handleInvitation(invitation, "accept")} className="rounded-full bg-[#0067B3] px-4 py-2 text-sm font-black text-white disabled:opacity-60">{isBusy ? "Working…" : "Accept"}</button></div>
+          <h2 className="text-base font-black text-[#0C2B49]">{invitation.file_name}</h2>
+          <p className="mt-1 text-sm font-semibold text-[#5B6F8A]">Sent {formatDate(invitation.invited_at)}</p>
+          <p className="mt-3 text-sm font-semibold text-[#0C2B49]">{describeInvitationPermission(invitation.role)}</p>
+          <p className="mt-1 text-sm text-[#5B6F8A]">Only accept if you expected this from your lawyer.</p>
+          <div className="mt-4 flex gap-3"><button type="button" disabled={isBusy} onClick={() => void handleInvitation(invitation, "decline")} className="min-h-11 rounded-full border border-red-200 px-4 py-2 text-sm font-black text-red-700 disabled:opacity-60">{isBusy ? "Working…" : "Decline"}</button><button type="button" disabled={isBusy} onClick={() => void handleInvitation(invitation, "accept")} className="min-h-11 rounded-full bg-[#0067B3] px-4 py-2 text-sm font-black text-white disabled:opacity-60">{isBusy ? "Working…" : "Accept"}</button></div>
         </article>;
       })}
     </div>

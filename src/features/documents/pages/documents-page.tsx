@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { FilterDetails } from '@/shared/components/ui/filter-details';
 import Link from 'next/link';
 import dayjs from 'dayjs';
@@ -24,6 +25,7 @@ import TaskAltOutlinedIcon from '@mui/icons-material/TaskAltOutlined';
 import {
   getDocumentLifecycles,
   getVisibleDocuments,
+  getVisiblePageNumbers,
   type DocumentListItem,
   type DocumentListFilters,
 } from '@/features/documents/document-library';
@@ -69,6 +71,21 @@ function documentsErrorMessage(error: unknown) {
   return status === 401 || status === 403
     ? 'You do not have permission to view these documents.'
     : error instanceof PortalApiError ? error.message : 'Unable to load documents.';
+}
+
+const DEFAULT_PAGE_SIZE = '10';
+const PAGE_SIZES = ['5', DEFAULT_PAGE_SIZE, '20'];
+const DOCUMENT_SORTS: Array<DocumentListFilters['sort']> = ['newest', 'oldest', 'title'];
+const DOCUMENT_LIFECYCLES = ['PREPARING', 'READY_FOR_SIGNATURE', 'SIGNED', 'FINALIZED', 'CANCELLED'];
+
+function readDateParam(params: URLSearchParams, key: string) {
+  const value = params.get(key) ?? '';
+  return /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : '';
+}
+
+function readPageParam(params: URLSearchParams) {
+  const page = Number(params.get('page'));
+  return Number.isInteger(page) && page > 1 ? page - 1 : 0;
 }
 
 function cn(...classes: Array<string | false | undefined>) {
@@ -253,13 +270,28 @@ function StatusDistribution({ docs }: { docs: Document[] }) {
 }
 
 export default function DocumentsPage() {
-  const [search, setSearch] = useState('');
-  const [lifecycle, setLifecycle] = useState('all');
-  const [sort, setSort] = useState<DocumentListFilters['sort']>('newest');
-  const [createdFrom, setCreatedFrom] = useState('');
-  const [createdThrough, setCreatedThrough] = useState('');
-  const [page, setPage] = useState(0);
-  const [pageSize, setPageSize] = useState("10");
+  const searchParams = useSearchParams();
+  const [search, setSearch] = useState(searchParams.get('q') ?? '');
+  const [lifecycle, setLifecycle] = useState(DOCUMENT_LIFECYCLES.find((value) => value === searchParams.get('lifecycle')) ?? 'all');
+  const [sort, setSort] = useState<DocumentListFilters['sort']>(DOCUMENT_SORTS.find((value) => value === searchParams.get('sort')) ?? 'newest');
+  const [createdFrom, setCreatedFrom] = useState(readDateParam(searchParams, 'from'));
+  const [createdThrough, setCreatedThrough] = useState(readDateParam(searchParams, 'through'));
+  const [page, setPage] = useState(readPageParam(searchParams));
+  const [pageSize, setPageSize] = useState(PAGE_SIZES.find((value) => value === searchParams.get('size')) ?? DEFAULT_PAGE_SIZE);
+
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (search) params.set('q', search);
+    if (lifecycle !== 'all') params.set('lifecycle', lifecycle);
+    if (sort !== 'newest') params.set('sort', sort);
+    if (createdFrom) params.set('from', createdFrom);
+    if (createdThrough) params.set('through', createdThrough);
+    if (page > 0) params.set('page', String(page + 1));
+    if (pageSize !== DEFAULT_PAGE_SIZE) params.set('size', pageSize);
+    const query = params.toString();
+    window.history.replaceState(null, '', `${window.location.pathname}${query ? `?${query}` : ''}`);
+  }, [search, lifecycle, sort, createdFrom, createdThrough, page, pageSize]);
+
   const documentsQuery = useQuery<Document[]>({ queryKey: ['portal-documents'], queryFn: fetchDocuments });
   const profileQuery = useQuery<UserProfile | null>({
     queryKey: ['portal-profile'],
@@ -271,6 +303,7 @@ export default function DocumentsPage() {
   const allDocuments = documentsQuery.data ?? [];
   const uiRole = getPortalUiRole(profileQuery.data?.role);
   const isIssuer = uiRole === 'lawyer';
+  const isClient = uiRole === 'user';
   const documents = allDocuments;
   const lifecycles = getDocumentLifecycles(documents);
   if (lifecycle !== 'all' && !lifecycles.includes(lifecycle)) lifecycles.push(lifecycle);
@@ -292,8 +325,8 @@ export default function DocumentsPage() {
     <div className="flex min-h-0 flex-1 flex-col gap-5">
       <div className="shrink-0 flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-[28px] font-black text-[#0C2B49]">Documents</h1>
-          <p className="mt-1 text-sm text-[#5B6F8A]">Manage and review documents in the office repository</p>
+          <h1 className="text-[28px] font-black text-[#0C2B49]">{isClient ? 'Documents shared with you' : 'Documents'}</h1>
+          <p className="mt-1 text-sm text-[#5B6F8A]">{isClient ? 'Read and check the documents your lawyer has shared with you.' : 'Manage and review documents in the office repository'}</p>
         </div>
         {isIssuer && <NewDocumentAction />}
       </div>
@@ -308,18 +341,19 @@ export default function DocumentsPage() {
         <EmptyState
           icon={<DescriptionIcon aria-hidden="true" sx={{ fontSize: 22 }} />}
           title={search || lifecycle !== 'all' ? 'No documents match your search or filter' : 'No documents yet'}
-          description={isIssuer ? 'Select New Document to get started.' : 'No documents are available yet.'}
+          description={isIssuer ? 'Select New Document to get started.' : 'Documents your lawyer shares with you will appear here. Check your invitations for any waiting on your response.'}
+          action={isClient ? <Link href="/portal/invitations" className="inline-flex min-h-11 items-center rounded-full border border-[#D7E4F2] px-4 text-sm font-black text-[#0067B3] hover:bg-[#EEF4FB] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]">View invitations</Link> : undefined}
         />
       ) : (
         <>
-          <section className="grid gap-4 min-[1680px]:min-h-0 min-[1680px]:flex-1 min-[1680px]:grid-cols-[minmax(0,1fr)_340px] min-[1680px]:overflow-hidden">
+          <section className={cn('grid gap-4 min-[1680px]:min-h-0 min-[1680px]:flex-1 min-[1680px]:overflow-hidden', !isClient && 'min-[1680px]:grid-cols-[minmax(0,1fr)_340px]')}>
             <article className="flex min-w-0 flex-col rounded-2xl border border-[#E4EEF9] bg-white shadow-sm shadow-[#DDEAF7]/35 min-[1680px]:min-h-0 min-[1680px]:overflow-hidden">
               <div className="border-b border-[#E4EEF9] p-5">
                 <div className="flex flex-wrap items-center gap-3">
                   <label className="flex min-w-0 flex-1 items-center gap-2 rounded-xl border border-[#B8C9D9] bg-white px-4 py-2.5 focus-within:border-[#0067B3] sm:min-w-[280px]">
                     <SearchIcon fontSize="small" className="text-[#4B6382]" />
                     <span className="sr-only">Filter by filename or reference</span>
-                    <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Filter by filename or reference…" className="w-full bg-transparent text-sm font-semibold text-[#0C2B49] outline-none placeholder:text-[#5B6F8A]" />
+                    <input value={search} onChange={(event) => { setSearch(event.target.value); setPage(0); }} placeholder="Filter by filename or reference…" className="w-full bg-transparent text-sm font-semibold text-[#0C2B49] outline-none placeholder:text-[#5B6F8A]" />
                   </label>
                   <div className="[&>div>button]:border-[#B8C9D9] [&>div>button]:py-2.5">
                     <Dropdown description="Sort documents" value={sort} onChange={(value) => { setSort(value as DocumentListFilters['sort']); setPage(0); }} options={[{ label: "Newest first", value: "newest" }, { label: "Oldest first", value: "oldest" }, { label: "Name A–Z", value: "title" }]} />
@@ -349,7 +383,7 @@ export default function DocumentsPage() {
               </div>
               <div role="region" aria-label="Document directory results" tabIndex={0} className="admin-table-scroll hidden min-h-0 flex-1 overflow-auto focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[#0067B3] min-[1240px]:block">
                 <table className="w-full min-w-[920px] text-sm">
-                  <caption className="sr-only">Documents in the office repository</caption>
+                  <caption className="sr-only">{isClient ? 'Documents shared with you' : 'Documents in the office repository'}</caption>
                   <thead>
                     <tr className="border-b border-[#D9E5F0] bg-[#F8FBFF] text-left text-xs font-black uppercase tracking-[0.08em] text-[#4B6382]">
                       <th className="px-5 py-3">Document</th>
@@ -405,24 +439,28 @@ export default function DocumentsPage() {
               <div className="flex shrink-0 flex-col gap-3 border-t border-[#E4EEF9] px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
                 <p className="text-sm font-semibold text-[#5B6F8A]">Showing {visibleDocuments.length === 0 ? 0 : safePage * perPage + 1}–{Math.min((safePage + 1) * perPage, visibleDocuments.length)} of {visibleDocuments.length} documents</p>
                 <div className="flex flex-wrap items-center gap-2">
-                  <button type="button" onClick={() => setPage((value) => Math.max(0, value - 1))} disabled={safePage === 0} aria-label="Previous page" className="rounded-lg border border-[#E4EEF9] p-2 text-[#4B6382] transition hover:bg-[#EEF4FB] disabled:opacity-35">
+                  <button type="button" onClick={() => setPage((value) => Math.max(0, value - 1))} disabled={safePage === 0} aria-label="Previous page" className="grid size-11 place-items-center rounded-lg border border-[#E4EEF9] text-[#4B6382] transition hover:bg-[#EEF4FB] disabled:opacity-35">
                     <ChevronLeftIcon fontSize="small" />
                   </button>
-                  {[...Array(Math.min(3, totalPages))].map((_, index) => (
-                    <button key={index} type="button" onClick={() => setPage(index)} className={cn("size-9 rounded-lg border text-sm font-black transition", safePage === index ? "border-[#0067B3] bg-[#EAF3FF] text-[#0067B3]" : "border-[#E4EEF9] text-[#0C2B49] hover:bg-[#EEF4FB]")}>{index + 1}</button>
+                  {getVisiblePageNumbers(totalPages, safePage).map((pageNumber, index, pageNumbers) => (
+                    <Fragment key={pageNumber}>
+                      {index > 0 && pageNumber - pageNumbers[index - 1] > 1 && <span aria-hidden="true" className="px-1 text-sm font-black text-[#5B6F8A]">…</span>}
+                      <button type="button" onClick={() => setPage(pageNumber)} aria-current={safePage === pageNumber ? 'page' : undefined} className={cn("size-11 rounded-lg border text-sm font-black transition", safePage === pageNumber ? "border-[#0067B3] bg-[#EAF3FF] text-[#0067B3]" : "border-[#E4EEF9] text-[#0C2B49] hover:bg-[#EEF4FB]")}>{pageNumber + 1}</button>
+                    </Fragment>
                   ))}
-                  {totalPages > 3 && <span className="px-2 text-sm font-black text-[#5B6F8A]">...</span>}
-                  <button type="button" onClick={() => setPage((value) => Math.min(totalPages - 1, value + 1))} disabled={safePage >= totalPages - 1} aria-label="Next page" className="rounded-lg border border-[#E4EEF9] p-2 text-[#4B6382] transition hover:bg-[#EEF4FB] disabled:opacity-35">
+                  <button type="button" onClick={() => setPage((value) => Math.min(totalPages - 1, value + 1))} disabled={safePage >= totalPages - 1} aria-label="Next page" className="grid size-11 place-items-center rounded-lg border border-[#E4EEF9] text-[#4B6382] transition hover:bg-[#EEF4FB] disabled:opacity-35">
                     <ChevronRightIcon fontSize="small" />
                   </button>
-                  <Dropdown description="Documents per page" openUp value={pageSize} onChange={setPageSize} options={[{ label: "5 / page", value: "5" }, { label: "10 / page", value: "10" }, { label: "20 / page", value: "20" }]} />
+                  <Dropdown description="Documents per page" openUp value={pageSize} onChange={(value) => { setPageSize(value); setPage(0); }} options={PAGE_SIZES.map((value) => ({ label: `${value} / page`, value }))} />
                 </div>
               </div>
             </article>
-            <aside className="grid min-h-0 min-w-0 content-start gap-4 min-[1680px]:grid-rows-[auto_minmax(0,1fr)] min-[1680px]:overflow-auto">
-              <StatusDistribution docs={documents} />
-              <NeedsAttention docs={documents} />
-            </aside>
+            {!isClient && (
+              <aside className="grid min-h-0 min-w-0 content-start gap-4 min-[1680px]:grid-rows-[auto_minmax(0,1fr)] min-[1680px]:overflow-auto">
+                <StatusDistribution docs={documents} />
+                <NeedsAttention docs={documents} />
+              </aside>
+            )}
           </section>
         </>
       )}

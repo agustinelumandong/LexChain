@@ -7,6 +7,11 @@ import { InviteParticipantForm } from '@/features/access/components/invite-parti
 afterEach(() => cleanup());
 
 describe('InviteParticipantForm account lookup and modal confirmation', () => {
+  it('explains permissions and their limits before submitting', () => {
+    render(<InviteParticipantForm onInvite={vi.fn()} />);
+    expect(screen.getByText(/Viewer can read the document\. Signer and Editor need a lawyer account\./)).toBeTruthy();
+  });
+
   it('looks up an account on "Send invitation" click and shows confirmation modal', async () => {
     const onFindAccount = vi.fn().mockResolvedValue({
       user_id: 'user-1',

@@ -37,6 +37,16 @@ describe("PortalTopBar", () => {
     expect(screen.queryByRole("link", { name: "Get help" })).toBeNull();
   });
 
+  it("announces the unread count without changing the button name", () => {
+    render(<PortalTopBar {...sharedProps} role="user" unreadCount={3} />);
+    expect(screen.getByRole("button", { name: "View notifications", description: "3 unread notifications" })).toBeTruthy();
+  });
+
+  it("hides the processing summary when nothing is processing", () => {
+    render(<PortalTopBar {...sharedProps} role="lawyer" processingCount={0} />);
+    expect(screen.queryByRole("link", { name: "View processing documents" })).toBeNull();
+  });
+
   it("opens register reference search from the top bar", () => {
     render(<PortalTopBar {...sharedProps} role="user" />);
 

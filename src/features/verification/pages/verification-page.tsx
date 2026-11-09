@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import type { ApiSchema } from '@/shared/types/index';
 import { IntegrityResult } from '@/features/verification/components/integrity-result';
 import { verifyRepositoryDocument } from '@/features/verification/integrity-api';
@@ -52,6 +53,7 @@ export default function VerificationPage() {
         <p className="text-xs font-bold uppercase tracking-[0.5px] text-[#0067B3]">Repository check</p>
         <h1 className="mt-1 text-[28px] font-black text-[#0C2B49]">Verification Center</h1>
         <p className="mt-2 text-sm leading-6 text-[#5B6F8A]">Check an existing repository document against its returned integrity record. This page does not accept or retain public files.</p>
+        <p className="mt-2 text-sm leading-6 text-[#5B6F8A]">Easiest way: open the document from <Link href="/portal/documents" className="font-bold text-[#0067B3] underline">Documents</Link> and view its verification details.</p>
       </header>
 
       <section className="rounded-[18px] border border-[#E8F0F8] bg-white p-5">

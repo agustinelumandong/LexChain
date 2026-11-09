@@ -152,7 +152,7 @@ export default function BooksPage() {
                     <div className="flex h-full flex-col">
                       <div className="flex items-start justify-between gap-3">
                         <p className="text-xs font-black uppercase tracking-[0.14em] text-[#4B6382]">Office register</p>
-                        <span className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-black ${book.status === 'CLOSED' ? 'bg-[#EEF4FB] text-[#4B6382]' : book.status === 'OPEN' ? 'bg-[#EAF8F0] text-[#166534]' : 'bg-[#F1F5F9] text-[#5B6F8A]'}`}>{statusLabel}</span>
+                        <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-black ${book.status === 'CLOSED' ? 'bg-[#EEF4FB] text-[#4B6382]' : book.status === 'OPEN' ? 'bg-[#EAF8F0] text-[#166534]' : 'bg-[#F1F5F9] text-[#5B6F8A]'}`}>{statusLabel}</span>
                       </div>
                       <div className="mt-2">
                         <h3 className="text-xl font-black leading-tight text-[#0C2B49]">Book {book.book_number}</h3>

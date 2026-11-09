@@ -123,7 +123,7 @@ function ExistingDraft({ document }: { document: ApiSchema<'DocumentResponse'> }
           Document: <span className="font-semibold text-[#0C2B49]">{document.file_name || 'Working draft'}</span> · External drafting in Google Docs
         </p>
         {!isGoogleDraftUrl(url) && (
-          <p role="alert" className="mt-2 text-sm font-bold leading-6 text-[#B42318]">The backend returned an invalid Google draft link. Contact your administrator.</p>
+          <p role="alert" className="mt-2 text-sm font-bold leading-6 text-[#B42318]">LexChain received an invalid Google draft link. Contact your administrator.</p>
         )}
       </div>
     );
@@ -141,7 +141,7 @@ function ExistingDraft({ document }: { document: ApiSchema<'DocumentResponse'> }
           {document.lifecycle === 'READY_FOR_SIGNATURE' ? 'Open approved Google Doc' : 'Open Google draft'}
         </a>
       ) : (
-        <p role="alert" className="mt-4 text-base font-bold leading-7 text-[#B42318]">The backend returned an invalid Google draft link. Contact your administrator.</p>
+        <p role="alert" className="mt-4 text-base font-bold leading-7 text-[#B42318]">LexChain received an invalid Google draft link. Contact your administrator.</p>
       )}
     </div>
   );

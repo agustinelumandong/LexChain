@@ -1,6 +1,11 @@
 import { adminAuditLogs } from '@/features/admin/admin-demo-data';
 import type { ApiSchema } from '@/shared/types/index';
 
+export function getCurrentMonthDateRange(now: Date): { from: string; to: string } {
+  const today = now.toISOString().slice(0, 10);
+  return { from: `${today.slice(0, 8)}01`, to: today };
+}
+
 export type OfficeDateRange = {
   id: '7-days' | '30-days' | '90-days';
   label: string;
@@ -136,7 +141,7 @@ export function createDemoReport(
           })),
       };
     case 'system-users':
-      throw new Error('System Users reports require live backend data.');
+      throw new Error('System Users reports require live data.');
     case 'system-audit':
       return {
         reportType: type,

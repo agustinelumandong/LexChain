@@ -33,12 +33,16 @@ vi.mock('@/features/office/integrity-report', () => ({
 }));
 
 afterEach(() => {
+  vi.useRealTimers();
   cleanup();
   vi.restoreAllMocks();
   Object.defineProperty(URL, 'createObjectURL', { configurable: true, value: undefined });
   Object.defineProperty(URL, 'revokeObjectURL', { configurable: true, value: undefined });
 });
-beforeEach(() => { queryState.role = 'document_issuer'; });
+beforeEach(() => {
+  queryState.role = 'document_issuer';
+  vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-07-31T12:00:00Z') });
+});
 
 describe('ReportsPage', () => {
   it('opens report setup in a dialog and closes it after generation', async () => {

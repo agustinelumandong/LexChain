@@ -50,7 +50,7 @@ function printSecurityWarning(): void {
 }
 
 export function DevToolsGuard({
-  disableContextMenu = true,
+  disableContextMenu = false,
   disableShortcuts = true,
   enableAntiDebugging = false,
   allowInDevelopment = false,

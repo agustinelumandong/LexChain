@@ -28,6 +28,23 @@ it('submits a decline with the optional reason', async () => {
   await waitFor(() => expect(portalRequest).toHaveBeenCalledWith(expect.stringContaining('decline'), expect.objectContaining({ body: JSON.stringify({ reason: 'Please update' }) })));
 });
 
+it('asks before approving and sends nothing when cancelled', async () => {
+  vi.mocked(portalFetch).mockResolvedValue({ requests: [request()], total: 1 });
+  render(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}><EcopyRequests mode="review" /></QueryClientProvider>);
+  fireEvent.click(await screen.findByRole('button', { name: 'Approve' }));
+  const dialog = screen.getByRole('dialog', { name: 'Approve e-copy?' });
+  expect(within(dialog).getByText(/jordan@example\.test/)).toBeTruthy();
+  fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
+  expect(portalRequest).not.toHaveBeenCalled();
+});
+
+it('does not show clients raw delivery errors', async () => {
+  vi.mocked(portalFetch).mockResolvedValue({ requests: [request({ status: 'APPROVED', delivery_status: 'FAILED', delivery_error: 'smtp_timeout_42' })], total: 1 });
+  render(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}><EcopyRequests mode="mine" /></QueryClientProvider>);
+  expect(await screen.findByText(/Email delivery: Failed/)).toBeTruthy();
+  expect(screen.queryByText(/smtp_timeout_42/)).toBeNull();
+});
+
 it('offers an approved download only when the backend permits it', async () => {
   vi.mocked(portalFetch).mockResolvedValue({ requests: [{ id: 'r1', document_id: 'd1', file_name: 'Document', status: 'APPROVED', can_download: true }], total: 1 });
   render(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}><EcopyRequests mode="mine" /></QueryClientProvider>);
@@ -64,7 +81,8 @@ it('shows an approval failure without claiming success', async () => {
   vi.mocked(portalRequest).mockRejectedValue(new Error('Approval failed'));
   render(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })}><EcopyRequests mode="review" /></QueryClientProvider>);
   fireEvent.click(await screen.findByRole('button', { name: 'Approve' }));
-  expect((await screen.findByRole('alert')).textContent).toContain('Approval failed');
+  fireEvent.click(screen.getByRole('button', { name: 'Approve and send' }));
+  expect((await within(screen.getByRole('article')).findByRole('alert')).textContent).toContain('Approval failed');
   expect(screen.getByText('Pending')).toBeTruthy();
 });
 
@@ -89,6 +107,7 @@ it.each([
   const history = await screen.findByRole('region', { name: 'E-copy request history' });
   await screen.findByRole('button', { name: button });
   fireEvent.click(screen.getByRole('button', { name: button }));
+  if (button === 'Approve') fireEvent.click(screen.getByRole('button', { name: 'Approve and send' }));
 
   await waitFor(() => expect(historyCalls).toBe(2));
   if (updatedRequest.status === 'DECLINED') expect(within(history).getByText('Declined')).toBeTruthy();

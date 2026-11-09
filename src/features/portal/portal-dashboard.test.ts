@@ -52,7 +52,7 @@ describe("portal dashboard", () => {
 
     expect(navigation.find((group) => group.label === "System Management")?.items.map(({ label, href }) => [label, href])).toEqual([
       ["User Accounts", "/portal/users"],
-      ["Issuer Invitations", "/portal/issuer-invitations"],
+      ["Lawyer Invitations", "/portal/issuer-invitations"],
     ]);
   });
 

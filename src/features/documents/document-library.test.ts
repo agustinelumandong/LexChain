@@ -2,7 +2,7 @@
 import { createElement } from 'react';
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { getDocumentsByOwnership, getVisibleDocuments, type DocumentListItem } from '@/features/documents/document-library';
+import { getDocumentsByOwnership, getVisibleDocuments, getVisiblePageNumbers, type DocumentListItem } from '@/features/documents/document-library';
 import DocumentsPage from '@/features/documents/pages/documents-page';
 
 vi.mock('@tanstack/react-query', () => ({
@@ -13,6 +13,7 @@ vi.mock('@tanstack/react-query', () => ({
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: vi.fn() }),
+  useSearchParams: () => new URLSearchParams(window.location.search),
 }));
 
 const documents: DocumentListItem[] = [
@@ -47,9 +48,36 @@ let documentQueryState: { isLoading: boolean; isError: boolean; error?: unknown 
 afterEach(() => {
   cleanup();
   documentQueryState = { isLoading: false, isError: false };
+  window.history.replaceState(null, '', '/');
 });
 
 describe('document library list', () => {
+  it.each([[1, 0, [0]], [3, 0, [0, 1, 2]], [10, 5, [0, 4, 5, 6, 9]], [10, 0, [0, 1, 9]]])('lists reachable pages for %i pages at %i', (total, current, expected) => {
+    expect(getVisiblePageNumbers(total as number, current as number)).toEqual(expected);
+  });
+
+  it('restores filters from the address and keeps them there', () => {
+    window.history.replaceState(null, '', '/portal/documents?q=Lease&lifecycle=SIGNED');
+    render(createElement(DocumentsPage));
+    expect((screen.getByPlaceholderText('Filter by filename or reference…') as HTMLInputElement).value).toBe('Lease');
+    fireEvent.change(screen.getByPlaceholderText('Filter by filename or reference…'), { target: { value: 'Deed' } });
+    expect(new URLSearchParams(window.location.search).get('q')).toBe('Deed');
+    expect(new URLSearchParams(window.location.search).get('lifecycle')).toBe('SIGNED');
+  });
+
+  it('ignores an unrecognized lifecycle in the address', () => {
+    window.history.replaceState(null, '', '/portal/documents?lifecycle=NOT_REAL');
+    render(createElement(DocumentsPage));
+    expect(new URLSearchParams(window.location.search).get('lifecycle')).toBeNull();
+  });
+
+  it('returns to the first page when the search changes', () => {
+    window.history.replaceState(null, '', '/portal/documents?page=2');
+    render(createElement(DocumentsPage));
+    fireEvent.change(screen.getByPlaceholderText('Filter by filename or reference…'), { target: { value: 'Lease' } });
+    expect(new URLSearchParams(window.location.search).get('page')).toBeNull();
+  });
+
   it('getDocumentsByOwnership separates explicit owner and shared records', () => {
     const missingOwnership = { ...documents[0] };
     Reflect.deleteProperty(missingOwnership, 'is_owner');

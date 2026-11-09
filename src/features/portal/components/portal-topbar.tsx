@@ -58,7 +58,7 @@ export function PortalTopBar({ fullName, roleLabel, role, processingCount, regis
           <MenuBookOutlinedIcon sx={{ fontSize: 17, color: '#0067B3' }} aria-hidden="true" />
           <span className="hidden sm:inline">Search by register reference</span>
         </button>
-        {role === 'lawyer' ? (
+        {role === 'lawyer' && processingCount > 0 ? (
           <Link
             href="/portal/dashboard"
             aria-label="View processing documents"
@@ -73,16 +73,17 @@ export function PortalTopBar({ fullName, roleLabel, role, processingCount, regis
               type="button"
               onClick={() => setNotificationMenuOpen((open) => !open)}
               aria-label="View notifications"
-              aria-describedby={unreadCountError ? 'notification-count-error' : undefined}
+              aria-describedby={unreadCountError ? 'notification-count-error' : unreadCount > 0 ? 'notification-unread-count' : undefined}
               aria-expanded={notificationMenuOpen}
               className="relative flex h-11 w-11 items-center justify-center rounded-full border border-[var(--portal-border-soft)] transition-colors hover:bg-[var(--portal-surface-soft)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]"
             >
               <NotificationsNoneOutlinedIcon sx={{ fontSize: 20, color: 'var(--portal-navy)' }} />
               {unreadCountError && <span id="notification-count-error" className="sr-only">Unread count unavailable</span>}
+              {!unreadCountError && unreadCount > 0 && <span id="notification-unread-count" className="sr-only">{unreadCount} unread {unreadCount === 1 ? 'notification' : 'notifications'}</span>}
               {unreadCountError ? (
-                <span title="Unread count unavailable" className="absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-[#B42318] px-1 text-[10px] font-black leading-none text-white">!</span>
+                <span title="Unread count unavailable" className="absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-[#B42318] px-1 text-xs font-black leading-none text-white">!</span>
               ) : unreadCount !== undefined && unreadCount > 0 ? (
-                <span className="absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-[#0067B3] px-1 text-[10px] font-black leading-none text-white">
+                <span className="absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-[#0067B3] px-1 text-xs font-black leading-none text-white">
                   {unreadCount > 99 ? '99+' : unreadCount}
                 </span>
               ) : null}
@@ -93,11 +94,11 @@ export function PortalTopBar({ fullName, roleLabel, role, processingCount, regis
                 <div className="flex items-center justify-between border-b border-[var(--portal-border-soft)] px-4 py-3">
                   <p className="text-sm font-black text-[var(--portal-navy)]">Notifications</p>
                   {unreadCountError ? (
-                    <span role="alert" className="text-[11px] font-bold text-red-700">Unread count unavailable</span>
+                    <span role="alert" className="text-xs font-bold text-red-700">Unread count unavailable</span>
                   ) : unreadCount !== undefined && unreadCount > 0 ? (
-                    <span className="rounded-full bg-[#EAF4FF] px-2 py-0.5 text-[11px] font-black text-[#0067B3]">{unreadCount} unread</span>
+                    <span className="rounded-full bg-[#EAF4FF] px-2 py-0.5 text-xs font-black text-[#0067B3]">{unreadCount} unread</span>
                   ) : null}
-                  {markNotificationPending && <span role="status" className="text-[11px] font-semibold text-[var(--portal-text-muted)]">Marking as read…</span>}
+                  {markNotificationPending && <span role="status" className="text-xs font-semibold text-[var(--portal-text-muted)]">Marking as read…</span>}
                 </div>
                 <ul className="max-h-96 overflow-y-auto">
                   {notificationsLoading || (unreadCountLoading && unreadCount === undefined) ? (
@@ -125,7 +126,7 @@ export function PortalTopBar({ fullName, roleLabel, role, processingCount, regis
                           >
                             <p className="truncate text-sm font-black text-[var(--portal-navy)]">{n.title}</p>
                             <p className="mt-0.5 line-clamp-2 text-xs font-medium text-[var(--portal-text-muted)]">{n.body}</p>
-                            <p className="mt-1 text-[11px] font-semibold text-[var(--portal-text-muted)]">{formatDate(n.created_at)}</p>
+                            <p className="mt-1 text-xs font-semibold text-[var(--portal-text-muted)]">{formatDate(n.created_at)}</p>
                           </Link>
                         </li>
                       );

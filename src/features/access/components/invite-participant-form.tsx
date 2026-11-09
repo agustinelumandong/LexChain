@@ -231,11 +231,12 @@ export function InviteParticipantForm({ onFindAccount, onInvite, onResend }: Inv
           <button
             type="submit"
             disabled={isSubmitting || isLoading || !email.trim()}
-            className="self-end rounded-xl bg-[#0067B3] px-4 py-2.5 text-sm font-extrabold text-white hover:bg-[#005FA3] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3] disabled:cursor-not-allowed disabled:opacity-60"
+            className="min-h-11 self-end rounded-xl bg-[#0067B3] px-4 py-2.5 text-sm font-extrabold text-white hover:bg-[#005FA3] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3] disabled:cursor-not-allowed disabled:opacity-60"
           >
             {isLoading ? 'Finding account…' : isSubmitting ? 'Inviting…' : 'Send invitation'}
           </button>
         </div>
+        <p className="mt-3 text-sm text-[#4B6382]">Viewer can read the document. Signer and Editor need a lawyer account.</p>
         {error && (
           <div className="mt-3 flex flex-wrap items-center gap-3">
             <p role="alert" className="text-sm font-semibold text-[#C2410C]">{error.summary}</p>
