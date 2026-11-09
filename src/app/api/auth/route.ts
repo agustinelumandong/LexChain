@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { backendUrl } from "@/server/api/backend";
+import { createSessionResponse } from "@/server/api/auth-session";
 
 const useMock = process.env.NEXT_PUBLIC_USE_MOCK_API === "true" || process.env.USE_MOCK_API === "true";
 const mockPassword = "Password123";
@@ -7,44 +8,6 @@ const mockAccounts = [
   { id: "mock-document-issuer", email: "issuer@example.com", role: "document_issuer", name: "Document Issuer" },
   { id: "mock-document-participant", email: "participant@example.com", role: "document_participant", name: "Document Participant" },
 ] as const;
-
-function isIssuerRole(role?: unknown) {
-  return typeof role === "string" && ["document_issuer", "lawyer", "admin", "super_admin"].includes(role.trim().toLowerCase());
-}
-
-function createSessionResponse(token: string, maxAge: number | undefined, user: { role?: string; email?: string; name?: string; id?: string }) {
-  const response = NextResponse.json({ ok: true, user });
-
-  const cookieOpts = {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax" as const,
-    ...(maxAge === undefined ? {} : { maxAge }),
-    path: "/",
-  };
-
-  const issuer = isIssuerRole(user.role);
-  response.cookies.set({
-    name: "issuer_token",
-    value: issuer ? token : "",
-    ...cookieOpts,
-    maxAge: issuer ? maxAge : 0,
-  });
-  response.cookies.set({ name: "portal_token", value: token, ...cookieOpts });
-  response.cookies.set({ name: "admin_token", value: "", ...cookieOpts, maxAge: 0 });
-  // Client-readable routing hint only; authorization uses server-only cookies.
-  response.cookies.set({
-    name: "user_role",
-    value: issuer ? "lawyer" : user.role ?? "",
-    httpOnly: false,
-    secure: cookieOpts.secure,
-    sameSite: cookieOpts.sameSite,
-    maxAge,
-    path: "/",
-  });
-
-  return response;
-}
 
 export async function POST(request: Request) {
   const apiBase = process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL;
@@ -105,12 +68,26 @@ export async function POST(request: Request) {
     );
   }
 
-  const token: string | undefined = payload?.access_token ?? payload?.token;
-  if (!token) {
+  const token: unknown = payload?.access_token ?? payload?.token;
+  if (typeof token !== "string" || !token) {
     return NextResponse.json(
       { message: "Login succeeded, but no token was returned." },
       { status: 502 },
     );
+  }
+
+  if (payload?.mfa_required === true) {
+    if (payload.mfa_factor_id !== null && typeof payload.mfa_factor_id !== "string") {
+      return NextResponse.json({ message: "Invalid MFA response." }, { status: 502 });
+    }
+    const response = NextResponse.json({ mfa_required: true, mfa_factor_id: payload.mfa_factor_id });
+    const options = { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "lax" as const, path: "/", maxAge: 600 };
+    response.cookies.set("mfa_token", token, options);
+    response.cookies.set("mfa_remember", rememberMe ? "1" : "0", options);
+    for (const name of ["portal_token", "issuer_token", "admin_token", "user_role"]) {
+      response.cookies.set(name, "", { ...options, maxAge: 0 });
+    }
+    return response;
   }
 
   const maxAge = rememberMe ? payload?.expires_in ?? 60 * 60 * 24 : undefined;

@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, expect, it, vi } from 'vitest';
 import { TamperReports } from './tamper-reports';
 import { portalFetch, portalRequest } from '@/shared/api/client';
@@ -7,12 +7,68 @@ import { portalFetch, portalRequest } from '@/shared/api/client';
 vi.mock('@/shared/api/client', () => ({ portalFetch: vi.fn(), portalRequest: vi.fn() }));
 afterEach(() => { cleanup(); vi.resetAllMocks(); });
 
+it('makes the entire active report card a link to verification', async () => {
+  vi.mocked(portalFetch).mockResolvedValue({ total: 1, reports: [{ document_id: 'doc-1', file_name: 'Deed.pdf', status: 'TAMPERED', restorable: true, changes: [{ kind: 'metadata', field: 'file_name' }] }] });
+  render(<TamperReports generateRequest={1} />);
+  const link = await screen.findByRole('link', { name: 'Deed.pdf' });
+  expect(link.getAttribute('href')).toBe('/portal/documents/doc-1/verify');
+  expect(link.className).toContain('after:absolute');
+  expect(link.className).toContain('after:inset-0');
+  expect(link.closest('li')?.className).toContain('relative');
+});
+
+it('identifies changed analysis and its affected fields', async () => {
+  vi.mocked(portalFetch).mockResolvedValue({ total: 1, reports: [{ document_id: 'doc-1', file_name: 'Deed.pdf', status: 'AUTHENTIC', restorable: true, changes: [{ kind: 'analysis', field: 'approved_text' }, { kind: 'analysis', field: 'insight.risk_flags' }] }] });
+  render(<TamperReports generateRequest={1} />);
+  expect(await screen.findByText('Analysis changed: approved text, insight.risk flags')).toBeTruthy();
+});
+
+it('explains when analysis could not be checked', async () => {
+  vi.mocked(portalFetch).mockResolvedValue({ total: 1, reports: [{ document_id: 'doc-1', status: 'AUTHENTIC', restorable: false, blocked_reason: 'analysis_unreadable', changes: [] }] });
+  render(<TamperReports generateRequest={1} />);
+  expect(await screen.findByText('Analysis could not be checked, so restoration is unavailable.')).toBeTruthy();
+});
+
+it('places the restore action in the supplied header after reports load', async () => {
+  vi.mocked(portalFetch).mockResolvedValue({ total: 1, reports: [{ document_id: 'doc-1', status: 'TAMPERED', restorable: true }] });
+  const target = document.createElement('div');
+  document.body.appendChild(target);
+  render(<TamperReports generateRequest={1} actionTarget={target} />);
+  await screen.findByRole('button', { name: 'Restore all' });
+  expect(within(target).getByRole('button', { name: 'Restore all' })).toBeTruthy();
+  target.remove();
+});
+
 it('loads again when a new report is generated', async () => {
   vi.mocked(portalFetch).mockResolvedValue({ total: 0, reports: [] });
   const { rerender } = render(<TamperReports generateRequest={1} />);
   expect(await screen.findByText('No open integrity reports')).toBeTruthy();
   rerender(<TamperReports generateRequest={2} />);
   await vi.waitFor(() => expect(portalFetch).toHaveBeenCalledTimes(2));
+});
+
+it('shows a loading state instead of the previous empty result during refresh', async () => {
+  let finishRefresh!: (value: { total: number; reports: [] }) => void;
+  vi.mocked(portalFetch).mockResolvedValueOnce({ total: 0, reports: [] }).mockReturnValueOnce(new Promise((resolve) => { finishRefresh = resolve; }));
+  render(<TamperReports />);
+  fireEvent.click(screen.getByRole('button', { name: 'Check reports' }));
+  expect(await screen.findByText('No open integrity reports')).toBeTruthy();
+  fireEvent.click(screen.getByRole('button', { name: 'Refresh reports' }));
+  expect(screen.getByRole('status').textContent).toContain('Checking integrity reports');
+  expect(screen.queryByText('No open integrity reports')).toBeNull();
+  await act(async () => finishRefresh({ total: 0, reports: [] }));
+  expect(await screen.findByText('No open integrity reports')).toBeTruthy();
+});
+
+it('keeps the latest result when report checks finish out of order', async () => {
+  let finishFirst!: (value: { total: number; reports: [] }) => void;
+  vi.mocked(portalFetch).mockReturnValueOnce(new Promise((resolve) => { finishFirst = resolve; })).mockResolvedValueOnce({ total: 1, reports: [{ document_id: 'doc-1', file_name: 'Deed.pdf', status: 'TAMPERED', restorable: true }] });
+  const { rerender } = render(<TamperReports generateRequest={1} />);
+  rerender(<TamperReports generateRequest={2} />);
+  expect(await screen.findByText('Deed.pdf')).toBeTruthy();
+  await act(async () => finishFirst({ total: 0, reports: [] }));
+  expect(screen.getByText('Deed.pdf')).toBeTruthy();
+  expect(screen.queryByText('No open integrity reports')).toBeNull();
 });
 
 it('shows open reports and partial restore outcomes after confirmation', async () => {

@@ -63,6 +63,7 @@ const reportDatePickerSlotProps = {
 
 export default function OfficeReportsPage() {
   const [isBuilderOpen, setIsBuilderOpen] = useState(false);
+  const [reportActions, setReportActions] = useState<HTMLDivElement | null>(null);
   const [systemControls, setSystemControls] = useState<HTMLDivElement | null>(null);
   const [scope, setScope] = useState<ReportScope>('document');
   const [step, setStep] = useState<BuilderStep>('scope');
@@ -154,13 +155,16 @@ export default function OfficeReportsPage() {
           <h1 className="mt-1 text-3xl font-black leading-tight tracking-[-0.02em] text-[#071B33]">Reports</h1>
           <p className="mt-1 max-w-2xl text-sm font-semibold leading-6 text-[#4B6382]">Choose a report, set a date range, and create a local CSV preview for your office.</p>
         </div>
+        <div className="flex flex-wrap items-center gap-3">
+        <div ref={setReportActions} />
         <button type="button" onClick={() => { setStep('scope'); setIsBuilderOpen(true); }} className="inline-flex w-fit shrink-0 items-center justify-center gap-2 rounded-xl bg-[#0067B3] px-5 py-3 text-sm font-black text-white transition hover:bg-[#005F9E]">
           <AssessmentOutlinedIcon fontSize="small" />
           Generate report
         </button>
+        </div>
       </header>
 
-      {hasOpenedIntegrity ? <div hidden={displayedReport !== 'open-integrity'}><TamperReports generateRequest={integrityGenerateRequest} /></div> : null}
+      {hasOpenedIntegrity ? <div hidden={displayedReport !== 'open-integrity'}><TamperReports generateRequest={integrityGenerateRequest} actionTarget={displayedReport === 'open-integrity' ? reportActions : null} /></div> : null}
 
       <Modal open={isBuilderOpen} onClose={() => { if (!pending && !systemPending) setIsBuilderOpen(false); }} title="Generate report" size="wide">
         <div className={`flex flex-col gap-4 p-1 ${step === 'dates' ? 'max-h-[70dvh] overflow-y-auto' : ''}`}>

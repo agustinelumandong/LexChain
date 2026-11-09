@@ -147,3 +147,8 @@ output
 
 
 lexchain_backend
+
+
+
+artifacts/
+scripts/ui-audit/

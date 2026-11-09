@@ -5,6 +5,7 @@ import Link from 'next/link';
 import LogoutIcon from '@mui/icons-material/Logout';
 import MenuBookOutlinedIcon from '@mui/icons-material/MenuBookOutlined';
 import NotificationsNoneOutlinedIcon from '@mui/icons-material/NotificationsNoneOutlined';
+import PersonOutlineIcon from '@mui/icons-material/PersonOutlined';
 import type { PortalUiRole } from "@/features/access";
 import { PortalSearchBar } from '@/features/portal/components/portal-search-bar';
 import { getNotificationDestination } from '@/features/portal/notification-destination';
@@ -12,7 +13,6 @@ import type { PortalNotification } from '@/features/portal/notifications-api';
 
 type PortalTopBarProps = {
   fullName?: string;
-  initials: string;
   roleLabel: string;
   role: PortalUiRole;
   processingCount: number;
@@ -35,7 +35,7 @@ function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 }
 
-export function PortalTopBar({ fullName, initials, roleLabel, role, processingCount, registerSearchOpen, onOpenRegisterSearch, unreadCount = 0, unreadCountLoading, unreadCountError, notifications = [], notificationsLoading, notificationsError, markNotificationError, markNotificationPending, onRetryNotifications, onMarkNotificationRead, onSignOut }: PortalTopBarProps) {
+export function PortalTopBar({ fullName, roleLabel, role, processingCount, registerSearchOpen, onOpenRegisterSearch, unreadCount = 0, unreadCountLoading, unreadCountError, notifications = [], notificationsLoading, notificationsError, markNotificationError, markNotificationPending, onRetryNotifications, onMarkNotificationRead, onSignOut }: PortalTopBarProps) {
   const processingLabel = processingCount === 1 ? '1 document processing' : `${processingCount} documents processing`;
   const { open: accountMenuOpen, setOpen: setAccountMenuOpen, ref: accountMenuRef } = usePopup();
   const { open: notificationMenuOpen, setOpen: setNotificationMenuOpen, ref: notificationMenuRef } = usePopup();
@@ -143,13 +143,6 @@ export function PortalTopBar({ fullName, initials, roleLabel, role, processingCo
               </div>
             )}
           </div>
-          <a
-            href="mailto:support@lexchain.app"
-            aria-label="Get help"
-            className="hidden h-10 w-10 items-center justify-center rounded-full border border-[var(--portal-border-soft)] transition-colors hover:bg-[var(--portal-surface-soft)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3] sm:flex"
-          >
-            <span aria-hidden="true" className="text-base font-black leading-none text-[var(--portal-navy)]">?</span>
-          </a>
           <div ref={accountMenuRef} className="relative">
             <button
               type="button"
@@ -163,7 +156,7 @@ export function PortalTopBar({ fullName, initials, roleLabel, role, processingCo
                 <span className="block truncate text-xs font-semibold text-[var(--portal-text-muted)]">{roleLabel}</span>
               </span>
               <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--portal-surface-soft)] text-xs font-bold text-[var(--portal-primary)]">
-                {initials}
+                <PersonOutlineIcon aria-hidden="true" sx={{ fontSize: 22 }} />
               </span>
             </button>
 

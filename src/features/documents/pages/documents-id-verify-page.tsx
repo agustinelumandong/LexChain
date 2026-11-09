@@ -5,6 +5,8 @@ import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { useRef, useState } from 'react';
 import RestoreIcon from '@mui/icons-material/Restore';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import { toast } from 'sonner';
 import { usePortalRole } from '@/features/access/components';
 import { Modal } from '@/features/admin/components/modal';
@@ -91,11 +93,14 @@ export default function DocumentVerifyPage() {
       </header>
 
       {restoreResult && (
-        <section aria-label="Restore result" className="rounded-[18px] border border-[#D7E4F2] bg-white p-4 text-sm text-[#344054]">
-          <h2 className="font-bold text-[#0C2B49]">Restore result</h2>
-          <p>{restoreResult.unrepaired?.length ? 'Some values could not be repaired.' : restoreResult.restored ? 'The backend completed the repair.' : 'Nothing needed repair.'}</p>
-          {restoreResult.repaired && restoreResult.repaired.length > 0 && <p className="mt-2">Repaired: {restoreResult.repaired.map((value) => `${value.record}.${value.field}`).join(', ')}</p>}
-          {restoreResult.unrepaired && restoreResult.unrepaired.length > 0 && <p role="alert" className="mt-2 font-bold text-[#8A5B00]">Needs a database backup: {restoreResult.unrepaired.join(', ')}</p>}
+        <section aria-label="Restore result" className={`flex gap-3 rounded-xl border-2 p-4 text-sm ${restoreResult.unrepaired?.length ? 'border-amber-700 bg-amber-50' : 'border-green-700 bg-green-50'}`}>
+          {restoreResult.unrepaired?.length ? <InfoOutlinedIcon aria-hidden="true" className="shrink-0 text-[#8A5B00]" /> : <CheckCircleIcon aria-hidden="true" className="shrink-0 text-green-800" />}
+          <div>
+            <h2 className="text-base font-bold text-[#0C2B49]">{restoreResult.unrepaired?.length ? 'Repair needs attention' : restoreResult.restored ? 'Repair completed' : 'No repair needed'}</h2>
+            <p className="mt-1 text-[#344054]">{restoreResult.unrepaired?.length ? 'Some values could not be repaired. A database backup is needed.' : restoreResult.restored ? 'The repair completed. Check the verification result below for the current status.' : 'Nothing needed repair. Check the verification result below for the current status.'}</p>
+            {restoreResult.repaired && restoreResult.repaired.length > 0 && <p className="mt-2 text-[#344054]">Repaired: {restoreResult.repaired.map((value) => { const field = value.field.replaceAll('_', ' '); return field.charAt(0).toUpperCase() + field.slice(1); }).join(', ')}</p>}
+            {restoreResult.unrepaired && restoreResult.unrepaired.length > 0 && <p role="alert" className="mt-2 font-bold text-[#8A5B00]">Needs a database backup: {restoreResult.unrepaired.join(', ')}</p>}
+          </div>
         </section>
       )}
 

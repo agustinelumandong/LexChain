@@ -17,6 +17,20 @@ afterEach(() => {
 });
 
 describe("unified auth session cookies", () => {
+  it("keeps a password-only MFA session out of portal cookies", async () => {
+    vi.stubEnv("USE_MOCK_API", "false");
+    vi.stubEnv("API_URL", "https://api.lexchain.test");
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json({
+      access_token: "first-factor-token", mfa_required: true, mfa_factor_id: "factor-1",
+      user: { id: "1", email: "lawyer@lexchain.test", role: "lawyer" },
+    })));
+    const { POST } = await import("./route");
+    const response = await POST(credentials("lawyer@lexchain.test", true));
+    expect(await response.json()).toEqual({ mfa_required: true, mfa_factor_id: "factor-1" });
+    expect(response.cookies.get("mfa_token")?.httpOnly).toBe(true);
+    expect(response.cookies.get("portal_token")?.value ?? "").toBe("");
+    expect(response.cookies.get("issuer_token")?.value ?? "").toBe("");
+  });
   it("uses browser-session cookies when remember me is off", async () => {
     const { POST } = await import("./route");
 

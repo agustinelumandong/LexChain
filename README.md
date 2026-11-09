@@ -21,8 +21,8 @@ Open `http://localhost:3000`. Start the FastAPI backend separately and configure
 | `API_URL` | Backend base URL for server requests |
 | `NEXT_PUBLIC_API_URL` | Public backend URL setting and server fallback; never put credentials here |
 | `NEXT_PUBLIC_APP_URL` | Public URL of this application |
-| `NEXT_PUBLIC_GOOGLE_PICKER_API_KEY` | Browser-restricted Google API key with the Google Picker API enabled; required to choose a template or existing Doc |
-| `NEXT_PUBLIC_GOOGLE_PICKER_APP_ID` | Google Cloud project number used by Picker; required to choose a template or existing Doc |
+| `NEXT_PUBLIC_GOOGLE_PICKER_API_KEY` | Browser-restricted Google API key with the Google Picker API enabled; required to choose an existing Doc |
+| `NEXT_PUBLIC_GOOGLE_PICKER_APP_ID` | Google Cloud project number used by Picker; required to choose an existing Doc |
 | `NEXT_PUBLIC_USE_MOCK_API` | Enables browser mock-mode behavior for local checks |
 | `USE_MOCK_API` | Enables server mock-mode behavior for local checks |
 
