@@ -22,7 +22,7 @@ const PdfDocumentViewer = dynamic(() => import('@/features/documents/components/
 type VerificationResult = ApiSchema<'DocumentVerificationResponse'>;
 
 function statusHeading(result: VerificationResult) {
-  if (result.status === 'AUTHENTIC') return result.is_authentic ? (result.baseline_trusted ? 'This PDF matches the saved version' : 'This PDF matches, but the saved reference needs attention') : 'We could not check this document';
+  if (result.status === 'AUTHENTIC') return result.is_authentic ? (result.baseline_trusted ? 'PDF unchanged' : 'This PDF matches, but the saved reference needs attention') : 'We could not check this document';
   if (result.status === 'FILE_MISSING') return result.is_authentic ? 'We could not check this document' : 'The document file is missing';
   if (result.status === 'VERIFICATION_UNAVAILABLE' || (result.status === 'TAMPERED' && result.is_authentic)) return 'We could not check this document';
   if (result.status === 'NOT_ANCHORED') return 'No blockchain record is saved';
@@ -83,7 +83,7 @@ function plainLanguageExplanation(result: VerificationResult, contradictoryVerdi
     return 'The stored document file was deleted and is no longer available for comparison.';
   }
   if (result.status === 'AUTHENTIC' && result.is_authentic) {
-    return 'This PDF file matches the cryptographic fingerprint recorded on the blockchain at finalization. The file content is authentic and unaltered.';
+    return 'Its fingerprint matches the blockchain record.';
   }
   if (result.status === 'TAMPERED' && !result.is_authentic) {
     return 'This PDF file differs from the cryptographic fingerprint recorded on the blockchain. Changes have been detected in the current copy.';
@@ -189,9 +189,14 @@ export default function VerifyWorkspace({
   role?: PortalUiRole;
 }) {
   const [currentPage, setCurrentPage] = useState(0);
-  const authentic = result.status === 'AUTHENTIC' && result.is_authentic;
+  const normalizeHash = (hash: string) => hash.toLowerCase().replace(/^0x/, '');
+  const hashesConflict = result.status === 'AUTHENTIC' && result.is_authentic && Boolean(
+    (result.onchain_hash && result.current_hash && normalizeHash(result.onchain_hash) !== normalizeHash(result.current_hash))
+    || (result.baseline_trusted && result.onchain_hash && result.snapshot_hash && normalizeHash(result.onchain_hash) !== normalizeHash(result.snapshot_hash)),
+  );
+  const authentic = result.status === 'AUTHENTIC' && result.is_authentic && !hashesConflict;
   const untrustedSnapshot = authentic && !result.baseline_trusted;
-  const contradictoryVerdict = (result.status === 'AUTHENTIC' && !result.is_authentic) || ((result.status === 'TAMPERED' || result.status === 'FILE_MISSING') && result.is_authentic);
+  const contradictoryVerdict = hashesConflict || (result.status === 'AUTHENTIC' && !result.is_authentic) || ((result.status === 'TAMPERED' || result.status === 'FILE_MISSING') && result.is_authentic);
   const unavailable = result.status === 'VERIFICATION_UNAVAILABLE' || contradictoryVerdict;
   const notAnchored = result.status === 'NOT_ANCHORED';
   const compromised = result.status === 'SNAPSHOT_COMPROMISED';
@@ -222,14 +227,15 @@ export default function VerifyWorkspace({
     && !result.is_authentic
     && result.baseline_trusted;
   const showPdfWorkspace = authentic || showTamperComparison;
+  const fileNameChanged = result.metadata_status === 'ALTERED' && result.metadata_changes?.length === 1 && result.metadata_changes[0].field === 'file_name';
 
   return <section className="flex flex-col gap-5 md:min-h-0 md:flex-1">
-    <div className={`flex flex-wrap items-start gap-3 rounded-xl border-2 p-4 ${authentic && !untrustedSnapshot ? 'border-green-700 bg-green-50' : neutral ? 'border-amber-700 bg-amber-50' : 'border-red-700 bg-red-50'}`}>
+    <section aria-label="Verification results" className={`flex flex-wrap items-start gap-3 rounded-xl border-2 p-4 ${result.metadata_status === 'ALTERED' || result.analysis_status === 'ALTERED' || (!authentic && !neutral) ? 'border-red-700 bg-red-50' : neutral || result.metadata_status !== 'MATCH' || result.analysis_status !== 'MATCH' ? 'border-amber-700 bg-amber-50' : 'border-green-700 bg-green-50'}`}>
       <div className="flex min-w-0 flex-1 items-start gap-2">
         {authentic && !untrustedSnapshot ? <CheckCircleIcon className="mt-0.5 shrink-0 text-[#166534]" sx={{ fontSize: 20 }} aria-hidden="true" /> : neutral ? <InfoOutlinedIcon className="mt-0.5 shrink-0 text-[#8A5B00]" sx={{ fontSize: 20 }} aria-hidden="true" /> : <ErrorOutlineIcon className="mt-0.5 shrink-0 text-[#B42318]" sx={{ fontSize: 20 }} aria-hidden="true" />}
         <div className="min-w-0">
           <h2 className="text-base font-bold text-[#0C2B49]">
-            {statusHeading(result)}
+            {contradictoryVerdict ? 'We could not check this document' : statusHeading(result)}
           </h2>
           <p className="text-sm leading-5 text-[#344054]">
             {plainLanguageExplanation(result, contradictoryVerdict)}
@@ -242,26 +248,44 @@ export default function VerifyWorkspace({
         </div>
       </div>
       {(unavailable || notAnchored) && <button type="button" onClick={onRetry} className="inline-flex min-h-11 items-center justify-center rounded-full border border-[#0067B3] bg-white px-5 py-2 text-sm font-bold text-[#0067B3] hover:bg-[#EEF6FF] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]">Try again</button>}
-    </div>
-
-    <section aria-label="Document record integrity" className={`rounded-xl border p-4 ${result.metadata_status === 'ALTERED' ? 'border-red-700 bg-red-50' : result.metadata_status === 'MATCH' ? 'border-green-700 bg-green-50' : 'border-amber-700 bg-amber-50'}`}>
-      <h2 className="text-base font-bold text-[#0C2B49]">
-        {result.metadata_status === 'ALTERED' ? 'Document record has changed' : result.metadata_status === 'MATCH' ? 'Document record matches its saved reference' : result.metadata_status === 'NOT_ANCHORED' ? 'Document record has no saved reference' : 'Document record could not be checked'}
-      </h2>
-      <p className="mt-1 text-sm text-[#344054]">
-        {result.metadata_status === 'ALTERED' ? 'The document record differs from its saved reference.' : result.metadata_status === 'MATCH' ? 'The document record agrees with its saved reference.' : result.metadata_status === 'NOT_ANCHORED' ? 'There is no record reference to compare with.' : 'The record integrity result is unavailable. This does not mean it was changed.'}
-      </p>
+    <section aria-label="Document record integrity" className="basis-full border-t border-[#B9D6ED] pt-3">
+      <div className="flex items-start gap-2">
+      {result.metadata_status === 'MATCH' ? <CheckCircleIcon className="mt-0.5 shrink-0 text-[#166534]" sx={{ fontSize: 20 }} aria-hidden="true" /> : <InfoOutlinedIcon className="mt-0.5 shrink-0 text-[#8A5B00]" sx={{ fontSize: 20 }} aria-hidden="true" />}
+      <div className="min-w-0 flex-1">
+      <h3 className="text-base font-bold text-[#0C2B49]">
+        {result.metadata_status === 'MATCH' ? 'Document details unchanged' : result.metadata_status === 'ALTERED' ? fileNameChanged ? 'File name changed' : 'Document details changed' : result.metadata_status === 'NOT_ANCHORED' ? 'No saved document details' : 'Document details could not be checked'}
+      </h3>
+      {result.metadata_status !== 'MATCH' && result.metadata_status !== 'ALTERED' && result.metadata_status !== 'NOT_ANCHORED' && <p className="mt-1 text-sm text-[#344054]">This does not mean the record was changed.</p>}
       {result.metadata_status === 'ALTERED' && result.metadata_changes && result.metadata_changes.length > 0 && (
         <dl className="mt-3 space-y-3 text-sm">
           {result.metadata_changes.map((change, index) => (
-            <div key={`${change.field}-${index}`} className="rounded-lg bg-white p-3">
-              <dt className="font-bold text-[#0C2B49]">{change.field.replaceAll('_', ' ')}</dt>
-              <dd className="mt-1 text-[#344054]">Saved: <span className="font-semibold">{change.anchored ?? 'Not available'}</span></dd>
+            <div key={`${change.field}-${index}`}>
+              <dt className={fileNameChanged ? 'sr-only' : 'font-bold text-[#0C2B49]'}>{change.field.replaceAll('_', ' ')}</dt>
+              <dd className="mt-1 text-[#344054]"><span>At finalization:</span> <span className="font-semibold">{change.anchored ?? 'Not available'}</span></dd>
               <dd className="text-[#344054]">Current: <span className="font-semibold">{change.current === null ? 'None' : change.current ?? 'Not available'}</span></dd>
             </div>
           ))}
         </dl>
       )}
+      </div>
+      </div>
+    </section>
+    <section aria-label="Analysis integrity" className="basis-full border-t border-[#B9D6ED] pt-3">
+      <div className="flex items-start gap-2">
+        {result.analysis_status === 'MATCH' ? <CheckCircleIcon className="mt-0.5 shrink-0 text-[#166534]" sx={{ fontSize: 20 }} aria-hidden="true" /> : <InfoOutlinedIcon className="mt-0.5 shrink-0 text-[#8A5B00]" sx={{ fontSize: 20 }} aria-hidden="true" />}
+        <div className="min-w-0 flex-1">
+          <h3 className="text-base font-bold text-[#0C2B49]">{result.analysis_status === 'MATCH' ? 'Analysis unchanged' : result.analysis_status === 'ALTERED' ? 'Analysis changed' : result.analysis_status === 'NOT_ANCHORED' ? 'No saved analysis record' : 'Analysis could not be checked'}</h3>
+          {result.analysis_status !== 'MATCH' && result.analysis_status !== 'ALTERED' && result.analysis_status !== 'NOT_ANCHORED' && <p className="mt-1 text-sm text-[#344054]">This does not mean the analysis was changed.</p>}
+          {result.analysis_status === 'ALTERED' && result.analysis_changes && result.analysis_changes.length > 0 && <dl className="mt-3 space-y-3 text-sm">
+            {result.analysis_changes.map((change) => <div key={change.field} className="break-words">
+              <dt className="font-bold text-[#0C2B49]">{change.field.replaceAll('_', ' ')}</dt>
+              <dd className="mt-1 text-[#344054]">At finalization: <span className="font-semibold">{change.anchored ?? 'Not available'}</span></dd>
+              <dd className="text-[#344054]">Current: <span className="font-semibold">{change.current === null ? 'None' : change.current ?? 'Not available'}</span></dd>
+            </div>)}
+          </dl>}
+        </div>
+      </div>
+    </section>
     </section>
 
     {showPdfWorkspace ? (

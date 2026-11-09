@@ -7,7 +7,7 @@ import type { ApiSchema } from '@/shared/types';
 import DocumentDetailPage from '@/features/documents/pages/documents-id-page';
 import { PortalApiError } from '@/shared/api/portal-error';
 
-vi.mock('@/features/documents/components/pdf-document-viewer', () => ({ default: ({ sourceUrl }: { sourceUrl: string }) => createElement('div', { 'data-testid': 'pdf-preview', 'data-source': sourceUrl }) }));
+vi.mock('@/features/documents/components/pdf-document-viewer', () => ({ default: ({ sourceUrl, onReachedEnd }: { sourceUrl: string; onReachedEnd?: () => void }) => createElement('div', { 'data-testid': 'pdf-preview', 'data-source': sourceUrl }, createElement('button', { onClick: onReachedEnd }, 'Reach end of PDF')) }));
 
 const { state } = vi.hoisted(() => ({
   state: {
@@ -57,7 +57,7 @@ vi.mock('@tanstack/react-query', () => ({
     if (queryKey[0] === 'portal-document-comments') return state.commentsQuery;
     if (queryKey[0] === 'portal-document-parties') return state.partiesQuery;
     if (queryKey[0] === 'ecopy-requests') return { data: { requests: [], total: 0 }, isLoading: false, isError: false, refetch: vi.fn() };
-    if (queryKey[0] === 'portal-books') return { data: [], isLoading: false, isError: false };
+    if (queryKey[0] === 'portal-books') return { data: [{ id: 'book-1', book_number: 1, series_year: 2026 }], isLoading: false, isError: false, refetch: vi.fn() };
     return state.signedCopiesQuery;
   },
   useQueryClient: () => state.queryClient,
@@ -157,7 +157,15 @@ async function showPage() {
   });
 }
 
+async function advanceFinalization() {
+  fireEvent.click(await screen.findByRole('button', { name: 'Reach end of PDF' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+}
+
 beforeEach(() => {
+  Object.defineProperty(HTMLDialogElement.prototype, 'showModal', { configurable: true, value(this: HTMLDialogElement) { this.setAttribute('open', ''); } });
+  Object.defineProperty(HTMLDialogElement.prototype, 'close', { configurable: true, value(this: HTMLDialogElement) { this.removeAttribute('open'); } });
   vi.stubGlobal('ResizeObserver', ResizeObserverStub);
   sessionStorage.clear();
   state.documentQuery = { data: baseDocument, isLoading: false, isError: false, refetch: vi.fn() };
@@ -165,7 +173,7 @@ beforeEach(() => {
   state.signedCopiesQuery = { data: { document_id: 'doc-1', copies: [] }, isLoading: false, isError: false };
   state.partiesQuery = { data: { document_id: 'doc-1', issuer: { id: 'owner-1', user_id: 'owner-1', email: 'lawyer@example.com', f_name: 'Jordan', l_name: 'Lawyer', role: 'owner', status: 'accepted', responded_at: null, created_at: '2026-10-20T00:00:00Z' }, parties: [] }, isLoading: false, isError: false };
   state.commentsQuery = { data: { document_id: 'doc-1', unresolved: 0, synced_at: null, comments: [] }, isLoading: false, isError: false };
-  state.integrityQuery = { data: { status: 'AUTHENTIC', is_authentic: true }, isFetching: false, isError: false, refetch: vi.fn() };
+  state.integrityQuery = { data: { status: 'AUTHENTIC', is_authentic: true, metadata_status: 'MATCH', analysis_status: 'MATCH', needs_restore: false }, isFetching: false, isError: false, refetch: vi.fn() };
   state.queryClient.setQueryData.mockReset();
   state.queryClient.setQueryData.mockImplementation((queryKey, document) => {
     if (queryKey[0] === 'portal-doc') state.documentQuery = { ...state.documentQuery, data: document };
@@ -187,7 +195,15 @@ describe('document detail screen', () => {
   it('shows integrity status on the document page for a finalized document', async () => {
     state.documentQuery = { ...state.documentQuery, data: { ...baseDocument, lifecycle: 'FINALIZED', on_chain: true } };
     await showPage();
-    expect(screen.getByText('Integrity verified')).toBeTruthy();
+    expect(screen.getByText('PDF and document details unchanged')).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'View verification details' }).getAttribute('href')).toBe('/portal/documents/doc-1/verify');
+    expect(screen.queryByRole('link', { name: 'Verify integrity' })).toBeNull();
+  });
+
+  it('keeps verification available for an on-chain document that is not finalized', async () => {
+    state.documentQuery = { ...state.documentQuery, data: { ...baseDocument, on_chain: true } };
+    await showPage();
+    expect(screen.getByRole('link', { name: 'Verify integrity' }).getAttribute('href')).toBe('/portal/documents/doc-1/verify');
   });
 
   it('labels a finalized document on-chain only when confirmed', async () => {
@@ -429,12 +445,54 @@ describe('document detail screen', () => {
     expect(screen.getByRole('banner').contains(card)).toBe(false);
   });
 
+  it('requires PDF review and document details before final confirmation', async () => {
+    state.documentQuery = { ...state.documentQuery, data: { ...baseDocument, permissions: { ...baseDocument.permissions, can_finalize: true } } };
+    await showPage();
+    fireEvent.click(screen.getByRole('button', { name: 'Finalize' }));
+    const dialog = screen.getByRole('dialog', { name: 'Confirm finalization' });
+    expect(within(dialog).getByRole('button', { name: 'Next' }).hasAttribute('disabled')).toBe(true);
+    expect(within(dialog).queryByRole('button', { name: 'Confirm finalization' })).toBeNull();
+    fireEvent.click(await within(dialog).findByRole('button', { name: 'Reach end of PDF' }));
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Next' }));
+    expect(within(dialog).getByText('Signed agreement.pdf')).toBeTruthy();
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Next' }));
+    expect(state.finalizeDocument).not.toHaveBeenCalled();
+    expect(within(dialog).getByRole('button', { name: 'Confirm finalization' })).toBeTruthy();
+  });
+
+  it('prevents finalization when participant details cannot be loaded', async () => {
+    state.documentQuery = { ...state.documentQuery, data: { ...baseDocument, permissions: { ...baseDocument.permissions, can_finalize: true } } };
+    state.partiesQuery = { isLoading: false, isError: true, refetch: vi.fn() };
+    await showPage();
+    fireEvent.click(screen.getByRole('button', { name: 'Finalize' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Reach end of PDF' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+    expect(screen.getByRole('button', { name: 'Next' }).hasAttribute('disabled')).toBe(true);
+    fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
+    expect(state.partiesQuery.refetch).toHaveBeenCalledOnce();
+    expect(state.finalizeDocument).not.toHaveBeenCalled();
+  });
+
+  it('requires the current signed PDF to be reviewed if it changes during confirmation', async () => {
+    state.documentQuery = { ...state.documentQuery, data: { ...baseDocument, permissions: { ...baseDocument.permissions, can_finalize: true } } };
+    await showPage();
+    fireEvent.click(screen.getByRole('button', { name: 'Finalize' }));
+    await advanceFinalization();
+    state.documentQuery = { ...state.documentQuery, data: { ...baseDocument, signed_copy: { ...baseDocument.signed_copy!, id: 'new-copy' }, permissions: { ...baseDocument.permissions, can_finalize: true } } };
+    fireEvent.click(screen.getByRole('button', { name: 'Back' }));
+    expect(screen.getByText(/signed PDF changed/i)).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Next' }).hasAttribute('disabled')).toBe(true);
+    expect(state.finalizeDocument).not.toHaveBeenCalled();
+  });
+
   it('keeps finalization confirmation accessible before tabs appear', async () => {
     state.documentQuery = { ...state.documentQuery, data: { ...baseDocument, permissions: { ...baseDocument.permissions, can_finalize: true } } };
     await showPage();
     expect(screen.queryByRole('tablist')).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Finalize' }));
     const dialog = screen.getByRole('dialog', { name: 'Confirm finalization' });
+    expect((dialog as HTMLDialogElement).open).toBe(true);
+    expect(document.activeElement).toBe(within(dialog).getByRole('heading', { name: 'Review the signed PDF' }));
     expect(within(dialog).queryByText(/This freezes the signed copy/)).toBeNull();
     fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
     expect(screen.queryByRole('dialog')).toBeNull();
@@ -447,6 +505,8 @@ describe('document detail screen', () => {
       data: {
         ...baseDocument,
         file_name: 'Property Purchase Agreement.pdf',
+        doc_no: 12,
+        page_no: 34,
         signed_copy: {
           id: 'copy-123',
           sha256: '9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08',
@@ -462,16 +522,19 @@ describe('document detail screen', () => {
     await showPage();
     fireEvent.click(screen.getByRole('button', { name: 'Finalize' }));
     const dialog = screen.getByRole('dialog', { name: 'Confirm finalization' });
-    expect(within(dialog).getByText('Property Purchase Agreement.pdf')).toBeTruthy();
-    expect(within(dialog).getByText(/Executed_Agreement_Signed\.pdf · 2\.0 MB/)).toBeTruthy();
-    fireEvent.click(within(dialog).getByRole('button', { name: /open pdf/i }));
     const preview = await screen.findByTestId('pdf-preview');
     expect(preview.getAttribute('data-source')).toBe('/api/portal/documents/doc-1/file?copy_id=copy-123');
     expect(preview.parentElement?.classList.contains('flex')).toBe(true);
-    fireEvent.click(screen.getByRole('button', { name: /back to confirmation/i }));
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Reach end of PDF' }));
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Next' }));
+    expect(within(dialog).getByText('Property Purchase Agreement.pdf')).toBeTruthy();
+    expect(within(dialog).getByText(/Executed_Agreement_Signed\.pdf · 2\.0 MB/)).toBeTruthy();
+    expect(within(dialog).getByText('Document 12 · Page 34')).toBeTruthy();
+    expect(within(dialog).getByText('2026-10-10 UTC')).toBeTruthy();
+    expect(within(dialog).getByText(/SHA-256: 9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08/)).toBeTruthy();
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Next' }));
     expect(within(dialog).getByRole('button', { name: 'Confirm finalization' })).toBeTruthy();
     expect(state.finalizeDocument).not.toHaveBeenCalled();
-    expect(within(dialog).getByText(/SHA-256: 9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08/)).toBeTruthy();
     expect(within(dialog).getByText(/The frozen filing copy cannot be replaced or removed after finalization/)).toBeTruthy();
   });
 
@@ -481,11 +544,15 @@ describe('document detail screen', () => {
     state.documentQuery = { ...state.documentQuery, data: { ...baseDocument, permissions: { ...baseDocument.permissions, can_finalize: true } } };
     await showPage();
     fireEvent.click(screen.getByRole('button', { name: 'Finalize' }));
+    await advanceFinalization();
     fireEvent.click(screen.getByRole('button', { name: 'Confirm finalization' }));
     const confirm = screen.getByRole('button', { name: 'Finalizing…' });
     expect(confirm.hasAttribute('disabled')).toBe(true);
     expect(screen.getByRole('button', { name: 'Cancel' }).hasAttribute('disabled')).toBe(true);
     expect(screen.getByText('Waiting for blockchain confirmation…')).toBeTruthy();
+    expect(screen.getByRole('progressbar', { name: 'Finalization in progress' })).toBeTruthy();
+    fireEvent(screen.getByRole('dialog', { name: 'Confirm finalization' }), new Event('cancel', { bubbles: false, cancelable: true }));
+    expect(screen.getByRole('dialog', { name: 'Confirm finalization' })).toBeTruthy();
     fireEvent.click(confirm);
     expect(state.finalizeDocument).toHaveBeenCalledExactlyOnceWith('doc-1');
     await act(async () => finish?.({ document_id: 'doc-1', onchain_document_id: 'onchain-doc-101', data_hash: 'datahash101', tx_hash: '0xtxhash101' }));
@@ -499,6 +566,7 @@ describe('document detail screen', () => {
     state.documentQuery = { ...state.documentQuery, data: { ...baseDocument, permissions: { ...baseDocument.permissions, can_finalize: true } } };
     await showPage();
     fireEvent.click(screen.getByRole('button', { name: 'Finalize' }));
+    await advanceFinalization();
     fireEvent.click(screen.getByRole('button', { name: 'Confirm finalization' }));
     expect(await screen.findByText('Document finalized and anchored on-chain.')).toBeTruthy();
     expect(screen.getAllByText('Finalized').length).toBeGreaterThan(0);
@@ -524,6 +592,7 @@ describe('document detail screen', () => {
     state.documentQuery = { ...state.documentQuery, data: { ...baseDocument, permissions: { ...baseDocument.permissions, can_finalize: true } } };
     await showPage();
     fireEvent.click(screen.getByRole('button', { name: 'Finalize' }));
+    await advanceFinalization();
     fireEvent.click(screen.getByRole('button', { name: 'Confirm finalization' }));
     expect((await screen.findByRole('alert')).textContent).toContain('Document cannot be finalized');
     expect(screen.getByRole('button', { name: 'Confirm finalization' }).hasAttribute('disabled')).toBe(false);
@@ -541,6 +610,7 @@ describe('document detail screen', () => {
     state.documentQuery = { ...state.documentQuery, data: { ...baseDocument, permissions: { ...baseDocument.permissions, can_finalize: true } } };
     await showPage();
     fireEvent.click(screen.getByRole('button', { name: 'Finalize' }));
+    await advanceFinalization();
     fireEvent.click(screen.getByRole('button', { name: 'Confirm finalization' }));
 
     const checkStatus = await screen.findByRole('button', { name: 'Check status' });
@@ -574,6 +644,7 @@ describe('document detail screen', () => {
     state.documentQuery = { ...state.documentQuery, data: { ...baseDocument, permissions: { ...baseDocument.permissions, can_finalize: true } } };
     await showPage();
     fireEvent.click(screen.getByRole('button', { name: 'Finalize' }));
+    await advanceFinalization();
     fireEvent.click(screen.getByRole('button', { name: 'Confirm finalization' }));
 
     const checkStatus = await screen.findByRole('button', { name: 'Check status' });
@@ -591,6 +662,7 @@ describe('document detail screen', () => {
     state.documentQuery = { ...state.documentQuery, data: { ...baseDocument, permissions: { ...baseDocument.permissions, can_finalize: true } } };
     await showPage();
     fireEvent.click(screen.getByRole('button', { name: 'Finalize' }));
+    await advanceFinalization();
     fireEvent.click(screen.getByRole('button', { name: 'Confirm finalization' }));
     fireEvent.click(await screen.findByRole('button', { name: 'Check status' }));
 
@@ -611,6 +683,7 @@ describe('document detail screen', () => {
     state.documentQuery = { ...state.documentQuery, data: { ...baseDocument, permissions: { ...baseDocument.permissions, can_finalize: true } } };
     await showPage();
     fireEvent.click(screen.getByRole('button', { name: 'Finalize' }));
+    await advanceFinalization();
     fireEvent.click(screen.getByRole('button', { name: 'Confirm finalization' }));
     fireEvent.click(await screen.findByRole('button', { name: 'Check status' }));
 
@@ -629,6 +702,7 @@ describe('document detail screen', () => {
     vi.stubGlobal('fetch', fetchStatus);
     await showPage();
     fireEvent.click(screen.getByRole('button', { name: 'Finalize' }));
+    await advanceFinalization();
     fireEvent.click(screen.getByRole('button', { name: 'Confirm finalization' }));
     await screen.findByRole('button', { name: 'Check status' });
     cleanup();
@@ -654,6 +728,7 @@ describe('document detail screen', () => {
     state.documentQuery = { ...state.documentQuery, data: { ...baseDocument, permissions: { ...baseDocument.permissions, can_finalize: true } } };
     await showPage();
     fireEvent.click(screen.getByRole('button', { name: 'Finalize' }));
+    await advanceFinalization();
     fireEvent.click(screen.getByRole('button', { name: 'Confirm finalization' }));
 
     expect(await screen.findByRole('button', { name: 'Check status' })).toBeTruthy();
@@ -672,6 +747,7 @@ describe('document detail screen', () => {
     state.documentQuery = { ...state.documentQuery, data: { ...baseDocument, permissions: { ...baseDocument.permissions, can_finalize: true } } };
     await showPage();
     fireEvent.click(screen.getByRole('button', { name: 'Finalize' }));
+    await advanceFinalization();
     fireEvent.click(screen.getByRole('button', { name: 'Confirm finalization' }));
 
     expect(await screen.findByRole('button', { name: 'Check status' })).toBeTruthy();
@@ -713,6 +789,7 @@ describe('document detail screen', () => {
     });
     await showPage();
     fireEvent.click(screen.getByRole('button', { name: 'Finalize' }));
+    await advanceFinalization();
     fireEvent.click(screen.getByRole('button', { name: 'Confirm finalization' }));
 
     expect(await screen.findByText('0xtxhash101')).toBeTruthy();
@@ -732,6 +809,7 @@ describe('document detail screen', () => {
     await showPage();
 
     fireEvent.click(screen.getByRole('button', { name: 'Finalize' }));
+    await advanceFinalization();
     const confirmation = screen.getByRole('dialog', { name: 'Confirm finalization' });
     expect(within(confirmation).getByText(/demo mode/i)).toBeTruthy();
     expect(within(confirmation).getByText(/synthetic/i)).toBeTruthy();

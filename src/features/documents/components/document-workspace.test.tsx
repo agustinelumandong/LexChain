@@ -138,7 +138,7 @@ class ResizeObserverStub {
   unobserve() {}
 }
 
-function renderWorkspace(props: Partial<React.ComponentProps<typeof DocumentWorkspace>> = {}) {
+function renderWorkspace(props: Partial<React.ComponentProps<typeof DocumentWorkspace>> = {}, signedCopies?: unknown) {
   const initialDocument = props.document ?? document;
   const queryClient = new QueryClient({
     defaultOptions: {
@@ -146,6 +146,7 @@ function renderWorkspace(props: Partial<React.ComponentProps<typeof DocumentWork
       mutations: { retry: false },
     },
   });
+  if (signedCopies) queryClient.setQueryData(['portal-doc-signed-copies', initialDocument.document_id], signedCopies);
   const invalidateQueries = vi.spyOn(queryClient, 'invalidateQueries').mockResolvedValue();
   function WorkspaceFromQuery({ document: initialData, ...workspaceProps }: Partial<React.ComponentProps<typeof DocumentWorkspace>>) {
     const queryClient = useQueryClient();
@@ -171,6 +172,33 @@ describe('DocumentWorkspace', () => {
     expect(screen.queryByRole('tablist')).toBeNull();
     expect(screen.getByRole('heading', { name: 'Working draft' })).toBeTruthy();
   });
+  it('shows privacy and terms links when attaching or replacing a signed PDF', () => {
+    const { unmount } = renderWorkspace({ role: 'lawyer', document: { ...document, lifecycle: 'READY_FOR_SIGNATURE', permissions: { ...document.permissions, can_attach_signed_copy: true } } });
+    expect(screen.getByRole('link', { name: 'Privacy Notice' }).getAttribute('href')).toBe('/privacy');
+    expect(screen.getByRole('link', { name: 'Terms of Use' }).getAttribute('href')).toBe('/terms');
+    unmount();
+    renderWorkspace({ role: 'lawyer', document: { ...document, lifecycle: 'SIGNED', permissions: { ...document.permissions, can_replace_signed_copy: true } } });
+    fireEvent.click(screen.getByRole('button', { name: 'Replace signed PDF' }));
+    const dialog = screen.getByRole('dialog', { name: 'Replace signed PDF' });
+    expect(within(dialog).getByRole('link', { name: 'Privacy Notice' }).getAttribute('href')).toBe('/privacy');
+    expect(within(dialog).getByRole('link', { name: 'Terms of Use' }).getAttribute('href')).toBe('/terms');
+  });
+
+  it('keeps the replacement dialog open when closing its terms dialog', () => {
+    Object.defineProperty(HTMLDialogElement.prototype, 'showModal', { configurable: true, value(this: HTMLDialogElement) { this.setAttribute('open', ''); } });
+    renderWorkspace({ role: 'lawyer', document: { ...document, lifecycle: 'SIGNED', permissions: { ...document.permissions, can_replace_signed_copy: true } } });
+    fireEvent.click(screen.getByRole('button', { name: 'Replace signed PDF' }));
+    const replacement = screen.getByRole('dialog', { name: 'Replace signed PDF' });
+    fireEvent.click(within(replacement).getByRole('link', { name: 'Terms of Use' }));
+    const terms = screen.getByRole('dialog', { name: 'Terms of Use' });
+    expect(within(terms).getByText('Documents and access')).toBeTruthy();
+    expect(within(terms).queryByRole('main')).toBeNull();
+    fireEvent.keyDown(terms, { key: 'Escape' });
+    fireEvent(terms, new Event('cancel', { bubbles: false, cancelable: true }));
+    expect(screen.queryByRole('dialog', { name: 'Terms of Use' })).toBeNull();
+    expect(screen.getByRole('dialog', { name: 'Replace signed PDF' })).toBeTruthy();
+  });
+
   it('keeps signed PDF replacement accessible without tabs', () => {
     renderWorkspace({ role: 'lawyer', document: { ...document, lifecycle: 'SIGNED', permissions: { ...document.permissions, can_replace_signed_copy: true } } });
     expect(screen.queryByRole('tablist')).toBeNull();
@@ -302,6 +330,7 @@ describe('DocumentWorkspace', () => {
     vi.unstubAllEnvs();
     vi.clearAllMocks();
     sessionStorage.clear();
+    localStorage.clear();
     window.history.replaceState(null, '', '/');
   });
 
@@ -391,7 +420,7 @@ describe('DocumentWorkspace', () => {
     expect((screen.getByLabelText('Document number') as HTMLInputElement).value).toBe('18');
   });
 
-  it('keeps earlier signed PDF versions in the Files tab', async () => {
+  it('keeps earlier signed PDF versions available before finalization', async () => {
     listSignedCopiesMock.mockResolvedValue({ document_id: 'doc-101', copies: [
       { id: 'copy-current', sha256: 'current-hash', content_type: 'application/pdf', size_bytes: 100, original_filename: 'current.pdf', uploaded_by: null, replaced_reason: null, is_current: true, created_at: '2026-07-28T00:00:00Z' },
       { id: 'copy-old', sha256: 'old-hash', content_type: 'application/pdf', size_bytes: 90, original_filename: 'old.pdf', uploaded_by: null, replaced_reason: 'Corrected scan', is_current: false, created_at: '2026-07-27T00:00:00Z' },
@@ -404,6 +433,19 @@ describe('DocumentWorkspace', () => {
     expect(screen.getByText('Reason replaced: Corrected scan')).toBeTruthy();
     fireEvent.click(screen.getByText('File details'));
     expect(screen.getByText('old-hash')).toBeTruthy();
+  });
+
+  it('shows earlier signed PDFs in Files but not the finalized overview', async () => {
+    const copies = { document_id: 'doc-101', copies: [
+      { id: 'copy-old', sha256: 'old-hash', content_type: 'application/pdf', size_bytes: 90, original_filename: 'old.pdf', uploaded_by: null, replaced_reason: 'Corrected scan', is_current: false, created_at: '2026-07-27T00:00:00Z' },
+    ] };
+    listSignedCopiesMock.mockResolvedValue(copies);
+    renderWorkspace({ document: { ...document, lifecycle: 'FINALIZED', status: 'COMPLETED' } }, copies);
+    expect(screen.queryByText('Earlier signed PDFs (1)')).toBeNull();
+    fireEvent.click(screen.getByRole('tab', { name: 'Files' }));
+    fireEvent.click(await screen.findByText('Earlier signed PDFs (1)'));
+    expect(screen.getByText('old.pdf')).toBeTruthy();
+    expect(screen.getByText('Reason replaced: Corrected scan')).toBeTruthy();
   });
 
   it('attaches a signed PDF, submits the register details, and renders the returned current copy', async () => {
@@ -587,6 +629,45 @@ describe('DocumentWorkspace', () => {
     expect(within(progress).getByText('Step 2 of 4')).toBeTruthy();
   });
 
+  it('keeps a newly uploaded PDF at review until the lawyer continues', () => {
+    renderWorkspace({ role: 'lawyer', workflowActions: <button>Review text</button>, document: { ...document, lifecycle: 'SIGNED', draft_url: null, status: 'AWAITING_REVIEW' } });
+    const progress = screen.getByRole('navigation', { name: 'Draft and filing progress' });
+    expect(within(progress).getByRole('listitem', { current: 'step' }).textContent).toContain('Review signed PDF');
+    expect(screen.queryByRole('button', { name: 'Review text' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Continue to text review' }));
+    expect(within(progress).getByRole('listitem', { current: 'step' }).textContent).toContain('Review text and risks');
+    expect(screen.getByRole('button', { name: 'Review text' })).toBeTruthy();
+  });
+
+  it('keeps text review current after leaving and reopening the document', () => {
+    const signedDocument = { ...document, lifecycle: 'SIGNED', draft_url: null, status: 'AWAITING_REVIEW' };
+    const view = renderWorkspace({ role: 'lawyer', document: signedDocument });
+    fireEvent.click(screen.getByRole('button', { name: 'Continue to text review' }));
+    view.unmount();
+    renderWorkspace({ role: 'lawyer', document: signedDocument });
+    expect(within(screen.getByRole('navigation', { name: 'Draft and filing progress' })).getByRole('listitem', { current: 'step' }).textContent).toContain('Review text and risks');
+  });
+
+  it('asks for PDF review again when a different signed copy is attached', () => {
+    const signedDocument = { ...document, lifecycle: 'SIGNED', draft_url: null, status: 'AWAITING_REVIEW' };
+    const view = renderWorkspace({ role: 'lawyer', document: signedDocument });
+    fireEvent.click(screen.getByRole('button', { name: 'Continue to text review' }));
+    view.unmount();
+    renderWorkspace({ role: 'lawyer', document: { ...signedDocument, signed_copy: { ...document.signed_copy!, id: 'replacement-copy' } } });
+    expect(within(screen.getByRole('navigation', { name: 'Draft and filing progress' })).getByRole('listitem', { current: 'step' }).textContent).toContain('Review signed PDF');
+  });
+
+  it.each(['ENRICHING', 'COMPLETED'])('does not return to PDF review after text approval when status is %s', (status) => {
+    renderWorkspace({ role: 'lawyer', document: { ...document, lifecycle: 'SIGNED', draft_url: null, status } });
+    expect(within(screen.getByRole('navigation', { name: 'Draft and filing progress' })).getByRole('listitem', { current: 'step' }).textContent).toContain('Review text and risks');
+  });
+
+  it('shows document history while reviewing the signed PDF', async () => {
+    renderWorkspace({ role: 'lawyer', document: { ...document, lifecycle: 'SIGNED', draft_url: null, status: 'AWAITING_REVIEW' } });
+    expect(screen.getByRole('heading', { name: 'History' })).toBeTruthy();
+    expect(await screen.findByText('No history recorded')).toBeTruthy();
+  });
+
   it('shows setup and working draft as separate steps for Google documents', () => {
     renderWorkspace({ document: { ...document, lifecycle: 'PREPARING', draft_url: null, permissions: { ...document.permissions, can_create_draft: true } } });
     const progress = screen.getByRole('navigation', { name: 'Draft and filing progress' });
@@ -636,6 +717,7 @@ describe('DocumentWorkspace', () => {
 
   it.each(['AWAITING_REVIEW', 'READY_FOR_REVIEW', 'ENRICHING', 'COMPLETED'])('shows text and risk review before finalization when processing is %s', (status) => {
     renderWorkspace({ role: 'lawyer', document: { ...document, lifecycle: 'SIGNED', draft_url: null, status } });
+    if (['AWAITING_REVIEW', 'READY_FOR_REVIEW'].includes(status)) fireEvent.click(screen.getByRole('button', { name: 'Continue to text review' }));
     const progress = screen.getByRole('navigation', { name: 'Draft and filing progress' });
     expect(within(progress).getByText('Step 3 of 4')).toBeTruthy();
     expect(within(progress).getByRole('listitem', { current: 'step' }).textContent).toContain('Review text and risks');
@@ -863,13 +945,22 @@ describe('DocumentWorkspace', () => {
   });
 
   it('restores source and selected file for the matching document, then consumes the context', async () => {
-    saveGoogleDraftReturnContext({ documentId: 'doc-101', source: 'template', picked: { id: 'file-88', name: 'Restored template' } });
+    saveGoogleDraftReturnContext({ documentId: 'doc-101', source: 'existing', picked: { id: 'file-88', name: 'Restored draft' } });
     renderWorkspace({ document: { ...document, draft_url: null, permissions: { ...document.permissions, can_create_draft: true } } });
 
     await waitFor(() => expect(readGoogleDraftReturnContext()).toBeNull());
-    await waitFor(() => expect(screen.getByRole('combobox', { name: 'Choose a starting point' }).textContent).toContain('Copy a template'));
-    expect(screen.getByText('Selected: Restored template')).toBeTruthy();
+    await waitFor(() => expect(screen.getByRole('combobox', { name: 'Choose a starting point' }).textContent).toContain('Use an existing Google Doc'));
+    expect(screen.getByText('Selected: Restored draft')).toBeTruthy();
     expect(readGoogleDraftReturnContext()).toBeNull();
+  });
+
+  it('restores a chosen template after returning from the Google connection', async () => {
+    saveGoogleDraftReturnContext({ documentId: 'doc-101', source: 'template', picked: { id: 'deed-of-absolute-sale', name: 'Deed of Absolute Sale' } });
+    renderWorkspace({ document: { ...document, draft_url: null, permissions: { ...document.permissions, can_create_draft: true } } });
+
+    const template = await screen.findByRole('combobox', { name: 'Choose a template' });
+    expect(template.textContent).toContain('Deed of Absolute Sale');
+    expect((screen.getByRole('button', { name: 'Copy selected template' }) as HTMLButtonElement).disabled).toBe(false);
   });
 
   it('clears a return context belonging to a different document without restoring it', async () => {
@@ -907,11 +998,11 @@ describe('DocumentWorkspace', () => {
     renderWorkspace({ document: { ...document, draft_url: null, permissions: { ...document.permissions, can_create_draft: true } } });
 
     fireEvent.click(screen.getByRole('combobox', { name: 'Choose a starting point' }));
-    fireEvent.click(screen.getByRole('option', { name: 'Copy a template' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Choose template' }));
+    fireEvent.click(screen.getByRole('option', { name: 'Use an existing Google Doc' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Choose existing Google Doc' }));
     expect(await screen.findByText('Selected: First choice')).toBeTruthy();
     action = 'cancel';
-    fireEvent.click(screen.getByRole('button', { name: 'Choose template' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Choose existing Google Doc' }));
 
     expect(await screen.findByText('Selected: First choice')).toBeTruthy();
   });
@@ -975,35 +1066,12 @@ describe('DocumentWorkspace', () => {
   });
 
   it.each(['GOOGLE_NOT_CONNECTED', 'GOOGLE_RECONNECT_REQUIRED'])(
-    'keeps a picked template after %s and allows retry', async (reason) => {
-    vi.stubEnv('NEXT_PUBLIC_GOOGLE_PICKER_API_KEY', 'browser-key');
-    vi.stubEnv('NEXT_PUBLIC_GOOGLE_PICKER_APP_ID', 'cloud-project-number');
-    let pickerCallback: (data: unknown) => void = () => undefined;
-    class PickerBuilder {
-      addView() { return this; }
-      setOAuthToken() { return this; }
-      setDeveloperKey() { return this; }
-      setAppId() { return this; }
-      setTitle() { return this; }
-      setCallback(callback: (data: unknown) => void) { pickerCallback = callback; return this; }
-      build() {
-        return { setVisible: (visible: boolean) => {
-          if (visible) pickerCallback({ action: 'picked', docs: [{ id: 'template-77', name: 'Client template', mimeType: 'application/vnd.google-apps.document' }] });
-        } };
-      }
-    }
-    class DocsView {
-      setMimeTypes() { return this; }
-    }
-    Object.assign(window, {
-      gapi: { load: (_library: string, callback: () => void) => callback() },
-      google: { picker: { Action: { PICKED: 'picked', CANCEL: 'cancel' }, ViewId: { DOCS: 'docs' }, DocsView, PickerBuilder } },
-    });
+    'keeps a chosen template after %s and allows retry without Picker settings', async (reason) => {
     let createCount = 0;
     const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       const url = new URL(String(input), window.location.origin);
       const path = url.searchParams.get('path');
-      if (path === '/google/picker-token') return Response.json({ access_token: 'short-lived-picker-token', expires_at: '2099-01-01T00:00:00Z' });
+      if (url.pathname === '/templates/deed-of-absolute-sale.docx') return new Response('template-bytes');
       if (path === '/documents/doc-101/draft' && init?.method === 'POST') {
         createCount += 1;
         if (createCount === 1) return Response.json({ message: 'Reconnect Google Drive.', details: { reason } }, { status: 409 });
@@ -1016,21 +1084,22 @@ describe('DocumentWorkspace', () => {
 
     fireEvent.click(await screen.findByRole('combobox', { name: 'Choose a starting point' }));
     fireEvent.click(screen.getByRole('option', { name: 'Copy a template' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Choose template' }));
-    expect(await screen.findByText(/Client template/)).toBeTruthy();
+    fireEvent.click(screen.getByRole('combobox', { name: 'Choose a template' }));
+    fireEvent.click(screen.getByRole('option', { name: 'Deed of Absolute Sale' }));
     fireEvent.click(screen.getByRole('button', { name: 'Copy selected template' }));
 
     expect(await screen.findByRole('link', { name: 'Connect Google in account settings' })).toBeTruthy();
-    expect(screen.getByText(/Client template/)).toBeTruthy();
+    expect(screen.getByRole('combobox', { name: 'Choose a template' }).textContent).toContain('Deed of Absolute Sale');
     expect(screen.getByRole('combobox', { name: 'Choose a starting point' }).textContent).toContain('Copy a template');
     fireEvent.click(screen.getByRole('button', { name: 'Copy selected template' }));
     expect(await screen.findByRole('link', { name: 'Open Google draft' })).toBeTruthy();
 
-    expect(fetchMock).toHaveBeenCalledWith('/api/portal/proxy?path=%2Fgoogle%2Fpicker-token', expect.any(Object));
-    expect(fetchMock).toHaveBeenCalledWith(
-      '/api/portal/proxy-post?path=%2Fdocuments%2Fdoc-101%2Fdraft',
-      expect.objectContaining({ method: 'POST', body: expect.any(FormData) }),
-    );
+    expect(fetchMock).not.toHaveBeenCalledWith('/api/portal/proxy?path=%2Fgoogle%2Fpicker-token', expect.any(Object));
+    const draftCall = fetchMock.mock.calls.find(([input]) => String(input) === '/api/portal/proxy-post?path=%2Fdocuments%2Fdoc-101%2Fdraft');
+    const body = draftCall?.[1]?.body as FormData;
+    expect(body.get('source')).toBe('upload');
+    expect(body.get('file_id')).toBeNull();
+    expect((body.get('file') as File).name).toBe('deed-of-absolute-sale.docx');
     await waitFor(() => expect(createCount).toBe(2));
   });
 
@@ -1045,11 +1114,11 @@ describe('DocumentWorkspace', () => {
     renderWorkspace({ document: { ...document, draft_url: null, permissions: { ...document.permissions, can_create_draft: true } } });
 
     fireEvent.click(screen.getByRole('combobox', { name: 'Choose a starting point' }));
-    fireEvent.click(screen.getByRole('option', { name: 'Copy a template' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Choose template' }));
+    fireEvent.click(screen.getByRole('option', { name: 'Use an existing Google Doc' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Choose existing Google Doc' }));
 
     expect(await screen.findByRole('link', { name: 'Connect Google in account settings' })).toBeTruthy();
-    expect(screen.getByRole('combobox', { name: 'Choose a starting point' }).textContent).toContain('Copy a template');
+    expect(screen.getByRole('combobox', { name: 'Choose a starting point' }).textContent).toContain('Use an existing Google Doc');
     fireEvent.click(screen.getByRole('combobox', { name: 'Choose a starting point' }));
     fireEvent.click(screen.getByRole('option', { name: 'Blank Google Doc' }));
     expect(screen.queryByRole('link', { name: 'Connect Google in account settings' })).toBeNull();

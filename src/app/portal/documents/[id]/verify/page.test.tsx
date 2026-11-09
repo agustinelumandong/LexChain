@@ -57,8 +57,8 @@ describe('DocumentVerifyPage', () => {
     baseline_trusted: baselineTrusted,
     needs_restore: (status === 'TAMPERED' && baselineTrusted && !isAuthentic) || status === 'FILE_MISSING' || status === 'SNAPSHOT_COMPROMISED',
     onchain_hash: 'on-chain-hash',
-    snapshot_hash: 'snapshot-hash',
-    current_hash: 'current-hash',
+    snapshot_hash: baselineTrusted ? 'on-chain-hash' : 'snapshot-hash',
+    current_hash: isAuthentic ? 'on-chain-hash' : 'current-hash',
     tx_hash: txHash,
     onchain_timestamp: 1_760_000_000,
     issued_by: null,
@@ -97,7 +97,7 @@ describe('DocumentVerifyPage', () => {
     vi.stubGlobal('fetch', fetchMock);
 
     renderPage();
-    expect(await screen.findByText('This PDF matches the saved version')).toBeTruthy();
+    expect(await screen.findByText('PDF unchanged')).toBeTruthy();
     expect(fetchMock.mock.calls.some(([url]) => String(url).includes(encodeURIComponent('/documents/doc-1/verify')))).toBe(true);
   });
 
@@ -144,7 +144,7 @@ describe('DocumentVerifyPage', () => {
   });
 
   it.each([
-    ['AUTHENTIC', true, true, 'This PDF matches the saved version'],
+    ['AUTHENTIC', true, true, 'PDF unchanged'],
     ['TAMPERED', false, false, 'This PDF differs from the saved version'],
     ['VERIFICATION_UNAVAILABLE', false, true, 'We could not check this document'],
     ['NOT_ANCHORED', false, false, 'No blockchain record is saved'],
@@ -234,7 +234,7 @@ describe('DocumentVerifyPage', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Restore from backup' }));
     fireEvent.click(screen.getByRole('button', { name: 'Restore archived original' }));
 
-    expect(await screen.findByText('This PDF matches the saved version')).toBeTruthy();
+    expect(await screen.findByText('PDF unchanged')).toBeTruthy();
     expect(await screen.findByText('Document repair completed.')).toBeTruthy();
     expect(queryClient.getQueryData(['portal-doc-chain', 'doc-1'])).toEqual(authentic);
     expect(fetchMock.mock.calls.some(([url, init]) => String(url).includes(encodeURIComponent('/documents/doc-1/restore')) && init?.method === 'POST')).toBe(true);
@@ -257,7 +257,7 @@ describe('DocumentVerifyPage', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Restore from backup' }));
     fireEvent.click(screen.getByRole('button', { name: 'Restore archived original' }));
 
-    expect(await screen.findByText('This PDF matches the saved version')).toBeTruthy();
+    expect(await screen.findByText('PDF unchanged')).toBeTruthy();
     expect(await screen.findByText('Nothing needed repair. Verification has been refreshed.')).toBeTruthy();
   });
 
@@ -273,7 +273,8 @@ describe('DocumentVerifyPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Restore archived original' }));
 
     const result = await screen.findByRole('region', { name: 'Restore result' });
-    expect(within(result).getByText('Repaired: metadata.document_number')).toBeTruthy();
+    expect(within(result).getByText('Repaired: Document number')).toBeTruthy();
+    expect(within(result).getByRole('heading', { name: 'Repair needs attention' })).toBeTruthy();
     expect(within(result).getByRole('alert').textContent).toContain('snapshot.signed_copy_id');
   });
 
@@ -299,7 +300,7 @@ describe('DocumentVerifyPage', () => {
       preserved_copy_id: 'copy-preserved',
       verification: authentic,
     }));
-    expect(await screen.findByText('This PDF matches the saved version')).toBeTruthy();
+    expect(await screen.findByText('PDF unchanged')).toBeTruthy();
   });
 
   it('keeps the confirmation open and shows the backend error when restore fails', async () => {
@@ -319,11 +320,11 @@ describe('DocumentVerifyPage', () => {
     renderPage();
 
     expect(await screen.findByText('We could not check this document')).toBeTruthy();
-    expect(screen.queryByText('This PDF matches the saved version')).toBeNull();
+    expect(screen.queryByText('PDF unchanged')).toBeNull();
   });
 
   it.each([
-    ['AUTHENTIC', true, true, 'This PDF matches the saved version'],
+    ['AUTHENTIC', true, true, 'PDF unchanged'],
     ['TAMPERED', false, true, 'This PDF differs from the saved version'],
     ['NOT_ANCHORED', false, false, 'No blockchain record is saved'],
     ['VERIFICATION_UNAVAILABLE', false, true, 'We could not check this document'],
@@ -343,7 +344,7 @@ describe('DocumentVerifyPage', () => {
       await screen.findByRole('button', { name: 'Try again' });
       screen.getByRole('button', { name: 'Try again' }).click();
 
-      expect(await screen.findByText('This PDF matches the saved version')).toBeTruthy();
+      expect(await screen.findByText('PDF unchanged')).toBeTruthy();
       expect(fetchMock.mock.calls.filter(([url]) => String(url).includes(encodeURIComponent('/documents/doc-1/verify')))).toHaveLength(2);
     },
   );
@@ -363,7 +364,7 @@ describe('DocumentVerifyPage', () => {
       vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json(verification('AUTHENTIC', true, true, txHash))));
       renderPage();
 
-      expect(await screen.findByText('This PDF matches the saved version')).toBeTruthy();
+      expect(await screen.findByText('PDF unchanged')).toBeTruthy();
       expect(screen.queryByRole('link', { name: 'View transaction on Base Sepolia' })).toBeNull();
     },
   );
@@ -380,7 +381,7 @@ describe('DocumentVerifyPage', () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json(verification('AUTHENTIC', true, true))));
     renderPage();
 
-    expect(await screen.findByText('This PDF matches the saved version')).toBeTruthy();
+    expect(await screen.findByText('PDF unchanged')).toBeTruthy();
     expect(screen.queryByText(/simulated and does not represent a real backend or blockchain verification/i)).toBeNull();
   });
 
@@ -391,7 +392,7 @@ describe('DocumentVerifyPage', () => {
     expect(await screen.findByText('We could not check this document')).toBeTruthy();
     expect(screen.getByText('API error: 503')).toBeTruthy();
     expect(screen.queryByText('This PDF differs from the saved version')).toBeNull();
-    expect(screen.queryByText('This PDF matches the saved version')).toBeNull();
+    expect(screen.queryByText('PDF unchanged')).toBeNull();
   });
 
   it('explains a 404 as a missing or unanchored document without offering a retry', async () => {

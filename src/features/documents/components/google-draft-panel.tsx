@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { toast } from 'sonner';
 import type { ApiSchema } from '@/shared/types';
 import { createGoogleDraft, getGoogleDraftUploadFileError, getGooglePickerToken, isGoogleDraftUrl } from '@/features/documents/document-draft-api';
+import { DRAFT_TEMPLATES, loadDraftTemplate, type DraftTemplate } from '@/features/documents/draft-templates';
 import { clearGoogleDraftReturnContext, readGoogleDraftReturnContext, saveGoogleDraftReturnContext } from '@/shared/utils/google-draft-return-context';
 import { Dropdown } from '@/shared/components/ui';
 import OpenInNewOutlinedIcon from '@mui/icons-material/OpenInNewOutlined';
@@ -162,7 +163,24 @@ function DraftUploadField({ uploadError, error, pending, onUploadFile }: {
   </div>;
 }
 
-function DraftCreationForm({ source, picked, uploadFile, uploadError, error, needsGoogleConnection, pending, picking, onSourceChange, onPick, onUploadFile, onCreate, onConnectGoogle }: {
+const TEMPLATE_OPTIONS = DRAFT_TEMPLATES.map((template) => ({ label: template.name, value: template.id }));
+
+function DraftTemplateField({ picked, pending, onPickTemplate }: {
+  picked: PickedFile | null;
+  pending: boolean;
+  onPickTemplate: (template: DraftTemplate) => void;
+}) {
+  function selectTemplate(id: string) {
+    const template = DRAFT_TEMPLATES.find((item) => item.id === id);
+    if (template) onPickTemplate(template);
+  }
+
+  return <label className="grid max-w-sm gap-2 text-base font-bold text-[#0C2B49]">Choose a template
+    <Dropdown ariaLabel="Choose a template" fullWidth placeholder="Select a template" disabled={pending} value={picked?.id ?? ''} onChange={selectTemplate} options={TEMPLATE_OPTIONS} />
+  </label>;
+}
+
+function DraftCreationForm({ source, picked, uploadFile, uploadError, error, needsGoogleConnection, pending, picking, onSourceChange, onPick, onPickTemplate, onUploadFile, onCreate, onConnectGoogle }: {
   source: Source;
   picked: PickedFile | null;
   uploadFile: File | null;
@@ -173,6 +191,7 @@ function DraftCreationForm({ source, picked, uploadFile, uploadError, error, nee
   picking: boolean;
   onSourceChange: (source: Source) => void;
   onPick: () => void;
+  onPickTemplate: (template: DraftTemplate) => void;
   onUploadFile: (file: File | null) => void;
   onCreate: () => void;
   onConnectGoogle: (event: React.MouseEvent<HTMLAnchorElement>) => void;
@@ -181,7 +200,8 @@ function DraftCreationForm({ source, picked, uploadFile, uploadError, error, nee
     <label className="grid max-w-sm gap-2 text-base font-bold text-[#0C2B49]">Choose a starting point
       <Dropdown ariaLabel="Choose a starting point" fullWidth value={source} onChange={(value) => onSourceChange(value as Source)} options={[{ label: 'Blank Google Doc', value: 'blank' }, { label: 'Copy a template', value: 'template' }, { label: 'Use an existing Google Doc', value: 'existing' }, { label: 'Upload a document', value: 'upload' }]} />
     </label>
-    {(source === 'template' || source === 'existing') && <div className="space-y-2"><button type="button" disabled={picking} onClick={onPick} className="min-h-11 rounded-full border border-[#006BB6] px-4 py-2 text-base font-bold text-[#006BB6] disabled:opacity-60">{picking ? 'Opening Picker…' : source === 'template' ? 'Choose template' : 'Choose existing Google Doc'}</button>{picked && <p className="break-words text-base leading-7 text-[#0C2B49]">Selected: {picked.name}</p>}</div>}
+    {source === 'template' && <DraftTemplateField picked={picked} pending={pending} onPickTemplate={onPickTemplate} />}
+    {source === 'existing' && <div className="space-y-2"><button type="button" disabled={picking} onClick={onPick} className="min-h-11 rounded-full border border-[#006BB6] px-4 py-2 text-base font-bold text-[#006BB6] disabled:opacity-60">{picking ? 'Opening Picker…' : 'Choose existing Google Doc'}</button>{picked && <p className="break-words text-base leading-7 text-[#0C2B49]">Selected: {picked.name}</p>}</div>}
     {source === 'upload' && <DraftUploadField uploadError={uploadError} error={error} pending={pending} onUploadFile={onUploadFile} />}
     {error && <div id="google-draft-error" role="alert" className="space-y-2 text-base font-bold leading-7 text-[#B42318]"><p>{error}</p>{needsGoogleConnection && <Link href="/portal/profile/account?google_draft_return=1" onClick={onConnectGoogle} className="inline-flex min-h-11 items-center rounded-full border border-[#006BB6] px-4 py-2 text-base text-[#006BB6]">Connect Google in account settings</Link>}</div>}
     <button type="button" disabled={pending || !canCreateDraft(source, picked, uploadFile, uploadError)} onClick={onCreate} className="min-h-12 rounded-full bg-[#0673C4] px-5 py-3 text-base font-bold text-white hover:bg-[#005FA3] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3] disabled:opacity-60">{pending ? PENDING_LABELS[source] : ACTION_LABELS[source]}</button>
@@ -240,7 +260,10 @@ export function GoogleDraftPanel({ document, onDocumentUpdated, onBusyChange }: 
     setError('');
     setNeedsGoogleConnection(false);
     try {
-      const result = await createGoogleDraft(document.document_id, source, picked?.id, uploadFile ?? undefined);
+      // Drive only lets LexChain copy files the lawyer picked, so a listed template is uploaded as a new Doc.
+      const result = source === 'template'
+        ? await createGoogleDraft(document.document_id, 'upload', undefined, await loadDraftTemplate(picked?.id ?? ''))
+        : await createGoogleDraft(document.document_id, source, picked?.id, uploadFile ?? undefined);
       toast.success('Google draft is ready.');
       onDocumentUpdated(result);
     } catch (cause) {
@@ -248,7 +271,7 @@ export function GoogleDraftPanel({ document, onDocumentUpdated, onBusyChange }: 
       setError(failure.message);
       setNeedsGoogleConnection(failure.needsGoogleConnection);
       const status = cause instanceof Error && 'status' in cause && typeof cause.status === 'number' ? cause.status : undefined;
-      if (source !== 'blank' && source !== 'upload' && (status === 400 || status === 404)) setPicked(null);
+      if (source === 'existing' && (status === 400 || status === 404)) setPicked(null);
     } finally {
       setPending(false);
       onBusyChange?.(false);
@@ -271,5 +294,5 @@ export function GoogleDraftPanel({ document, onDocumentUpdated, onBusyChange }: 
   const uploadError = source === 'upload' && uploadFile ? getGoogleDraftUploadFileError(uploadFile) : null;
 
   return <DraftCreationForm source={source} picked={picked} uploadFile={uploadFile} uploadError={uploadError} error={error} needsGoogleConnection={needsGoogleConnection} pending={pending} picking={picking}
-    onSourceChange={(value) => { setSource(value); setPicked(null); setUploadFile(null); setError(''); setNeedsGoogleConnection(false); }} onPick={() => void chooseFile()} onUploadFile={(file) => { setUploadFile(file); setError(''); setNeedsGoogleConnection(false); }} onCreate={() => void createDraft()} onConnectGoogle={preserveChoices} />;
+    onSourceChange={(value) => { setSource(value); setPicked(null); setUploadFile(null); setError(''); setNeedsGoogleConnection(false); }} onPick={() => void chooseFile()} onPickTemplate={(template) => { setPicked(template); setError(''); setNeedsGoogleConnection(false); }} onUploadFile={(file) => { setUploadFile(file); setError(''); setNeedsGoogleConnection(false); }} onCreate={() => void createDraft()} onConnectGoogle={preserveChoices} />;
 }

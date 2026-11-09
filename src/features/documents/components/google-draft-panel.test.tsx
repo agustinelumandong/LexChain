@@ -49,8 +49,8 @@ describe('GoogleDraftPanel busy state', () => {
     const onBusyChange = vi.fn();
     render(<GoogleDraftPanel document={document} onDocumentUpdated={vi.fn()} onBusyChange={onBusyChange} />);
     fireEvent.click(screen.getByRole('combobox', { name: 'Choose a starting point' }));
-    fireEvent.click(screen.getByRole('option', { name: 'Copy a template' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Choose template' }));
+    fireEvent.click(screen.getByRole('option', { name: 'Use an existing Google Doc' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Choose existing Google Doc' }));
     await waitFor(() => expect(pickerToken).toHaveBeenCalled());
     expect(onBusyChange).toHaveBeenLastCalledWith(true);
     await waitFor(() => expect(setVisible).toHaveBeenCalledWith(true));

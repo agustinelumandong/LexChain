@@ -72,7 +72,7 @@ pnpm dev
 
 Open `http://localhost:3000`. Restart the frontend after environment changes. Rebuild production output after changing public environment values. This frontend repository does not start the separate FastAPI backend.
 
-For template/existing Google Docs selection, also configure `NEXT_PUBLIC_GOOGLE_PICKER_API_KEY` and `NEXT_PUBLIC_GOOGLE_PICKER_APP_ID` for the Google Cloud project and allowed frontend origin. Blank drafts do not require Picker settings. The backend owner must configure Google OAuth and the return URL for this frontend; frontend settings alone cannot do that. See [the README](../README.md) for setup.
+For existing Google Docs selection, also configure `NEXT_PUBLIC_GOOGLE_PICKER_API_KEY` and `NEXT_PUBLIC_GOOGLE_PICKER_APP_ID` for the Google Cloud project and allowed frontend origin. Blank drafts and listed templates do not require Picker settings. The backend owner must configure Google OAuth and the return URL for this frontend; frontend settings alone cannot do that. See [the README](../README.md) for setup.
 
 ## 2. Record results as you go
 
