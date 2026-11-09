@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
 import VisibilityOffOutlinedIcon from "@mui/icons-material/VisibilityOffOutlined";
 import { getPortalLoginRedirect } from "@/features/access";
+import { AuthenticatorCodeInput } from "@/features/auth/components/authenticator-code-input";
 import { queueNextNavigationToast } from "@/shared/utils/next-navigation-toast";
 
 async function signIn(data: { email: string; password: string; rememberMe: boolean }) {
@@ -258,7 +259,7 @@ export default function LoginPage({ sessionExpired = false, returnPath }: { sess
           </div> : <button type="button" onClick={() => enroll.mutate()} className="min-h-11 text-sm font-semibold text-[#0067B3] focus-visible:ring-2 focus-visible:ring-[#0067B3]">Try setup again</button>)}
           {(step === "verify" || enrollment) && <form className="space-y-3" onSubmit={(event) => { event.preventDefault(); if (!/^\d{6}$/.test(code)) { setMfaError("Enter the 6-digit code from your authenticator app."); return; } setMfaError(null); verify.mutate(); }}>
             <label htmlFor="authenticator-code" className="block text-sm font-semibold text-[#0C2B49]">Authenticator code</label>
-            <input id="authenticator-code" name="authenticator-code" spellCheck={false} value={code} onChange={(event) => { setCode(event.target.value); setMfaError(null); }} autoComplete="one-time-code" inputMode="numeric" maxLength={6} required aria-invalid={mfaError ? true : undefined} aria-describedby={mfaError ? "mfa-error" : undefined} className={`min-h-12 w-full rounded-[14px] border bg-[#F5FAFF] px-3.5 text-base outline-none focus-visible:ring-2 focus-visible:ring-[#0067B3] ${mfaError ? "border-red-700" : "border-[#E4EEF9]"}`} />
+            <AuthenticatorCodeInput id="authenticator-code" value={code} invalid={Boolean(mfaError)} describedBy={mfaError ? "mfa-error" : undefined} onChange={(nextCode) => { setCode(nextCode); setMfaError(null); }} />
             {mfaError && <p id="mfa-error" role="alert" className="text-sm font-semibold text-red-700">{mfaError}</p>}
             <button type="submit" disabled={verify.isPending || cancel.isPending} className="flex min-h-[52px] w-full items-center justify-center rounded-full bg-[#0067B3] px-5 py-3 text-base font-bold text-white hover:bg-[#005F9E] focus-visible:ring-2 focus-visible:ring-[#0067B3] disabled:opacity-60">{verify.isPending ? "Verifying…" : "Verify and sign in"}</button>
           </form>}
