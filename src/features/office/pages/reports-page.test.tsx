@@ -25,8 +25,10 @@ describe('Document Activity report', () => {
   it('does not display a successful report when fetching fails', async () => {
     render(<OfficeReportsPage />);
     fireEvent.click(screen.getByRole('button', { name: 'Generate report' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Next' }));
     fireEvent.click(screen.getByRole('button', { name: 'Generate' }));
-    expect(await screen.findByRole('alert')).toBeTruthy();
+    expect((await screen.findByRole('alert')).textContent).toContain('Report fetch failed');
     expect(screen.queryByRole('button', { name: 'Download CSV' })).toBeNull();
     expect(screen.queryByText('Ready')).toBeNull();
   });

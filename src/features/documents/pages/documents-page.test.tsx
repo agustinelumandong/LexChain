@@ -9,6 +9,7 @@ import type { DocumentListItem } from '../document-library';
 const { push } = vi.hoisted(() => ({ push: vi.fn() }));
 
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push }), useSearchParams: () => new URLSearchParams() }));
+vi.mock('@/features/documents/pages/documents-id-page', () => ({ default: () => <div>Document workspace</div> }));
 
 function setupFetch(openResponse = Response.json({ document_id: 'new-document', file_name: 'Client agreement', lifecycle: 'PREPARING' }, { status: 201 }), documentsResponse: Response = Response.json([]), role = 'lawyer') {
   const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
@@ -32,16 +33,18 @@ afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
   vi.clearAllMocks();
+  window.history.replaceState(null, '', '/');
 });
 
 describe('document directory draft creation', () => {
   it('opens a named PREPARING record and navigates to its document workspace', async () => {
     const fetchMock = setupFetch();
-    render(<NewDocumentPage />);
+    render(<QueryClientProvider client={new QueryClient()}><NewDocumentPage /></QueryClientProvider>);
     fireEvent.change(screen.getByRole('textbox', { name: 'Document name' }), { target: { value: 'Client agreement' } });
     fireEvent.click(screen.getByRole('button', { name: 'Continue to starting point' }));
 
-    await waitFor(() => expect(push).toHaveBeenCalledWith('/portal/documents/new-document'));
+    expect(await screen.findByText('Document workspace')).toBeTruthy();
+    expect(window.location.pathname).toBe('/portal/documents/new-document');
     expect(fetchMock).toHaveBeenCalledWith(
       '/api/portal/proxy-post?path=%2Fdocuments%2F',
       expect.objectContaining({
@@ -54,7 +57,7 @@ describe('document directory draft creation', () => {
 
   it('keeps the entered name available when the backend rejects the new record', async () => {
     setupFetch(Response.json({ detail: 'The document name is not available.' }, { status: 503 }));
-    render(<NewDocumentPage />);
+    render(<QueryClientProvider client={new QueryClient()}><NewDocumentPage /></QueryClientProvider>);
     const nameField = screen.getByRole('textbox', { name: 'Document name' });
     fireEvent.change(nameField, { target: { value: 'Client agreement' } });
     fireEvent.click(screen.getByRole('button', { name: 'Continue to starting point' }));

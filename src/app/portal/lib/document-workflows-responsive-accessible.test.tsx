@@ -230,7 +230,7 @@ describe('Responsive and Accessible Document Workflows (#175)', () => {
 
       const currentStep = within(nav).getByRole('listitem', { current: 'step' });
       expect(currentStep.textContent).toContain('Current step:');
-      expect(currentStep.textContent).toContain('Draft and review');
+      expect(currentStep.textContent).toContain('Working draft');
 
       const upcomingLabels = within(nav).getAllByText('Upcoming:');
       expect(upcomingLabels.length).toBe(3);

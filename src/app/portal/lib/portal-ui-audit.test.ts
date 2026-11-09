@@ -54,7 +54,7 @@ describe("portal UI source audit", () => {
   it("provides a keyboard-reachable PDF chooser", async () => {
     const upload = await readFile(path.join(featuresDirectory, "documents/pages/upload-page.tsx"), "utf8");
 
-    const chooser = upload.match(/<button[\s\S]*?Choose a PDF[\s\S]*?<\/button>/)?.[0];
+    const chooser = upload.match(/<button[\s\S]*?Choose a File[\s\S]*?<\/button>/)?.[0];
 
     expect(chooser).toContain('type="button"');
     expect(chooser).toContain('onClick={() => inputRef.current?.click()}');
