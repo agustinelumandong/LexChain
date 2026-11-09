@@ -27,6 +27,22 @@ beforeEach(() => {
 });
 
 describe('client document invitations', () => {
+  it('states the permission in plain language and advises caution', async () => {
+    renderPage();
+    expect(await screen.findByText('Viewer: you can read this document.')).toBeTruthy();
+    expect(screen.getByText('Only accept if you expected this from your lawyer.')).toBeTruthy();
+  });
+
+  it('offers a retry instead of denying access when the profile check fails', async () => {
+    portalFetch.mockRejectedValueOnce(new Error('Service temporarily unavailable.'));
+    renderPage();
+    expect(await screen.findByRole('heading', { name: 'Could not verify portal access' })).toBeTruthy();
+    expect(screen.queryByText('Invitations unavailable')).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Retry access check' }));
+    expect(await screen.findByRole('heading', { name: 'Invitations' })).toBeTruthy();
+  });
+
   it('uses the available portal width', async () => {
     renderPage();
     const heading = await screen.findByRole('heading', { name: 'Invitations' });

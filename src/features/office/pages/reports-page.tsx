@@ -19,6 +19,7 @@ import {
 } from '@/features/office/office-insight';
 import { portalFetch } from '@/shared/api/client';
 import { getPortalUiRole } from "@/features/access";
+import { PortalAccessError } from "@/features/access/components/portal-access-error";
 import { fetchIntegrityReport } from '@/features/office/integrity-report';
 import { fetchDocumentActivityReport } from '@/features/office/document-activity-report';
 import { Modal } from '@/features/admin/components/modal';
@@ -88,6 +89,8 @@ export default function OfficeReportsPage() {
   const [toDateInvalid, setToDateInvalid] = useState(false);
 
   if (profileQuery.isLoading) return <div className="h-36 animate-pulse rounded-[18px] border border-[#E8F0F8] bg-white" />;
+
+  if (profileQuery.isError && !profileQuery.data) return <PortalAccessError error={profileQuery.error} isRetrying={profileQuery.isFetching} onRetry={() => void profileQuery.refetch()} />;
 
   if (!isIssuer) {
     return <p className="text-sm font-semibold text-[#5B6F8A]">Reports are available to Lawyers only.</p>;

@@ -17,6 +17,7 @@ import {
 } from '@/features/documents/portal-upload';
 import { attachSignedCopy } from '@/features/documents/document-lifecycle-api';
 import { canAccessPortalFeature, getPortalUiRole } from "@/features/access";
+import { PortalAccessError } from "@/features/access/components/portal-access-error";
 import { PortalDropdown } from "@/features/portal/components";
 import { DocumentProcessingStatus } from '@/features/documents/components/document-processing-status';
 import { DocumentProgress } from '@/features/documents/components/document-progress';
@@ -160,6 +161,7 @@ export default function UploadPage({ embedded = false, onFiledDocument, onPendin
     ? `${failure.message} Your selected PDF and information have been kept. Review the error and retry when ready.`
     : null);
   if (profileQuery.isPending) return <p className="text-sm font-semibold text-[#5B6F8A]">Loading your upload access…</p>;
+  if (profileQuery.isError && !profileQuery.data) return <PortalAccessError error={profileQuery.error} isRetrying={profileQuery.isFetching} onRetry={() => void profileQuery.refetch()} />;
   if (!isIssuer) {
     return <section className="max-w-xl rounded-[18px] border border-[#E8F0F8] bg-white p-6"><h1 className="text-xl font-black text-[#0C2B49]">Upload unavailable</h1><p className="mt-2 text-sm text-[#5B6F8A]">Only Document Issuers can upload documents.</p></section>;
   }

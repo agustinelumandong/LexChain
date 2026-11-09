@@ -102,7 +102,7 @@ describe('BookRoutePage', () => {
     const deedEntryLink = within(rows[1]).getByRole('link', { name: 'Open Deed of Sale.pdf, document 11, register page 17' });
     expect(deedEntryLink.getAttribute('href')).toBe('/portal/documents/document-1');
     expect(within(deedEntryLink).getByText('Register 11 · page 17')).toBeTruthy();
-    expect(within(rows[1]).getByText('On-Chain')).toBeTruthy();
+    expect(within(rows[1]).getByText('Finalized')).toBeTruthy();
     expect(within(rows[1]).getByText('Completed')).toBeTruthy();
     expect(within(rows[2]).getByText('No processing status yet')).toBeTruthy();
     expect(screen.getByText('Lifecycle / processing')).toBeTruthy();

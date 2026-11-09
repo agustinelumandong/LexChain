@@ -21,7 +21,8 @@ const PdfDocumentViewer = dynamic(() => import('@/features/documents/components/
 
 type VerificationResult = ApiSchema<'DocumentVerificationResponse'>;
 
-function statusHeading(result: VerificationResult) {
+function statusHeading(result: VerificationResult, role: PortalUiRole) {
+  if (result.status === 'NOT_ANCHORED' && role === 'user') return 'No saved record yet';
   if (result.status === 'AUTHENTIC') return result.is_authentic ? (result.baseline_trusted ? 'PDF unchanged' : 'This PDF matches, but the saved reference needs attention') : 'We could not check this document';
   if (result.status === 'FILE_MISSING') return result.is_authentic ? 'We could not check this document' : 'The document file is missing';
   if (result.status === 'VERIFICATION_UNAVAILABLE' || (result.status === 'TAMPERED' && result.is_authentic)) return 'We could not check this document';
@@ -72,7 +73,7 @@ function formatDateTime(value: string | null | undefined): string {
   return parsed.toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' });
 }
 
-function plainLanguageExplanation(result: VerificationResult, contradictoryVerdict: boolean): string {
+function plainLanguageExplanation(result: VerificationResult, contradictoryVerdict: boolean, role: PortalUiRole): string {
   if (contradictoryVerdict) {
     return 'The backend returned conflicting verification fields, so integrity could not be confirmed.';
   }
@@ -92,7 +93,9 @@ function plainLanguageExplanation(result: VerificationResult, contradictoryVerdi
     return 'The current file differs from the blockchain record or is missing, and the stored reference is compromised. A detailed comparison is unavailable.';
   }
   if (result.status === 'NOT_ANCHORED') {
-    return 'This document has not been anchored on the blockchain. Finalize the document first to record its fingerprint.';
+    return role === 'user'
+      ? 'There is no saved record to compare this document with yet. Your lawyer may still be finalizing it.'
+      : 'This document has not been anchored on the blockchain. Finalize the document first to record its fingerprint.';
   }
   if (result.status === 'VERIFICATION_UNAVAILABLE') {
     return 'The document or blockchain record could not be evaluated at this time. This is not a tampering result. Please try again.';
@@ -104,44 +107,22 @@ function VerificationDetails({
   result,
   hideFileName = false,
   authentic = false,
+  role,
 }: {
   result: VerificationResult;
   hideFileName?: boolean;
   authentic?: boolean;
+  role: PortalUiRole;
 }) {
   const simulated = isMockMode();
   const simulatedAnchorConfirmed = simulated
     && result.status === 'TAMPERED'
     && result.baseline_trusted
     && Boolean(result.onchain_hash);
-
-  return (
-    <section aria-label="Verification result" className="space-y-4 rounded-[18px] border border-[#E8F0F8] bg-white p-5">
-      {!hideFileName && result.file_name && <h3 className="font-bold text-[#0C2B49]">{result.file_name}</h3>}
-      {simulated && <p role="note" className="text-sm font-semibold text-[#8A5B00]">Mock verification is simulated and does not represent a real backend or blockchain verification.</p>}
-      {simulatedAnchorConfirmed && (
-        <div role="status" aria-label="Simulated blockchain anchor status" className="rounded-xl border border-green-200 bg-green-50 p-3">
-          <p className="text-sm font-extrabold text-green-800">Blockchain baseline confirmed <span className="font-semibold">(simulated)</span></p>
-          <p className="mt-1 text-xs text-green-800">The stored baseline matches the chain hash; the current PDF does not.</p>
-        </div>
-      )}
-      <dl className="grid gap-3 text-sm sm:grid-cols-2">
-        <div><dt className="font-bold text-[#5B6F8A]">Trusted baseline</dt><dd className="mt-1 text-[#0C2B49]">{result.baseline_trusted ? 'Trusted' : 'Not trusted'}</dd></div>
-        {result.finalized_at && (
-          <div>
-            <dt className="font-bold text-[#5B6F8A]">Finalized</dt>
-            <dd className="mt-1 text-[#0C2B49]">
-              <time dateTime={result.finalized_at}>{formatDateTime(result.finalized_at)}</time>
-            </dd>
-          </div>
-        )}
-        <div>
-          <dt className="font-bold text-[#5B6F8A]">Verified</dt>
-          <dd className="mt-1 text-[#0C2B49]">
-            <time dateTime={result.verified_at}>{formatDateTime(result.verified_at)}</time>
-          </dd>
-        </div>
-      </dl>
+  const isClient = role === 'user';
+  const trustedBaseline = <div><dt className="font-bold text-[#5B6F8A]">Trusted baseline</dt><dd className="mt-1 text-[#0C2B49]">{result.baseline_trusted ? 'Trusted' : 'Not trusted'}</dd></div>;
+  const technicalProof = (
+    <>
       {authentic && result.baseline_trusted && result.onchain_hash && result.snapshot_hash && result.current_hash && (
         <div role="status" aria-label="Cryptographic hash match" className="flex items-center gap-2 rounded-xl border border-green-200 bg-green-50 px-3 py-2 text-xs font-bold text-green-800">
           <CheckCircleIcon sx={{ fontSize: 16 }} className="text-green-600" aria-hidden="true" />
@@ -166,6 +147,45 @@ function VerificationDetails({
           <LaunchIcon sx={{ fontSize: 14 }} aria-hidden="true" />
         </a>
       )}
+    </>
+  );
+
+  return (
+    <section aria-label="Verification result" className="space-y-4 rounded-[18px] border border-[#E8F0F8] bg-white p-5">
+      {!hideFileName && result.file_name && <h3 className="font-bold text-[#0C2B49]">{result.file_name}</h3>}
+      {simulated && <p role="note" className="text-sm font-semibold text-[#8A5B00]">Mock verification is simulated and does not represent a real backend or blockchain verification.</p>}
+      {simulatedAnchorConfirmed && (
+        <div role="status" aria-label="Simulated blockchain anchor status" className="rounded-xl border border-green-200 bg-green-50 p-3">
+          <p className="text-sm font-extrabold text-green-800">Blockchain baseline confirmed <span className="font-semibold">(simulated)</span></p>
+          <p className="mt-1 text-xs text-green-800">The stored baseline matches the chain hash; the current PDF does not.</p>
+        </div>
+      )}
+      <dl className="grid gap-3 text-sm sm:grid-cols-2">
+        {!isClient && trustedBaseline}
+        {result.finalized_at && (
+          <div>
+            <dt className="font-bold text-[#5B6F8A]">Finalized</dt>
+            <dd className="mt-1 text-[#0C2B49]">
+              <time dateTime={result.finalized_at}>{formatDateTime(result.finalized_at)}</time>
+            </dd>
+          </div>
+        )}
+        <div>
+          <dt className="font-bold text-[#5B6F8A]">Verified</dt>
+          <dd className="mt-1 text-[#0C2B49]">
+            <time dateTime={result.verified_at}>{formatDateTime(result.verified_at)}</time>
+          </dd>
+        </div>
+      </dl>
+      {isClient ? (
+        <details className="rounded-xl border border-[#D7E4F2] bg-[#F8FBFF] px-3.5">
+          <summary className="flex min-h-11 cursor-pointer items-center text-sm font-bold text-[#0C2B49] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]">Technical details</summary>
+          <div className="space-y-4 pb-3.5 pt-1">
+            <dl className="text-sm">{trustedBaseline}</dl>
+            {technicalProof}
+          </div>
+        </details>
+      ) : technicalProof}
       <aside aria-label="Legal validity notice" className="flex items-start gap-2.5 rounded-xl border border-[#D7E4F2] bg-[#F8FBFF] p-3.5 text-xs leading-5 text-[#4B6382]">
         <InfoOutlinedIcon sx={{ fontSize: 18 }} className="mt-0.5 shrink-0 text-[#0067B3]" aria-hidden="true" />
         <div className="min-w-0">
@@ -235,10 +255,10 @@ export default function VerifyWorkspace({
         {authentic && !untrustedSnapshot ? <CheckCircleIcon className="mt-0.5 shrink-0 text-[#166534]" sx={{ fontSize: 20 }} aria-hidden="true" /> : neutral ? <InfoOutlinedIcon className="mt-0.5 shrink-0 text-[#8A5B00]" sx={{ fontSize: 20 }} aria-hidden="true" /> : <ErrorOutlineIcon className="mt-0.5 shrink-0 text-[#B42318]" sx={{ fontSize: 20 }} aria-hidden="true" />}
         <div className="min-w-0">
           <h2 className="text-base font-bold text-[#0C2B49]">
-            {contradictoryVerdict ? 'We could not check this document' : statusHeading(result)}
+            {contradictoryVerdict ? 'We could not check this document' : statusHeading(result, role)}
           </h2>
           <p className="text-sm leading-5 text-[#344054]">
-            {plainLanguageExplanation(result, contradictoryVerdict)}
+            {plainLanguageExplanation(result, contradictoryVerdict, role)}
           </p>
           {role === 'user' && !authentic && !unavailable && (
             <p className="mt-1 text-sm text-[#475467]">
@@ -369,9 +389,9 @@ export default function VerifyWorkspace({
               )}
             </section>
           )}
-          <VerificationDetails result={result} hideFileName={showPdfWorkspace} authentic={authentic} />
+          <VerificationDetails result={result} hideFileName={showPdfWorkspace} authentic={authentic} role={role} />
         </div>
       </div>
-    ) : <VerificationDetails result={result} />}
+    ) : <VerificationDetails result={result} role={role} />}
   </section>;
 }

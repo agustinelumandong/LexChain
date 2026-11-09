@@ -71,6 +71,33 @@ describe('document directory draft creation', () => {
     expect(await screen.findByText('The repository is temporarily unavailable.')).toBeTruthy();
   });
 
+  it('shows clients their shared documents without office panels', async () => {
+    setupFetch(undefined, Response.json([{ id: 'doc-1', document_id: 'doc-1', file_name: 'Deed of Sale', lifecycle: 'FINALIZED', status: 'FAILED', created_at: '2026-10-01T00:00:00Z' }]), 'user');
+    renderPage();
+
+    expect(await screen.findByRole('heading', { name: 'Documents shared with you' })).toBeTruthy();
+    expect(screen.queryByText(/office repository/i)).toBeNull();
+    expect(screen.queryByRole('heading', { name: 'Status Distribution' })).toBeNull();
+    expect(screen.queryByRole('heading', { name: 'Needs attention' })).toBeNull();
+  });
+
+  it('points clients with no documents to their invitations', async () => {
+    setupFetch(undefined, Response.json([]), 'user');
+    renderPage();
+
+    const link = await screen.findByRole('link', { name: 'View invitations' });
+    expect(link.getAttribute('href')).toBe('/portal/invitations');
+  });
+
+  it('keeps the office panels for lawyers', async () => {
+    setupFetch(undefined, Response.json([{ id: 'doc-1', document_id: 'doc-1', file_name: 'Deed of Sale', lifecycle: 'FINALIZED', status: 'COMPLETED', created_at: '2026-10-01T00:00:00Z' }]));
+    renderPage();
+
+    expect(await screen.findByRole('heading', { name: 'Status Distribution' })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Needs attention' })).toBeTruthy();
+    expect(screen.getByText('Manage and review documents in the office repository')).toBeTruthy();
+  });
+
   it('offers signed PDF filing and explains how to attach to an existing document', async () => {
     setupFetch();
     renderPage();
@@ -121,8 +148,10 @@ describe('document ownership directory', () => {
     const table = screen.getByRole('table');
     expect(within(table).getByText('Owned A.pdf')).toBeTruthy();
     expect(within(table).getByText('Shared only.pdf')).toBeTruthy();
-    const distribution = screen.getByRole('heading', { name: 'Status Distribution' }).closest('article')!;
-    expect(within(distribution).getByLabelText('Total documents: 3')).toBeTruthy();
+    if (role === 'document_issuer') {
+      const distribution = screen.getByRole('heading', { name: 'Status Distribution' }).closest('article')!;
+      expect(within(distribution).getByLabelText('Total documents: 3')).toBeTruthy();
+    }
     expect(Boolean(screen.queryByRole('button', { name: 'New Document' }))).toBe(role === 'document_issuer');
   });
 

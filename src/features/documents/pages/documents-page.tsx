@@ -271,6 +271,7 @@ export default function DocumentsPage() {
   const allDocuments = documentsQuery.data ?? [];
   const uiRole = getPortalUiRole(profileQuery.data?.role);
   const isIssuer = uiRole === 'lawyer';
+  const isClient = uiRole === 'user';
   const documents = allDocuments;
   const lifecycles = getDocumentLifecycles(documents);
   if (lifecycle !== 'all' && !lifecycles.includes(lifecycle)) lifecycles.push(lifecycle);
@@ -292,8 +293,8 @@ export default function DocumentsPage() {
     <div className="flex min-h-0 flex-1 flex-col gap-5">
       <div className="shrink-0 flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-[28px] font-black text-[#0C2B49]">Documents</h1>
-          <p className="mt-1 text-sm text-[#5B6F8A]">Manage and review documents in the office repository</p>
+          <h1 className="text-[28px] font-black text-[#0C2B49]">{isClient ? 'Documents shared with you' : 'Documents'}</h1>
+          <p className="mt-1 text-sm text-[#5B6F8A]">{isClient ? 'Read and check the documents your lawyer has shared with you.' : 'Manage and review documents in the office repository'}</p>
         </div>
         {isIssuer && <NewDocumentAction />}
       </div>
@@ -308,11 +309,12 @@ export default function DocumentsPage() {
         <EmptyState
           icon={<DescriptionIcon aria-hidden="true" sx={{ fontSize: 22 }} />}
           title={search || lifecycle !== 'all' ? 'No documents match your search or filter' : 'No documents yet'}
-          description={isIssuer ? 'Select New Document to get started.' : 'No documents are available yet.'}
+          description={isIssuer ? 'Select New Document to get started.' : 'Documents your lawyer shares with you will appear here. Check your invitations for any waiting on your response.'}
+          action={isClient ? <Link href="/portal/invitations" className="inline-flex min-h-11 items-center rounded-full border border-[#D7E4F2] px-4 text-sm font-black text-[#0067B3] hover:bg-[#EEF4FB] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]">View invitations</Link> : undefined}
         />
       ) : (
         <>
-          <section className="grid gap-4 min-[1680px]:min-h-0 min-[1680px]:flex-1 min-[1680px]:grid-cols-[minmax(0,1fr)_340px] min-[1680px]:overflow-hidden">
+          <section className={cn('grid gap-4 min-[1680px]:min-h-0 min-[1680px]:flex-1 min-[1680px]:overflow-hidden', !isClient && 'min-[1680px]:grid-cols-[minmax(0,1fr)_340px]')}>
             <article className="flex min-w-0 flex-col rounded-2xl border border-[#E4EEF9] bg-white shadow-sm shadow-[#DDEAF7]/35 min-[1680px]:min-h-0 min-[1680px]:overflow-hidden">
               <div className="border-b border-[#E4EEF9] p-5">
                 <div className="flex flex-wrap items-center gap-3">
@@ -349,7 +351,7 @@ export default function DocumentsPage() {
               </div>
               <div role="region" aria-label="Document directory results" tabIndex={0} className="admin-table-scroll hidden min-h-0 flex-1 overflow-auto focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[#0067B3] min-[1240px]:block">
                 <table className="w-full min-w-[920px] text-sm">
-                  <caption className="sr-only">Documents in the office repository</caption>
+                  <caption className="sr-only">{isClient ? 'Documents shared with you' : 'Documents in the office repository'}</caption>
                   <thead>
                     <tr className="border-b border-[#D9E5F0] bg-[#F8FBFF] text-left text-xs font-black uppercase tracking-[0.08em] text-[#4B6382]">
                       <th className="px-5 py-3">Document</th>
@@ -419,10 +421,12 @@ export default function DocumentsPage() {
                 </div>
               </div>
             </article>
-            <aside className="grid min-h-0 min-w-0 content-start gap-4 min-[1680px]:grid-rows-[auto_minmax(0,1fr)] min-[1680px]:overflow-auto">
-              <StatusDistribution docs={documents} />
-              <NeedsAttention docs={documents} />
-            </aside>
+            {!isClient && (
+              <aside className="grid min-h-0 min-w-0 content-start gap-4 min-[1680px]:grid-rows-[auto_minmax(0,1fr)] min-[1680px]:overflow-auto">
+                <StatusDistribution docs={documents} />
+                <NeedsAttention docs={documents} />
+              </aside>
+            )}
           </section>
         </>
       )}

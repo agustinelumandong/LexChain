@@ -532,7 +532,7 @@ function SignedPdfPreview({
             {document.lifecycle === 'FINALIZED' && (
               <span className="inline-flex items-center gap-1 rounded-full bg-[#F0F4F8] px-2.5 py-0.5 text-xs font-bold text-[#344054]">
                 <LockOutlinedIcon aria-hidden="true" sx={{ fontSize: 13, color: '#0067B3' }} />
-                On-Chain (Locked)
+                Finalized (locked)
               </span>
             )}
           </div>

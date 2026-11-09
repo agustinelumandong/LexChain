@@ -1681,7 +1681,7 @@ describe('DocumentWorkspace', () => {
 
     const filesSection = screen.getByRole('region', { name: 'Signed PDF' });
     expect(within(filesSection).queryByRole('button', { name: 'Replace signed PDF' })).toBeNull();
-    expect(within(filesSection).getByText(/On-Chain \(Locked\)/i)).toBeTruthy();
+    expect(within(filesSection).getByText('Finalized (locked)')).toBeTruthy();
   });
 
   it('renders scanable multi-event history with timestamps, transitions, and actor disclosures (#172)', async () => {

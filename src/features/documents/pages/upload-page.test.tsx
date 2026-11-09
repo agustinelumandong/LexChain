@@ -61,6 +61,26 @@ function renderPage(props: React.ComponentProps<typeof UploadPage> = {}) {
   render(<QueryClientProvider client={queryClient}><UploadPage {...props} /></QueryClientProvider>);
 }
 
+describe('upload access check', () => {
+  it('offers a retry instead of denying access when the profile check fails', async () => {
+    let profileAttempts = 0;
+    vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => {
+      const path = new URL(String(input), window.location.origin).searchParams.get('path');
+      if (path === '/users/') {
+        profileAttempts += 1;
+        return profileAttempts === 1 ? Response.json({ message: 'Service temporarily unavailable.' }, { status: 503 }) : Response.json({ role: 'lawyer' });
+      }
+      return Response.json([]);
+    }));
+    renderPage();
+
+    expect(await screen.findByRole('heading', { name: 'Could not verify portal access' })).toBeTruthy();
+    expect(screen.queryByText('Upload unavailable')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Retry access check' }));
+    expect(await screen.findByRole('heading', { name: 'Upload Document' })).toBeTruthy();
+  });
+});
+
 async function fillClosedBookUpload() {
   await screen.findByRole('combobox', { name: 'Register book' });
   await waitFor(() => expect((screen.getByRole('combobox', { name: 'Register book' }) as HTMLButtonElement).disabled).toBe(false));
