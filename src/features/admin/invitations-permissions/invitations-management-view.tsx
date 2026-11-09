@@ -58,11 +58,14 @@ function getInitials(name: string) {
   return ((parts[0]?.[0] ?? "") + (parts[1]?.[0] ?? parts[0]?.[1] ?? "")).toUpperCase();
 }
 
-function getStatus(status: string): DirectoryInvitation["statusLabel"] {
+function getStatus({ status, expires_at }: Pick<Invitation, "status" | "expires_at">): DirectoryInvitation["statusLabel"] {
   const raw = status.toLowerCase();
-  if (raw === "accepted") return "Accepted";
+  // The backend stores a used invitation as "claimed".
+  if (raw === "accepted" || raw === "claimed") return "Accepted";
   if (raw === "expired") return "Expired";
   if (raw === "revoked") return "Revoked";
+  // The backend leaves overdue invitations as "pending" but no longer honors them.
+  if (raw === "pending" && new Date(expires_at).getTime() <= Date.now()) return "Expired";
   return "Pending";
 }
 
@@ -72,7 +75,7 @@ function formatDate(value: string) {
 }
 
 function formatExpires(invitation: Invitation) {
-  const status = getStatus(invitation.status);
+  const status = getStatus(invitation);
   if (status === "Accepted" || status === "Revoked") return "—";
   if (status === "Expired") return "Expired";
   const timestamp = new Date(invitation.expires_at).getTime();
@@ -101,7 +104,7 @@ function enrichInvitation(invitation: Invitation): DirectoryInvitation {
     invitee,
     initials: getInitials(invitee),
     roleLabel: getPortalRoleLabel(invitation.role),
-    statusLabel: getStatus(invitation.status),
+    statusLabel: getStatus(invitation),
     createdLabel: formatDate(invitation.created_at),
     expiresLabel: formatExpires(invitation),
   };
