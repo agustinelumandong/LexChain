@@ -126,7 +126,7 @@ describe('document library list', () => {
     fireEvent.click(screen.getByRole('option', { name: 'Oldest first' }));
     fireEvent.click(screen.getByText('More Filters'));
     fireEvent.click(screen.getByRole('combobox', { description: 'Filter by lifecycle' }));
-    fireEvent.click(screen.getByRole('option', { name: 'Finalized' }));
+    fireEvent.click(screen.getByRole('option', { name: 'On-Chain' }));
     const search = screen.getByRole('textbox', { name: 'Filter by filename or reference' }) as HTMLInputElement;
     fireEvent.change(search, { target: { value: 'missing' } });
 
@@ -144,7 +144,7 @@ describe('document library list', () => {
     expect(screen.queryByRole('button', { name: 'Clear search' })).toBeNull();
     expect(screen.getByRole('combobox', { description: 'Sort documents' }).textContent).toContain('Oldest first');
     fireEvent.click(screen.getByText(/More Filters/));
-    expect(screen.getByRole('combobox', { description: 'Filter by lifecycle' }).textContent).toContain('Finalized');
+    expect(screen.getByRole('combobox', { description: 'Filter by lifecycle' }).textContent).toContain('On-Chain');
     const table = within(screen.getByRole('table'));
     expect(table.getByRole('row', { name: /Certificate of Employment/ })).toBeTruthy();
     expect(table.queryByRole('row', { name: /Lease Agreement/ })).toBeNull();
@@ -203,7 +203,7 @@ describe('document library list', () => {
     render(createElement(DocumentsPage));
 
     const finalizedRow = within(screen.getByRole('table')).getByRole('row', { name: /Certificate of Employment/ });
-    expect(finalizedRow.textContent).toContain('Finalized');
+    expect(finalizedRow.textContent).toContain('On-Chain');
     expect(finalizedRow.textContent).toContain('No processing status yet');
     expect(finalizedRow.textContent).toContain('Register 101 · page 2');
     expect(within(finalizedRow).getByRole('link', { name: 'Certificate of Employment.pdf' })).toBeTruthy();

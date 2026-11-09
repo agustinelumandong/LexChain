@@ -206,11 +206,10 @@ describe('document detail screen', () => {
     expect(screen.getByRole('link', { name: 'Verify integrity' }).getAttribute('href')).toBe('/portal/documents/doc-1/verify');
   });
 
-  it('labels a finalized document Finalized before chain confirmation', async () => {
-    state.documentQuery = { data: { ...baseDocument, lifecycle: 'FINALIZED', on_chain: false }, isLoading: false, isError: false, refetch: vi.fn() };
+  it('labels a finalized document on-chain only when confirmed', async () => {
+    state.documentQuery = { data: { ...baseDocument, lifecycle: 'FINALIZED', on_chain: true }, isLoading: false, isError: false, refetch: vi.fn() };
     await showPage();
-    expect(screen.getAllByText('Finalized').length).toBeGreaterThan(0);
-    expect(screen.queryByText('On-Chain')).toBeNull();
+    expect(screen.getByText('On-Chain')).toBeTruthy();
   });
 
   it.each([['PREPARING', false], ['READY_FOR_SIGNATURE', false], ['SIGNED', false], ['FINALIZED', true]])('shows document chat only after finalization (%s)', async (lifecycle, visible) => {
@@ -249,7 +248,7 @@ describe('document detail screen', () => {
   it('shows finalized processing failure without offering finalization', async () => {
     state.documentQuery = { data: { ...baseDocument, lifecycle: 'FINALIZED', status: 'FAILED' }, isLoading: false, isError: false, refetch: vi.fn() };
     await showPage();
-    expect(screen.getAllByText('Finalized').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('On-Chain').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Processing failed').length).toBeGreaterThan(0);
     expect(screen.queryByRole('button', { name: 'Finalize' })).toBeNull();
   });
@@ -652,7 +651,7 @@ describe('document detail screen', () => {
     fireEvent.click(checkStatus);
 
     expect(await screen.findByText('Document finalized and recorded on-chain.')).toBeTruthy();
-    expect(screen.getAllByText('Finalized').length).toBeGreaterThan(0);
+    expect(screen.getByText('On-Chain')).toBeTruthy();
     expect(sessionStorage.getItem('portal-finalize-unknown:doc-1')).toBeNull();
   });
 

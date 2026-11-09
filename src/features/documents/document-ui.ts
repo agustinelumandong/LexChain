@@ -52,6 +52,7 @@ export function getDocumentActions(
 }
 
 export function getDocumentLifecycleLabel(lifecycle: string): string {
+  if (lifecycle.trim().toUpperCase() === 'FINALIZED') return 'On-Chain';
   const [first, ...rest] = lifecycle.toLowerCase().replaceAll('_', ' ').split(' ');
   return [first ? `${first[0].toUpperCase()}${first.slice(1)}` : '', ...rest].filter(Boolean).join(' ');
 }
