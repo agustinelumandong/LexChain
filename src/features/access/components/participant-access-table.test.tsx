@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ParticipantAccessTable } from '@/features/access/components/participant-access-table';
 
@@ -20,7 +20,7 @@ describe('ParticipantAccessTable', () => {
   it('hides revoke when the document does not grant can_revoke', () => {
     render(<ParticipantAccessTable parties={[party]} onRevoke={vi.fn()} canRevoke={false} />);
 
-    expect(screen.queryByRole('button', { name: 'Revoke' })).toBeNull();
+    expect(screen.queryByRole('button', { name: /^Revoke access for/ })).toBeNull();
     expect(screen.queryByText('Actions')).toBeNull();
     expect(screen.getByText('client@example.com')).toBeTruthy();
   });
@@ -28,14 +28,14 @@ describe('ParticipantAccessTable', () => {
   it('shows revoke when the document grants can_revoke', () => {
     render(<ParticipantAccessTable parties={[party]} onRevoke={vi.fn()} canRevoke />);
 
-    expect(screen.getByRole('button', { name: 'Revoke' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: /^Revoke access for/ })).toBeTruthy();
   });
 
   it('opens a focus-managed confirmation dialog and restores focus when cancelled', async () => {
     const onRevoke = vi.fn().mockResolvedValue(undefined);
     render(<ParticipantAccessTable parties={[party]} onRevoke={onRevoke} canRevoke />);
 
-    const trigger = screen.getByRole('button', { name: 'Revoke' });
+    const trigger = screen.getByRole('button', { name: /^Revoke access for/ });
     trigger.focus();
     fireEvent.click(trigger);
 
@@ -53,7 +53,7 @@ describe('ParticipantAccessTable', () => {
     const onRevoke = vi.fn().mockRejectedValue(new Error('Unable to revoke document access.'));
     render(<ParticipantAccessTable parties={[party]} onRevoke={onRevoke} canRevoke />);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Revoke' }));
+    fireEvent.click(screen.getByRole('button', { name: /^Revoke access for/ }));
     fireEvent.click(await screen.findByRole('button', { name: 'Revoke access' }));
 
     expect((await screen.findByRole('alert')).textContent).toBe('Unable to revoke document access.');
@@ -89,8 +89,8 @@ describe('ParticipantAccessTable', () => {
     expect(screen.getByText('Waiting for sign-up')).toBeTruthy();
     expect(screen.getByText(/expires in 7 days/i)).toBeTruthy();
 
-    const resendBtn = screen.getByRole('button', { name: 'Resend' });
-    const removeBtn = screen.getByRole('button', { name: 'Remove' });
+    const resendBtn = screen.getByRole('button', { name: /^Resend invitation to/ });
+    const removeBtn = screen.getByRole('button', { name: /^Remove invitation for/ });
     expect(resendBtn).toBeTruthy();
     expect(removeBtn).toBeTruthy();
 
@@ -128,19 +128,67 @@ describe('ParticipantAccessTable', () => {
 
     expect(screen.getByText('expired@example.com')).toBeTruthy();
     expect(screen.getByText('Invitation expired')).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Resend' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Remove' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: /^Resend invitation to/ })).toBeTruthy();
+    expect(screen.getByRole('button', { name: /^Remove invitation for/ })).toBeTruthy();
   });
 
-  it('renders clean empty state with accessible columns and empty message when no participants exist', () => {
+  it('shows a clear empty state instead of empty table columns', () => {
     render(<ParticipantAccessTable parties={[]} onRevoke={vi.fn()} canRevoke={false} />);
 
     expect(screen.getByRole('heading', { name: 'Document participants' })).toBeTruthy();
     expect(screen.queryByText('Access is limited to this document.')).toBeNull();
     expect(screen.getByText('No participants have access yet.')).toBeTruthy();
-    expect(screen.getByRole('columnheader', { name: 'Participant' })).toBeTruthy();
-    expect(screen.getByRole('columnheader', { name: 'Permission' })).toBeTruthy();
-    expect(screen.getByRole('columnheader', { name: 'Status' })).toBeTruthy();
+    expect(screen.queryByRole('table')).toBeNull();
+    expect(screen.queryByText('Invite someone above to share this document.')).toBeNull();
+  });
+
+  it('keeps long emails on one line with the full address available', () => {
+    const email = 'a-very-long-participant-address@some-long-law-office-domain.example.com';
+    render(<ParticipantAccessTable parties={[{ ...party, email }]} onRevoke={vi.fn()} canRevoke={false} />);
+
+    const shown = screen.getByText(email);
+    expect(shown.className).toContain('truncate');
+    expect(shown.getAttribute('title')).toBe(email);
+  });
+
+  it('adds decorative icons to row actions without changing their names', () => {
+    const emailParty = { ...party, id: 'party-email', user_id: null, status: 'pending' };
+    render(<ParticipantAccessTable parties={[emailParty]} onRevoke={vi.fn()} onResend={vi.fn()} canRevoke />);
+
+    for (const name of [/^Resend invitation to/, /^Remove invitation for/]) {
+      expect(screen.getByRole('button', { name }).querySelector('svg[aria-hidden="true"]')).toBeTruthy();
+    }
+  });
+
+  it('keeps row actions quiet and reserves solid red for the confirmation', async () => {
+    render(<ParticipantAccessTable parties={[party]} onRevoke={vi.fn()} canRevoke />);
+
+    const trigger = screen.getByRole('button', { name: 'Revoke access for client@example.com' });
+    expect(trigger.textContent).toBe('Revoke');
+    expect(trigger.className).toContain('border-[var(--status-error-border)]');
+
+    fireEvent.click(trigger);
+    const confirm = await screen.findByRole('button', { name: 'Revoke access' });
+    expect(confirm.className).toContain('bg-[var(--status-error)] text-white');
+  });
+
+  it('points to the invitation form when the viewer can invite and nobody has access', () => {
+    render(<ParticipantAccessTable parties={[]} onRevoke={vi.fn()} canRevoke canInvite />);
+
+    expect(screen.getByText('Invite someone above to share this document.')).toBeTruthy();
+  });
+
+  it('lists each participant with labeled permission and status, without a scrolling table', () => {
+    const other = { ...party, id: 'party-2', email: 'second@example.com', status: 'declined' };
+    render(<ParticipantAccessTable parties={[party, other]} onRevoke={vi.fn()} canRevoke={false} />);
+
+    const list = screen.getByRole('list', { name: 'Document participants' });
+    expect(within(list).getAllByRole('listitem')).toHaveLength(2);
+    expect(screen.queryByRole('table')).toBeNull();
+    expect(screen.getAllByText('Permission')).toHaveLength(2);
+    expect(screen.getAllByText('Status')).toHaveLength(2);
+    expect(screen.getByText('accepted').className).toContain('emerald');
+    expect(screen.getByText('declined').className).toContain('red');
   });
 
   it('renders populated participants with visible email, permission, and status without duplicated helper copy', () => {

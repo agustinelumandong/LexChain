@@ -1,6 +1,6 @@
 import { type ButtonHTMLAttributes, forwardRef } from "react";
 
-export type ButtonVariant = "primary" | "secondary" | "ghost" | "danger";
+export type ButtonVariant = "primary" | "secondary" | "ghost" | "danger" | "danger-outline";
 export type ButtonSize = "sm" | "md" | "lg";
 
 type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
@@ -15,6 +15,7 @@ const variantStyles: Record<ButtonVariant, string> = {
   secondary: "border border-[var(--border-medium)] bg-[var(--surface-card)] text-[var(--text-primary)] hover:bg-[var(--surface-page)]",
   ghost: "text-[var(--text-primary)] hover:bg-[var(--surface-soft)]",
   danger: "bg-[var(--status-error)] text-white hover:opacity-90",
+  "danger-outline": "border border-[var(--status-error-border)] bg-[var(--surface-card)] text-[var(--status-error)] hover:border-[var(--status-error)] hover:bg-[var(--status-error)] hover:text-white",
 };
 
 const sizeStyles: Record<ButtonSize, string> = {

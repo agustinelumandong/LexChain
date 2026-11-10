@@ -4,8 +4,7 @@ import { useId, useState } from 'react';
 import { PortalApiError } from '@/shared/api/portal-error';
 import type { components } from '@/shared/types';
 import type { DocumentParticipantPermission } from '@/features/access/participant-access';
-import { documentParticipantPermissions, validateParticipantInvitation } from '@/features/access/participant-access';
-import { Dropdown } from '@/shared/components/ui';
+import { validateParticipantInvitation } from '@/features/access/participant-access';
 import { Modal } from '@/features/admin/components/modal';
 
 type UserSearchResponse = components['schemas']['UserSearchResponse'];
@@ -21,16 +20,12 @@ type AccountLookup =
   | { status: 'found'; account: UserSearchResponse }
   | { status: 'error'; message: string };
 
-const permissionLabels: Record<DocumentParticipantPermission, string> = {
-  viewer: 'Viewer',
-  signer: 'Signer',
-  editor: 'Editor',
-};
+const role: DocumentParticipantPermission = 'viewer';
 
 type InvitationFeedback = {
   summary: string;
   status?: number;
-  fields: Partial<Record<'email' | 'role', string>>;
+  fields: Partial<Record<'email', string>>;
 };
 
 function invitationFeedback(reason: unknown, fallback: string): InvitationFeedback {
@@ -49,7 +44,7 @@ function invitationFeedback(reason: unknown, fallback: string): InvitationFeedba
     const location: unknown = 'loc' in record && Array.isArray(record.loc) ? record.loc.at(-1) : undefined;
     const field = 'field' in record ? record.field : 'path' in record ? record.path : location;
     const message = ['message' in record ? record.message : undefined, 'msg' in record ? record.msg : undefined, 'detail' in record ? record.detail : undefined].find((value): value is string => typeof value === 'string' && Boolean(value.trim()));
-    if ((field === 'email' || field === 'role') && message) {
+    if (field === 'email' && message) {
       feedback.fields[field] = [feedback.fields[field], message].filter(Boolean).join(' ');
     } else {
       feedback.summary += ` ${message ?? (typeof entry === 'string' ? entry : JSON.stringify(entry))}`;
@@ -61,7 +56,6 @@ function invitationFeedback(reason: unknown, fallback: string): InvitationFeedba
 export function InviteParticipantForm({ onFindAccount, onInvite, onResend }: InviteParticipantFormProps) {
   const feedbackId = useId();
   const [email, setEmail] = useState('');
-  const [role, setRole] = useState<DocumentParticipantPermission>('viewer');
   const [error, setError] = useState<InvitationFeedback>();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [lookup, setLookup] = useState<AccountLookup>({ status: 'idle' });
@@ -109,15 +103,6 @@ export function InviteParticipantForm({ onFindAccount, onInvite, onResend }: Inv
       }
     }
 
-    if (validation.value.role !== 'viewer') {
-      setLookup({ status: 'idle' });
-      setError({
-        summary: 'Only viewer can be invited by email.',
-        fields: { role: 'Only viewer can be invited by email.' },
-      });
-      return;
-    }
-
     if (onFindAccount) {
       setLookup({ status: 'not-found' });
       setPendingAccount(null);
@@ -131,7 +116,6 @@ export function InviteParticipantForm({ onFindAccount, onInvite, onResend }: Inv
     try {
       await onInvite(validation.value);
       setEmail('');
-      setRole('viewer');
       setError(undefined);
     } catch (reason) {
       setError(invitationFeedback(reason, 'Unable to invite this participant.'));
@@ -146,7 +130,6 @@ export function InviteParticipantForm({ onFindAccount, onInvite, onResend }: Inv
     try {
       await onResend(email.trim());
       setEmail('');
-      setRole('viewer');
       setError(undefined);
     } catch (reason) {
       setError(invitationFeedback(reason, 'Unable to resend invitation.'));
@@ -169,7 +152,6 @@ export function InviteParticipantForm({ onFindAccount, onInvite, onResend }: Inv
     try {
       await onInvite(validation.value);
       setEmail('');
-      setRole('viewer');
       setLookup({ status: 'idle' });
       setPendingAccount(null);
       setPendingUnregistered(null);
@@ -188,7 +170,7 @@ export function InviteParticipantForm({ onFindAccount, onInvite, onResend }: Inv
     <>
       <form onSubmit={handleSendInvitation} className="rounded-[18px] border border-[#E8F0F8] bg-white p-5 shadow-[0_4px_12px_rgba(19,59,115,0.05)]">
         <h2 className="text-lg font-extrabold text-[#0C2B49]">Invite a participant</h2>
-        <div className="mt-4 grid gap-3 sm:grid-cols-[minmax(0,1fr)_180px_auto]">
+        <div className="mt-4 grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
           <label className="flex flex-col gap-1.5 text-xs font-bold text-[#0C2B49]">
             <span id={`${feedbackId}-email-label`}>Email</span>
             <input
@@ -209,25 +191,6 @@ export function InviteParticipantForm({ onFindAccount, onInvite, onResend }: Inv
             />
             {error?.fields.email && <span id={`${feedbackId}-email`} className="text-[#C2410C]">{error.fields.email}</span>}
           </label>
-          <label className="flex flex-col gap-1.5 text-xs font-bold text-[#0C2B49]">
-            <span id={`${feedbackId}-role-label`}>Permission</span>
-            <Dropdown
-              ariaLabel="Permission"
-              ariaDescribedBy={error?.fields.role ? `${feedbackId}-role` : undefined}
-              invalid={Boolean(error?.fields.role)}
-              fullWidth
-              options={documentParticipantPermissions.map((permission) => ({
-                label: permissionLabels[permission],
-                value: permission,
-              }))}
-              value={role}
-              onChange={(value) => {
-                setRole(value as DocumentParticipantPermission);
-                setError(undefined);
-              }}
-            />
-            {error?.fields.role && <span id={`${feedbackId}-role`} className="text-[#C2410C]">{error.fields.role}</span>}
-          </label>
           <button
             type="submit"
             disabled={isSubmitting || isLoading || !email.trim()}
@@ -236,7 +199,7 @@ export function InviteParticipantForm({ onFindAccount, onInvite, onResend }: Inv
             {isLoading ? 'Finding account…' : isSubmitting ? 'Inviting…' : 'Send invitation'}
           </button>
         </div>
-        <p className="mt-3 text-sm text-[#4B6382]">Viewer can read the document. Signer and Editor need a lawyer account.</p>
+        <p className="mt-3 text-sm text-[#4B6382]">Participants are invited as viewers and can read the document.</p>
         {error && (
           <div className="mt-3 flex flex-wrap items-center gap-3">
             <p role="alert" className="text-sm font-semibold text-[#C2410C]">{error.summary}</p>
@@ -268,7 +231,7 @@ export function InviteParticipantForm({ onFindAccount, onInvite, onResend }: Inv
                 <span className="font-semibold text-[#4B6382]">Email:</span>
                 <span className="font-bold text-[#0C2B49]">{pendingAccount.email}</span>
                 <span className="font-semibold text-[#4B6382]">Permission:</span>
-                <span className="font-bold capitalize text-[#0067B3]">{permissionLabels[role]}</span>
+                <span className="font-bold text-[#0067B3]">Viewer</span>
               </div>
             </div>
             <div className="flex justify-end gap-2 pt-2">
@@ -300,7 +263,7 @@ export function InviteParticipantForm({ onFindAccount, onInvite, onResend }: Inv
                 <span className="font-semibold text-[#4B6382]">Recipient:</span>
                 <span className="font-bold text-[#0C2B49]">{pendingUnregistered.email}</span>
                 <span className="font-semibold text-[#4B6382]">Permission:</span>
-                <span className="font-bold capitalize text-[#0067B3]">{permissionLabels[role]}</span>
+                <span className="font-bold text-[#0067B3]">Viewer</span>
                 <span className="font-semibold text-[#4B6382]">Account:</span>
                 <span className="font-medium text-[#4B6382]">Unregistered (invitation email will be sent)</span>
               </div>

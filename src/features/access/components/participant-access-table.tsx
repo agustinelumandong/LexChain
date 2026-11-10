@@ -6,8 +6,10 @@ import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogContentText from '@mui/material/DialogContentText';
 import DialogTitle from '@mui/material/DialogTitle';
-import CircleIcon from '@mui/icons-material/Circle';
-import { Button, Card, Table } from '@/shared/components/ui';
+import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined';
+import ForwardToInboxOutlinedIcon from '@mui/icons-material/ForwardToInboxOutlined';
+import PersonRemoveOutlinedIcon from '@mui/icons-material/PersonRemoveOutlined';
+import { Badge, Button, Card, type BadgeVariant } from '@/shared/components/ui';
 import type { components } from '@/shared/types/index';
 import { formatRelativeExpiry } from '@/features/access/participant-access';
 
@@ -16,11 +18,46 @@ type DocumentParty = components['schemas']['DocumentPartyResponse'];
 type ParticipantAccessTableProps = {
   parties: DocumentParty[];
   canRevoke: boolean;
+  canInvite?: boolean;
   onRevoke: (party: DocumentParty) => Promise<void>;
   onResend?: (party: DocumentParty) => Promise<void>;
 };
 
-export function ParticipantAccessTable({ parties, canRevoke, onRevoke, onResend }: ParticipantAccessTableProps) {
+function getStatusBadgeVariant(status?: string): BadgeVariant {
+  if (status === 'accepted') return 'success';
+  if (status === 'pending') return 'warning';
+  if (status === 'declined' || status === 'expired') return 'danger';
+  return 'default';
+}
+
+function ParticipantIdentity({ party }: { party: DocumentParty }) {
+  const fullName = [party.f_name, party.l_name].filter(Boolean).join(' ');
+  const hasAccountName = Boolean(party.user_id && fullName);
+  return (
+    <div className="min-w-0 @3xl:flex-1">
+      <p title={hasAccountName ? fullName : party.email} className="truncate font-bold text-[var(--text-primary)]">{hasAccountName ? fullName : party.email}</p>
+      <p title={hasAccountName ? party.email : undefined} className="truncate text-xs text-[var(--text-secondary)]">{hasAccountName ? party.email : 'Invited email'}</p>
+    </div>
+  );
+}
+
+function ParticipantStatus({ party }: { party: DocumentParty }) {
+  if (party.user_id !== null) {
+    return <Badge dot variant={getStatusBadgeVariant(party.status)} className="capitalize">{party.status}</Badge>;
+  }
+  if (party.status === 'expired') {
+    return <Badge dot variant="danger">Invitation expired</Badge>;
+  }
+  const relativeExpiry = formatRelativeExpiry(party.expires_at);
+  return (
+    <div className="flex flex-col gap-1">
+      <Badge dot variant="info" className="w-fit">Waiting for sign-up</Badge>
+      {relativeExpiry && <span className="text-xs text-[var(--text-secondary)]">expires {relativeExpiry}</span>}
+    </div>
+  );
+}
+
+export function ParticipantAccessTable({ parties, canRevoke, canInvite = false, onRevoke, onResend }: ParticipantAccessTableProps) {
   const [partyToRevoke, setPartyToRevoke] = useState<DocumentParty>();
   const [resendingPartyId, setResendingPartyId] = useState<string>();
   const [isRevoking, setIsRevoking] = useState(false);
@@ -58,98 +95,62 @@ export function ParticipantAccessTable({ parties, canRevoke, onRevoke, onResend 
       <div className="border-b border-[var(--border-soft)] px-5 py-4">
         <h2 className="text-lg font-extrabold text-[var(--text-primary)]">Document participants</h2>
       </div>
-      <Table
-        ariaLabel="Document participants"
-        columns={[
-          {
-            key: 'participant',
-            label: 'Participant',
-            render: (party) => {
-              const fullName = [party.f_name, party.l_name].filter(Boolean).join(' ');
-              if (party.user_id && fullName) {
-                return (
-                  <>
-                    <p className="font-bold text-[var(--text-primary)]">{fullName}</p>
-                    <p className="text-xs text-[var(--text-secondary)]">{party.email}</p>
-                  </>
-                );
-              }
-              return (
-                <div>
-                  <p className="font-bold text-[var(--text-primary)]">{party.email}</p>
-                  <p className="text-xs text-[var(--text-secondary)]">Invited email</p>
-                </div>
-              );
-            },
-          },
-          { key: 'permission', label: 'Permission', render: (party) => <span className="capitalize text-[var(--text-primary)]">{party.role}</span> },
-          {
-            key: 'status',
-            label: 'Status',
-            render: (party) => {
-              if (party.user_id === null) {
-                if (party.status === 'expired') {
-                  return (
-                    <span className="inline-flex w-fit items-center gap-1.5 rounded-full border border-current/15 bg-red-50 px-2.5 py-0.5 text-xs font-bold text-red-700">
-                      <CircleIcon aria-hidden="true" sx={{ fontSize: 8 }} />
-                      Invitation expired
-                    </span>
-                  );
-                }
-                const relativeExpiry = formatRelativeExpiry(party.expires_at);
-                return (
-                  <div className="flex flex-col gap-0.5">
-                    <span className="inline-flex w-fit items-center gap-1.5 rounded-full border border-current/15 bg-blue-50 px-2.5 py-0.5 text-xs font-bold text-blue-700">
-                      <CircleIcon aria-hidden="true" sx={{ fontSize: 8 }} />
-                      Waiting for sign-up
-                    </span>
-                    {relativeExpiry && (
-                      <span className="text-xs text-[var(--text-secondary)]">
-                        expires {relativeExpiry}
-                      </span>
-                    )}
+      {parties.length === 0 ? (
+        <div className="px-5 py-8 text-center">
+          <p className="text-sm font-semibold text-[var(--text-primary)]">No participants have access yet.</p>
+          {canInvite && <p className="mt-1 text-sm text-[var(--text-secondary)]">Invite someone above to share this document.</p>}
+        </div>
+      ) : (
+        <ul aria-label="Document participants" className="@container divide-y divide-[var(--border-soft)]">
+          {parties.map((party) => {
+            const isEmailInvite = party.user_id === null;
+            return (
+              <li key={party.id} className="flex flex-col gap-3 px-5 py-4 @3xl:flex-row @3xl:items-center @3xl:gap-4">
+                <ParticipantIdentity party={party} />
+                <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-6 @3xl:w-64 @3xl:shrink-0">
+                  <div>
+                    <dt className="text-xs font-semibold text-[var(--text-secondary)]">Permission</dt>
+                    <dd className="mt-1 text-sm capitalize text-[var(--text-primary)]">{party.role}</dd>
                   </div>
-                );
-              }
-              return <span className="capitalize text-[var(--text-primary)]">{party.status}</span>;
-            },
-          },
-          ...(canRevoke ? [{
-            key: 'actions',
-            label: 'Actions',
-            render: (party: DocumentParty) => {
-              const isEmailInvite = party.user_id === null;
-              const isExpired = party.status === 'expired';
-              return (
-                <div className="flex flex-wrap justify-end gap-2">
-                  {isEmailInvite && onResend && (
+                  <div>
+                    <dt className="text-xs font-semibold text-[var(--text-secondary)]">Status</dt>
+                    <dd className="mt-1"><ParticipantStatus party={party} /></dd>
+                  </div>
+                </dl>
+                {canRevoke && (
+                  <div className="flex flex-wrap gap-2 @3xl:w-60 @3xl:shrink-0 @3xl:justify-end">
+                    {isEmailInvite && onResend && (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant={party.status === 'expired' ? 'primary' : 'secondary'}
+                        disabled={resendingPartyId === party.id}
+                        aria-label={`Resend invitation to ${party.email}`}
+                        onClick={() => void handleResend(party)}
+                      >
+                        <ForwardToInboxOutlinedIcon aria-hidden="true" fontSize="small" />
+                        {resendingPartyId === party.id ? 'Resending…' : 'Resend'}
+                      </Button>
+                    )}
                     <Button
                       type="button"
                       size="sm"
-                      variant={isExpired ? 'primary' : 'secondary'}
-                      disabled={resendingPartyId === party.id}
-                      onClick={() => void handleResend(party)}
+                      variant="danger-outline"
+                      aria-label={isEmailInvite ? `Remove invitation for ${party.email}` : `Revoke access for ${party.email}`}
+                      onClick={() => { setError(undefined); setPartyToRevoke(party); }}
                     >
-                      {resendingPartyId === party.id ? 'Resending…' : 'Resend'}
+                      {isEmailInvite
+                        ? <DeleteOutlinedIcon aria-hidden="true" fontSize="small" />
+                        : <PersonRemoveOutlinedIcon aria-hidden="true" fontSize="small" />}
+                      {isEmailInvite ? 'Remove' : 'Revoke'}
                     </Button>
-                  )}
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="danger"
-                    onClick={() => { setError(undefined); setPartyToRevoke(party); }}
-                  >
-                    {isEmailInvite ? 'Remove' : 'Revoke'}
-                  </Button>
-                </div>
-              );
-            },
-          }] : []),
-        ]}
-        data={parties}
-        keyExtractor={(party) => party.id}
-        emptyMessage="No participants have access yet."
-      />
+                  </div>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      )}
       {partyToRevoke && (
         <Dialog
           open

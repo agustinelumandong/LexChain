@@ -5,6 +5,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import type { components } from '@/shared/types/index';
 import { InviteParticipantForm, ParticipantAccessTable } from '@/features/access/components';
+import { ParticipantRowsSkeleton } from '@/features/documents/components/document-loading-skeletons';
+import { LoadingRegion } from '@/shared/components/ui/loading-pulse';
 import {
   inviteDocumentParty,
   listDocumentParties,
@@ -155,13 +157,14 @@ export function DocumentParticipantManagement({
           Unable to load document participants. Please try again.
         </p>
       ) : partiesQuery.isPending ? (
-        <p role="status" className="text-sm font-semibold text-[#5B6F8A]">
-          Loading document participants…
-        </p>
+        <LoadingRegion label="Loading document participants…">
+          <ParticipantRowsSkeleton />
+        </LoadingRegion>
       ) : (
         <ParticipantAccessTable
           parties={partiesQuery.data?.parties ?? []}
           canRevoke={canRevoke}
+          canInvite={canShare}
           onRevoke={(party) =>
             revokeMutation.mutateAsync(party).then(() => undefined)
           }

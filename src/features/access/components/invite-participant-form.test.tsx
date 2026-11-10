@@ -7,9 +7,9 @@ import { InviteParticipantForm } from '@/features/access/components/invite-parti
 afterEach(() => cleanup());
 
 describe('InviteParticipantForm account lookup and modal confirmation', () => {
-  it('explains permissions and their limits before submitting', () => {
+  it('explains the invited permission before submitting', () => {
     render(<InviteParticipantForm onInvite={vi.fn()} />);
-    expect(screen.getByText(/Viewer can read the document\. Signer and Editor need a lawyer account\./)).toBeTruthy();
+    expect(screen.getByText('Participants are invited as viewers and can read the document.')).toBeTruthy();
   });
 
   it('looks up an account on "Send invitation" click and shows confirmation modal', async () => {
@@ -78,19 +78,6 @@ describe('InviteParticipantForm account lookup and modal confirmation', () => {
 
     expect((await screen.findByRole('alert')).textContent).toContain('Backend delivery error');
     expect((screen.getByLabelText('Email') as HTMLInputElement).value).toBe('fail@example.com');
-  });
-
-  it('rejects non-viewer role for missing accounts with an explanation', async () => {
-    const onInvite = vi.fn().mockResolvedValue(undefined);
-    render(<InviteParticipantForm onFindAccount={vi.fn().mockResolvedValue(null)} onInvite={onInvite} />);
-
-    fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'new@example.com' } });
-    fireEvent.click(screen.getByRole('combobox', { name: /Permission/i }));
-    fireEvent.click(screen.getByRole('option', { name: 'Signer' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Send invitation' }));
-
-    expect((await screen.findByRole('alert')).textContent).toContain('Only viewer can be invited by email.');
-    expect(onInvite).not.toHaveBeenCalled();
   });
 
   it('offers resend button when an invitation conflict (409) occurs', async () => {
@@ -182,7 +169,6 @@ it.each(['search', 'invite'])('associates %s validation feedback with controls a
   const account = { user_id: 'user-1', email: 'person@example.com', f_name: 'Sample', l_name: 'Person' };
   render(<InviteParticipantForm onFindAccount={operation === 'search' ? vi.fn().mockRejectedValue(rejection) : vi.fn().mockResolvedValue(account)} onInvite={vi.fn().mockRejectedValue(rejection)} />);
   fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'person@example.com' } });
-  fireEvent.change(screen.getByLabelText('Permission'), { target: { value: 'signer' } });
   fireEvent.click(screen.getByRole('button', { name: 'Send invitation' }));
   if (operation === 'invite') {
     expect(await screen.findByRole('dialog', { name: 'Confirm participant account' })).toBeTruthy();
@@ -193,14 +179,11 @@ it.each(['search', 'invite'])('associates %s validation feedback with controls a
   expect(alert.textContent).toContain('Sharing is paused.');
   expect(alert.textContent).toContain('Try again tomorrow.');
   expect(alert.textContent).toContain('Malformed detail remains visible');
+  expect(alert.textContent).toContain('Signer access is unavailable.');
   const email = screen.getByLabelText('Email') as HTMLInputElement;
-  const permission = screen.getByLabelText('Permission') as HTMLSelectElement;
   expect(email.value).toBe('person@example.com');
-  expect(permission.value).toBe('signer');
   expect(email.getAttribute('aria-invalid')).toBe('true');
-  expect(permission.getAttribute('aria-invalid')).toBe('true');
   expect(document.getElementById(email.getAttribute('aria-describedby')!)?.textContent).toContain('This account cannot be invited.');
-  expect(document.getElementById(permission.getAttribute('aria-describedby')!)?.textContent).toContain('Signer access is unavailable.');
 });
 
 it('prefers a useful backend rate-limit message over the lookup fallback', async () => {
@@ -217,11 +200,10 @@ it.each([
   render(<InviteParticipantForm onFindAccount={vi.fn().mockRejectedValue(new PortalApiError('Correct these fields.', 422, { errors }))} onInvite={vi.fn()} />);
   fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'person@example.com' } });
   fireEvent.click(screen.getByRole('button', { name: 'Send invitation' }));
-  await screen.findByRole('alert');
+  const alert = await screen.findByRole('alert');
   const email = screen.getByLabelText('Email');
-  const permission = screen.getByLabelText('Permission');
   expect(document.getElementById(email.getAttribute('aria-describedby')!)?.textContent).toContain('Account unavailable.');
-  expect(document.getElementById(permission.getAttribute('aria-describedby')!)?.textContent).toContain('Permission unavailable.');
+  expect(alert.textContent).toContain('Permission unavailable.');
 });
 
 it('renders Invite a participant heading without duplicated document-scope helper copy', () => {
@@ -229,6 +211,6 @@ it('renders Invite a participant heading without duplicated document-scope helpe
   expect(screen.getByRole('heading', { name: 'Invite a participant' })).toBeTruthy();
   expect(screen.queryByText('Grant access to this document only.')).toBeNull();
   expect(screen.getByLabelText('Email')).toBeTruthy();
-  expect(screen.getByLabelText('Permission')).toBeTruthy();
+  expect(screen.queryByLabelText('Permission')).toBeNull();
   expect(screen.getByRole('button', { name: 'Send invitation' })).toBeTruthy();
 });
