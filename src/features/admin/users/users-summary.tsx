@@ -133,7 +133,7 @@ export function RecentlyCreatedAccounts({ users }: { users: DirectoryUser[] }) {
           <EmptyState
             icon={<PeopleOutlinedIcon aria-hidden="true" sx={{ fontSize: 22 }} />}
             title="No recent accounts"
-            description="No accounts returned by the API."
+            description="No accounts found."
           />
         ) : null}
       </div>

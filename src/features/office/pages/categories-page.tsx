@@ -10,6 +10,7 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import { toast } from 'sonner';
 import type { ApiSchema } from '@/shared/types/index';
 import { canAccessPortalFeature, getPortalUiRole } from "@/features/access";
+import { CategoriesSkeleton } from '@/features/office/components/office-loading-skeletons';
 import { Modal } from '@/features/admin/components/modal';
 import { MetricCard } from '@/features/portal/components';
 import {
@@ -73,7 +74,7 @@ export default function CategoriesPage() {
   }
 
   if (profileQuery.isLoading) {
-    return <p className="py-10 text-sm font-semibold text-[#5B6F8A]">Loading category access…</p>;
+    return <CategoriesSkeleton label="Loading category access…" />;
   }
 
   if (profileQuery.isError && !profileQuery.data) {

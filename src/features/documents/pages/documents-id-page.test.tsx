@@ -262,7 +262,7 @@ describe('document detail screen', () => {
 
   it.each([
     ['QUEUED', 'Waiting to start'],
-    ['PROCESSING', 'Extracting text'],
+    ['PROCESSING', 'Reading your PDF'],
     ['ENRICHING', 'Analyzing document'],
   ])('shows indeterminate %s progress in the bottom action card', async (status, heading) => {
     state.documentQuery = { ...state.documentQuery, data: { ...baseDocument, lifecycle: 'SIGNED', status } };

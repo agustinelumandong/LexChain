@@ -12,6 +12,7 @@ import {
   type OfficeSettings,
 } from '@/features/office/office-settings-schema';
 import { getPortalUiRole } from "@/features/access";
+import { OfficeSettingsSkeleton } from '@/features/office/components/office-loading-skeletons';
 
 type NumberSettingField = keyof OfficeSettings;
 type OfficeSettingsDraft = { [Key in NumberSettingField]: OfficeSettings[Key] | '' };
@@ -47,7 +48,7 @@ export default function OfficeSettingsPage() {
   const profileQuery = useQuery<UserProfile | null>({ queryKey: ['portal-profile'], queryFn: fetchProfile });
 
   if (profileQuery.isLoading) {
-    return <p className="py-10 text-sm font-semibold text-[#5B6F8A]">Loading office settings access…</p>;
+    return <OfficeSettingsSkeleton label="Loading office settings access…" />;
   }
 
   if (profileQuery.isError && !profileQuery.data) {

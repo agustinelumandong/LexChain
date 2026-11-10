@@ -23,6 +23,7 @@ import { portalRequest } from '@/shared/api/client';
 import { PortalApiError } from '@/shared/api/portal-error';
 import { isMockMode } from '@/lib/mocks/mode';
 import { retryDocumentProcessing } from '@/features/documents/document-lifecycle-api';
+import { DocumentDetailSkeleton } from '@/features/documents/components/document-loading-skeletons';
 import { usePopup } from '@/shared/components/ui/use-popup';
 import { DocumentIntegrityStatus } from '@/features/verification/components/document-integrity-status';
 
@@ -264,7 +265,7 @@ export default function DocumentDetailPage({ params, initialTab }: { params: Pro
     if (confirmingFinalize) finalizationHeadingRef.current?.focus();
   }, [confirmingFinalize, finalizationStep]);
 
-  if (docQ.isLoading) return <div role="status" aria-label="Loading document" className="h-40 animate-pulse rounded-[18px] border border-[#E8F0F8] bg-white" />;
+  if (docQ.isLoading) return <DocumentDetailSkeleton />;
   if (docQ.isError && (!docQ.data || !finalizationResult)) {
     const status = readErrorStatus(docQ.error);
     if (status === 404) {
@@ -304,7 +305,7 @@ export default function DocumentDetailPage({ params, initialTab }: { params: Pro
       </section>
     );
   }
-  if (!docQ.data) return <p role="status" className="text-sm text-[#4B6382]">Loading document…</p>;
+  if (!docQ.data) return <DocumentDetailSkeleton />;
 
   const document = docQ.data;
   const role = getPortalUiRole(profileQ.data?.role);

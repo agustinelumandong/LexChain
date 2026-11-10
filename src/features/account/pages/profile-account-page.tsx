@@ -249,7 +249,7 @@ export default function AccountPage({ google, message, documentReturn = false }:
           <div key={label} className="px-5 py-4">
             <span className="text-xs font-bold uppercase tracking-wide text-[#5B6F8A]">{label}</span>
             {isLoading ? (
-              <div className="mt-2 h-4 w-40 animate-pulse rounded bg-[#F5FAFF]" />
+              <div className="mt-2 h-4 w-40 rounded bg-[var(--border-soft)] motion-safe:animate-pulse" />
             ) : (
               <p className="mt-1 text-sm font-bold capitalize text-[#0C2B49]">{value}</p>
             )}

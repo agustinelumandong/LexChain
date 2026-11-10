@@ -10,6 +10,7 @@ import { Card } from '@/shared/components/ui/card';
 import { Button } from '@/shared/components/ui/button';
 import { Input } from '@/shared/components/ui/input';
 import { EmptyState } from '@/shared/components/ui';
+import { PageLoadingSkeleton } from '@/shared/components/ui/page-loading-skeleton';
 import { Modal } from '@/features/admin/components/modal';
 import HistoryOutlinedIcon from '@mui/icons-material/HistoryOutlined';
 
@@ -51,7 +52,7 @@ export function EcopyRequests({ mode }: { mode: 'mine' | 'review' }) {
     onSuccess: () => client.invalidateQueries({ queryKey: ['ecopy-requests'] }),
     onSettled: () => setRequestToApprove(null),
   });
-  if (query.isPending) return <p role="status">Loading requests…</p>;
+  if (query.isPending) return <PageLoadingSkeleton label="Loading requests…" showHeader={false} rowClassName="h-32" />;
   if (query.isError) return <div role="alert">Could not load requests. <button type="button" onClick={() => void query.refetch()}>Retry</button></div>;
   return <div className="space-y-4">
     {query.data.requests.length === 0 && (

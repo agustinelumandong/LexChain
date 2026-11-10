@@ -79,7 +79,7 @@ export function UserDialogs({
         open={mode === "suspend"}
         onClose={onClose}
         title={`${selectedUser.statusLabel === "Active" ? "Suspend" : "Reactivate"} ${selectedUser.displayName}?`}
-        description="The account status changes after the admin API confirms the update."
+        description="The account status changes once the update is confirmed."
         footer={
           <div className="flex gap-3">
             <button type="button" onClick={onClose} disabled={statusPending} className="flex-1 rounded-xl border border-[#E4EEF9] px-5 py-3 text-sm font-black text-[#0C2B49] disabled:opacity-50">Cancel</button>

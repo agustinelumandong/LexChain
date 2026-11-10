@@ -9,6 +9,7 @@ import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import AssessmentOutlinedIcon from '@mui/icons-material/AssessmentOutlined';
 import DownloadOutlinedIcon from '@mui/icons-material/DownloadOutlined';
 import { EmptyState } from '@/shared/components/ui';
+import { ReportsSkeleton } from '@/features/office/components/office-loading-skeletons';
 import type { ApiSchema } from '@/shared/types/index';
 import { GeneratedReportsManagementView } from "@/features/admin/generated-reports";
 import { PortalDropdown } from "@/features/portal/components";
@@ -89,7 +90,7 @@ export default function OfficeReportsPage() {
   const [fromDateInvalid, setFromDateInvalid] = useState(false);
   const [toDateInvalid, setToDateInvalid] = useState(false);
 
-  if (profileQuery.isLoading) return <div className="h-36 animate-pulse rounded-[18px] border border-[#E8F0F8] bg-white" />;
+  if (profileQuery.isLoading) return <ReportsSkeleton label="Loading report access…" />;
 
   if (profileQuery.isError && !profileQuery.data) return <PortalAccessError error={profileQuery.error} isRetrying={profileQuery.isFetching} onRetry={() => void profileQuery.refetch()} />;
 

@@ -21,6 +21,7 @@ import { getDocumentLifecycleBadgeClasses, getDocumentLifecycleLabel, getDocumen
 import { getPortalUiRole } from "@/features/access";
 import { NewDocumentAction } from '@/features/documents/components/new-document-action';
 import { EmptyState } from '@/shared/components/ui';
+import { DocumentListSkeleton } from '@/features/documents/components/document-loading-skeletons';
 import TaskAltOutlinedIcon from '@mui/icons-material/TaskAltOutlined';
 import {
   getDocumentLifecycles,
@@ -334,7 +335,7 @@ export default function DocumentsPage() {
 
       <div role="region" aria-label={isIssuer ? 'Office document results' : 'Document results'} className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto min-[1680px]:overflow-hidden">
       {documentsQuery.isLoading ? (
-        <div className="flex flex-col gap-3" aria-label="Loading documents">{[1, 2, 3].map((index) => <div key={index} className="h-[80px] animate-pulse rounded-[18px] border border-[#E8F0F8] bg-white" />)}</div>
+        <DocumentListSkeleton />
       ) : documentsQuery.isError ? (
         <div role="alert" className="rounded-[18px] border border-[#E8F0F8] bg-white p-8 text-center"><p className="text-sm font-bold text-[#0C2B49]">{documentsErrorMessage(documentsQuery.error)}</p><p className="mt-1 text-xs text-[#5B6F8A]">Check your connection and try again.</p><button type="button" onClick={() => void documentsQuery.refetch()} className="mt-4 rounded-full border border-[#D7E4F2] px-4 py-2 text-sm font-black text-[#0067B3]">Retry</button></div>
       ) : allDocuments.length === 0 ? (

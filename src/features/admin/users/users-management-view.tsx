@@ -162,7 +162,7 @@ export function UsersManagementView({ users, total, loadError }: { users: AdminU
         ? payload.is_active
         : null;
       if (returnedId !== user.id || returnedIsActive === null) {
-        throw new Error("The API returned an invalid account status. Please refresh and try again.");
+        throw new Error("Could not confirm the account status. Please refresh and try again.");
       }
       setUserRows((currentUsers) => currentUsers.map((current) => current.id === user.id ? { ...current, is_active: returnedIsActive } : current));
       toast.success(returnedIsActive ? "Account reactivated" : "Account suspended");

@@ -9,6 +9,7 @@ import type { ApiSchema } from '@/shared/types/index';
 import { portalRequest } from '@/shared/api/client';
 import { PortalApiError } from '@/shared/api/portal-error';
 import { signedCopyFileUrl } from '@/features/documents/document-lifecycle-api';
+import { ViewerPanelSkeleton } from '@/features/documents/components/document-loading-skeletons';
 
 const PdfDocumentViewer = dynamic(() => import('@/features/documents/components/pdf-document-viewer'), {
   ssr: false,
@@ -44,7 +45,7 @@ export default function PdfViewerPage() {
       <h1 className="text-lg font-extrabold text-[var(--portal-navy)]">Document preview</h1>
 
       {documentQuery.isPending ? (
-        <p role="status" className="rounded-[18px] border border-[var(--portal-border-soft)] bg-white p-6 text-sm font-medium text-[var(--portal-text-muted)]">Loading document…</p>
+        <ViewerPanelSkeleton label="Loading document…" />
       ) : documentQuery.isError ? (
         <section role="alert" className="rounded-[18px] border border-[var(--portal-border-soft)] bg-white p-6">
           <h2 className="font-extrabold text-[var(--portal-navy)]">Unable to load document preview</h2>

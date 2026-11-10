@@ -10,6 +10,7 @@ import { canAccessPortalFeature } from "@/features/access/portal-access";
 import { getPortalUiRole } from "@/features/access/portal-role";
 import { PortalAccessError } from "@/features/access/components/portal-access-error";
 import { EmptyState } from "@/shared/components/ui";
+import { PageLoadingSkeleton } from "@/shared/components/ui/page-loading-skeleton";
 import EmailOutlinedIcon from "@mui/icons-material/EmailOutlined";
 
 type Invitation = components["schemas"]["DocumentInvitationResponse"];
@@ -70,7 +71,7 @@ export default function InvitationsPage() {
     }
   }
 
-  if (profileQuery.isPending) return <p className="text-sm font-semibold text-[#5B6F8A]">Loading your invitation access…</p>;
+  if (profileQuery.isPending) return <PageLoadingSkeleton label="Loading your invitation access…" eyebrow rowClassName="h-52" />;
   if (profileQuery.isError && !profileQuery.data) return <PortalAccessError error={profileQuery.error} isRetrying={profileQuery.isFetching} onRetry={() => void profileQuery.refetch()} />;
   if (!isParticipant) return <section className="rounded-[18px] border border-[#E8F0F8] bg-white p-6"><h1 className="text-xl font-black text-[#0C2B49]">Invitations unavailable</h1><p className="mt-2 text-sm text-[#5B6F8A]">Users can manage shared document invitations.</p></section>;
 
@@ -81,7 +82,7 @@ export default function InvitationsPage() {
         <h1 className="mt-1 text-[28px] font-black text-[#0C2B49]">Invitations</h1>
         <p className="mt-1 text-sm font-semibold text-[#5B6F8A]">Accept or decline document access invitations.</p>
       </div>
-      {isLoading ? <p className="text-sm font-semibold text-[#5B6F8A]">Loading invitations…</p> : null}
+      {isLoading ? <PageLoadingSkeleton label="Loading invitations…" showHeader={false} rowClassName="h-52" /> : null}
       {error ? <p className="rounded-xl bg-red-50 p-4 text-sm font-semibold text-red-700" role="alert">{error.message}</p> : null}
       {actionError ? <p role="alert" className="rounded-xl bg-red-50 p-4 text-sm font-semibold text-red-700">{actionError}</p> : null}
       {!isLoading && !error && invitations.length === 0 ? (

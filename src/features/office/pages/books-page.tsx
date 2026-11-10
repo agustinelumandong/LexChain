@@ -13,6 +13,7 @@ import { usePortalRole } from '@/features/access/components';
 import { Modal } from '@/features/admin/components/modal';
 import { PortalDropdown } from '@/features/portal/components';
 import { EmptyState } from '@/shared/components/ui';
+import { BooksShelfSkeleton } from '@/features/office/components/office-loading-skeletons';
 import { createRegisterBook, listRegisterBooks } from '@/features/office/books-api';
 import type { BookCreateRequest, RegisterBook } from '@/features/office/books-api';
 
@@ -117,7 +118,7 @@ export default function BooksPage() {
       </Modal>
 
       {booksQuery.isLoading ? (
-        <div role="status" className={`${cardClass} p-8 text-center text-sm font-semibold text-[#5B6F8A]`}>Loading books…</div>
+        <BooksShelfSkeleton label="Loading books…" />
       ) : booksQuery.isError ? (
         <div className={`${cardClass} p-8 text-center`}>
           <p className="text-sm font-bold text-[#0C2B49]">Unable to load books</p>
