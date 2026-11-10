@@ -634,15 +634,26 @@ describe('DocumentWorkspace', () => {
     const progress = screen.getByRole('navigation', { name: 'Draft and filing progress' });
     expect(within(progress).getByRole('listitem', { current: 'step' }).textContent).toContain('Review signed PDF');
     expect(screen.queryByRole('button', { name: 'Review text' })).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: 'Continue to text review' }));
+    const continueLink = screen.getByRole('link', { name: 'Continue to text review' });
+    expect(continueLink.getAttribute('href')).toBe(`/portal/documents/${document.document_id}/review`);
+    fireEvent.click(continueLink);
     expect(within(progress).getByRole('listitem', { current: 'step' }).textContent).toContain('Review text and risks');
     expect(screen.getByRole('button', { name: 'Review text' })).toBeTruthy();
+  });
+
+  it.each([
+    ['lawyer', 'LexChain is getting the text ready for your review. You can view the PDF while you wait.'],
+    ['user', 'LexChain is getting the text ready for your lawyer to review.'],
+  ] as const)('explains the PDF reading wait to a %s', (role, guidance) => {
+    renderWorkspace({ role, document: { ...document, lifecycle: 'SIGNED', draft_url: null, status: 'PROCESSING' } });
+    expect(screen.getByRole('heading', { name: 'Reading your PDF' })).toBeTruthy();
+    expect(screen.getByText(guidance)).toBeTruthy();
   });
 
   it('keeps text review current after leaving and reopening the document', () => {
     const signedDocument = { ...document, lifecycle: 'SIGNED', draft_url: null, status: 'AWAITING_REVIEW' };
     const view = renderWorkspace({ role: 'lawyer', document: signedDocument });
-    fireEvent.click(screen.getByRole('button', { name: 'Continue to text review' }));
+    fireEvent.click(screen.getByRole('link', { name: 'Continue to text review' }));
     view.unmount();
     renderWorkspace({ role: 'lawyer', document: signedDocument });
     expect(within(screen.getByRole('navigation', { name: 'Draft and filing progress' })).getByRole('listitem', { current: 'step' }).textContent).toContain('Review text and risks');
@@ -651,7 +662,7 @@ describe('DocumentWorkspace', () => {
   it('asks for PDF review again when a different signed copy is attached', () => {
     const signedDocument = { ...document, lifecycle: 'SIGNED', draft_url: null, status: 'AWAITING_REVIEW' };
     const view = renderWorkspace({ role: 'lawyer', document: signedDocument });
-    fireEvent.click(screen.getByRole('button', { name: 'Continue to text review' }));
+    fireEvent.click(screen.getByRole('link', { name: 'Continue to text review' }));
     view.unmount();
     renderWorkspace({ role: 'lawyer', document: { ...signedDocument, signed_copy: { ...document.signed_copy!, id: 'replacement-copy' } } });
     expect(within(screen.getByRole('navigation', { name: 'Draft and filing progress' })).getByRole('listitem', { current: 'step' }).textContent).toContain('Review signed PDF');
@@ -717,7 +728,7 @@ describe('DocumentWorkspace', () => {
 
   it.each(['AWAITING_REVIEW', 'READY_FOR_REVIEW', 'ENRICHING', 'COMPLETED'])('shows text and risk review before finalization when processing is %s', (status) => {
     renderWorkspace({ role: 'lawyer', document: { ...document, lifecycle: 'SIGNED', draft_url: null, status } });
-    if (['AWAITING_REVIEW', 'READY_FOR_REVIEW'].includes(status)) fireEvent.click(screen.getByRole('button', { name: 'Continue to text review' }));
+    if (['AWAITING_REVIEW', 'READY_FOR_REVIEW'].includes(status)) fireEvent.click(screen.getByRole('link', { name: 'Continue to text review' }));
     const progress = screen.getByRole('navigation', { name: 'Draft and filing progress' });
     expect(within(progress).getByText('Step 3 of 4')).toBeTruthy();
     expect(within(progress).getByRole('listitem', { current: 'step' }).textContent).toContain('Review text and risks');
@@ -797,7 +808,7 @@ describe('DocumentWorkspace', () => {
     expect(screen.getByRole('link', { name: 'Open Google draft' }).getAttribute('href')).toBe(document.draft_url);
 
     cleanup();
-    renderWorkspace({ document: { ...document, lifecycle: 'SIGNED' } });
+    renderWorkspace({ role: 'lawyer', document: { ...document, lifecycle: 'SIGNED' } });
     expect(screen.queryByRole('tablist')).toBeNull();
     expect(screen.getByRole('button', { name: 'Download options' })).toBeTruthy();
     expect(screen.queryByRole('tab', { name: 'Blockchain' })).toBeNull();
@@ -1059,7 +1070,7 @@ describe('DocumentWorkspace', () => {
     expect(screen.queryByRole('link', { name: 'Open Google draft' })).toBeNull();
     expect(screen.getByRole('alert').textContent).toContain('invalid Google draft link');
     cleanup();
-    renderWorkspace({ document: { ...document, lifecycle: 'SIGNED', draft_url: 'https://example.com/phishing' } });
+    renderWorkspace({ role: 'lawyer', document: { ...document, lifecycle: 'SIGNED', draft_url: 'https://example.com/phishing' } });
 
     expect(screen.queryByRole('link', { name: 'Open Google draft' })).toBeNull();
     expect(screen.getByRole('button', { name: 'Download options' })).toBeTruthy();
@@ -1663,6 +1674,15 @@ describe('DocumentWorkspace', () => {
     expect(within(filesSection).getByRole('dialog', { name: 'Replace signed PDF' })).toBeTruthy();
     expect(within(filesSection).getByText('Upload signed document')).toBeTruthy();
     expect(within(filesSection).getByLabelText('Replacement reason')).toBeTruthy();
+  });
+
+  it('lets clients view the signed PDF without download options', () => {
+    renderWorkspace({ role: 'user', document: { ...document, lifecycle: 'FINALIZED' as const } });
+    fireEvent.click(screen.getByRole('tab', { name: 'Files' }));
+
+    const filesSection = screen.getByRole('region', { name: 'Signed PDF' });
+    expect(within(filesSection).getByRole('button', { name: 'View PDF' })).toBeTruthy();
+    expect(within(filesSection).queryByRole('button', { name: 'Download options' })).toBeNull();
   });
 
   it('clarifies that finalized documents cannot be replaced (#169)', () => {

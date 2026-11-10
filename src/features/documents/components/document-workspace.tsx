@@ -111,7 +111,7 @@ function FinalizationNextStep({ document, role, outcomeUnknown }: {
         ? 'Processing failed'
         : status === 'QUEUED'
           ? 'Waiting to start'
-          : status === 'PROCESSING' ? 'Extracting text' : status === 'ENRICHING' ? 'Analyzing document'
+          : status === 'PROCESSING' ? 'Reading your PDF' : status === 'ENRICHING' ? 'Analyzing document'
     : document.permissions.can_finalize
       ? 'Check the signed PDF'
       : 'Waiting for finalization';
@@ -123,7 +123,7 @@ function FinalizationNextStep({ document, role, outcomeUnknown }: {
         ? document.permissions.can_retry_processing ? 'Retry processing to continue.' : 'The document owner can retry processing.'
         : status === 'QUEUED'
           ? 'Your signed PDF is waiting for processing to start. This page checks for updates automatically.'
-          : status === 'PROCESSING' ? 'Text extraction is in progress. This page checks for updates automatically.'
+          : status === 'PROCESSING' ? role === 'lawyer' ? 'LexChain is getting the text ready for your review. You can view the PDF while you wait.' : 'LexChain is getting the text ready for your lawyer to review.'
             : status === 'ENRICHING' ? 'Analysis is in progress. This page checks for updates automatically.'
     : document.permissions.can_finalize
       ? document.permissions.can_replace_signed_copy
@@ -561,7 +561,7 @@ function SignedPdfPreview({
                 <PictureAsPdfOutlinedIcon aria-hidden="true" sx={{ fontSize: 18 }} />
                 View PDF
               </button>
-              <div ref={downloadMenuRef} className="relative">
+              {role === 'lawyer' && <div ref={downloadMenuRef} className="relative">
                 <button
                   type="button"
                   aria-label="Download options"
@@ -612,7 +612,7 @@ function SignedPdfPreview({
                     </button>
                   </div>
                 )}
-              </div>
+              </div>}
             </>
           )}
           {document.permissions?.can_attach_signed_copy && !signedCopy && onOpenAttach && (
@@ -1654,9 +1654,9 @@ export function DocumentWorkspace({
         <section aria-label="Next action" className="rounded-[18px] border border-[#E8F0F8] bg-white p-5 shadow-sm sm:p-6">
           <div className="flex flex-wrap items-center justify-between gap-4">
             {needsSignedPdfReview ? <div><h3 className="text-sm font-bold text-[#0C2B49]">Review signed PDF</h3><p className="mt-1 text-sm leading-5 text-[#4B6382]">Check the signed PDF before continuing to text and risk review.</p></div> : showWorkflowStatus && <FinalizationNextStep document={document} role={role} outcomeUnknown={finalizationOutcomeUnknown} />}
-            {needsSignedPdfReview ? <button type="button" onClick={continueToTextReview} className="min-h-11 rounded-full bg-[#0067B3] px-5 py-2 text-sm font-extrabold text-white hover:bg-[#00528F] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]">Continue to text review</button> : workflowActions}
+            {needsSignedPdfReview ? <Link href={`/portal/documents/${encodeURIComponent(document.document_id)}/review`} onClick={continueToTextReview} className="inline-flex min-h-11 items-center rounded-full bg-[#0067B3] px-5 py-2 text-sm font-extrabold text-white hover:bg-[#00528F] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]">Continue to text review</Link> : workflowActions}
           </div>
-          {showWorkflowStatus && isProcessing && !finalizationOutcomeUnknown && <div role="progressbar" aria-label="Document processing" aria-valuetext={status === 'QUEUED' ? 'Waiting to start' : status === 'ENRICHING' ? 'Analyzing document' : 'Extracting text'} className="mt-4 h-2 overflow-hidden rounded-full bg-[#E8F0F8]">
+          {showWorkflowStatus && isProcessing && !finalizationOutcomeUnknown && <div role="progressbar" aria-label="Document processing" aria-valuetext={status === 'QUEUED' ? 'Waiting to start' : status === 'ENRICHING' ? 'Analyzing document' : 'Reading your PDF'} className="mt-4 h-2 overflow-hidden rounded-full bg-[#E8F0F8]">
             <div className="document-processing-indeterminate h-full w-2/5 rounded-full bg-[#0067B3] motion-reduce:animate-none" />
           </div>}
         </section>

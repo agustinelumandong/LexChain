@@ -8,8 +8,7 @@ import DialogContentText from '@mui/material/DialogContentText';
 import DialogTitle from '@mui/material/DialogTitle';
 import Drawer from '@mui/material/Drawer';
 import dynamic from 'next/dynamic';
-import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from 'react';
-import { getDocumentStatusLabel } from '@/features/documents/document-ui';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import type { ExtractionReview } from '@/features/documents/extraction-api';
 import { signedCopyFileUrl } from '@/features/documents/document-lifecycle-api';
 import { EmptyState, ToggleButton } from '@/shared/components/ui';
@@ -22,15 +21,20 @@ const PdfDocumentViewer = dynamic(() => import('@/features/documents/components/
 });
 
 export type ReviewWorkspaceProps = {
+  header?: ReactNode;
   review: ExtractionReview;
   actionError: string | null;
   isSaving: boolean;
-  isAnalyzing: boolean;
   isApproving: boolean;
   onSave: (edits: ApiSchema<'BlockEdit'>[]) => Promise<ExtractionReview>;
-  onAnalyze: () => Promise<ExtractionReview>;
   onApprove: () => Promise<unknown>;
 };
+
+const PAGE_TOP_BLOCK_TYPES = new Set(['head', 'header', 'pageheader']);
+
+function isPageTopBlock(block: ExtractionReview['blocks'][number]) {
+  return PAGE_TOP_BLOCK_TYPES.has(block.type.toLowerCase().replace(/[\s_-]/g, ''));
+}
 
 function fitCompareEditor(textarea: HTMLTextAreaElement) {
   textarea.style.height = 'auto';
@@ -38,16 +42,14 @@ function fitCompareEditor(textarea: HTMLTextAreaElement) {
 }
 
 export default function ReviewWorkspace({
+  header,
   review,
   actionError,
   isSaving,
-  isAnalyzing,
   isApproving,
   onSave,
-  onAnalyze,
   onApprove,
 }: ReviewWorkspaceProps) {
-  const [activeTab, setActiveTab] = useState<'compare' | 'raw'>('compare');
   const [mobilePane, setMobilePane] = useState<'source' | 'review'>('review');
   const [pdfLoading, setPdfLoading] = useState(true);
   const handlePdfLoadChange = useCallback((loading: boolean) => {
@@ -63,9 +65,11 @@ export default function ReviewWorkspace({
   }, []);
   const [drafts, setDrafts] = useState<Record<number, string>>({});
   const [selectedBlockIndex, setSelectedBlockIndex] = useState<number | null>(null);
+  const [editingTableIndex, setEditingTableIndex] = useState<number | null>(null);
   const [hoveredBlockIndex, setHoveredBlockIndex] = useState<number | null>(null);
+  const [pdfRevealRequest, setPdfRevealRequest] = useState<{ blockIndex: number; id: number } | null>(null);
   const [currentPage, setCurrentPage] = useState(0);
-  const [openDrawer, setOpenDrawer] = useState<'issues' | 'info' | null>(null);
+  const [issuesOpen, setIssuesOpen] = useState(false);
   const [approvalOpen, setApprovalOpen] = useState(false);
   const [suppressIssuesRestoreFocus, setSuppressIssuesRestoreFocus] = useState(false);
   const [sanitizedTables, setSanitizedTables] = useState<Record<number, string | null>>({});
@@ -74,6 +78,8 @@ export default function ReviewWorkspace({
     texts: Record<number, string>;
   } | null>(null);
   const comparePaneRef = useRef<HTMLElement>(null);
+  const approveButtonRef = useRef<HTMLButtonElement>(null);
+  const hadUnsavedEdits = useRef(false);
   const acceptedTexts = savedBaseline?.sourceBlocks === review.blocks ? savedBaseline.texts : undefined;
   const edits = review.blocks.flatMap<ApiSchema<'BlockEdit'>>((block) => {
     if (block.editable === false) return [];
@@ -82,7 +88,14 @@ export default function ReviewWorkspace({
       ? []
       : [{ index: block.index, text: draft }];
   });
-  const mutationPending = isSaving || isAnalyzing || isApproving;
+  const mutationPending = isSaving || isApproving;
+
+  useEffect(() => {
+    if (mutationPending) return;
+    // The Save button unmounts once everything is saved; keep keyboard users in the action group.
+    if (hadUnsavedEdits.current && edits.length === 0 && document.activeElement === document.body) approveButtonRef.current?.focus();
+    hadUnsavedEdits.current = edits.length > 0;
+  }, [edits.length, mutationPending]);
   const highSeverityCount = review.high_severity_count;
   const severityRank: Record<string, number> = { high: 0, medium: 1, low: 2 };
   const orderedFlags = review.flags
@@ -120,9 +133,8 @@ export default function ReviewWorkspace({
   }, [acceptedTexts, drafts, review.blocks]);
 
   useEffect(() => {
-    if (activeTab !== 'compare') return;
     comparePaneRef.current?.querySelectorAll<HTMLTextAreaElement>('[data-compare-editor]').forEach(fitCompareEditor);
-  }, [activeTab, currentPage, drafts, mobilePane, pdfLoading, review.blocks]);
+  }, [currentPage, drafts, mobilePane, pdfLoading, review.blocks]);
 
   function scrollCompareBlockIntoView(blockIndex: number) {
     const pane = comparePaneRef.current;
@@ -147,27 +159,6 @@ export default function ReviewWorkspace({
   function hoverSourceBlock(blockIndex: number | null) {
     hoverBlock(blockIndex);
     if (blockIndex !== null) scrollCompareBlockIntoView(blockIndex);
-  }
-
-  function changeActiveTab(tab: 'compare' | 'raw') {
-    if (tab === activeTab) return;
-    setHoveredBlockIndex(null);
-    setActiveTab(tab);
-  }
-
-  function handleTabKeyDown(event: KeyboardEvent<HTMLButtonElement>, tab: 'compare' | 'raw') {
-    const nextTab = event.key === 'Home'
-      ? 'compare'
-      : event.key === 'End'
-        ? 'raw'
-        : event.key === 'ArrowLeft' || event.key === 'ArrowRight'
-          ? tab === 'compare' ? 'raw' : 'compare'
-          : null;
-    if (!nextTab) return;
-
-    event.preventDefault();
-    changeActiveTab(nextTab);
-    document.getElementById(`review-workspace-tab-${nextTab}`)?.focus();
   }
 
   function changeMobilePane(pane: 'source' | 'review') {
@@ -208,11 +199,13 @@ export default function ReviewWorkspace({
     if (!block) return;
 
     setSelectedBlockIndex(block.index);
+    setPdfRevealRequest((current) => ({ blockIndex: block.index, id: (current?.id ?? 0) + 1 }));
     if (block.page_idx !== null && block.page_idx !== undefined) changeCurrentPage(block.page_idx);
     if (focusEditor && block.editable !== false) {
-      if (activeTab === 'compare' && mobilePane === 'source') changeMobilePane('review');
+      if (mobilePane === 'source') changeMobilePane('review');
+      if (block.is_html) setEditingTableIndex(block.index);
       requestAnimationFrame(() => {
-        if (activeTab === 'compare') scrollCompareBlockIntoView(block.index);
+        scrollCompareBlockIntoView(block.index);
         document.getElementById(`review-block-input-${block.index}`)?.focus();
       });
     }
@@ -220,261 +213,206 @@ export default function ReviewWorkspace({
 
   function closeIssues(suppressRestoreFocus = false) {
     setSuppressIssuesRestoreFocus(suppressRestoreFocus);
-    setOpenDrawer(null);
+    setIssuesOpen(false);
   }
 
-  const compareBlocks = review.blocks.filter((block) => block.page_idx === currentPage);
+  const compareBlocks = review.blocks
+    .filter((block) => block.page_idx === currentPage || block.page_idx == null)
+    .sort((first, second) => Number(isPageTopBlock(second)) - Number(isPageTopBlock(first)));
 
   return (
-    <section className="min-w-0 md:flex md:min-h-0 md:flex-1 md:flex-col">
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#E8F0F8]">
-        <div role="tablist" aria-label="Extraction review view" className="flex">
-          {(['compare', 'raw'] as const).map((tab) => (
-            <button
-              key={tab}
-              type="button"
-              id={`review-workspace-tab-${tab}`}
-              role="tab"
-              aria-selected={activeTab === tab}
-              tabIndex={activeTab === tab ? 0 : -1}
-              aria-controls="review-workspace-panel"
-              onKeyDown={(event) => handleTabKeyDown(event, tab)}
-              onClick={() => changeActiveTab(tab)}
-              className={`border-b-2 px-5 py-3 text-sm font-black ${activeTab === tab ? 'border-[#0067B3] text-[#0067B3]' : 'border-transparent text-[#5B6F8A]'}`}
-            >
-              {tab === 'compare' ? 'Compare' : 'Raw'}
-            </button>
-          ))}
-        </div>
-        <div className="flex gap-2 pb-2 sm:pb-0">
+    <section className="min-w-0 md:grid md:min-h-0 md:flex-1 md:grid-cols-[minmax(0,1fr)_auto] md:grid-rows-[auto_minmax(0,1fr)]">
+      <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3 border-b border-[#E8F0F8] md:col-start-1 md:row-start-1">
+        {header && <div className="min-w-0 pb-3">{header}</div>}
+        <div className="flex gap-2 pb-3">
           <button
             type="button"
             onClick={() => {
               setSuppressIssuesRestoreFocus(false);
-              setOpenDrawer('issues');
+              setIssuesOpen(true);
             }}
             className="rounded-full border border-[#D7E4F2] px-3 py-2 text-sm font-black text-[#0C2B49]"
           >
             Issues ({review.flag_count})
           </button>
-          <button
-            type="button"
-            onClick={() => setOpenDrawer('info')}
-            className="rounded-full border border-[#D7E4F2] px-3 py-2 text-sm font-black text-[#0C2B49]"
-          >
-            Extraction info
-          </button>
         </div>
       </div>
 
-      <div id="review-workspace-panel" role="tabpanel" aria-labelledby={`review-workspace-tab-${activeTab}`} className="pt-5 md:flex md:min-h-0 md:flex-1 md:flex-col">
-        {activeTab === 'compare' ? (
-          <div className="md:flex md:min-h-0 md:flex-1 md:flex-col">
-            <div aria-label="Mobile review pane" className="mb-3 grid grid-cols-2 gap-2 md:hidden">
-              {(['source', 'review'] as const).map((pane) => (
-                <ToggleButton
-                  key={pane}
-                  type="button"
-                  pressed={mobilePane === pane}
-                  size="sm"
-                  fullWidth
-                  aria-label={`${pane === 'source' ? 'Source' : 'Review'} pane`}
-                  onClick={() => changeMobilePane(pane)}
-                >
-                  {pane === 'source' ? 'Source' : 'Review'}
-                </ToggleButton>
-              ))}
-            </div>
-
-            <div className="grid min-w-0 gap-5 md:min-h-0 md:flex-1 md:grid-cols-2">
-              <section aria-label="Source document" className={`relative ${mobilePane === 'source' ? 'min-w-0 rounded-[18px] border border-[#E8F0F8] bg-white p-4 md:flex md:min-h-0 md:flex-col' : 'hidden min-w-0 rounded-[18px] border border-[#E8F0F8] bg-white p-4 md:flex md:min-h-0 md:flex-col'}`}>
-                <PdfDocumentViewer
-                  sourceUrl={signedCopyFileUrl(review.document_id, { copyId: review.signed_copy_id })}
-                  pageCount={review.page_count}
-                  currentPage={currentPage}
-                  blocks={review.blocks}
-                  selectedBlockIndex={selectedBlockIndex}
-                  hoveredBlockIndex={hoveredBlockIndex}
-                  onPageChange={changeCurrentPage}
-                  onSelectBlock={selectBlock}
-                  onHoverBlockChange={hoverSourceBlock}
-                  onLoadChange={handlePdfLoadChange}
-                />
-                {pdfLoading && (
-                  <div className="absolute inset-0 z-10 flex items-center justify-center rounded-[18px] bg-white">
-                    <div className="flex items-center gap-2">
-                      <span className="h-4 w-4 animate-spin rounded-full border-2 border-[#D7E4F2] border-t-[#0067B3]" />
-                      <p className="text-xs font-semibold text-[#5B6F8A]">Loading document…</p>
-                    </div>
-                  </div>
-                )}
-              </section>
-
-              <section ref={comparePaneRef} aria-label="Reviewed document" className={mobilePane === 'review' ? 'min-w-0 rounded-[18px] border border-[#E8F0F8] bg-white p-5 shadow-[0_4px_12px_rgba(19,59,115,0.05)] md:min-h-0 md:overflow-y-auto' : 'hidden min-w-0 rounded-[18px] border border-[#E8F0F8] bg-white p-5 shadow-[0_4px_12px_rgba(19,59,115,0.05)] md:block md:min-h-0 md:overflow-y-auto'}>
-                {pdfLoading ? (
-                  <div aria-label="Loading extracted text" className="flex flex-col gap-3">
-                    {[0, 1, 2, 3, 4].map((index) => (
-                      <div key={index} className="animate-pulse rounded-lg border border-[#E8F0F8] px-2 py-1.5">
-                        <div className="mb-2 h-2.5 w-16 rounded bg-[#E8F0F8]" />
-                        <div className="h-3 w-full rounded bg-[#EEF4FB]" />
-                        <div className="mt-1.5 h-3 w-11/12 rounded bg-[#EEF4FB]" />
-                        <div className="mt-1.5 h-3 w-4/5 rounded bg-[#EEF4FB]" />
-                      </div>
-                    ))}
-                  </div>
-                ) : compareBlocks.map((block) => {
-                  const acceptedText = acceptedTexts?.[block.index] ?? block.text;
-                  const text = drafts[block.index] ?? acceptedText;
-                  const selected = selectedBlockIndex === block.index;
-                  const hovered = hoveredBlockIndex === block.index;
-                  const sanitizedTable = sanitizedTables[block.index];
-                  return (
-                    <section
-                      key={block.index}
-                      id={`review-block-${block.index}`}
-                      data-block-index={block.index}
-                      onMouseEnter={() => hoverBlock(block.index)}
-                      onMouseLeave={() => hoverBlock(null)}
-                      className={`group rounded-lg border px-2 py-1.5 transition-colors ${selected ? 'border-[#0067B3] bg-[#F5FAFF]' : hovered ? 'border-[#98C9F3] bg-[#F8FBFF]' : 'border-[#E8F0F8]'}`}
-                    >
-                      <span className="mb-1 block text-xs font-black uppercase tracking-wide text-[#5B6F8A]">
-                        {block.type.replace(/[_-]/g, ' ')}
-                      </span>
-                      {block.is_html ? (
-                        <>
-                          {sanitizedTable === undefined && <p className="text-sm text-[#5B6F8A]">Loading table…</p>}
-                          {sanitizedTable === null && <p className="text-sm text-[#B42318]">Table preview unavailable. Edit it in Raw view.</p>}
-                          {typeof sanitizedTable === 'string' && (
-                            <div
-                              className="overflow-x-auto text-sm text-[#0C2B49] [&_table]:w-full [&_td]:border [&_td]:border-[#D7E4F2] [&_td]:p-2 [&_th]:border [&_th]:border-[#D7E4F2] [&_th]:p-2"
-                              dangerouslySetInnerHTML={{ __html: sanitizedTable }}
-                            />
-                          )}
-                          <button
-                            type="button"
-                            disabled={review.is_reviewed || isApproving || block.editable === false}
-                            onClick={() => {
-                              changeActiveTab('raw');
-                              selectBlock(block.index);
-                            }}
-                            className="mt-2 text-xs font-black text-[#0067B3] disabled:opacity-40"
-                          >
-                            Edit table in Raw view
-                          </button>
-                        </>
-                      ) : block.editable !== false ? (
-                        <textarea
-                          id={`review-block-input-${block.index}`}
-                          aria-label={`Reviewed text for block ${block.index}`}
-                          data-selected={selected}
-                          data-compare-editor
-                          value={text}
-                          rows={block.text_level === 1 ? 1 : Math.max(2, text.split('\n').length)}
-                          disabled={review.is_reviewed || isApproving}
-                          onFocus={() => {
-                            selectBlock(block.index, false);
-                            hoverBlock(block.index);
-                          }}
-                          onBlur={() => hoverBlock(null)}
-                          onChange={(event) => {
-                            setDrafts((current) => ({ ...current, [block.index]: event.target.value }));
-                            fitCompareEditor(event.currentTarget);
-                          }}
-                          className={`field-sizing-content w-full resize-none overflow-hidden rounded-lg border-0 bg-transparent px-2 py-1.5 leading-7 text-[#0C2B49] outline-none ${block.text_level === 1 ? 'text-xl font-black' : 'text-sm'}`}
-                        />
-                      ) : (
-                        <p className="rounded-lg border border-dashed border-[#F5D7A1] bg-[#FFF9EC] px-3 py-2 text-sm text-[#5B6F8A]">
-                          {block.type} region — shown on the source PDF and not editable.
-                        </p>
-                      )}
-                    </section>
-                  );
-                })}
-                {compareBlocks.length === 0 && (
-                  <EmptyState
-                    icon={<DescriptionOutlinedIcon aria-hidden="true" sx={{ fontSize: 22 }} />}
-                    title="No extracted text"
-                    description="No extracted text is available for this page."
-                  />
-                )}
-              </section>
-            </div>
+      <div className="pt-5 md:col-span-2 md:row-start-2 md:flex md:min-h-0 md:flex-col">
+        <div className="md:flex md:min-h-0 md:flex-1 md:flex-col">
+          <div aria-label="Mobile review pane" className="mb-3 grid grid-cols-2 gap-2 md:hidden">
+            {(['source', 'review'] as const).map((pane) => (
+              <ToggleButton
+                key={pane}
+                type="button"
+                pressed={mobilePane === pane}
+                size="sm"
+                fullWidth
+                aria-label={`${pane === 'source' ? 'Source' : 'Review'} pane`}
+                onClick={() => changeMobilePane(pane)}
+              >
+                {pane === 'source' ? 'Source' : 'Review'}
+              </ToggleButton>
+            ))}
           </div>
-        ) : (
-          <div className="flex flex-col gap-4 md:min-h-0 md:flex-1 md:overflow-y-auto">
-            {review.blocks.map((block) => {
-              const text = drafts[block.index] ?? acceptedTexts?.[block.index] ?? block.text;
-              return (
-                <section
-                  key={block.index}
-                  id={`review-block-${block.index}`}
-                  data-block-index={block.index}
-                  className={`rounded-[18px] border bg-white p-5 ${selectedBlockIndex === block.index ? 'border-[#0067B3]' : 'border-[#E8F0F8]'}`}
-                >
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <h2 className="font-black text-[#0C2B49]">Block {block.index}</h2>
-                    <p className="text-xs font-bold text-[#5B6F8A]">
-                      {block.page_idx === null || block.page_idx === undefined ? 'Page not reported' : `Page ${block.page_idx + 1}`}
-                      {' · '}
-                      {block.score === null || block.score === undefined ? 'Confidence not reported' : `${Math.round(block.score * 100)}% confidence`}
-                    </p>
+
+          <div className="grid min-w-0 gap-5 md:min-h-0 md:flex-1 md:grid-cols-2">
+            <section aria-label="Source document" className={`relative ${mobilePane === 'source' ? 'min-w-0 rounded-[18px] border border-[#E8F0F8] bg-white p-4 md:flex md:min-h-0 md:flex-col' : 'hidden min-w-0 rounded-[18px] border border-[#E8F0F8] bg-white p-4 md:flex md:min-h-0 md:flex-col'}`}>
+              <PdfDocumentViewer
+                sourceUrl={signedCopyFileUrl(review.document_id, { copyId: review.signed_copy_id })}
+                pageCount={review.page_count}
+                currentPage={currentPage}
+                blocks={review.blocks}
+                selectedBlockIndex={selectedBlockIndex}
+                hoveredBlockIndex={hoveredBlockIndex}
+                revealRequest={pdfRevealRequest}
+                onPageChange={changeCurrentPage}
+                onSelectBlock={selectBlock}
+                onHoverBlockChange={hoverSourceBlock}
+                onLoadChange={handlePdfLoadChange}
+              />
+              {pdfLoading && (
+                <div className="absolute inset-0 z-10 flex items-center justify-center rounded-[18px] bg-white">
+                  <div className="flex items-center gap-2">
+                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-[#D7E4F2] border-t-[#0067B3]" />
+                    <p className="text-xs font-semibold text-[#5B6F8A]">Loading document…</p>
                   </div>
-                  <div className="mt-4 rounded-xl bg-[#F8FBFF] p-3">
-                    <p className="text-xs font-black uppercase tracking-wide text-[#5B6F8A]">Original OCR text</p>
-                    <p className="mt-1 whitespace-pre-wrap break-words text-sm text-[#475569]">{block.original_text}</p>
-                  </div>
-                  {block.editable !== false ? (
-                    <>
-                      <label htmlFor={`review-block-input-${block.index}`} className="mt-4 block text-sm font-bold text-[#0C2B49]">Reviewed text</label>
+                </div>
+              )}
+            </section>
+
+            <section ref={comparePaneRef} aria-label="Reviewed document" className={mobilePane === 'review' ? 'min-w-0 space-y-3 rounded-[18px] border border-[#E8F0F8] bg-white p-5 shadow-[0_4px_12px_rgba(19,59,115,0.05)] md:min-h-0 md:overflow-y-auto' : 'hidden min-w-0 space-y-3 rounded-[18px] border border-[#E8F0F8] bg-white p-5 shadow-[0_4px_12px_rgba(19,59,115,0.05)] md:block md:min-h-0 md:overflow-y-auto'}>
+              {pdfLoading ? (
+                <div aria-label="Loading extracted text" className="flex flex-col gap-3">
+                  {[0, 1, 2, 3, 4].map((index) => (
+                    <div key={index} className="rounded-lg border border-[#E8F0F8] px-2 py-1.5 motion-safe:animate-pulse">
+                      <div className="mb-2 h-2.5 w-16 rounded bg-[#E8F0F8]" />
+                      <div className="h-3 w-full rounded bg-[#EEF4FB]" />
+                      <div className="mt-1.5 h-3 w-11/12 rounded bg-[#EEF4FB]" />
+                      <div className="mt-1.5 h-3 w-4/5 rounded bg-[#EEF4FB]" />
+                    </div>
+                  ))}
+                </div>
+              ) : compareBlocks.map((block) => {
+                const acceptedText = acceptedTexts?.[block.index] ?? block.text;
+                const text = drafts[block.index] ?? acceptedText;
+                const selected = selectedBlockIndex === block.index;
+                const hovered = hoveredBlockIndex === block.index;
+                const sanitizedTable = sanitizedTables[block.index];
+                return (
+                  <section
+                    key={block.index}
+                    id={`review-block-${block.index}`}
+                    data-block-index={block.index}
+                    onMouseEnter={() => hoverBlock(block.index)}
+                    onMouseLeave={() => hoverBlock(null)}
+                    onClick={() => selectBlock(block.index, false)}
+                    className={`group cursor-pointer rounded-lg border px-2 py-1.5 transition-colors ${selected ? 'border-[#0067B3] ring-1 ring-[#0067B3]' : hovered ? 'border-[#98C9F3] bg-[#F1F8FE]' : 'border-[#E8F0F8]'}`}
+                  >
+                    <div className="mb-1 flex items-center justify-between gap-2 text-xs font-black text-[#5B6F8A]">
+                      {block.type.toLowerCase() !== 'text' && <span className="uppercase tracking-wide">{block.type.replace(/[_-]/g, ' ')}</span>}
+                      <span className="ml-auto">Block {block.index}</span>
+                    </div>
+                    {block.is_html ? (
+                      <>
+                        {sanitizedTable === undefined && <p className="text-sm text-[#5B6F8A]">Loading table…</p>}
+                        {sanitizedTable === null && <p className="text-sm text-[#B42318]">Table preview unavailable. Use Edit table to correct it.</p>}
+                        {typeof sanitizedTable === 'string' && (
+                          <div
+                            className="overflow-x-auto text-sm text-[#0C2B49] [&_table]:w-full [&_td]:border [&_td]:border-[#D7E4F2] [&_td]:p-2 [&_th]:border [&_th]:border-[#D7E4F2] [&_th]:p-2"
+                            dangerouslySetInnerHTML={{ __html: sanitizedTable }}
+                          />
+                        )}
+                        {editingTableIndex === block.index && (
+                          <textarea
+                            id={`review-block-input-${block.index}`}
+                            aria-label={`Reviewed text for block ${block.index}`}
+                            value={text}
+                            rows={Math.max(3, text.split('\n').length + 1)}
+                            disabled={review.is_reviewed || isApproving}
+                            onFocus={() => selectBlock(block.index, false)}
+                            onChange={(event) => setDrafts((current) => ({ ...current, [block.index]: event.target.value }))}
+                            className="mt-2 w-full resize-y rounded-xl border border-[#D7E4F2] px-3 py-2.5 font-mono text-sm leading-6 text-[#0C2B49] outline-none focus:border-[#0067B3] disabled:bg-[#F8FBFF]"
+                          />
+                        )}
+                        <button
+                          type="button"
+                          disabled={review.is_reviewed || isApproving || block.editable === false}
+                          onClick={() => {
+                            if (editingTableIndex === block.index) setEditingTableIndex(null);
+                            else selectBlock(block.index);
+                          }}
+                          className="mt-2 min-h-11 text-xs font-black text-[#0067B3] disabled:opacity-40"
+                        >
+                          {editingTableIndex === block.index ? 'Done editing table' : 'Edit table'}
+                        </button>
+                      </>
+                    ) : block.editable !== false ? (
                       <textarea
                         id={`review-block-input-${block.index}`}
                         aria-label={`Reviewed text for block ${block.index}`}
+                        data-selected={selected}
+                        data-compare-editor
                         value={text}
-                        rows={Math.max(3, text.split('\n').length + 1)}
+                        rows={block.text_level === 1 ? 1 : Math.max(2, text.split('\n').length)}
                         disabled={review.is_reviewed || isApproving}
-                        onFocus={() => selectBlock(block.index, false)}
-                        onChange={(event) => setDrafts((current) => ({ ...current, [block.index]: event.target.value }))}
-                        className="mt-1.5 w-full resize-y rounded-xl border border-[#D7E4F2] px-3 py-2.5 font-mono text-sm leading-6 text-[#0C2B49] outline-none focus:border-[#0067B3] disabled:bg-[#F8FBFF]"
+                        onFocus={() => {
+                          selectBlock(block.index, false);
+                          hoverBlock(block.index);
+                        }}
+                        onBlur={() => hoverBlock(null)}
+                        onChange={(event) => {
+                          setDrafts((current) => ({ ...current, [block.index]: event.target.value }));
+                          fitCompareEditor(event.currentTarget);
+                        }}
+                        className={`field-sizing-content w-full resize-none overflow-hidden rounded-lg border-0 bg-transparent px-2 py-1.5 leading-7 text-[#0C2B49] outline-none disabled:pointer-events-none ${block.text_level === 1 ? 'text-xl font-black' : 'text-sm'}`}
                       />
-                    </>
-                  ) : <p className="mt-4 text-sm font-bold text-[#8A5B00]">This {block.type} region is not editable.</p>}
-                </section>
-              );
-            })}
+                    ) : (
+                      <button type="button" className="w-full rounded-lg border border-dashed border-[#F5D7A1] bg-[#FFF9EC] px-3 py-2 text-left text-sm text-[#5B6F8A]">
+                        {block.type} region — shown on the source PDF and not editable.
+                      </button>
+                    )}
+                  </section>
+                );
+              })}
+              {compareBlocks.length === 0 && (
+                <EmptyState
+                  icon={<DescriptionOutlinedIcon aria-hidden="true" sx={{ fontSize: 22 }} />}
+                  title="No extracted text"
+                  description="No extracted text is available for this page."
+                />
+              )}
+            </section>
           </div>
-        )}
+        </div>
       </div>
 
-      {actionError && <p role="alert" className="mt-4 rounded-xl bg-red-50 p-3 text-sm font-bold text-red-700">{actionError}</p>}
-      <div className="sticky bottom-20 z-10 mt-5 flex flex-wrap items-center gap-2 rounded-[18px] border border-[#E8F0F8] bg-white p-4 shadow-[0_-4px_12px_rgba(19,59,115,0.05)] md:bottom-0">
+      {actionError && <p role="alert" className="mt-4 rounded-xl md:col-span-2 md:row-start-3 bg-red-50 p-3 text-sm font-bold text-red-700">{actionError}</p>}
+      <div className="sticky bottom-20 z-10 mt-5 flex flex-wrap items-center gap-2 rounded-[18px] border border-[#E8F0F8] bg-white p-4 shadow-[0_-4px_12px_rgba(19,59,115,0.05)] md:static md:col-start-2 md:row-start-1 md:mt-0 md:flex-nowrap md:self-end md:rounded-none md:border-0 md:border-b md:bg-transparent md:p-0 md:pb-3 md:pl-2 md:shadow-none">
+        {edits.length > 0 && (
+          <>
+            <span className="whitespace-nowrap text-xs font-bold text-[#8A5B00]">{edits.length} {edits.length === 1 ? 'block' : 'blocks'} changed</span>
+            <button
+              type="button"
+              disabled={mutationPending || review.is_reviewed}
+              onClick={() => void saveChanges()}
+              className="whitespace-nowrap rounded-full bg-[#0067B3] px-4 py-2.5 text-sm font-black text-white disabled:opacity-40"
+            >
+              {isSaving ? 'Saving changes…' : 'Save changes'}
+            </button>
+          </>
+        )}
         <button
-          type="button"
-          disabled={edits.length === 0 || mutationPending || review.is_reviewed}
-          onClick={() => void saveChanges()}
-          className="rounded-full bg-[#0067B3] px-4 py-2.5 text-sm font-black text-white disabled:opacity-40"
-        >
-          {isSaving ? 'Saving changes…' : 'Save changes'}
-        </button>
-        {edits.length > 0 && <span className="text-xs font-bold text-[#8A5B00]">{edits.length} {edits.length === 1 ? 'block' : 'blocks'} changed</span>}
-        <button
-          type="button"
-          disabled={edits.length > 0 || mutationPending || review.is_reviewed}
-          onClick={() => void onAnalyze().catch(() => undefined)}
-          className="rounded-full border border-[#0067B3] px-4 py-2.5 text-sm font-black text-[#0067B3] disabled:opacity-40"
-        >
-          {isAnalyzing ? 'Analyzing semantic issues…' : 'Analyze semantic issues'}
-        </button>
-        <button
+          ref={approveButtonRef}
           type="button"
           disabled={edits.length > 0 || mutationPending || review.is_reviewed}
           onClick={() => setApprovalOpen(true)}
-          className="rounded-full bg-[#0C2B49] px-4 py-2.5 text-sm font-black text-white disabled:opacity-40"
+          className="whitespace-nowrap rounded-full bg-[#0C2B49] px-4 py-2.5 text-sm font-black text-white disabled:opacity-40"
         >
           {isApproving ? 'Approving reviewed text…' : 'Approve reviewed text'}
         </button>
       </div>
-      {edits.length > 0 && <p className="mt-3 text-xs font-semibold text-[#8A5B00]">Save changes before analysis or approval.</p>}
-      {review.is_reviewed && <p className="mt-3 text-xs font-semibold text-[#166534]">Reviewed text is approved and frozen.</p>}
+      {review.is_reviewed && <p className="mt-3 text-xs font-semibold text-[#166534] md:col-span-2 md:row-start-4">Reviewed text is approved and frozen.</p>}
 
       <Dialog open={approvalOpen} onClose={() => !isApproving && setApprovalOpen(false)} aria-labelledby="approval-dialog-title">
         <DialogTitle id="approval-dialog-title">Approve reviewed text?</DialogTitle>
@@ -506,7 +444,7 @@ export default function ReviewWorkspace({
 
       <Drawer
         anchor="right"
-        open={openDrawer === 'issues'}
+        open={issuesOpen}
         onClose={() => closeIssues()}
         ModalProps={{ disableRestoreFocus: suppressIssuesRestoreFocus }}
       >
@@ -551,26 +489,6 @@ export default function ReviewWorkspace({
               />
             )}
           </div>
-        </aside>
-      </Drawer>
-
-      <Drawer
-        anchor="right"
-        open={openDrawer === 'info'}
-        onClose={() => setOpenDrawer(null)}
-      >
-        <aside aria-label="Extraction info" className="w-[min(24rem,100vw)] p-5">
-          <div className="flex items-center justify-between gap-3">
-            <h2 className="text-lg font-black text-[#0C2B49]">Extraction info</h2>
-            <button type="button" aria-label="Close extraction info" onClick={() => setOpenDrawer(null)} className="px-2 py-1 text-xl text-[#5B6F8A]">×</button>
-          </div>
-          <dl className="mt-5 grid gap-4 text-sm">
-            <div><dt className="font-bold text-[#5B6F8A]">Engine</dt><dd className="text-[#0C2B49]">{review.engine}</dd></div>
-            <div><dt className="font-bold text-[#5B6F8A]">Pages</dt><dd className="text-[#0C2B49]">{review.page_count} {review.page_count === 1 ? 'page' : 'pages'}</dd></div>
-            <div><dt className="font-bold text-[#5B6F8A]">Average confidence</dt><dd className="text-[#0C2B49]">{review.confidence_avg === null || review.confidence_avg === undefined ? 'Not reported' : `${Math.round(review.confidence_avg * 100)}%`}</dd></div>
-            <div><dt className="font-bold text-[#5B6F8A]">Edited blocks</dt><dd className="text-[#0C2B49]">{review.edited_block_count} edited {review.edited_block_count === 1 ? 'block' : 'blocks'}</dd></div>
-            <div><dt className="font-bold text-[#5B6F8A]">Review status</dt><dd className="text-[#0C2B49]">{getDocumentStatusLabel(review.status)}</dd></div>
-          </dl>
         </aside>
       </Drawer>
     </section>

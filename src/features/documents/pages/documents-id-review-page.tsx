@@ -7,7 +7,6 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import {
-  analyzeExtraction,
   approveExtraction,
   getExtractionReview,
   saveExtractionEdits,
@@ -15,6 +14,7 @@ import {
 import { getPortalUiRole } from "@/features/access";
 import ReviewWorkspace from '@/features/documents/components/review-workspace';
 import { portalRequest } from '@/shared/api/client';
+import { ReviewSkeleton } from '@/features/documents/components/document-loading-skeletons';
 
 type BlockEdit = ApiSchema<'BlockEdit'>;
 type UserProfile = ApiSchema<'UserProfileResponse'>;
@@ -71,15 +71,6 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
     },
     onError: refreshStaleReview,
   });
-  const analyzeMutation = useMutation({
-    mutationFn: () => analyzeExtraction(id),
-    onSuccess: async (result) => {
-      queryClient.setQueryData(extractionKey, result);
-      toast.success('Semantic analysis complete.');
-      await invalidateDocumentQueries();
-    },
-    onError: refreshStaleReview,
-  });
   const approveMutation = useMutation({
     mutationFn: () => approveExtraction(id),
     onSuccess: async () => {
@@ -93,7 +84,7 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
     onError: refreshStaleReview,
   });
 
-  if (profileQuery.isPending) return <p className="text-sm font-semibold text-[#5B6F8A]">Loading review access…</p>;
+  if (profileQuery.isPending) return <ReviewSkeleton label="Loading review access…" />;
   if (profileQuery.isError) return <p role="alert" className="text-sm font-semibold text-[#B42318]">{messageFor(profileQuery.error)}</p>;
   if (role !== 'lawyer') {
     return (
@@ -103,7 +94,7 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
       </section>
     );
   }
-  if (extractionQuery.isPending) return <p className="text-sm font-semibold text-[#5B6F8A]">Loading extracted text…</p>;
+  if (extractionQuery.isPending) return <ReviewSkeleton label="Loading extracted text…" />;
   if (extractionQuery.isError || !extractionQuery.data) {
     if (statusFor(extractionQuery.error) === 404) {
       return (
@@ -120,22 +111,22 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
     return <p role="alert" className="text-sm font-semibold text-[#B42318]">{messageFor(extractionQuery.error)}</p>;
   }
 
-  const actionError = saveMutation.error ?? analyzeMutation.error ?? approveMutation.error;
+  const actionError = saveMutation.error ?? approveMutation.error;
   return (
     <div className="flex w-full min-w-0 flex-col gap-5 overflow-x-hidden md:h-[calc(100dvh-7rem)] md:overflow-hidden">
-      <header>
-        <Link href={`/portal/documents/${id}`} className="text-sm font-bold text-[#0067B3]">← Back to document</Link>
-        <h1 className="mt-3 text-[28px] font-black text-[#0C2B49]">Review extracted text</h1>
-        <p className="mt-1 text-sm text-[#5B6F8A]">Correct OCR text and resolve flags before approving it for processing.</p>
-      </header>
       <ReviewWorkspace
+        header={(
+          <header>
+            <Link href={`/portal/documents/${id}`} className="text-sm font-bold text-[#0067B3]">← Back to document</Link>
+            <h1 className="mt-3 text-[28px] font-black text-[#0C2B49]">Review extracted text</h1>
+            <p className="mt-1 text-sm text-[#5B6F8A]">Correct OCR text and resolve flags before approving it for processing.</p>
+          </header>
+        )}
         review={extractionQuery.data}
         actionError={actionError ? messageFor(actionError) : null}
         isSaving={saveMutation.isPending}
-        isAnalyzing={analyzeMutation.isPending}
         isApproving={approveMutation.isPending}
         onSave={saveMutation.mutateAsync}
-        onAnalyze={analyzeMutation.mutateAsync}
         onApprove={approveMutation.mutateAsync}
       />
     </div>

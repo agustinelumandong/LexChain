@@ -26,10 +26,6 @@ export function saveExtractionEdits(id: string, edits: ApiSchema<'BlockEdit'>[])
   });
 }
 
-export function analyzeExtraction(id: string): Promise<ExtractionReview> {
-  return extractionRequest(`/documents/${id}/extraction/analyze`, { method: 'POST' });
-}
-
 export function approveExtraction(id: string): Promise<ApiSchema<'ApproveExtractionResponse'>> {
   return extractionRequest(`/documents/${id}/extraction/approve`, { method: 'POST' });
 }
