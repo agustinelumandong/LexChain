@@ -8,6 +8,8 @@ export type PortalDocument = {
 
 export type PortalNavigationItem = {
   label: string;
+  /** Visible bottom-nav text; must be part of `label` so the spoken name still matches. */
+  shortLabel?: string;
   href: string;
 };
 
@@ -42,7 +44,7 @@ export function getPortalNavigation(role: PortalUiRole): PortalNavigationGroup[]
         items: [
           { label: "Dashboard", href: "/portal/dashboard" },
           { label: "Documents", href: "/portal/documents" },
-          { label: "Document Requests", href: "/portal/requests" },
+          { label: "Document Requests", shortLabel: "Requests", href: "/portal/requests" },
         ],
       },
       {
@@ -74,14 +76,14 @@ export function getPortalNavigation(role: PortalUiRole): PortalNavigationGroup[]
     {
       label: "Workspace",
       items: [
-        { label: "Shared Documents", href: "/portal/documents" },
+        { label: "Shared Documents", shortLabel: "Documents", href: "/portal/documents" },
         { label: "Invitations", href: "/portal/invitations" },
-        { label: "My E-copy Requests", href: "/portal/requests/my" },
+        { label: "My E-copy Requests", shortLabel: "Requests", href: "/portal/requests/my" },
       ],
     },
     {
       label: "Account",
-      items: [{ label: "Profile & Security", href: "/portal/profile" }],
+      items: [{ label: "Profile & Security", shortLabel: "Profile", href: "/portal/profile" }],
     },
   ];
 }

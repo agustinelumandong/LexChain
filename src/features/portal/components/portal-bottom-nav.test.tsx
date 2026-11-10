@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import { PortalBottomNav } from "@/features/portal/components/portal-bottom-nav";
 
@@ -24,6 +24,11 @@ describe("PortalBottomNav", () => {
     expect(screen.getByRole("navigation", { name: "Mobile portal navigation" }).className).not.toContain("overflow-x-auto");
   });
 
+  it("shortens long labels on screen while keeping the full spoken name", () => {
+    render(<PortalBottomNav pathname="/portal/dashboard" role="lawyer" />);
+    expect(within(screen.getByRole("link", { name: "Document Requests" })).getByText("Requests")).toBeTruthy();
+  });
+
   it("marks More as current when the active page is inside it", () => {
     render(<PortalBottomNav pathname="/portal/reports" role="lawyer" />);
     expect(screen.getByRole("button", { name: "More" }).getAttribute("aria-current")).toBe("page");
@@ -39,11 +44,11 @@ describe("PortalBottomNav", () => {
   it("shows clients every destination without a More menu", () => {
     render(<PortalBottomNav pathname="/portal/documents" role="user" />);
 
-    for (const label of ["Shared Documents", "Invitations"]) {
-      expect(screen.getByRole("link", { name: label })).toBeTruthy();
-      expect(screen.getByText(label).className).toContain("text-xs");
+    for (const [label, visibleLabel] of [["Shared Documents", "Documents"], ["Invitations", "Invitations"], ["My E-copy Requests", "Requests"]]) {
+      const text = within(screen.getByRole("link", { name: label })).getByText(visibleLabel);
+      expect(text.className).toContain("text-xs");
+      expect(text.className).toContain("whitespace-nowrap");
     }
-    expect(screen.getByRole("link", { name: "My E-copy Requests" })).toBeTruthy();
     expect(screen.queryByRole("button", { name: "More" })).toBeNull();
   });
 });

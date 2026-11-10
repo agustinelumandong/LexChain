@@ -17,7 +17,7 @@ export async function fetchSystemUsersReport(from: string, to: string): Promise<
   const response = await portalRequest('/api/admin/users', { cache: 'no-store' });
   const payload: unknown = await response.json().catch(() => null);
   const parsed = adminUserListResponseSchema.safeParse(payload);
-  if (!parsed.success) throw new Error('The API returned an invalid user list. Please try again.');
+  if (!parsed.success) throw new Error('Could not read the user list. Please try again.');
 
   const rows = parsed.data.users.flatMap((user) => {
     const createdAt = Date.parse(user.created_at);
