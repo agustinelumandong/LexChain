@@ -47,14 +47,25 @@ it('checks the document when opened and displays the result', async () => {
   expect(fetchMock).toHaveBeenCalledWith('/api/portal/proxy?path=%2Fdocuments%2Fdoc-1%2Fverify%3Freport%3Dfalse', expect.anything());
 });
 
-it('shows a changed file name alongside a matching PDF', async () => {
-  vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json({ status: 'AUTHENTIC', is_authentic: true, baseline_trusted: true, metadata_status: 'ALTERED', needs_restore: true, metadata_changes: [{ field: 'file_name', anchored: 'Old name', current: 'New name' }] })));
+it('shows only the changed file name when the PDF matches', async () => {
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json({ status: 'AUTHENTIC', is_authentic: true, baseline_trusted: true, metadata_status: 'ALTERED', analysis_status: 'MATCH', needs_restore: true, metadata_changes: [{ field: 'file_name', anchored: 'Old name', current: 'New name' }] })));
   showStatus();
   expect(await screen.findByText('File name changed')).toBeTruthy();
-  expect(screen.getByText('PDF unchanged')).toBeTruthy();
+  expect(screen.queryByText('PDF unchanged')).toBeNull();
+  expect(screen.queryByText('This file matches the recorded version.')).toBeNull();
   expect(screen.getByText('Old name')).toBeTruthy();
   expect(screen.getByText('New name')).toBeTruthy();
   expect(screen.getByText('File name changed').closest('section')?.className).toContain('bg-red-50');
+});
+
+it('lists every problem when the PDF, details and analysis all differ', async () => {
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json({ status: 'TAMPERED', is_authentic: false, metadata_status: 'ALTERED', analysis_status: 'ALTERED', metadata_changes: [{ field: 'file_name', anchored: 'Old name', current: 'New name' }, { field: 'category', anchored: 'Affidavit', current: 'Contract' }] })));
+  showStatus();
+  expect(await screen.findByText('Document integrity warning')).toBeTruthy();
+  expect(screen.getByText('Document details changed')).toBeTruthy();
+  expect(screen.getByText('file name')).toBeTruthy();
+  expect(screen.getByText('category')).toBeTruthy();
+  expect(screen.getByText('Analysis changed.')).toBeTruthy();
 });
 
 it('warns when repair is needed even if both displayed checks match', async () => {

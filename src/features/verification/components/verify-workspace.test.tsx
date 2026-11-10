@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { cleanup, render, screen, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import type { ApiSchema } from '@/shared/types/index';
 import VerifyWorkspace from '@/features/verification/components/verify-workspace';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -119,10 +119,41 @@ describe('VerifyWorkspace', () => {
   it('shows altered analysis and its recorded and current values without a green result', () => {
     render(<VerifyWorkspace result={{ ...result, status: 'AUTHENTIC', is_authentic: true, metadata_status: 'MATCH', analysis_status: 'ALTERED', analysis_changes: [{ field: 'insight.risk_flags', anchored: 'Missing signature', current: 'None' }] }} onRetry={vi.fn()} />);
     const panel = screen.getByRole('region', { name: 'Verification results' });
+    const details = screen.getByRole('region', { name: 'Result details' });
     expect(within(panel).getByRole('heading', { name: 'Analysis changed' })).toBeTruthy();
-    expect(within(panel).getByText('Missing signature')).toBeTruthy();
-    expect(within(panel).getByText('None')).toBeTruthy();
+    expect(within(panel).queryByText('Missing signature')).toBeNull();
+    expect(within(details).getByText('Missing signature')).toBeTruthy();
+    expect(within(details).getByText('None')).toBeTruthy();
     expect(panel.className).toContain('bg-red-50');
+  });
+
+  it('counts several problems in one strip and keeps their evidence out of it', () => {
+    render(<VerifyWorkspace result={{ ...result, metadata_status: 'ALTERED', analysis_status: 'ALTERED', metadata_changes: [{ field: 'document_number', anchored: 12, current: 15 }], analysis_changes: [{ field: 'summary', anchored: 'Old', current: 'New' }] }} onRetry={vi.fn()} />);
+    const panel = screen.getByRole('region', { name: 'Verification results' });
+    expect(within(panel).getByRole('heading', { name: '3 problems found' })).toBeTruthy();
+    expect(within(panel).getByText('PDF differs')).toBeTruthy();
+    expect(within(panel).getByText('Document details changed')).toBeTruthy();
+    expect(within(panel).getByText('Analysis changed')).toBeTruthy();
+    expect(within(panel).queryByText('12')).toBeNull();
+    const details = screen.getByRole('region', { name: 'Result details' });
+    expect(within(details).getByRole('heading', { name: 'What changed' })).toBeTruthy();
+    expect(within(details).getByText('12')).toBeTruthy();
+    expect(within(details).getByText('Old')).toBeTruthy();
+  });
+
+  it('keeps a matching check as a passed chip when the PDF is the only problem', () => {
+    render(<VerifyWorkspace result={{ ...result, metadata_status: 'MATCH' }} onRetry={vi.fn()} />);
+    const panel = screen.getByRole('region', { name: 'Verification results' });
+    expect(within(panel).getByRole('heading', { name: 'This PDF differs from the saved version' })).toBeTruthy();
+    expect(within(panel).getByText('Document details unchanged')).toBeTruthy();
+    expect(within(panel).getByText('Analysis unchanged')).toBeTruthy();
+    expect(within(panel).queryByText('PDF differs')).toBeNull();
+  });
+
+  it('shows changed details even when no PDF workspace is available', () => {
+    render(<VerifyWorkspace result={{ ...result, status: 'FILE_MISSING', is_authentic: false, metadata_status: 'ALTERED', metadata_changes: [{ field: 'document_number', anchored: 12, current: 15 }] }} onRetry={vi.fn()} />);
+    expect(screen.queryByRole('region', { name: 'Current document' })).toBeNull();
+    expect(within(screen.getByRole('region', { name: 'Result details' })).getByText('15')).toBeTruthy();
   });
 
   it.each([
@@ -132,7 +163,7 @@ describe('VerifyWorkspace', () => {
   ] as const)('shows analysis status %s without overstating the result', (analysis_status, heading, tone) => {
     render(<VerifyWorkspace result={{ ...result, status: 'AUTHENTIC', is_authentic: true, metadata_status: 'MATCH', analysis_status }} onRetry={vi.fn()} />);
     const panel = screen.getByRole('region', { name: 'Verification results' });
-    expect(within(panel).getByRole('heading', { name: heading })).toBeTruthy();
+    expect(within(panel).getByText(heading)).toBeTruthy();
     expect(panel.className).toContain(tone);
   });
 
@@ -140,7 +171,7 @@ describe('VerifyWorkspace', () => {
     render(<VerifyWorkspace result={{ ...result, status: 'AUTHENTIC', is_authentic: true, metadata_status: 'MATCH' }} onRetry={vi.fn()} />);
     const panel = screen.getByRole('region', { name: 'Verification results' });
     expect(within(panel).getByRole('heading', { name: 'PDF unchanged' })).toBeTruthy();
-    expect(within(panel).getByRole('heading', { name: 'Document details unchanged' })).toBeTruthy();
+    expect(within(panel).getByText('Document details unchanged')).toBeTruthy();
     expect(panel.className).toContain('bg-green-50');
     expect(panel.className).toContain('border-green-700');
   });
@@ -155,8 +186,8 @@ describe('VerifyWorkspace', () => {
   it('shows altered record fields alongside a matching PDF without a green success panel', () => {
     render(<VerifyWorkspace result={{ ...result, status: 'AUTHENTIC', is_authentic: true, metadata_status: 'ALTERED', metadata_changes: [{ field: 'document_number', anchored: 12, current: 15 }] }} onRetry={vi.fn()} />);
 
-    expect(screen.getByRole('heading', { name: 'PDF unchanged' })).toBeTruthy();
-    expect(screen.getByText('Document details changed')).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Document details changed' })).toBeTruthy();
+    expect(screen.getByText('PDF unchanged')).toBeTruthy();
     expect(screen.getByText('document number')).toBeTruthy();
     expect(screen.getByText('12')).toBeTruthy();
     expect(screen.getByText('15')).toBeTruthy();
@@ -192,7 +223,7 @@ describe('VerifyWorkspace', () => {
 
     expect(screen.getByRole('heading', { name: 'Current PDF' })).toBeTruthy();
     expect(screen.getByText('The sale price increased substantially.')).toBeTruthy();
-    expect(screen.getByText(/replace · critical/)).toBeTruthy();
+    expect(screen.getByText('Critical')).toBeTruthy();
     expect(screen.getByText('Price: PHP 2,750,000.00')).toBeTruthy();
     expect(screen.getByText('Price: PHP 10,000,000.00')).toBeTruthy();
     expect(screen.getByText('The buyer shall pay the transfer tax.')).toBeTruthy();
@@ -210,6 +241,70 @@ describe('VerifyWorkspace', () => {
       }],
     });
     expect(Array.from(dynamicMocks.viewerProps?.tamperedBlockIndexes as ReadonlySet<number>)).toEqual([3]);
+  });
+
+  describe('locating a change on the PDF', () => {
+    const onPageTwo = { ...replacement, page_idx: 1 };
+    const located = { ...result, tamper_report: { ...report, segments: [onPageTwo, deletion] } };
+    const viewer = () => dynamicMocks.viewerProps as {
+      currentPage: number;
+      selectedBlockIndex: number | null;
+      revealRequest: { blockIndex: number; id: number } | null;
+      onSelectBlock: (blockIndex: number) => void;
+    };
+
+    it('goes to the page and points out the change each time a card is selected', () => {
+      Element.prototype.scrollIntoView = vi.fn();
+      render(<VerifyWorkspace result={located} onRetry={vi.fn()} />);
+      const show = screen.getByRole('button', { name: /^Show on page 2/ });
+      expect(show.getAttribute('aria-pressed')).toBe('false');
+
+      fireEvent.click(show);
+      expect(viewer()).toMatchObject({ currentPage: 1, selectedBlockIndex: 3, revealRequest: { blockIndex: 3, id: 1 } });
+      expect(show.getAttribute('aria-pressed')).toBe('true');
+      expect(Element.prototype.scrollIntoView).toHaveBeenCalled();
+
+      fireEvent.click(show);
+      expect(viewer().revealRequest).toEqual({ blockIndex: 3, id: 2 });
+    });
+
+    it('does not offer to locate text that is only in the saved version', () => {
+      render(<VerifyWorkspace result={located} onRetry={vi.fn()} />);
+      expect(screen.getAllByRole('button', { name: /^Show on page/ })).toHaveLength(1);
+      expect(screen.getByText('Saved version · page 1')).toBeTruthy();
+    });
+
+    it('does not offer to locate a change without a page', () => {
+      render(<VerifyWorkspace result={{ ...result, tamper_report: { ...report, segments: [{ ...replacement, page_idx: null, bbox: null }] } }} onRetry={vi.fn()} />);
+      expect(screen.queryByRole('button', { name: /^Show on page/ })).toBeNull();
+      expect(screen.getByText('Position not available')).toBeTruthy();
+      expect(screen.queryByText(/Select one to see it/)).toBeNull();
+    });
+
+    it('selects the matching card when its highlight is clicked on the PDF', () => {
+      Element.prototype.scrollIntoView = vi.fn();
+      render(<VerifyWorkspace result={located} onRetry={vi.fn()} />);
+
+      act(() => viewer().onSelectBlock(3));
+
+      expect(screen.getByRole('button', { name: /^Show on page 2/ }).getAttribute('aria-pressed')).toBe('true');
+      expect(viewer().selectedBlockIndex).toBe(3);
+      expect(Element.prototype.scrollIntoView).toHaveBeenCalled();
+    });
+
+    it('marks only the words that changed', () => {
+      const word_diff: ApiSchema<'WordDiffPart'>[] = [
+        { op: 'equal', text: 'Price: PHP' },
+        { op: 'removed', text: '2,750,000.00' },
+        { op: 'added', text: '10,000,000.00' },
+      ];
+      const { container } = render(<VerifyWorkspace result={{ ...result, tamper_report: { ...report, segments: [{ ...replacement, word_diff }] } }} onRetry={vi.fn()} />);
+
+      expect(container.querySelector('del')?.textContent).toBe('2,750,000.00');
+      expect(container.querySelector('ins')?.textContent).toBe('10,000,000.00');
+      expect(screen.getByText('Saved version').nextElementSibling?.textContent).toBe('Price: PHP 2,750,000.00');
+      expect(screen.getByText('Current PDF', { selector: 'dt' }).nextElementSibling?.textContent).toBe('Price: PHP 10,000,000.00');
+    });
   });
 
   it('labels mock verification and blockchain baseline as simulated', () => {
@@ -270,7 +365,7 @@ describe('VerifyWorkspace', () => {
     vi.stubEnv('USE_MOCK_API', 'false');
     render(<VerifyWorkspace result={{ ...result, tamper_report: { ...report, truncated: true } }} onRetry={vi.fn()} />);
 
-    expect(screen.getByText('2 changes returned.')).toBeTruthy();
+    expect(screen.getByText(/^2 changes found\./)).toBeTruthy();
     expect(screen.getByRole('note').textContent).toContain('Only the listed segments are shown here.');
   });
 
