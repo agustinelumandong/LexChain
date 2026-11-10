@@ -56,7 +56,7 @@ export async function POST(request: Request) {
       body: JSON.stringify(backendBody),
     });
   } catch {
-    return NextResponse.json({ message: "Unable to reach the API." }, { status: 502 });
+    return NextResponse.json({ message: "Could not connect to LexChain. Please try again." }, { status: 502 });
   }
 
   const payload = await upstream.json().catch(() => null);

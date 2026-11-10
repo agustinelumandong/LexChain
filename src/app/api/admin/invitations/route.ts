@@ -19,7 +19,7 @@ export async function GET(request: Request) {
   try {
     upstream = await adminFetch("/admin/invitations", token);
   } catch {
-    return Response.json({ message: "Unable to reach the API." }, { status: 502 });
+    return Response.json({ message: "Could not connect to LexChain. Please try again." }, { status: 502 });
   }
 
   const payload = await upstream.json().catch(() => null);
@@ -53,7 +53,7 @@ export async function POST(request: Request) {
       body: JSON.stringify(invitation),
     });
   } catch {
-    return Response.json({ message: "Unable to reach the API." }, { status: 502 });
+    return Response.json({ message: "Could not connect to LexChain. Please try again." }, { status: 502 });
   }
 
   const payload = await upstream.json().catch(() => null);

@@ -59,6 +59,6 @@ describe('portal signup route', () => {
     const response = await POST(signupRequest());
 
     expect(response.status).toBe(502);
-    await expect(response.json()).resolves.toEqual({ message: 'Unable to reach the API.' });
+    await expect(response.json()).resolves.toEqual({ message: 'Could not connect to LexChain. Please try again.' });
   });
 });

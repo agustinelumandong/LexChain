@@ -36,21 +36,21 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         redirect: 'error',
       });
     } catch {
-      return NextResponse.json({ message: 'Backend request failed' }, { status: 502 });
+      return NextResponse.json({ message: 'Could not connect to LexChain. Please try again.' }, { status: 502 });
     }
   }
 
   const linkData = await linkResponse.json().catch(() => null) as { url?: unknown; watermarked?: unknown } | null;
   if (!linkResponse.ok) return NextResponse.json(linkData, { status: linkResponse.status });
   if (!linkData || typeof linkData.url !== 'string') {
-    return NextResponse.json({ message: 'Backend returned an invalid signed PDF link' }, { status: 502 });
+    return NextResponse.json({ message: 'Could not open this PDF. Please try again.' }, { status: 502 });
   }
 
   let fileUrl: URL;
   try {
     fileUrl = isMockMode() ? new URL(linkData.url, request.nextUrl.origin) : new URL(linkData.url);
   } catch {
-    return NextResponse.json({ message: 'Backend returned an invalid signed PDF link' }, { status: 502 });
+    return NextResponse.json({ message: 'Could not open this PDF. Please try again.' }, { status: 502 });
   }
   const hostname = fileUrl.hostname.replace(/^\[|\]$/g, '').toLowerCase();
   const localHost = hostname === 'localhost' || hostname.endsWith('.localhost') || hostname.endsWith('.local') || hostname.endsWith('.internal');
@@ -58,7 +58,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     ? fileUrl.origin !== request.nextUrl.origin || !fileUrl.pathname.startsWith('/mock-documents/')
     : fileUrl.protocol !== 'https:' || isIP(hostname) !== 0 || localHost || !hostname.includes('.'));
   if (invalidFileUrl) {
-    return NextResponse.json({ message: 'Backend returned an invalid signed PDF link' }, { status: 502 });
+    return NextResponse.json({ message: 'Could not open this PDF. Please try again.' }, { status: 502 });
   }
 
   let fileResponse: Response;

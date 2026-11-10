@@ -2,6 +2,7 @@
 import React from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { Toaster, toast } from "sonner";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import LoginPage, { getPostLoginPath } from "./login-page";
 
@@ -19,14 +20,16 @@ vi.mock("next/link", () => ({
 
 afterEach(() => {
   cleanup();
+  toast.dismiss();
   vi.unstubAllGlobals();
 });
 
 describe("LoginPage", () => {
-  it("explains an ended session and promises a return", () => {
+  it("explains an ended session in a toast and promises a return", async () => {
     const queryClient = new QueryClient();
-    render(<QueryClientProvider client={queryClient}><LoginPage sessionExpired /></QueryClientProvider>);
-    expect(screen.getByRole("status").textContent).toContain("Your session ended");
+    render(<QueryClientProvider client={queryClient}><LoginPage sessionExpired /><Toaster /></QueryClientProvider>);
+    expect(await screen.findByText(/Your session ended. Sign in to return/)).toBeTruthy();
+    expect(screen.queryByRole("status")).toBeNull();
   });
 
   it("returns a signed-in person to their page but never for an unsupported role", () => {

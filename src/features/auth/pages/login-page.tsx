@@ -3,7 +3,7 @@
 import Image from "next/image";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
 import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
@@ -67,6 +67,9 @@ export function getPostLoginPath(data: Record<string, unknown> | null, returnPat
   return returnPath && destination !== "/login" ? returnPath : destination;
 }
 
+const SESSION_ENDED_MESSAGE = "Your session ended. Sign in to return to where you were. Unsaved changes were not kept.";
+const SESSION_ENDED_TOAST_MS = 10_000;
+
 export default function LoginPage({ sessionExpired = false, returnPath }: { sessionExpired?: boolean; returnPath?: string } = {}) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -79,6 +82,13 @@ export default function LoginPage({ sessionExpired = false, returnPath }: { sess
   const [code, setCode] = useState("");
   const [mfaError, setMfaError] = useState<string | null>(null);
   const [copyMessage, setCopyMessage] = useState("");
+
+  useEffect(() => {
+    if (!sessionExpired) return;
+    // The root Toaster subscribes after this page's mount effect, so wait for it.
+    const timer = setTimeout(() => toast.info(SESSION_ENDED_MESSAGE, { duration: SESSION_ENDED_TOAST_MS }), 0);
+    return () => clearTimeout(timer);
+  }, [sessionExpired]);
 
   async function copySetupKey() {
     if (!enrollment) return;
@@ -169,7 +179,6 @@ export default function LoginPage({ sessionExpired = false, returnPath }: { sess
             {step === "password" ? "For lawyers and their clients. Sign in with your credentials." : step === "enroll" ? "Download Google Authenticator or Microsoft Authenticator from your phone’s app store, then scan the QR code or enter the setup key." : "Enter the code from your authenticator app to continue."}
           </p>
         </div>
-        {sessionExpired && step === "password" && <p role="status" className="mt-4 rounded-[14px] border border-[#D7EBFF] bg-[#EAF4FF] p-3 text-sm font-semibold leading-5 text-[#0C2B49]">Your session ended. Sign in to return to where you were. Unsaved changes were not kept.</p>}
 
         {step === "password" ? <form className="mt-6 space-y-3.5" onSubmit={handleSubmit}>
           <div>
