@@ -61,12 +61,11 @@ describe("LoginPage", () => {
     expect(JSON.parse(fetchMock.mock.calls[1][1].body)).toEqual({ factor_id: "factor-1", code: "123456" });
   });
 
-  it("offers enrollment and lets the user restart sign-in", async () => {
+  it("offers enrollment with a copyable setup key and no restart action", async () => {
     const writeText = vi.fn().mockResolvedValue(undefined);
     vi.stubGlobal("navigator", { ...navigator, clipboard: { writeText } });
     const fetchMock = vi.fn().mockResolvedValueOnce(Response.json({ mfa_required: true, mfa_factor_id: null }))
-      .mockResolvedValueOnce(Response.json({ factor_id: "new-factor", qr_code: "data:image/svg+xml,<svg></svg>\n", secret: "SECRET" }))
-      .mockResolvedValueOnce(Response.json({ ok: true }));
+      .mockResolvedValueOnce(Response.json({ factor_id: "new-factor", qr_code: "data:image/svg+xml,<svg></svg>\n", secret: "SECRET" }));
     vi.stubGlobal("fetch", fetchMock);
     const queryClient = new QueryClient({ defaultOptions: { mutations: { retry: false } } });
     render(<QueryClientProvider client={queryClient}><LoginPage /></QueryClientProvider>);
@@ -84,9 +83,7 @@ describe("LoginPage", () => {
     await waitFor(() => expect(screen.getByRole("status").textContent).toContain("copy it manually"));
     expect(window.localStorage.length).toBe(0);
     expect(window.sessionStorage.length).toBe(0);
-    fireEvent.click(screen.getByRole("button", { name: "Start over" }));
-    expect(await screen.findByLabelText("Password")).toBeTruthy();
-    expect(fetchMock.mock.calls[2][0]).toBe("/api/auth/mfa/cancel");
+    expect(screen.queryByRole("button", { name: "Start over" })).toBeNull();
   });
   it("shows rejected credentials beside both fields and clears the error on edit", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({ message: "Invalid credentials." }), { status: 401 })));
