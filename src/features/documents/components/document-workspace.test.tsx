@@ -221,13 +221,13 @@ describe('DocumentWorkspace', () => {
   it('does not show requester controls to the lawyer', () => {
     renderWorkspace({ role: 'lawyer', document: { ...document, lifecycle: 'FINALIZED', permissions: { ...document.permissions, can_request_ecopy: true } } });
     fireEvent.click(screen.getByRole('tab', { name: 'Files' }));
-    expect(screen.queryByRole('link', { name: 'View e-copy requests and approved downloads' })).toBeNull();
+    expect(screen.queryByRole('link', { name: 'View my e-copy requests' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Request e-copy' })).toBeNull();
   });
   it('keeps request history reachable after requesting is no longer permitted', () => {
     renderWorkspace({ role: 'user', document: { ...document, lifecycle: 'FINALIZED', permissions: { ...document.permissions, can_request_ecopy: false } } });
     fireEvent.click(screen.getByRole('tab', { name: 'Files' }));
-    expect(screen.getByRole('link', { name: 'View e-copy requests and approved downloads' }).getAttribute('href')).toBe('/portal/requests/my');
+    expect(screen.getByRole('link', { name: 'View my e-copy requests' }).getAttribute('href')).toBe('/portal/requests/my');
     expect(screen.queryByRole('button', { name: 'Request e-copy' })).toBeNull();
   });
 
@@ -1404,6 +1404,46 @@ describe('DocumentWorkspace', () => {
     await waitFor(() => expect((screen.getByRole('button', { name: 'Mark ready for signature' }) as HTMLButtonElement).disabled).toBe(false));
   });
 
+  it('updates draft comments without a manual refresh when a client returns to the tab', async () => {
+    listDraftCommentsMock.mockResolvedValue({ document_id: 'doc-101', unresolved: 0, comments: [] });
+    syncDraftCommentsMock.mockResolvedValue({
+      document_id: 'doc-101', unresolved: 1,
+      comments: [{ id: 'comment-new', author_name: 'Reviewer', content: 'Added in Google Docs.', resolved: false, created_at: '2026-07-28T00:00:00Z' }],
+    });
+    renderWorkspace({ role: 'user' });
+    await screen.findByText('No comments found in the draft.');
+
+    fireEvent(window, new Event('focus'));
+
+    expect(await screen.findByText('Added in Google Docs.')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Refresh comments' })).toBeNull();
+  });
+
+  it('keeps suggestion review and readiness available when an automatic comment sync fails', async () => {
+    listDraftCommentsMock.mockResolvedValue({ document_id: 'doc-101', unresolved: 0, comments: [] });
+    syncDraftCommentsMock.mockRejectedValue(new Error('Google Docs is unavailable'));
+    renderWorkspace({ document: { ...document, permissions: { ...document.permissions, can_mark_ready: true } } });
+    fireEvent.click(await screen.findByRole('checkbox', { name: /I checked Google Docs/ }));
+
+    fireEvent(window, new Event('focus'));
+
+    await waitFor(() => expect(syncDraftCommentsMock).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect((screen.getByRole('button', { name: 'Mark ready for signature' }) as HTMLButtonElement).disabled).toBe(false));
+    expect(screen.queryByText('Google Docs is unavailable')).toBeNull();
+    expect(screen.queryByText(/Comments could not be refreshed/)).toBeNull();
+    expect((screen.getByRole('checkbox', { name: /I checked Google Docs/ }) as HTMLInputElement).checked).toBe(true);
+  });
+
+  it('does not sync draft comments automatically after the draft leaves preparation', async () => {
+    renderWorkspace({ document: { ...document, lifecycle: 'READY_FOR_SIGNATURE' } });
+    await waitFor(() => expect(listDraftCommentsMock).toHaveBeenCalled());
+
+    fireEvent(window, new Event('focus'));
+
+    await Promise.resolve();
+    expect(syncDraftCommentsMock).not.toHaveBeenCalled();
+  });
+
   it('guides clients to comments and lawyers to review pending suggestions before readiness', async () => {
     renderWorkspace({ role: 'user' });
     expect(await screen.findByText(/Leave feedback with comments \(select text, then choose the comment button\), not by editing the document\./)).toBeTruthy();
@@ -1683,6 +1723,18 @@ describe('DocumentWorkspace', () => {
     const filesSection = screen.getByRole('region', { name: 'Signed PDF' });
     expect(within(filesSection).getByRole('button', { name: 'View PDF' })).toBeTruthy();
     expect(within(filesSection).queryByRole('button', { name: 'Download options' })).toBeNull();
+  });
+
+  it('places the client e-copy request beside View PDF and explains lawyer review', () => {
+    renderWorkspace({ role: 'user', document: { ...document, lifecycle: 'FINALIZED' as const, permissions: { ...document.permissions, can_request_ecopy: true } } });
+    fireEvent.click(screen.getByRole('tab', { name: 'Files' }));
+
+    const filesSection = screen.getByRole('region', { name: 'Signed PDF' });
+    const requestButton = within(filesSection).getByRole('button', { name: 'Request e-copy' });
+    const viewButton = within(filesSection).getByRole('button', { name: 'View PDF' });
+    expect(requestButton.parentElement).toBe(viewButton.parentElement);
+    expect(requestButton.compareDocumentPosition(viewButton) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(within(filesSection).getByText('Your lawyer reviews e-copy requests before you can download a copy.')).toBeTruthy();
   });
 
   it('clarifies that finalized documents cannot be replaced (#169)', () => {
