@@ -423,6 +423,7 @@ describe('signed document upload screen', () => {
     expect(await screen.findByRole('heading', { name: 'Attaching your signed PDF…' })).toBeTruthy();
     expect(screen.getByRole('progressbar', { name: 'Attaching your signed PDF…' })).toBeTruthy();
     expect(screen.getByRole('status').textContent).toContain('Current status: Attaching signed PDF');
+    expect(screen.getByRole('link', { name: 'Back to document' }).getAttribute('href')).toBe('/portal/documents/waiting-doc');
     expect(screen.queryByRole('button', { name: 'Remove uploaded file' })).toBeNull();
     finishAttachment(Response.json({ ...signedDocument, document_id: 'waiting-doc' }, { status: 200 }));
     await waitFor(() => expect(push).toHaveBeenCalledWith('/portal/documents/waiting-doc'));

@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -24,6 +24,7 @@ import { DocumentProgress } from '@/features/documents/components/document-progr
 import { UploadPolicyNotice } from '@/features/documents/components/upload-policy-notice';
 import { Modal } from '@/features/admin/components/modal';
 import { Checkbox } from '@/shared/components/ui';
+import { UploadSkeleton } from '@/features/documents/components/document-loading-skeletons';
 import type { ApiSchema } from '@/shared/types/index';
 import { listRegisterBooks } from '@/features/office/books-api';
 import { latestRegisterBook } from '@/features/office/latest-register-book';
@@ -57,6 +58,11 @@ export default function UploadPage({ embedded = false, onFiledDocument, onPendin
   const [drag, setDrag] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
   const [duplicateDismissed, setDuplicateDismissed] = useState(false);
+  const isOnPage = useRef(true);
+  useEffect(() => {
+    isOnPage.current = true;
+    return () => { isOnPage.current = false; };
+  }, []);
   const profileQuery = useQuery<UserProfile | null>({
     queryKey: ['portal-profile'],
     queryFn: async () => {
@@ -78,10 +84,25 @@ export default function UploadPage({ embedded = false, onFiledDocument, onPendin
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ['portal-documents'] }),
       queryClient.invalidateQueries({ queryKey: ['portal-books'] }),
+      queryClient.invalidateQueries({ queryKey: ['portal-doc', data.document_id] }),
     ]);
+    const documentPath = `/portal/documents/${data.document_id}`;
+    if (!isOnPage.current) {
+      toast.success('Signed document filed.', { action: { label: 'Open', onClick: () => router.push(documentPath) } });
+      return;
+    }
     toast.success('Signed document filed.');
     if (embedded && onFiledDocument) onFiledDocument(data.document_id);
-    else router.push(`/portal/documents/${data.document_id}`);
+    else router.push(documentPath);
+  }
+
+  function reportFailureAfterLeaving(failedUpload: Error) {
+    if (isOnPage.current) return;
+    toast.error('The upload did not finish.', {
+      description: failedUpload.message,
+      duration: Infinity,
+      action: { label: 'Upload again', onClick: () => router.push('/portal/upload') },
+    });
   }
 
   const mutation = useMutation({
@@ -100,6 +121,7 @@ export default function UploadPage({ embedded = false, onFiledDocument, onPendin
       });
     },
     onSuccess: onFiled,
+    onError: reportFailureAfterLeaving,
   });
   const attachMutation = useMutation({
     onMutate: () => onPendingChange?.(true),
@@ -115,6 +137,7 @@ export default function UploadPage({ embedded = false, onFiledDocument, onPendin
       });
     },
     onSuccess: onFiled,
+    onError: reportFailureAfterLeaving,
   });
   const uploadError = mutation.error instanceof UploadRequestError ? mutation.error : null;
   const requiresConfirmation = uploadError?.requiresConfirmation === true;
@@ -160,7 +183,7 @@ export default function UploadPage({ embedded = false, onFiledDocument, onPendin
   const error = validationError ?? (failure instanceof Error
     ? `${failure.message} Your selected PDF and information have been kept. Review the error and retry when ready.`
     : null);
-  if (profileQuery.isPending) return <p className="text-sm font-semibold text-[#5B6F8A]">Loading your upload access…</p>;
+  if (profileQuery.isPending) return <UploadSkeleton label="Loading your upload access…" embedded={embedded} />;
   if (profileQuery.isError && !profileQuery.data) return <PortalAccessError error={profileQuery.error} isRetrying={profileQuery.isFetching} onRetry={() => void profileQuery.refetch()} />;
   if (!isIssuer) {
     return <section className="max-w-xl rounded-[18px] border border-[#E8F0F8] bg-white p-6"><h1 className="text-xl font-black text-[#0C2B49]">Upload unavailable</h1><p className="mt-2 text-sm text-[#5B6F8A]">Only lawyers can upload documents.</p></section>;
@@ -168,13 +191,18 @@ export default function UploadPage({ embedded = false, onFiledDocument, onPendin
 
   if (isSubmissionPending) {
     const isAttachingSignedCopy = attachMutation.isPending;
+    const attachingDocumentId = attachMutation.isPending ? attachMutation.variables : undefined;
     return (
       <div className="flex min-h-[calc(100dvh-8rem)] items-center">
         <DocumentProcessingStatus
           heading={isAttachingSignedCopy ? 'Attaching your signed PDF…' : 'Uploading your document…'}
           currentStatus={isAttachingSignedCopy ? 'Attaching signed PDF' : 'Uploading PDF'}
-          description="Please keep this page open. The document will open automatically when the request completes."
-        />
+          description={attachingDocumentId
+            ? 'The document will open automatically when the upload finishes. If you leave this screen, keep this tab open until you see a confirmation.'
+            : 'Please keep this page open. The document will open automatically when the upload finishes.'}
+        >
+          {attachingDocumentId && <Link href={`/portal/documents/${encodeURIComponent(attachingDocumentId)}`} className="rounded-full bg-[#0067B3] px-6 py-3 text-sm font-black text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]">Back to document</Link>}
+        </DocumentProcessingStatus>
       </div>
     );
   }
