@@ -29,7 +29,6 @@ describe("portal navigation", () => {
 
     expect(managementItems?.map(({ label, href }) => [label, href])).toEqual([
       ["User Accounts", "/portal/users"],
-      ["Lawyer Invitations", "/portal/issuer-invitations"],
     ]);
   });
 

@@ -121,19 +121,6 @@ export default function LoginPage({ sessionExpired = false, returnPath }: { sess
     onError: (error: Error) => setMfaError(error.message),
   });
 
-  const cancel = useMutation({
-    mutationFn: () => postMfa("cancel"),
-    onSuccess: () => {
-      setStep("password");
-      setFactorId("");
-      setEnrollment(null);
-      setCopyMessage("");
-      setCode("");
-      setMfaError(null);
-    },
-    onError: (error: Error) => setMfaError(error.message),
-  });
-
   const mutation = useMutation({
     mutationFn: signIn,
     onSuccess: (data) => {
@@ -270,10 +257,9 @@ export default function LoginPage({ sessionExpired = false, returnPath }: { sess
             <label htmlFor="authenticator-code" className="block text-sm font-semibold text-[#0C2B49]">Authenticator code</label>
             <AuthenticatorCodeInput id="authenticator-code" value={code} invalid={Boolean(mfaError)} describedBy={mfaError ? "mfa-error" : undefined} onChange={(nextCode) => { setCode(nextCode); setMfaError(null); }} />
             {mfaError && <p id="mfa-error" role="alert" className="text-sm font-semibold text-red-700">{mfaError}</p>}
-            <button type="submit" disabled={verify.isPending || cancel.isPending} className="flex min-h-[52px] w-full items-center justify-center rounded-full bg-[#0067B3] px-5 py-3 text-base font-bold text-white hover:bg-[#005F9E] focus-visible:ring-2 focus-visible:ring-[#0067B3] disabled:opacity-60">{verify.isPending ? "Verifying…" : "Verify and sign in"}</button>
+            <button type="submit" disabled={verify.isPending} className="flex min-h-[52px] w-full items-center justify-center rounded-full bg-[#0067B3] px-5 py-3 text-base font-bold text-white hover:bg-[#005F9E] focus-visible:ring-2 focus-visible:ring-[#0067B3] disabled:opacity-60">{verify.isPending ? "Verifying…" : "Verify and sign in"}</button>
           </form>}
           {mfaError && !enrollment && step === "enroll" && <p role="alert" className="text-sm font-semibold text-red-700">{mfaError}</p>}
-          <button type="button" disabled={cancel.isPending || enroll.isPending || verify.isPending} onClick={() => cancel.mutate()} className="min-h-11 w-full rounded-full border-2 border-[#E4EEF9] px-5 text-sm font-bold text-[#0C2B49] focus-visible:ring-2 focus-visible:ring-[#0067B3] disabled:opacity-60">{cancel.isPending ? "Starting over…" : "Start over"}</button>
         </div>}
 
         <Link className="mt-5 block text-center text-sm font-black text-[#0067B3]" href="/">

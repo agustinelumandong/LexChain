@@ -16,9 +16,10 @@ describe("PortalBottomNav", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "More" }));
 
-    for (const label of ["Reports", "User Accounts", "Lawyer Invitations", "Profile & Security"]) {
+    for (const label of ["Reports", "User Accounts", "Profile & Security"]) {
       expect(screen.getByRole("link", { name: label })).toBeTruthy();
     }
+    expect(screen.queryByRole("link", { name: "Lawyer Invitations" })).toBeNull();
     expect(screen.queryByRole("link", { name: "Audit Logs" })).toBeNull();
     expect(screen.queryByRole("link", { name: "Office Settings" })).toBeNull();
     expect(screen.getByRole("navigation", { name: "Mobile portal navigation" }).className).not.toContain("overflow-x-auto");
