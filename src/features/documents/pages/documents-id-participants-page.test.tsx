@@ -101,14 +101,14 @@ describe('DocumentParticipantsPage permissions', () => {
     expect(portalFetch).toHaveBeenCalledWith('/documents/doc-1');
     expect(listDocumentParties).toHaveBeenCalledWith('doc-1');
     expect(await screen.findByRole('heading', { name: 'Invite a participant' })).toBeTruthy();
-    expect(screen.queryByRole('button', { name: 'Revoke' })).toBeNull();
+    expect(screen.queryByRole('button', { name: /^Revoke access for/ })).toBeNull();
   });
 
   it('shows revoke without invite when only can_revoke is granted', async () => {
     portalFetch.mockResolvedValue({ ...document, permissions: { ...document.permissions, can_revoke: true } });
     await showPage();
 
-    expect(await screen.findByRole('button', { name: 'Revoke' })).toBeTruthy();
+    expect(await screen.findByRole('button', { name: /^Revoke access for/ })).toBeTruthy();
     expect(screen.queryByRole('heading', { name: 'Invite a participant' })).toBeNull();
   });
 
@@ -119,7 +119,7 @@ describe('DocumentParticipantsPage permissions', () => {
 
     expect(await screen.findByRole('heading', { name: 'Invite a participant' })).toBeTruthy();
     expect(await screen.findByText('Unable to load document participants. Please try again.')).toBeTruthy();
-    expect(screen.queryByRole('button', { name: 'Revoke' })).toBeNull();
+    expect(screen.queryByRole('button', { name: /^Revoke access for/ })).toBeNull();
   });
 
   it('shows no management actions when permissions deny both capabilities', async () => {
@@ -127,7 +127,7 @@ describe('DocumentParticipantsPage permissions', () => {
 
     expect(await screen.findByText('Your account does not have sharing or revocation permission for this document.')).toBeTruthy();
     expect(listDocumentParties).not.toHaveBeenCalled();
-    expect(screen.queryByRole('button', { name: 'Revoke' })).toBeNull();
+    expect(screen.queryByRole('button', { name: /^Revoke access for/ })).toBeNull();
     expect(screen.queryByRole('heading', { name: 'Invite a participant' })).toBeNull();
   });
 
@@ -137,7 +137,7 @@ describe('DocumentParticipantsPage permissions', () => {
 
     expect(screen.getByRole('status', { name: 'Loading participant permissions' })).toBeTruthy();
     expect(listDocumentParties).not.toHaveBeenCalled();
-    expect(screen.queryByRole('button', { name: 'Revoke' })).toBeNull();
+    expect(screen.queryByRole('button', { name: /^Revoke access for/ })).toBeNull();
     expect(screen.queryByRole('heading', { name: 'Invite a participant' })).toBeNull();
   });
 

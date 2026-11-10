@@ -33,10 +33,34 @@ it("maps canonical and backend invitation roles while marking unknown values uns
   );
 
   expect(rowFor("issuer@example.com").getByText("Lawyer")).toBeTruthy();
-  expect(rowFor("participant@example.com").getByText("User")).toBeTruthy();
-  expect(rowFor("legacy-user@example.com").getByText("User")).toBeTruthy();
+  expect(rowFor("participant@example.com").getByText("Client")).toBeTruthy();
+  expect(rowFor("legacy-user@example.com").getByText("Client")).toBeTruthy();
   expect(rowFor("legacy-admin@example.com").getByText("Unsupported role")).toBeTruthy();
   expect(rowFor("unknown@example.com").getByText("Unsupported role")).toBeTruthy();
+});
+
+it("shows claimed invitations as accepted and overdue pending invitations as expired", () => {
+  const future = "2099-01-01T00:00:00Z";
+  const past = "2020-01-01T00:00:00Z";
+
+  render(
+    <MockToastProvider>
+      <InvitationsManagementView
+        mockMode
+        invitations={[
+          { ...invitation, id: "claimed", email: "claimed@example.com", role: "lawyer", status: "claimed", expires_at: future },
+          { ...invitation, id: "open", email: "open@example.com", role: "lawyer", status: "pending", expires_at: future },
+          { ...invitation, id: "overdue", email: "overdue@example.com", role: "lawyer", status: "pending", expires_at: past },
+        ]}
+      />
+    </MockToastProvider>,
+  );
+
+  expect(rowFor("claimed@example.com").getByText("Accepted")).toBeTruthy();
+  expect(rowFor("claimed@example.com").getByText("—")).toBeTruthy();
+  expect(rowFor("open@example.com").getByText("Pending")).toBeTruthy();
+  expect(rowFor("overdue@example.com").queryByText("Pending")).toBeNull();
+  expect(rowFor("overdue@example.com").getAllByText("Expired")).toHaveLength(2);
 });
 
 it("matches the portal management layout without duplicate header controls", () => {
@@ -46,7 +70,7 @@ it("matches the portal management layout without duplicate header controls", () 
     </MockToastProvider>,
   );
 
-  const view = screen.getByRole("heading", { name: "Issuer Invitations" }).closest("header")?.parentElement;
+  const view = screen.getByRole("heading", { name: "Lawyer Invitations" }).closest("header")?.parentElement;
   const directory = screen.getByRole("heading", { name: "Invitation Directory" }).closest("article");
   const activityList = screen.getByRole("heading", { name: "Recent Invitation Activity" }).closest("article")?.querySelector(".admin-table-scroll");
 

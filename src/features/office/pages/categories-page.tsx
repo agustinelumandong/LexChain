@@ -10,6 +10,7 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import { toast } from 'sonner';
 import type { ApiSchema } from '@/shared/types/index';
 import { canAccessPortalFeature, getPortalUiRole } from "@/features/access";
+import { CategoriesSkeleton } from '@/features/office/components/office-loading-skeletons';
 import { Modal } from '@/features/admin/components/modal';
 import { MetricCard } from '@/features/portal/components';
 import {
@@ -73,7 +74,7 @@ export default function CategoriesPage() {
   }
 
   if (profileQuery.isLoading) {
-    return <p className="py-10 text-sm font-semibold text-[#5B6F8A]">Loading category access…</p>;
+    return <CategoriesSkeleton label="Loading category access…" />;
   }
 
   if (profileQuery.isError && !profileQuery.data) {
@@ -84,7 +85,7 @@ export default function CategoriesPage() {
     return (
       <section className="rounded-[18px] border border-[#E8F0F8] bg-white p-8 text-center">
         <h1 className="text-xl font-black text-[#0C2B49]">Categories are restricted</h1>
-        <p className="mt-2 text-sm text-[#5B6F8A]">Only Document Issuers can manage document categories.</p>
+        <p className="mt-2 text-sm text-[#5B6F8A]">Only lawyers can manage document categories.</p>
       </section>
     );
   }
@@ -124,7 +125,7 @@ export default function CategoriesPage() {
                 <li key={category.id} className="flex min-h-[68px] flex-wrap items-center justify-between gap-3 px-5 py-3 transition hover:bg-[#F8FBFF]">
                   <div className="min-w-0">
                     <p className="truncate font-black text-[#071B33]">{category.name}</p>
-                    <span className={`mt-1 inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-black ${category.active ? 'bg-[#EAF8F0] text-[#166534]' : 'bg-[#F1F5F9] text-[#5B6F8A]'}`}>
+                    <span className={`mt-1 inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-black ${category.active ? 'bg-[#EAF8F0] text-[#166534]' : 'bg-[#F1F5F9] text-[#5B6F8A]'}`}>
                       <span aria-hidden="true" className={`size-1.5 rounded-full ${category.active ? 'bg-[#166534]' : 'bg-[#5B6F8A]'}`} />
                       {category.active ? 'Active' : 'Inactive'}
                     </span>

@@ -7,14 +7,16 @@ import { portalFetch } from "@/shared/api/client";
 import { canAccessPortalFeature } from "@/features/access/portal-access";
 import { getPortalUiRole } from "@/features/access/portal-role";
 import { EcopyRequests } from '@/features/access/components/ecopy-requests';
+import { PortalAccessError } from '@/features/access/components/portal-access-error';
+import { PageLoadingSkeleton } from '@/shared/components/ui/page-loading-skeleton';
 
 type UserProfile = ApiSchema<"UserProfileResponse">;
 
 export default function MyRequestsPage() {
   const profileQuery = useQuery<UserProfile | null>({ queryKey: ["portal-profile"], queryFn: () => portalFetch<UserProfile | null>("/users/") });
   const isParticipant = canAccessPortalFeature(getPortalUiRole(profileQuery.data?.role), "my-requests");
-  if (profileQuery.isPending) return <p className="text-sm font-semibold text-[#5B6F8A]">Loading your request access…</p>;
-  if (profileQuery.isError) return <section role="alert" className="rounded-[18px] border border-[#E8F0F8] bg-white p-6"><h1 className="text-xl font-black text-[#0C2B49]">Could not verify portal access</h1><p className="mt-2 text-sm text-[#5B6F8A]">{profileQuery.error instanceof Error ? profileQuery.error.message : "Try loading your access again."}</p><div className="mt-4 flex flex-wrap gap-3"><button type="button" onClick={() => void profileQuery.refetch()} className="rounded-full border border-[#D7E4F2] px-4 py-2 text-sm font-bold text-[#0C2B49]">Retry access check</button><Link href="/portal/documents" className="rounded-full bg-[#0067B3] px-4 py-2 text-sm font-bold text-white">Back to Documents</Link></div></section>;
+  if (profileQuery.isPending) return <PageLoadingSkeleton label="Loading your request access…" eyebrow rowClassName="h-32" />;
+  if (profileQuery.isError) return <PortalAccessError error={profileQuery.error} isRetrying={profileQuery.isFetching} onRetry={() => void profileQuery.refetch()} />;
   if (!isParticipant) return <section className="rounded-[18px] border border-[#E8F0F8] bg-white p-6"><h1 className="text-xl font-black text-[#0C2B49]">E-copy requests unavailable</h1><p className="mt-2 text-sm text-[#5B6F8A]">Your portal role cannot access this page.</p><Link href="/portal/documents" className="mt-4 inline-flex rounded-full border border-[#D7E4F2] px-4 py-2 text-sm font-bold text-[#0C2B49]">Back to Documents</Link></section>;
 
   return <div className="flex w-full flex-col gap-5">

@@ -37,6 +37,10 @@ describe('getDocumentStatusLabel', () => {
     expect(getDocumentStatusLabel('FAILED')).toBe('Failed');
   });
 
+  it.each([['PENDING', 'Pending'], ['ACCEPTED', 'Queued'], ['PROCESSED', 'Completed']])('names known status %s instead of Unknown', (status, label) => {
+    expect(getDocumentStatusLabel(status)).toBe(label);
+  });
+
   it('names an OCR review-ready document instead of treating it as unknown', () => {
     expect(getDocumentStatusLabel('AWAITING_REVIEW')).toBe('Ready for review');
   });
@@ -48,6 +52,7 @@ describe('getDocumentStatusLabel', () => {
   it('keeps a null processing status distinct from document lifecycle', () => {
     expect(getDocumentStatusLabel(null)).toBe('No processing status yet');
     expect(getDocumentLifecycleLabel('READY_FOR_SIGNATURE')).toBe('Ready for signature');
+    expect(getDocumentLifecycleLabel('FINALIZED')).toBe('On-Chain');
   });
 
   it('uses backend permissions for visible detail actions', () => {

@@ -28,7 +28,7 @@ export async function PATCH(request: Request, { params }: RouteContext) {
       body: JSON.stringify(parsed.data),
     });
   } catch {
-    return Response.json({ message: "Unable to reach the API." }, { status: 502 });
+    return Response.json({ message: "Could not connect to LexChain. Please try again." }, { status: 502 });
   }
 
   const payload = await upstream.json().catch(() => null);

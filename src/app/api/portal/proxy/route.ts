@@ -32,8 +32,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(data, { status: upstream.status });
   } catch (error) {
     const message = error instanceof Error && error.name === 'AbortError'
-      ? 'Backend request timed out'
-      : 'Backend request failed';
+      ? 'LexChain took too long to respond. Please try again.'
+      : 'Could not connect to LexChain. Please try again.';
     return NextResponse.json({ message, detail: error instanceof Error ? error.message : String(error) }, { status: 502 });
   } finally {
     clearTimeout(timeout);

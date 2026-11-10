@@ -5,8 +5,10 @@ import { LoginPage } from "@/features/auth/pages";
 import { isMockMode } from "@/lib/mocks/mode";
 import { isMockDocumentIssuerToken, isMockPortalToken } from "@/lib/mocks/portal";
 import { backendUrl } from "@/server/api/backend";
+import { getSafePortalReturnPath } from "@/shared/utils/login-return";
 
-export default async function LoginRoute() {
+export default async function LoginRoute({ searchParams }: { searchParams?: Promise<{ reason?: string | string[]; next?: string | string[] }> } = {}) {
+  const params = await searchParams;
   const token = (await cookies()).get("portal_token")?.value;
   let role: string | undefined;
 
@@ -28,5 +30,5 @@ export default async function LoginRoute() {
 
   const destination = getPortalLoginRedirect(role);
   if (destination) redirect(destination);
-  return <LoginPage />;
+  return <LoginPage sessionExpired={params?.reason === "session-expired"} returnPath={typeof params?.next === "string" ? getSafePortalReturnPath(params.next) : undefined} />;
 }

@@ -25,7 +25,7 @@ export async function mfaRequest(path: string, token: string, body?: unknown) {
 }
 
 export async function mfaError(response: Response | null) {
-  if (!response) return NextResponse.json({ message: "Unable to reach the API." }, { status: 502 });
+  if (!response) return NextResponse.json({ message: "Could not connect to LexChain. Please try again." }, { status: 502 });
   const payload: unknown = await response.json().catch(() => null);
   const detail = typeof payload === "object" && payload !== null && "detail" in payload && typeof payload.detail === "string" ? payload.detail : "Unable to complete verification.";
   return NextResponse.json({ message: detail }, { status: response.status });

@@ -1,5 +1,6 @@
 'use client';
 
+import { recordFieldLabel } from '@/shared/utils/record-field-label';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
@@ -14,6 +15,7 @@ import { restoreDocument } from '@/features/documents/document-lifecycle-api';
 import { verifyRepositoryDocument } from "@/features/verification";
 import { VerifyWorkspace as VerifyWorkspace } from "@/features/verification/components";
 import { portalFetch } from '@/shared/api/client';
+import { VerifySkeleton } from '@/features/documents/components/document-loading-skeletons';
 import type { ApiSchema } from '@/shared/types/index';
 
 export default function DocumentVerifyPage() {
@@ -33,6 +35,7 @@ export default function DocumentVerifyPage() {
     queryFn: () => verifyRepositoryDocument(id),
     retry: false,
     refetchOnMount: 'always',
+    refetchOnWindowFocus: false,
   });
   const restoreMutation = useMutation({
     mutationFn: () => restoreDocument(id),
@@ -41,7 +44,7 @@ export default function DocumentVerifyPage() {
       queryClient.setQueryData(['portal-doc-chain', id], result.verification);
       setRestoreDialogOpen(false);
       setRestoreResult(result);
-      if (result.unrepaired?.length) toast.warning('Some record values still need a database backup.');
+      if (result.unrepaired?.length) toast.warning('Some details need manual recovery.');
       else toast.success(result.restored ? 'Document repair completed.' : 'Nothing needed repair. Verification has been refreshed.');
       await Promise.all([
         ['portal-doc', id],
@@ -73,7 +76,7 @@ export default function DocumentVerifyPage() {
   }
 
   return (
-    <div className="flex w-full min-w-0 flex-col gap-5 overflow-x-hidden md:h-[calc(100dvh-7rem)] md:overflow-hidden">
+    <div className="flex w-full min-w-0 flex-col gap-5 overflow-x-hidden md:h-[calc(100dvh-7rem)] md:overflow-y-auto">
       <header>
         <Link href={`/portal/documents/${id}`} className="text-sm font-bold text-[#0C2B49] hover:text-[#0067B3]">← Back to document</Link>
         <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
@@ -89,7 +92,7 @@ export default function DocumentVerifyPage() {
             </button>
           )}
         </div>
-        <p className="mt-1 text-sm text-[#4B6382]">We compare this PDF with the version saved when the document was finalized to help show whether it has changed.</p>
+        {role !== 'lawyer' && <p className="mt-1 text-sm text-[#4B6382]">We compare this PDF with the version saved when the document was finalized to help show whether it has changed.</p>}
       </header>
 
       {restoreResult && (
@@ -97,9 +100,9 @@ export default function DocumentVerifyPage() {
           {restoreResult.unrepaired?.length ? <InfoOutlinedIcon aria-hidden="true" className="shrink-0 text-[#8A5B00]" /> : <CheckCircleIcon aria-hidden="true" className="shrink-0 text-green-800" />}
           <div>
             <h2 className="text-base font-bold text-[#0C2B49]">{restoreResult.unrepaired?.length ? 'Repair needs attention' : restoreResult.restored ? 'Repair completed' : 'No repair needed'}</h2>
-            <p className="mt-1 text-[#344054]">{restoreResult.unrepaired?.length ? 'Some values could not be repaired. A database backup is needed.' : restoreResult.restored ? 'The repair completed. Check the verification result below for the current status.' : 'Nothing needed repair. Check the verification result below for the current status.'}</p>
-            {restoreResult.repaired && restoreResult.repaired.length > 0 && <p className="mt-2 text-[#344054]">Repaired: {restoreResult.repaired.map((value) => { const field = value.field.replaceAll('_', ' '); return field.charAt(0).toUpperCase() + field.slice(1); }).join(', ')}</p>}
-            {restoreResult.unrepaired && restoreResult.unrepaired.length > 0 && <p role="alert" className="mt-2 font-bold text-[#8A5B00]">Needs a database backup: {restoreResult.unrepaired.join(', ')}</p>}
+            <p className="mt-1 text-[#344054]">{restoreResult.unrepaired?.length ? 'Some details could not be repaired and need manual recovery.' : restoreResult.restored ? 'The repair completed. Check the verification result below for the current status.' : 'Nothing needed repair. Check the verification result below for the current status.'}</p>
+            {restoreResult.repaired && restoreResult.repaired.length > 0 && <p className="mt-2 text-[#344054]">Repaired: {restoreResult.repaired.map((value) => recordFieldLabel(value.field)).join(', ')}</p>}
+            {restoreResult.unrepaired && restoreResult.unrepaired.length > 0 && <p role="alert" className="mt-2 font-bold text-[#8A5B00]">Needs manual recovery: {restoreResult.unrepaired.map(recordFieldLabel).join(', ')}</p>}
           </div>
         </section>
       )}
@@ -132,7 +135,7 @@ export default function DocumentVerifyPage() {
       <Modal open={restoreDialogOpen} onClose={closeRestoreDialog} title="Restore archived original">
         <div className="space-y-4">
           <p className="text-sm leading-6 text-[#4B6382]">
-            The backend will check and repair the file and record using the blockchain and archived original. If a current PDF is replaced, it will be kept in signed-copy history if the backend can read it. Any values that cannot be repaired will need a database backup.
+            Restore this document from its original copy? The current PDF stays in signed-copy history if it can still be read.
           </p>
           {restoreMutation.isError && <p role="alert" className="text-sm font-semibold text-[#B42318]">
             {restoreMutation.error instanceof Error ? restoreMutation.error.message : 'The document could not be restored. Please try again.'}
@@ -147,30 +150,6 @@ export default function DocumentVerifyPage() {
           </div>
         </div>
       </Modal>
-    </div>
-  );
-}
-
-function VerifySkeleton() {
-  return (
-    <div className="relative flex flex-col gap-5 md:min-h-0 md:flex-1">
-      <div className="h-32 animate-pulse rounded-[18px] border border-[#E8F0F8] bg-white" />
-      <div className="grid min-w-0 flex-1 gap-5 md:min-h-0 md:grid-cols-2">
-        <div className="min-h-64 animate-pulse rounded-[18px] border border-[#E8F0F8] bg-white md:min-h-0" />
-        <div className="min-h-64 animate-pulse rounded-[18px] border border-[#E8F0F8] bg-white md:min-h-0" />
-      </div>
-      <div
-        role="status"
-        aria-label="Checking the document"
-        className="absolute inset-0 z-10 flex items-center justify-center rounded-[18px] bg-[#F5FAFF]/60 backdrop-blur-[2px]"
-      >
-        <div className="flex items-center gap-3 rounded-full border border-[#D7E4F2] bg-white px-6 py-4 shadow-[0_10px_24px_rgba(12,43,73,0.1)]">
-          <span className="h-5 w-5 animate-spin rounded-full border-2 border-[#D7E4F2] border-t-[#0067B3]" />
-          <p className="text-sm font-black text-[#0C2B49]">
-            Checking this document against its saved version…
-          </p>
-        </div>
-      </div>
     </div>
   );
 }

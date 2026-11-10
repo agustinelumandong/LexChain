@@ -56,7 +56,7 @@ describe("Issuer management portal pages", () => {
       "utf8",
     );
 
-    expect(source).toContain("Issuer Invitations");
+    expect(source).toContain("Lawyer Invitations");
     expect(source).toContain("invitations");
   });
 });

@@ -10,7 +10,7 @@ const { uploadDocumentMock, booksMock, routerPushMock } = vi.hoisted(() => ({
   booksMock: { value: [{ id: 'book-1', book_number: 42, series_year: 2026, status: 'OPEN' }] },
   routerPushMock: vi.fn(),
 }));
-vi.mock('sonner', () => ({ toast: { success: vi.fn() } }));
+vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push: routerPushMock }) }));
 vi.mock('@mui/icons-material/UploadFile', () => ({ default: () => null }));
@@ -50,19 +50,13 @@ describe('UploadPage', () => {
     booksMock.value = [{ id: 'book-1', book_number: 42, series_year: 2026, status: 'OPEN' }];
   });
 
-  it('renders the accepted document ID, lifecycle and processing status', async () => {
+  it('opens the accepted document after filing', async () => {
     uploadDocumentMock.mockResolvedValue({ document_id: 'document-202', lifecycle: 'SIGNED', status: 'QUEUED' });
     const { container } = renderUploadPage();
 
     completeUploadForm(container);
 
-    expect(await screen.findByRole('button', { name: 'View document' })).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: 'View document' }));
-    expect(routerPushMock).toHaveBeenCalledWith('/portal/documents/document-202');
-    expect(screen.getByText('Signed')).toBeTruthy();
-    expect(screen.getByText('Queued')).toBeTruthy();
-    expect(screen.getByText('Processing status')).toBeTruthy();
-    expect(screen.getByRole('status').textContent).toContain('Signed document filed');
+    await waitFor(() => expect(routerPushMock).toHaveBeenCalledWith('/portal/documents/document-202'));
     expect(toast.success).toHaveBeenCalledWith('Signed document filed.');
     expect(uploadDocumentMock).toHaveBeenCalledWith(expect.objectContaining({ title: 'deed', bookId: 'book-1' }));
   });
@@ -96,9 +90,7 @@ describe('UploadPage', () => {
     fireEvent.change(screen.getByLabelText('Paper page number'), { target: { value: '24' } });
     fireEvent.click(screen.getByRole('button', { name: 'Confirm and file' }));
 
-    expect(await screen.findByRole('button', { name: 'View document' })).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: 'View document' }));
-    expect(routerPushMock).toHaveBeenCalledWith('/portal/documents/closed-book-document');
+    await waitFor(() => expect(routerPushMock).toHaveBeenCalledWith('/portal/documents/closed-book-document'));
     expect(uploadDocumentMock).toHaveBeenCalledWith(expect.objectContaining({
       title: 'deed', bookId: 'book-closed', paperRegister: { docNo: 12, pageNo: 24 },
     }));
@@ -128,6 +120,7 @@ describe('UploadPage', () => {
     expect(screen.getByRole('progressbar', { name: 'Uploading your document…' })).toBeTruthy();
     expect(screen.getByRole('status').textContent).toContain('Current status: Uploading PDF');
     expect(screen.getByRole('status').textContent).toContain('Please keep this page open');
+    expect(screen.queryByRole('link', { name: /Back to document/ })).toBeNull();
     expect(screen.queryByLabelText('Document title')).toBeNull();
     expect(screen.queryByRole('button', { name: 'Confirm and file' })).toBeNull();
     expect(uploadDocumentMock).toHaveBeenCalledTimes(1);
@@ -142,12 +135,37 @@ describe('UploadPage', () => {
     expect((screen.getByRole('button', { name: 'Confirm and file' }) as HTMLButtonElement).disabled).toBe(false);
 
     fireEvent.click(screen.getByRole('button', { name: 'Confirm and file' }));
-    expect(await screen.findByRole('button', { name: 'View document' })).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: 'View document' }));
-    expect(routerPushMock).toHaveBeenCalledWith('/portal/documents/retry-document');
+    await waitFor(() => expect(routerPushMock).toHaveBeenCalledWith('/portal/documents/retry-document'));
     expect(uploadDocumentMock).toHaveBeenCalledTimes(2);
     expect(uploadDocumentMock.mock.calls[1][0]).toEqual(uploadDocumentMock.mock.calls[0][0]);
     expect(toast.success).toHaveBeenCalledTimes(1);
+  });
+
+  it('confirms a finished upload without pulling back a user who left the page', async () => {
+    const pending = Promise.withResolvers<unknown>();
+    uploadDocumentMock.mockReturnValueOnce(pending.promise);
+    const { container, unmount } = renderUploadPage();
+    completeUploadForm(container);
+    await screen.findByRole('heading', { name: 'Uploading your document…' });
+
+    unmount();
+    pending.resolve({ document_id: 'background-document', lifecycle: 'SIGNED', status: 'QUEUED' });
+
+    await waitFor(() => expect(toast.success).toHaveBeenCalledWith('Signed document filed.', expect.objectContaining({ action: expect.objectContaining({ label: 'Open' }) })));
+    expect(routerPushMock).not.toHaveBeenCalled();
+  });
+
+  it('reports a failed upload after the user left the page', async () => {
+    const pending = Promise.withResolvers<unknown>();
+    uploadDocumentMock.mockReturnValueOnce(pending.promise);
+    const { container, unmount } = renderUploadPage();
+    completeUploadForm(container);
+    await screen.findByRole('heading', { name: 'Uploading your document…' });
+
+    unmount();
+    pending.reject(new Error('Unable to connect to the upload service.'));
+
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith('The upload did not finish.', expect.objectContaining({ description: 'Unable to connect to the upload service.' })));
   });
 
 });

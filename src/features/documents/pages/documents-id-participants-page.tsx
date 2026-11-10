@@ -7,6 +7,7 @@ import { useQuery } from '@tanstack/react-query';
 import type { ApiSchema } from '@/shared/types/index';
 import { DocumentParticipantManagement } from '@/features/documents/components/document-participant-management';
 import { portalFetch } from '@/shared/api/client';
+import { ParticipantsSkeleton } from '@/features/documents/components/document-loading-skeletons';
 
 type DocumentResponse = ApiSchema<'DocumentResponse'>;
 
@@ -22,13 +23,7 @@ export default function DocumentParticipantsPage({ params }: { params: Promise<{
   const canRevoke = documentQuery.data?.permissions?.can_revoke === true;
 
   if (documentQuery.isPending) {
-    return (
-      <div
-        role="status"
-        aria-label="Loading participant permissions"
-        className="h-40 animate-pulse rounded-[18px] border border-[#E8F0F8] bg-white"
-      />
-    );
+    return <ParticipantsSkeleton label="Loading participant permissions" />;
   }
 
   return (

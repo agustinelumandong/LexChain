@@ -122,7 +122,7 @@ export function RecentlyCreatedAccounts({ users }: { users: DirectoryUser[] }) {
               <p className="truncate text-sm font-black text-[#071B33]">{user.displayName}</p>
               <p className="truncate text-xs font-semibold text-[#5B6F8A]">{user.email}</p>
               <div className="mt-1 flex flex-wrap items-center gap-2">
-                <span className="rounded-md bg-[#EEF4FB] px-2 py-0.5 text-[10px] font-black text-[#0067B3]">{user.roleLabel}</span>
+                <span className="rounded-md bg-[#EEF4FB] px-2 py-0.5 text-xs font-black text-[#0067B3]">{user.roleLabel}</span>
                 <StatusPill status={user.statusLabel} />
               </div>
             </div>
@@ -133,7 +133,7 @@ export function RecentlyCreatedAccounts({ users }: { users: DirectoryUser[] }) {
           <EmptyState
             icon={<PeopleOutlinedIcon aria-hidden="true" sx={{ fontSize: 22 }} />}
             title="No recent accounts"
-            description="No accounts returned by the API."
+            description="No accounts found."
           />
         ) : null}
       </div>

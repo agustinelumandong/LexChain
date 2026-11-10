@@ -57,6 +57,6 @@ describe('notification requests', () => {
     const outcomes = await Promise.allSettled([api.fetchNotifications(), api.markNotificationRead('notice-1')]);
     for (const outcome of outcomes) expect(outcome).toMatchObject({ status: 'rejected', reason: { status: 401, message: 'Session rejected' } });
     expect(fetchMock.mock.calls.filter(([url]) => url === '/api/portal/logout')).toHaveLength(1);
-    expect(replace).toHaveBeenCalledExactlyOnceWith('/login');
+    expect(replace).toHaveBeenCalledExactlyOnceWith('/login?reason=session-expired');
   });
 });

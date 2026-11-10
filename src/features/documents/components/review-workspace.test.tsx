@@ -141,10 +141,8 @@ function renderWorkspace(overrides: Partial<React.ComponentProps<typeof ReviewWo
     review,
     actionError: null,
     isSaving: false,
-    isAnalyzing: false,
     isApproving: false,
     onSave: vi.fn().mockResolvedValue(review),
-    onAnalyze: vi.fn().mockResolvedValue(review),
     onApprove: vi.fn().mockResolvedValue(undefined),
     ...overrides,
   };
@@ -191,10 +189,11 @@ beforeEach(() => {
 });
 
 describe('ReviewWorkspace', () => {
-  it('starts in Compare and preserves the original-versus-reviewed Raw cards', () => {
+  it('shows the reviewed pages without tabs', () => {
     renderWorkspace();
 
-    expect(screen.getByRole('tab', { name: 'Compare' }).getAttribute('aria-selected')).toBe('true');
+    expect(screen.queryAllByRole('tab')).toHaveLength(0);
+    expect(screen.queryByRole('tabpanel')).toBeNull();
     expect(screen.getByLabelText('Reviewed text for block 0')).toBeTruthy();
     expect(screen.queryByLabelText('Reviewed text for block 1')).toBeNull();
 
@@ -203,38 +202,24 @@ describe('ReviewWorkspace', () => {
     expect(screen.queryByLabelText('Reviewed text for block 0')).toBeNull();
     expect(screen.getByLabelText('Reviewed text for block 1')).toBeTruthy();
     expect(screen.getByText('image region — shown on the source PDF and not editable.')).toBeTruthy();
-
-    fireEvent.click(screen.getByRole('tab', { name: 'Raw' }));
-    expect(screen.getByRole('tab', { name: 'Raw' }).getAttribute('aria-selected')).toBe('true');
-    expect(screen.getByRole('tab', { name: 'Compare' }).getAttribute('aria-selected')).toBe('false');
-    expect(screen.getByRole('heading', { name: 'Block 0' })).toBeTruthy();
-    expect(screen.getAllByText('Original OCR text')).toHaveLength(3);
   });
 
-  it('supports roving keyboard tabs and labels the active panel', () => {
-    renderWorkspace();
+  it('keeps blocks without a reported page reachable on every page', () => {
+    renderWorkspace({
+      review: { ...review, blocks: [...review.blocks, { ...review.blocks[1], index: 4, bbox: null, page_idx: null }] },
+    });
 
-    const compareTab = screen.getByRole('tab', { name: 'Compare' }) as HTMLButtonElement;
-    const rawTab = screen.getByRole('tab', { name: 'Raw' }) as HTMLButtonElement;
-    const panel = screen.getByRole('tabpanel');
-    expect(compareTab.tabIndex).toBe(0);
-    expect(rawTab.tabIndex).toBe(-1);
-    expect(panel.getAttribute('aria-labelledby')).toBe(compareTab.id);
+    expect(screen.getByLabelText('Reviewed text for block 4')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Mock page 2' }));
+    expect(screen.getByLabelText('Reviewed text for block 4')).toBeTruthy();
+  });
 
-    fireEvent.keyDown(compareTab, { key: 'ArrowRight' });
-    expect(rawTab.getAttribute('aria-selected')).toBe('true');
-    expect(rawTab.tabIndex).toBe(0);
-    expect(document.activeElement).toBe(rawTab);
-    expect(panel.getAttribute('aria-labelledby')).toBe(rawTab.id);
+  it('renders the page header beside the review controls', () => {
+    renderWorkspace({ header: <h1>Review extracted text</h1> });
 
-    fireEvent.keyDown(rawTab, { key: 'ArrowRight' });
-    expect(compareTab.getAttribute('aria-selected')).toBe('true');
-    expect(document.activeElement).toBe(compareTab);
-
-    fireEvent.keyDown(compareTab, { key: 'End' });
-    expect(rawTab.getAttribute('aria-selected')).toBe('true');
-    fireEvent.keyDown(rawTab, { key: 'Home' });
-    expect(compareTab.getAttribute('aria-selected')).toBe('true');
+    const row = screen.getByRole('heading', { name: 'Review extracted text' }).parentElement?.parentElement;
+    expect(row?.contains(screen.getByRole('button', { name: /^Issues/ }))).toBe(true);
+    expect(screen.queryByRole('button', { name: 'Extraction info' })).toBeNull();
   });
 
   it('exposes labeled desktop panes and pressed mobile pane controls', () => {
@@ -259,13 +244,22 @@ describe('ReviewWorkspace', () => {
     expect(reviewPane.getAttribute('aria-pressed')).toBe('false');
   });
 
-  it('keeps Raw content independently scrollable on desktop', () => {
-    renderWorkspace();
+  it('numbers Compare blocks and lists page headers first', () => {
+    renderWorkspace({
+      review: {
+        ...review,
+        blocks: [
+          ...review.blocks,
+          { ...review.blocks[0], index: 8, type: 'head', text: 'Head', original_text: 'Head' },
+          { ...review.blocks[0], index: 9, type: 'header', text: 'Header', original_text: 'Header' },
+          { ...review.blocks[0], index: 10, type: 'section_header', text: 'Section', original_text: 'Section' },
+        ],
+      },
+    });
 
-    fireEvent.click(screen.getByRole('tab', { name: 'Raw' }));
-
-    expect(screen.getByRole('tabpanel').firstElementChild?.className).toContain('md:min-h-0');
-    expect(screen.getByRole('tabpanel').firstElementChild?.className).toContain('md:overflow-y-auto');
+    const pane = screen.getByRole('region', { name: 'Reviewed document' });
+    expect(Array.from(pane.querySelectorAll('[data-block-index]'), (block) => block.getAttribute('data-block-index'))).toEqual(['8', '9', '0', '10']);
+    expect(screen.getByText('Block 9')).toBeTruthy();
   });
 
   it('preserves the draft and selected block when switching mobile panes', () => {
@@ -322,7 +316,7 @@ describe('ReviewWorkspace', () => {
     await waitFor(() => expect(document.activeElement).toBe(issuesButton));
   });
 
-  it('uses the same selection path for overlays, page controls, Compare, and Raw', () => {
+  it('uses the same selection path for overlays, page controls, and Compare', () => {
     renderWorkspace({ review: flaggedReview });
 
     fireEvent.click(screen.getByRole('button', { name: 'Mock select block 0' }));
@@ -336,11 +330,8 @@ describe('ReviewWorkspace', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Mock select block 0' }));
     expect(dynamicMocks.viewerProps).toMatchObject({ currentPage: 0, selectedBlockIndex: 0 });
 
-    fireEvent.click(screen.getByRole('tab', { name: 'Raw' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Mock page 2' }));
     fireEvent.focus(screen.getByLabelText('Reviewed text for block 1'));
-    fireEvent.click(screen.getByRole('tab', { name: 'Compare' }));
-    expect(screen.getByRole('tab', { name: 'Compare' }).getAttribute('aria-selected')).toBe('true');
-    expect(screen.getByRole('tab', { name: 'Raw' }).getAttribute('aria-selected')).toBe('false');
     expect(dynamicMocks.viewerProps).toMatchObject({ currentPage: 1, selectedBlockIndex: 1 });
   });
 
@@ -418,8 +409,35 @@ describe('ReviewWorkspace', () => {
     const card = document.getElementById('review-block-0')!;
     const editor = screen.getByLabelText('Reviewed text for block 0');
     expect(card.className).toContain('border');
-    expect(screen.getByText('text')).toBeTruthy();
+    expect(screen.getByText('Block 0').className).toContain('ml-auto');
+    expect(screen.queryByText('text')).toBeNull();
     expect(editor.className).toContain('border-0');
+  });
+
+  it('asks the PDF to reveal a block on every card click but not on hover', () => {
+    renderWorkspace();
+    const card = document.getElementById('review-block-0')!;
+
+    fireEvent.mouseEnter(card);
+    expect(dynamicMocks.viewerProps?.revealRequest).toBeNull();
+
+    fireEvent.click(card);
+    const firstRequest = dynamicMocks.viewerProps?.revealRequest as { blockIndex: number; id: number };
+    expect(firstRequest.blockIndex).toBe(0);
+
+    fireEvent.click(card);
+    const secondRequest = dynamicMocks.viewerProps?.revealRequest as { blockIndex: number; id: number };
+    expect(secondRequest).toEqual({ blockIndex: 0, id: firstRequest.id + 1 });
+  });
+
+  it('puts the block type before the block number on typed cards', () => {
+    renderWorkspace({
+      review: { ...review, blocks: [{ ...review.blocks[0], index: 9, type: 'header', text: 'Header', original_text: 'Header' }] },
+    });
+
+    const label = screen.getByText('Block 9');
+    expect(label.previousElementSibling?.textContent).toBe('header');
+    expect(label.nextElementSibling).toBeNull();
   });
 
   it('uses non-resizable, content-sized editors in Compare', () => {
@@ -511,37 +529,20 @@ describe('ReviewWorkspace', () => {
     expect(screen.getByRole('complementary', { name: 'Issues' }).textContent).toContain('Original body');
   });
 
-  it('exposes extraction-level facts in a drawer', () => {
-    renderWorkspace({ review: flaggedReview });
-
-    fireEvent.click(screen.getByRole('button', { name: 'Extraction info' }));
-    expect(screen.getByRole('heading', { name: 'Extraction info' })).toBeTruthy();
-    expect(screen.getByText('LexChain OCR')).toBeTruthy();
-    expect(screen.getByText('2 pages')).toBeTruthy();
-    expect(screen.getByText('88%')).toBeTruthy();
-    expect(screen.getByText('1 edited block')).toBeTruthy();
-    expect(screen.getByText('Ready for review')).toBeTruthy();
-  });
-
-  it('keeps confidence out of Compare while retaining the Raw legacy label', () => {
+  it('keeps confidence out of Compare', () => {
     renderWorkspace();
 
     expect(screen.queryByText('97% confidence')).toBeNull();
-    fireEvent.click(screen.getByRole('tab', { name: 'Raw' }));
-    expect(screen.getByText(/97% confidence/)).toBeTruthy();
   });
 
-  it('keeps drafts across tabs and saves only changed editable blocks', async () => {
+  it('saves only changed editable blocks', async () => {
     const { onSave } = renderWorkspace();
 
     fireEvent.click(screen.getByRole('button', { name: 'Mock page 2' }));
     fireEvent.change(screen.getByLabelText('Reviewed text for block 1'), {
       target: { value: 'Corrected body' },
     });
-    expect((screen.getByRole('button', { name: 'Analyze semantic issues' }) as HTMLButtonElement).disabled).toBe(true);
     expect((screen.getByRole('button', { name: 'Approve reviewed text' }) as HTMLButtonElement).disabled).toBe(true);
-    fireEvent.click(screen.getByRole('tab', { name: 'Raw' }));
-    expect((screen.getByLabelText('Reviewed text for block 1') as HTMLTextAreaElement).value).toBe('Corrected body');
     fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
 
     await waitFor(() => expect(onSave).toHaveBeenCalledWith([{ index: 1, text: 'Corrected body' }]));
@@ -560,14 +561,14 @@ describe('ReviewWorkspace', () => {
     });
     fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
     await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
-    expect(screen.getByText('Save changes before analysis or approval.')).toBeTruthy();
+    expect(screen.getByText('1 block changed')).toBeTruthy();
 
     fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
     await waitFor(() => expect(onSave).toHaveBeenCalledTimes(2));
-    expect(screen.getByText('Save changes before analysis or approval.')).toBeTruthy();
+    expect(screen.getByText('1 block changed')).toBeTruthy();
 
     await act(async () => acceptedSave.resolve(review));
-    await waitFor(() => expect(screen.queryByText('Save changes before analysis or approval.')).toBeNull());
+    await waitFor(() => expect(screen.queryByText('1 block changed')).toBeNull());
   });
 
   it('keeps newer text dirty when an earlier save resolves', async () => {
@@ -588,7 +589,7 @@ describe('ReviewWorkspace', () => {
     await act(async () => pendingSave.resolve(review));
 
     expect((screen.getByLabelText('Reviewed text for block 1') as HTMLTextAreaElement).value).toBe('Newer correction');
-    expect(screen.getByText('Save changes before analysis or approval.')).toBeTruthy();
+    expect(screen.getByText('1 block changed')).toBeTruthy();
   });
 
   it('treats pre-save text as dirty after the server accepts a different value', async () => {
@@ -613,11 +614,11 @@ describe('ReviewWorkspace', () => {
     await act(async () => pendingSave.resolve(acceptedReview));
 
     expect((screen.getByLabelText('Reviewed text for block 1') as HTMLTextAreaElement).value).toBe('Original body');
-    expect(screen.getByText('Save changes before analysis or approval.')).toBeTruthy();
+    expect(screen.getByText('1 block changed')).toBeTruthy();
     expect((screen.getByRole('button', { name: 'Save changes' }) as HTMLButtonElement).disabled).toBe(false);
   });
 
-  it('sanitizes tables in Compare and keeps their source editable in Raw', async () => {
+  it('sanitizes tables in Compare and keeps their source editable there', async () => {
     const tableSource = '<table><tbody><tr><td onclick="alert(1)">Amount</td></tr></tbody></table><script>alert(1)</script>';
     const tableBlock: ApiSchema<'ExtractionBlock'> = {
       ...review.blocks[1],
@@ -626,7 +627,7 @@ describe('ReviewWorkspace', () => {
       original_text: tableSource,
       is_html: true,
     };
-    const { container } = renderWorkspace({
+    const { container, onSave } = renderWorkspace({
       review: { ...review, blocks: [...review.blocks, tableBlock] },
     });
 
@@ -636,22 +637,32 @@ describe('ReviewWorkspace', () => {
     expect(container.querySelector('script')).toBeNull();
     expect(container.querySelector('td')?.getAttribute('onclick')).toBeNull();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Edit table in Raw view' }));
-    expect(screen.getByRole('tab', { name: 'Raw' }).getAttribute('aria-selected')).toBe('true');
-    expect((screen.getByLabelText('Reviewed text for block 3') as HTMLTextAreaElement).value).toBe(tableSource);
+    expect(screen.queryByLabelText('Reviewed text for block 3')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Edit table' }));
+    const editor = screen.getByLabelText('Reviewed text for block 3') as HTMLTextAreaElement;
+    expect(editor.value).toBe(tableSource);
+
+    const correctedTable = '<table><tbody><tr><td>Total</td></tr></tbody></table>';
+    fireEvent.change(editor, { target: { value: correctedTable } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
+    await waitFor(() => expect(onSave).toHaveBeenCalledWith([{ index: 3, text: correctedTable }]));
+
+    fireEvent.click(screen.getByRole('button', { name: 'Done editing table' }));
+    expect(screen.queryByLabelText('Reviewed text for block 3')).toBeNull();
   });
 
   it('blocks every mutation while one is pending and freezes approved text', () => {
-    const { rerender, ...props } = renderWorkspace({ isAnalyzing: true });
-
-    expect((screen.getByRole('button', { name: 'Save changes' }) as HTMLButtonElement).disabled).toBe(true);
-    expect((screen.getByRole('button', { name: 'Analyzing semantic issues…' }) as HTMLButtonElement).disabled).toBe(true);
-    expect((screen.getByRole('button', { name: 'Approve reviewed text' }) as HTMLButtonElement).disabled).toBe(true);
-
+    const { rerender, ...props } = renderWorkspace();
     fireEvent.click(screen.getByRole('button', { name: 'Mock page 2' }));
-    rerender(<ReviewWorkspace {...props} isAnalyzing={false} review={{ ...review, is_reviewed: true }} />);
+    fireEvent.change(screen.getByLabelText('Reviewed text for block 1'), { target: { value: 'Corrected body' } });
+    rerender(<ReviewWorkspace {...props} isSaving />);
+
+    expect((screen.getByRole('button', { name: 'Saving changes…' }) as HTMLButtonElement).disabled).toBe(true);
+    expect((screen.getByRole('button', { name: 'Approve reviewed text' }) as HTMLButtonElement).disabled).toBe(true);
+    expect(screen.queryByRole('button', { name: 'Analyze semantic issues' })).toBeNull();
+
+    rerender(<ReviewWorkspace {...props} isSaving={false} review={{ ...review, is_reviewed: true }} />);
     expect((screen.getByLabelText('Reviewed text for block 1') as HTMLTextAreaElement).disabled).toBe(true);
-    expect((screen.getByRole('button', { name: 'Analyze semantic issues' }) as HTMLButtonElement).disabled).toBe(true);
     expect(screen.getByText('Reviewed text is approved and frozen.')).toBeTruthy();
   });
 
@@ -706,7 +717,7 @@ describe('ReviewWorkspace', () => {
     expect((screen.getByRole('button', { name: 'Approve' }) as HTMLButtonElement).disabled).toBe(true);
   });
 
-  it('freezes Compare, Raw, and table editing while approval is pending', () => {
+  it('freezes Compare and table editing while approval is pending', () => {
     const tableBlock: ApiSchema<'ExtractionBlock'> = {
       ...review.blocks[1],
       index: 3,
@@ -717,18 +728,29 @@ describe('ReviewWorkspace', () => {
     const { rerender, ...props } = renderWorkspace({ review: { ...review, blocks: [...review.blocks, tableBlock] } });
     fireEvent.click(screen.getByRole('button', { name: 'Mock page 2' }));
     fireEvent.change(screen.getByLabelText('Reviewed text for block 1'), { target: { value: 'Corrected body' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Edit table' }));
 
     rerender(<ReviewWorkspace {...props} isApproving />);
 
     expect((screen.getByLabelText('Reviewed text for block 1') as HTMLTextAreaElement).disabled).toBe(true);
-    expect((screen.getByRole('button', { name: 'Edit table in Raw view' }) as HTMLButtonElement).disabled).toBe(true);
-    expect((screen.getByRole('button', { name: 'Save changes' }) as HTMLButtonElement).disabled).toBe(true);
-    expect((screen.getByRole('button', { name: 'Analyze semantic issues' }) as HTMLButtonElement).disabled).toBe(true);
-    expect((screen.getByRole('button', { name: 'Approving reviewed text…' }) as HTMLButtonElement).disabled).toBe(true);
-
-    fireEvent.click(screen.getByRole('tab', { name: 'Raw' }));
-    expect((screen.getByLabelText('Reviewed text for block 1') as HTMLTextAreaElement).disabled).toBe(true);
     expect((screen.getByLabelText('Reviewed text for block 3') as HTMLTextAreaElement).disabled).toBe(true);
+    expect((screen.getByRole('button', { name: 'Done editing table' }) as HTMLButtonElement).disabled).toBe(true);
+    expect((screen.getByRole('button', { name: 'Save changes' }) as HTMLButtonElement).disabled).toBe(true);
+    expect((screen.getByRole('button', { name: 'Approving reviewed text…' }) as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it('shows Save only for unsaved edits and returns focus to Approve after saving', async () => {
+    renderWorkspace();
+    expect(screen.queryByRole('button', { name: 'Save changes' })).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Mock page 2' }));
+    fireEvent.change(screen.getByLabelText('Reviewed text for block 1'), { target: { value: 'Corrected body' } });
+    const saveButton = screen.getByRole('button', { name: 'Save changes' });
+    saveButton.focus();
+    fireEvent.click(saveButton);
+
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'Save changes' })).toBeNull());
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Approve reviewed text' }));
   });
 
   it('shows the dirty block count beside save', () => {

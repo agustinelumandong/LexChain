@@ -94,12 +94,12 @@ const integrityUiCopy: Record<IntegrityUiState, IntegrityUiCopy> = {
   },
   not_anchored: {
     label: 'Document is not anchored',
-    description: 'The backend reports that this document has no on-chain integrity record.',
+    description: 'This document has no saved integrity record.',
     tone: 'neutral',
   },
   not_found_or_unanchored: {
     label: 'Document not found or has no on-chain record',
-    description: 'The backend could not find this document or it has not been anchored.',
+    description: 'This document could not be found or has not been finalized.',
     tone: 'neutral',
   },
   match: {

@@ -49,7 +49,7 @@ describe('fetchSystemUsersReport', () => {
   it('rejects an invalid backend response', async () => {
     vi.mocked(portalRequest).mockResolvedValue(response({ users: [{ id: 'bad' }], total: 1 }));
 
-    await expect(fetchSystemUsersReport('2026-05-01', '2026-05-31')).rejects.toThrow('The API returned an invalid user list. Please try again.');
+    await expect(fetchSystemUsersReport('2026-05-01', '2026-05-31')).rejects.toThrow('Could not read the user list. Please try again.');
   });
 
   it('rejects invalid dates before making a request', async () => {

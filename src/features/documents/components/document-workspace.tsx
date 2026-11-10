@@ -28,7 +28,8 @@ import FolderOutlinedIcon from '@mui/icons-material/FolderOutlined';
 import { toast } from 'sonner';
 import { portalRequest } from '@/shared/api/client';
 import type { ApiSchema } from '@/shared/types/index';
-import { attachSignedCopy, correctDocumentEntry, LifecycleRequestError, listDocumentHistory, listDraftComments, listSignedCopies, replaceSignedCopy, signedCopyFileUrl, syncDraftComments } from '@/features/documents/document-lifecycle-api';
+import { attachSignedCopy, correctDocumentEntry, LifecycleRequestError, listDocumentHistory, listDraftComments, listSignedCopies, replaceSignedCopy, signedCopyFileUrl } from '@/features/documents/document-lifecycle-api';
+import { draftCommentsQueryKey, useDraftCommentSync } from '@/features/documents/use-draft-comment-sync';
 import { isGoogleDraftUrl } from '@/features/documents/document-draft-api';
 import { getDocumentLifecycleLabel } from '@/features/documents/document-ui';
 import { shortenIntegrityHash, verifyRepositoryDocument } from '@/features/verification';
@@ -111,7 +112,7 @@ function FinalizationNextStep({ document, role, outcomeUnknown }: {
         ? 'Processing failed'
         : status === 'QUEUED'
           ? 'Waiting to start'
-          : status === 'PROCESSING' ? 'Extracting text' : status === 'ENRICHING' ? 'Analyzing document'
+          : status === 'PROCESSING' ? 'Reading your PDF' : status === 'ENRICHING' ? 'Analyzing document'
     : document.permissions.can_finalize
       ? 'Check the signed PDF'
       : 'Waiting for finalization';
@@ -123,7 +124,7 @@ function FinalizationNextStep({ document, role, outcomeUnknown }: {
         ? document.permissions.can_retry_processing ? 'Retry processing to continue.' : 'The document owner can retry processing.'
         : status === 'QUEUED'
           ? 'Your signed PDF is waiting for processing to start. This page checks for updates automatically.'
-          : status === 'PROCESSING' ? 'Text extraction is in progress. This page checks for updates automatically.'
+          : status === 'PROCESSING' ? role === 'lawyer' ? 'LexChain is getting the text ready for your review. You can view the PDF while you wait.' : 'LexChain is getting the text ready for your lawyer to review.'
             : status === 'ENRICHING' ? 'Analysis is in progress. This page checks for updates automatically.'
     : document.permissions.can_finalize
       ? document.permissions.can_replace_signed_copy
@@ -537,13 +538,33 @@ function SignedPdfPreview({
             )}
           </div>
           {signedCopy && <p className="mt-1 break-words text-sm leading-5 text-[#4B6382]"><span className="font-semibold text-[#0C2B49]">{signedCopy.original_filename ?? document.file_name}</span>{typeof signedCopy.size_bytes === 'number' ? ` · ${formatFileSize(signedCopy.size_bytes)}` : ''}{signedCopy.created_at ? ` · Attached ${formatDate(signedCopy.created_at)}` : ''}</p>}
+          {role === 'user' && document.lifecycle === 'FINALIZED' && (
+            <>
+              <p className="mt-2 text-sm leading-5 text-[#4B6382]">Your lawyer reviews e-copy requests before you can download a copy.</p>
+              <p className="mt-1 text-sm">
+                <Link href="/portal/requests/my" className="font-semibold text-[#0067B3] hover:underline">
+                  View my e-copy requests
+                </Link>
+              </p>
+            </>
+          )}
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          {role === 'user' && document.lifecycle === 'FINALIZED' && document.permissions.can_request_ecopy && (
+            <button
+              type="button"
+              disabled={requestCopy.isPending || requestCopy.isSuccess}
+              onClick={() => requestCopy.mutate()}
+              className="inline-flex min-h-11 items-center justify-center rounded-full border border-[#0067B3] bg-white px-4 py-2 text-sm font-bold text-[#0067B3] hover:bg-[#EAF4FF] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3] disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {requestCopy.isPending ? 'Requesting…' : requestCopy.isSuccess ? 'E-copy requested' : 'Request e-copy'}
+            </button>
+          )}
           {document.lifecycle === 'SIGNED' && document.permissions?.can_replace_signed_copy && onOpenReplace && (
             <button
               type="button"
               onClick={onOpenReplace}
-              className="inline-flex min-h-10 items-center gap-1.5 rounded-full border border-[#0067B3] px-3.5 py-2 text-sm font-extrabold text-[#0067B3] hover:bg-[#EAF4FF] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]"
+              className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-[#0067B3] px-3.5 py-2 text-sm font-extrabold text-[#0067B3] hover:bg-[#EAF4FF] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]"
             >
               Replace signed PDF
             </button>
@@ -556,19 +577,19 @@ function SignedPdfPreview({
                 aria-haspopup="dialog"
                 aria-controls="signed-pdf-viewer-dialog"
                 onClick={openPdfViewer}
-                className="inline-flex min-h-10 items-center justify-center gap-2 rounded-full bg-[#0067B3] px-4 py-2 text-sm font-bold text-white shadow-sm hover:bg-[#0673C4] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]"
+                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-[#0067B3] px-4 py-2 text-sm font-bold text-white shadow-sm hover:bg-[#0673C4] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]"
               >
                 <PictureAsPdfOutlinedIcon aria-hidden="true" sx={{ fontSize: 18 }} />
                 View PDF
               </button>
-              <div ref={downloadMenuRef} className="relative">
+              {role === 'lawyer' && <div ref={downloadMenuRef} className="relative">
                 <button
                   type="button"
                   aria-label="Download options"
                   aria-expanded={downloadMenuOpen}
                   aria-controls="signed-pdf-download-menu"
                   onClick={() => setDownloadMenuOpen((open) => !open)}
-                  className="grid min-h-10 min-w-10 place-items-center rounded-full border border-[#D7E4F2] text-[#0C2B49] hover:bg-[#EAF4FF] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]"
+                  className="grid min-h-11 min-w-11 place-items-center rounded-full border border-[#D7E4F2] text-[#0C2B49] hover:bg-[#EAF4FF] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]"
                 >
                   <MoreVertIcon aria-hidden="true" sx={{ fontSize: 20 }} />
                 </button>
@@ -612,7 +633,7 @@ function SignedPdfPreview({
                     </button>
                   </div>
                 )}
-              </div>
+              </div>}
             </>
           )}
           {document.permissions?.can_attach_signed_copy && !signedCopy && onOpenAttach && (
@@ -641,33 +662,14 @@ function SignedPdfPreview({
 
       {signedCopyForm}
 
-      {role === 'user' && document.lifecycle === 'FINALIZED' && (
-        <div className="mt-5 border-t border-[#D7E4F2] pt-4">
-          {document.permissions.can_request_ecopy && (
-            <button
-              type="button"
-              disabled={requestCopy.isPending || requestCopy.isSuccess}
-              onClick={() => requestCopy.mutate()}
-              className="rounded-full bg-[#0067B3] px-4 py-2 text-sm font-bold text-white hover:bg-[#0673C4] disabled:opacity-60"
-            >
-              {requestCopy.isPending ? 'Requesting…' : requestCopy.isSuccess ? 'E-copy requested' : 'Request e-copy'}
-            </button>
-          )}
-          {requestCopy.isError && (
-            <p role="alert" className="mt-2 text-sm text-[#B42318]">
-              {requestCopy.error instanceof Error ? requestCopy.error.message : 'Could not request the e-copy.'}
-            </p>
-          )}
-          <p className="mt-2 text-sm text-[#4B6382]">
-            <Link href="/portal/requests/my" className="font-semibold text-[#0067B3] hover:underline">
-              View e-copy requests and approved downloads
-            </Link>
-          </p>
-        </div>
+      {requestCopy.isError && (
+        <p role="alert" className="mt-3 text-sm text-[#B42318]">
+          {requestCopy.error instanceof Error ? requestCopy.error.message : 'Could not request the e-copy.'}
+        </p>
       )}
 
       {document.lifecycle === 'FINALIZED' && showEcopyHistory && (
-        <DocumentEcopyRequestHistory documentId={document.document_id} />
+        <DocumentEcopyRequestHistory documentId={document.document_id} showDeliveryError={role === 'lawyer'} />
       )}
 
       {signedCopy && <dialog
@@ -897,9 +899,10 @@ export function DocumentWorkspace({
     retry: false,
     refetchInterval: 15_000,
   });
-  const commentsKey = ['portal-document-comments', document.document_id];
+  const commentsKey = draftCommentsQueryKey(document.document_id);
   const commentsQuery = useQuery({ queryKey: commentsKey, queryFn: () => listDraftComments(document.document_id), enabled: (isDrafting || activeTab === 'Comments') && Boolean(document.draft_url), retry: false, refetchInterval: 15_000 });
-  const syncComments = useMutation({ mutationFn: () => syncDraftComments(document.document_id), onSuccess: (comments) => queryClient.setQueryData(commentsKey, comments) });
+  const syncDraftCommentsNow = useDraftCommentSync(document.document_id, document.lifecycle === 'PREPARING' && Boolean(document.draft_url) && (activeTab === 'Overview' || activeTab === 'Comments'));
+  const syncComments = useMutation({ mutationFn: syncDraftCommentsNow });
   const unresolvedCommentCount = commentsQuery.data?.unresolved;
   const suggestionsReviewed = reviewedSuggestionsFor === document.document_id;
   const readinessBlocked = commentsQuery.isLoading || commentsQuery.isError || syncComments.isPending || syncComments.isError || unresolvedCommentCount !== 0 || !suggestionsReviewed;
@@ -1654,9 +1657,9 @@ export function DocumentWorkspace({
         <section aria-label="Next action" className="rounded-[18px] border border-[#E8F0F8] bg-white p-5 shadow-sm sm:p-6">
           <div className="flex flex-wrap items-center justify-between gap-4">
             {needsSignedPdfReview ? <div><h3 className="text-sm font-bold text-[#0C2B49]">Review signed PDF</h3><p className="mt-1 text-sm leading-5 text-[#4B6382]">Check the signed PDF before continuing to text and risk review.</p></div> : showWorkflowStatus && <FinalizationNextStep document={document} role={role} outcomeUnknown={finalizationOutcomeUnknown} />}
-            {needsSignedPdfReview ? <button type="button" onClick={continueToTextReview} className="min-h-11 rounded-full bg-[#0067B3] px-5 py-2 text-sm font-extrabold text-white hover:bg-[#00528F] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]">Continue to text review</button> : workflowActions}
+            {needsSignedPdfReview ? <Link href={`/portal/documents/${encodeURIComponent(document.document_id)}/review`} onClick={continueToTextReview} className="inline-flex min-h-11 items-center rounded-full bg-[#0067B3] px-5 py-2 text-sm font-extrabold text-white hover:bg-[#00528F] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0067B3]">Continue to text review</Link> : workflowActions}
           </div>
-          {showWorkflowStatus && isProcessing && !finalizationOutcomeUnknown && <div role="progressbar" aria-label="Document processing" aria-valuetext={status === 'QUEUED' ? 'Waiting to start' : status === 'ENRICHING' ? 'Analyzing document' : 'Extracting text'} className="mt-4 h-2 overflow-hidden rounded-full bg-[#E8F0F8]">
+          {showWorkflowStatus && isProcessing && !finalizationOutcomeUnknown && <div role="progressbar" aria-label="Document processing" aria-valuetext={status === 'QUEUED' ? 'Waiting to start' : status === 'ENRICHING' ? 'Analyzing document' : 'Reading your PDF'} className="mt-4 h-2 overflow-hidden rounded-full bg-[#E8F0F8]">
             <div className="document-processing-indeterminate h-full w-2/5 rounded-full bg-[#0067B3] motion-reduce:animate-none" />
           </div>}
         </section>

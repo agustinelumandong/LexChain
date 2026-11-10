@@ -6,7 +6,7 @@ import type { ApiSchema } from '@/shared/types';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import ReviewPage from '@/features/documents/pages/documents-id-review-page';
 
-const extractionMocks = vi.hoisted(() => ({ analyze: vi.fn(), approve: vi.fn(), get: vi.fn(), save: vi.fn() }));
+const extractionMocks = vi.hoisted(() => ({ approve: vi.fn(), get: vi.fn(), save: vi.fn() }));
 const navigationMocks = vi.hoisted(() => ({ replace: vi.fn() }));
 const workspaceMocks = vi.hoisted(() => ({
   props: null as null | {
@@ -19,7 +19,6 @@ const workspaceMocks = vi.hoisted(() => ({
 
 vi.mock('next/navigation', () => ({ useRouter: () => ({ replace: navigationMocks.replace }) }));
 vi.mock('@/features/documents/extraction-api', () => ({
-  analyzeExtraction: extractionMocks.analyze,
   approveExtraction: extractionMocks.approve,
   getExtractionReview: extractionMocks.get,
   saveExtractionEdits: extractionMocks.save,
@@ -32,7 +31,6 @@ vi.mock('@/features/documents/components/review-workspace', () => ({
     isAnalyzing: boolean;
     isApproving: boolean;
     onSave: (edits: ApiSchema<'BlockEdit'>[]) => Promise<unknown>;
-    onAnalyze: () => Promise<unknown>;
     onApprove: () => Promise<unknown>;
   }) => {
     workspaceMocks.props = props;
@@ -40,7 +38,6 @@ vi.mock('@/features/documents/components/review-workspace', () => ({
       <section aria-label="OCR review workspace">
         {props.actionError && <p role="alert">{props.actionError}</p>}
         <button type="button" onClick={() => void props.onSave([{ index: 2, text: 'Corrected OCR output' }]).catch(() => undefined)}>Save workspace changes</button>
-        <button type="button" onClick={() => void props.onAnalyze().catch(() => undefined)}>Analyze workspace changes</button>
         <button type="button" onClick={() => void props.onApprove().catch(() => undefined)}>Approve workspace changes</button>
       </section>
     );
@@ -82,7 +79,6 @@ beforeEach(() => {
   vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json({ role: 'document_issuer' })));
   extractionMocks.get.mockResolvedValue(review);
   extractionMocks.save.mockResolvedValue(review);
-  extractionMocks.analyze.mockResolvedValue(review);
   extractionMocks.approve.mockResolvedValue(approval);
 });
 afterEach(() => {
@@ -101,7 +97,6 @@ describe('ReviewPage', () => {
     expect(workspaceMocks.props?.review).toBe(review);
     expect(workspaceMocks.props).toMatchObject({
       isSaving: false,
-      isAnalyzing: false,
       isApproving: false,
     });
   });
@@ -145,7 +140,6 @@ describe('ReviewPage', () => {
 
   it.each([
     ['Save workspace changes', 'save', 'isSaving', review],
-    ['Analyze workspace changes', 'analyze', 'isAnalyzing', review],
     ['Approve workspace changes', 'approve', 'isApproving', approval],
   ] as const)('forwards %s pending state to the workspace', async (buttonName, mutation, pendingProp, result) => {
     const operation = deferred<unknown>();
@@ -171,18 +165,6 @@ describe('ReviewPage', () => {
     await waitFor(() => expect(queryClient.getQueryData(['portal-extraction', 'doc-1'])).toEqual(savedReview));
     expect(invalidate).toHaveBeenCalledWith({ queryKey: ['portal-doc', 'doc-1'] });
     expect(invalidate).toHaveBeenCalledWith({ queryKey: ['portal-doc-status', 'doc-1'] });
-    expect(invalidate).not.toHaveBeenCalledWith({ queryKey: ['portal-extraction', 'doc-1'] });
-  });
-
-  it('replaces cached review flags with the analysis response before refreshing document data', async () => {
-    const analyzedReview = { ...review, flags: [], flag_count: 0, high_severity_count: 0 };
-    extractionMocks.analyze.mockResolvedValue(analyzedReview);
-    const { invalidate, queryClient } = renderPage();
-    await screen.findByRole('region', { name: 'OCR review workspace' });
-
-    fireEvent.click(screen.getByRole('button', { name: 'Analyze workspace changes' }));
-
-    await waitFor(() => expect(queryClient.getQueryData(['portal-extraction', 'doc-1'])).toEqual(analyzedReview));
     expect(invalidate).not.toHaveBeenCalledWith({ queryKey: ['portal-extraction', 'doc-1'] });
   });
 

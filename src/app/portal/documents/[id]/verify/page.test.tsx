@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { focusManager, QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'sonner';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { PortalRoleProvider } from '@/features/access/components/portal-role-provider';
@@ -38,6 +38,7 @@ function renderPage(roleHint = 'lawyer', cachedDocument?: Record<string, unknown
 
 afterEach(() => {
   cleanup();
+  focusManager.setFocused(undefined);
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
   vi.unstubAllEnvs();
@@ -105,6 +106,24 @@ describe('DocumentVerifyPage', () => {
     vi.stubGlobal('fetch', () => new Promise(() => undefined));
     renderPage();
     expect(screen.getByRole('status', { name: 'Checking the document' })).toBeTruthy();
+  });
+
+  it('keeps the result on screen without re-checking when the tab regains focus', async () => {
+    const fetchMock = stubPageApi([verification('AUTHENTIC', true, true)]);
+    const verifyRequests = () => fetchMock.mock.calls.filter(([url]) => String(url).includes(encodeURIComponent('/documents/doc-1/verify'))).length;
+    renderPage();
+    expect(await screen.findByText('PDF unchanged')).toBeTruthy();
+    expect(verifyRequests()).toBe(1);
+
+    await act(async () => {
+      focusManager.setFocused(false);
+      focusManager.setFocused(true);
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+
+    expect(verifyRequests()).toBe(1);
+    expect(screen.queryByRole('status', { name: 'Checking the document' })).toBeNull();
+    expect(screen.getByText('PDF unchanged')).toBeTruthy();
   });
 
   it('shows restore for a trusted tampered document when a lawyer owns a finalized anchored record', async () => {
@@ -209,8 +228,8 @@ describe('DocumentVerifyPage', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Restore from backup' }));
 
     expect(screen.getByRole('dialog', { name: 'Restore archived original' })).toBeTruthy();
-    expect(screen.getByText(/check and repair the file and record/i)).toBeTruthy();
-    expect(screen.getByText(/kept in signed-copy history if the backend can read it/i)).toBeTruthy();
+    expect(screen.getByText(/Restore this document from its original copy/i)).toBeTruthy();
+    expect(screen.getByText(/stays in signed-copy history if it can still be read/i)).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
 
     expect(screen.queryByRole('dialog', { name: 'Restore archived original' })).toBeNull();
@@ -275,7 +294,7 @@ describe('DocumentVerifyPage', () => {
     const result = await screen.findByRole('region', { name: 'Restore result' });
     expect(within(result).getByText('Repaired: Document number')).toBeTruthy();
     expect(within(result).getByRole('heading', { name: 'Repair needs attention' })).toBeTruthy();
-    expect(within(result).getByRole('alert').textContent).toContain('snapshot.signed_copy_id');
+    expect(within(result).getByRole('alert').textContent).toBe('Needs manual recovery: Signed copy ID');
   });
 
   it('prevents duplicate restore requests while the backend request is pending', async () => {

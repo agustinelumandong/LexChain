@@ -163,6 +163,11 @@ input::-ms-clear {
   background: #6f879e;
 }
 
+@keyframes pdf-block-reveal {
+  0%, 100% { opacity: 0; }
+  50% { opacity: 1; }
+}
+
 @keyframes document-processing-progress {
   from { transform: translateX(-100%); }
   to { transform: translateX(250%); }

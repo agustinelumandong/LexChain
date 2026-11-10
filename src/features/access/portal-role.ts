@@ -21,7 +21,7 @@ export function isSupportedPortalUiRole(role: PortalUiRole): boolean {
 export function getPortalRoleLabel(role?: string): string {
   const uiRole = getPortalUiRole(role);
   if (uiRole === "lawyer") return "Lawyer";
-  if (uiRole === "user") return "User";
+  if (uiRole === "user") return "Client";
   return "Unsupported role";
 }
 

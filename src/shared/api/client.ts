@@ -1,4 +1,5 @@
 import { parsePortalApiError } from './portal-error';
+import { buildSessionExpiredLoginUrl } from '@/shared/utils/login-return';
 
 let unauthorizedRecovery: Promise<void> | undefined;
 
@@ -6,7 +7,7 @@ function recoverUnauthorizedSession(): Promise<void> {
   if (!unauthorizedRecovery) {
     unauthorizedRecovery = fetch('/api/portal/logout', { method: 'POST', credentials: 'same-origin' })
       .catch(() => undefined)
-      .then(() => { window.location.replace('/login'); });
+      .then(() => { window.location.replace(buildSessionExpiredLoginUrl(window.location.pathname, window.location.search)); });
   }
   return unauthorizedRecovery;
 }

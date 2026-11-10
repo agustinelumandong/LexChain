@@ -10,6 +10,7 @@ import { Button } from '@/shared/components/ui/button';
 import { Card } from '@/shared/components/ui/card';
 import { Input } from '@/shared/components/ui/input';
 import { EmptyState } from '@/shared/components/ui';
+import { PageLoadingSkeleton } from '@/shared/components/ui/page-loading-skeleton';
 import SearchOffOutlinedIcon from '@mui/icons-material/SearchOffOutlined';
 import MenuBookOutlinedIcon from '@mui/icons-material/MenuBookOutlined';
 import {
@@ -44,6 +45,7 @@ export default function SearchPage({
     queryKey: ['portal-search', query],
     queryFn: () => searchPortalDocuments(query),
     enabled: mode === 'text' && query.trim().length > 0,
+    refetchOnWindowFocus: false,
   });
   const registerLookup = useMutation({ mutationFn: searchDocumentsByRegisterReference });
 
@@ -95,12 +97,7 @@ export default function SearchPage({
             </div>
           )}
 
-          {(isLoading || isFetching) && (
-            <div role="status" className="flex flex-col gap-3" aria-label="Searching document text">
-              {[0, 1, 2].map((index) => <div key={index} className="h-20 animate-pulse rounded-[18px] border border-[#E8F0F8] bg-white" />)}
-              <span className="sr-only">Searching document text…</span>
-            </div>
-          )}
+          {(isLoading || isFetching) && <PageLoadingSkeleton label="Searching document text…" showHeader={false} />}
 
           {isError && <p role="alert" className="text-sm font-bold text-red-700">Search failed. Please try again.</p>}
 

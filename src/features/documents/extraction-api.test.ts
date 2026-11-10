@@ -1,7 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { ApiSchema } from '@/shared/types/index';
 import {
-  analyzeExtraction,
   approveExtraction,
   getExtractionReview,
   saveExtractionEdits,
@@ -33,18 +32,6 @@ describe('extraction review client', () => {
     expect(fetchMock).toHaveBeenCalledWith(
       '/api/portal/proxy-post?path=%2Fdocuments%2Fdoc-1%2Fextraction',
       expect.objectContaining({ method: 'PATCH', body: JSON.stringify({ edits: [{ index: 2, text: 'Corrected' }] }) }),
-    );
-  });
-
-  it('analyzes an extraction through the mutation proxy', async () => {
-    const fetchMock = vi.fn().mockResolvedValue(Response.json({ document_id: 'doc-1' }));
-    vi.stubGlobal('fetch', fetchMock);
-
-    await analyzeExtraction('doc-1');
-
-    expect(fetchMock).toHaveBeenCalledWith(
-      `/api/portal/proxy-post?path=${encodeURIComponent('/documents/doc-1/extraction/analyze')}`,
-      expect.objectContaining({ method: 'POST' }),
     );
   });
 

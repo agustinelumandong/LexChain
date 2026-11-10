@@ -33,7 +33,7 @@ async function fetchGoogleConnection(): Promise<GoogleConnectionStatus> {
   if (!response.ok) throw new Error('Unable to check Google connection.');
   const body: unknown = await response.json().catch(() => null);
   if (typeof body !== 'object' || body === null || !('connected' in body) || typeof body.connected !== 'boolean') {
-    throw new Error('The backend returned an invalid Google connection status.');
+    throw new Error('LexChain received an invalid Google connection status.');
   }
 
   return {
@@ -50,7 +50,7 @@ async function startGoogleConnection(): Promise<string> {
   if (!response.ok) throw new Error('Could not start Google connection. Try again.');
   const body: unknown = await response.json().catch(() => null);
   if (typeof body !== 'object' || body === null || !('authorization_url' in body) || typeof body.authorization_url !== 'string') {
-    throw new Error('The backend returned an invalid Google authorization URL.');
+    throw new Error('LexChain received an invalid Google authorization URL.');
   }
 
   try {
@@ -61,7 +61,7 @@ async function startGoogleConnection(): Promise<string> {
   } catch {
     // Show an invalid backend response as a retryable connection error.
   }
-  throw new Error('The backend returned an invalid Google authorization URL.');
+  throw new Error('LexChain received an invalid Google authorization URL.');
 }
 
 async function disconnectGoogleConnection(): Promise<void> {
@@ -247,9 +247,9 @@ export default function AccountPage({ google, message, documentReturn = false }:
           </div>
         ) : rows.map(([label, value]) => (
           <div key={label} className="px-5 py-4">
-            <span className="text-[11px] font-bold uppercase tracking-wide text-[#5B6F8A]">{label}</span>
+            <span className="text-xs font-bold uppercase tracking-wide text-[#5B6F8A]">{label}</span>
             {isLoading ? (
-              <div className="mt-2 h-4 w-40 animate-pulse rounded bg-[#F5FAFF]" />
+              <div className="mt-2 h-4 w-40 rounded bg-[var(--border-soft)] motion-safe:animate-pulse" />
             ) : (
               <p className="mt-1 text-sm font-bold capitalize text-[#0C2B49]">{value}</p>
             )}

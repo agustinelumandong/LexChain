@@ -17,6 +17,11 @@ afterEach(() => {
 });
 
 describe('VerificationPage', () => {
+  it('points people to the per-document check', () => {
+    render(<VerificationPage />);
+    expect(screen.getByRole('link', { name: 'Documents' }).getAttribute('href')).toBe('/portal/documents');
+  });
+
   it.each([
     ['AUTHENTIC', true, true, 'Match'],
     ['TAMPERED', false, true, 'Mismatch'],

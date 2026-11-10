@@ -227,8 +227,8 @@ describe("UsersManagementView demo mutations", () => {
     ]);
 
     expect(within(rowFor("maria@example.com")).getByText("Lawyer")).toBeTruthy();
-    expect(within(rowFor("juan@example.com")).getByText("User")).toBeTruthy();
-    expect(within(rowFor("legacy-user@example.com")).getByText("User")).toBeTruthy();
+    expect(within(rowFor("juan@example.com")).getByText("Client")).toBeTruthy();
+    expect(within(rowFor("legacy-user@example.com")).getByText("Client")).toBeTruthy();
     expect(within(rowFor("legacy-admin@example.com")).getByText("Unsupported role")).toBeTruthy();
     expect(within(rowFor("unknown@example.com")).getByText("Unsupported role")).toBeTruthy();
   });
@@ -249,7 +249,7 @@ describe("UsersManagementView demo mutations", () => {
     expect((screen.getByLabelText("Email") as HTMLInputElement).value).toBe("maria@example.com");
     fireEvent.click(screen.getByRole("combobox", { name: "Role" }));
     expect(screen.getByRole("option", { name: "Lawyer" }).getAttribute("aria-selected")).toBe("true");
-    expect(screen.getByRole("option", { name: "User" })).toBeTruthy();
+    expect(screen.getByRole("option", { name: "Client" })).toBeTruthy();
     expect(screen.getByText("Demo mode — changes reset when this page is refreshed.")).toBeTruthy();
   });
 
@@ -259,12 +259,12 @@ describe("UsersManagementView demo mutations", () => {
 
     fireEvent.change(screen.getByLabelText("First name"), { target: { value: "Mariel" } });
     fireEvent.click(screen.getByRole("combobox", { name: "Role" }));
-    fireEvent.click(screen.getByRole("option", { name: "User" }));
+    fireEvent.click(screen.getByRole("option", { name: "Client" }));
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
 
     const updatedRow = rowFor("maria@example.com");
     expect(within(updatedRow).getByText("Mariel Santos")).toBeTruthy();
-    expect(within(updatedRow).getByText("User")).toBeTruthy();
+    expect(within(updatedRow).getByText("Client")).toBeTruthy();
     expect(successToast).toHaveBeenCalledWith("Demo account updated", expect.anything());
     expect(screen.queryByText(["Backend endpoint", "needed"].join(" "))).toBeNull();
   });

@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { focusManager, QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Suspense } from 'react';
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -29,6 +29,7 @@ async function renderSearch(query: string, mode = 'text') {
 
 afterEach(() => {
   cleanup();
+  focusManager.setFocused(undefined);
   vi.unstubAllGlobals();
   fetchMock.mockReset();
 });
@@ -88,6 +89,22 @@ describe('SearchPage', () => {
     expect(await screen.findByRole('heading', { name: 'Unfiled draft.pdf' })).toBeTruthy();
     expect(screen.getByText(/Document created:/).textContent).toContain('Oct 21, 2026');
     expect(screen.queryByText(/Register reference:/)).toBeNull();
+  });
+
+  it('keeps results on screen without searching again when the tab regains focus', async () => {
+    fetchMock.mockImplementation(() => Promise.resolve(Response.json({ query: 'missing', results: [] })));
+    await renderSearch('missing');
+    expect(await screen.findByText('No results found')).toBeTruthy();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      focusManager.setFocused(false);
+      focusManager.setFocused(true);
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(screen.getByText('No results found')).toBeTruthy();
   });
 
   it('shows no matches separately from a service failure', async () => {

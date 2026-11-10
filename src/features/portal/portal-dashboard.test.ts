@@ -52,8 +52,8 @@ describe("portal dashboard", () => {
 
     expect(navigation.find((group) => group.label === "System Management")?.items.map(({ label, href }) => [label, href])).toEqual([
       ["User Accounts", "/portal/users"],
-      ["Issuer Invitations", "/portal/issuer-invitations"],
     ]);
+    expect(navigation.flatMap((group) => group.items).map((item) => item.href)).not.toContain("/portal/issuer-invitations");
   });
 
   it("hides unavailable office settings and audit logs", () => {

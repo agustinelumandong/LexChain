@@ -71,7 +71,7 @@ export function UserDialogs({
             <Field label="First name"><input className={inputClassName} value={userDraft.f_name ?? ""} onChange={(event) => setUserDraft((draft) => ({ ...draft, f_name: event.target.value }))} /></Field>
             <Field label="Last name"><input className={inputClassName} value={userDraft.l_name ?? ""} onChange={(event) => setUserDraft((draft) => ({ ...draft, l_name: event.target.value }))} /></Field>
             <Field label="Email"><input className={inputClassName} value={userDraft.email} onChange={(event) => setUserDraft((draft) => ({ ...draft, email: event.target.value }))} /></Field>
-            <Field label="Role"><Dropdown ariaLabel="Role" fullWidth value={getPortalUiRole(userDraft.role)} onChange={(value) => setUserDraft((draft) => ({ ...draft, role: value }))} options={[{ label: "Lawyer", value: "lawyer" }, { label: "User", value: "user" }]} /></Field>
+            <Field label="Role"><Dropdown ariaLabel="Role" fullWidth value={getPortalUiRole(userDraft.role)} onChange={(value) => setUserDraft((draft) => ({ ...draft, role: value }))} options={[{ label: "Lawyer", value: "lawyer" }, { label: "Client", value: "user" }]} /></Field>
             <p className="text-xs font-semibold text-[#5B6F8A]">Demo mode — changes reset when this page is refreshed.</p>
           </div>
       </MockModal>
@@ -79,7 +79,7 @@ export function UserDialogs({
         open={mode === "suspend"}
         onClose={onClose}
         title={`${selectedUser.statusLabel === "Active" ? "Suspend" : "Reactivate"} ${selectedUser.displayName}?`}
-        description="The account status changes after the admin API confirms the update."
+        description="The account status changes once the update is confirmed."
         footer={
           <div className="flex gap-3">
             <button type="button" onClick={onClose} disabled={statusPending} className="flex-1 rounded-xl border border-[#E4EEF9] px-5 py-3 text-sm font-black text-[#0C2B49] disabled:opacity-50">Cancel</button>

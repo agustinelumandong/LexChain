@@ -5,7 +5,7 @@ const replace = vi.fn();
 beforeEach(() => {
   vi.resetModules();
   replace.mockReset();
-  vi.stubGlobal('window', { location: { replace } });
+  vi.stubGlobal('window', { location: { replace, pathname: '/portal/documents/doc-1', search: '?tab=files' } });
 });
 afterEach(() => vi.unstubAllGlobals());
 
@@ -27,7 +27,7 @@ describe('portalRequest', () => {
       expect(outcome).toMatchObject({ status: 'rejected', reason: { name: 'PortalApiError', status: 401, message: 'Session rejected', details: { reason: 'EXPIRED' } } });
     }
     expect(fetchMock.mock.calls.filter(([url]) => url === '/api/portal/logout')).toHaveLength(1);
-    expect(replace).toHaveBeenCalledExactlyOnceWith('/login');
+    expect(replace).toHaveBeenCalledExactlyOnceWith('/login?reason=session-expired&next=%2Fportal%2Fdocuments%2Fdoc-1%3Ftab%3Dfiles');
   });
 
   it.each(['network', 'http'])('navigates once after %s logout failure without retrying cleanup', async (failure) => {
@@ -40,7 +40,7 @@ describe('portalRequest', () => {
     await expect(portalRequest('/first')).rejects.toMatchObject({ status: 401 });
     await expect(portalRequest('/later')).rejects.toMatchObject({ status: 401 });
     expect(fetchMock.mock.calls.filter(([url]) => url === '/api/portal/logout')).toHaveLength(1);
-    expect(replace).toHaveBeenCalledExactlyOnceWith('/login');
+    expect(replace).toHaveBeenCalledExactlyOnceWith('/login?reason=session-expired&next=%2Fportal%2Fdocuments%2Fdoc-1%3Ftab%3Dfiles');
   });
 
   it.each([403, 404])('preserves %i errors without ending the session', async (status) => {

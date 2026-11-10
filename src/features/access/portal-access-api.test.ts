@@ -60,6 +60,6 @@ describe('access request failures', () => {
     const { searchUserByEmail } = await import('./portal-access-api');
     await expect(searchUserByEmail('person@example.com')).rejects.toMatchObject({ status: 401, message: 'Session rejected' });
     expect(fetchMock).toHaveBeenCalledWith('/api/portal/logout', { method: 'POST', credentials: 'same-origin' });
-    expect(replace).toHaveBeenCalledExactlyOnceWith('/login');
+    expect(replace).toHaveBeenCalledExactlyOnceWith('/login?reason=session-expired');
   });
 });

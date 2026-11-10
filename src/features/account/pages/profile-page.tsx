@@ -63,8 +63,8 @@ export default function ProfilePage() {
         <div className="min-w-0 flex-1">
           {isLoading ? (
             <div className="flex flex-col gap-2">
-              <div className="h-5 w-36 animate-pulse rounded bg-[#F5FAFF]" />
-              <div className="h-4 w-52 animate-pulse rounded bg-[#F5FAFF]" />
+              <div className="h-5 w-36 rounded bg-[var(--border-soft)] motion-safe:animate-pulse" />
+              <div className="h-4 w-52 rounded bg-[var(--border-soft)] motion-safe:animate-pulse" />
             </div>
           ) : (
             <>
@@ -86,7 +86,7 @@ export default function ProfilePage() {
             </div>
             <div className="min-w-0 flex-1">
               <span className="block text-sm font-bold text-[#0C2B49]">{item.label}</span>
-              <span className="text-[11px] text-[#5B6F8A]">{item.description}</span>
+              <span className="text-xs text-[#5B6F8A]">{item.description}</span>
             </div>
             <ChevronRightIcon sx={{ fontSize: 18, color: '#5B6F8A' }} />
           </Link>

@@ -130,7 +130,7 @@ export default function PortalChatbot({ documentId }: { documentId: string }) {
                       loading ? 'bg-amber-400 animate-ping' : 'bg-emerald-500 animate-pulse'
                     }`}
                   />
-                  <span className="text-[11px] font-semibold text-[#5B6F8A]">
+                  <span className="text-xs font-semibold text-[#5B6F8A]">
                     {loading ? 'Analyzing document…' : 'Document Assistant • Active'}
                   </span>
                 </div>
@@ -185,7 +185,7 @@ export default function PortalChatbot({ documentId }: { documentId: string }) {
                 >
                   <p className="whitespace-pre-wrap leading-relaxed">{message.text}</p>
                   <div
-                    className={`mt-1 flex items-center justify-end text-[10px] font-medium ${
+                    className={`mt-1 flex items-center justify-end text-xs font-medium ${
                       message.from === 'user' ? 'text-blue-100' : 'text-[#879BB0]'
                     }`}
                   >
@@ -215,7 +215,7 @@ export default function PortalChatbot({ documentId }: { documentId: string }) {
 
             {messages.length <= 1 && (
               <div className="pt-2">
-                <p className="text-[11px] font-bold uppercase tracking-wider text-[#5B6F8A]">
+                <p className="text-xs font-bold uppercase tracking-wider text-[#5B6F8A]">
                   Suggested questions
                 </p>
                 <div className="mt-2 flex flex-col gap-1.5">
@@ -237,7 +237,7 @@ export default function PortalChatbot({ documentId }: { documentId: string }) {
 
           {/* Footer Input Area */}
           <div className="space-y-2 border-t border-[#E8F0F8] bg-white p-3.5">
-            <p className="text-[11px] leading-4 text-[#5B6F8A]">
+            <p className="text-xs leading-4 text-[#5B6F8A]">
               AI-generated help. Check the original PDF before relying on an answer.
             </p>
             <div className="flex items-center gap-2 rounded-full border border-[#DCE8F6] bg-[#F8FAFD] p-1.5 transition-colors focus-within:border-[#0067B3] focus-within:bg-white focus-within:ring-2 focus-within:ring-[#0067B3]/20">

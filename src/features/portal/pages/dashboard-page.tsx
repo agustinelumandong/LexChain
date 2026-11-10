@@ -21,6 +21,7 @@ import { usePortalRole } from "@/features/access/components";
 import { portalRequest } from '@/shared/api/client';
 import { PortalApiError } from '@/shared/api/portal-error';
 import { EmptyState } from '@/shared/components/ui';
+import { LoadingPulse } from '@/shared/components/ui/loading-pulse';
 import TaskAltOutlinedIcon from '@mui/icons-material/TaskAltOutlined';
 import SyncOutlinedIcon from '@mui/icons-material/SyncOutlined';
 import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined';
@@ -132,7 +133,7 @@ export default function DashboardPage() {
       )}
 
       {adminMetrics == null && adminDashboardQuery.isLoading ? (
-        <div role="status" aria-label="Loading dashboard metrics" className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3">{Array.from({ length: 6 }, (_, i) => <div key={i} className={`${cardClass} h-24 animate-pulse sm:h-28`} />)}</div>
+        <div role="status" aria-label="Loading dashboard metrics" className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3">{Array.from({ length: 6 }, (_, i) => <LoadingPulse key={i} className="h-24 sm:h-28" />)}</div>
       ) : (
         <>
           {adminDashboardQuery.isError ? (
@@ -232,7 +233,7 @@ function DocumentLink({ document }: { document: Document }) {
           </span>
         )}
       </div>
-      <p className="mt-1 text-[11px] font-bold text-[#5B6F8A]">{formatDate(document.created_at)}</p>
+      <p className="mt-1 text-xs font-bold text-[#5B6F8A]">{formatDate(document.created_at)}</p>
     </div>
     <ChevronRightIcon sx={{ fontSize: 20, color: '#5B6F8A' }} />
   </Link>;

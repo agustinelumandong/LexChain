@@ -11,7 +11,7 @@ export async function GET(request: Request) {
   try {
     upstream = await adminFetch("/admin/dashboard", token);
   } catch {
-    return Response.json({ message: "Unable to reach the API." }, { status: 502 });
+    return Response.json({ message: "Could not connect to LexChain. Please try again." }, { status: 502 });
   }
 
   const payload = await upstream.json().catch(() => null);

@@ -168,12 +168,12 @@ function RegisterPageContent() {
         <form className="mt-6 space-y-3.5" onSubmit={onSubmit} noValidate>
           <div className="grid grid-cols-2 gap-3">
             <label className="block">
-              <span className="text-[13px] font-black text-[#0C2B49]">First Name</span>
+              <span className="text-sm font-black text-[#0C2B49]">First Name</span>
               <input {...register("firstName")} placeholder="John" className={inputClass} aria-invalid={errors.firstName ? "true" : undefined} aria-describedby={errors.firstName ? "first-name-error" : undefined} />
               {errors.firstName && <p id="first-name-error" className="text-xs text-red-700 mt-1">{errors.firstName.message}</p>}
             </label>
             <label className="block">
-              <span className="text-[13px] font-black text-[#0C2B49]">Last Name</span>
+              <span className="text-sm font-black text-[#0C2B49]">Last Name</span>
               <input {...register("lastName")} placeholder="Doe" className={inputClass} aria-invalid={errors.lastName ? "true" : undefined} aria-describedby={errors.lastName ? "last-name-error" : undefined} />
               {errors.lastName && <p id="last-name-error" className="text-xs text-red-700 mt-1">{errors.lastName.message}</p>}
             </label>
@@ -181,7 +181,7 @@ function RegisterPageContent() {
 
           <div>
             <label className="block">
-              <span className="text-[13px] font-black text-[#0C2B49]">Email</span>
+              <span className="text-sm font-black text-[#0C2B49]">Email</span>
               <input
                 {...register("email")}
                 type="email"
@@ -205,7 +205,7 @@ function RegisterPageContent() {
           </div>
 
           <div>
-            <label htmlFor="register-password" className="block text-[13px] font-black text-[#0C2B49]">Password</label>
+            <label htmlFor="register-password" className="block text-sm font-black text-[#0C2B49]">Password</label>
             <span id="password-help" className="block text-xs font-medium text-[#5B6F8A]">At least 8 characters, with uppercase, lowercase, and a number.</span>
             <div className="relative mt-2">
               <input
@@ -233,7 +233,7 @@ function RegisterPageContent() {
           </div>
 
           <div>
-            <label htmlFor="register-confirm-password" className="block text-[13px] font-black text-[#0C2B49]">Confirm Password</label>
+            <label htmlFor="register-confirm-password" className="block text-sm font-black text-[#0C2B49]">Confirm Password</label>
             <div className="relative mt-2">
               <input
                 id="register-confirm-password"

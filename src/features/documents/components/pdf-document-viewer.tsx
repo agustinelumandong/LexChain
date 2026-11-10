@@ -18,6 +18,7 @@ export type PdfDocumentViewerProps = {
   blocks: ApiSchema<'ExtractionBlock'>[];
   selectedBlockIndex: number | null;
   hoveredBlockIndex: number | null;
+  revealRequest?: { blockIndex: number; id: number } | null;
   tamperedBlockIndexes?: ReadonlySet<number>;
   onPageChange: (pageIndex: number) => void;
   onSelectBlock: (blockIndex: number) => void;
@@ -185,6 +186,25 @@ export function normalizedBoxStyle(bbox?: number[] | null): CSSProperties | unde
   };
 }
 
+function scrollOverlayIntoView(wrapper: HTMLElement, overlay: HTMLElement) {
+  // A hidden pane (phone layout) measures zero and has nothing to scroll.
+  if (wrapper.clientHeight <= 0) return;
+
+  const wrapperRect = wrapper.getBoundingClientRect();
+  const overlayRect = overlay.getBoundingClientRect();
+  const isInView = overlayRect.top >= wrapperRect.top
+    && overlayRect.bottom <= wrapperRect.top + wrapper.clientHeight
+    && overlayRect.left >= wrapperRect.left
+    && overlayRect.right <= wrapperRect.left + wrapper.clientWidth;
+  if (isInView) return;
+
+  wrapper.scrollTo({
+    behavior: window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+    left: Math.max(0, overlayRect.left - wrapperRect.left + wrapper.scrollLeft + overlayRect.width / 2 - wrapper.clientWidth / 2),
+    top: Math.max(0, overlayRect.top - wrapperRect.top + wrapper.scrollTop + overlayRect.height / 2 - wrapper.clientHeight / 2),
+  });
+}
+
 export default function PdfDocumentViewer({
   sourceUrl,
   watermarkText,
@@ -194,6 +214,7 @@ export default function PdfDocumentViewer({
   blocks,
   selectedBlockIndex,
   hoveredBlockIndex,
+  revealRequest,
   tamperedBlockIndexes,
   onPageChange,
   onSelectBlock,
@@ -204,6 +225,7 @@ export default function PdfDocumentViewer({
   const wrapperRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const panStart = useRef<PanStart | null>(null);
+  const handledRevealRequest = useRef<PdfDocumentViewerProps['revealRequest']>(null);
   const [availableWidth, setAvailableWidth] = useState(0);
   const [zoom, setZoom] = useState(DEFAULT_ZOOM);
   const [isPanning, setIsPanning] = useState(false);
@@ -354,6 +376,24 @@ export default function PdfDocumentViewer({
     };
   }, [availableWidth, currentPage, pdf, renderKey, zoom]);
 
+  useEffect(() => {
+    // Waits for the page to render so a block on another page is measured at its final position.
+    if (!revealRequest || renderedKey !== renderKey || handledRevealRequest.current === revealRequest) return;
+    handledRevealRequest.current = revealRequest;
+
+    const wrapper = wrapperRef.current;
+    const overlay = wrapper?.querySelector<HTMLElement>(`[data-block-overlay="${revealRequest.blockIndex}"]`);
+    if (wrapper && overlay) scrollOverlayIntoView(wrapper, overlay);
+  }, [renderKey, renderedKey, revealRequest]);
+
+  const pdfRevealPulse = (blockIndex: number) => revealRequest?.blockIndex === blockIndex && (
+    <span
+      key={revealRequest.id}
+      aria-hidden="true"
+      className="pointer-events-none absolute -inset-1.5 block rounded-sm opacity-0 ring-4 ring-blue-600/70 motion-safe:animate-[pdf-block-reveal_0.7s_ease-in-out_3]"
+    />
+  );
+
   const pageBlocks = blocks.flatMap((block) => {
     if (block.page_idx !== currentPage) return [];
     const style = normalizedBoxStyle(block.bbox);
@@ -485,19 +525,24 @@ export default function PdfDocumentViewer({
               {watermarkText && <div aria-hidden="true" className="pointer-events-none absolute inset-0 grid place-items-center overflow-hidden">
                 <span className="select-none -rotate-[35deg] whitespace-nowrap text-[clamp(1.75rem,7vw,4.5rem)] font-black tracking-[0.12em] text-[#0C2B49]/15">{watermarkText}</span>
               </div>}
-              {pageBlocks.map(({ block, style }, pageBlockIndex) => block.editable !== false ? (
+              {pageBlocks.map(({ block, style }, pageBlockIndex) => block.editable !== false || tamperedBlockIndexes?.has(block.index) ? (
               <button
                 key={`${block.index}-${pageBlockIndex}`}
                 type="button"
-                aria-label={`Select block ${block.index}`}
-                className={`absolute bg-transparent ${
+                aria-label={block.editable === false
+                  ? block.index < 0 ? `Changed region ${Math.abs(block.index)}` : `Changed block ${block.index}`
+                  : `Select block ${block.index}`}
+                data-block-overlay={block.index}
+                className={`absolute ${
                   tamperedBlockIndexes?.has(block.index)
-                    ? 'border-2 border-[#B42318] bg-[#B42318]/20'
+                    ? selectedBlockIndex === block.index
+                      ? 'z-10 border-2 border-[#B42318] bg-[#B42318]/35 ring-2 ring-[#B42318]/50'
+                      : 'border-2 border-[#B42318] bg-[#B42318]/20'
                     : selectedBlockIndex === block.index
-                    ? 'border-2 border-blue-700 bg-blue-100/20'
+                    ? 'border-2 border-blue-700 bg-blue-500/20'
                     : hoveredBlockIndex === block.index
-                      ? 'border-2 border-sky-500 bg-sky-100/30'
-                      : 'border border-blue-400'
+                      ? 'border-2 border-sky-500 bg-sky-400/30'
+                      : 'border border-blue-400/30 bg-blue-400/2'
                 }`}
                 style={style}
                 onClick={() => onSelectBlock(block.index)}
@@ -505,23 +550,24 @@ export default function PdfDocumentViewer({
                 onMouseLeave={() => onHoverBlockChange(null)}
                 onFocus={() => onHoverBlockChange(block.index)}
                 onBlur={() => onHoverBlockChange(null)}
-              />
+              >
+                {pdfRevealPulse(block.index)}
+              </button>
             ) : (
               <div
                 key={`${block.index}-${pageBlockIndex}`}
                 role="region"
-                aria-label={`${tamperedBlockIndexes?.has(block.index)
-                  ? block.index < 0 ? `Changed region ${Math.abs(block.index)}` : `Changed block ${block.index}`
-                  : `Non-editable block ${block.index}`}`}
-                className={`absolute ${tamperedBlockIndexes?.has(block.index)
-                  ? 'border-2 border-[#B42318] bg-[#B42318]/20'
-                  : hoveredBlockIndex === block.index
-                    ? 'border-2 border-amber-600 bg-amber-100/30'
-                    : 'border border-dashed border-amber-500'}`}
+                data-block-overlay={block.index}
+                aria-label={`Non-editable block ${block.index}`}
+                className={`absolute ${hoveredBlockIndex === block.index
+                  ? 'border-2 border-amber-600 bg-amber-400/35'
+                  : 'border border-dashed border-amber-500 bg-amber-300/10'}`}
                 style={style}
                 onMouseEnter={() => onHoverBlockChange(block.index)}
                 onMouseLeave={() => onHoverBlockChange(null)}
-              />
+              >
+                {pdfRevealPulse(block.index)}
+              </div>
               ))}
             </div>
           </div>

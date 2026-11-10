@@ -31,9 +31,9 @@ function request(overrides: Partial<ApiSchema<'EcopyRequestResponse'>> = {}): Ap
   };
 }
 
-function renderHistory() {
+function renderHistory(showDeliveryError = false) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  return render(<QueryClientProvider client={client}><DocumentEcopyRequestHistory documentId="doc-101" /></QueryClientProvider>);
+  return render(<QueryClientProvider client={client}><DocumentEcopyRequestHistory documentId="doc-101" showDeliveryError={showDeliveryError} /></QueryClientProvider>);
 }
 
 describe('DocumentEcopyRequestHistory', () => {
@@ -53,7 +53,7 @@ describe('DocumentEcopyRequestHistory', () => {
       total: 3,
     });
 
-    renderHistory();
+    renderHistory(true);
 
     const history = await screen.findByRole('region', { name: 'E-copy request history' });
     await within(history).findByText(/Taylor Client/);
@@ -66,6 +66,15 @@ describe('DocumentEcopyRequestHistory', () => {
     expect(within(history).getByText('Delivery error: provider_error')).toBeTruthy();
     expect(within(history).getAllByText(/^Requested /)).toHaveLength(3);
     expect(portalFetch).toHaveBeenCalledWith('/documents/doc-101/ecopy-requests');
+  });
+
+  it('hides raw delivery errors unless they are requested', async () => {
+    vi.mocked(portalFetch).mockResolvedValue({ requests: [request({ status: 'APPROVED', delivery_status: 'FAILED', delivery_error: 'provider_error' })], total: 1 });
+
+    renderHistory();
+
+    expect(await screen.findByText('Email delivery: Failed')).toBeTruthy();
+    expect(screen.queryByText(/provider_error/)).toBeNull();
   });
 
   it('renders a party-scoped response as supplied by the backend', async () => {

@@ -63,8 +63,22 @@ function renderViewer(overrides: Partial<React.ComponentProps<typeof PdfDocument
     ...overrides,
   };
 
-  render(<PdfDocumentViewer {...props} />);
-  return props;
+  const { rerender } = render(<PdfDocumentViewer {...props} />);
+  return { ...props, rerender };
+}
+
+async function renderMeasuredViewer(overlayRect: Partial<DOMRect>) {
+  const { rerender, ...props } = renderViewer();
+  const overlay = await screen.findByRole('button', { name: 'Select block 4' });
+  const wrapper = screen.getByLabelText('PDF page');
+  const scrollTo = vi.fn();
+  wrapper.scrollTo = scrollTo;
+  wrapper.scrollTop = 50;
+  Object.defineProperty(wrapper, 'clientHeight', { value: 400 });
+  Object.defineProperty(wrapper, 'clientWidth', { value: 300 });
+  wrapper.getBoundingClientRect = () => ({ top: 100, bottom: 500, left: 10, right: 310, width: 300, height: 400 }) as DOMRect;
+  overlay.getBoundingClientRect = () => overlayRect as DOMRect;
+  return { overlay, props, rerender, scrollTo };
 }
 
 beforeEach(() => {
@@ -175,14 +189,41 @@ describe('PdfDocumentViewer', () => {
     const { onHoverBlockChange } = renderViewer();
     const overlay = await screen.findByRole('button', { name: 'Select block 4' });
 
-    expect(overlay.className).toContain('border border-blue-400');
+    expect(overlay.className).toContain('border border-blue-400/30 bg-blue-400/2');
+    expect(overlay.className).not.toContain('bg-transparent');
     fireEvent.mouseEnter(overlay);
     expect(onHoverBlockChange).toHaveBeenCalledWith(4);
     fireEvent.mouseLeave(overlay);
     expect(onHoverBlockChange).toHaveBeenLastCalledWith(null);
 
     renderViewer({ selectedBlockIndex: 4, hoveredBlockIndex: 4 });
-    expect((await screen.findAllByRole('button', { name: 'Select block 4' }))[1].className).toContain('border-2 border-blue-700');
+    expect((await screen.findAllByRole('button', { name: 'Select block 4' }))[1].className).toContain('border-2 border-blue-700 bg-blue-500/20');
+  });
+
+  it('centers an off-screen revealed block once, and pulses it', async () => {
+    const { overlay, props, rerender, scrollTo } = await renderMeasuredViewer({ top: 900, bottom: 1000, left: 20, right: 120, width: 100, height: 100 });
+    const revealRequest = { blockIndex: 4, id: 1 };
+
+    rerender(<PdfDocumentViewer {...props} revealRequest={revealRequest} />);
+
+    await waitFor(() => expect(scrollTo).toHaveBeenCalledWith({ behavior: 'smooth', left: 0, top: 700 }));
+    expect(overlay.firstElementChild?.className).toContain('pdf-block-reveal');
+
+    rerender(<PdfDocumentViewer {...props} revealRequest={revealRequest} hoveredBlockIndex={4} />);
+    expect(scrollTo).toHaveBeenCalledTimes(1);
+
+    rerender(<PdfDocumentViewer {...props} revealRequest={{ blockIndex: 4, id: 2 }} />);
+    await waitFor(() => expect(scrollTo).toHaveBeenCalledTimes(2));
+  });
+
+  it('pulses a visible revealed block without scrolling', async () => {
+    const { overlay, props, rerender, scrollTo } = await renderMeasuredViewer({ top: 150, bottom: 250, left: 20, right: 120, width: 100, height: 100 });
+
+    rerender(<PdfDocumentViewer {...props} revealRequest={{ blockIndex: 4, id: 1 }} />);
+
+    await waitFor(() => expect(overlay.firstElementChild?.className).toContain('pdf-block-reveal'));
+    await waitFor(() => expect(screen.queryByRole('status')).toBeNull());
+    expect(scrollTo).not.toHaveBeenCalled();
   });
 
   it('marks tampered blocks with the existing red overlay', async () => {
@@ -192,18 +233,22 @@ describe('PdfDocumentViewer', () => {
       .toContain('border-2 border-[#B42318]');
   });
 
-  it('marks read-only tampered blocks with a red, non-interactive region', async () => {
-    renderViewer({ blocks: [{ ...blocks[0], editable: false }], tamperedBlockIndexes: new Set([4]) });
+  it('lets a read-only tampered block be selected and emphasizes it when selected', async () => {
+    const { onSelectBlock } = renderViewer({ blocks: [{ ...blocks[0], editable: false }], selectedBlockIndex: 4, tamperedBlockIndexes: new Set([4]) });
 
-    const overlay = await screen.findByRole('region', { name: 'Changed block 4' });
+    const overlay = await screen.findByRole('button', { name: 'Changed block 4' });
     expect(overlay.className).toContain('border-2 border-[#B42318]');
+    expect(overlay.className).toContain('bg-[#B42318]/35');
     expect(screen.queryByRole('button', { name: 'Select block 4' })).toBeNull();
+
+    fireEvent.click(overlay);
+    expect(onSelectBlock).toHaveBeenCalledWith(4);
   });
 
   it('labels tampered regions without a backend block index as regions', async () => {
     renderViewer({ blocks: [{ ...blocks[0], index: -1, editable: false }], tamperedBlockIndexes: new Set([-1]) });
 
-    expect(await screen.findByRole('region', { name: 'Changed region 1' })).toBeTruthy();
+    expect(await screen.findByRole('button', { name: 'Changed region 1' })).toBeTruthy();
   });
 
   it('cross-highlights editable overlays while keyboard focused', async () => {

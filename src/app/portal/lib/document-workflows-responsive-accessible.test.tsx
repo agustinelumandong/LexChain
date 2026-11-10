@@ -230,7 +230,7 @@ describe('Responsive and Accessible Document Workflows (#175)', () => {
 
       const currentStep = within(nav).getByRole('listitem', { current: 'step' });
       expect(currentStep.textContent).toContain('Current step:');
-      expect(currentStep.textContent).toContain('Draft and review');
+      expect(currentStep.textContent).toContain('Working draft');
 
       const upcomingLabels = within(nav).getAllByText('Upcoming:');
       expect(upcomingLabels.length).toBe(3);
@@ -302,7 +302,8 @@ describe('Responsive and Accessible Document Workflows (#175)', () => {
     it('renders authentic outcome with high-contrast text and plain-language explanation', () => {
       render(createElement(VerifyWorkspace, { result: baseVerification, onRetry: vi.fn(), role: 'lawyer' }));
 
-      expect(screen.getByRole('heading', { level: 2, name: 'PDF unchanged' })).toBeTruthy();
+      expect(screen.getByRole('heading', { level: 2, name: '2 checks need attention' })).toBeTruthy();
+      expect(screen.getByText('PDF unchanged')).toBeTruthy();
       expect(screen.getByText('Its fingerprint matches the blockchain record.')).toBeTruthy();
 
       const copyBtn = screen.getByRole('button', { name: 'Copy On-chain hash' });
